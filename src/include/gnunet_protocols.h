@@ -1452,16 +1452,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE 436
 
 /**
- * Client to service: remove record(s)
- */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE 437
-
-/**
- * Service to client: result of removal request.
- */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE 438
-
-/**
  * Client to service: "reverse" lookup for zone name based on zone key
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME 439

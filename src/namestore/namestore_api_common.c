@@ -96,7 +96,7 @@ GNUNET_NAMESTORE_normalize_string (const char *src)
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc)
+GNUNET_NAMESTORE_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc)
 {
   static struct GNUNET_CRYPTO_ShortHashAsciiEncoded ret;
 

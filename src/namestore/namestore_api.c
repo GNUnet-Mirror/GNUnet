@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -378,71 +378,6 @@ handle_record_create_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE'
- *
- * @param qe the respective entry in the message queue
- * @param msg the message we received
- * @param size the message size
- * @return GNUNET_OK on success, GNUNET_SYSERR on error and we did NOT notify the client
- */
-static int
-handle_record_remove_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
-			       const struct RecordRemoveResponseMessage* msg,
-			       size_t size)
-{
-  int ret;
-  const char *emsg;
-
-  /* Operation done, remove */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s'\n",
-       "RECORD_REMOVE_RESPONSE");
-  switch (ntohl (msg->op_result)) 
-  {
-  case RECORD_REMOVE_RESULT_SUCCESS:
-    ret = GNUNET_OK;
-    emsg = NULL;
-    break;
-  case RECORD_REMOVE_RESULT_NO_RECORDS:
-    ret = GNUNET_NO;
-    emsg = NULL;
-    break;
-  case RECORD_REMOVE_RESULT_RECORD_NOT_FOUND:
-    ret = GNUNET_NO;
-    emsg = NULL;
-    break;
-  case RECORD_REMOVE_RESULT_FAILED_TO_SIGN:
-    ret = GNUNET_SYSERR;
-    emsg = _("Failed to create new signature");
-    break;
-  case RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE:
-    ret = GNUNET_SYSERR;
-    emsg = _("Failed to put new set of records in database");
-    break;
-  case RECORD_REMOVE_RESULT_FAILED_TO_REMOVE:
-    ret = GNUNET_SYSERR;
-    emsg = _("Failed to remove records from database");
-    break;
-  case RECORD_REMOVE_RESULT_FAILED_ACCESS_DATABASE:
-    ret = GNUNET_SYSERR;
-    emsg = _("Failed to access database");
-    break;
-  case RECORD_REMOVE_RESULT_FAILED_INTERNAL_ERROR:
-    ret = GNUNET_SYSERR;
-    emsg = _("unknown internal error in namestore");
-    break;
-  default:
-    GNUNET_break (0);
-    if (NULL != qe->cont)      
-      qe->cont (qe->cont_cls, GNUNET_SYSERR, _("Protocol error"));
-    return GNUNET_NO;
-  }
-  if (NULL != qe->cont)      
-    qe->cont (qe->cont_cls, ret, emsg);
-  return GNUNET_OK;
-}
-
-
-/**
  * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE'
  *
  * @param qe the respective entry in the message queue
@@ -554,13 +489,6 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
       return GNUNET_SYSERR;
     }
     return handle_record_create_response (qe, (const struct RecordCreateResponseMessage *) msg, size);
-  case GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE:
-    if (size != sizeof (struct RecordRemoveResponseMessage))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-    return handle_record_remove_response (qe, (const struct RecordRemoveResponseMessage *) msg, size);
   case GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE:
     if (size < sizeof (struct ZoneToNameResponseMessage))
     {
@@ -1142,18 +1070,20 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKeyBinary
  * @param h handle to the namestore
  * @param pkey private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of records in 'rd' array
  * @param rd record data to store
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
-				const char *name,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
-				GNUNET_NAMESTORE_ContinuationWithStatus cont,
-				void *cont_cls)
+GNUNET_NAMESTORE_record_put_by_authority (struct GNUNET_NAMESTORE_Handle *h,
+					  const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
+					  const char *name,
+					  unsigned int rd_count,
+					  const struct GNUNET_NAMESTORE_RecordData *rd,
+					  GNUNET_NAMESTORE_ContinuationWithStatus cont,
+					  void *cont_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
@@ -1171,19 +1101,14 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != pkey);
   GNUNET_assert (NULL != name);
-  GNUNET_assert (NULL != rd);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating record of type %u under name `%s'\n",
-       rd->record_type,
-       name);
   name_len = strlen(name) + 1;
   if (name_len > MAX_NAME_LEN)
   {
     GNUNET_break (0);
     return NULL;
   }
-  rid = get_op_id(h);
-  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
+  rid = get_op_id (h);
+  qe = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_QueueEntry));
   qe->nsh = h;
   qe->cont = cont;
   qe->cont_cls = cont_cls;
@@ -1195,9 +1120,9 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
 
   /* setup msg */
   key_len = ntohs (pkey_enc->size);
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size(1, rd);
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   msg_size = sizeof (struct RecordCreateMessage) + key_len + name_len + rd_ser_len;
-  pe = GNUNET_malloc(sizeof (struct PendingMessage) + msg_size);
+  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
   pe->size = msg_size;
   pe->is_init = GNUNET_NO;
   msg = (struct RecordCreateMessage *) &pe[1];
@@ -1205,114 +1130,21 @@ GNUNET_NAMESTORE_record_create (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
   msg->name_len = htons (name_len);
-  msg->rd_count = htons (1);
-  msg->rd_len = htons (rd_ser_len);
-  msg->pkey_len = htons (key_len);
-  msg->expire = GNUNET_TIME_absolute_hton(GNUNET_TIME_UNIT_FOREVER_ABS);
-  pkey_tmp = (char *) &msg[1];
-  memcpy (pkey_tmp, pkey_enc, key_len);
-  name_tmp = &pkey_tmp[key_len];
-  memcpy (name_tmp, name, name_len);
-  rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize(1, rd, rd_ser_len, rd_ser);
-
-  GNUNET_free (pkey_enc);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Sending `%s' message for name `%s' with size %u\n", 
-       "NAMESTORE_RECORD_CREATE", name, msg_size);
-  GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
-  return qe;
-}
-
-
-/**
- * Explicitly remove some content from the database.  The
- * "cont"inuation will be called with status "GNUNET_OK" if content
- * was removed, "GNUNET_NO" if no matching entry was found and
- * "GNUNET_SYSERR" on all other types of errors.
- * This API is used by the authority of a zone.
- *
- * @param h handle to the namestore
- * @param pkey private key of the zone
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd record data, remove specific record,  NULL to remove the name and all records
- * @param cont continuation to call when done
- * @param cont_cls closure for cont
- * @return handle to abort the request
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_remove (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
-				const char *name,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
-				GNUNET_NAMESTORE_ContinuationWithStatus cont,
-				void *cont_cls)
-{
-  struct GNUNET_NAMESTORE_QueueEntry *qe;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkey_enc;
-  struct PendingMessage *pe;
-  struct RecordRemoveMessage * msg;
-  char *pkey_tmp;
-  char *rd_ser;
-  char *name_tmp;
-  size_t rd_ser_len;
-  size_t msg_size;
-  size_t name_len;
-  size_t key_len;
-  uint32_t rid;
-  uint16_t rd_count;
-
-  GNUNET_assert (NULL != h);
-  if (NULL != rd)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Removing record of type %u under name `%s'\n",
-	 rd->record_type,
-	 name);
-  else
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Removing all records under name `%s'\n",
-	 name);
-  rid = get_op_id(h);
-  qe = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_QueueEntry));
-  qe->nsh = h;
-  qe->cont = cont;
-  qe->cont_cls = cont_cls;
-  qe->op_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
-
-  pkey_enc = GNUNET_CRYPTO_ecc_encode_key (pkey);
-  GNUNET_assert (NULL != pkey_enc);
-  key_len = ntohs (pkey_enc->size);
-
-  rd_count = (NULL == rd) ? 0 : 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-  name_len = strlen (name) + 1;
-  msg_size = sizeof (struct RecordRemoveMessage) + key_len + name_len + rd_ser_len;
-  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
-  pe->size = msg_size;
-  pe->is_init = GNUNET_NO;
-  msg = (struct RecordRemoveMessage *) &pe[1];
-  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE);
-  msg->gns_header.header.size = htons (msg_size);
-  msg->gns_header.r_id = htonl (rid);
-  msg->name_len = htons (name_len);
-  msg->rd_len = htons (rd_ser_len);
   msg->rd_count = htons (rd_count);
+  msg->rd_len = htons (rd_ser_len);
   msg->pkey_len = htons (key_len);
+  msg->expire = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
   pkey_tmp = (char *) &msg[1];
   memcpy (pkey_tmp, pkey_enc, key_len);
   name_tmp = &pkey_tmp[key_len];
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
-
   GNUNET_free (pkey_enc);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Sending `%s' message for name `%s' with size %u\n", 
-       "NAMESTORE_RECORD_REMOVE", name, msg_size);
+       "NAMESTORE_RECORD_CREATE", name, msg_size);
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit(h);
   return qe;
@@ -1507,7 +1339,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Sending `%s' message for zone `%s'\n", 
-	 "ZONE_ITERATION_START", GNUNET_short_h2s(zone));
+	 "ZONE_ITERATION_START", GNUNET_NAMESTORE_short_h2s(zone));
     msg->zone = *zone;
   }
   else
@@ -1582,7 +1414,7 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
   msg->gns_header.r_id = htonl (it->op_id);
   if (GNUNET_YES == it->has_zone)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_STOP", GNUNET_short_h2s(&it->zone));
+		"Sending `%s' message for zone `%s'\n", "ZONE_ITERATION_STOP", GNUNET_NAMESTORE_short_h2s(&it->zone));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending `%s' message for all zones\n", "ZONE_ITERATION_STOP");
@@ -1607,5 +1439,6 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe)
   GNUNET_CONTAINER_DLL_remove(h->op_head, h->op_tail, qe);
   GNUNET_free(qe);
 }
+
 
 /* end of namestore_api.c */

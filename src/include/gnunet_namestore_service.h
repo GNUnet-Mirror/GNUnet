@@ -371,6 +371,17 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 			       GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
 
 
+/**
+ * Cancel a namestore operation.  The final callback from the
+ * operation must not have been done yet.  Must be called on any
+ * namestore operation that has not yet completed prior to calling
+ * 'GNUNET_NAMESTORE_disconnect'.
+ *
+ * @param qe operation to cancel
+ */
+void
+GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
+
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
@@ -447,7 +458,13 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  * Function called whenever the records for a given name changed.
  *
  * @param cls closure
- * @param was_removed GNUNET_NO if the record was added, GNUNET_YES if it was removed
+ * @param was_removed GNUNET_NO if the record was added, GNUNET_YES if it was removed,
+ *                    GNUNET_SYSERR if the communication with the namestore broke down
+ *                    (and thus all entries should be 'cleared' until the communication
+ *                     can be re-established, at which point the monitor will 
+ *                     re-add all records that are (still) in the namestore after
+ *                     the reconnect); if this value is SYSERR, all other arguments
+ *                     will be 0/NULL.
  * @param freshness when does the corresponding block in the DHT expire (until
  *               when should we never do a DHT lookup for the same name again)?; 
  *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
@@ -493,18 +510,6 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
  */
 void
 GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
-
-
-/**
- * Cancel a namestore operation.  The final callback from the
- * operation must not have been done yet.  Must be called on any
- * namestore operation that has not yet completed prior to calling
- * 'GNUNET_NAMESTORE_disconnect'.
- *
- * @param qe operation to cancel
- */
-void
-GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 
 /* convenience APIs for serializing / deserializing GNS records */
@@ -618,6 +623,61 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type);
  */
 int
 GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd);
+
+
+/**
+ * Convert a UTF-8 string to UTF-8 lowercase
+ * @param src source string
+ * @return converted result
+ */
+char *
+GNUNET_NAMESTORE_normalize_string (const char *src);
+
+
+/**
+ * Convert a short hash to a string (for printing debug messages).
+ * This is one of the very few calls in the entire API that is
+ * NOT reentrant!
+ *
+ * @param hc the short hash code
+ * @return string form; will be overwritten by next call to GNUNET_h2s.
+ */
+const char *
+GNUNET_NAMESTORE_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
+
+
+/**
+ * Sign name and records
+ *
+ * @param key the private key
+ * @param expire block expiration
+ * @param name the name
+ * @param rd record data
+ * @param rd_count number of records
+ *
+ * @return the signature
+ */
+struct GNUNET_CRYPTO_EccSignature *
+GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+				   struct GNUNET_TIME_Absolute expire,
+				   const char *name,
+				   const struct GNUNET_NAMESTORE_RecordData *rd,
+				   unsigned int rd_count);
+
+
+/**
+ * Compares if two records are equal
+ *
+ * @param a Record a
+ * @param b Record b
+ *
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
+                              const struct GNUNET_NAMESTORE_RecordData *b);
+
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

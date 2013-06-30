@@ -204,7 +204,9 @@ put_cont (void *cls, int32_t success, const char *emsg)
     res = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing record for `%s'\n", name);
 
-    GNUNET_NAMESTORE_record_remove (nsh, privkey, name, &s_rd[0], &remove_cont, name);
+    GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, name, 
+					      0, NULL,
+					      &remove_cont, name);
   }
   else
   {
@@ -275,7 +277,7 @@ run (void *cls,
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_short_h2s (&s_zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_NAMESTORE_short_h2s (&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   GNUNET_break (s_rd != NULL);

@@ -141,7 +141,9 @@ create_identical_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 0;
     s_first_record->expiration_time = GNUNET_TIME_absolute_get ().abs_value;
-    GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_updated_cont, s_name);
+    GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name,
+					      1, s_first_record,
+					      &create_updated_cont, s_name);
   }
   else
   {
@@ -162,7 +164,9 @@ create_first_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 0;
     /* check if record was created correct */
-    GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_identical_cont, s_name);
+    GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name, 
+					      1, s_first_record,
+					      &create_identical_cont, s_name);
   }
   else
   {
@@ -228,7 +232,7 @@ run (void *cls,
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_short_h2s (&s_zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_NAMESTORE_short_h2s (&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
@@ -236,7 +240,9 @@ run (void *cls,
   GNUNET_break (s_name != NULL);
 
   /* create initial record */
-  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_first_cont, s_name);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name,
+					    1, s_first_record, 
+					    &create_first_cont, s_name);
 }
 
 

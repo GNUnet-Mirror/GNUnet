@@ -254,7 +254,7 @@ name_lookup_initial_proc (void *cls,
 
     for (c = 0; c < RECORDS; c++)
     {
-      if (GNUNET_NO == GNUNET_NAMESTORE_records_cmp(&rd[c], &s_first_record[c]))
+      if (GNUNET_NO == GNUNET_NAMESTORE_records_cmp (&rd[c], &s_first_record[c]))
       {
         GNUNET_break (0);
         failed = GNUNET_YES;
@@ -280,7 +280,7 @@ name_lookup_initial_proc (void *cls,
       res = 1;
 
     /* create a second record */
-    s_second_record = GNUNET_malloc(sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
+    s_second_record = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
     s_second_record->expiration_time = UINT64_MAX;
     s_second_record->record_type = TEST_CREATE_RECORD_TYPE;
     s_second_record->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
@@ -288,7 +288,9 @@ name_lookup_initial_proc (void *cls,
     s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
     memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);
 
-    GNUNET_NAMESTORE_record_create (nsh, privkey, name, s_second_record, &create_second_cont, name);
+    GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, name, 
+					      1, s_second_record,
+					      &create_second_cont, name);
 
   }
   else
@@ -375,7 +377,7 @@ run (void *cls,
   /* create random zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_short_h2s (&s_zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_NAMESTORE_short_h2s (&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
 
@@ -383,7 +385,9 @@ run (void *cls,
   GNUNET_break (s_name != NULL);
 
   /* create initial record */
-  GNUNET_NAMESTORE_record_create (nsh, privkey, s_name, s_first_record, &create_first_cont, s_name);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name, 
+					    1, s_first_record,
+					    &create_first_cont, s_name);
 }
 
 

@@ -64,7 +64,10 @@ lib_LTLIBRARIES = \
   libgnunetnamestore.la
 
 libgnunetnamestore_la_SOURCES = \
-  namestore_api.c namestore_common.c namestore.h
+  namestore_api.c \
+  namestore_api_monitor.c \
+  namestore_api_common.c \
+  namestore.h
 libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -111,7 +114,7 @@ plugin_LTLIBRARIES = \
   $(POSTGRES_PLUGIN)
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
-  plugin_namestore_sqlite.c namestore_common.c
+  plugin_namestore_sqlite.c 
 libgnunet_plugin_namestore_sqlite_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -126,7 +129,7 @@ libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
 
 
 libgnunet_plugin_namestore_postgres_la_SOURCES = \
-  plugin_namestore_postgres.c namestore_common.c
+  plugin_namestore_postgres.c 
 libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \

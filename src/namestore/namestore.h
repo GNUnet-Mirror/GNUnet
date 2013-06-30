@@ -31,59 +31,9 @@
  */
 #define MAX_NAME_LEN 256
 
-/**
- * Convert a UTF-8 string to UTF-8 lowercase
- * @param src source string
- * @return converted result
- */
-char *
-GNUNET_NAMESTORE_normalize_string (const char *src);
-
-/**
- * Convert a short hash to a string (for printing debug messages).
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
- *
- * @param hc the short hash code
- * @return string form; will be overwritten by next call to GNUNET_h2s.
- */
-const char *
-GNUNET_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
-
-
-/**
- * Sign name and records
- *
- * @param key the private key
- * @param expire block expiration
- * @param name the name
- * @param rd record data
- * @param rd_count number of records
- *
- * @return the signature
- */
-struct GNUNET_CRYPTO_EccSignature *
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-    struct GNUNET_TIME_Absolute expire,
-    const char *name,
-    const struct GNUNET_NAMESTORE_RecordData *rd,
-    unsigned int rd_count);
-
-
-/**
- * Compares if two records are equal
- *
- * @param a Record a
- * @param b Record b
- *
- * @return GNUNET_YES or GNUNET_NO
- */
-int
-GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
-                              const struct GNUNET_NAMESTORE_RecordData *b);
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
+
+
 /**
  * A GNS record serialized for network transmission.
  *
@@ -346,105 +296,6 @@ struct RecordCreateResponseMessage
 
   /**
    *  name length: GNUNET_NO already exists, GNUNET_YES on success, GNUNET_SYSERR error
-   */
-  int32_t op_result;
-};
-
-
-/**
- * Remove a record from the namestore
- * Memory layout:
- */
-struct RecordRemoveMessage
-{
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE
-   */
-  struct GNUNET_NAMESTORE_Header gns_header;
-
-  /**
-   * Name length 
-   */
-  uint16_t name_len;
-
-  /**
-   * Length of serialized rd data 
-   */
-  uint16_t rd_len;
-
-  /**
-   * Number of records contained 
-   */
-  uint16_t rd_count;
-
-  /**
-   * Length of private key
-   */
-  uint16_t pkey_len;
-
-  /* followed by:
-   * GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private key with length pkey_len
-   * name with length name_len
-   * serialized record data with length rd_len
-   * */
-};
-
-
-/**
- * Removal of the record succeeded.
- */
-#define RECORD_REMOVE_RESULT_SUCCESS 0
-
-/**
- * There are NO records for the given name.
- */
-#define RECORD_REMOVE_RESULT_NO_RECORDS 1
-
-/**
- * The specific record that was to be removed was
- * not found.
- */
-#define RECORD_REMOVE_RESULT_RECORD_NOT_FOUND 2
-
-/**
- * Internal error, failed to sign the remaining records.
- * (Note: not used?)
- */
-#define RECORD_REMOVE_RESULT_FAILED_TO_SIGN 3
-
-/**
- * Internal error, failed to store the updated record set
- */
-#define RECORD_REMOVE_RESULT_FAILED_TO_PUT_UPDATE 4
-
-/**
- * Internal error, failed to remove records from database
- */
-#define RECORD_REMOVE_RESULT_FAILED_TO_REMOVE 5
-
-/**
- * Internal error, failed to access database
- */
-#define RECORD_REMOVE_RESULT_FAILED_ACCESS_DATABASE 6
-
-/**
- * Internal error, failed to access database
- */
-#define RECORD_REMOVE_RESULT_FAILED_INTERNAL_ERROR 7
-
-
-/**
- * Remove a record from the namestore response
- */
-struct RecordRemoveResponseMessage
-{
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_REMOVE_RESPONSE
-   */
-  struct GNUNET_NAMESTORE_Header gns_header;
-
-  /**
-   * Result code (see RECORD_REMOVE_RESULT_*).  In network byte order.
    */
   int32_t op_result;
 };

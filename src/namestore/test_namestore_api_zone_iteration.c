@@ -410,7 +410,9 @@ empty_zone_proc (void *cls,
   s_rd_1 = create_record(1);
   et.abs_value = s_rd_1->expiration_time;
   sig_1 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_1, s_rd_1, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_1, s_rd_1, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_1, 
+					    1, s_rd_1, 
+					    &put_cont, NULL);
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
@@ -419,7 +421,9 @@ empty_zone_proc (void *cls,
 
   et.abs_value = s_rd_2->expiration_time;
   sig_2 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_2, s_rd_2, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_2,
+					    1, s_rd_2, 
+					    &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
   /* name in different zone */

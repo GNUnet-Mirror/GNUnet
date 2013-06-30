@@ -133,6 +133,36 @@ static char *expirationstring;
  */
 static int ret;
 
+/**
+ * Type string converted to DNS type value.
+ */
+static uint32_t type;
+
+/**
+ * Value in binary format.
+ */
+static void *data;
+
+/**
+ * Number of bytes in 'data'.
+ */
+static size_t data_size;
+
+/**
+ * Expirationstring converted to relative time.
+ */
+static struct GNUNET_TIME_Relative etime_rel;
+
+/**
+ * Expirationstring converted to absolute time.
+ */
+static struct GNUNET_TIME_Absolute etime_abs;
+
+/**
+ * Is expiration time relative or absolute time?
+ */
+static int etime_is_rel = GNUNET_SYSERR;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -328,6 +358,69 @@ display_record (void *cls,
 
 
 /**
+ * We're storing a record; this function is given the existing record
+ * so that we can merge the information.
+ *
+ * @param cls closure, unused
+ * @param zone_key public key of the zone
+ * @param freshness when does the corresponding block in the DHT expire (until
+ *               when should we never do a DHT lookup for the same name again)?; 
+ *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
+ *               or the expiration time of the block in the namestore (even if there are zero
+ *               records matching the desired record type)
+ * @param name name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
+ *        because the user queried for a particular record type only)
+ */
+static void
+get_existing_record (void *cls,
+		     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		     struct GNUNET_TIME_Absolute freshness,			    
+		     const char *name,
+		     unsigned int rd_count,
+		     const struct GNUNET_NAMESTORE_RecordData *rd,
+		     const struct GNUNET_CRYPTO_EccSignature *signature)
+{
+  struct GNUNET_NAMESTORE_RecordData rdn[rd_count + 1];
+  struct GNUNET_NAMESTORE_RecordData *rde;
+  
+  add_qe = NULL;
+  memset (rdn, 0, sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  /* FIXME: should add some logic to overwrite records if there
+     can only be one record of a particular type, and to check
+     if the combination of records is valid to begin with... */
+  rde = &rdn[0];
+  rde->data = data;
+  rde->data_size = data_size;
+  rde->record_type = type;
+  if (GNUNET_YES == etime_is_rel)
+  {
+    rde->expiration_time = etime_rel.rel_value;
+    rde->flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+  }
+  else if (GNUNET_NO == etime_is_rel)
+  {
+    rde->expiration_time = etime_abs.abs_value;
+  }
+  if (1 != nonauthority)
+    rde->flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+  if (1 != public)
+    rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
+    
+  add_qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
+						     zone_pkey,
+						     name,
+						     rd_count + 1,
+						     rde,
+						     &add_continuation,
+						     &add_qe);
+}
+
+
+/**
  * Function called with the result of the ECC key generation.
  *
  * @param cls our configuration
@@ -341,12 +434,6 @@ key_generation_cb (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
-  uint32_t type;
-  void *data = NULL;
-  size_t data_size = 0;
-  struct GNUNET_TIME_Relative etime_rel;
-  struct GNUNET_TIME_Absolute etime_abs;
-  int etime_is_rel = GNUNET_SYSERR;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   keygen = NULL;
@@ -385,52 +472,65 @@ key_generation_cb (void *cls,
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
-  if (NULL == typestring)
-    type = 0;
-  else
+  if (add)
+  {
+    if (NULL == name)
+    {
+      fprintf (stderr,
+               _("Missing option `%s' for operation `%s'\n"),
+               "-n", _("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;    
+      return;     
+    }
+    if (NULL == typestring)
+    {
+      fprintf (stderr,
+	       _("Missing option `%s' for operation `%s'\n"),
+	       "-t", _("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;     
+    }
     type = GNUNET_NAMESTORE_typename_to_number (typestring);
-  if (UINT32_MAX == type)
-  {
-    fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
-    GNUNET_SCHEDULER_shutdown ();
-    ret = 1;
-    return;
-  }
-  if ((NULL == typestring) && (add | del))
-  {
-    fprintf (stderr,
-             _("Missing option `%s' for operation `%s'\n"),
-             "-t", _("add/del"));
-    GNUNET_SCHEDULER_shutdown ();
-    ret = 1;
-    return;     
-  }
-  if (NULL != value)
-  {
+    if (UINT32_MAX == type)
+    {
+      fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    if (NULL == value)
+    {
+      fprintf (stderr,
+	       _("Missing option `%s' for operation `%s'\n"),
+	       "-V", _("add"));
+      ret = 1;   
+      GNUNET_SCHEDULER_shutdown ();
+      return;     
+    }
     if (GNUNET_OK !=
-        GNUNET_NAMESTORE_string_to_value (type,
-                                          value,
-                                          &data,
-                                          &data_size))
-      {
-        fprintf (stderr, _("Value `%s' invalid for record type `%s'\n"),
-                 value,
-                 typestring);
-        GNUNET_SCHEDULER_shutdown ();
-        ret = 1;
-        return;
-      }
-  } else if (add | del)
-  {
-    fprintf (stderr,
-             _("Missing option `%s' for operation `%s'\n"),
-             "-V", _("add/del"));
-    ret = 1;   
-    GNUNET_SCHEDULER_shutdown ();
-    return;     
-  }
-  if (NULL != expirationstring)
-  {
+	GNUNET_NAMESTORE_string_to_value (type,
+					  value,
+					  &data,
+					  &data_size))
+    {
+      fprintf (stderr, _("Value `%s' invalid for record type `%s'\n"),
+	       value,
+	       typestring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    if (NULL == expirationstring)
+    {
+      fprintf (stderr,
+	       _("Missing option `%s' for operation `%s'\n"),
+	       "-e", _("add"));
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;    
+      return;     
+    }
     if (0 == strcmp (expirationstring, "never"))
     {
       etime_abs = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -457,66 +557,12 @@ key_generation_cb (void *cls,
       ret = 1;
       return;     
     }
-    if (etime_is_rel && del)
-    {
-      fprintf (stderr,
-               _("Deletion requires either absolute time, or no time at all. Got relative time `%s' instead.\n"),
-               expirationstring);
-      GNUNET_SCHEDULER_shutdown ();
-      ret = 1;
-      return;
-    }
-  } 
-  else if (add)
-  {
-    fprintf (stderr,
-             _("Missing option `%s' for operation `%s'\n"),
-             "-e", _("add"));
-    GNUNET_SCHEDULER_shutdown ();
-    ret = 1;    
-    return;     
-  }
-  memset (&rd, 0, sizeof (rd));
-  if (add)
-  {
-    if (NULL == name)
-    {
-      fprintf (stderr,
-               _("Missing option `%s' for operation `%s'\n"),
-               "-n", _("add"));
-      GNUNET_SCHEDULER_shutdown ();
-      ret = 1;    
-      return;     
-    }
-    rd.data = data;
-    rd.data_size = data_size;
-    rd.record_type = type;
-    if (GNUNET_YES == etime_is_rel)
-    {
-      rd.expiration_time = etime_rel.rel_value;
-      rd.flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
-    }
-    else if (GNUNET_NO == etime_is_rel)
-      rd.expiration_time = etime_abs.abs_value;
-    else
-    {
-      fprintf (stderr,
-               _("No valid expiration time for operation `%s'\n"),
-               _("add"));
-      GNUNET_SCHEDULER_shutdown ();
-      ret = 1;
-      return;
-    }
-    if (1 != nonauthority)
-      rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
-    if (1 != public)
-      rd.flags |= GNUNET_NAMESTORE_RF_PRIVATE;
-    add_qe = GNUNET_NAMESTORE_record_create (ns,
-                                             zone_pkey,
-                                             name,
-                                             &rd,
-                                             &add_continuation,
-                                             &add_qe);
+    add_qe = GNUNET_NAMESTORE_lookup_record (ns,
+					     &zone,
+					     name,
+					     0, 
+					     &get_existing_record,
+					     NULL);
   }
   if (del)
   {
@@ -529,19 +575,12 @@ key_generation_cb (void *cls,
       ret = 1;
       return;     
     }
-    rd.data = data;
-    rd.data_size = data_size;
-    rd.record_type = type;
-    rd.expiration_time = 0;
-    if (!etime_is_rel)
-      rd.expiration_time = etime_abs.abs_value;
-    rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-    del_qe = GNUNET_NAMESTORE_record_remove (ns,
-                                             zone_pkey,
-                                             name,
-                                             &rd,
-                                             &del_continuation,
-                                             NULL);
+    del_qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
+						       zone_pkey,
+						       name,
+						       0, NULL,
+						       &del_continuation,
+						       NULL);
   }
   if (list)
   {
@@ -580,6 +619,7 @@ key_generation_cb (void *cls,
       ret = 1;
       return;
     }
+    memset (&rd, 0, sizeof (rd));
     rd.data = &sc;
     rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
@@ -594,16 +634,15 @@ key_generation_cb (void *cls,
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
-
-    add_qe_uri = GNUNET_NAMESTORE_record_create (ns,
-                                                 zone_pkey,
-                                                 name,
-                                                 &rd,
-                                                 &add_continuation,
-                                                 &add_qe_uri);
+    add_qe_uri = GNUNET_NAMESTORE_record_put_by_authority (ns,
+							   zone_pkey,
+							   name,
+							   1,
+							   &rd,
+							   &add_continuation,
+							   &add_qe_uri);
   }
   GNUNET_free_non_null (data);
-
 }
 
 

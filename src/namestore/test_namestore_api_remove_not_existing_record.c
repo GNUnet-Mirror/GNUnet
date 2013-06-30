@@ -136,16 +136,9 @@ put_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing non existing record for `%s'\n", name);
-
-    struct GNUNET_NAMESTORE_RecordData rd;
-    char data[TEST_REMOVE_RECORD_DATALEN];
-
-    rd.expiration_time = GNUNET_TIME_absolute_get().abs_value;
-    rd.record_type = TEST_REMOVE_RECORD_TYPE;
-    rd.data_size = TEST_REMOVE_RECORD_DATALEN;
-    rd.data = &data;
-
-    GNUNET_NAMESTORE_record_remove (nsh, privkey, name, &rd, &remove_cont, name);
+    GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, name, 
+					      0, NULL,
+					      &remove_cont, name);
   }
   else
   {

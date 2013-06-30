@@ -182,7 +182,7 @@ zone_proc (void *cls,
 	   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   int failed = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_short_h2s (&zone));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Callback for zone `%s'\n", GNUNET_NAMESTORE_short_h2s (&zone));
   if ((zone_key == NULL) &&  (name == NULL))
   {
     GNUNET_break (2 == returned_records);
@@ -285,7 +285,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
     res = 1;
     returned_records = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over zone `%s'\n",
-        GNUNET_short_h2s(&zone));
+        GNUNET_NAMESTORE_short_h2s(&zone));
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
                                         &zone,
                                         GNUNET_NAMESTORE_RF_NONE,
@@ -356,14 +356,18 @@ run (void *cls,
   s_rd_1 = create_record(1);
   et.abs_value = s_rd_1[0].expiration_time;
   sig_1 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_1, s_rd_1, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_1, s_rd_1, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_1,
+					    1, s_rd_1, 
+					    &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
   et.abs_value = s_rd_2[0].expiration_time;
   sig_2 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_2, s_rd_2, 1);
-  GNUNET_NAMESTORE_record_create(nsh, privkey, s_name_2, s_rd_2, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_2,
+					    1, s_rd_2, 
+					    &put_cont, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
   /* name in different zone */
@@ -371,7 +375,8 @@ run (void *cls,
   s_rd_3 = create_record(1);
   et.abs_value = s_rd_3[0].expiration_time;
   sig_3 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_3, s_rd_3, 1);
-  GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3, GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);
+  GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3,
+			       GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);
 }
 
 
