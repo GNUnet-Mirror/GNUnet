@@ -76,6 +76,7 @@ static int res;
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_break (0);
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
@@ -136,8 +137,12 @@ static void
 create_identical_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating identical record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
-  if (success == GNUNET_NO)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Updating identical record for `%s': %s `%s'\n", 
+	      name, 
+	      ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", 
+	      emsg);
+  if (success == GNUNET_OK)
   {
     res = 0;
     s_first_record->expiration_time = GNUNET_TIME_absolute_get ().abs_value;
@@ -148,10 +153,13 @@ create_identical_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating identical record for `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
-    GNUNET_SCHEDULER_add_now(&end, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Updating identical record for `%s': %s `%s'\n", 
+		name, 
+		((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", 
+		emsg);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-
 }
 
 
@@ -159,7 +167,10 @@ static void
 create_first_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Create record for `%s': %s `%s'\n", name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL", emsg);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Create record for `%s': %s `%s'\n",
+	      name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL", 
+	      emsg);
   if (success == GNUNET_OK)
   {
     res = 0;
@@ -171,7 +182,8 @@ create_first_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Failed to put records for name `%s'\n", name);
     GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 
@@ -206,7 +218,7 @@ run (void *cls,
   char *hostkey_file;
   struct GNUNET_TIME_Absolute et;
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, endbadly, NULL);
 
   /* load privat key */
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,

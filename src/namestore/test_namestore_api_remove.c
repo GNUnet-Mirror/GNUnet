@@ -118,12 +118,14 @@ name_lookup_proc (void *cls,
 {
   static int found = GNUNET_NO;
   int failed = GNUNET_NO;
-  int c;
 
-  if (n != NULL)
+  if (NULL != n)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup for name `%s' returned %u records\n", n, rd_count);
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Lookup for name `%s' returned %u records\n", n, rd_count);
+    if (0 != memcmp (zone_key, 
+		     &pubkey,
+		     sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -135,27 +137,11 @@ name_lookup_proc (void *cls,
       failed = GNUNET_YES;
     }
 
-    if (RECORDS-1 != rd_count)
+    if (0 != rd_count)
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
     }
-
-    for (c = 0; c < rd_count; c++)
-    {
-      if (GNUNET_NO == GNUNET_NAMESTORE_records_cmp (&rd[c], &s_rd[c+1]))
-      {
-        GNUNET_break (0);
-        failed = GNUNET_YES;
-      }
-    }
-
-    if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature(&pubkey, expire, n, rd_count, rd, signature))
-    {
-      GNUNET_break (0);
-      failed = GNUNET_YES;
-    }
-
     if (failed == GNUNET_NO)
       res = 0;
     else
