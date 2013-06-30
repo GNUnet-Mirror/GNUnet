@@ -249,8 +249,11 @@ EXTRA_DIST = \
   test_plugin_namestore_sqlite.conf\
   test_plugin_namestore_postgres.conf\
   test_hostkey \
+  zonefiles/S5I9DSGQVAB5FVV16T3B3CC5H1B2JGL3Q412JBKURME8EKU0600G.zkey \
+  zonefiles/AQ835GVL939H4O8QJQ7GBLPTQC0QAAO91BN7QK01BA63MDSK6I4G.zkey \
   zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey \
   zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey
+
 
 
 test_plugin_namestore_sqlite_SOURCES = \
