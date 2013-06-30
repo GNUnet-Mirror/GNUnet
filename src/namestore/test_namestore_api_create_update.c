@@ -114,17 +114,17 @@ create_updated_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating expiration for record `%s': %s `%s'\n", name, ((success == GNUNET_YES) || (success == GNUNET_NO)) ? "SUCCESS" : "FAIL", emsg);
-  if (success == GNUNET_NO)
+  if (success == GNUNET_OK)
   {
     res = 0;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updated record for name `%s'\n", name);
-  }
-  else if (success == GNUNET_OK)
+  } 
+  else if (success == GNUNET_NO)
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "FAIL, Create new record for name `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed updating record for name `%s'\n", name);
   }
-  else
+  else 
   {
     res = 1;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create records for name `%s'\n", name);
@@ -137,6 +137,7 @@ static void
 create_identical_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Updating identical record for `%s': %s `%s'\n", 
 	      name, 

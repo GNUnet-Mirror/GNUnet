@@ -116,7 +116,6 @@ name_lookup_proc (void *cls,
 		  const struct GNUNET_NAMESTORE_RecordData *rd,
 		  const struct GNUNET_CRYPTO_EccSignature *signature)
 {
-  static int found = GNUNET_NO;
   int failed = GNUNET_NO;
 
   if (NULL != n)
@@ -147,16 +146,7 @@ name_lookup_proc (void *cls,
     else
       res = 1;
   }
-  else
-  {
-    if (found != GNUNET_YES)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to lookup records for name `%s'\n", s_name);
-      res = 1;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Lookup done for name %s'\n", s_name);
-  }
-  GNUNET_SCHEDULER_add_now(&end, NULL);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
@@ -164,7 +154,10 @@ static void
 remove_cont (void *cls, int32_t success, const char *emsg)
 {
   char *name = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Remove record for `%s': %s\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL", emsg);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Remove record for `%s': %s\n", name, (success == GNUNET_YES) ? "SUCCESS" : "FAIL",
+	      emsg);
   if (success == GNUNET_OK)
   {
     res = 0;
