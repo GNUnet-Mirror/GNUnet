@@ -378,57 +378,57 @@ do_check (void *cls,
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME_SERVER,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_RECORD_NAME_SERVER,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   rd.data_size = strlen (TEST_RECORD_CNAME_PLUS);
   rd.data = TEST_RECORD_CNAME_PLUS;
   rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME_PLUS,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_RECORD_NAME_PLUS,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   rd.data_size = strlen (TEST_RECORD_CNAME_ZKEY);
   rd.data = TEST_RECORD_CNAME_ZKEY;
   rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME_ZKEY,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_RECORD_NAME_ZKEY,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   rd.data_size = strlen (TEST_RECORD_CNAME_DNS);
   rd.data = TEST_RECORD_CNAME_DNS;
   rd.record_type = GNUNET_GNS_RECORD_CNAME;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME_DNS,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_RECORD_NAME_DNS,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP_ZKEY, &web));
   rd.data_size = sizeof(struct in_addr);
   rd.data = &web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-				  bob_key,
-				  TEST_RECORD_NAME_PLUS,
-				  &rd,
-				  &commence_testing,
-				  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    bob_key,
+					    TEST_RECORD_NAME_PLUS,
+					    1, &rd,
+					    &commence_testing,
+					    NULL);
   GNUNET_CRYPTO_ecc_key_free(alice_key);
   GNUNET_CRYPTO_ecc_key_free(bob_key);
 }

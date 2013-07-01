@@ -231,12 +231,12 @@ do_check (void *cls,
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_AUTHORITY_NAME,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_AUTHORITY_NAME,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   rd.data_size = sizeof(struct in_addr);
   rd.data = mail;

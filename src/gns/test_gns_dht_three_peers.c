@@ -353,14 +353,19 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (nh[0], key, "www", &rd, NULL, NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (nh[0], key, "www", 
+					    1, &rd,
+					    NULL, NULL);
 
   rd.data_size = strlen(TEST_DAVE_PSEU);
   rd.data = TEST_DAVE_PSEU;
   rd.record_type = GNUNET_GNS_RECORD_PSEU;
 
 
-  GNUNET_NAMESTORE_record_create (nh[0], key, GNUNET_GNS_MASTERZONE_STR, &rd, &cont_ns, nh[0]);
+  GNUNET_NAMESTORE_record_put_by_authority (nh[0], key, 
+					    GNUNET_GNS_MASTERZONE_STR, 
+					    1, &rd, 
+					    &cont_ns, nh[0]);
 
   GNUNET_CRYPTO_ecc_key_free(key);
   GNUNET_free(keyfile);
@@ -416,7 +421,9 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (nh[1], key, "buddy", &rd, &cont_ns, nh[1]);
+  GNUNET_NAMESTORE_record_put_by_authority (nh[1], key, "buddy",
+					    1, &rd,
+					    &cont_ns, nh[1]);
 
   GNUNET_CRYPTO_ecc_key_free(key);
   GNUNET_free(keyfile);
@@ -466,7 +473,9 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (nh[2], key, "bob", &rd, &cont_ns, nh[2]);
+  GNUNET_NAMESTORE_record_put_by_authority (nh[2], key, "bob", 
+					    1, &rd, 
+					    &cont_ns, nh[2]);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice gns\n");
   gh = GNUNET_GNS_connect (cfg_handles[2]);

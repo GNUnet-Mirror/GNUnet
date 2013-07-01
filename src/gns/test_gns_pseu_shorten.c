@@ -523,12 +523,12 @@ fin_init_zone (void *cls, int32_t success, const char *emsg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  our_key,
-                                  TEST_AUTHORITY_BOB,
-                                  &rd,
-                                  &put_pkey_dht,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    our_key,
+					    TEST_AUTHORITY_BOB,
+					    1, &rd,
+					    &put_pkey_dht,
+					    NULL);
 
 }
 
@@ -543,12 +543,12 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  priv_key,
-                                  TEST_SHORTEN_ZONE,
-                                  &rd,
-                                  &fin_init_zone,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    priv_key,
+					    TEST_SHORTEN_ZONE,
+					    1, &rd,
+					    &fin_init_zone,
+					    NULL);
 }
 
 
@@ -638,12 +638,12 @@ do_check (void *cls,
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  our_key,
-                                  TEST_PRIVATE_ZONE,
-                                  &rd,
-                                  &cont_init_zone,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    our_key,
+					    TEST_PRIVATE_ZONE,
+					    1, &rd,
+					    &cont_init_zone,
+					    NULL);
 }
 
 

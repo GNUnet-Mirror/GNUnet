@@ -549,37 +549,6 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 
 
 /**
- * Function called once we've created the first NS record,
- * create the second one.
- *
- * @param cls closure, unused
- * @param success GNUNET_OK on success
- * @param emsg error message, NULL on success
- */
-static void
-create_next_record (void *cls,
-		    int32_t success,
-		    const char *emsg)
-{
-  struct GNUNET_NAMESTORE_RecordData rd;
-
-  qe = NULL;
-  if (NULL != emsg)
-    FPRINTF (stderr, "Failed to create record: %s\n", emsg);
-  GNUNET_assert (GNUNET_YES == success);
-  rd.data_size = strlen (TEST_RECORD_NS);
-  rd.data = TEST_RECORD_NS;
-  rd.record_type = GNUNET_GNS_RECORD_NS;
-  qe = GNUNET_NAMESTORE_record_create (namestore_handle,
-				       alice_key,
-				       TEST_RECORD_NAME,
-				       &rd,
-				       &commence_testing,
-				       NULL);
-}
-
-
-/**
  * Peer is ready, run the actual test.  Begins by storing
  * a record in the namestore.
  *
@@ -594,7 +563,7 @@ do_check (void *cls,
 {
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
   char* alice_keyfile;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_NAMESTORE_RecordData rd[2];
   struct in_addr ns;
   
   cfg = ccfg;
@@ -627,19 +596,25 @@ do_check (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Creating NS records\n");
-  rd.expiration_time = UINT64_MAX;
+  rd[0].expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP_NS, &ns));
-  rd.data_size = sizeof (struct in_addr);
-  rd.data = &ns;
-  rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd[0].data_size = sizeof (struct in_addr);
+  rd[0].data = &ns;
+  rd[0].record_type = GNUNET_DNSPARSER_TYPE_A;
+  rd[0].flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  
+  rd[1].expiration_time = UINT64_MAX;
+  rd[1].data_size = strlen (TEST_RECORD_NS);
+  rd[1].data = TEST_RECORD_NS;
+  rd[1].record_type = GNUNET_GNS_RECORD_NS;
+  rd[1].flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  qe = GNUNET_NAMESTORE_record_create (namestore_handle,
-				       alice_key,
-				       TEST_RECORD_NAME,
-				       &rd,
-				       &create_next_record,
-				       NULL);
+  qe = GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+						 alice_key,
+						 TEST_RECORD_NAME,
+						 2, rd,
+						 &commence_testing,
+						 NULL);
 }
 
 

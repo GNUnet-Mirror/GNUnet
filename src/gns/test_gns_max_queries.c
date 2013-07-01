@@ -310,24 +310,24 @@ do_check (void *cls,
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_RECORD_NAME,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_RECORD_NAME,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_AUTHORITY_NAME,
-                                  &rd,
-                                  &commence_testing,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_AUTHORITY_NAME,
+					    1, &rd,
+					    &commence_testing,
+					    NULL);
   
   GNUNET_CRYPTO_ecc_key_free(alice_key);
   GNUNET_CRYPTO_ecc_key_free(bob_key);

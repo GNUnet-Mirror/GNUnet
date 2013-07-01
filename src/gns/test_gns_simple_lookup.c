@@ -260,12 +260,12 @@ do_check (void *cls,
   rd.data = &web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-  nsqe = GNUNET_NAMESTORE_record_create (namestore_handle,
-					 alice_key,
-					 TEST_RECORD_NAME,
-					 &rd,
-					 &commence_testing,
-					 NULL);
+  nsqe = GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+						   alice_key,
+						   TEST_RECORD_NAME,
+						   1, &rd,
+						   &commence_testing,
+						   NULL);
   GNUNET_CRYPTO_ecc_key_free (alice_key);
 }
 

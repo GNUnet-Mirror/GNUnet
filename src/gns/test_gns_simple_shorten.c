@@ -260,12 +260,13 @@ void do_check (void *cls,
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   
   /* put bob into our zone */
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  our_key,
-                                  TEST_AUTHORITY_BOB,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    our_key,
+					    TEST_AUTHORITY_BOB,
+					    1,
+					    &rd,
+					    NULL,
+					    NULL);
   
   /* put alice into bobs zone */
   GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
@@ -310,12 +311,12 @@ void do_check (void *cls,
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   GNUNET_free(sig);
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                               our_key,
-                               TEST_ALICE_PSEU,
-                               &rd,
-                               &commence_testing,
-                               NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    our_key,
+					    TEST_ALICE_PSEU,
+					    1, &rd,
+					    &commence_testing,
+					    NULL);
 
   GNUNET_free(web);
   GNUNET_CRYPTO_ecc_key_free(our_key);

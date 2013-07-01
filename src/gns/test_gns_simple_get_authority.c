@@ -235,12 +235,12 @@ void do_check (void *cls,
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   /* put bob into our zone */
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  our_key,
-                                  TEST_AUTHORITY_BOB,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    our_key,
+					    TEST_AUTHORITY_BOB,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   /* put alice into bobs zone */
   GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
@@ -249,10 +249,10 @@ void do_check (void *cls,
                                           &rd, 1);
 
   GNUNET_NAMESTORE_record_put (namestore_handle,
-                               &bob_pkey,
-                               TEST_AUTHORITY_ALICE,
-                               GNUNET_TIME_UNIT_FOREVER_ABS,
-                               1,
+			       &bob_pkey,
+			       TEST_AUTHORITY_ALICE,
+			       GNUNET_TIME_UNIT_FOREVER_ABS,
+			       1,
                                &rd,
                                sig,
                                NULL,

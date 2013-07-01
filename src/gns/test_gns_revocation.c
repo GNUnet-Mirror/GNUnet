@@ -228,12 +228,12 @@ do_check (void *cls,
   rd.record_type = GNUNET_GNS_RECORD_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  alice_key,
-                                  TEST_AUTHORITY_NAME,
-                                  &rd,
-                                  NULL,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    alice_key,
+					    TEST_AUTHORITY_NAME,
+					    1, &rd,
+					    NULL,
+					    NULL);
 
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
@@ -255,12 +255,12 @@ do_check (void *cls,
   rd.data_size = 0;
   rd.record_type = GNUNET_GNS_RECORD_REV;
 
-  GNUNET_NAMESTORE_record_create (namestore_handle,
-                                  bob_key,
-                                  GNUNET_GNS_MASTERZONE_STR,
-                                  &rd,
-                                  &commence_testing,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+					    bob_key,
+					    GNUNET_GNS_MASTERZONE_STR,
+					    1, &rd,
+					    &commence_testing,
+					    NULL);
   GNUNET_free (alice_keyfile);
   GNUNET_free (web);
   GNUNET_free (sig);
