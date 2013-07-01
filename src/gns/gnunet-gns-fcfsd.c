@@ -536,12 +536,13 @@ zone_to_name_cb (void *cls,
   r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-  request->qe = GNUNET_NAMESTORE_record_create (ns,
-						fcfs_zone_pkey,
-						request->domain_name,
-						&r,
-						&put_continuation,
-						request);
+  request->qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
+							  fcfs_zone_pkey,
+							  request->domain_name,
+							  1,
+							  &r,
+							  &put_continuation,
+							  request);
 }
 
 

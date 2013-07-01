@@ -300,12 +300,13 @@ process_pseu_lookup_ns (void* cls,
   new_pkey.flags = GNUNET_NAMESTORE_RF_AUTHORITY
                  | GNUNET_NAMESTORE_RF_PRIVATE
                  | GNUNET_NAMESTORE_RF_PENDING;
-  gph->namestore_task = GNUNET_NAMESTORE_record_create (namestore_handle,
-							gph->key,
-							gph->test_name,
-							&new_pkey,
-							&create_pkey_cont, 
-							gph);
+  gph->namestore_task = GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
+								  gph->key,
+								  gph->test_name,
+								  1,
+								  &new_pkey,
+								  &create_pkey_cont, 
+								  gph);
 }
 
 
