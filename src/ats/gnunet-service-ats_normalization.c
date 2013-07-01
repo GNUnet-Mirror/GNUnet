@@ -648,7 +648,8 @@ normalize_address (void *cls, const struct GNUNET_HashCode *h, void *k)
  * Normalize avg_value to a range of values between [1.0, 2.0]
  * based on min max values currently known.
  *
- * @param property p the property
+ * @param addresses the address hashmap
+ * @param p the property
  * @param address the address
  * @param avg_value the value to normalize
  */
@@ -772,13 +773,13 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addr
 }
 
 
-
-
 /**
  * Start the normalization component
  *
  * @param pref_ch_cb callback to call on relative preference changing
- * @param pref_ch_cb_cls cls for the callback
+ * @param pref_ch_cb_cls cls for the preference callback
+ * @param property_ch_cb callback to call on relative property changing
+ * @param property_ch_cb_cls cls for the property callback
  */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,

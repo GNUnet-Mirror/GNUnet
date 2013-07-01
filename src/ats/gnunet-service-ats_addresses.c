@@ -909,6 +909,13 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
     return;
   }
 
+  if (NULL == aa->solver_information)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n",
+                 GNUNET_i2s (peer), plugin_name, session_id);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received `%s' for peer `%s' address \n",
                 "ADDRESS UPDATE",
@@ -1317,7 +1324,7 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  * @param cls the address handle
  * @param peer the peer
  * @param kind the ATS kind
- * @param double the new relative preference value
+ * @param pref_rel the new relative preference value
  */
 static void
 normalized_preference_changed_cb (void *cls,
@@ -1337,8 +1344,8 @@ normalized_preference_changed_cb (void *cls,
  *
  * @param cls the address handle
  * @param peer the peer
- * @param kind the ATS kind
- * @param double the new relative preference value
+ * @param type the ATS type
+ * @param prop_rel the new relative preference value
  */
 static void
 normalized_property_changed_cb (void *cls,

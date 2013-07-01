@@ -85,17 +85,20 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addr
 																			const struct GNUNET_ATS_Information *atsi,
 																			uint32_t atsi_count);
 
+
 /**
  * Start the normalization component
  *
  * @param pref_ch_cb callback to call on relative preference changing
- * @param pref_ch_cb_cls cls for the callback
+ * @param pref_ch_cb_cls cls for the preference callback
+ * @param property_ch_cb callback to call on relative property changing
+ * @param property_ch_cb_cls cls for the property callback
  */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
-												 void *pref_ch_cb_cls,
-												 GAS_Normalization_property_changed_cb property_ch_ch_cls,
-												 void *property_ch_cb_cls);
+		void *pref_ch_cb_cls,
+		GAS_Normalization_property_changed_cb property_ch_cb,
+		void *property_ch_cb_cls);
 
 
 /**
