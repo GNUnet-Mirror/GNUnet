@@ -12,7 +12,7 @@ EXTRA_DIST = \
   test_gns_dht_default.conf \
   gns-helper-service-w32.conf \
   gnunet-gns-proxy-setup-ca \
-  zonefiles/188JSUMKEF25GVU8TTV0PBNNN8JVCPUEDFV1UHJJU884JD25V0T0.zkey \
+  zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
   zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
   zonefiles/test_zonekey
 
