@@ -39,7 +39,7 @@ extern "C"
 #include <stdint.h>
 
 /**
- * @brief peer block (announce peer + type)
+ * @brief peer block (peer id)
  */
 struct PBlock
 {
