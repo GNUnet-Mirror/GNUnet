@@ -74,8 +74,8 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       }
       if (NULL == reply_block)
         return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-      if (sizeof (struct PBlock) != reply_block_size)  
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;  
+      if (sizeof (struct PBlock) != reply_block_size)
+        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
       if (NULL != bf)
       {
         GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
@@ -91,42 +91,10 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         }
         GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
       }
-
       return GNUNET_BLOCK_EVALUATION_OK_LAST;
 
-
-    case GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE:
-      /* FIXME: have an xquery? not sure */
-      if (0 != xquery_size)
-      {
-        GNUNET_break_op (0);
-        return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-      }
-      if (NULL == reply_block)
-        return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-      if (sizeof (struct PBlock) != reply_block_size)
-      {
-        GNUNET_break_op(0);
-        return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
-      }
-      if (NULL != bf)
-      {
-        GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-        GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
-        if (NULL != *bf)
-        {
-          if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
-            return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-        }
-        else
-        {
-          *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8, BLOOMFILTER_K);
-        }
-        GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
-      }
-      return GNUNET_BLOCK_EVALUATION_OK_MORE;
-
     default:
+      GNUNET_break(0);
       return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
   }
 }
@@ -174,7 +142,6 @@ libgnunet_plugin_block_mesh_init (void *cls)
   static enum GNUNET_BLOCK_Type types[] =
   {
     GNUNET_BLOCK_TYPE_MESH_PEER,
-    GNUNET_BLOCK_TYPE_MESH_PEER_BY_TYPE,
     GNUNET_BLOCK_TYPE_ANY       /* end of list */
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
