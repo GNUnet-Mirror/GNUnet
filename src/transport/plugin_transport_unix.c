@@ -758,7 +758,7 @@ unix_plugin_get_session (void *cls,
   }
 	addrstr = (char *) &ua[1];
 	addr_str_len = ntohl (ua->addrlen);
-	if (addr_str_len != address->address_length - sizeof (struct UnixAddress *))
+	if (addr_str_len != address->address_length - sizeof (struct UnixAddress))
   {
 		/* This can be a legacy address */
     return NULL;
