@@ -1272,7 +1272,7 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
 	addrstr = (char *) &ua[1];
 	addr_str_len = ntohl (ua->addrlen);
 
-	if (addr_str_len != addrlen - sizeof (struct UnixAddress *))
+	if (addr_str_len != addrlen - sizeof (struct UnixAddress))
   {
     GNUNET_break (0);
     return NULL;
