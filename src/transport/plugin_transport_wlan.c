@@ -736,7 +736,7 @@ create_session (struct MacEndpoint *endpoint,
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Created new session for peer `%s' with endpoint %s\n",
        GNUNET_i2s (peer),
-       mac_to_string (&endpoint->addr));
+       mac_to_string (&endpoint->addr.mac));
   return session;
 }
 
