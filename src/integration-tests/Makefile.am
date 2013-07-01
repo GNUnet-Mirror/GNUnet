@@ -142,8 +142,8 @@ EXTRA_DIST = \
    confs/c_no_nat_client_unix_2.conf \
    hostkeys/c_bootstrap_server \
    hostkeys/c_no_nat_client \
+   hostkeys/c_no_nat_client_2 \
    hostkeys/c_nat_client \
-   hostkeys/c_nat_client_2 \
    hostkeys/0004-hostkey \
    hostkeys/0005-hostkey \
    hostkeys/0006-hostkey \
