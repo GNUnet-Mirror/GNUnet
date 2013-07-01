@@ -116,6 +116,7 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
  * to override the address again.
  *
  * @param cls closure
+ * @param plugin the plugin
  * @param addr binary address
  * @param addrlen length of the address
  * @return string representing the same address

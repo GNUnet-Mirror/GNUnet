@@ -639,7 +639,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
  * a binary address.
  *
  * @param cls closure ('struct Plugin*')
- * @param address string address
+ * @param addr string address
  * @param addrlen length of the address
  * @param buf location to store the buffer
  * @param added location to store the number of bytes in the buffer.

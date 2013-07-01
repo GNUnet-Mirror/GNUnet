@@ -253,6 +253,7 @@ http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen)
  * to override the address again.
  *
  * @param cls closure
+ * @param plugin the plugin
  * @param addr binary address
  * @param addrlen length of the address
  * @return string representing the same address

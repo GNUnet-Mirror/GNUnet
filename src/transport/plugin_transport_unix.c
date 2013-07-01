@@ -449,7 +449,8 @@ lookup_session_it (void *cls,
  *
  * @param plugin the plugin
  * @param sender for which peer should the session be?
- * @param addr address to look for
+ * @param ua address to look for
+ * @param ua_len length of the address
  * @return NULL if session was not found
  */
 static struct Session *
@@ -910,8 +911,8 @@ unix_plugin_send (void *cls,
  * @param plugin the main plugin for this transport
  * @param sender from which peer the message was received
  * @param currhdr pointer to the header of the message
- * @param un the address from which the message was received
- * @param fromlen the length of the address
+ * @param ua address to look for
+ * @param ua_len length of the address
  */
 static void
 unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
