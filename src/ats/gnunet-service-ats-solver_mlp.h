@@ -254,7 +254,7 @@ struct GAS_MLP_Handle
   /**
    * Number of changes while solver was locked
    */
-  int bulk_changes;
+  int bulk_request;
 
   /**
    * GLPK LP control parameter

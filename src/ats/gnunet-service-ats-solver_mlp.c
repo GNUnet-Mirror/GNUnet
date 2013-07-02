@@ -953,6 +953,12 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 	struct GNUNET_TIME_Relative duration_mlp;
 	GNUNET_assert (NULL != solver);
 
+	if (GNUNET_YES == mlp->bulk_lock)
+	{
+		mlp->bulk_request ++;
+		return GNUNET_NO;
+	}
+
 	if ((GNUNET_NO == mlp->mlp_prob_changed) && (GNUNET_NO == mlp->mlp_prob_updated))
 	{
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
@@ -1356,6 +1362,7 @@ GAS_mlp_address_update (void *solver,
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_updated = GNUNET_YES;
+
 	if (GNUNET_YES == mlp->mlp_auto_solve)
 		GAS_mlp_solve_problem (solver, addresses);
   return;
@@ -1538,10 +1545,10 @@ GAS_mlp_bulk_stop (void *solver)
   }
   s->bulk_lock --;
 
-  if (0 < s->bulk_changes)
+  if (0 < s->bulk_request)
   {
   	GAS_mlp_solve_problem (solver, s->addresses);
-  	s->bulk_changes = 0;
+  	s->bulk_request= 0;
   }
 }
 
@@ -1613,12 +1620,6 @@ GAS_mlp_address_change_preference (void *solver,
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_updated = GNUNET_YES;
-	if (GNUNET_YES == mlp->bulk_lock)
-	{
-		mlp->bulk_changes++;
-		return;
-	}
-
 	if (GNUNET_YES == mlp->mlp_auto_solve)
 		GAS_mlp_solve_problem (solver, addresses);
   return;
@@ -1908,6 +1909,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->mlp_prob_updated = GNUNET_NO;
   mlp->mlp_auto_solve = GNUNET_YES;
   mlp->peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  mlp->bulk_request = 0;
+  mlp->bulk_lock = 0;
 
   /* Setup GLPK */
   /* Redirect GLPK output to GNUnet logging */

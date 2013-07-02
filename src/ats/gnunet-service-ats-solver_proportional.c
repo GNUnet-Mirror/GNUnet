@@ -251,7 +251,7 @@ struct GAS_PROPORTIONAL_Handle
   /**
    * Number of changes while solver was locked
    */
-  int bulk_changes;
+  int bulk_requests;
 
 
   /**
@@ -415,6 +415,13 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   unsigned long long assigned_quota_in = 0;
   unsigned long long assigned_quota_out = 0;
   struct AddressWrapper *cur;
+
+
+	if (GNUNET_YES == s->bulk_lock)
+	{
+		s->bulk_requests++;
+		return;
+	}
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -654,6 +661,7 @@ static void
 distribute_bandwidth_in_all_networks (struct GAS_PROPORTIONAL_Handle *s)
 {
 	int i;
+
 	for (i = 0; i < s->networks; i++)
 		distribute_bandwidth_in_network (s, &s->network_entries[i], NULL);
 
@@ -865,10 +873,7 @@ GAS_proportional_address_change_preference (void *solver,
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
 
-  if (GNUNET_NO == s->bulk_lock)
-  	distribute_bandwidth_in_all_networks (s);
-  else
-  	s->bulk_changes ++;
+ 	distribute_bandwidth_in_all_networks (s);
 }
 
 /**
@@ -934,10 +939,7 @@ GAS_proportional_get_preferred_address (void *solver,
       s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      if (GNUNET_NO == s->bulk_lock)
-      	distribute_bandwidth_in_network (s, net_prev, NULL);
-      else
-      	s->bulk_changes ++;
+     	distribute_bandwidth_in_network (s, net_prev, NULL);
   }
 
   if (GNUNET_NO == (is_bandwidth_available_in_network (cur->solver_information)))
@@ -948,11 +950,7 @@ GAS_proportional_get_preferred_address (void *solver,
 
   cur->active = GNUNET_YES;
   addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
-  if (GNUNET_NO == s->bulk_lock)
-  	distribute_bandwidth_in_network (s, net_cur, cur);
-  else
-  	s->bulk_changes ++;
-
+  distribute_bandwidth_in_network (s, net_cur, cur);
   return cur;
 }
 
@@ -1037,10 +1035,7 @@ GAS_proportional_address_delete (void *solver,
       address->active = GNUNET_NO;
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      if (GNUNET_NO == s->bulk_lock)
-      	distribute_bandwidth_in_network (s, net, NULL);
-      else
-      	s->bulk_changes ++;
+      distribute_bandwidth_in_network (s, net, NULL);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
@@ -1082,11 +1077,11 @@ GAS_proportional_bulk_stop (void *solver)
   	return;
   }
   s->bulk_lock --;
-  if ((0 == s->bulk_lock) && (s->bulk_changes))
+  if ((0 == s->bulk_lock) && (0 < s->bulk_requests))
   {
   	LOG (GNUNET_ERROR_TYPE_ERROR, "No lock pending, recalculating\n");
   	distribute_bandwidth_in_all_networks (s);
-  	s->bulk_changes = 0;
+  	s->bulk_requests = 0;
   }
 }
 
@@ -1194,10 +1189,7 @@ GAS_proportional_address_update (void *solver,
               /* Suggest updated address */
               address->active = GNUNET_YES;
               addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-              if (GNUNET_NO == s->bulk_lock)
-              	distribute_bandwidth_in_network (solver, new_net, NULL);
-              else
-              	s->bulk_changes ++;
+              distribute_bandwidth_in_network (solver, new_net, NULL);
           }
           else
           {
