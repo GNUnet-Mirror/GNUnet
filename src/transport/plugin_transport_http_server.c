@@ -2793,10 +2793,10 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
         {
         	pos_url = pos + 1;
         	pos[0] = '\0';
-        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u/%s", tmp, port, pos_url);
+        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u/%s", tmp, (uint16_t) port, (NULL == pos_url) ? "" : pos_url);
         }
         else
-        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u", tmp, port);
+        	GNUNET_asprintf (&plugin->external_hostname, "%s:%u", tmp, (uint16_t) port);
       }
       else
       	plugin->external_hostname = GNUNET_strdup (tmp);
