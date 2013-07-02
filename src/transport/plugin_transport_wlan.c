@@ -1186,7 +1186,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       GNUNET_break_op (0);
       break;
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Processing %u bytes of HELLO from peer `%s' at MAC %s\n",
 	 (unsigned int) msize,
 	 GNUNET_i2s (&tmpsource),
@@ -1323,11 +1323,11 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 			  hdr, 
 			  mas->session,
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+			  (mas->endpoint == NULL) ? 0 : sizeof (struct WlanAddress));
     plugin->env->update_address_metrics (plugin->env->cls,
 					 &mas->session->target,
 					 (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-					 (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+					 (mas->endpoint == NULL) ? 0 : sizeof (struct WlanAddress),
 					 mas->session,
 					 &ats, 1);
     break;
