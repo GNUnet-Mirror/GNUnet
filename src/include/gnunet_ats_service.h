@@ -33,7 +33,7 @@
 /**
  * Number of network types supported by ATS
  */
-#define GNUNET_ATS_NetworkTypeCount 5
+#define GNUNET_ATS_NetworkTypeCount 6
 
 /**
  * ATS network types as array initializer
@@ -43,7 +43,7 @@
 /**
  * ATS network types as string array initializer
  */
-#define GNUNET_ATS_NetworkTypeString {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN"}
+#define GNUNET_ATS_NetworkTypeString {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN", "BLUETOOTH"}
 
 enum GNUNET_ATS_Network_Type
 {
@@ -52,6 +52,7 @@ enum GNUNET_ATS_Network_Type
   GNUNET_ATS_NET_LAN = 2,
   GNUNET_ATS_NET_WAN = 3,
   GNUNET_ATS_NET_WLAN = 4,
+  GNUNET_ATS_NET_BT = 5
 };
 
 /**
