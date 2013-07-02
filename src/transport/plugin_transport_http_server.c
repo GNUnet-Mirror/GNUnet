@@ -1109,7 +1109,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       ats = plugin->env->get_address_type (plugin->env->cls, conn_info->client_addr, sizeof (struct sockaddr_in6));
       break;
     default:
-      GNUNET_break (0);
+    	/* external host name */
+      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+      ats.type = htonl (GNUNET_ATS_NET_WAN);
       return NULL;
     }
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
