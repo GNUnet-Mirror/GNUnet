@@ -96,11 +96,18 @@ GNUNET_NETWORK_STRUCT_END
  * Test if this block is marked as being an accept state.
  *
  * @param block block to test
+ * @param size number of bytes in block
  * @return GNUNET_YES if the block is accepting, GNUNET_NO if not
  */ 
 int
-GNUNET_BLOCK_is_accepting (const struct RegexBlock *block)
+GNUNET_BLOCK_is_accepting (const struct RegexBlock *block,
+			   size_t size)
 {
+  if (size < sizeof (struct RegexBlock))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   return ntohs (block->is_accepting);
 }
 
@@ -316,7 +323,7 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
   destinations = (const struct GNUNET_HashCode *) &block[1];
   edges = (const struct EdgeInfo *) &destinations[num_destinations];
   aux = (const char *) &edges[num_edges];
-  total = sizeof (struct RegexBlock) + num_destinations * sizeof (struct GNUNET_HashCode) + num_edges + sizeof (struct EdgeInfo) + len;
+  total = sizeof (struct RegexBlock) + num_destinations * sizeof (struct GNUNET_HashCode) + num_edges * sizeof (struct EdgeInfo) + len;
   if (size < total) 
   {
     GNUNET_break_op (0);
@@ -326,6 +333,9 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
     total += ntohs (edges[n].token_length);    
   if (size != total) 
   {
+    fprintf (stderr, "Expected %u, got %u\n",
+	     (unsigned int) size,
+	     (unsigned int) total);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }

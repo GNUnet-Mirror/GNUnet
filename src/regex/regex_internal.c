@@ -2132,7 +2132,7 @@ struct REGEX_INTERNAL_Strided_Context
  * @param start start state for the depth-first traversal of the graph.
  * @param s current state in the depth-first traversal
  */
-void
+static void
 dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
                               struct REGEX_INTERNAL_State *start,
                               struct REGEX_INTERNAL_State *s)
@@ -2182,7 +2182,7 @@ dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
  * @param count not used.
  * @param s current state.
  */
-void
+static void
 dfa_add_multi_strides (void *cls, const unsigned int count,
                        struct REGEX_INTERNAL_State *s)
 {
@@ -2653,7 +2653,6 @@ nfa_add_question_op (struct REGEX_INTERNAL_Context *ctx)
   struct REGEX_INTERNAL_State *end;
 
   a = ctx->stack_tail;
-
   if (NULL == a)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -3035,7 +3034,6 @@ REGEX_INTERNAL_construct_dfa (const char *regex, const size_t len,
   REGEX_INTERNAL_context_init (&ctx);
 
   /* Create NFA */
-  // fprintf (stderr, "N");
   nfa = REGEX_INTERNAL_construct_nfa (regex, len);
 
   if (NULL == nfa)
@@ -3057,12 +3055,10 @@ REGEX_INTERNAL_construct_dfa (const char *regex, const size_t len,
   dfa->start = dfa_state_create (&ctx, &nfa_start_eps_cls);
   automaton_add_state (dfa, dfa->start);
 
-  // fprintf (stderr, "D");
   construct_dfa_states (&ctx, nfa, dfa, dfa->start);
   REGEX_INTERNAL_automaton_destroy (nfa);
 
   /* Minimize DFA */
-  // fprintf (stderr, "M");
   if (GNUNET_OK != dfa_minimize (&ctx, dfa))
   {
     REGEX_INTERNAL_automaton_destroy (dfa);
@@ -3310,18 +3306,17 @@ size_t
 REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
                             struct GNUNET_HashCode * key)
 {
-  unsigned int size;
+  size_t size;
 
   size =
       string_len <
       GNUNET_REGEX_INITIAL_BYTES ? string_len : GNUNET_REGEX_INITIAL_BYTES;
-
   if (NULL == input_string)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Given input string was NULL!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Given input string was NULL!\n");
     return 0;
   }
-
   GNUNET_CRYPTO_hash (input_string, size, key);
 
   return size;
@@ -3351,7 +3346,6 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   struct REGEX_BLOCK_Edge edge[1];
   struct GNUNET_HashCode hash;
   struct GNUNET_HashCode hash_new;
-
   unsigned int cur_len;
 
   if (NULL != consumed_string)
@@ -3442,19 +3436,19 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
     unsigned int num_edges;
 
     num_edges = state_get_edges (s, edges);
-
-    if ((NULL != s->proof && 0 < strlen (s->proof)) || s->accepting)
-      iterator (iterator_cls, &s->hash, s->proof, s->accepting, num_edges,
-                edges);
-
+    if ( ( (NULL != s->proof) && 
+	   (0 < strlen (s->proof)) ) || s->accepting)
+      iterator (iterator_cls, &s->hash, s->proof, 
+		s->accepting,
+		num_edges, edges);
     s->marked = GNUNET_NO;
   }
 
-  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES, GNUNET_REGEX_INITIAL_BYTES,
-                        NULL, a->start, iterator, iterator_cls);
+  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
+			GNUNET_REGEX_INITIAL_BYTES,
+                        NULL, a->start, 
+			iterator, iterator_cls);
 }
 
 
-
-
-/* end of regex.c */
+/* end of regex_internal.c */

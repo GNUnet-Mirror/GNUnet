@@ -29,18 +29,12 @@
 #include "regex_internal_lib.h"
 #include "regex_test_lib.h"
 
-static const char *exe;
-
-static void
-usage(void)
-{
-  fprintf (stderr, "Usage: %s REGEX_FILE COMPRESSION\n", exe);
-}
 
 /**
- * Iterator callback function.
+ * Print information about the given node and its edges
+ * to stdout.
  *
- * @param cls closure.
+ * @param cls closure, unused.
  * @param key hash for current state.
  * @param proof proof for current state.
  * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
@@ -48,28 +42,25 @@ usage(void)
  * @param edges edges leaving current state.
  */
 static void 
-iter (void *cls,
-      const struct GNUNET_HashCode *key,
-      const char *proof,
-      int accepting,
-      unsigned int num_edges,
-      const struct REGEX_BLOCK_Edge *edges)
+print_edge (void *cls,
+	    const struct GNUNET_HashCode *key,
+	    const char *proof,
+	    int accepting,
+	    unsigned int num_edges,
+	    const struct REGEX_BLOCK_Edge *edges)
 {
   unsigned int i;
 
-  printf ("%s: %s\n", GNUNET_h2s (key), accepting ? "ACCEPTING" : "");
-  printf ("  proof: %s\n", proof);
+  printf ("%s: %s, proof: `%s'\n",
+	  GNUNET_h2s (key),
+	  accepting ? "ACCEPTING" : "",
+	  proof);
   for (i = 0; i < num_edges; i++)
-  {
-    printf ("    %s: %s\n", edges[i].label, GNUNET_h2s (&edges[i].destination));
-  }
+    printf ("    `%s': %s\n",
+	    edges[i].label,
+	    GNUNET_h2s (&edges[i].destination));
 }
 
-static void
-print_dfa (struct REGEX_INTERNAL_Automaton* dfa)
-{
-  REGEX_INTERNAL_iterate_all_edges (dfa, iter, NULL);
-}
 
 /**
  * The main function of the regex performace test.
@@ -92,30 +83,33 @@ main (int argc, char *const *argv)
   long size;
 
   GNUNET_log_setup ("perf-regex", "DEBUG", NULL);
-  exe = argv[0];
   if (3 != argc)
   {
-    usage();
+    fprintf (stderr,
+	     "Usage: %s REGEX_FILE COMPRESSION\n", 
+	     argv[0]);
     return 1;
   }
   regexes = REGEX_TEST_read_from_file (argv[1]);
-
   if (NULL == regexes)
   {
-    usage();
+    fprintf (stderr,
+	     "Failed to read regexes from `%s'\n",
+	     argv[1]);
     return 2;
   }
-  buffer = REGEX_TEST_combine (regexes);
+  compression = atoi (argv[2]);
 
+  buffer = REGEX_TEST_combine (regexes);
   GNUNET_asprintf (&regex, "GNVPN-0001-PAD(%s)(0|1)*", buffer);
   size = strlen (regex);
 
-  fprintf (stderr, "Combined regex (%ld bytes):\n%s\n", size, regex);
-  //   return 0;
-
-  compression = atoi (argv[2]);
+  fprintf (stderr, 
+	   "Combined regex (%ld bytes):\n%s\n", 
+	   size, 
+	   regex);
   dfa = REGEX_INTERNAL_construct_dfa (regex, size, compression);
-  print_dfa (dfa);
+  REGEX_INTERNAL_iterate_all_edges (dfa, &print_edge, NULL);
   REGEX_INTERNAL_automaton_destroy (dfa);
   GNUNET_free (buffer);
   REGEX_TEST_free_from_file (regexes);

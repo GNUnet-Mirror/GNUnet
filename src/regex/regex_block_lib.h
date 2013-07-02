@@ -156,10 +156,12 @@ REGEX_BLOCK_get_key (const struct RegexBlock *block,
  * Test if this block is marked as being an accept state.
  *
  * @param block block to test
+ * @param size number of bytes in block
  * @return GNUNET_YES if the block is accepting, GNUNET_NO if not
  */ 
 int
-GNUNET_BLOCK_is_accepting (const struct RegexBlock *block);
+GNUNET_BLOCK_is_accepting (const struct RegexBlock *block,
+			   size_t block_len);
 
 
 /**

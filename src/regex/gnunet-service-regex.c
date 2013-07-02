@@ -212,8 +212,18 @@ handle_announce (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
+  ce->frequency = GNUNET_TIME_relative_ntoh (am->refresh_delay);
+  ce->refresh_task = GNUNET_SCHEDULER_add_delayed (ce->frequency,
+						   &reannounce,
+						   ce);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting to announce regex `%s' every %s\n",
+	      regex,
+	      GNUNET_STRINGS_relative_time_to_string (ce->frequency,
+						      GNUNET_NO));
   ce->ah = REGEX_INTERNAL_announce (dht,
 				    my_private_key,
 				    regex,
@@ -222,14 +232,11 @@ handle_announce (void *cls,
   if (NULL == ce->ah)
   {
     GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (ce->refresh_task);
     GNUNET_free (ce);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  ce->frequency = GNUNET_TIME_relative_ntoh (am->refresh_delay);
-  ce->refresh_task = GNUNET_SCHEDULER_add_delayed (ce->frequency,
-						   &reannounce,
-						   ce);
   GNUNET_CONTAINER_DLL_insert (client_head,
 			       client_tail, 
 			       ce);

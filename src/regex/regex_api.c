@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file include/gnunet_regex_service.h
+ * @file regex/regex_api.c
  * @brief access regex service to advertise capabilities via regex and discover
  *        respective peers using matching strings
  * @author Maximilian Szengel
@@ -188,7 +188,7 @@ struct GNUNET_REGEX_Search
   /**
    * Search message to transmit to the service.
    */
-  struct SearchMessage msg;
+  struct SearchMessage *msg;
 };
 
 
@@ -216,7 +216,7 @@ retry_search (struct GNUNET_REGEX_Search *s)
   GNUNET_assert (NULL != s->client);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CLIENT_transmit_and_get_response (s->client,
-							  &s->msg.header,
+							  &s->msg->header,
 							  GNUNET_TIME_UNIT_FOREVER_REL,
 							  GNUNET_YES,
 							  &handle_search_response,
@@ -300,16 +300,17 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t slen;
 
   slen = strlen (string) + 1;
-  s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Announcement) + slen);
+  s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Search));
   s->cfg = cfg;
   s->client = GNUNET_CLIENT_connect ("regex", cfg);
   if (NULL == s->client)
     return NULL;
   s->callback = callback;
   s->callback_cls = callback_cls;
-  s->msg.header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
-  s->msg.header.size = htons (sizeof (struct SearchMessage) + slen);
-  memcpy (&s[1], string, slen);
+  s->msg = GNUNET_malloc (sizeof (struct SearchMessage) + slen);
+  s->msg->header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
+  s->msg->header.size = htons (sizeof (struct SearchMessage) + slen);
+  memcpy (&s->msg[1], string, slen);
   retry_search (s);
   return s;
 }
@@ -324,6 +325,7 @@ void
 GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s)
 {
   GNUNET_CLIENT_disconnect (s->client);
+  GNUNET_free (s->msg);
   GNUNET_free (s);
 }
 
