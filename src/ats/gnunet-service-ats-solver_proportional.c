@@ -221,8 +221,38 @@ struct GAS_PROPORTIONAL_Handle
   /**
    * Statistics handle
    */
-
   struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Bandwidth changed callback
+   */
+  GAS_bandwidth_changed_cb bw_changed;
+
+  /**
+   * Bandwidth changed callback cls
+   */
+  void *bw_changed_cls;
+
+  /**
+   * ATS function to get preferences
+   */
+  GAS_get_preferences get_preferences;
+
+  /**
+   * Closure for ATS function to get preferences
+   */
+  void *get_preferences_cls;
+
+  /**
+   * Bulk lock
+   */
+  int bulk_lock;
+
+  /**
+   * Number of changes while solver was locked
+   */
+  int bulk_changes;
+
 
   /**
    * Total number of addresses for solver
@@ -244,28 +274,6 @@ struct GAS_PROPORTIONAL_Handle
    */
   unsigned int networks;
 
-  /**
-   * Callback
-   */
-  GAS_bandwidth_changed_cb bw_changed;
-
-  /**
-   * Callback cls
-   */
-  void *bw_changed_cls;
-
-  /**
-   * ATS function to get preferences
-   */
-  GAS_get_preferences get_preferences;
-
-  /**
-   * Closure for ATS function to get preferences
-   */
-  void *get_preferences_cls;
-
-  struct PreferenceClient *pc_head;
-  struct PreferenceClient *pc_tail;
 };
 
 
@@ -856,7 +864,11 @@ GAS_proportional_address_change_preference (void *solver,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
-  distribute_bandwidth_in_all_networks (s);
+
+  if (GNUNET_NO == s->bulk_lock)
+  	distribute_bandwidth_in_all_networks (s);
+  else
+  	s->bulk_changes ++;
 }
 
 /**
@@ -922,7 +934,10 @@ GAS_proportional_get_preferred_address (void *solver,
       s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      distribute_bandwidth_in_network (s, net_prev, NULL);
+      if (GNUNET_NO == s->bulk_lock)
+      	distribute_bandwidth_in_network (s, net_prev, NULL);
+      else
+      	s->bulk_changes ++;
   }
 
   if (GNUNET_NO == (is_bandwidth_available_in_network (cur->solver_information)))
@@ -933,7 +948,10 @@ GAS_proportional_get_preferred_address (void *solver,
 
   cur->active = GNUNET_YES;
   addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
-  distribute_bandwidth_in_network (s, net_cur, cur);
+  if (GNUNET_NO == s->bulk_lock)
+  	distribute_bandwidth_in_network (s, net_cur, cur);
+  else
+  	s->bulk_changes ++;
 
   return cur;
 }
@@ -1019,7 +1037,10 @@ GAS_proportional_address_delete (void *solver,
       address->active = GNUNET_NO;
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-      distribute_bandwidth_in_network (s, net, NULL);
+      if (GNUNET_NO == s->bulk_lock)
+      	distribute_bandwidth_in_network (s, net, NULL);
+      else
+      	s->bulk_changes ++;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
@@ -1037,7 +1058,11 @@ GAS_proportional_address_delete (void *solver,
 void
 GAS_proportional_bulk_start (void *solver)
 {
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Locking solver for bulk operation ...\n");
+  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
 
+  GNUNET_assert (NULL != solver);
+  s->bulk_lock ++;
 }
 
 /**
@@ -1046,7 +1071,23 @@ GAS_proportional_bulk_start (void *solver)
 void
 GAS_proportional_bulk_stop (void *solver)
 {
+	LOG (GNUNET_ERROR_TYPE_ERROR, "Unlocking solver from bulk operation ...\n");
 
+  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  GNUNET_assert (NULL != solver);
+
+  if (s->bulk_lock < 1)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+  s->bulk_lock --;
+  if ((0 == s->bulk_lock) && (s->bulk_changes))
+  {
+  	LOG (GNUNET_ERROR_TYPE_ERROR, "No lock pending, recalculating\n");
+  	distribute_bandwidth_in_all_networks (s);
+  	s->bulk_changes = 0;
+  }
 }
 
 
@@ -1153,7 +1194,10 @@ GAS_proportional_address_update (void *solver,
               /* Suggest updated address */
               address->active = GNUNET_YES;
               addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-              distribute_bandwidth_in_network (solver, new_net, NULL);
+              if (GNUNET_NO == s->bulk_lock)
+              	distribute_bandwidth_in_network (solver, new_net, NULL);
+              else
+              	s->bulk_changes ++;
           }
           else
           {
@@ -1294,6 +1338,7 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
   s->active_addresses = 0;
   s->total_addresses = 0;
+  s->bulk_lock = GNUNET_NO;
 
   for (c = 0; c < dest_length; c++)
   {

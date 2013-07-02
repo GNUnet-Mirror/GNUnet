@@ -110,6 +110,7 @@ struct MLP_Problem
 #else
   void *prob;
 #endif
+
   /* Number of addresses in problem */
   unsigned int num_addresses;
   /* Number of peers in problem */
@@ -150,6 +151,7 @@ struct MLP_Problem
   int *ja;
   /* Column index value */
   double *ar;
+
 };
 
 struct MLP_Variables
@@ -219,6 +221,11 @@ struct GAS_MLP_Handle
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
+   * Address hashmap for lookups
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *addresses;
+
+  /**
    * Addresses' bandwidth changed callback
    */
   GAS_bandwidth_changed_cb bw_changed_cb;
@@ -237,6 +244,17 @@ struct GAS_MLP_Handle
   struct MLP_Variables pv;
 
   struct MLP_Solution ps;
+
+  /**
+   * Bulk lock
+   */
+
+  int bulk_lock;
+
+  /**
+   * Number of changes while solver was locked
+   */
+  int bulk_changes;
 
   /**
    * GLPK LP control parameter

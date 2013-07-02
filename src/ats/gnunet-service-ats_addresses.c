@@ -819,7 +819,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added new address for peer `%s' session id %u, %p\n",
                 GNUNET_i2s (peer), session_id, aa);
     /* Tell solver about new address */
+    handle->s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
+    handle->s_bulk_stop (handle->solver);
     handle->s_add (handle->solver, handle->addresses, aa, addr_net);
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&aa->peer,
@@ -863,7 +865,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   }
 
   /* Notify solver about update with atsi information and session */
+  handle->s_bulk_start (handle->solver);
   GAS_normalization_normalize_property (handle->addresses, ea, atsi, atsi_count);
+  handle->s_bulk_stop (handle->solver);
   handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 
@@ -1415,8 +1419,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                   GNUNET_i2s (peer), client);
       return;
   }
-  /* Tell normalization about change, normalization will call callback if preference changed */
+
   handle->s_bulk_start (handle->solver);
+  /* Tell normalization about change, normalization will call callback if preference changed */
   GAS_normalization_normalize_preference (client, peer, kind, score_abs);
   handle->s_bulk_stop (handle->solver);
 }

@@ -958,7 +958,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
 		return GNUNET_OK;
 	}
-
+	mlp->addresses = addresses;
 	if (GNUNET_YES == mlp->mlp_prob_changed)
 	{
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
@@ -1061,7 +1061,7 @@ GAS_mlp_address_add (void *solver,
   GNUNET_assert (NULL != addresses);
   GNUNET_assert (NULL != address);
 
-
+	mlp->addresses = addresses;
   if (NULL == address->solver_information)
   {
   		address->solver_information = GNUNET_malloc (sizeof (struct MLP_information));
@@ -1338,6 +1338,7 @@ GAS_mlp_address_update (void *solver,
 	GNUNET_assert (NULL != address);
 	GNUNET_assert ((NULL != prev_atsi) || (0 == prev_atsi_count));
 
+	mlp->addresses = addresses;
   if (NULL == mlpi)
   {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Updating address for peer `%s' not added before\n"), GNUNET_i2s(&address->peer));
@@ -1386,7 +1387,7 @@ GAS_mlp_address_delete (void *solver,
 	GNUNET_assert (NULL != address);
 
 	mlpi = address->solver_information;
-
+	mlp->addresses = addresses;
 	if (NULL != mlpi)
 	{
 			GNUNET_free (mlpi);
@@ -1480,7 +1481,7 @@ GAS_mlp_get_preferred_address (void *solver,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
   		GNUNET_i2s (peer));
-
+	mlp->addresses = addresses;
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &peer->hashPubKey)))
   {
@@ -1514,13 +1515,34 @@ GAS_mlp_get_preferred_address (void *solver,
 void
 GAS_mlp_bulk_start (void *solver)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Locking solver for bulk operation ...\n");
+  struct GAS_MLP_Handle *s = (struct GAS_MLP_Handle *) solver;
 
+  GNUNET_assert (NULL != solver);
+
+  s->bulk_lock ++;
 }
 
 void
 GAS_mlp_bulk_stop (void *solver)
 {
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Unlocking solver from bulk operation ...\n");
 
+  struct GAS_MLP_Handle *s = (struct GAS_MLP_Handle *) solver;
+  GNUNET_assert (NULL != solver);
+
+  if (s->bulk_lock < 1)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+  s->bulk_lock --;
+
+  if (0 < s->bulk_changes)
+  {
+  	GAS_mlp_solve_problem (solver, s->addresses);
+  	s->bulk_changes = 0;
+  }
 }
 
 
@@ -1575,9 +1597,8 @@ GAS_mlp_address_change_preference (void *solver,
   		GNUNET_i2s(peer));
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
-
+	mlp->addresses = addresses;
   /* Update the constraints with changed preferences */
-
 
   /* Update quality constraint c7 */
 
@@ -1588,11 +1609,16 @@ GAS_mlp_address_change_preference (void *solver,
   	return;
   }
   p->f = get_peer_pref_value (mlp, peer);
-  mlp_create_problem_set_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
-
+  /* FXIME: cannot use set_value mlp_create_problem_set_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);*/
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_updated = GNUNET_YES;
+	if (GNUNET_YES == mlp->bulk_lock)
+	{
+		mlp->bulk_changes++;
+		return;
+	}
+
 	if (GNUNET_YES == mlp->mlp_auto_solve)
 		GAS_mlp_solve_problem (solver, addresses);
   return;
