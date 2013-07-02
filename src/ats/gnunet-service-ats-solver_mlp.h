@@ -450,6 +450,22 @@ GAS_mlp_address_change_preference (void *solver,
 
 
 /**
+ * Start a bulk operation
+ *
+ * @param solver the solver
+ */
+void
+GAS_mlp_bulk_start (void *solver);
+
+
+/**
+ * Bulk operation done
+ */
+void
+GAS_mlp_bulk_stop (void *solver);
+
+
+/**
  * Get the preferred address for a specific peer
  *
  * @param solver the MLP Handle

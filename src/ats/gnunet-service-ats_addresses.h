@@ -448,6 +448,12 @@ typedef void
 																				 enum GNUNET_ATS_PreferenceKind kind,
 																				 double pref_rel);
 
+typedef void
+(*GAS_solver_bulk_start) (void *solver);
+
+typedef void
+(*GAS_solver_bulk_stop) (void *solver);
+
 /**
  * Add a single address within a network to the solver
  *

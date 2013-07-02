@@ -1030,6 +1030,27 @@ GAS_proportional_address_delete (void *solver,
 
 
 /**
+ * Start a bulk operation
+ *
+ * @param solver the solver
+ */
+void
+GAS_proportional_bulk_start (void *solver)
+{
+
+}
+
+/**
+ * Bulk operation done
+ */
+void
+GAS_proportional_bulk_stop (void *solver)
+{
+
+}
+
+
+/**
  * Add a new single address to a network
  *
  * @param solver the solver Handle

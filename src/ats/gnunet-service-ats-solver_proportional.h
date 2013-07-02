@@ -150,6 +150,21 @@ GAS_proportional_address_delete (void *solver,
 
 
 /**
+ * Start a bulk operation
+ *
+ * @param solver the solver
+ */
+void
+GAS_proportional_bulk_start (void *solver);
+
+
+/**
+ * Bulk operation done
+ */
+void
+GAS_proportional_bulk_stop (void *solver);
+
+/**
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the MLP handle

@@ -364,6 +364,16 @@ struct GAS_Addresses_Handle
   GAS_solver_address_change_preference s_pref;
 
   /**
+   * Start a bulk operation
+   */
+  GAS_solver_bulk_start s_bulk_start;
+
+  /**
+   * Bulk operation done
+   */
+  GAS_solver_bulk_stop s_bulk_stop;
+
+  /**
    * Shutdown solver
    */
   GAS_solver_done s_done;
@@ -938,7 +948,9 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   prev_session = aa->session_id;
   aa->session_id = session_id;
 
+  handle->s_bulk_start (handle->solver);
   GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
+  handle->s_bulk_stop (handle->solver);
 
   /* Tell solver about update */
   handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
@@ -1404,7 +1416,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
       return;
   }
   /* Tell normalization about change, normalization will call callback if preference changed */
+  handle->s_bulk_start (handle->solver);
   GAS_normalization_normalize_preference (client, peer, kind, score_abs);
+  handle->s_bulk_stop (handle->solver);
 }
 
 
@@ -1636,6 +1650,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_get_stop = &GAS_mlp_stop_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;
       ah->s_del =  &GAS_mlp_address_delete;
+      ah->s_bulk_start = &GAS_mlp_bulk_start;
+      ah->s_bulk_stop = &GAS_mlp_bulk_stop;
       ah->s_done = &GAS_mlp_done;
 #else
       GNUNET_free (ah);
@@ -1652,6 +1668,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_get_stop = &GAS_proportional_stop_get_preferred_address;
       ah->s_pref = &GAS_proportional_address_change_preference;
       ah->s_del  = &GAS_proportional_address_delete;
+      ah->s_bulk_start = &GAS_proportional_bulk_start;
+      ah->s_bulk_stop = &GAS_proportional_bulk_stop;
       ah->s_done = &GAS_proportional_done;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
       break;
@@ -1668,6 +1686,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_pref);
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
+  GNUNET_assert (NULL != ah->s_bulk_start);
+  GNUNET_assert (NULL != ah->s_bulk_stop);
 
   GAS_normalization_start (&normalized_preference_changed_cb, ah,
   												 &normalized_property_changed_cb, ah);

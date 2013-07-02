@@ -1507,6 +1507,25 @@ GAS_mlp_get_preferred_address (void *solver,
 
 
 /**
+ * Start a bulk operation
+ *
+ * @param solver the solver
+ */
+void
+GAS_mlp_bulk_start (void *solver)
+{
+
+}
+
+void
+GAS_mlp_bulk_stop (void *solver)
+{
+
+}
+
+
+
+/**
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the MLP handle
