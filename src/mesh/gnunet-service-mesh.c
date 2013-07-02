@@ -526,6 +526,10 @@ static unsigned long long max_msgs_queue;
  */
 static unsigned long long max_peers;
 
+/**
+ * Percentage of messages that will be dropped (for test purposes only).
+ */
+static unsigned long long drop_percent;
 
 /*************************** Static global variables **************************/
 
@@ -2916,6 +2920,14 @@ queue_send (void *cls, size_t size, void *buf)
       data_size = 0;
   }
 
+  if (0 < drop_percent &&
+      GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Dropping message of type %s\n",
+                GNUNET_MESH_DEBUG_M2S(queue->type));
+    data_size = 0;
+  }
   /* Free queue, but cls was freed by send_core_* */
   queue_destroy (queue, GNUNET_NO);
 
@@ -5140,6 +5152,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 _("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
                 "mesh", "max peers", 1000);
     max_peers = 1000;
+  }
+
+  if (GNUNET_OK !=
+    GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DROP_PERCENT",
+                                           &drop_percent))
+  {
+    drop_percent = 0;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Mesh is running with drop mode enabled. "
+                "This is NOT a good idea! "
+                "Remove the DROP_PERCENT option from your configuration.\n");
   }
 
   if (GNUNET_OK !=
