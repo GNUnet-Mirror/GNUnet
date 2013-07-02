@@ -702,6 +702,7 @@ tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 				    &socket_address))
   {
     GNUNET_break (0);
+    GNUNET_free (plugin);
     return GNUNET_SYSERR;
   }
 
