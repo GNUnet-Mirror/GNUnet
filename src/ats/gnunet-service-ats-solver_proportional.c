@@ -667,6 +667,7 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
   {
       if (s->network_entries[c].type == type)
         return &s->network_entries[c];
+
   }
   return NULL;
 }
@@ -1109,7 +1110,16 @@ GAS_proportional_address_update (void *solver,
 
         /* set new network type */
         new_net = get_network (solver, addr_net);
-        GNUNET_assert (NULL != new_net);
+        if (NULL == new_net)
+        {
+          /* Address changed to invalid network... */
+          LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot find network of type `%u' %s\n"),
+          		addr_net, GNUNET_ATS_print_network_type (addr_net));
+          address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
+          address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
+          s->bw_changed  (s->bw_changed_cls, address);
+          return;
+        }
         address->solver_information = new_net;
 
         /* Add to new network and update*/
