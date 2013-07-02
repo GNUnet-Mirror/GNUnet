@@ -1578,7 +1578,6 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   GNUNET_snprintf (macstr, sizeof (macstr), "%s.%u.%s",
   		PLUGIN_NAME, ntohl (((struct WlanAddress *) addr)->options),
   		mac_to_string (mac));
-
   return macstr;
 }
 
@@ -1710,7 +1709,7 @@ wlan_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   struct WlanAddress *wa;
   unsigned int a[6];
   unsigned int i;
-  char plugin[4];
+  char plugin[5];
   uint32_t options;
 
   if ((NULL == addr) || (addrlen == 0))
