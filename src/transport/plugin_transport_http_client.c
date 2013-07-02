@@ -1499,9 +1499,11 @@ http_client_plugin_get_session (void *cls,
       //fprintf (stderr, "Address %s is in %s\n", GNUNET_a2s (sa,salen), GNUNET_ATS_print_network_type(ntohl(ats.value)));
       GNUNET_free (sa);
   }
+
   else if (GNUNET_NO == res)
   {
-      ats.value = htonl (GNUNET_ATS_COST_WAN);
+  		/* Cannot convert to sockaddr -> is external hostname */
+      ats.value = htonl (GNUNET_ATS_NET_WAN);
   }
 
   if (GNUNET_ATS_NET_UNSPECIFIED == ntohl(ats.value))
