@@ -687,7 +687,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSF_rt_entry_lifetime = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_FOREVER_REL);
   GSF_stats = GNUNET_STATISTICS_create ("fs", cfg);
   block_cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_set_value_string (block_cfg, "block", "PLUGINS", "fs");
   GSF_block_ctx = GNUNET_BLOCK_context_create (block_cfg);
   GNUNET_assert (NULL != GSF_block_ctx);
   GSF_dht = GNUNET_DHT_connect (cfg, FS_DHT_HT_SIZE);

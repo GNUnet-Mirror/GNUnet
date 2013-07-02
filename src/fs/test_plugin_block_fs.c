@@ -64,7 +64,6 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-block", "WARNING", NULL);
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_set_value_string (cfg, "block", "PLUGINS", "fs");
   ctx = GNUNET_BLOCK_context_create (cfg);
   ret = test_fs (ctx);
   GNUNET_BLOCK_context_destroy (ctx);
