@@ -812,11 +812,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
 
 /**
- * Transport data to all peers in a tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_MULTICAST              261
-
-/**
  * Transport data back in the mesh (end->origin)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
@@ -892,24 +887,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING 279
 
 /**
- * Ask the mesh service to add a peer to the blacklist of an existing tunnel
+ * Set tunnel to reliable.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST   280
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_RELIABLE         282
 
 /**
- * Ask the mesh service to remove a peer from the blacklist of a tunnel
+ * Set tunnel to best effort.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST 281
-
-/**
- * Set tunnel speed to slowest peer
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN       282
-
-/**
- * Set tunnel speed to fastest peer
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX       283
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_UNRELIABLE       283
 
 /**
  * Set tunnel buffering on.
