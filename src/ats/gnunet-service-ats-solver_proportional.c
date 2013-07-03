@@ -655,11 +655,12 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
 
   norm_prop_cur = fba_ctx->s->get_properties (fba_ctx->s->get_properties_cls,
   		(const struct ATS_Address *) current);
-  GNUNET_break (0);
   norm_prop_prev = fba_ctx->s->get_properties (fba_ctx->s->get_properties_cls,
   		(const struct ATS_Address *) fba_ctx->best);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %u current %u\n", "DISTANCE", norm_prop_cur[1], norm_prop_cur[1]);
+/*
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %.2f current %.2f\n",
+  		"DISTANCE", norm_prop_cur[1], norm_prop_cur[1]);
+*/
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
   if (GNUNET_SYSERR == index)
   {
@@ -672,8 +673,10 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
     fba_ctx->best = current;
     return GNUNET_OK;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %u current %u\n", "DELAY", norm_prop_cur[1], norm_prop_cur[1]);
+/*
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s previous %.2f current %.2f\n",
+  		"DELAY", norm_prop_cur[1], norm_prop_cur[1]);
+ */
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
   if (GNUNET_SYSERR == index)
   {
@@ -1124,7 +1127,7 @@ GAS_proportional_bulk_stop (void *solver)
   s->bulk_lock --;
   if ((0 == s->bulk_lock) && (0 < s->bulk_requests))
   {
-  	LOG (GNUNET_ERROR_TYPE_ERROR, "No lock pending, recalculating\n");
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "No lock pending, recalculating\n");
   	distribute_bandwidth_in_all_networks (s);
   	s->bulk_requests = 0;
   }
@@ -1249,11 +1252,9 @@ GAS_proportional_address_update (void *solver,
                 /* Have an alternative address to suggest */
                 s->bw_changed  (s->bw_changed_cls, new);
             }
-
           }
         }
       }
-
       break;
     case GNUNET_ATS_ARRAY_TERMINATOR:
       break;
