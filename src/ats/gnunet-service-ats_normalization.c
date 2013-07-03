@@ -534,7 +534,6 @@ GAS_normalization_get_properties (struct ATS_Address *address)
 		else
 			norm_values[i] = DEFAULT_REL_QUALITY;
 	}
-	GNUNET_break (0);
 	return norm_values;
 }
 

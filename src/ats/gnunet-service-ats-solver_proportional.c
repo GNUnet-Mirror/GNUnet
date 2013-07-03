@@ -575,6 +575,17 @@ struct FindBestAddressCtx
 };
 
 
+static int
+find_property_index (uint32_t type)
+{
+	int existing_types[] = GNUNET_ATS_QualityProperties;
+	int c;
+	for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+		if (existing_types[c] == type)
+			return c;
+	return GNUNET_SYSERR;
+}
+
 /**
  * Find a "good" address to use for a peer by iterating over the addresses for this peer.
  * If we already have an existing address, we stick to it.
@@ -594,6 +605,7 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
   struct Network *net = (struct Network *) current->solver_information;
   const double *norm_prop_cur;
   const double *norm_prop_prev;
+  int index;
 
   now = GNUNET_TIME_absolute_get();
 
@@ -647,15 +659,30 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
   norm_prop_prev = fba_ctx->s->get_properties (fba_ctx->s->get_properties_cls,
   		(const struct ATS_Address *) fba_ctx->best);
 
-  if (norm_prop_cur[1] < norm_prop_prev[1])
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %u current %u\n", "DISTANCE", norm_prop_cur[1], norm_prop_cur[1]);
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  if (GNUNET_SYSERR == index)
+  {
+  	GNUNET_break (0);
+  	return GNUNET_OK;
+  }
+  if (norm_prop_cur[index] < norm_prop_prev[index])
   {
     /* user shorter distance */
     fba_ctx->best = current;
     return GNUNET_OK;
   }
-  if (norm_prop_cur[0] < norm_prop_prev[0])
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %u current %u\n", "DELAY", norm_prop_cur[1], norm_prop_cur[1]);
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+  if (GNUNET_SYSERR == index)
   {
-    /* user shorter distance */
+  	GNUNET_break (0);
+  	return GNUNET_OK;
+  }
+  if (norm_prop_cur[index] < norm_prop_prev[index])
+  {
+    /* user shorter delay */
   	fba_ctx->best = current;
     return GNUNET_OK;
   }
@@ -712,7 +739,7 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
  * @param cls last active address
  * @param key peer's key
  * @param value address to check
- * @return GNUNET_NO on double active address else GNUNET_YES
+ * @return GNUNET_NO on double active address else GNUNET_YES;
  */
 static int
 get_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -915,7 +942,7 @@ GAS_proportional_get_preferred_address (void *solver,
   /* Get address with: stick to current address, lower distance, lower latency */
   fba_ctx.s = s;
   fba_ctx.best = NULL;
-  GNUNET_break (0);
+
   GNUNET_CONTAINER_multihashmap_get_multiple (s->addresses, &peer->hashPubKey,
                                               &find_best_address_it, &fba_ctx);
   if (NULL == fba_ctx.best)
