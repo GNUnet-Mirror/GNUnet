@@ -1053,7 +1053,7 @@ GAS_proportional_address_delete (void *solver,
 void
 GAS_proportional_bulk_start (void *solver)
 {
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Locking solver for bulk operation ...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Locking solver for bulk operation ...\n");
   struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
 
   GNUNET_assert (NULL != solver);
@@ -1066,7 +1066,7 @@ GAS_proportional_bulk_start (void *solver)
 void
 GAS_proportional_bulk_stop (void *solver)
 {
-	LOG (GNUNET_ERROR_TYPE_ERROR, "Unlocking solver from bulk operation ...\n");
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Unlocking solver from bulk operation ...\n");
 
   struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
   GNUNET_assert (NULL != solver);
