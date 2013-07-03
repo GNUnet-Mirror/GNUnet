@@ -299,6 +299,11 @@ struct GNUNET_MESH_Tunnel
   int buffering;
 
     /**
+     * Is the tunnel allowed to buffer?
+     */
+  int reliable;
+
+    /**
      * Maximum allowed PID to send (last ACK recevied).
      */
   uint32_t last_ack_recv;
@@ -751,6 +756,9 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
 
     if (GNUNET_NO == t->buffering)
       GNUNET_MESH_tunnel_buffer (t, GNUNET_NO);
+
+    if (GNUNET_YES == t->reliable)
+      GNUNET_MESH_tunnel_reliable (t, GNUNET_YES);
   }
   return GNUNET_YES;
 }
@@ -1120,7 +1128,6 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
     /* Notify of a new data packet in the tunnel */
   case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-  case GNUNET_MESSAGE_TYPE_MESH_MULTICAST:
   case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
     process_incoming_data (h, msg);
     break;
@@ -1515,6 +1522,36 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER);
   else
     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER);
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
+  msg.tunnel_id = htonl (tunnel->tid);
+
+  send_packet (h, &msg.header, NULL);
+}
+
+
+/**
+ * Turn on/off the reliability of the tunnel.
+ * 
+ * If reliability is on, mesh will resend lost messages, similar to TCP.
+ * If reliability is off, mesh just do best effort, similar to UDP.
+ * 
+ * @param tunnel Tunnel affected.
+ * @param reliable GNUNET_YES to turn reliability on, 
+ *                 GNUNET_NO to have a best effort tunnel (default).
+ */
+void
+GNUNET_MESH_tunnel_reliable (struct GNUNET_MESH_Tunnel *tunnel, int reliable)
+{
+  struct GNUNET_MESH_TunnelMessage msg;
+  struct GNUNET_MESH_Handle *h;
+
+  h = tunnel->mesh;
+  tunnel->reliable = reliable;
+
+  if (GNUNET_YES == reliable)
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_RELIABLE);
+  else
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_UNRELIABLE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (tunnel->tid);
 

@@ -229,6 +229,20 @@ GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer);
 
 
 /**
+ * Turn on/off the reliability of the tunnel.
+ * 
+ * If reliability is on, mesh will resend lost messages, similar to TCP.
+ * If reliability is off, mesh just do best effort, similar to UDP.
+ * 
+ * @param tunnel Tunnel affected.
+ * @param reliable GNUNET_YES to turn reliability on, 
+ *                 GNUNET_NO to have a best effort tunnel (default).
+ */
+void
+GNUNET_MESH_tunnel_reliable (struct GNUNET_MESH_Tunnel *tunnel, int reliable);
+
+
+/**
  * Handle for a transmission request.
  */
 struct GNUNET_MESH_TransmitHandle;

@@ -321,6 +321,11 @@ struct MeshTunnel
   int nobuffer;
 
     /**
+     * Is the tunnel reliable?
+     */
+  int reliable;
+
+    /**
      * Force sending ACK? Flag to allow duplicate ACK on POLL.
      */
   int force_ack;
@@ -4322,6 +4327,63 @@ handle_local_tunnel_buffer (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for requests of seeting tunnel's reliability policy.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_local_tunnel_reliability (void *cls, struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_TunnelMessage *tunnel_msg;
+  struct MeshClient *c;
+  struct MeshTunnel *t;
+  MESH_TunnelNumber tid;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got a BUFFER request from client!\n");
+
+  /* Sanity check for client registration */
+  if (NULL == (c = client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+
+  tunnel_msg = (struct GNUNET_MESH_TunnelMessage *) message;
+
+  /* Retrieve tunnel */
+  tid = ntohl (tunnel_msg->tunnel_id);
+  t = tunnel_get_by_local_id(c, tid);
+  if (NULL == t)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  switch (ntohs(message->type))
+  {
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_RELIABLE:
+          t->reliable = GNUNET_YES;
+          break;
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_UNRELIABLE:
+          t->reliable = GNUNET_NO;
+          break;
+      default:
+          GNUNET_break (0);
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Handler for client traffic directed to one peer
  *
  * @param cls closure
@@ -4731,6 +4793,12 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_tunnel_buffer, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_reliability, NULL,
+   GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER,
+   sizeof (struct GNUNET_MESH_TunnelMessage)},
+  {&handle_local_tunnel_reliability, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER,
    sizeof (struct GNUNET_MESH_TunnelMessage)},
   {&handle_local_unicast, NULL,
