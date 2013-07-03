@@ -150,6 +150,12 @@ normalized_property_changed_cb (void *cls,
 	 /* TODO */
 }
 
+const double *
+get_property_cb (void *cls, const struct ATS_Address *address)
+{
+	return GAS_normalization_get_properties ((struct ATS_Address *) address);
+}
+
 
 static const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
@@ -184,7 +190,7 @@ address_initial_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * add
 	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
 	ats[1].value = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10));
 
-	GAS_mlp_address_update (mlp, addresses, address, 0, GNUNET_YES, ats, 2);
+	GAS_mlp_address_update (mlp, address, 0, GNUNET_YES, ats, 2);
 }
 
 
@@ -215,7 +221,7 @@ update_single_addresses (struct ATS_Address *cur)
 		default:
 			break;
 	}
-	GAS_mlp_address_update (mlp, addresses, cur, 0, GNUNET_YES, ats, 1);
+	GAS_mlp_address_update (mlp, cur, 0, GNUNET_YES, ats, 1);
 }
 
 static void
@@ -314,8 +320,11 @@ check (void *cls, char *const *args, const char *cfgfile,
   addresses = GNUNET_CONTAINER_multihashmap_create (N_address, GNUNET_NO);
 
   /* Init MLP solver */
-  mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
-  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL, &get_preferences_cb, NULL);
+  mlp  = GAS_mlp_init (cfg, stats, addresses,
+  		quotas, quotas_out, quotas_in,
+  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL,
+  		&get_preferences_cb, NULL,
+  		&get_property_cb, NULL);
   if (NULL == mlp)
   {
     	GNUNET_break (0);
@@ -338,16 +347,16 @@ check (void *cls, char *const *args, const char *cfgfile,
 			{
 					cur_addr = perf_create_address(cp, ca);
 					/* add address */
-					GAS_mlp_address_add (mlp, addresses, cur_addr, GNUNET_ATS_NET_UNSPECIFIED);
+					GAS_mlp_address_add (mlp, cur_addr, GNUNET_ATS_NET_UNSPECIFIED);
 					address_initial_update (mlp, addresses, cur_addr);
 					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer %u address %u: \n", cp, ca);
 			}
-			GAS_mlp_get_preferred_address( mlp, addresses, &peers[cp].id);
+			GAS_mlp_get_preferred_address( mlp, &peers[cp].id);
 			/* solve */
 			if (cp + 1 >= N_peers_start)
 			{
 				/* Solve the full problem */
-				GAS_mlp_solve_problem (mlp, addresses);
+				GAS_mlp_solve_problem (mlp);
 				full_lp_res = mlp->ps.lp_res;
 				full_mip_res = mlp->ps.mip_res;
 				full_lp_presolv = mlp->ps.lp_presolv;
@@ -361,8 +370,8 @@ check (void *cls, char *const *args, const char *cfgfile,
 				{
 					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
 					update_addresses (cp + 1, ca, opt_update_quantity);
-					GAS_mlp_solve_problem (mlp, addresses);
-					GAS_mlp_solve_problem (mlp, addresses);
+					GAS_mlp_solve_problem (mlp);
+					GAS_mlp_solve_problem (mlp);
 					update_lp_res = mlp->ps.lp_res;
 					update_mip_res = mlp->ps.mip_res;
 					update_lp_presolv = mlp->ps.lp_presolv;
@@ -418,7 +427,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 	{
 			for (cur = peers[cp].head; cur != NULL; cur = next)
 			{
-					GAS_mlp_address_delete (mlp, addresses, cur, GNUNET_NO);
+					GAS_mlp_address_delete (mlp, cur, GNUNET_NO);
 					next = cur->next;
 					GNUNET_CONTAINER_DLL_remove (peers[cp].head, peers[cp].tail, cur);
 					GNUNET_free (cur);

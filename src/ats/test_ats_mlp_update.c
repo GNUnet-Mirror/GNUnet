@@ -81,7 +81,7 @@ int addr_it (void *cls,
              void *value)
 {
 	struct ATS_Address *address = (struct ATS_Address *) value;
-	GAS_mlp_address_delete (mlp, addresses, address, GNUNET_NO);
+	GAS_mlp_address_delete (mlp, address, GNUNET_NO);
 	GNUNET_CONTAINER_multihashmap_remove (addresses, key, value);
   GNUNET_free (address);
 	return GNUNET_OK;
@@ -137,6 +137,12 @@ static const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
 	return GAS_normalization_get_preferences (id);
+}
+
+const double *
+get_property_cb (void *cls, const struct ATS_Address *address)
+{
+	return GAS_normalization_get_properties ((struct ATS_Address *) address);
 }
 
 static void
@@ -210,8 +216,12 @@ check (void *cls, char *const *args, const char *cfgfile,
   addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
   /* Init MLP solver */
-  mlp  = GAS_mlp_init (cfg, stats, quotas, quotas_out, quotas_in,
-  		GNUNET_ATS_NetworkTypeCount, &bandwidth_changed_cb, NULL, &get_preferences_cb, NULL);
+  mlp  = GAS_mlp_init (cfg, stats, addresses,
+  		quotas, quotas_out, quotas_in,
+  		GNUNET_ATS_NetworkTypeCount,
+  		&bandwidth_changed_cb, NULL,
+  		&get_preferences_cb, NULL,
+  		&get_property_cb, NULL);
   if (NULL == mlp)
   {
     	GNUNET_break (0);
@@ -239,13 +249,13 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_CONTAINER_multihashmap_put (addresses, &p[0].hashPubKey, address[0],
   		GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   /* Adding address 0 */
-  GAS_mlp_address_add (mlp, addresses, address[0], GNUNET_ATS_NET_UNSPECIFIED);
+  GAS_mlp_address_add (mlp, address[0], GNUNET_ATS_NET_UNSPECIFIED);
 
   /* Retrieving preferred address for peer and wait for callback */
-  GAS_mlp_get_preferred_address (mlp, addresses, &p[0]);
+  GAS_mlp_get_preferred_address (mlp, &p[0]);
 
   /* Solve problem to build matrix */
-  GAS_mlp_solve_problem (mlp, addresses);
+  GAS_mlp_solve_problem (mlp);
 
   address[0]->atsi = ats;
   address[0]->atsi_count = 4;
@@ -268,10 +278,10 @@ check (void *cls, char *const *args, const char *cfgfile,
   ats_prev[3].type =  htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats_prev[3].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
 
-  GAS_mlp_address_update (mlp, addresses, address[0], 1, GNUNET_NO, ats_prev, 4);
+  GAS_mlp_address_update (mlp, address[0], 1, GNUNET_NO, ats_prev, 4);
 
   /* Solve problem to build matrix */
-  GAS_mlp_solve_problem (mlp, addresses);
+  GAS_mlp_solve_problem (mlp);
 }
 
 

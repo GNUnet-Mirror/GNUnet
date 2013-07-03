@@ -45,7 +45,6 @@
  */
 void
 GAS_proportional_address_change_preference (void *solver,
-								 	 	 	struct GNUNET_CONTAINER_MultiHashMap *addresses,
 								 	 	 	const struct GNUNET_PeerIdentity *peer,
 								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
 								 	 	 	double pref_rel);
@@ -68,6 +67,7 @@ GAS_proportional_address_change_preference (void *solver,
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
+ * @param addresses hashmap containing all addresses
  * @param out_quota array of outbound quotas
  * @param in_quota array of outbound quota
  * @param dest_length array length for quota arrays
@@ -80,6 +80,7 @@ GAS_proportional_address_change_preference (void *solver,
 void *
 GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_STATISTICS_Handle *stats,
+                     const struct GNUNET_CONTAINER_MultiHashMap *addresses,
                      int *network,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
@@ -87,8 +88,9 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GAS_bandwidth_changed_cb bw_changed_cb,
                      void *bw_changed_cb_cls,
                      GAS_get_preferences get_preference,
-                     void *get_preference_cls);
-
+                     void *get_preference_cls,
+                     GAS_get_properties get_properties,
+                     void *get_properties_cls);
 
 /**
  * Shutdown the proportional problem solver
@@ -109,7 +111,6 @@ GAS_proportional_done (void * solver);
  */
 void
 GAS_proportional_address_add (void *solver,
-							struct GNUNET_CONTAINER_MultiHashMap *addresses,
 							struct ATS_Address *address,
 							uint32_t network);
 
@@ -127,7 +128,6 @@ GAS_proportional_address_add (void *solver,
  */
 void
 GAS_proportional_address_update (void *solver,
-    struct GNUNET_CONTAINER_MultiHashMap *addresses,
     struct ATS_Address *address,
     uint32_t session,
     int in_use,
@@ -145,7 +145,6 @@ GAS_proportional_address_update (void *solver,
  */
 void
 GAS_proportional_address_delete (void *solver,
-    struct GNUNET_CONTAINER_MultiHashMap * addresses,
     struct ATS_Address *address, int session_only);
 
 
@@ -173,7 +172,6 @@ GAS_proportional_bulk_stop (void *solver);
  */
 void
 GAS_proportional_stop_get_preferred_address (void *solver,
-                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
 
@@ -186,7 +184,6 @@ GAS_proportional_stop_get_preferred_address (void *solver,
  */
 const struct ATS_Address *
 GAS_proportional_get_preferred_address (void *solver,
-                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
 /* end of gnunet-service-ats-solver_proportional.c */

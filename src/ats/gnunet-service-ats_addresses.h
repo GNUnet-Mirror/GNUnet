@@ -365,6 +365,11 @@ typedef const double *
  (*GAS_get_preferences) (void *cls, const struct GNUNET_PeerIdentity *id);
 
 
+typedef const double *
+ (*GAS_get_properties) (void *cls, const struct ATS_Address *address);
+
+
+
 /*
  * Solver API
  * ----------
@@ -372,6 +377,7 @@ typedef const double *
 
 /**
  * Init the simplistic problem solving component
+ *==32673==    by 0x40571F: GAS_addresses_request_address (gnunet-service-ats_addresses.c:1261)
  *
  * Quotas:
  * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
@@ -386,6 +392,7 @@ typedef const double *
  *
  * @param cfg configuration handle
  * @param stats the GNUNET_STATISTICS handle
+ * @param addresses hashmap containing all addresses
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_quota array of outbound quotas
  * @param in_quota array of outbound quota
@@ -395,6 +402,7 @@ typedef const double *
 typedef void *
  (*GAS_solver_init) (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const struct GNUNET_STATISTICS_Handle *stats,
+                     const struct GNUNET_CONTAINER_MultiHashMap *addresses,
                      int *network,
                      unsigned long long *out_quota,
                      unsigned long long *in_quota,
@@ -402,7 +410,9 @@ typedef void *
                      GAS_bandwidth_changed_cb bw_changed_cb,
                      void *bw_changed_cb_cls,
                      GAS_get_preferences get_preference,
-                     void *get_preference_cls);
+                     void *get_preference_cls,
+                     GAS_get_properties get_properties,
+                     void *get_properties_cls);
 
 
 /**
@@ -417,7 +427,6 @@ typedef void *
  */
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
-		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 struct GNUNET_CONTAINER_MultiHashMap *addresses,
 																				 const struct GNUNET_PeerIdentity *peer,
 																				 enum GNUNET_ATS_PreferenceKind kind,
 																				 double pref_rel);
@@ -438,9 +447,8 @@ typedef void
  */
 typedef void
 (*GAS_solver_address_add) (void *solver,
-														struct GNUNET_CONTAINER_MultiHashMap *addresses,
-														struct ATS_Address *address,
-														uint32_t network);
+													 struct ATS_Address *address,
+													 uint32_t network);
 
 
 /**
@@ -453,7 +461,6 @@ typedef void
  */
 typedef void
  (*GAS_solver_address_delete) (void *solver,
-                               struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                struct ATS_Address *address,
                                int session_only);
 
@@ -471,7 +478,6 @@ typedef void
  */
 typedef void
 (*GAS_solver_address_update) (void *solver,
-                              struct GNUNET_CONTAINER_MultiHashMap *addresses,
                               struct ATS_Address *address,
                               uint32_t prev_session,
                               int in_use,
@@ -488,7 +494,6 @@ typedef void
  */
 typedef const struct ATS_Address *
 (*GAS_solver_get_preferred_address) (void *solver,
-                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
 
@@ -501,7 +506,6 @@ typedef const struct ATS_Address *
  */
 typedef void
 (*GAS_solver_stop_get_preferred_address) (void *solver,
-                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
 /**

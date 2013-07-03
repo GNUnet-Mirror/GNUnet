@@ -90,12 +90,6 @@ struct ATS_Peer
 
   /* Legacy preference value */
   double f;
-
-#if 0
-  /* Array of quality preferences */
-  double f_q[GNUNET_ATS_QualityPropertiesCount];
-
-#endif
 };
 
 
@@ -223,7 +217,7 @@ struct GAS_MLP_Handle
   /**
    * Address hashmap for lookups
    */
-  struct GNUNET_CONTAINER_MultiHashMap *addresses;
+  const struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
   /**
    * Addresses' bandwidth changed callback
@@ -235,9 +229,27 @@ struct GAS_MLP_Handle
    */
   void *bw_changed_cb_cls;
 
+
+
+  /**
+   * ATS function to get preferences
+   */
   GAS_get_preferences get_preferences;
 
+  /**
+   * Closure for ATS function to get preferences
+   */
   void *get_preferences_cls;
+
+  /**
+   * ATS function to get properties
+   */
+  GAS_get_properties get_properties;
+
+  /**
+   * Closure for ATS function to get properties
+   */
+  void *get_properties_cls;
 
   struct MLP_Problem p;
 
@@ -353,11 +365,10 @@ struct MLP_information
  * Solves the MLP problem
  *
  * @param solver the MLP Handle
- * @param addresses the address hashmap
  * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
-GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses);
+GAS_mlp_solve_problem (void *solver);
 
 
 /**
@@ -378,6 +389,7 @@ GAS_mlp_solve_problem (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addr
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               const struct GNUNET_STATISTICS_Handle *stats,
+              const struct GNUNET_CONTAINER_MultiHashMap *addresses,
               int *network,
               unsigned long long *out_dest,
               unsigned long long *in_dest,
@@ -385,7 +397,9 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
               GAS_bandwidth_changed_cb bw_changed_cb,
               void *bw_changed_cb_cls,
               GAS_get_preferences get_preference,
-              void *get_preference_cls);
+              void *get_preference_cls,
+              GAS_get_properties get_properties,
+              void *get_properties_cls);
 
 
 /**
@@ -398,7 +412,6 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GAS_mlp_address_add (void *solver,
-										struct GNUNET_CONTAINER_MultiHashMap *addresses,
 										struct ATS_Address *address,
 										uint32_t network);
 
@@ -424,7 +437,6 @@ GAS_mlp_address_add (void *solver,
  */
 void
 GAS_mlp_address_update (void *solver,
-                        struct GNUNET_CONTAINER_MultiHashMap *addresses,
                         struct ATS_Address *address,
                         uint32_t prev_session,
                         int prev_in_use,
@@ -445,7 +457,6 @@ GAS_mlp_address_update (void *solver,
  */
 void
 GAS_mlp_address_delete (void *solver,
-                        struct GNUNET_CONTAINER_MultiHashMap *addresses,
                         struct ATS_Address *address,
                         int session_only);
 
@@ -461,7 +472,6 @@ GAS_mlp_address_delete (void *solver,
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-								   struct GNUNET_CONTAINER_MultiHashMap *addresses,
 								   const struct GNUNET_PeerIdentity *peer,
 								   enum GNUNET_ATS_PreferenceKind kind,
 								   double pref_rel);
@@ -493,7 +503,6 @@ GAS_mlp_bulk_stop (void *solver);
  */
 const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
-                               struct GNUNET_CONTAINER_MultiHashMap * addresses,
                                const struct GNUNET_PeerIdentity *peer);
 
 
@@ -507,7 +516,6 @@ GAS_mlp_get_preferred_address (void *solver,
 
 void
 GAS_mlp_stop_get_preferred_address (void *solver,
-                                     struct GNUNET_CONTAINER_MultiHashMap *addresses,
                                      const struct GNUNET_PeerIdentity *peer);
 
 

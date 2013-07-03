@@ -822,7 +822,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     handle->s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
     handle->s_bulk_stop (handle->solver);
-    handle->s_add (handle->solver, handle->addresses, aa, addr_net);
+    handle->s_add (handle->solver, aa, addr_net);
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&aa->peer,
         aa->plugin,
@@ -868,7 +868,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   handle->s_bulk_start (handle->solver);
   GAS_normalization_normalize_property (handle->addresses, ea, atsi, atsi_count);
   handle->s_bulk_stop (handle->solver);
-  handle->s_update (handle->solver, handle->addresses, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
+  handle->s_update (handle->solver, ea, session_id, ea->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 
   /* Do the update */
@@ -957,7 +957,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   handle->s_bulk_stop (handle->solver);
 
   /* Tell solver about update */
-  handle->s_update (handle->solver, handle->addresses, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
+  handle->s_update (handle->solver, aa, prev_session, aa->used, atsi_delta, atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
 }
 
@@ -1013,7 +1013,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                   GNUNET_i2s (&aa->peer), aa->session_id, aa);
 
       /* Notify solver about deletion */
-      handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
+      handle->s_del (handle->solver, aa, GNUNET_NO);
       destroy_address (handle, aa);
       dc->result = GNUNET_NO;
       return GNUNET_OK; /* Continue iteration */
@@ -1043,7 +1043,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
 
         /* Notify solver about deletion */
-        handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
+        handle->s_del (handle->solver, aa, GNUNET_NO);
         destroy_address (handle, aa);
         dc->result = GNUNET_NO;
         return GNUNET_OK; /* Continue iteration */
@@ -1055,7 +1055,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                     "Deleting session for peer `%s': `%s' %u\n",
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
         /* Notify solver to delete session */
-        handle->s_del (handle->solver, handle->addresses, aa, GNUNET_YES);
+        handle->s_del (handle->solver, aa, GNUNET_YES);
         aa->session_id = 0;
         return GNUNET_OK;
     }
@@ -1180,7 +1180,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
   /* Tell solver about update */
   prev_inuse = ea->used;
   ea->used = in_use;
-  handle->s_update (handle->solver, handle->addresses, ea, session_id, prev_inuse, NULL, 0);
+  handle->s_update (handle->solver, ea, session_id, prev_inuse, NULL, 0);
 
 
   return GNUNET_OK;
@@ -1215,7 +1215,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
                   "No address requests pending for peer `%s', cannot remove!\n", GNUNET_i2s (peer));
       return;
   }
-  handle->s_get_stop (handle->solver, handle->addresses, peer);
+  handle->s_get_stop (handle->solver, peer);
   GAS_addresses_handle_backoff_reset (handle, peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Removed request pending for peer `%s\n", GNUNET_i2s (peer));
@@ -1258,7 +1258,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   }
 
   /* Get prefered address from solver */
-  aa = (struct ATS_Address *) handle->s_get (handle->solver, handle->addresses, peer);
+  aa = (struct ATS_Address *) handle->s_get (handle->solver, peer);
   if (NULL == aa)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1351,7 +1351,7 @@ normalized_preference_changed_cb (void *cls,
 	GNUNET_assert (NULL != cls);
 	struct GAS_Addresses_Handle *handle = cls;
   /* Tell solver about update */
-  handle->s_pref (handle->solver, handle->addresses, peer, kind, pref_rel);
+  handle->s_pref (handle->solver, peer, kind, pref_rel);
 }
 
 
@@ -1403,9 +1403,9 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
  * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
  */
 const double *
-get_property_cb (void *cls, struct ATS_Address *address)
+get_property_cb (void *cls, const struct ATS_Address *address)
 {
-	return GAS_normalization_get_properties (address);
+	return GAS_normalization_get_properties ((struct ATS_Address *) address);
 }
 
 /**
@@ -1681,6 +1681,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_bulk_stop = &GAS_mlp_bulk_stop;
       ah->s_done = &GAS_mlp_done;
 #else
+
       GNUNET_free (ah);
       return NULL;
 #endif
@@ -1720,10 +1721,11 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   												 &normalized_property_changed_cb, ah);
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
 
-  ah->solver = ah->s_init (cfg, stats,
+  ah->solver = ah->s_init (cfg, stats, ah->addresses,
 		  quotas, quotas_in, quotas_out, quota_count,
 		  &bandwidth_changed_cb, ah,
-		  &get_preferences_cb, NULL);
+		  &get_preferences_cb, NULL,
+		  &get_property_cb, NULL);
   if (NULL == ah->solver)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to initialize solver!\n");
@@ -1750,7 +1752,7 @@ free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct ATS_Address *aa = value;
-  handle->s_del (handle->solver, handle->addresses, aa, GNUNET_NO);
+  handle->s_del (handle->solver, aa, GNUNET_NO);
   destroy_address (handle, aa);
   return GNUNET_OK;
 }
