@@ -314,32 +314,6 @@ struct ATS_Address
    */
   uint32_t atsi_count;
 
-#if 0
-  /* CHECK USAGE */
-  struct GNUNET_TIME_Relative atsp_latency;
-
-  /* CHECK USAGE */
-  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_in;
-
-  /* CHECK USAGE */
-  struct GNUNET_BANDWIDTH_Value32NBO atsp_utilization_out;
-
-
-  /* CHECK USAGE */
-  uint32_t atsp_distance;
-
-  /* CHECK USAGE */
-  uint32_t atsp_cost_wan;
-
-  /* CHECK USAGE */
-  uint32_t atsp_cost_lan;
-
-  /* CHECK USAGE */
-  uint32_t atsp_cost_wlan;
-
-  /* CHECK USAGE */
-  uint32_t atsp_network_type;
-#endif
   /**
    * Inbound bandwidth assigned by solver in NBO
    */
