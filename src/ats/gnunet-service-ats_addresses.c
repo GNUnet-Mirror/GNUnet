@@ -1379,12 +1379,34 @@ normalized_property_changed_cb (void *cls,
               prop_rel);
 }
 
+
+/**
+ * Function allowing the solver to obtain normalized preference
+ * values from solver
+ *
+ * @param cls unused
+ * @param id the peer to return the normalized properties for
+ * @return array of double values with |GNUNET_ATS_PreferenceCount| elements
+ */
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
 	return GAS_normalization_get_preferences (id);
 }
 
+/**
+ * Function allowing the solver to obtain normalized property
+ * values for an address from solver
+ *
+ * @param cls unused
+ * @param id the peer to return the normalized properties for
+ * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
+ */
+const double *
+get_property_cb (void *cls, struct ATS_Address *address)
+{
+	return GAS_normalization_get_properties (address);
+}
 
 /**
  * Change the preference for a peer

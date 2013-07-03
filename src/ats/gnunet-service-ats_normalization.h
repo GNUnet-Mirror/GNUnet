@@ -58,6 +58,17 @@ GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
 
 
 /**
+ * Get the normalized properties values for a specific peer or
+ * the default values if
+ *
+ * @param address the address
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
+ * default preferences if peer does not exist
+ */
+const double *
+GAS_normalization_get_properties (struct ATS_Address *address);
+
+/**
  * Normalize an updated preference value
  *
  * @param src the client with this preference

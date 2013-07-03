@@ -509,6 +509,35 @@ GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id)
 	return rp->f_rel;
 }
 
+
+/**
+ * Get the normalized properties values for a specific peer or
+ * the default values if
+ *
+ * @param address the address
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
+ * default preferences if peer does not exist
+ */
+const double *
+GAS_normalization_get_properties (struct ATS_Address *address)
+{
+	static double norm_values[GNUNET_ATS_QualityPropertiesCount];
+	int i;
+
+	GNUNET_assert (NULL != address);
+
+	for (i = 0; i < GNUNET_ATS_QualityPropertiesCount; i++)
+	{
+		if ((address->atsin[i].norm >= 1.0) &&
+				(address->atsin[i].norm <= 2.0))
+			norm_values[i] = address->atsin[i].norm;
+		else
+			norm_values[i] = DEFAULT_REL_QUALITY;
+	}
+	return norm_values;
+}
+
+
 /**
  * Quality Normalization
  */
