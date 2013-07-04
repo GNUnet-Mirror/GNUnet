@@ -431,7 +431,6 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   unsigned long long assigned_quota_out = 0;
   struct AddressWrapper *cur;
 
-
 	if (GNUNET_YES == s->bulk_lock)
 	{
 		s->bulk_requests++;
@@ -554,18 +553,6 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
                             net->total_quota_in);
   }
 }
-
-
-/**
- * Extract an ATS performance info from an address
- *
- * @param address the address
- * @param type the type to extract in HBO
- * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
- */
-static int
-get_performance_info (struct ATS_Address *address, uint32_t type);
-
 
 
 struct FindBestAddressCtx
@@ -871,31 +858,6 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * Extract an ATS performance info from an address
- *
- * @param address the address
- * @param type the type to extract in HBO
- * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
- */
-static int
-get_performance_info (struct ATS_Address *address, uint32_t type)
-{
-	int c1;
-	GNUNET_assert (NULL != address);
-
-	if ((NULL == address->atsi) || (0 == address->atsi_count))
-			return GNUNET_ATS_VALUE_UNDEFINED;
-
-	for (c1 = 0; c1 < address->atsi_count; c1++)
-	{
-			if (ntohl(address->atsi[c1].type) == type)
-				return ntohl(address->atsi[c1].value);
-	}
-	return GNUNET_ATS_VALUE_UNDEFINED;
-}
-
-
-/**
  *  Solver API functions
  *  ---------------------------
  */
@@ -1146,140 +1108,146 @@ GAS_proportional_address_add (void *solver,
 															struct ATS_Address *address,
 															uint32_t network);
 
-/**
- * Updates a single address in the solver and checks previous values
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the update address
- * @param session the previous session
- * @param in_use the previous address in use state
- * @param prev_ats previous ATS information
- * @param prev_atsi_count the previous atsi count
- */
+
 void
-GAS_proportional_address_update (void *solver,
-                              struct ATS_Address *address,
-                              uint32_t session,
-                              int in_use,
-                              const struct GNUNET_ATS_Information *prev_ats,
-                              uint32_t prev_atsi_count)
+GAS_proportional_address_property_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t type,
+    															uint32_t abs_value,
+    															double rel_value)
+{
+	struct GAS_PROPORTIONAL_Handle *s;
+	struct Network *n;
+
+	GNUNET_assert (NULL != solver);
+	GNUNET_assert (NULL != address);
+
+	s = (struct GAS_PROPORTIONAL_Handle *) solver;
+	n = (struct Network *) address->solver_information;
+
+	if (NULL == n)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Property `%s' for peer `%s' address %p changed to %.2f %p %p %p\n",
+              GNUNET_ATS_print_property_type (type),
+              GNUNET_i2s (&address->peer),
+              address,
+              rel_value, s, n, &distribute_bandwidth_in_network);
+  switch (type)
+  {
+  	case GNUNET_ATS_UTILIZATION_UP:
+  	case GNUNET_ATS_UTILIZATION_DOWN:
+  	case GNUNET_ATS_QUALITY_NET_DELAY:
+  	case GNUNET_ATS_QUALITY_NET_DISTANCE:
+  	case GNUNET_ATS_COST_WAN:
+  	case GNUNET_ATS_COST_LAN:
+  	case GNUNET_ATS_COST_WLAN:
+
+  		//FIXME distribute_bandwidth_in_network (s, n, GNUNET_NO);
+  	break;
+  }
+}
+
+
+void
+GAS_proportional_address_session_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t cur_session,
+    															uint32_t new_session)
+{
+  if (cur_session!= new_session)
+  {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Session changed from %u to %u\n", cur_session, new_session);
+  }
+}
+
+void
+GAS_proportional_address_inuse_changed (void *solver,
+    															struct ATS_Address *address,
+    															int in_use)
+{
+	LOG (GNUNET_ERROR_TYPE_DEBUG,
+							"Usage changed to %s\n",
+							(GNUNET_YES == in_use) ? "USED" : "UNUSED");
+}
+
+void
+GAS_proportional_address_change_network (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t current_network,
+																	   uint32_t new_network)
 {
   struct ATS_Address *new;
   struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
-  int i;
-  uint32_t prev_value;
-  uint32_t prev_type;
-  uint32_t addr_net;
   int save_active = GNUNET_NO;
   struct Network *new_net = NULL;
 
-  /* Check updates to performance information */
-  for (i = 0; i < prev_atsi_count; i++)
+  if (current_network == new_network)
   {
-    prev_type = ntohl (prev_ats[i].type);
-    prev_value = ntohl (prev_ats[i].value);
-    switch (prev_type)
-    {
-    case GNUNET_ATS_UTILIZATION_UP:
-    case GNUNET_ATS_UTILIZATION_DOWN:
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-    case GNUNET_ATS_COST_WAN:
-    case GNUNET_ATS_COST_LAN:
-    case GNUNET_ATS_COST_WLAN:
-    	/* No actions required here*/
-    	break;
-    case GNUNET_ATS_NETWORK_TYPE:
-
-      addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-      if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
-      {
-      	GNUNET_break (0);
-      	addr_net = GNUNET_ATS_NET_UNSPECIFIED;
-      }
-      if (addr_net != prev_value)
-      {
-    	/* Network changed */
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
-            (GNUNET_YES == address->active) ? "active" : "inactive",
-             GNUNET_ATS_print_network_type(prev_value),
-             GNUNET_ATS_print_network_type(addr_net));
-
-        save_active = address->active;
-        /* remove from old network */
-        GAS_proportional_address_delete (solver, address, GNUNET_NO);
-
-        /* set new network type */
-        new_net = get_network (solver, addr_net);
-        if (NULL == new_net)
-        {
-          /* Address changed to invalid network... */
-          LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot find network of type `%u' %s\n"),
-          		addr_net, GNUNET_ATS_print_network_type (addr_net));
-          address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
-          address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
-          s->bw_changed  (s->bw_changed_cls, address);
-          return;
-        }
-        address->solver_information = new_net;
-
-        /* Add to new network and update*/
-        GAS_proportional_address_add (solver, address, addr_net);
-        if (GNUNET_YES == save_active)
-        {
-          /* check if bandwidth available in new network */
-          if (GNUNET_YES == (is_bandwidth_available_in_network (new_net)))
-          {
-              /* Suggest updated address */
-              address->active = GNUNET_YES;
-              addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-              distribute_bandwidth_in_network (solver, new_net, NULL);
-          }
-          else
-          {
-            LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
-
-            /* Set old address to zero bw */
-            address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
-            address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
-            s->bw_changed  (s->bw_changed_cls, address);
-
-            /* Find new address to suggest since no bandwidth in network*/
-            new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer);
-            if (NULL != new)
-            {
-                /* Have an alternative address to suggest */
-                s->bw_changed  (s->bw_changed_cls, new);
-            }
-          }
-        }
-      }
-      break;
-    case GNUNET_ATS_ARRAY_TERMINATOR:
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Received unsupported ATS type %u\n", prev_type);
-      GNUNET_break (0);
-      break;
-
-    }
-
-  }
-  if (address->session_id != session)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Session changed from %u to %u\n", session, address->session_id);
-  }
-  if (address->used != in_use)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "Usage changed from %u to %u\n", in_use, address->used);
+  	GNUNET_break (0);
+  	return;
   }
 
+	/* Network changed */
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Network type changed, moving %s address from `%s' to `%s'\n",
+			(GNUNET_YES == address->active) ? "active" : "inactive",
+			 GNUNET_ATS_print_network_type (current_network),
+			 GNUNET_ATS_print_network_type (new_network));
+
+  save_active = address->active;
+	/* remove from old network */
+	GAS_proportional_address_delete (solver, address, GNUNET_NO);
+
+	/* set new network type */
+	new_net = get_network (solver, new_network);
+	if (NULL == new_net)
+	{
+		/* Address changed to invalid network... */
+		LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot find network of type `%u' %s\n"),
+				new_network, GNUNET_ATS_print_network_type (new_network));
+		address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
+		address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
+		s->bw_changed  (s->bw_changed_cls, address);
+		return;
+	}
+	address->solver_information = new_net;
+
+	/* Add to new network and update*/
+	GAS_proportional_address_add (solver, address, new_network);
+	if (GNUNET_YES == save_active)
+	{
+		/* check if bandwidth available in new network */
+		if (GNUNET_YES == (is_bandwidth_available_in_network (new_net)))
+		{
+				/* Suggest updated address */
+				address->active = GNUNET_YES;
+				addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
+				distribute_bandwidth_in_network (solver, new_net, NULL);
+		}
+		else
+		{
+			LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
+
+			/* Set old address to zero bw */
+			address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
+			address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
+			s->bw_changed  (s->bw_changed_cls, address);
+
+			/* Find new address to suggest since no bandwidth in network*/
+			new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer);
+			if (NULL != new)
+			{
+					/* Have an alternative address to suggest */
+					s->bw_changed  (s->bw_changed_cls, new);
+			}
+		}
+  }
 }
-
 
 /**
  * Add a new single address to a network

@@ -745,7 +745,7 @@ property_normalize (struct GNUNET_CONTAINER_MultiHashMap *addresses,
 
 
 /**
- * Update and normalize a atsi performance information
+ * Update and normalize atsi performance information
  *
  * @param addresses hashmap containing all addresses
  * @param address the address to update

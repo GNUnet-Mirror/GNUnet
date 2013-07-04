@@ -1401,6 +1401,45 @@ mlp_update_quality (struct GAS_MLP_Handle *mlp,
   mlp->mlp_prob_updated = GNUNET_YES;
 }
 
+void
+GAS_mlp_address_property_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t type,
+    															uint32_t abs_value,
+    															double rel_value)
+{
+	GNUNET_break (0);
+}
+
+
+void
+GAS_mlp_address_session_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t cur_session,
+    															uint32_t new_session)
+{
+	GNUNET_break (0);
+}
+
+void
+GAS_mlp_address_inuse_changed (void *solver,
+															 struct ATS_Address *address,
+															 uint32_t session,
+															 int in_use)
+{
+	GNUNET_break (0);
+}
+
+
+void
+GAS_mlp_address_change_network (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t current_network,
+																	   uint32_t new_network)
+{
+	GNUNET_break (0);
+}
+
 /**
  * Updates a single address in the MLP problem
  *
@@ -1432,6 +1471,7 @@ GAS_mlp_address_update (void *solver,
 	struct ATS_Peer *p;
 	struct GAS_MLP_Handle *mlp = solver;
 	struct MLP_information *mlpi = address->solver_information;
+	int c1;
 
 	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != address);
@@ -1442,22 +1482,37 @@ GAS_mlp_address_update (void *solver,
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Updating address for peer `%s' not added before\n"), GNUNET_i2s(&address->peer));
       return;
   }
-	mlp_update_quality (mlp, mlp->addresses, address, prev_atsi, prev_atsi_count);
+
+  if (address->session_id != prev_session)
+  {
+  	/* Session changed */
+
+  }
+  if ((NULL != prev_atsi) && (0 != prev_atsi_count))
+  {
+  	/* Properties changed */
+  	for (c1 = 0; c1 < prev_atsi_count; c1++ )
+  	{
+    	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating `%s'\n",
+    			GNUNET_ATS_print_property_type (ntohl(prev_atsi[c1].type)));
+    	//mlp->get_properties (mlp->get_properties_cls );
+  	}
+  	//mlp_update_quality (mlp, mlp->addresses, address, prev_atsi, prev_atsi_count);
+  }
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
+  	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' without address request \n",
+    		GNUNET_i2s(&address->peer));
   	return;
   }
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' with address request \n", GNUNET_i2s(&address->peer));
-
-	/* Problem size changed: new address for peer with pending request */
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' with address request \n",
+			GNUNET_i2s(&address->peer));
 	mlp->mlp_prob_updated = GNUNET_YES;
 
 	if (GNUNET_YES == mlp->mlp_auto_solve)
 		GAS_mlp_solve_problem (solver);
-  return;
 }
 
 /**

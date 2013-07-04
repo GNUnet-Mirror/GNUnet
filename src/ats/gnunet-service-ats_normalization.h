@@ -43,7 +43,7 @@ typedef void
 
 typedef void
 (*GAS_Normalization_property_changed_cb) (void *cls,
-																				 const struct ATS_Address *peer,
+																				 struct ATS_Address *peer,
 																				 uint32_t type,
 																				 double prop_rel);
 

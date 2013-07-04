@@ -415,34 +415,31 @@ GAS_mlp_address_add (void *solver,
 										struct ATS_Address *address,
 										uint32_t network);
 
-/**
- * Updates a single address in the MLP problem
- *
- * If the address did not exist before in the problem:
- * The MLP problem has to be recreated and the problem has to be resolved
- *
- * ATS performance information in address are already updated, delta + previous
- * values are included in atsi_prev (value GNUNET_ATS_VALUE_UNDEFINED if not existing before)
- *
- * Otherwise the addresses' values can be updated and the existing base can
- * be reused
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the update address
- * @param prev_session the new session (if changed otherwise current)
- * @param prev_in_use the new address in use state (if changed otherwise current)
- * @param prev_atsi ATS information updated + previous values, GNUNET_ATS_VALUE_UNDEFINED if not existing before
- * @param prev_atsi_count number of atsi values updated
- */
 void
-GAS_mlp_address_update (void *solver,
-                        struct ATS_Address *address,
-                        uint32_t prev_session,
-                        int prev_in_use,
-                        const struct GNUNET_ATS_Information *prev_atsi,
-                        uint32_t prev_atsi_count);
+GAS_mlp_address_property_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t type,
+    															uint32_t abs_value,
+    															double rel_value);
 
+
+void
+GAS_mlp_address_session_changed (void *solver,
+    														 struct ATS_Address *address,
+    														 uint32_t cur_session,
+    														 uint32_t new_session);
+
+void
+GAS_mlp_address_inuse_changed (void *solver,
+    													 struct ATS_Address *address,
+    													 uint32_t session,
+    													 int in_use);
+
+void
+GAS_proportional_address_change_network (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t current_network,
+																	   uint32_t new_network);
 
 /**
  * Deletes a single address in the MLP problem

@@ -464,25 +464,31 @@ typedef void
                                struct ATS_Address *address,
                                int session_only);
 
-/**
- * Notify the solver about an update for an address
- *
- * @param solver the solver to use
- * @param addresses the address hashmap containing all addresses
- * @param address the address
- * @param session the previous session
- * @param in_use previous address used state: yes or no
- * @param atsi ats previous performance information
- * @param atsi_count previous number of ats performance information
- *
- */
+
 typedef void
-(*GAS_solver_address_update) (void *solver,
-                              struct ATS_Address *address,
-                              uint32_t prev_session,
-                              int in_use,
-                              const struct GNUNET_ATS_Information *prev_atsi,
-                              uint32_t prev_atsi_count);
+(*GAS_solver_address_property_changed) (void *solver,
+																				struct ATS_Address *address,
+																				uint32_t type,
+																				uint32_t abs_value,
+																				double rel_value);
+
+typedef void
+(*GAS_solver_address_session_changed) (void *solver,
+ 																			struct ATS_Address *address,
+																			uint32_t cur_session,
+																			uint32_t new_session);
+
+typedef void
+(*GAS_solver_address_inuse_changed) (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t session,
+																	   int in_use);
+
+typedef void
+(*GAS_solver_address_network_changed) (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t current_network,
+																	   uint32_t new_network);
 
 
 /**

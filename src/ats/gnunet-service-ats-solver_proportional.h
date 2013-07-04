@@ -114,26 +114,31 @@ GAS_proportional_address_add (void *solver,
 							struct ATS_Address *address,
 							uint32_t network);
 
-
-/**
- * Updates a single address in the solve
- *
- * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
- * @param address the update address
- * @param session the new session (if changed otherwise current)
- * @param in_use the new address in use state (if changed otherwise current)
- * @param prev_ats the latest ATS information
- * @param prev_atsi_count the atsi count
- */
 void
-GAS_proportional_address_update (void *solver,
-    struct ATS_Address *address,
-    uint32_t session,
-    int in_use,
-    const struct GNUNET_ATS_Information *atsi,
-    uint32_t atsi_count);
+GAS_proportional_address_property_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t type,
+    															uint32_t abs_value,
+    															double rel_value);
 
+
+void
+GAS_proportional_address_session_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t cur_session,
+    															uint32_t new_session);
+
+void
+GAS_proportional_address_inuse_changed (void *solver,
+    															struct ATS_Address *address,
+    															uint32_t session,
+    															int in_use);
+
+void
+GAS_proportional_address_change_network (void *solver,
+																	   struct ATS_Address *address,
+																	   uint32_t current_network,
+																	   uint32_t new_network);
 
 /**
  * Remove an address from the solver
@@ -166,7 +171,7 @@ GAS_proportional_bulk_stop (void *solver);
 /**
  * Stop notifying about address and bandwidth changes for this peer
  *
- * @param solver the MLP handle
+ * @param solver the proportional handle
  * @param addresses address hashmap
  * @param peer the peer
  */
