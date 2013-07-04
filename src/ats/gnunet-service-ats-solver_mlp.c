@@ -237,7 +237,7 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
   mlp->p.ci = MLP_UNDEFINED;
 
 
-  GNUNET_CONTAINER_multihashmap_iterate (mlp->peers, &reset_peers, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (mlp->requested_peers, &reset_peers, NULL);
 }
 
 
@@ -441,32 +441,49 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
 	if (0 >= c_cols)
 		return;
 
-	val_array = GNUNET_malloc (c_cols * sizeof (double));
+	val_array = GNUNET_malloc ((c_cols +1)* sizeof (double));
 	GNUNET_assert (NULL != val_array);
-	ind_array = GNUNET_malloc (c_cols * sizeof (int));
+	ind_array = GNUNET_malloc ((c_cols+1) * sizeof (int));
 	GNUNET_assert (NULL != ind_array);
 	/* Extract the row */
 
 	if (0 == (c_elems = glp_get_mat_row (p->prob, row, ind_array, val_array)))
+	{
+	  GNUNET_free (ind_array);
+	  GNUNET_free (val_array);
 		return;
+	}
 
 	/* Update the value */
-	for (c1 = 0; c1 <= c_elems; c1++)
+	for (c1 = 1; c1 < (c_elems+1); c1++)
 	{
-		if (ind_array[c1] == row)
+		/* Debug
+		fprintf (stderr, "cur %u of %u: [%u] %s <-> [%u] %s\n",
+				c1, c_elems,
+				ind_array[c1],
+				glp_get_col_name(p->prob, ind_array[c1]),
+				col,
+				glp_get_col_name(p->prob, col)
+				);
+			*/
+		if (ind_array[c1] == col)
 			break;
 	}
-	if (c_elems == c1)
+	if ((c_elems + 1)== c1)
+	{
+	  GNUNET_free (ind_array);
+	  GNUNET_free (val_array);
 		return; /* not found */
-
+	}
 	/* Update value */
+	LOG (GNUNET_ERROR_TYPE_ERROR, "[P] Updating value for peer from `%.2f' to `%.2f'\n",
+			val_array[c1], val);
 	val_array[c1] = val;
 
 	/* Update the row in the matrix */
 	glp_set_mat_row (p->prob, row, c_elems, ind_array, val_array);
   GNUNET_free (ind_array);
   GNUNET_free (val_array);
-  //p-> = GNUNET_YES;
 }
 
 /**
@@ -577,18 +594,19 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   int c;
 
   /* Check if we have to add this peer due to a pending request */
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->requested_peers, key))
   	return GNUNET_OK;
 
   mlpi = address->solver_information;
   if (NULL == mlpi)
   {
+  		fprintf (stderr, "%s %p\n",GNUNET_i2s (&address->peer), address);
   		GNUNET_break (0);
   		return GNUNET_OK;
   }
 
   /* Get peer */
-  peer = GNUNET_CONTAINER_multihashmap_get (mlp->peers, key);
+  peer = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, key);
   if (peer->processed == GNUNET_NO)
   {
   		/* Add peer dependent constraints */
@@ -602,7 +620,6 @@ mlp_create_problem_add_address_information (void *cls, const struct GNUNET_HashC
   		GNUNET_free (name);
   	  /* c 9) set coefficient */
   		mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f, __LINE__);
-
   		peer->processed = GNUNET_YES;
   }
 
@@ -799,8 +816,8 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* create the glpk problem */
   p->prob = glp_create_prob ();
   GNUNET_assert (NULL != p->prob);
-  p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->peers);
-  p->num_addresses = mlp_create_problem_count_addresses (mlp->peers, mlp->addresses);
+  p->num_peers = GNUNET_CONTAINER_multihashmap_size (mlp->requested_peers);
+  p->num_addresses = mlp_create_problem_count_addresses (mlp->requested_peers, mlp->addresses);
 
   /* Create problem matrix: 10 * #addresses + #q * #addresses + #q, + #peer + 2 + 1 */
   p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2 + 1);
@@ -931,7 +948,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 	double mlp_use = MLP_NaN;
 
   /* Check if we have to add this peer due to a pending request */
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->peers, key))
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->requested_peers, key))
   	return GNUNET_OK;
   address = value;
   GNUNET_assert (address->solver_information != NULL);
@@ -1027,6 +1044,17 @@ GAS_mlp_solve_problem (void *solver)
 		return GNUNET_NO;
 	}
 
+	if (0 == GNUNET_CONTAINER_multihashmap_size(mlp->requested_peers))
+	{
+		GNUNET_break (0);
+		return GNUNET_OK;
+	}
+	if (0 == GNUNET_CONTAINER_multihashmap_size(mlp->addresses))
+	{
+		GNUNET_break (0);
+		return GNUNET_OK;
+	}
+
 	if ((GNUNET_NO == mlp->mlp_prob_changed) && (GNUNET_NO == mlp->mlp_prob_updated))
 	{
 		LOG (GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
@@ -1087,15 +1115,18 @@ GAS_mlp_solve_problem (void *solver)
 	struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
 	if (GNUNET_YES == mlp->write_mip_mps)
 	{
-	/* Write problem and solution to disk */
-	GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
-	glp_write_mps(mlp->p.prob, GLP_MPS_FILE, NULL, filename);
-	GNUNET_free (filename);
+		/* Write problem to disk */
+		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
+		LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
+		glp_write_lp(mlp->p.prob, NULL, filename);
+		GNUNET_free (filename);
 	}
 	if (GNUNET_YES == mlp->write_mip_sol)
 	{
+		/* Write solution to disk */
 		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
 		glp_print_mip (mlp->p.prob, filename );
+		LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
 		GNUNET_free (filename);
 	}
 
@@ -1147,7 +1178,7 @@ GAS_mlp_address_add (void *solver,
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Adding address for peer `%s' multiple times\n"), GNUNET_i2s(&address->peer));
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
   	return;
@@ -1414,7 +1445,7 @@ GAS_mlp_address_update (void *solver,
 	mlp_update_quality (mlp, mlp->addresses, address, prev_atsi, prev_atsi_count);
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
   	return;
@@ -1449,23 +1480,27 @@ GAS_mlp_address_delete (void *solver,
 	struct GAS_MLP_Handle *mlp = solver;
 	struct MLP_information *mlpi;
 
-	GNUNET_assert (NULL != solver);;
+	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != address);
 
 	mlpi = address->solver_information;
-	if (NULL != mlpi)
+	if ((GNUNET_NO == session_only) && (NULL != mlpi))
 	{
 			GNUNET_free (mlpi);
 			address->solver_information = NULL;
 	}
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &address->peer.hashPubKey)))
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s for peer `%s' without address request \n",
+    		(session_only == GNUNET_YES) ? "session" : "address",
+    		GNUNET_i2s(&address->peer));
   	return;
   }
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting address for peer `%s' with address request \n", GNUNET_i2s(&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s for peer `%s' with address request \n",
+  		(session_only == GNUNET_YES) ? "session" : "address",
+  		GNUNET_i2s(&address->peer));
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_changed = GNUNET_YES;
@@ -1546,15 +1581,15 @@ GAS_mlp_get_preferred_address (void *solver,
   		GNUNET_i2s (peer));
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &peer->hashPubKey)))
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &peer->hashPubKey)))
   {
-  	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding peer `%s' to list of peers with requests\n",
+  	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding peer `%s' to list of requested_peers with requests\n",
   	  		GNUNET_i2s (peer));
 
   	  p = GNUNET_malloc (sizeof (struct ATS_Peer));
   	  p->id = (*peer);
   	  p->f = get_peer_pref_value (mlp, peer);
-  	  GNUNET_CONTAINER_multihashmap_put (mlp->peers, &peer->hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  	  GNUNET_CONTAINER_multihashmap_put (mlp->requested_peers, &peer->hashPubKey, p, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   	  /* Added new peer, we have to rebuild problem before solving */
   	  mlp->mlp_prob_changed = GNUNET_YES;
@@ -1627,9 +1662,9 @@ GAS_mlp_stop_get_preferred_address (void *solver,
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
 
-  if (NULL != (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &peer->hashPubKey)))
+  if (NULL != (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &peer->hashPubKey)))
   {
-  	GNUNET_CONTAINER_multihashmap_remove (mlp->peers, &peer->hashPubKey, p);
+  	GNUNET_CONTAINER_multihashmap_remove (mlp->requested_peers, &peer->hashPubKey, p);
   	GNUNET_free (p);
   }
 }
@@ -1653,8 +1688,8 @@ GAS_mlp_address_change_preference (void *solver,
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p = NULL;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s'\n",
-  		GNUNET_i2s(peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s' to %.2f\n",
+  		GNUNET_i2s(peer), pref_rel);
 
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
   /* Update the constraints with changed preferences */
@@ -1662,13 +1697,15 @@ GAS_mlp_address_change_preference (void *solver,
   /* Update quality constraint c7 */
 
   /* Update relativity constraint c9 */
-  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->peers, &peer->hashPubKey)))
+  if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &peer->hashPubKey)))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Updating preference for unknown peer `%s' \n", GNUNET_i2s(peer));
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Updating preference for unknown peer `%s'\n", GNUNET_i2s(peer));
   	return;
   }
   p->f = get_peer_pref_value (mlp, peer);
-  /* FXIME: cannot use set_value mlp_create_problem_set_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);*/
+  LOG (GNUNET_ERROR_TYPE_ERROR, "PEER PREF: %s %.2f\n",
+  		GNUNET_i2s(peer), p->f);
+  mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
 
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_updated = GNUNET_YES;
@@ -1705,9 +1742,9 @@ GAS_mlp_done (void *solver)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down mlp solver\n");
   mlp_delete_problem (mlp);
 
-  GNUNET_CONTAINER_multihashmap_iterate (mlp->peers, &mlp_free_peers, mlp->peers);
-  GNUNET_CONTAINER_multihashmap_destroy (mlp->peers);
-  mlp->peers = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (mlp->requested_peers, &mlp_free_peers, mlp->requested_peers);
+  GNUNET_CONTAINER_multihashmap_destroy (mlp->requested_peers);
+  mlp->requested_peers = NULL;
 
   /* Clean up GLPK environment */
   glp_free_env();
@@ -1796,6 +1833,14 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       break;
   }
 
+   mlp->write_mip_mps = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats",
+  		 	 "DUMP_MLP");
+   if (GNUNET_SYSERR == mlp->write_mip_mps)
+  	 mlp->write_mip_mps = GNUNET_NO;
+   mlp->write_mip_sol = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats",
+  		 	 "DUMP_MLP");
+   if (GNUNET_SYSERR == mlp->write_mip_sol)
+  	 mlp->write_mip_sol = GNUNET_NO;
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
@@ -1968,12 +2013,10 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->pv.b_min = b_min;
   mlp->pv.n_min = n_min;
   mlp->pv.m_q = GNUNET_ATS_QualityPropertiesCount;
-  mlp->write_mip_mps = GNUNET_NO;
-  mlp->write_mip_sol = GNUNET_NO;
   mlp->mlp_prob_changed = GNUNET_NO;
   mlp->mlp_prob_updated = GNUNET_NO;
   mlp->mlp_auto_solve = GNUNET_YES;
-  mlp->peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  mlp->requested_peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   mlp->bulk_request = 0;
   mlp->bulk_lock = 0;
 
