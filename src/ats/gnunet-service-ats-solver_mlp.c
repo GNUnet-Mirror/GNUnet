@@ -411,7 +411,76 @@ static int mlp_create_problem_count_addresses (
 }
 
 
+/**
+ * Updates an existing value in the matrix
+ *
+ * Extract the row, updates the value and updates the row in the problem
+ *
+ * @param p the mlp problem
+ * @param row the row to create the value in
+ * @param col the column to create the value in
+ * @param val the value to set
+ * @param line calling line for debbuging
+ */
+static void
+mlp_create_problem_update_value (struct MLP_Problem *p,
+															int row, int col, double val,
+															int line)
+{
+	int c_cols;
+	int c_elems;
+	int c1;
+	double *val_array;
+  int *ind_array;
 
+	GNUNET_assert (NULL != p);
+	GNUNET_assert (NULL != p->prob);
+
+	/* Get number of columns and prepare data structure */
+	c_cols = glp_get_num_cols(p->prob);
+	if (0 >= c_cols)
+		return;
+
+	val_array = GNUNET_malloc (c_cols * sizeof (double));
+	GNUNET_assert (NULL != val_array);
+	ind_array = GNUNET_malloc (c_cols * sizeof (int));
+	GNUNET_assert (NULL != ind_array);
+	/* Extract the row */
+
+	if (0 == (c_elems = glp_get_mat_row (p->prob, row, ind_array, val_array)))
+		return;
+
+	/* Update the value */
+	for (c1 = 0; c1 <= c_elems; c1++)
+	{
+		if (ind_array[c1] == row)
+			break;
+	}
+	if (c_elems == c1)
+		return; /* not found */
+
+	/* Update value */
+	val_array[c1] = val;
+
+	/* Update the row in the matrix */
+	glp_set_mat_row (p->prob, row, c_elems, ind_array, val_array);
+  GNUNET_free (ind_array);
+  GNUNET_free (val_array);
+  //p-> = GNUNET_YES;
+}
+
+/**
+ * Creates a new value in the matrix
+ *
+ * Sets the row and column index in the problem array and increments the
+ * position field
+ *
+ * @param p the mlp problem
+ * @param row the row to create the value in
+ * @param col the column to create the value in
+ * @param val the value to set
+ * @param line calling line for debbuging
+ */
 static void
 mlp_create_problem_set_value (struct MLP_Problem *p,
 															int row, int col, double val,
