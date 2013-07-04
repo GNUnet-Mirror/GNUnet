@@ -551,28 +551,6 @@ create_address (const struct GNUNET_PeerIdentity *peer,
 }
 
 
-/**
- * Destroy the given address.
- *
- * @param handle the address handle
- * @param addr address to destroy
- * @return GNUNET_YES if bandwidth allocations should be recalcualted
- */
-static int
-destroy_address (struct GAS_Addresses_Handle *handle, struct ATS_Address *addr)
-{
-  int ret;
-
-  ret = GNUNET_NO;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (handle->addresses,
-                                                       &addr->peer.hashPubKey,
-                                                       addr));
-  free_address (addr);
-  return ret;
-}
-
-
 struct CompareAddressContext
 {
   const struct ATS_Address *search;
@@ -1008,13 +986,16 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
         (0 == memcmp (des->addr, aa->addr, aa->addr_len)))
     {
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Deleting full address for peer `%s' session %u %p\n",
                   GNUNET_i2s (&aa->peer), aa->session_id, aa);
 
       /* Notify solver about deletion */
+      GNUNET_assert (GNUNET_YES ==
+      		GNUNET_CONTAINER_multihashmap_remove (handle->addresses,
+          		&aa->peer.hashPubKey, aa));
       handle->s_del (handle->solver, aa, GNUNET_NO);
-      destroy_address (handle, aa);
+      free_address (aa);
       dc->result = GNUNET_NO;
       return GNUNET_OK; /* Continue iteration */
     }
@@ -1028,7 +1009,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     if ((aa->session_id != 0) &&
         (0 != strcmp (des->plugin, aa->plugin)))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     "Different plugins during removal: `%s' vs `%s' \n",
                     des->plugin, aa->plugin);
         GNUNET_break (0);
@@ -1043,8 +1024,11 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
 
         /* Notify solver about deletion */
+        GNUNET_assert (GNUNET_YES ==
+        		GNUNET_CONTAINER_multihashmap_remove (handle->addresses,
+            		&aa->peer.hashPubKey, aa));
         handle->s_del (handle->solver, aa, GNUNET_NO);
-        destroy_address (handle, aa);
+        free_address (aa);
         dc->result = GNUNET_NO;
         return GNUNET_OK; /* Continue iteration */
     }
@@ -1084,25 +1068,23 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
 {
   struct ATS_Address *ea;
   struct DestroyContext dc;
-
   if (GNUNET_NO == handle->running)
     return;
 
   /* Get existing address */
   ea = lookup_address (handle, peer, plugin_name, plugin_addr, plugin_addr_len,
                        session_id, NULL, 0);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s' address %p session %u\n",
-              "ADDRESS DESTROY",
-              GNUNET_i2s (peer), ea, session_id);
-
   if (ea == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
                 GNUNET_i2s (peer), plugin_name, session_id);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Received `%s' for peer `%s' address %p session %u\n",
+              "ADDRESS DESTROY",
+              GNUNET_i2s (peer), ea, session_id);
 
   GNUNET_break (0 < strlen (plugin_name));
   dc.handle = handle;
@@ -1740,7 +1722,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Free memory of address.
+ * Destroy all addresses iterator
  *
  * @param cls NULL
  * @param key peer identity (unused)
@@ -1748,12 +1730,18 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+destroy_all_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct ATS_Address *aa = value;
+
+  /* Remove */
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (handle->addresses, key, value));
+  /* Notify */
   handle->s_del (handle->solver, aa, GNUNET_NO);
-  destroy_address (handle, aa);
+  /* Destroy */
+  free_address (aa);
+
   return GNUNET_OK;
 }
 
@@ -1772,9 +1760,8 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s'\n",
               "DESTROY ALL");
-
   if (handle->addresses != NULL)
-    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &free_address_it, handle);
+    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &destroy_all_address_it, handle);
 }
 
 
