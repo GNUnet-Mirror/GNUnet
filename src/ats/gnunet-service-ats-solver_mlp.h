@@ -289,7 +289,7 @@ struct GAS_MLP_Handle
   /**
    * Peers with pending address requests
    */
-  struct GNUNET_CONTAINER_MultiHashMap *peers;
+  struct GNUNET_CONTAINER_MultiHashMap *requested_peers;
 
   /**
    * Was the problem updated since last solution
