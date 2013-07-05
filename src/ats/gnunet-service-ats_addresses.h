@@ -231,7 +231,6 @@
  */
 #define ATS_BLOCKING_DELTA GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
-struct GAS_Addresses_Handle;
 
 /**
  * Information provided by ATS normalization
@@ -258,6 +257,7 @@ struct GAS_NormalizationInfo
 		 */
 		double norm;
 };
+
 
 /**
  * Address with additional information
@@ -357,14 +357,32 @@ struct ATS_Address
  *
  * @param address the with changed bandwidth assigned
  */
-
 typedef void
  (*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
 
+
+/**
+ * Callback to call from solver to obtain application preference values for a
+ * peer
+ *
+ * @param cls the cls
+ * @param id the peer id
+ * @return carry of double values containing the preferences with
+ * 	GNUNET_ATS_PreferenceCount elements
+ */
 typedef const double *
  (*GAS_get_preferences) (void *cls, const struct GNUNET_PeerIdentity *id);
 
 
+/**
+ * Callback to call from solver to obtain transport properties for an
+ * address
+ *
+ * @param cls the cls
+ * @param address the address
+ * @return carry of double values containing the preferences with
+ * 	GNUNET_ATS_PreferenceCount elements
+ */
 typedef const double *
  (*GAS_get_properties) (void *cls, const struct ATS_Address *address);
 
@@ -376,8 +394,7 @@ typedef const double *
  */
 
 /**
- * Init the simplistic problem solving component
- *==32673==    by 0x40571F: GAS_addresses_request_address (gnunet-service-ats_addresses.c:1261)
+ * Init the problem solving component
  *
  * Quotas:
  * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
@@ -431,11 +448,25 @@ typedef void
 																				 enum GNUNET_ATS_PreferenceKind kind,
 																				 double pref_rel);
 
+/**
+ * Notify the solver about a bulk operation changing possibly a lot of values
+ * Solver will not resolve until all bulk operations are marked as done
+ *
+ * @param solver the solver
+ */
 typedef void
 (*GAS_solver_bulk_start) (void *solver);
 
+
+/**
+ * Mark a bulk operation as done
+ * Solver will resolve if values have changed
+ *
+ * @param solver the solver
+ */
 typedef void
 (*GAS_solver_bulk_stop) (void *solver);
+
 
 /**
  * Add a single address within a network to the solver
@@ -465,6 +496,15 @@ typedef void
                                int session_only);
 
 
+/**
+ * Transport properties for this address have changed
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
 typedef void
 (*GAS_solver_address_property_changed) (void *solver,
 																				struct ATS_Address *address,
@@ -472,18 +512,49 @@ typedef void
 																				uint32_t abs_value,
 																				double rel_value);
 
+
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 typedef void
 (*GAS_solver_address_session_changed) (void *solver,
  																			struct ATS_Address *address,
 																			uint32_t cur_session,
 																			uint32_t new_session);
 
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 typedef void
 (*GAS_solver_address_inuse_changed) (void *solver,
 																	   struct ATS_Address *address,
 																	   uint32_t session,
 																	   int in_use);
 
+/**
+ * Network scope for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
 typedef void
 (*GAS_solver_address_network_changed) (void *solver,
 																	   struct ATS_Address *address,
