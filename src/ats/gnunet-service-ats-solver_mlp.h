@@ -371,7 +371,9 @@ GAS_mlp_solve_problem (void *solver);
  * @param bw_changed_cb callback for changed bandwidth amounts
  * @param bw_changed_cb_cls cls for callback
  * @param get_preference callback to get relative preferences for a peer
- * @param get_preference_cls cls for callback to get relative preferences
+ * @param get_preference callback to get relative preferences for a peer
+ * @param get_properties_cls for callback to get relative properties
+ * @param get_properties_cls cls for callback to get relative properties
  * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *
@@ -394,7 +396,6 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to add
  * @param network network type of this address
  */
@@ -439,19 +440,17 @@ GAS_mlp_address_session_changed (void *solver,
 
 
 /**
- * Transport session for this address has changed
+ * Usage for this address has changed
  *
  * NOTE: values in addresses are already updated
  *
  * @param solver solver handle
  * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
+ * @param in_use usage state
  */
 void
 GAS_mlp_address_inuse_changed (void *solver,
     													 struct ATS_Address *address,
-    													 uint32_t session,
     													 int in_use);
 
 
@@ -477,8 +476,6 @@ GAS_mlp_address_change_network (void *solver,
  * The MLP problem has to be recreated and the problem has to be resolved
  *
  * @param solver the MLP Handle
- * @param addresses the address hashmap
- *        the address has to be already removed from the hashmap
  * @param address the address to delete
  * @param session_only delete only session not whole address
  */
@@ -492,7 +489,6 @@ GAS_mlp_address_delete (void *solver,
  * Changes the preferences for a peer in the MLP problem
  *
  * @param solver the MLP Handle
- * @param addresses the address hashmap
  * @param peer the peer
  * @param kind the kind to change the preference
  * @param pref_rel the relative score
@@ -524,7 +520,6 @@ GAS_mlp_bulk_stop (void *solver);
  * Get the preferred address for a specific peer
  *
  * @param solver the MLP Handle
- * @param addresses address hashmap
  * @param peer the peer
  * @return suggested address
  */
@@ -537,10 +532,8 @@ GAS_mlp_get_preferred_address (void *solver,
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the MLP handle
- * @param addresses address hashmap
  * @param peer the peer
  */
-
 void
 GAS_mlp_stop_get_preferred_address (void *solver,
                                      const struct GNUNET_PeerIdentity *peer);

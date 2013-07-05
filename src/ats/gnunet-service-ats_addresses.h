@@ -536,13 +536,11 @@ typedef void
  *
  * @param solver solver handle
  * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
+ * @param in_use usage state
  */
 typedef void
 (*GAS_solver_address_inuse_changed) (void *solver,
 																	   struct ATS_Address *address,
-																	   uint32_t session,
 																	   int in_use);
 
 /**

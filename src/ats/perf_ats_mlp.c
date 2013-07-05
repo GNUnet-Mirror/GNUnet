@@ -222,7 +222,7 @@ update_single_addresses (struct ATS_Address *cur)
 		default:
 			break;
 	}
-	GAS_mlp_address_inuse_changed(mlp, cur, 0, GNUNET_YES);
+	GAS_mlp_address_inuse_changed(mlp, cur, GNUNET_YES);
 
 }
 

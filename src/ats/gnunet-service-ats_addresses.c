@@ -678,8 +678,6 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param session_id session id, can be 0
- * @param atsi performance information for this address
- * @param atsi_count number of performance information contained
  * @return an ATS_address or NULL
  */
 
@@ -1179,7 +1177,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 
   /* Tell solver about update */
   ea->used = in_use;
-  handle->s_address_update_inuse (handle->solver, ea, ea->session_id, ea->used);
+  handle->s_address_update_inuse (handle->solver, ea, ea->used);
   return GNUNET_OK;
 }
 
@@ -1356,7 +1354,7 @@ normalized_preference_changed_cb (void *cls,
  * The relative value for a property changed
  *
  * @param cls the address handle
- * @param peer the peer
+ * @param address the peer
  * @param type the ATS type
  * @param prop_rel the new relative preference value
  */
@@ -1402,7 +1400,7 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
  * values for an address from solver
  *
  * @param cls unused
- * @param id the peer to return the normalized properties for
+ * @param address the address
  * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
  */
 const double *

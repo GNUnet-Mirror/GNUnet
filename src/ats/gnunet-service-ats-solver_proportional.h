@@ -38,7 +38,6 @@
  * Changes the preferences for a peer in the problem
  *
  * @param solver the solver handle
- * @param addresses the address hashmap
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param pref_rel the normalized preference value for this kind over all clients
@@ -75,6 +74,8 @@ GAS_proportional_address_change_preference (void *solver,
  * @param bw_changed_cb_cls cls for callback
  * @param get_preference callback to get relative preferences for a peer
  * @param get_preference_cls cls for callback to get relative preferences
+ * @param get_properties_cls for callback to get relative properties
+ * @param get_properties_cls cls for callback to get relative properties
  * @return handle for the solver on success, NULL on fail
  */
 void *
@@ -105,7 +106,6 @@ GAS_proportional_done (void * solver);
  * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to add
  * @param network network type of this address
  */
@@ -114,6 +114,16 @@ GAS_proportional_address_add (void *solver,
 							struct ATS_Address *address,
 							uint32_t network);
 
+
+/**
+ * Transport properties for this address have changed
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
 void
 GAS_proportional_address_property_changed (void *solver,
     															struct ATS_Address *address,
@@ -122,18 +132,47 @@ GAS_proportional_address_property_changed (void *solver,
     															double rel_value);
 
 
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_proportional_address_session_changed (void *solver,
     															struct ATS_Address *address,
     															uint32_t cur_session,
     															uint32_t new_session);
 
+
+/**
+ * Usage for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param in_use usage state
+ */
 void
 GAS_proportional_address_inuse_changed (void *solver,
     															struct ATS_Address *address,
-    															uint32_t session,
     															int in_use);
 
+/**
+ * Network scope for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
 void
 GAS_proportional_address_change_network (void *solver,
 																	   struct ATS_Address *address,
@@ -144,7 +183,6 @@ GAS_proportional_address_change_network (void *solver,
  * Remove an address from the solver
  *
  * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to remove
  * @param session_only delete only session not whole address
  */
@@ -172,7 +210,6 @@ GAS_proportional_bulk_stop (void *solver);
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the proportional handle
- * @param addresses address hashmap
  * @param peer the peer
  */
 void
@@ -184,7 +221,6 @@ GAS_proportional_stop_get_preferred_address (void *solver,
  * Get the prefered address for a specific peer
  *
  * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
  * @param peer the identity of the peer
  */
 const struct ATS_Address *

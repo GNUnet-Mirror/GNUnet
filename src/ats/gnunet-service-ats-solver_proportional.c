@@ -888,7 +888,6 @@ GAS_proportional_address_change_preference (void *solver,
  * Get the preferred address for a specific peer
  *
  * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
  * @param peer the identity of the peer
  */
 const struct ATS_Address *
@@ -970,7 +969,6 @@ GAS_proportional_get_preferred_address (void *solver,
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the solver handle
- * @param addresses address hashmap
  * @param peer the peer
  */
 void
@@ -985,7 +983,6 @@ GAS_proportional_stop_get_preferred_address (void *solver,
  * Remove an address from the solver
  *
  * @param solver the solver handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to remove
  * @param session_only delete only session not whole address
  */
@@ -1251,7 +1248,6 @@ GAS_proportional_address_change_network (void *solver,
  * Add a new single address to a network
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to add
  * @param network network type of this address
  */
@@ -1310,6 +1306,8 @@ GAS_proportional_address_add (void *solver,
  * @param bw_changed_cb_cls cls for callback
  * @param get_preference callback to get relative preferences for a peer
  * @param get_preference_cls cls for callback to get relative preferences
+ * @param get_properties for callback to get relative properties
+ * @param get_properties_cls cls for callback to get relative properties
  * @return handle for the solver on success, NULL on fail
  */
 void *
