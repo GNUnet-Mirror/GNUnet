@@ -1106,6 +1106,15 @@ GAS_proportional_address_add (void *solver,
 															uint32_t network);
 
 
+/**
+ * Transport properties for this address have changed
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
 void
 GAS_proportional_address_property_changed (void *solver,
     															struct ATS_Address *address,
@@ -1148,6 +1157,16 @@ GAS_proportional_address_property_changed (void *solver,
 }
 
 
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_proportional_address_session_changed (void *solver,
     															struct ATS_Address *address,
@@ -1161,6 +1180,16 @@ GAS_proportional_address_session_changed (void *solver,
   }
 }
 
+
+/**
+ * Usage for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param in_use usage state
+ */
 void
 GAS_proportional_address_inuse_changed (void *solver,
     															struct ATS_Address *address,
@@ -1171,6 +1200,17 @@ GAS_proportional_address_inuse_changed (void *solver,
 							(GNUNET_YES == in_use) ? "USED" : "UNUSED");
 }
 
+
+/**
+ * Network scope for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
 void
 GAS_proportional_address_change_network (void *solver,
 																	   struct ATS_Address *address,
