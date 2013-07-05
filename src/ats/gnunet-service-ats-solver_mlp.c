@@ -433,6 +433,7 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
 	int c_elems;
 	int c1;
 	int res;
+	int found;
 	double *val_array;
   int *ind_array;
 
@@ -450,42 +451,44 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
 	GNUNET_assert (NULL != ind_array);
 	/* Extract the row */
 
-	if (0 == (c_elems = glp_get_mat_row (p->prob, row, ind_array, val_array)))
-	{
-		ind_array[1] = col;
-		val_array[1] = val;
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Updating value in [%s : %s] to `%.2f'\n",
-				glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
-				val);
-		glp_set_mat_row (p->prob, row, 1, ind_array, val_array);
-		return GNUNET_YES;
-	}
-
 	/* Update the value */
+	c_elems = glp_get_mat_row (p->prob, row, ind_array, val_array);
+	found = GNUNET_NO;
 	for (c1 = 1; c1 < (c_elems+1); c1++)
 	{
 		if (ind_array[c1] == col)
+		{
+			found = GNUNET_YES;
 			break;
+		}
 	}
-	if ((c_elems + 1)== c1)
+	if (GNUNET_NO == found)
 	{
-	  GNUNET_free (ind_array);
-	  GNUNET_free (val_array);
-	  GNUNET_break (0);
-		return GNUNET_SYSERR; /* not found */
+		ind_array[c_elems+1] = col;
+		val_array[c_elems+1] = val;
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Setting value in [%s : %s] to `%.2f'\n",
+				glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
+				val);
+		glp_set_mat_row (p->prob, row, c_elems+1, ind_array, val_array);
+		GNUNET_free (ind_array);
+		GNUNET_free (val_array);
+		return GNUNET_YES;
 	}
-	/* Update value */
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Updating value in [%s : %s] from `%.2f' to `%.2f'\n",
-			glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
-			val_array[c1], val);
-	if (val != val_array[c1])
-		res = GNUNET_YES;
 	else
-		res = GNUNET_NO;
-	val_array[c1] = val;
+	{
+		/* Update value */
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Updating value in [%s : %s] from `%.2f' to `%.2f'\n",
+				glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
+				val_array[c1], val);
+		if (val != val_array[c1])
+			res = GNUNET_YES;
+		else
+			res = GNUNET_NO;
+		val_array[c1] = val;
+		/* Update the row in the matrix */
+		glp_set_mat_row (p->prob, row, c_elems, ind_array, val_array);
+	}
 
-	/* Update the row in the matrix */
-	glp_set_mat_row (p->prob, row, c_elems, ind_array, val_array);
   GNUNET_free (ind_array);
   GNUNET_free (val_array);
   return res;
