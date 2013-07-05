@@ -1132,11 +1132,10 @@ GAS_proportional_address_property_changed (void *solver,
 	}
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Property `%s' for peer `%s' address %p changed to %.2f %p %p %p\n",
+              "Property `%s' for peer `%s' address %p changed to %.2f \n",
               GNUNET_ATS_print_property_type (type),
               GNUNET_i2s (&address->peer),
-              address,
-              rel_value, s, n, &distribute_bandwidth_in_network);
+              address, rel_value);
   switch (type)
   {
   	case GNUNET_ATS_UTILIZATION_UP:
@@ -1146,8 +1145,7 @@ GAS_proportional_address_property_changed (void *solver,
   	case GNUNET_ATS_COST_WAN:
   	case GNUNET_ATS_COST_LAN:
   	case GNUNET_ATS_COST_WLAN:
-
-  		//FIXME distribute_bandwidth_in_network (s, n, GNUNET_NO);
+    distribute_bandwidth_in_network (s, n, GNUNET_NO);
   	break;
   }
 }
