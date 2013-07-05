@@ -709,6 +709,7 @@ find_exact_address (struct GAS_Addresses_Handle *handle,
   return ea;
 }
 
+
 /**
  * Extract an ATS performance info from an address
  *
@@ -732,8 +733,6 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 	}
 	return GNUNET_ATS_VALUE_UNDEFINED;
 }
-
-
 
 
 /**

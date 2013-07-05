@@ -1179,65 +1179,15 @@ GAS_mlp_address_add (void *solver,
 }
 
 
-#if 0
-  		/* Check for network update */
-  		if (type == GNUNET_ATS_NETWORK_TYPE)
-  		{
-  				new_value = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-  		  	if (GNUNET_ATS_VALUE_UNDEFINED == new_value)
-  		  		new_value = GNUNET_ATS_NET_UNSPECIFIED;
-  				if (new_value != prev_value)
-  				{
-    				LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating network for peer `%s' from `%s' to `%s'\n",
-    			      GNUNET_i2s (&address->peer),
-    			      GNUNET_ATS_print_network_type(prev_value),
-    			      GNUNET_ATS_print_network_type(new_value));
-  				}
-
-  				if (mlpi->c_b == MLP_UNDEFINED)
-  					continue; /* This address is not yet in the matrix*/
-
-  			  rows = glp_get_num_rows(mlp->p.prob);
-  			  ind = GNUNET_malloc (rows * sizeof (int) + 1);
-  			  val = GNUNET_malloc (rows * sizeof (double) + 1);
-  			  int length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
-
-  			  for (c_net = 0; c_net <= length + 1; c_net ++)
-  			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[prev_value])
-  			  		break; /* Found index for old network */
-  			  }
-  			  val[c_net] = 0.0;
-  				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
-  				/* Set updated column */
-  				ind[c_net] = mlp->p.r_quota[new_value];
-  				val[c_net] = 1.0;
-  				glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
-  			  GNUNET_free (ind);
-  			  GNUNET_free (val);
-
-  			  rows = glp_get_num_rows(mlp->p.prob);
-  			  ind = GNUNET_malloc (rows * sizeof (int) + 1);
-  			  val = GNUNET_malloc (rows * sizeof (double) + 1);
-  			  length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
-
-  			  for (c_net = 0; c_net <= length + 1; c_net ++)
-  			  {
-  			  	if (ind[c_net] == mlp->p.r_quota[prev_value])
-  			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing old network index [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  	if (ind[c_net] == mlp->p.r_quota[new_value])
-  			  	{
-  			  		LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting new network index [%u] == [%f]\n",ind[c_net],val[c_net]);
-  			  		break;
-  			  	}
-  			  }
-  			  GNUNET_free (ind);
-  			  GNUNET_free (val);
-  			  mlp->mlp_prob_changed = GNUNET_YES;
-  				continue;
-  		}
-#endif
-
+/**
+ * Transport properties for this address have changed
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
 void
 GAS_mlp_address_property_changed (void *solver,
     															struct ATS_Address *address,
@@ -1309,6 +1259,16 @@ GAS_mlp_address_property_changed (void *solver,
 }
 
 
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_mlp_address_session_changed (void *solver,
     															struct ATS_Address *address,
@@ -1319,6 +1279,17 @@ GAS_mlp_address_session_changed (void *solver,
 	return;
 }
 
+
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_mlp_address_inuse_changed (void *solver,
 															 struct ATS_Address *address,
@@ -1330,6 +1301,16 @@ GAS_mlp_address_inuse_changed (void *solver,
 }
 
 
+/**
+ * Network scope for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
 void
 GAS_mlp_address_change_network (void *solver,
 															 struct ATS_Address *address,
@@ -1341,11 +1322,6 @@ GAS_mlp_address_change_network (void *solver,
 	struct ATS_Peer *p;
 	int nets_avail[] = GNUNET_ATS_NetworkType;
 	int c1;
-//	int length;
-//	int rows;
-//  int *ind;
-//  double *val;
-
 
 	GNUNET_assert (NULL != solver);
 	GNUNET_assert (NULL != address);

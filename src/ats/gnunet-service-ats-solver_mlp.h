@@ -403,6 +403,16 @@ GAS_mlp_address_add (void *solver,
 										struct ATS_Address *address,
 										uint32_t network);
 
+
+/**
+ * Transport properties for this address have changed
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
 void
 GAS_mlp_address_property_changed (void *solver,
     															struct ATS_Address *address,
@@ -411,18 +421,50 @@ GAS_mlp_address_property_changed (void *solver,
     															double rel_value);
 
 
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_mlp_address_session_changed (void *solver,
     														 struct ATS_Address *address,
     														 uint32_t cur_session,
     														 uint32_t new_session);
 
+
+/**
+ * Transport session for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
 void
 GAS_mlp_address_inuse_changed (void *solver,
     													 struct ATS_Address *address,
     													 uint32_t session,
     													 int in_use);
 
+
+/**
+ * Network scope for this address has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
 void
 GAS_mlp_address_change_network (void *solver,
 															 struct ATS_Address *address,
