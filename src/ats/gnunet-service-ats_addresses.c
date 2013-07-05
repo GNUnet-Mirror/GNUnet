@@ -939,6 +939,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   		if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
   		{
   			/* Network type changed */
+  			GNUNET_break (0);
   			handle->s_address_update_network (handle->solver, aa,
   					ntohl (atsi_delta[c1].value),
   					get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE));
@@ -1356,18 +1357,19 @@ normalized_preference_changed_cb (void *cls,
 /**
  * The relative value for a property changed
  *
- * @param solver the address handle
+ * @param cls the address handle
  * @param peer the peer
  * @param type the ATS type
  * @param prop_rel the new relative preference value
  */
 static void
-normalized_property_changed_cb (void *solver,
-								  						 struct ATS_Address *address,
-								  						 uint32_t type,
-								  						 double prop_rel)
+normalized_property_changed_cb (void *cls,
+								  						  struct ATS_Address *address,
+								  						  uint32_t type,
+								  						  double prop_rel)
 {
-	GNUNET_assert (NULL != solver);
+	struct GAS_Addresses_Handle *ah = (struct GAS_Addresses_Handle *) cls;
+	GNUNET_assert (NULL != ah);
 
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Normalized property %s for peer `%s' changed to %.3f \n",
@@ -1375,7 +1377,7 @@ normalized_property_changed_cb (void *solver,
               GNUNET_i2s (&address->peer),
               prop_rel);
 
-	GAS_proportional_address_property_changed (solver,
+	ah->s_address_update_property (ah->solver,
 	    															address,
 	    															type,
 	    															0,
@@ -1678,6 +1680,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_address_update_property = &GAS_mlp_address_property_changed;
       ah->s_address_update_session = &GAS_mlp_address_session_changed;
       ah->s_address_update_inuse = &GAS_mlp_address_inuse_changed;
+      ah->s_address_update_network = &GAS_mlp_address_change_network;
       ah->s_get = &GAS_mlp_get_preferred_address;
       ah->s_get_stop = &GAS_mlp_stop_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;

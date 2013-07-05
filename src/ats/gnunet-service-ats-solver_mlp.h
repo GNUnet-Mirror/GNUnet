@@ -347,18 +347,6 @@ struct MLP_information
 
   /* constraint 3: minimum bandwidth */
   unsigned int r_c3;
-
-  /* Quality information row indices */
-  unsigned int r_q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* Quality information */
-  double q[GNUNET_ATS_QualityPropertiesCount][MLP_AVERAGING_QUEUE_LENGTH];
-
-  /* Quality information averaged */
-  double q_averaged[GNUNET_ATS_QualityPropertiesCount];
-
-  /* Averaging index */
-  int q_avg_i[GNUNET_ATS_QualityPropertiesCount];
 };
 
 /**
@@ -436,10 +424,10 @@ GAS_mlp_address_inuse_changed (void *solver,
     													 int in_use);
 
 void
-GAS_proportional_address_change_network (void *solver,
-																	   struct ATS_Address *address,
-																	   uint32_t current_network,
-																	   uint32_t new_network);
+GAS_mlp_address_change_network (void *solver,
+															 struct ATS_Address *address,
+															 uint32_t current_network,
+															 uint32_t new_network);
 
 /**
  * Deletes a single address in the MLP problem

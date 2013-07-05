@@ -147,7 +147,7 @@ get_property_cb (void *cls, const struct ATS_Address *address)
 
 static void
 normalized_property_changed_cb (void *cls,
-								  						 const struct ATS_Address *peer,
+								  						 struct ATS_Address *peer,
 								  						 uint32_t type,
 								  						 double prop_rel)
 {
@@ -278,7 +278,8 @@ check (void *cls, char *const *args, const char *cfgfile,
   ats_prev[3].type =  htonl (GNUNET_ATS_ARRAY_TERMINATOR);
   ats_prev[3].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
 
-  GAS_mlp_address_update (mlp, address[0], 1, GNUNET_NO, ats_prev, 4);
+  GAS_mlp_address_property_changed(mlp, address[0], GNUNET_ATS_QUALITY_NET_DELAY, 10, 1.1);
+  GAS_mlp_address_property_changed(mlp, address[0], GNUNET_ATS_QUALITY_NET_DISTANCE, 1, 1.0);
 
   /* Solve problem to build matrix */
   GAS_mlp_solve_problem (mlp);
