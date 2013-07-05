@@ -19,7 +19,7 @@
 */
 
 /**
- * @file namestore/namestore_common.c
+ * @file namestore/namestore_api_common.c
  * @brief API to access the NAMESTORE service
  * @author Martin Schanzenbach
  * @author Matthias Wachs
