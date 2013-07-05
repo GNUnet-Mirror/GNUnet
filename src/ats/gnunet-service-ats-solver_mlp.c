@@ -452,9 +452,13 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
 
 	if (0 == (c_elems = glp_get_mat_row (p->prob, row, ind_array, val_array)))
 	{
-	  GNUNET_free (ind_array);
-	  GNUNET_free (val_array);
-		return GNUNET_SYSERR;
+		ind_array[1] = col;
+		val_array[1] = val;
+		LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Updating value in [%s : %s] to `%.2f'\n",
+				glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
+				val);
+		glp_set_mat_row (p->prob, row, 1, ind_array, val_array);
+		return GNUNET_YES;
 	}
 
 	/* Update the value */
@@ -467,10 +471,11 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
 	{
 	  GNUNET_free (ind_array);
 	  GNUNET_free (val_array);
+	  GNUNET_break (0);
 		return GNUNET_SYSERR; /* not found */
 	}
 	/* Update value */
-	LOG (GNUNET_ERROR_TYPE_ERROR, "[P] Updating value in [%s : %s] from `%.2f' to `%.2f'\n",
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "[P] Updating value in [%s : %s] from `%.2f' to `%.2f'\n",
 			glp_get_row_name (p->prob, row), glp_get_col_name (p->prob, col),
 			val_array[c1], val);
 	if (val != val_array[c1])
@@ -1241,13 +1246,6 @@ GAS_mlp_address_property_changed (void *solver,
   	return; /* quality index not found */
   }
 
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-  		_("Updating address property `%s' for peer `%s' %p\n"),
-  		GNUNET_ATS_print_property_type (type),
-  		GNUNET_i2s(&address->peer),
-  		address,
-  		type_index, mlp->p.r_q[type_index]);
-
   /* Update c7) [r_q[index]][c_b] = f_q * q_averaged[type_index] */
 	if (GNUNET_YES == mlp_create_problem_update_value (&mlp->p,
 			mlp->p.r_q[type_index], mlpi->c_b, rel_value, __LINE__))
@@ -1366,33 +1364,35 @@ GAS_mlp_address_change_network (void *solver,
 			GNUNET_i2s (&address->peer),
 			GNUNET_ATS_print_network_type(current_network),
 			GNUNET_ATS_print_network_type(new_network));
-#if 0
-	/* Get row for this address */
-	rows = glp_get_num_rows(mlp->p.prob);
-	ind = GNUNET_malloc (rows * sizeof (int) + 1);
-	val = GNUNET_malloc (rows * sizeof (double) + 1);
-	length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
 
-	/* Remove index from old network */
-	for (c1 = 1; c1 < length +1; c1 ++)
-	{
-		if (ind[c1] == mlp->p.r_quota[c1])
-			break; /* Found index for old network */
-	}
-	val[c1] = 0.0; /* Remove from previous network */
-	glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
-	ind[c1] = mlp->p.r_quota[new_network]; /* Add to new network */
-	val[c1] = 1.0;
-	glp_set_mat_col (mlp->p.prob, mlpi->c_b, length, ind, val);
-	GNUNET_free (ind);
-	GNUNET_free (val);
+  for (c1 = 0; c1 < GNUNET_ATS_NetworkTypeCount; c1++)
+  {
+    if (mlp->pv.quota_index[c1] == current_network)
+    {
+  		/* Remove from old network */
+  		mlp_create_problem_update_value (&mlp->p,
+  				mlp->p.r_quota[c1],
+  				mlpi->c_b, 0.0, __LINE__);
+      break;
+    }
+  }
 
-	length = glp_get_mat_col (mlp->p.prob, mlpi->c_b, ind, val);
-	for (c1 = 1; c1 < length + 1; c1 ++)
-	{
-		fprintf (stderr, "%u: %s\n", ind[c1], glp_get_row_name(mlp->p.prob, ind[c1]));
-	}
-#endif
+  for (c1 = 0; c1 < GNUNET_ATS_NetworkTypeCount; c1++)
+  {
+    if (mlp->pv.quota_index[c1] == new_network)
+    {
+  		/* Remove from old network */
+    	if (GNUNET_SYSERR == mlp_create_problem_update_value (&mlp->p,
+  				mlp->p.r_quota[c1],
+  				mlpi->c_b, 1.0, __LINE__))
+    	{
+    		/* This quota did not exist in the problem, recreate */
+    		GNUNET_break (0);
+    	}
+      break;
+    }
+  }
+
 	mlp->mlp_prob_changed = GNUNET_YES;
 }
 
