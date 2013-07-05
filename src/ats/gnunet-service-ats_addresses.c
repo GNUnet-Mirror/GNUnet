@@ -939,7 +939,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   		if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
   		{
   			/* Network type changed */
-  			GNUNET_break (0);
   			handle->s_address_update_network (handle->solver, aa,
   					ntohl (atsi_delta[c1].value),
   					get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE));
