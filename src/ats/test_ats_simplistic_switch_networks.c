@@ -133,7 +133,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   char *text;
   if (0 == stage)
   {
-    GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
+    //GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
     if (GNUNET_OK == compare_addresses(address, session, &test_hello_address, test_session))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback for correct address `%s'\n",

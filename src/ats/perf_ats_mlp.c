@@ -143,7 +143,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
 static void
 normalized_property_changed_cb (void *cls,
-								  						 const struct ATS_Address *peer,
+								  						 struct ATS_Address *peer,
 								  						 uint32_t type,
 								  						 double prop_rel)
 {
@@ -184,13 +184,13 @@ perf_create_address (int cp, int ca)
 static void
 address_initial_update (void *solver, struct GNUNET_CONTAINER_MultiHashMap * addresses, struct ATS_Address *address)
 {
-	ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-	ats[0].value = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100));
+	GAS_mlp_address_property_changed (mlp, address,
+			GNUNET_ATS_QUALITY_NET_DELAY, 100,
+			(double)(100 + GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100)) / 100);
 
-	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-	ats[1].value = htonl (GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10));
-
-	GAS_mlp_address_update (mlp, address, 0, GNUNET_YES, ats, 2);
+	GAS_mlp_address_property_changed (mlp, address,
+			GNUNET_ATS_QUALITY_NET_DISTANCE, 10,
+			(double)(100 + GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100)) / 100);
 }
 
 
@@ -204,24 +204,26 @@ update_single_addresses (struct ATS_Address *cur)
 	switch (r_type) {
 		case 0:
 			r_val = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 100);
-			ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-			ats[0].value = htonl (r_val);
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' address %p type %s val %u\n",
 					GNUNET_i2s (&cur->peer), cur,
 					"GNUNET_ATS_QUALITY_NET_DELAY", r_val);
+			GAS_mlp_address_property_changed (mlp, cur, GNUNET_ATS_QUALITY_NET_DELAY, r_val,
+					(double)(100 + r_val / 100));
 			break;
 		case 1:
 			r_val = GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 10);
-			ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-			ats[0].value = htonl (r_val);
+
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s' address %p type %s val %u\n",
 					GNUNET_i2s (&cur->peer), cur,
 					"GNUNET_ATS_QUALITY_NET_DISTANCE", r_val);
+			GAS_mlp_address_property_changed (mlp, cur, GNUNET_ATS_QUALITY_NET_DISTANCE, r_val,
+					(double)(100 + r_val) / 100);
 			break;
 		default:
 			break;
 	}
-	GAS_mlp_address_update (mlp, cur, 0, GNUNET_YES, ats, 1);
+	GAS_mlp_address_inuse_changed(mlp, cur, 0, GNUNET_YES);
+
 }
 
 static void

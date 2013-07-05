@@ -127,7 +127,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static const double *
+const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
 	return GAS_normalization_get_preferences (id);
@@ -139,10 +139,9 @@ get_property_cb (void *cls, const struct ATS_Address *address)
 	return GAS_normalization_get_properties ((struct ATS_Address *) address);
 }
 
-
 static void
 normalized_property_changed_cb (void *cls,
-								  						 const struct ATS_Address *peer,
+								  						 struct ATS_Address *peer,
 								  						 uint32_t type,
 								  						 double prop_rel)
 {
@@ -190,7 +189,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long  quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long  quotas_out[GNUNET_ATS_NetworkTypeCount];
-  struct GNUNET_ATS_Information ats;
 
 #if !HAVE_LIBGLPK
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "GLPK not installed!");
@@ -293,9 +291,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
 
   /* Updating address 0*/
-  ats.type =  htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_WAN);
-  GAS_mlp_address_update (mlp, address[0], 1, GNUNET_NO, &ats, 1);
+  GAS_mlp_address_change_network(mlp, address[0], GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_WAN);
 
   /* Retrieving preferred address for peer and wait for callback */
   GAS_mlp_get_preferred_address (mlp, &p[0]);
