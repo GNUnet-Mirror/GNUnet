@@ -99,6 +99,7 @@ libgnunetmeshtest_a_DEPENDENCIES = \
 if HAVE_TESTING
 check_PROGRAMS = \
   test_mesh_local \
+  test_mesh_single \
   test_mesh_small_forward \
   test_mesh_small_signal  \
   test_mesh_small_speed  \
@@ -123,6 +124,12 @@ test_mesh_local_SOURCES = \
   test_mesh_local.c
 test_mesh_local_LDADD = $(ld_mesh_test_lib)
 test_mesh_local_DEPENDENCIES = $(dep_mesh_test_lib)
+
+
+test_mesh_single_SOURCES = \
+  test_mesh_single.c
+test_mesh_single_LDADD = $(ld_mesh_test_lib)
+test_mesh_single_DEPENDENCIES = $(dep_mesh_test_lib)
 
 test_mesh_small_forward_SOURCES = \
   test_mesh_small.c
