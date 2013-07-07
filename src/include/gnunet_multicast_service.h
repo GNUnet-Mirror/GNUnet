@@ -405,7 +405,7 @@ struct GNUNET_MULTICAST_PingHandle;
 /** 
  * A response to a @e ping.
  *
- * @param ph Handle that was given for the ping.
+ * @param rh Handle that was given for the ping.
  * @param message_id Latest message ID seen by this peer for this group.
  */
 void

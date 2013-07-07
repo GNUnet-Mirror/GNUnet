@@ -61,7 +61,6 @@ struct GNUNET_REGEX_Search;
  * that.
  * 
  * @param cfg configuration to use
- * @param id ID to announce as provider of regex. Own ID in most cases.
  * @param regex Regular expression to announce.
  * @param refresh_delay after what delay should the announcement be repeated?
  * @param compression How many characters per edge can we squeeze?

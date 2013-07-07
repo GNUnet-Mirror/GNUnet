@@ -152,8 +152,7 @@ struct GNUNET_TESTBED_LOGGER_Handle
 /**
  * Cancels the flush timeout task
  *
- * @param 
- * @return 
+ * @param h handle to the logger
  */
 static void
 cancel_timeout_flush (struct GNUNET_TESTBED_LOGGER_Handle *h)

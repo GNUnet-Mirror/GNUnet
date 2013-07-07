@@ -1098,7 +1098,7 @@ dht_da (void *cls, void *op_result)
  *
  * @param cls NULL
  * @param num_peers_ number of peers in 'peers'
- * @param peers handle to peers run in the testbed.  NULL upon timeout (see
+ * @param testbed_peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
  * @param links_succeeded the number of overlay link connection attempts that
  *          succeeded

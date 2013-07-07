@@ -392,6 +392,7 @@ GNUNET_SOCIAL_home_destroy (struct GNUNET_SOCIAL_Home *home);
  *        key already; 'HEX.zkey' however would refer to
  *        the 'PLACE' record in the GADS zone with the public key
  *        'HEX'.
+ * @param slicer slicer to use to process messages from this place
  * @param join_msg_size Number of bytes in @a join_msg.
  * @param join_msg Message to give to the join callback.
  * @return NULL on errors, otherwise handle to the place.

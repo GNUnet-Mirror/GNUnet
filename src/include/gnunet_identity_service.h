@@ -154,6 +154,7 @@ typedef void (*GNUNET_IDENTITY_Continuation)(void *cls,
  * @param service_name for which service is an identity set
  * @param pseu new default identity to be set for this service
  * @param cont function to call once the operation finished
+ * @param cont_cls closure for cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *

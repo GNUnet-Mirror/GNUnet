@@ -603,7 +603,6 @@ send_packet (struct GNUNET_MESH_Handle *h,
 /**
  * Send an ack on the tunnel to confirm the processing of a message.
  * 
- * @param h Mesh handle.
  * @param t Tunnel on which to send the ACK.
  */
 static void

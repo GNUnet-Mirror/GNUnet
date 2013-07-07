@@ -1127,6 +1127,7 @@ request_cb (void *cls,
  * @param socket the socket representing the mesh
  * @param initiator the identity of the peer who wants to establish a mesh
  *            with us; NULL on binding error
+ * @param port mesh port used for the incoming connection
  * @return initial tunnel context (our 'struct StreamClient')
  */
 static void *

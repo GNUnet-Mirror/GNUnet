@@ -774,7 +774,7 @@ GST_free_prcq ()
  * Callback to inform whether the peer is running or stopped.
  *
  * @param cls the closure given to GNUNET_TESTING_peer_stop_async()
- * @param peer the respective peer whose status is being reported
+ * @param p the respective peer whose status is being reported
  * @param success GNUNET_YES if the peer is stopped; GNUNET_SYSERR upon any
  *          error
  */

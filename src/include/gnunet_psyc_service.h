@@ -48,7 +48,7 @@
  *   and variables must fit into memory and cannot be streamed
  *   (thus, no passing of 4 GB of data in a variable; 
  *   once we implement this, we might want to create a
- *   #define for the maximum size of a variable).
+ *   @c #define for the maximum size of a variable).
  * - PSYC defines standard variables, methods, etc.  This
  *   library deliberately abstracts over all of these; a
  *   higher-level API should combine the naming system (GADS)

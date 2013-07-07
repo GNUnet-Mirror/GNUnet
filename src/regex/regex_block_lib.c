@@ -244,7 +244,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
  *
  * @param block block to get the key from
  * @param block_len number of bytes in block
- * @param query where to store the key
+ * @param key where to store the key
  * @return GNUNET_OK on success, GNUNET_SYSERR if the block is malformed
  */
 int

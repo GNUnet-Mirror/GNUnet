@@ -813,7 +813,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 /**
  * Send the given packet via the mesh tunnel.
  *
- * @param mesh_tunnel destination
+ * @param s tunnel destination
  * @param tnq message to queue
  */
 static void

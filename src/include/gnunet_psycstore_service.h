@@ -138,7 +138,7 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * @param h Handle for the PSYCstore.
  * @param channel_id The channel the message belongs to.
- * @param message_id Message ID to store.
+ * @param message Message to store.
  * @param ccb Callback to call with the result of the operation.
  * @param ccb_cls Closure for the callback.
  * 
