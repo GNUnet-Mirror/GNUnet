@@ -4544,7 +4544,8 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
                                                      &tunnel_retransmit_message,
                                                      copy);
-    if (GNUNET_OK !=
+    if (GNUNET_YES == t->reliable &&
+        GNUNET_OK !=
         GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_fwd,
                                              copy->id,
                                              copy,
