@@ -127,20 +127,73 @@ handle_updates (void *cls,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
+  const struct LookupNameResponseMessage *lrm;
+  size_t lrm_len;
+  size_t exp_lrm_len;
+  size_t name_len;
+  size_t rd_len;
+  unsigned rd_count;
+  const char *name_tmp;
+  const char *rd_ser_tmp;
+  struct GNUNET_TIME_Absolute expire;
 
   if (NULL == msg)
   {
     reconnect (zm);
     return;
   }
-  // FIXME: parse, validate
+  if ( (ntohs (msg->size) < sizeof (struct LookupNameResponseMessage)) ||
+       (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE != ntohs (msg->type) ) )
+  {
+    GNUNET_break (0);
+    reconnect (zm);
+    return;
+  }
+  lrm = (const struct LookupNameResponseMessage *) msg;
+  lrm_len = ntohs (lrm->gns_header.header.size);
+  rd_len = ntohs (lrm->rd_len);
+  rd_count = ntohs (lrm->rd_count);
+  name_len = ntohs (lrm->name_len);
+  expire = GNUNET_TIME_absolute_ntoh (lrm->expire);
+  exp_lrm_len = sizeof (struct LookupNameResponseMessage) + name_len + rd_len;
+  if (lrm_len != exp_lrm_len)
+  {
+    GNUNET_break (0);
+    reconnect (zm);
+    return;
+  }
+  if (0 == name_len)
+  {
+    GNUNET_break (0);
+    reconnect (zm);
+    return;
+  }
+  name_tmp = (const char *) &lrm[1];
+  if ((name_tmp[name_len -1] != '\0') || (name_len > MAX_NAME_LEN))
+  {
+    GNUNET_break (0);
+    reconnect (zm);
+    return;
+  }
+  rd_ser_tmp = (const char *) &name_tmp[name_len];
+  {
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
 
-  GNUNET_CLIENT_receive (zm->h,
-			 &handle_updates,
-			 zm,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
-  // FIXME: call 'monitor'.
-  // zm->monitor (zm->monitor_cls, ...);
+    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd))
+    {
+      GNUNET_break (0);
+      reconnect (zm);
+      return;
+    }  
+    GNUNET_CLIENT_receive (zm->h,
+			   &handle_updates,
+			   zm,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+    zm->monitor(zm->monitor_cls, 
+		&lrm->public_key, expire, 
+		name_tmp, 
+		rd_count, rd, &lrm->signature);
+  }
 }
 
 

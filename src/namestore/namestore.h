@@ -321,6 +321,7 @@ struct ZoneToNameMessage
   struct GNUNET_CRYPTO_ShortHashCode value_zone;
 };
 
+
 /**
  * Respone for zone to name lookup
  */
