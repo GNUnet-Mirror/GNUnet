@@ -72,6 +72,11 @@ struct HardwareInfos
    * MAC address of our own bluetooth interface.
    */
   struct GNUNET_TRANSPORT_WLAN_MacAddress pl_mac;
+  
+  /**
+   * SDP session
+   */
+   sdp_session_t *session ;
 };
 
 /**
@@ -493,22 +498,21 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
 /**
  * Function for assigning a port number
+ * @param socket the socket used to bind
+ * @param addr pointer to the rfcomm address
  * @return 0 on success 
  */ 
 static int
-bind_socket (int *socket)
+bind_socket (int socket, struct sockaddr_rc *addr)
 {
   int port, status;
-  struct sockaddr_rc src = { 0 };
-  
-  src.rc_family = AF_BLUETOOTH;
-  src.rc_bdaddr = *BDADDR_ANY;
   
   /* Bind every possible port (from 0 to 30) and stop when bind doesn't fail */
-  for (port = 1; port <= 30; port++)
+  //FIXME : it should start from port 1, but on my computer it doesn't work :)
+  for (port = 3; port <= 30; port++)
   {
-    src.rc_channel = port;
-    status = bind(*socket, (struct sockaddr *)&src, sizeof(src));
+    addr->rc_channel = port;
+    status = bind (socket, (struct sockaddr *) addr, sizeof (struct sockaddr_rc));
     if (status == 0)
       return 0;
   }
@@ -517,12 +521,14 @@ bind_socket (int *socket)
 }
 
 
-//TODO
 /**
  * Function used for creating the service record and registering it.
+ * @param dev pointer to the device struct
+ * @param channel the rfcomm channel
+ * @return 0 on success
  */
-static sdp_session_t*
-register_service (void) 
+static int
+register_service (struct HardwareInfos *dev, int rc_channel) 
 {
   /**
    * 1. initializations
@@ -534,30 +540,153 @@ register_service (void)
    * 7. cleanup
    */
   
-  //TODO: For now I will use a hard coded port number but in the end I will implement the SDP protocol 
-    
-   return NULL;
+  //FIXME: probably this is not the best idea. I should find a different uuid
+  uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                            dev->pl_mac.mac[5], dev->pl_mac.mac[4], dev->pl_mac.mac[3],
+                            dev->pl_mac.mac[2], dev->pl_mac.mac[1], dev->pl_mac.mac[0]};
+//  const char *service_name = "GNUnet";
+  const char *service_dsc = "Bluetooth plugin services";
+  const char *service_prov = "GNUnet provider";                       
+  uuid_t root_uuid, rfcomm_uuid, l2cap_uuid, svc_uuid;  
+  sdp_list_t *root_list = 0, *rfcomm_list = 0, *l2cap_list = 0, 
+    *proto_list = 0, *access_proto_list = 0, *svc_list = 0;
+  sdp_record_t *record = 0;
+  sdp_data_t *channel = 0;
+	
+	record = sdp_record_alloc();
+
+  /* Set the general service ID */
+  sdp_uuid128_create (&svc_uuid, &svc_uuid_int);
+  svc_list = sdp_list_append (0, &svc_uuid);
+  sdp_set_service_classes (record, svc_list);
+  sdp_set_service_id (record, svc_uuid);
+
+	/* Make the service record publicly browsable */
+  sdp_uuid16_create (&root_uuid, PUBLIC_BROWSE_GROUP); 
+  root_list = sdp_list_append (0, &root_uuid); 
+  sdp_set_browse_groups (record, root_list);
+
+	/* Register the RFCOMM channel */
+  sdp_uuid16_create (&rfcomm_uuid, RFCOMM_UUID);
+  channel = sdp_data_alloc (SDP_UINT8, &rc_channel);
+  rfcomm_list = sdp_list_append (0, &rfcomm_uuid);
+  sdp_list_append (rfcomm_list, channel);
+  proto_list = sdp_list_append (0, rfcomm_list);
+
+  /* Set L2CAP information FIXME: probably not needed */
+ // sdp_uuid16_create (&l2cap_uuid, L2CAP_UUID);
+ // l2cap_list = sdp_list_append (0, &l2cap_uuid);
+ //sdp_list_append (proto_list, l2cap_list);
+
+  /* Set protocol information */
+  access_proto_list = sdp_list_append (0, proto_list);
+  sdp_set_access_protos (record, access_proto_list);
+
+  /* Set the name, provider, and description */
+	sdp_set_info_attr (record, dev->iface, service_prov, service_dsc);
+  
+  /* Connect to the local SDP server */
+  dev->session = sdp_connect (BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY);
+  
+  if (!dev->session)
+  {
+    fprintf (stderr, "Failed to connect to the SDP server on interface `%.*s': %s\n",
+             IFNAMSIZ, dev->iface, strerror (errno));
+    //FIXME exit?
+    return 1;
+  }
+  
+  /* Register the service record */
+  if (sdp_record_register (dev->session, record, 0) < 0)
+  {
+    fprintf (stderr, "Failed to register a service record on interface `%.*s': %s\n",
+             IFNAMSIZ, dev->iface, strerror (errno));
+    //FIXME exit?
+    return 1;
+  }
+  
+  /* Cleanup */
+  sdp_data_free (channel);	
+  sdp_list_free (root_list, 0);
+  sdp_list_free (rfcomm_list, 0);
+  sdp_list_free (l2cap_list, 0);
+  sdp_list_free (proto_list, 0);
+  sdp_list_free (access_proto_list, 0);
+  sdp_list_free (svc_list, 0);
+  sdp_record_free (record);
+  
+  return 0;
 }
 
-//TODO
 /**
  * Function for searching and browsing for a service. This will return the 
  * port number on which the service is running.
+ * @param dev pointer to the device struct
+ * @param dest target address
+ * @return channel
  */
- 
 static int
-searching_service (void) 
+get_channel(struct HardwareInfos *dev, bdaddr_t dest) 
 {
   /**
-   * 1. detect all nearby devices
+   * 1. detect all nearby devices //FIXME : Connect directly to the device with the service
    * 2. for each device:
    * 2.1. connect to the SDP server running
    * 2.2. get a list of service records with the specific UUID
    * 2.3. for each service record get a list of the protocol sequences and get 
    *       the port number
    */
+  uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                           dest.b[5], dest.b[4], dest.b[3],
+                           dest.b[2], dest.b[1], dest.b[0]};
+  sdp_session_t *session = 0;
+  sdp_list_t *search_list = 0, *attrid_list = 0, *response_list = 0, *it = 0;
+  uuid_t svc_uuid;
+  uint32_t range = 0x0000ffff;
+  uint8_t channel = -1;
    
-   return 0;
+  /* Connect to the local SDP server */
+  session = sdp_connect (BDADDR_ANY, &dest, 0); 
+  if (!session)
+  {
+   fprintf (stderr, "Failed to connect to the SDP server on interface `%.*s': %s\n",
+            IFNAMSIZ, dev->iface, strerror (errno));
+   //FIXME exit?
+   return -1;
+  }
+  
+  sdp_uuid128_create (&svc_uuid, &svc_uuid_int);
+  search_list = sdp_list_append (0, &svc_uuid);
+  attrid_list = sdp_list_append (0, &range);
+  
+  if (sdp_service_search_attr_req (session, search_list, 
+                  SDP_ATTR_REQ_RANGE, attrid_list, &response_list) == 0)
+  {
+    for (it = response_list; it; it = it->next)
+    {
+      sdp_record_t *record = (sdp_record_t*) it->data;
+      //TODO print some record informations to be sure everything is good
+      sdp_list_t *proto_list = 0;
+      if (sdp_get_access_protos (record, &proto_list) == 0)
+      {
+        channel = sdp_get_proto_port (proto_list, RFCOMM_UUID);
+        sdp_list_free (proto_list, 0);
+      }
+      sdp_record_free (record);
+    }
+  }
+  
+  sdp_list_free (search_list, 0);
+  sdp_list_free (attrid_list, 0);
+  sdp_list_free (response_list, 0);
+  
+  sdp_close (session);
+  
+  if (channel == -1)
+    fprintf (stderr, "Failed to find the listening channel for interface `%.*s': %s\n",
+            IFNAMSIZ, dev->iface, strerror (errno));
+  
+  return channel;
 }
 
 /**
@@ -583,8 +712,6 @@ read_from_the_socket (int sock,
   ssize_t count;
   int len;
   struct sockaddr_rc  rc_addr = { 0 }; 
-   
-  //count = recv (dev->fd_rfcomm, tmpbuf, buf_size, 0);   //FIXME if I use RFCOMM
   
   count = read (sock, tmpbuf, buf_size); 
   
@@ -631,11 +758,11 @@ open_device (struct HardwareInfos *dev)
 {
   /**
    * 1. Open a HCI socket (if RFCOMM protocol is used. If not, the HCI socket is 
-   * saved in dev->fd_hci.
+   * saved in dev->rfcomm).
    * 2. Find the device id (request a list with all the devices and find the one
    * with the dev->iface name)
    * 3. If the interface is down try to get it up
-   * 4. TODO: Bind the RFCOMM socket to the interface using the bind_socket() method and register
+   * 4. Bind the RFCOMM socket to the interface using the bind_socket() method and register
    * a SDP service
    * 5. For now use a hard coded port number(channel) value
    * FIXME : if I use HCI sockets , should I enable RAW_SOCKET MODE?!?!?!
@@ -689,8 +816,11 @@ open_device (struct HardwareInfos *dev)
       
       dev_id = dev_info.dev_id; //the device was found
       
-      ba2str (&dev_info.bdaddr, addr); //get the device's MAC address
-      //TODO : copy the MAC address to the device structure
+      ba2str (&dev_info.bdaddr, addr); //get the device's MAC address 
+      /**
+       * Copy the MAC address to the device structure
+       * FIXME: probably this is not the best solution
+       */
       memcpy (&dev->pl_mac, &dev_info.bdaddr, sizeof (bdaddr_t));
       
       /* Check if the interface is UP */
@@ -749,36 +879,24 @@ open_device (struct HardwareInfos *dev)
   memset (&rc_addr, 0, sizeof (rc_addr)); 
   rc_addr.rc_family = AF_BLUETOOTH;
   rc_addr.rc_bdaddr = *BDADDR_ANY;
-  rc_addr.rc_channel = (uint8_t) HARD_CODED_PORT_NUMBER;
  
-  if (bind (dev->fd_rfcomm, (struct sockaddr *) &rc_addr, sizeof (rc_addr) != 0))
+  if (bind_socket (dev->fd_rfcomm, &rc_addr) != 0)
   {
     fprintf (stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
              dev->iface, strerror (errno));
     return 1;
   }
   
-  /*
-  memset (&hci_addr, 0, sizeof (hci_addr));
-	hci_addr.hci_family = AF_BLUETOOTH;
-	hci_addr.hci_dev = dev_id;
-	*/
-	/**
-	 * FIXME      hci_addr.hci_channel = HARD_CODED_PORT_NUMBER 
-	 * For linux kernel >= 2.6.7 the kernel automatically chooses an available port
-	 * number. (getsockname() function can be used for finding out what port the kernel 
-	 * chose).
-	 */
-	/*
-  if (-1 == bind (dev->fd_hci, (struct sockaddr *) &hci_addr, sizeof (hci_addr)))
+  /* Register a SDP service */
+  if (register_service (dev, rc_addr.rc_channel) != 0)
   {
-    fprintf (stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
+    fprintf (stderr, "Failed to register a service on interface `%.*s': %s\n", IFNAMSIZ,
              dev->iface, strerror (errno));
     return 1;
   }
-  */
   
-  if (listen (dev->fd_rfcomm, 5) == -1)
+  /* Switch socket in listening mode */
+  if (listen (dev->fd_rfcomm, 5) == -1) //FIXME: probably we need a bigger number
   {
     fprintf (stderr, "Failed to listen on socket for interface `%.*s': %s\n", IFNAMSIZ,
              dev->iface, strerror (errno));
@@ -888,7 +1006,8 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
     fprintf (stderr, "Received malformed message\n");
     exit (1);
   }
-  sendsize -= (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+  sendsize -= (sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) - 
+               sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
   if (MAXLINE < sendsize)
   {
     fprintf (stderr, "Packet too big for buffer\n");
@@ -908,11 +1027,10 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 /**
  * Main function of the helper.  This code accesses a bluetooth interface
  * forwards traffic in both directions between the bluetooth interface and 
- * stdin/stdout of this
- * process.  Error messages are written to stdout.
+ * stdin/stdout of this process.  Error messages are written to stdout.
  *
  * @param argc number of arguments, must be 2
- * @param argv arguments only argument is the name of the interface (i.e. 'mon0')
+ * @param argv arguments only argument is the name of the interface (i.e. 'hci0')
  * @return 0 on success (never happens, as we don't return unless aborted), 1 on error
  *
  **** same as the one from gnunet-helper-transport-wlan.c ****
@@ -931,7 +1049,7 @@ main (int argc, char *argv[])
   int raw_eno, i;
   uid_t uid;
 
-  /* assert privs so we can modify the firewall rules! */
+  /* Assert privs so we can modify the firewall rules! */
   uid = getuid ();
 #ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, 0, 0))
@@ -947,17 +1065,16 @@ main (int argc, char *argv[])
   }
 #endif
 
-  /* make use of SGID capabilities on POSIX */
+  /* Make use of SGID capabilities on POSIX */
   memset (&dev, 0, sizeof (dev));
   dev.fd_rfcomm = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-  //FIXME : using RFCOMM protocol : dev.fd_rfcomm = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
   raw_eno = errno; /* remember for later */
 
-  /* now that we've dropped root rights, we can do error checking */
+  /* Now that we've dropped root rights, we can do error checking */
   if (2 != argc)
   {
-    fprintf (stderr,
-             "You must specify the name of the interface as the first and only argument to this program.\n");
+    fprintf (stderr, "You must specify the name of the interface as the first \
+                      and only argument to this program.\n");
     if (-1 != dev.fd_rfcomm)
       (void) close (dev.fd_rfcomm);
     return 1;
@@ -987,7 +1104,7 @@ main (int argc, char *argv[])
     return 1;
   }
 
-  /* drop privs */
+  /* Drop privs */
   {
     uid_t uid = getuid ();
 #ifdef HAVE_SETRESUID
@@ -1010,7 +1127,7 @@ main (int argc, char *argv[])
   }
 
 
-  /* send MAC address of the bluetooth interface to STDOUT first */
+  /* Send MAC address of the bluetooth interface to STDOUT first */
   {
     struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
@@ -1019,7 +1136,8 @@ main (int argc, char *argv[])
     memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
     memcpy (write_std.buf, &macmsg, sizeof (macmsg));
     write_std.size = sizeof (macmsg);
-  }  
+  }
+    
 
   stdin_mst = mst_create (&stdin_send_hw, &dev);  
   stdin_open = 1;
@@ -1047,6 +1165,7 @@ main (int argc, char *argv[])
     {
       int sendsocket, status;
       struct sockaddr_rc addr = { 0 };
+      struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame frame;
       
       memset (dest, 0, sizeof (dest));
       
@@ -1059,13 +1178,22 @@ main (int argc, char *argv[])
         return -1;
       }
       
+      /* Get the destination address */
+      if (write_pout.pos == 0) //FIXME: if write_pout.pos != 0, I cannot get the destination address
+      {
+        //FIXME : not sure if this is correct
+        memset (&frame, 0, sizeof (frame));
+        memcpy (&frame, write_pout.buf + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
+                                      - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
+                        sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
+        memcpy (&addr.rc_bdaddr, &frame.addr1, sizeof (bdaddr_t));                            
+      }    
       addr.rc_family = AF_BLUETOOTH;
-      addr.rc_channel = HARD_CODED_PORT_NUMBER2; //TODO: dinamically binding
-      str2ba(dest, &addr.rc_bdaddr);  //TODO: get the destination address from the message
+      addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
       
       /*TODO: use a NON-BLOCKING socket
-       *      sock_flags = fcntl (sendsocket, F_GETFL, 0);
-       *      fcntl( sendsocket, F_SETFL, sock_flags | O_NONBLOCK);
+       *    sock_flags = fcntl (sendsocket, F_GETFL, 0);
+       *    fcntl( sendsocket, F_SETFL, sock_flags | O_NONBLOCK);
       */
       status = connect (sendsocket, (struct sockaddr *) &addr, sizeof (addr));
 	    if (0 != status && errno != EAGAIN)
@@ -1200,7 +1328,10 @@ main (int argc, char *argv[])
 	      - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
             rrm->header.size = htons (write_std.size);
             rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
+            (void) close (i);
           }
+          if (0 == ret)
+            (void) close (i);
         }
       }
     }
