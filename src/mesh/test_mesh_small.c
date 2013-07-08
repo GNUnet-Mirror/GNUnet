@@ -631,7 +631,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
-  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, GNUNET_YES, GNUNET_NO);
   if (SPEED_NOBUF == test)
   {
     GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);

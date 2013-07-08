@@ -232,7 +232,7 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  t1 = GNUNET_MESH_tunnel_create (mesh, NULL, &id, 1);
+  t1 = GNUNET_MESH_tunnel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
   GNUNET_MESH_notify_transmit_ready (t1, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
