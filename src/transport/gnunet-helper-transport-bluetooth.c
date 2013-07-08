@@ -524,7 +524,7 @@ bind_socket (int socket, struct sockaddr_rc *addr)
 /**
  * Function used for creating the service record and registering it.
  * @param dev pointer to the device struct
- * @param channel the rfcomm channel
+ * @param rc_channel the rfcomm channel
  * @return 0 on success
  */
 static int
