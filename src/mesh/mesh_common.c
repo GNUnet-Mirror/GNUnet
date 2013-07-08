@@ -75,7 +75,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Request the modification of an existing path
        */
-    case 257: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE";
+    case 257: return "GNUNET_MESSAGE_TYPE_MESH_PATH_ACK";
 
       /**
        * Notify that a connection of a path is no longer valid
@@ -93,11 +93,6 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 260: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST";
 
       /**
-       * Transport data to all peers in a tunnel
-       */
-    case 261: return "GNUNET_MESSAGE_TYPE_MESH_MULTICAST";
-
-      /**
        * Transport data back in the mesh (end->origin)
        */
     case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN";
@@ -105,7 +100,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Send origin an ACK that the path is complete
        */
-    case 263: return "GNUNET_MESSAGE_TYPE_MESH_PATH_ACK";
+    case 263: return "GNUNET_MESSAGE_TYPE_MESH_DATA_ACK";
 
       /**
        * Avoid path timeouts
@@ -148,61 +143,6 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 274: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY";
 
       /**
-       * Ask the mesh service to add a peer to an existing tunnel
-       */
-    case 275: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD";
-
-      /**
-       * Ask the mesh service to remove a peer from a tunnel
-       */
-    case 276: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL";
-
-      /**
-       * Ask the mesh service to add a peer offering a service to an existing tunnel
-       */
-    case 277: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE";
-
-      /**
-       * Ask the mesh service to add a peer described by a service string
-       */
-    case 278: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX";
-
-      /**
-       * Ask the mesh service to add a peer described by a service string
-       */
-    case 279: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING";
-
-      /**
-       * Ask the mesh service to add a peer to the blacklist of an existing tunnel
-       */
-    case 280: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_BLACKLIST";
-
-      /**
-       * Ask the mesh service to remove a peer from the blacklist of a tunnel
-       */
-    case 281: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_UNBLACKLIST";
-
-      /**
-       * Set tunnel speed to slowest peer
-       */
-    case 282: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MIN";
-
-      /**
-       * Set tunnel speed to fastest peer
-       */
-    case 283: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_MAX";
-
-      /**
-       * Set tunnel buffering on.
-       */
-    case 284: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER";
-
-      /**
-       * Set tunnel buffering off.
-       */
-    case 285: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER";
-
-      /**
        * Local ACK for data.
        */
     case 286: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK";
@@ -210,12 +150,12 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Local monitoring of service.
        */
-    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR";
+    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS";
 
       /**
        * Local monitoring of service of a specific tunnel.
        */
-    case 288: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR_TUNNEL";
+    case 288: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL";
 
       /**
        * 640kb should be enough for everybody
