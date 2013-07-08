@@ -1978,15 +1978,19 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
  * @param t Tunnel on which to send the ACK.
  * @param c Client to whom send the ACK.
  * @param ack Value of the ACK.
+ * @param is_fwd Set to GNUNET_YES for FWD ACK (dest->owner)
  */
 static void
-send_local_ack (struct MeshTunnel *t, struct MeshClient *c, uint32_t ack)
+send_local_ack (struct MeshTunnel *t,
+                struct MeshClient *c,
+                uint32_t ack,
+                int is_fwd)
 {
   struct GNUNET_MESH_LocalAck msg;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.tunnel_id = htonl (t->owner == c ? t->local_tid : t->local_tid_dest);
+  msg.tunnel_id = htonl (is_fwd ? t->local_tid : t->local_tid_dest);
   msg.ack = htonl (ack); 
   GNUNET_SERVER_notification_context_unicast(nc,
                                               c->handle,
@@ -2083,7 +2087,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 
   t->prev_fc.last_ack_sent = ack;
   if (NULL != t->owner)
-    send_local_ack (t, t->owner, ack);
+    send_local_ack (t, t->owner, ack, GNUNET_YES);
   else if (0 != t->prev_hop)
     send_ack (t, t->prev_hop, ack);
   else
@@ -2153,7 +2157,7 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
   t->next_fc.last_ack_sent = ack;
 
   if (NULL != t->client)
-    send_local_ack (t, t->client, ack);
+    send_local_ack (t, t->client, ack, GNUNET_NO);
   else if (0 != t->next_hop)
     send_ack (t, t->next_hop, ack);
   else
