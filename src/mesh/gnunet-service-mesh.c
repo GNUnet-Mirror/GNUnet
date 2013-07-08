@@ -5328,8 +5328,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK !=
-    GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DROP_PERCENT",
-                                           &drop_percent))
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DROP_PERCENT",
+                                             &drop_percent))
   {
     drop_percent = 0;
   }
