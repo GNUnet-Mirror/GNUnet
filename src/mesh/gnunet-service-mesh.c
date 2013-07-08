@@ -4005,7 +4005,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   tunnel_reset_timeout (t);
-  if (NULL != t->client || 0 == t->next_hop)
+  if (NULL != t->client || 0 == t->next_hop || myid == t->next_hop)
     return GNUNET_OK;
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
