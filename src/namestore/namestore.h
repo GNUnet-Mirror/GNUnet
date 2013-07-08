@@ -368,6 +368,29 @@ struct ZoneToNameResponseMessage
 };
 
 
+/**
+ * Start monitoring a zone.
+ */
+struct ZoneMonitorStartMessage
+{
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
+   */
+  struct GNUNET_NAMESTORE_Header gns_header;
+
+  /**
+   * Zone hash
+   */
+  struct GNUNET_CRYPTO_ShortHashCode zone;
+
+  /**
+   * All zones. GNUNET_YES to monitor all zones,
+   * GNUNET_NO to only monitor 'zone'.  In NBO.
+   */
+  uint32_t all_zones GNUNET_PACKED;
+
+};
+
 
 /**
  * Start a zone iteration for the given zone
@@ -419,6 +442,7 @@ struct ZoneIterationStopMessage
   struct GNUNET_NAMESTORE_Header gns_header;
 };
 
+
 /**
  * Next result of zone iteration for the given operation
  * // FIXME: use 'struct LookupResponseMessage' instead? (identical except
@@ -435,7 +459,9 @@ struct ZoneIterationResponseMessage
 
   uint16_t name_len;
 
-  /* Record data length */
+  /**
+   * Record data length 
+   */
   uint16_t rd_len;
 
   /**
@@ -458,9 +484,11 @@ struct ZoneIterationResponseMessage
    */
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
- 
- 
 };
+
+
+
+
 GNUNET_NETWORK_STRUCT_END
 
 
