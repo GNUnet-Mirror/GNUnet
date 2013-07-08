@@ -2021,6 +2021,48 @@ send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer,  uint32_t ack)
 
 
 /**
+ * Send an end-to-end FWD ACK message for the most recent in-sequence payload.
+ * 
+ * @param t Tunnel this is about.
+ */
+static void
+tunnel_send_fwd_data_ack (struct MeshTunnel *t)
+{
+  struct GNUNET_MESH_DataACK msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
+  msg.header.size = htons (sizeof (msg));
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.pid = htonl (t->prev_fc.last_pid_recv);
+  msg.futures = 0; // FIXME set bits of other newer messages received
+
+  send_prebuilt_message (&msg.header, t->prev_hop, t);
+}
+
+
+/**
+ * Send an end-to-end BCK ACK message for the most recent in-sequence payload.
+ * 
+ * @param t Tunnel this is about.
+ */
+static void
+tunnel_send_bck_data_ack (struct MeshTunnel *t)
+{
+  struct GNUNET_MESH_DataACK msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
+  msg.header.size = htons (sizeof (msg));
+  msg.tid = htonl (t->id.tid);
+  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.pid = htonl (t->next_fc.last_pid_recv);
+  msg.futures = 0; // FIXME set bits of other newer messages received
+
+  send_prebuilt_message (&msg.header, t->next_hop, t);
+}
+
+
+/**
  * Send an ACK informing the predecessor about the available buffer space.
  * In case there is no predecessor, inform the owning client.
  * If buffering is off, send only on behalf of children or self if endpoint.
@@ -2053,9 +2095,11 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
         return;
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      tunnel_send_fwd_data_ack (t);
+      /* fall through */
     case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
       t->force_ack = GNUNET_YES;
       break;
     default:
@@ -2131,9 +2175,11 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
         return;
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      tunnel_send_bck_data_ack (t);
+      /* fall through */
     case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
       t->force_ack = GNUNET_YES;
       break;
     default:
@@ -3601,7 +3647,6 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_POLL);
     return GNUNET_OK;
   }
-  t->prev_fc.last_pid_recv = pid;
 
   tunnel_reset_timeout (t);
   if (t->dest == myid)
@@ -3615,6 +3660,7 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " pid %u not seen yet, forwarding\n", pid);
+      t->prev_fc.last_pid_recv = pid;
       tunnel_send_client_ucast (t, msg);
       tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     }
@@ -3627,6 +3673,7 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     return GNUNET_OK;
   }
+  t->prev_fc.last_pid_recv = pid;
   if (0 == t->next_hop)
   {
     GNUNET_break (0);
@@ -3704,9 +3751,6 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
     return GNUNET_OK;
   }
-  t->next_fc.last_pid_recv = pid;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " pid %u not seen yet, forwarding\n", pid);
 
   if (myid == t->id.oid)
   {
@@ -3716,6 +3760,7 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
     if (pid == t->next_fc.last_pid_recv + 1) // FIXME use "futures" as accepting
     {
+      t->next_fc.last_pid_recv = pid;
       tunnel_send_client_to_orig (t, msg);
       tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
     }
@@ -3730,7 +3775,7 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
-
+  t->next_fc.last_pid_recv = pid;
   if (0 == t->prev_hop) /* No owner AND no prev hop */
   {
     if (GNUNET_YES == t->destroy)
