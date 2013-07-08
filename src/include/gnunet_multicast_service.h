@@ -245,6 +245,7 @@ typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
                                               const struct GNUNET_MessageHeader *msg,
                                               struct GNUNET_MULTICAST_JoinHandle *jh);
 
+
 /** 
  * Method called whenever another peer wants to leave the multicast group.
  *

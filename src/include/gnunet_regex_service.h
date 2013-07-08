@@ -123,7 +123,7 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Stop search and free all data used by a GNUNET_REGEX_search call.
  * 
- * @param h Handle returned by a previous GNUNET_REGEX_search call.
+ * @param s Handle returned by a previous GNUNET_REGEX_search call.
  */
 void
 GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s);
