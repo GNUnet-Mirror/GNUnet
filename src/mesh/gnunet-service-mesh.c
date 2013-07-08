@@ -3591,19 +3591,6 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   pid = ntohl (msg->pid);
-  if (t->prev_fc.last_pid_recv == pid)
-  {
-    GNUNET_STATISTICS_update (stats, "# duplicate PID drops", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                " Already seen pid %u, DROPPING!\n", pid);
-    return GNUNET_OK;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " pid %u not seen yet, forwarding\n", pid);
-  }
-
   if (GMC_is_pid_bigger (pid, t->prev_fc.last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
@@ -3623,8 +3610,21 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
-    tunnel_send_client_ucast (t, msg);
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+//     if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv)) FIXME use
+    if (pid == t->prev_fc.last_pid_recv + 1)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " pid %u not seen yet, forwarding\n", pid);
+      tunnel_send_client_ucast (t, msg);
+      tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+    }
+    else
+    {
+//       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  " Pid %u not expected, sending FWD ACK!\n", pid);
+      tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
+    }
     return GNUNET_OK;
   }
   if (0 == t->next_hop)
@@ -3684,7 +3684,6 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
   t = tunnel_get (&msg->oid, ntohl (msg->tid));
   pid = ntohl (msg->pid);
-
   if (NULL == t)
   {
     /* TODO notify that we dont know this tunnel (whom)? */
@@ -3692,16 +3691,6 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received to_origin with PID %u on unknown tunnel %s [%u]\n",
                 pid, GNUNET_i2s (&msg->oid), ntohl (msg->tid));
-    return GNUNET_OK;
-  }
-
-  if (t->next_fc.last_pid_recv == pid)
-  {
-    /* already seen this packet, drop */
-    GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " Already seen pid %u, DROPPING!\n", pid);
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
     return GNUNET_OK;
   }
 
@@ -3725,8 +3714,18 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
-    tunnel_send_client_to_orig (t, msg);
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+    if (pid == t->next_fc.last_pid_recv + 1) // FIXME use "futures" as accepting
+    {
+      tunnel_send_client_to_orig (t, msg);
+      tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
+    }
+    else
+    {
+//       GNUNET_STATISTICS_update (stats, "# duplicate PID drops BCK", 1, GNUNET_NO);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  " Pid %u not expected, sending FWD ACK!\n", pid);
+      tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
+    }
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
