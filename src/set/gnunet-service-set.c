@@ -655,7 +655,9 @@ handle_client_evaluate (void *cls,
   spec->peer = msg->target_peer;
 
   tunnel = GNUNET_MESH_tunnel_create (mesh, tc, &msg->target_peer,
-                                      GNUNET_APPLICATION_TYPE_SET);
+                                      GNUNET_APPLICATION_TYPE_SET,
+                                      GNUNET_YES,
+                                      GNUNET_YES);
 
   switch (set->operation)
   {

@@ -792,9 +792,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE            256
 
 /**
- * Request the modification of an existing path
+ * Send origin an ACK that the path is complete
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGE            257
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               257
 
 /**
  * Notify that a connection of a path is no longer valid
@@ -817,9 +817,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
 /**
- * Send origin an ACK that the path is complete
+ * Confirm data end-to-end.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               263
+#define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               263
 
 /**
  * Avoid path timeouts
@@ -860,51 +860,6 @@ extern "C"
  * Ask the mesh service to destroy a tunnel
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
-
-/**
- * Ask the mesh service to add a peer to an existing tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD         275
-
-/**
- * Ask the mesh service to remove a peer from a tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_DEL         276
-
-/**
- * Ask the mesh service to add a peer offering a service to an existing tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_TYPE 277
-
-/**
- * Ask the mesh service to add a peer described by a service string
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ANNOUNCE_REGEX   278
-
-/**
- * Ask the mesh service to add a peer described by a service string
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_PEER_ADD_BY_STRING 279
-
-/**
- * Set tunnel to reliable.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_RELIABLE         282
-
-/**
- * Set tunnel to best effort.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_UNRELIABLE       283
-
-/**
- * Set tunnel buffering on.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER    284
-
-/**
- * Set tunnel buffering off.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER  285
 
 /**
  * Local ACK for data.

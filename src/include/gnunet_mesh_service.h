@@ -195,13 +195,18 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param tunnel_ctx client's tunnel context to associate with the tunnel
  * @param peer peer identity the tunnel should go to
  * @param port Port number.
+ * @param buffer Flag for buffering on relay nodes.
+ * @param reliable Flag for end-to-end reliability.
+ *
  * @return handle to the tunnel
  */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
                            void *tunnel_ctx,
                            const struct GNUNET_PeerIdentity *peer,
-                           uint32_t port);
+                           uint32_t port,
+                           int buffer,
+                           int reliable);
 
 
 /**
@@ -218,28 +223,35 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**
- * Turn on/off the buffering status of the tunnel.
- * 
- * @param tunnel Tunnel affected.
- * @param buffer GNUNET_YES to turn buffering on (default),
- *               GNUNET_NO otherwise.
+ * Struct to retrieve info about a tunnel.
  */
-void
-GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer);
+struct MeshTunnelInfo {
+
+  /**
+   * Property, as listed in src/mesh/mesh.h (GNUNET_MESH_OPTION_*)
+   */
+  unsigned int prop;
+
+  /**
+   * Value, of type dependant on @c prop.
+   */
+  void *value;
+};
 
 
 /**
- * Turn on/off the reliability of the tunnel.
+ * Get information about a tunnel.
  * 
- * If reliability is on, mesh will resend lost messages, similar to TCP.
- * If reliability is off, mesh just do best effort, similar to UDP.
+ * The existing end callback for the tunnel will be called immediately.
+ * Any pending outgoing messages will be sent but no incoming messages will be
+ * accepted and no data callbacks will be called.
+ *
+ * @param tunnel Tunnel handle.
  * 
- * @param tunnel Tunnel affected.
- * @param reliable GNUNET_YES to turn reliability on, 
- *                 GNUNET_NO to have a best effort tunnel (default).
+ * @return Allocated, {0, NULL} terminated set of tunnel properties.
  */
-void
-GNUNET_MESH_tunnel_reliable (struct GNUNET_MESH_Tunnel *tunnel, int reliable);
+struct MeshTunnelInfo *
+GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel);
 
 
 /**

@@ -35,9 +35,6 @@ extern "C"
 #endif
 #endif
 
-#define MESH_TUNNEL_OPT_NOBUFFER        0x2
-
-
 /******************************************************************************/
 /********************      MESH NETWORK MESSAGES     **************************/
 /******************************************************************************/
@@ -64,7 +61,7 @@ struct GNUNET_MESH_CreateTunnel
   uint32_t tid GNUNET_PACKED;
 
     /**
-     * Tunnel options (MESH_TUNNEL_OPT_*).
+     * Tunnel options (GNUNET_MESH_OPTION_*).
      */
   uint32_t opt GNUNET_PACKED;
 
@@ -140,6 +137,40 @@ struct GNUNET_MESH_Data
 
 
 /**
+ * Message to acknowledge end-to-end data.
+ */
+struct GNUNET_MESH_DataACK
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_DATA_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * TID of the tunnel
+   */
+  uint32_t tid GNUNET_PACKED;
+
+  /**
+   * OID of the tunnel
+   */
+  struct GNUNET_PeerIdentity oid;
+
+  /**
+   * Maximum packet ID acknowledged.
+   */
+  uint32_t pid;
+
+  /**
+   * Bitfield of already-received newer messages // TODO implement and use
+   * pid +  1 @ LSB
+   * pid + 32 @ MSB
+   */
+  uint32_t futures;
+};
+
+
+/**
  * Message to acknowledge mesh data traffic.
  */
 struct GNUNET_MESH_ACK
@@ -163,8 +194,8 @@ struct GNUNET_MESH_ACK
      * Maximum packet ID authorized.
      */
   uint32_t pid;
-
 };
+
 
 /**
  * Message to query a peer about its Flow Control status regarding a tunnel.

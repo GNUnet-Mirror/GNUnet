@@ -785,9 +785,11 @@ handle_regex_result (void *cls,
   GNUNET_REGEX_search_cancel (ts->search);
   ts->search = NULL;
   ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					  ts,
+                                          ts,
                                           id,
-					  PORT_VPN);
+                                          PORT_VPN,
+                                          GNUNET_YES,
+                                          GNUNET_NO);
 }
 
 
@@ -827,8 +829,10 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   {
     ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					    ts,
-                                            &de->details.service_destination.target,
-					    PORT_VPN);
+                        &de->details.service_destination.target,
+					    PORT_VPN,
+                        GNUNET_YES,
+                        GNUNET_NO);
     if (NULL == ts->tunnel)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

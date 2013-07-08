@@ -943,9 +943,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       return;
     }
     mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					     NULL,
+                                             NULL,
                                              NULL, /* FIXME peer ID*/
-					     PORT_PT);
+                                             PORT_PT,
+                                             GNUNET_YES,
+                                             GNUNET_NO);
 //     GNUNET_MESH_peer_request_connect_by_type (mesh_tunnel, FIXME use regex
 // 					      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER); 
   }

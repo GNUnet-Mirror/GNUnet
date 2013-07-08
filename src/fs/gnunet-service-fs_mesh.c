@@ -452,9 +452,11 @@ reset_mesh (struct StreamHandle *sh)
 					 &move_to_pending,
 					 sh);
   sh->mesh = GNUNET_MESH_tunnel_create (listen_socket,
-					  sh,				    
+					  sh,
 					  &sh->target,
-					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER);
+					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+                      GNUNET_YES,
+                      GNUNET_YES);
 }
 
 
@@ -743,7 +745,9 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
   sh->mesh = GNUNET_MESH_tunnel_create (listen_socket,
 					  sh,
 					  &sh->target,
-					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER);
+					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+                      GNUNET_YES,
+                      GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
 						    &sh->target.hashPubKey,

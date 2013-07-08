@@ -227,7 +227,7 @@ GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid)
   if (0 == id)
   {
     memset (pid, 0, sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   GNUNET_assert (id < size);

@@ -734,6 +734,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
   for (t = h->tunnels_head; NULL != t; t = t->next)
   {
     struct GNUNET_MESH_TunnelMessage tmsg;
+    uint32_t options;
 
     if (t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
     {
@@ -751,13 +752,16 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
     GNUNET_PEER_resolve (t->peer, &tmsg.peer);
-    send_packet (h, &tmsg.header, t);
 
+    options = 0;
     if (GNUNET_NO == t->buffering)
-      GNUNET_MESH_tunnel_buffer (t, GNUNET_NO);
+      options |= GNUNET_MESH_OPTION_NOBUFFER;
 
     if (GNUNET_YES == t->reliable)
-      GNUNET_MESH_tunnel_reliable (t, GNUNET_YES);
+      options |= GNUNET_MESH_OPTION_RELIABLE;
+
+    tmsg.options = htonl (options);
+    send_packet (h, &tmsg.header, t);
   }
   return GNUNET_YES;
 }
@@ -831,10 +835,14 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->mesh = h;
     t->tid = tid;
     t->port = ntohl (msg->port);
-    if (0 != (msg->opt & MESH_TUNNEL_OPT_NOBUFFER))
+    if (0 != (msg->opt & GNUNET_MESH_OPTION_NOBUFFER))
       t->buffering = GNUNET_NO;
     else
       t->buffering = GNUNET_YES;
+    if (0 != (msg->opt & GNUNET_MESH_OPTION_RELIABLE))
+      t->reliable = GNUNET_YES;
+    else
+      t->reliable = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created tunnel %p\n", t);
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, t->port);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
@@ -1446,11 +1454,26 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
 }
 
 
+/**
+ * Create a new tunnel (we're initiator and will be allowed to add/remove peers
+ * and to broadcast).
+ *
+ * @param h mesh handle
+ * @param tunnel_ctx client's tunnel context to associate with the tunnel
+ * @param peer peer identity the tunnel should go to
+ * @param port Port number.
+ * @param buffer Flag for buffering on relay nodes.
+ * @param reliable Flag for end-to-end reliability.
+ *
+ * @return handle to the tunnel
+ */
 struct GNUNET_MESH_Tunnel *
 GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
                            void *tunnel_ctx,
                            const struct GNUNET_PeerIdentity *peer,
-                           uint32_t port)
+                           uint32_t port,
+                           int buffer,
+                           int reliable)
 {
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
@@ -1508,55 +1531,32 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 }
 
 
-void
-GNUNET_MESH_tunnel_buffer (struct GNUNET_MESH_Tunnel *tunnel, int buffer)
-{
-  struct GNUNET_MESH_TunnelMessage msg;
-  struct GNUNET_MESH_Handle *h;
-
-  h = tunnel->mesh;
-  tunnel->buffering = buffer;
-
-  if (GNUNET_YES == buffer)
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_BUFFER);
-  else
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_NOBUFFER);
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (tunnel->tid);
-
-  send_packet (h, &msg.header, NULL);
-}
-
-
 /**
- * Turn on/off the reliability of the tunnel.
+ * Get information about a tunnel.
  * 
- * If reliability is on, mesh will resend lost messages, similar to TCP.
- * If reliability is off, mesh just do best effort, similar to UDP.
+ * The existing end callback for the tunnel will be called immediately.
+ * Any pending outgoing messages will be sent but no incoming messages will be
+ * accepted and no data callbacks will be called.
+ *
+ * @param tunnel Tunnel handle.
  * 
- * @param tunnel Tunnel affected.
- * @param reliable GNUNET_YES to turn reliability on, 
- *                 GNUNET_NO to have a best effort tunnel (default).
+ * @return Allocated, {0, NULL} terminated set of tunnel properties.
  */
-void
-GNUNET_MESH_tunnel_reliable (struct GNUNET_MESH_Tunnel *tunnel, int reliable)
+struct MeshTunnelInfo *
+GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel)
 {
-  struct GNUNET_MESH_TunnelMessage msg;
-  struct GNUNET_MESH_Handle *h;
+  struct MeshTunnelInfo *ret;
 
-  h = tunnel->mesh;
-  tunnel->reliable = reliable;
+  ret = GNUNET_malloc (sizeof (struct MeshTunnelInfo) * 3);
+  ret[0].prop = GNUNET_MESH_OPTION_NOBUFFER;
+  ret[0].value = &tunnel->buffering; // FIXME return ¬buffering ("nobuffer")
+  ret[1].prop = GNUNET_MESH_OPTION_RELIABLE;
+  ret[1].value = &tunnel->reliable;
+  ret[2].prop = 0;
+  ret[2].value = NULL;
 
-  if (GNUNET_YES == reliable)
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_RELIABLE);
-  else
-    msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_UNRELIABLE);
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
-  msg.tunnel_id = htonl (tunnel->tid);
-
-  send_packet (h, &msg.header, NULL);
+  return ret;
 }
-
 
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Tunnel *tunnel, int cork,

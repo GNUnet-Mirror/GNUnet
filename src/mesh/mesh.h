@@ -88,6 +88,12 @@ extern "C"
 #define HIGH_PID                                0xFFFF0000
 #define LOW_PID                                 0x0000FFFF
 
+/**
+ * Value in tunnel info: *int (GNUNET_YES/GNUNET_NO)
+ */
+#define GNUNET_MESH_OPTION_NOBUFFER             0x1
+#define GNUNET_MESH_OPTION_RELIABLE             0x2
+
 #define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
 
 /******************************************************************************/
@@ -148,6 +154,11 @@ struct GNUNET_MESH_TunnelMessage
      * Port of the tunnel.
      */
   uint32_t port GNUNET_PACKED;
+
+    /**
+     * Options.
+     */
+  int32_t options GNUNET_PACKED;
 };
 
 

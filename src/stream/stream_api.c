@@ -3024,7 +3024,7 @@ GNUNET_STREAM_open (const struct GNUNET_CONFIGURATION_Handle *cfg,
   socket->tunnel = GNUNET_MESH_tunnel_create (socket->mesh,
                                               socket, /* Tunnel context */
                                               &socket->other_peer,
-                                              STREAM_PORT);
+                                              STREAM_PORT, 1, 0);
   GNUNET_assert (NULL != socket->tunnel);
   socket->stat_handle = GNUNET_STATISTICS_create ("stream", cfg);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s() END\n", __func__);
