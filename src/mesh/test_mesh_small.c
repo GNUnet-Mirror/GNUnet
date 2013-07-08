@@ -52,6 +52,7 @@
 #define SPEED 3
 #define SPEED_ACK 4
 #define SPEED_NOBUF 6
+#define SPEED_REL 8
 #define P2P_SIGNAL 10
 
 /**
@@ -622,6 +623,9 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  int buf;
+  int rel;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
 
@@ -631,12 +635,22 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
-  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, GNUNET_YES, GNUNET_NO);
   if (SPEED_NOBUF == test)
   {
-    GNUNET_MESH_tunnel_buffer(t, GNUNET_NO);
     test = SPEED;
+    buf = GNUNET_NO;
   }
+  else
+    buf = GNUNET_YES;
+
+  if (SPEED_REL == test)
+  {
+    test = SPEED;
+    rel = GNUNET_YES;
+  }
+  else
+    rel = GNUNET_NO;
+  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, buf, rel);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
@@ -732,22 +746,24 @@ main (int argc, char *argv[])
 {
   initialized = GNUNET_NO;
   uint32_t ports[2];
+  const char *config_file;
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
+  config_file = "test_mesh.conf";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
   if (strstr (argv[0], "_small_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
-    test_name = "unicast2";
+    test_name = "unicast";
     ok_goal = 4;
   }
   else if (strstr (argv[0], "_small_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
-    test_name = "signal2";
+    test_name = "signal";
     ok_goal = 4;
   }
   else if (strstr (argv[0], "_small_speed_ack") != NULL)
@@ -762,7 +778,7 @@ main (int argc, char *argv[])
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
-    test_name = "speed2 ack";
+    test_name = "speed ack";
     ok_goal = TOTAL_PACKETS * 2 + 2;
   }
   else if (strstr (argv[0], "_small_speed") != NULL)
@@ -780,12 +796,18 @@ main (int argc, char *argv[])
     if (strstr (argv[0], "_nobuf") != NULL)
     {
       test = SPEED_NOBUF;
-      test_name = "speed2 nobuf";
+      test_name = "speed nobuf";
+    }
+    else if (strstr (argv[0], "_reliable") != NULL)
+    {
+      test = SPEED_REL;
+      test_name = "speed reliable";
+      config_file = "test_mesh_drop.conf";
     }
     else
     {
       test = SPEED;
-      test_name = "speed2";
+      test_name = "speed";
     }
   }
   else
@@ -810,7 +832,7 @@ main (int argc, char *argv[])
   ports[0] = 1;
   ports[1] = 0;
   GNUNET_MESH_TEST_run ("test_mesh_small",
-                        "test_mesh.conf",
+                        config_file,
                         5,
                         &tmain,
                         NULL, /* tmain cls */
