@@ -984,19 +984,17 @@ process_ack (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_LocalAck *msg;
   struct GNUNET_MESH_Tunnel *t;
+  MESH_TunnelNumber tid;
   uint32_t ack;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
   h->acks_recv++;
   msg = (struct GNUNET_MESH_LocalAck *) message;
-
-  t = retrieve_tunnel (h, ntohl (msg->tunnel_id));
-
+  tid = ntohl (msg->tunnel_id);
+  t = retrieve_tunnel (h, tid);
   if (NULL == t)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "ACK on unknown tunnel %X\n",
-         ntohl (msg->tunnel_id));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "ACK on unknown tunnel %X\n", tid);
     return;
   }
   ack = ntohl (msg->ack);
@@ -1142,10 +1140,10 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     process_ack (h, msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
-        process_get_tunnels (h, msg);
+    process_get_tunnels (h, msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
-        process_show_tunnel (h, msg);
+    process_show_tunnel (h, msg);
     break;
   default:
     /* We shouldn't get any other packages, log and ignore */
