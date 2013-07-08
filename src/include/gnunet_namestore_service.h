@@ -458,13 +458,12 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  * Function called whenever the records for a given name changed.
  *
  * @param cls closure
- * @param was_removed GNUNET_NO if the record was added, GNUNET_YES if it was removed,
- *                    GNUNET_SYSERR if the communication with the namestore broke down
+ * @param zone_key NULL if the communication with the namestore broke down
  *                    (and thus all entries should be 'cleared' until the communication
  *                     can be re-established, at which point the monitor will 
  *                     re-add all records that are (still) in the namestore after
- *                     the reconnect); if this value is SYSERR, all other arguments
- *                     will be 0/NULL.
+ *                     the reconnect); if this value is NULL, all other arguments
+ *                     will also be 0/NULL.
  * @param freshness when does the corresponding block in the DHT expire (until
  *               when should we never do a DHT lookup for the same name again)?; 
  *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
@@ -476,7 +475,6 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  * @param signature signature of the record block
  */
 typedef void (*GNUNET_NAMESTORE_RecordMonitor)(void *cls,
-					       int was_removed,
 					       const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
 					       struct GNUNET_TIME_Absolute freshness,			    
 					       const char *name,

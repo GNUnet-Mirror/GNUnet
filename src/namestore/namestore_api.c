@@ -514,7 +514,7 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
  */
 static int
 handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
-                                const struct ZoneIterationResponseMessage *msg,
+                                const struct LookupNameResponseMessage *msg,
                                 size_t size)
 {
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubdummy;
@@ -534,13 +534,12 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   rd_count = ntohs (msg->rd_count);
   name_len = ntohs (msg->name_len);
   expire = GNUNET_TIME_absolute_ntoh (msg->expire);
-  exp_msg_len = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_len;
+  exp_msg_len = sizeof (struct LookupNameResponseMessage) + name_len + rd_len;
   if (msg_len != exp_msg_len)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_break (0 == ntohs (msg->reserved));
   memset (&pubdummy, '\0', sizeof (pubdummy));
   if ((0 == name_len) && (0 == (memcmp (&msg->public_key, &pubdummy, sizeof (pubdummy)))))
   {
@@ -589,13 +588,13 @@ manage_zone_operations (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   /* handle different message type */
   switch (type) 
   {
-  case GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE:
-    if (size < sizeof (struct ZoneIterationResponseMessage))
+  case GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE:
+    if (size < sizeof (struct LookupNameResponseMessage))
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    return handle_zone_iteration_response (ze, (const struct ZoneIterationResponseMessage *) msg, size);
+    return handle_zone_iteration_response (ze, (const struct LookupNameResponseMessage *) msg, size);
   default:
     GNUNET_break (0);
     return GNUNET_SYSERR;

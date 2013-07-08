@@ -1402,14 +1402,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE 440
 
 /**
- * Client to service: please start iteration
+ * Client to service: start monitoring (yields sequence of
+ * "ZONE_ITERATION_RESPONSES" --- forever).
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 445
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START 441
 
 /**
- * Service to client: current record in iteration (or end of list).
+ * Client to service: please start iteration; receives
+ * "GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE" messages in return.
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE 446
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START 445
 
 /**
  * Client to service: next record in iteration please.

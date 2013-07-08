@@ -1364,7 +1364,7 @@ zone_iteraterate_proc (void *cls,
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
-  struct ZoneIterationResponseMessage *zir_msg;
+  struct LookupNameResponseMessage *zir_msg;
   struct GNUNET_TIME_Relative rt;
   unsigned int rd_count_filtered;
   unsigned int c;
@@ -1484,14 +1484,14 @@ zone_iteraterate_proc (void *cls,
 		name);
   name_len = strlen (name) + 1;
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count_filtered, rd_filtered);  
-  msg_size = sizeof (struct ZoneIterationResponseMessage) + name_len + rd_ser_len;
+  msg_size = sizeof (struct LookupNameResponseMessage) + name_len + rd_ser_len;
 
   zir_msg = GNUNET_malloc (msg_size);
-  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
+  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
   zir_msg->gns_header.header.size = htons (msg_size);
   zir_msg->gns_header.r_id = htonl (proc->zi->request_id);
   zir_msg->expire = GNUNET_TIME_absolute_hton (expire);
-  zir_msg->reserved = htons (0);
+  zir_msg->contains_sig = htons ((NULL == signature) ? GNUNET_NO : GNUNET_YES);
   zir_msg->name_len = htons (name_len);
   zir_msg->rd_count = htons (rd_count_filtered);
   zir_msg->rd_len = htons (rd_ser_len);
@@ -1524,7 +1524,7 @@ static void
 run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
 {
   struct ZoneIterationProcResult proc;
-  struct ZoneIterationResponseMessage zir_end;
+  struct LookupNameResponseMessage zir_end;
   struct GNUNET_CRYPTO_ShortHashCode *zone;
 
   memset (&proc, 0, sizeof (proc));
@@ -1560,8 +1560,8 @@ run_zone_iteration_round (struct GNUNET_NAMESTORE_ZoneIteration *zi)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"No more results for all zones\n");
   memset (&zir_end, 0, sizeof (zir_end));
-  zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE);
-  zir_end.gns_header.header.size = htons (sizeof (struct ZoneIterationResponseMessage));
+  zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
+  zir_end.gns_header.header.size = htons (sizeof (struct LookupNameResponseMessage));
   zir_end.gns_header.r_id = htonl(zi->request_id);
   GNUNET_SERVER_notification_context_unicast (snc, 
 					      zi->client->client, 

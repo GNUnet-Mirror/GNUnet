@@ -137,7 +137,6 @@ struct LookupNameResponseMessage
    */
   struct GNUNET_TIME_AbsoluteNBO expire;
 
-
   /**
    * Name length
    */
@@ -352,7 +351,10 @@ struct ZoneToNameResponseMessage
    */
   uint16_t rd_count;
 
-  /* result in NBO: GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error */
+  /**
+   * result in NBO: GNUNET_OK on success, GNUNET_NO if there were no
+   * results, GNUNET_SYSERR on error 
+   */
   int16_t res;
 
   /**
@@ -441,52 +443,6 @@ struct ZoneIterationStopMessage
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 };
-
-
-/**
- * Next result of zone iteration for the given operation
- * // FIXME: use 'struct LookupResponseMessage' instead? (identical except
- * for having 'contains_sig' instead of 'reserved', but fully compatible otherwise).
- */
-struct ZoneIterationResponseMessage
-{
-  /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_RESPONSE
-   */
-  struct GNUNET_NAMESTORE_Header gns_header;
-
-  struct GNUNET_TIME_AbsoluteNBO expire;
-
-  uint16_t name_len;
-
-  /**
-   * Record data length 
-   */
-  uint16_t rd_len;
-
-  /**
-   * Number of records contained 
-   */
-  uint16_t rd_count;
-
-  /**
-   * always zero (for alignment)
-   */
-  uint16_t reserved;
-
-  /**
-   * All zeros if 'contains_sig' is GNUNET_NO.
-   */
-  struct GNUNET_CRYPTO_EccSignature signature;
-
-  /**
-   * The public key
-   */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
-
-};
-
-
 
 
 GNUNET_NETWORK_STRUCT_END
