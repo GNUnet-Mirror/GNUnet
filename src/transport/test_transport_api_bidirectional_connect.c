@@ -276,15 +276,12 @@ static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
 	static int connected = GNUNET_NO;
-	GNUNET_break (0);
   if ((cls == cc1) && (NULL != cc2))
   {
-  	GNUNET_break (0);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc2);
   }
   if ((cls == cc2) && (NULL != cc1))
   {
-  	GNUNET_break (0);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc1);
   }
   cc1 = NULL;
@@ -298,7 +295,6 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
-GNUNET_break (0);
   send_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
 }
 
