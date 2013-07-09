@@ -502,6 +502,11 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  * the connection is re-established, the process begins from the start (all
  * existing records, sync, then updates).
  *
+ * Note that the 'signature' in the 'monitor' callback will always be
+ * NULL (as signatures are usually not valuable to monitoring clients,
+ * the service does not bother to generate a valid signature for
+ * monitoring).
+ *
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor, NULL for all zones
  * @param monitor function to call on zone changes
