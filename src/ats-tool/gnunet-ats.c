@@ -420,7 +420,7 @@ testservice_ats (void *cls,
     {
     		if (NULL == type_str)
     		{
-    			fprintf (stderr, "No preference type given!\n");
+    			fprintf (stderr, _("No preference type given!\n"));
     			return;
     		}
 
@@ -436,7 +436,7 @@ testservice_ats (void *cls,
           type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
         else
         {
-          FPRINTF (stderr, "%s", _("Type required\n"));
+          FPRINTF (stderr, "%s", _("Valid type required\n"));
           return;
         }
 
