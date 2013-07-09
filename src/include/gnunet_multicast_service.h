@@ -247,7 +247,7 @@ typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
 
 
 /** 
- * Method called whenever another peer wants to leave the multicast group.
+ * Method called whenever another peer wants to part the multicast group.
  *
  * A leave request must be always be honoured.
  *
@@ -256,10 +256,10 @@ typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
  * @param msg Application-dependent leave message from the leaving user.
  * @param jh Join handle to pass to GNUNET_MULTICAST_join_decison().
  */
-typedef void (*GNUNET_MULTICAST_LeaveCallback)(void *cls,
-                                               const struct GNUNET_PeerIdentity *peer,
-                                               const struct GNUNET_MessageHeader *msg,
-                                               struct GNUNET_MULTICAST_JoinHandle *jh);
+typedef void (*GNUNET_MULTICAST_PartCallback)(void *cls,
+					      const struct GNUNET_PeerIdentity *peer,
+					      const struct GNUNET_MessageHeader *msg,
+					      struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
 /** 
@@ -408,6 +408,8 @@ struct GNUNET_MULTICAST_PingHandle;
  *
  * @param rh Handle that was given for the ping.
  * @param message_id Latest message ID seen by this peer for this group.
+ *
+ * @deprecated needed???
  */
 void
 GNUNET_MULTICAST_pong (struct GNUNET_MULTICAST_ReplayHandle *rh,
@@ -428,6 +430,8 @@ GNUNET_MULTICAST_pong (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param peer Identity of the peer who sent the ping.
  * @param latest_message_id Latest message ID seen by the requesting member.
  * @param rh Handle to pass back to GNUNET_MULTICAST_pong() or GNUNET_MULTICAST_replay().
+ *
+ * @deprecated needed???
  */
 typedef void (*GNUNET_MULTICAST_PingCallback)(void *cls,
                                               const struct GNUNET_PeerIdentity *peer,
@@ -456,9 +460,9 @@ typedef void (*GNUNET_MULTICAST_PingCallback)(void *cls,
  * @param join_policy What is the membership policy of the group?
  * @param replay_cb Function that can be called to replay a message.
  * @param test_cb Function multicast can use to test group membership.
- * @param ping_cb Function called to answer a ping.
+ * @param ping_cb Function called to answer a ping. -- Gabor: remove this one!? deprecated?
  * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param leave_cb Function called when a member wants to leave the group.
+ * @param part_cb Function called when a member wants to part the group.
  * @param request_cb Function called with messages from group members.
  * @return Handle for the origin, NULL on error.
  */
@@ -471,7 +475,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       GNUNET_MULITCAST_MembershipTestCallback test_cb,
 			       GNUNET_MULITCAST_PingCallback ping_cb,
 			       GNUNET_MULTICAST_JoinCallback join_cb,
-			       GNUNET_MULTICAST_LeaveCallback leave_cb,
+			       GNUNET_MULTICAST_PartCallback part_cb,
 			       GNUNET_MULTICAST_RequestCallback request_cb);
 
 
@@ -600,12 +604,12 @@ GNUNET_MULTICAST_member_request_replay_cancel (struct GNUNET_MULTICAST_ReplayReq
 
 
 /** 
- * Leave a multicast group.
+ * Part a multicast group.
  *
  * @param member Membership handle.
  */
 void
-GNUNET_MULTICAST_member_leave (struct GNUNET_MULTICAST_Member *member);
+GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
 
 
 /** 
