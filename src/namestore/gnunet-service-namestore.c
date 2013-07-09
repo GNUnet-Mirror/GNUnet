@@ -192,25 +192,6 @@ static struct GNUNET_NAMESTORE_Client *client_tail;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
 
-/**
- * DLL head for key loading contexts
- */
-static struct KeyLoadContext *kl_head;
-
-/**
- * DLL tail for key loading contexts
- */
-static struct KeyLoadContext *kl_tail;
-
-struct KeyLoadContext
-{
-  struct KeyLoadContext *next;
-  struct KeyLoadContext *prev;
-  struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
-  char *filename;
-  unsigned int *counter;
-};
-
 
 /**
  * Writes the encrypted private key of a zone in a file
@@ -402,7 +383,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAMESTORE_ZoneIteration *no;
   struct GNUNET_NAMESTORE_Client *nc;
-  struct KeyLoadContext *kl;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping namestore service\n");
   if (NULL != snc)
@@ -410,16 +390,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_notification_context_destroy (snc);
     snc = NULL;
   }
-
-  while (NULL != (kl = kl_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (kl_head, kl_tail, kl);
-    if (NULL != kl->keygen)
-      GNUNET_CRYPTO_ecc_key_create_stop (kl->keygen);
-    GNUNET_free (kl->filename);
-    GNUNET_free (kl);
-  }
-
   GNUNET_CONTAINER_multihashmap_iterate (zonekeys, &zone_to_disk_it, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (zonekeys);
   zonekeys = NULL;
@@ -1712,29 +1682,6 @@ handle_iteration_next (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-static void
-zonekey_it_key_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
-{
-  struct KeyLoadContext *kl = cls;
-
-  kl->keygen = NULL;
-  if (NULL == pk)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not parse zone key file `%s'\n"),
-                kl->filename);
-    return;
-  }
-  learn_private_key (pk);
-  (*kl->counter) ++;
-
-  GNUNET_CONTAINER_DLL_remove (kl_head, kl_tail, kl);
-  GNUNET_free (kl->filename);
-  GNUNET_free (kl);
-}
-
 
 /**
  * Load zone keys from directory by reading all .zkey files in this directory
@@ -1746,24 +1693,17 @@ zonekey_it_key_cb (void *cls,
 static int
 zonekey_file_it (void *cls, const char *filename)
 {
-  struct KeyLoadContext *kl;
+  unsigned int *counter = cls;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  
 
   if ((NULL == filename) ||
-      (NULL == strstr(filename, ".zkey")))
+      (NULL == strstr (filename, ".zkey")))
     return GNUNET_OK;
-
-  kl = GNUNET_malloc (sizeof (struct KeyLoadContext));
-  kl->filename = strdup (filename);
-  kl->counter = cls;
-  kl->keygen = GNUNET_CRYPTO_ecc_key_create_start (filename, zonekey_it_key_cb, kl);
-  if (NULL == kl->keygen)
-  {
-    GNUNET_free (kl->filename);
-    GNUNET_free (kl);
-    return GNUNET_OK;
-  }
-
-  GNUNET_CONTAINER_DLL_insert (kl_head, kl_tail, kl);
+  pk = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
+  learn_private_key (pk);
+  GNUNET_CRYPTO_ecc_key_free (pk);
+  (*counter)++;
   return GNUNET_OK;
 }
 
@@ -1832,10 +1772,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Scanning directory `%s' for zone files\n", zonefile_directory);
+	      "Scanning directory `%s' for zone files\n", 
+	      zonefile_directory);
   zonekeys = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   counter = 0;
-  GNUNET_DISK_directory_scan (zonefile_directory, zonekey_file_it, &counter);
+  GNUNET_DISK_directory_scan (zonefile_directory, 
+			      &zonekey_file_it, &counter);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Found %u zone files\n", 
 	      counter);
