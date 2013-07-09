@@ -418,6 +418,12 @@ testservice_ats (void *cls,
     }
     else if (op_set_pref)
     {
+    		if (NULL == type_str)
+    		{
+    			fprintf (stderr, "No preference type given!\n");
+    			return;
+    		}
+
         for (c = 0; c<strlen(type_str); c++)
         {
           if (isupper (type_str[c]))
@@ -484,6 +490,7 @@ main (int argc, char *const *argv)
   op_set_pref = GNUNET_NO;
   pending = 0;
   receive_done = GNUNET_NO;
+  type_str = NULL;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'u', "used", NULL,
