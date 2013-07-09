@@ -4583,29 +4583,39 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
    * (pretend we got it from a mesh peer)
    */
   {
-    struct MeshSentMessage *copy;
     struct GNUNET_MESH_Data *payload;
 
-    copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
-    copy->t = t;
-    copy->id = ntohl (data_msg->pid);
-    copy->is_forward = GNUNET_YES;
-    copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
-    copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
-                                                     &tunnel_retransmit_message,
-                                                     copy);
-    if (GNUNET_YES == t->reliable &&
-        GNUNET_OK !=
-        GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_fwd,
-                                             copy->id,
-                                             copy,
-                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+    if (GNUNET_YES == t->reliable)
     {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
+      struct MeshSentMessage *copy;
+
+      copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
+      copy->t = t;
+      copy->id = ntohl (data_msg->pid);
+      copy->is_forward = GNUNET_YES;
+      copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
+      copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
+                                                       &tunnel_retransmit_message,
+                                                       copy);
+      if (GNUNET_OK !=
+          GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_fwd,
+                                               copy->id,
+                                               copy,
+                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      {
+        GNUNET_break (0);
+        GNUNET_SCHEDULER_cancel (copy->retry_task);
+        GNUNET_free (copy);
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        return;
+      }
+      payload = (struct GNUNET_MESH_Data *) &copy[1];
     }
-    payload = (struct GNUNET_MESH_Data *) &copy[1];
+    else
+    {
+      static struct GNUNET_MESH_Data data_message;
+      payload = &data_message;
+    }
     memcpy (payload, data_msg, size);
     payload->oid = my_full_id;
     payload->tid = htonl (t->id.tid);
@@ -4706,29 +4716,40 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
    * (pretend we got it from a mesh peer)
    */
   {
-    struct MeshSentMessage *copy;
     struct GNUNET_MESH_Data *payload;
 
-    copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
-    copy->t = t;
-    copy->id = ntohl (data_msg->pid);
-    copy->is_forward = GNUNET_NO;
-    copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
-    copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
-                                                     &tunnel_retransmit_message,
-                                                     copy);
-    if (GNUNET_YES == t->reliable &&
-        GNUNET_OK !=
-        GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_bck,
-                                             copy->id,
-                                             copy,
-                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+    if (GNUNET_YES == t->reliable)
     {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
+      struct MeshSentMessage *copy;
+
+      copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
+      copy->t = t;
+      copy->id = ntohl (data_msg->pid);
+      copy->is_forward = GNUNET_NO;
+      copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
+      copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
+                                                       &tunnel_retransmit_message,
+                                                       copy);
+      if (GNUNET_OK !=
+          GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_bck,
+                                               copy->id,
+                                               copy,
+                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      {
+        GNUNET_break (0);
+        GNUNET_SCHEDULER_cancel (copy->retry_task);
+        GNUNET_free (copy);
+        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+        return;
+      }
+      payload = (struct GNUNET_MESH_Data *) &copy[1];
     }
-    payload = (struct GNUNET_MESH_Data *) &copy[1];
+    else
+    {
+      static struct GNUNET_MESH_Data data_message;
+      payload = &data_message;
+    }
+
     memcpy (payload, data_msg, size);
     GNUNET_PEER_resolve (t->id.oid, &payload->oid);
     payload->tid = htonl (t->id.tid);
