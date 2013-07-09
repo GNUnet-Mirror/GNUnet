@@ -944,11 +944,10 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       GMC_is_pid_bigger(pid, t->last_ack_sent))
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  unauthorized message! (%u, ACK %u)\n",
          pid, t->last_ack_sent);
     // FIXME fc what now? accept? reject?
-    return;
   }
   t->last_pid_recv = pid;
   type = ntohs (payload->type);
