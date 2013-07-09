@@ -871,6 +871,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   GNUNET_free_non_null (atsi_delta);
 
   /* Notify solver about new session */
+  if (existing_address->session_id == session_id)
+  	return; /* possible, can both be 0 since address is revalidated */
+
   previous_session = existing_address->session_id;
   existing_address->session_id = session_id;
   handle->s_address_update_session (handle->solver, existing_address,
