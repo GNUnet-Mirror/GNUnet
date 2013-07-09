@@ -2020,9 +2020,10 @@ handle_monitor_start (void *cls,
   }
   GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, zm);
   GNUNET_SERVER_client_mark_monitor (client);
+  GNUNET_SERVER_disable_receive_done_warning (client);
   GNUNET_SERVER_notification_context_add (monitor_nc,
 					  client);
-  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
+  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);  
 }
 
 

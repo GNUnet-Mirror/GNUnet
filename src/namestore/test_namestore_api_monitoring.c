@@ -159,28 +159,7 @@ zone_proc (void *cls,
 	   const struct GNUNET_NAMESTORE_RecordData *rd,
 	   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
-  fprintf (stderr,
-	   "Monitor cb for %s\n",
-	   name);
-  if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key,
-						      expire, name, 
-						      rd_count, rd, 
-						      signature))
-  {
-    struct GNUNET_HashCode zone_key_hash;
-
-    GNUNET_CRYPTO_hash (zone_key, 
-			sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-			&zone_key_hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Verifying signature for `%s' in zone `%s' with %u records  and expiration %llu failed\n", 
-		name, 
-		GNUNET_h2s(&zone_key_hash),
-		rd_count,
-		expire.abs_value);    
-    GNUNET_break (0);
-  }
-  
+  GNUNET_break (NULL == signature);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Comparing results name %s\n", 
 	      name);

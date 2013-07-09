@@ -205,10 +205,10 @@ handle_updates (void *cls,
 			   &handle_updates,
 			   zm,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    zm->monitor(zm->cls, 
-		&lrm->public_key, expire, 
-		name_tmp, 
-		rd_count, rd, &lrm->signature);
+    zm->monitor (zm->cls, 
+		 &lrm->public_key, expire, 
+		 name_tmp, 
+		 rd_count, rd, NULL);
   }
 }
 
@@ -229,12 +229,15 @@ transmit_monitor_message (void *cls,
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
   struct ZoneMonitorStartMessage sm;
 
+  zm->th = NULL;
   if (size < sizeof (struct ZoneMonitorStartMessage))
   {    
     reconnect (zm);
     return 0;
   }
- 
+  sm.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START);
+  sm.gns_header.header.size = htons (sizeof (struct ZoneMonitorStartMessage));
+  sm.gns_header.r_id = htonl (0);
   sm.zone = zm->zone;
   sm.all_zones = htonl (zm->all_zones);
   memcpy (buf, &sm, sizeof (sm));
