@@ -1288,12 +1288,6 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
 
 
 /**
- * Handle to cancel private key generation and state for the
- * key generation operation.
- */
-struct GNUNET_CRYPTO_EccKeyGenerationContext;
-
-/**
  * Create a new private key. Caller must free return value.  Blocking version
  * (blocks to gather entropy).
  *
@@ -1302,31 +1296,6 @@ struct GNUNET_CRYPTO_EccKeyGenerationContext;
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create (void);
 
-
-/**
- * Create a new private key by reading it from a file.  If the files
- * does not exist, create a new key and write it to the file.  If the
- * contents of the file are invalid the old file is deleted and a
- * fresh key is created.
- *
- * @param filename name of file to use for storage
- * @param cont function to call when done (or on errors)
- * @param cont_cls closure for 'cont'
- * @return handle to abort operation, NULL on fatal errors (cont will not be called if NULL is returned)
- */
-struct GNUNET_CRYPTO_EccKeyGenerationContext *
-GNUNET_CRYPTO_ecc_key_create_start (const char *filename,
-				    GNUNET_CRYPTO_EccKeyCallback cont,
-				    void *cont_cls);
-
-
-/**
- * Abort ECC key generation.
- *
- * @param gc key generation context to abort
- */
-void
-GNUNET_CRYPTO_ecc_key_create_stop (struct GNUNET_CRYPTO_EccKeyGenerationContext *gc);
 
 /**
  * Setup a hostkey file for a peer given the name of the

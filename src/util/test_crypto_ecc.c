@@ -146,40 +146,6 @@ testCreateFromFile ()
 
 
 static void
-key_cont (void *cls,
-	  struct GNUNET_CRYPTO_EccPrivateKey *pk,
-	  const char *emsg)
-{
-  const char *txt = cls;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub1;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub2;
-
-  GNUNET_assert (0 == strcmp ("ok", txt));
-  GNUNET_CRYPTO_ecc_key_get_public (pk, &pub1);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pub2);
-  GNUNET_assert (0 == memcmp (&pub1, &pub2, 
-			      sizeof (pub1)));
-  GNUNET_CRYPTO_ecc_key_free (pk);
-}
-
-
-static void
-test_async_creation (void *cls,
-		     const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_CRYPTO_EccKeyGenerationContext *gc;
-
-  gc = GNUNET_CRYPTO_ecc_key_create_start (KEYFILE,
-					   &key_cont, 
-					   (void*) "bug");
-  GNUNET_CRYPTO_ecc_key_create_stop (gc);
-  gc = GNUNET_CRYPTO_ecc_key_create_start (KEYFILE,
-					   &key_cont, 
-					   (void*) "ok");
-}
-
-
-static void
 test_ecdh ()
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv1;
@@ -238,7 +204,6 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-crypto-ecc", "WARNING", NULL);
   if (GNUNET_OK != testCreateFromFile ())
     failureCount++;
-  GNUNET_SCHEDULER_run (&test_async_creation, NULL);
 #if PERF
   if (GNUNET_OK != testSignPerformance ())
     failureCount++;
