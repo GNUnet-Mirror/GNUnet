@@ -761,7 +761,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   uint32_t atsi_delta_count;
   uint32_t addr_net;
   uint32_t previous_session;
-
+  int c1;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s'\n",
@@ -792,8 +792,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                       &peer->hashPubKey, new_address,
                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new address for peer `%s' session id %u, %p\n",
-                GNUNET_i2s (peer), session_id, new_address);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new address %p for peer `%s' session id %u, %s\n",
+    		new_address, GNUNET_i2s (peer), session_id, GNUNET_ATS_print_network_type(addr_net));
 
     /* Tell solver about new address */
     handle->s_add (handle->solver, new_address, addr_net);
@@ -826,6 +826,16 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
       return;
   }
 
+  addr_net = get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE);
+  if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
+  		addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+           "Found existing address for peer `%s' %p with new session %u in network %s\n",
+           GNUNET_i2s (peer),
+           existing_address,
+           session_id,
+           GNUNET_ATS_print_network_type (addr_net));
   /* We have an address without an session, update this address */
   atsi_delta = NULL;
   atsi_delta_count = 0;
@@ -839,6 +849,19 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 				existing_address->atsi, existing_address->atsi_count,
 				existing_address->assigned_bw_out,
 				existing_address->assigned_bw_in);
+
+		for (c1 = 0; c1 < atsi_delta_count; c1++)
+		{
+			if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
+			{
+				/* Network type changed */
+				GNUNET_break (0);
+  			handle->s_address_update_network (handle->solver, existing_address,
+  					ntohl (atsi_delta[c1].value),
+  					get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE));
+  			addr_net = get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE);
+			}
+		}
 
 		/* Notify solver about update with atsi information and session */
 	  handle->s_bulk_start (handle->solver);
@@ -854,8 +877,11 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   		previous_session, session_id);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-           "Updated existing address for peer `%s' %p with new session %u\n",
-           GNUNET_i2s (peer), existing_address, session_id);
+           "Updated existing address for peer `%s' %p with new session %u in network %s\n",
+           GNUNET_i2s (peer),
+           existing_address,
+           session_id,
+           GNUNET_ATS_print_network_type(addr_net));
 }
 
 
@@ -930,7 +956,6 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   if (GNUNET_YES == disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
   	/* ATS properties changed */
-
   	for (c1 = 0; c1 < atsi_delta_count; c1++)
   	{
   		if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
