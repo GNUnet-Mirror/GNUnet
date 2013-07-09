@@ -3004,6 +3004,20 @@ const char *http_plugin_address_to_string (void *cls,
 	return http_common_plugin_address_to_string (cls, p->protocol, addr, addrlen);
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+int http_server_get_network (void *cls,
+                     void *session)
+{
+	struct Session *s = (struct Session *) session;
+	GNUNET_assert (NULL != s);
+	return ntohl(s->ats_address_network_type);
+}
 
 /**
  * Entry point for the plugin.
@@ -3044,6 +3058,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->address_to_string = &http_plugin_address_to_string;
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
+  api->get_network = &http_server_get_network;
 
 #if BUILD_HTTPS
   plugin->name = "transport-https_server";

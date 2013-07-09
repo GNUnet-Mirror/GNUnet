@@ -1427,6 +1427,20 @@ session_cmp_it (void *cls,
   return GNUNET_YES;
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+int udp_get_network (void *cls,
+                     void *session)
+{
+	struct Session *s = (struct Session *) session;
+
+	return ntohl(s->ats.value);
+}
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
@@ -2967,6 +2981,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
+  api->get_network = &udp_get_network;
 
   return api;
 }

@@ -2391,7 +2391,7 @@ int tcp_get_network (void *cls,
 {
 	struct Session *s = (struct Session *) session;
 	GNUNET_assert (NULL != session);
-	return s->ats_address_network_type;
+	return ntohl(s->ats_address_network_type);
 }
 
 
