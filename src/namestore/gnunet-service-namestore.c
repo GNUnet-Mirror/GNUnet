@@ -470,9 +470,12 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_notification_context_destroy (snc);
     snc = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (zonekeys, &zone_to_disk_it, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (zonekeys);
-  zonekeys = NULL;
+  if (NULL != zonekeys)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (zonekeys, &zone_to_disk_it, NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (zonekeys);
+    zonekeys = NULL;
+  }
   while (NULL != (nc = client_head))
   {
     while (NULL != (no = nc->op_head))
