@@ -71,6 +71,10 @@
  *   be called 'PSYC-low', whereas a higher-level API
  *   implementing defaults for standard methods and
  *   variables might be called 'PSYC-std' or 'PSYC-high'.
+ *
+ * Idee (lynx): 
+ * - rename "channel" to "master"
+ * - rename "member" to "slave"
  */
 
 #ifndef GNUNET_PSYC_SERVICE_H
