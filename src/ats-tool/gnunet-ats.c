@@ -143,8 +143,8 @@ end (void *cls,
   }
   if (0 < pending)
     fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
-
-  fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
+  if (op_list_used || op_list_all)
+  	fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
   ret = 0;
 }
 
@@ -423,6 +423,13 @@ testservice_ats (void *cls,
     			fprintf (stderr, _("No preference type given!\n"));
     			return;
     		}
+    		if (NULL == pid_str)
+    		{
+    			fprintf (stderr, _("No peer given!\n"));
+    			return;
+    		}
+
+
 
         for (c = 0; c<strlen(type_str); c++)
         {
