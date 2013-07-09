@@ -34,11 +34,6 @@
 
 
 /**
- * Hostkey generation context
- */
-struct GNUNET_CRYPTO_EccKeyGenerationContext * keygen;
-
-/**
  * Handle to the namestore.
  */
 static struct GNUNET_NAMESTORE_Handle *ns;
@@ -183,12 +178,6 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL != keygen)
-  {
-    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
-    keygen = NULL;
-  }
-
   if (NULL != list_it)
   {
     GNUNET_NAMESTORE_zone_iteration_stop (list_it);
