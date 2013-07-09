@@ -1623,6 +1623,8 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
+
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
@@ -1630,10 +1632,12 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (fc == &t->prev_fc)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** prev peer!\n");
     peer = t->prev_hop;
   }
   else if (fc == &t->next_fc)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** next peer!\n");
     peer = t->next_hop;
   }
   else
@@ -4583,6 +4587,7 @@ handle_local_unicast (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_MESH_Data *payload;
 
     copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
+    copy->t = t;
     copy->id = ntohl (data_msg->pid);
     copy->is_forward = GNUNET_YES;
     copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
@@ -4705,6 +4710,7 @@ handle_local_to_origin (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_MESH_Data *payload;
 
     copy = GNUNET_malloc (sizeof (struct MeshSentMessage) + size);
+    copy->t = t;
     copy->id = ntohl (data_msg->pid);
     copy->is_forward = GNUNET_NO;
     copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
