@@ -274,7 +274,9 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   int contains_sig;
   int rd_count;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s'\n", "LOOKUP_NAME_RESPONSE");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received `%s'\n", 
+       "LOOKUP_NAME_RESPONSE");
   rd_len = ntohs (msg->rd_len);
   rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
@@ -282,7 +284,6 @@ handle_lookup_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   contains_sig = ntohs (msg->contains_sig);
   expire = GNUNET_TIME_absolute_ntoh (msg->expire);
   exp_msg_len = sizeof (struct LookupNameResponseMessage) +
-      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
       name_len + rd_len;
   if (msg_len != exp_msg_len)
   {

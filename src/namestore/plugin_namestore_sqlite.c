@@ -683,7 +683,9 @@ namestore_sqlite_iterate_records (void *cls,
 					&name_hase, sizeof (struct GNUNET_CRYPTO_ShortHashCode),
 					SQLITE_STATIC)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ITERATE NAME HASH: `%8s'", GNUNET_NAMESTORE_short_h2s(&name_hase));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"ITERATE NAME HASH: `%8s'", 
+		GNUNET_NAMESTORE_short_h2s(&name_hase));
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_bind_XXXX");
     if (SQLITE_OK != sqlite3_reset (stmt))
