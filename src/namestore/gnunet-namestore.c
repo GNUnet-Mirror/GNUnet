@@ -447,28 +447,41 @@ get_existing_record (void *cls,
 
 
 /**
- * Function called with the result of the ECC key generation.
+ * Function called with the result from the check if the namestore
+ * service is actually running.  If it is, we start the actual
+ * operation.
  *
- * @param cls our configuration
- * @param pk our private key, NULL on failure
- * @param emsg NULL on success, otherwise error message
+ * @param cls closure with our configuration
+ * @param result GNUNET_YES if the namestore service is running
  */
 static void
-key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
+testservice_task (void *cls,
+                  int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
   struct GNUNET_NAMESTORE_RecordData rd;
 
-  keygen = NULL;
-  if (NULL == pk)
+  if (GNUNET_YES != result)
   {
-    GNUNET_SCHEDULER_shutdown ();
+    FPRINTF (stderr, _("Service `%s' is not running\n"), 
+	     "namestore");
     return;
   }
-  zone_pkey = pk;
+  if (NULL == keyfile)
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+                                                              "ZONEKEY", &keyfile))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "gns", "ZONEKEY");
+      return;
+    }
+    fprintf (stderr,
+             _("Using default zone file `%s'\n"),
+             keyfile);
+  }
+  zone_pkey = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
 
   if (! (add|del|list|(NULL != uri)))
   {
@@ -676,51 +689,6 @@ key_generation_cb (void *cls,
 					      &display_record,
 					      &sync_cb,
 					      NULL);
-  }
-}
-
-
-/**
- * Function called with the result from the check if the namestore
- * service is actually running.  If it is, we start the actual
- * operation.
- *
- * @param cls closure with our configuration
- * @param result GNUNET_YES if the namestore service is running
- */
-static void
-testservice_task (void *cls,
-                  int result)
-{
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  if (GNUNET_YES != result)
-  {
-    FPRINTF (stderr, _("Service `%s' is not running\n"), 
-	     "namestore");
-    return;
-  }
-  if (NULL == keyfile)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                              "ZONEKEY", &keyfile))
-    {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				 "gns", "ZONEKEY");
-      return;
-    }
-    fprintf (stderr,
-             _("Using default zone file `%s'\n"),
-             keyfile);
-  }
-  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
-					       &key_generation_cb, (void *) cfg);
-  GNUNET_free (keyfile);
-  keyfile = NULL;
-  if (NULL == keygen)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    ret = 1;
   }
 }
 

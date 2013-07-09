@@ -1702,7 +1702,6 @@ zonekey_file_it (void *cls, const char *filename)
     return GNUNET_OK;
   pk = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
   learn_private_key (pk);
-  GNUNET_CRYPTO_ecc_key_free (pk);
   (*counter)++;
   return GNUNET_OK;
 }
