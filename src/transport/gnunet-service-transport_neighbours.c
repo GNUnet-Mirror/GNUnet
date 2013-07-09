@@ -2005,7 +2005,7 @@ handle_test_blacklist_cont (void *cls,
       	{
       		net = papi->get_network (NULL, bcc->na.session);
       		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      		ats.value = net;
+      		ats.value = htonl(net);
 //      		GNUNET_break (0);
 //      		fprintf (stderr, "NET: %u\n", ntohl(net));
       		GNUNET_ATS_address_add (GST_ats,
@@ -2839,7 +2839,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     	{
     		net = papi->get_network (NULL, n->primary_address.session);
     		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    		ats.value = net;
+    		ats.value = htonl(net);
 //    		GNUNET_break (0);
 //    		fprintf (stderr, "NET: %u\n", ntohl(net));
         GNUNET_ATS_address_add (GST_ats,
@@ -2907,7 +2907,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     	{
     		net = papi->get_network (NULL, n->alternative_address.session);
     		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    		ats.value = net;
+    		ats.value = htonl(net);
 //    		GNUNET_break (0);
 //    		fprintf (stderr, "NET: %u\n", ntohl(net));
         GNUNET_ATS_address_add (GST_ats,
@@ -3140,7 +3140,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
   		int net = papi->get_network (NULL, n->primary_address.session);
   		struct GNUNET_ATS_Information ats;
   		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  		ats.value = net;
+  		ats.value = htonl(net);
 //  		GNUNET_break (0);
 //  		fprintf (stderr, "NET: %u\n", ntohl(net));
       GNUNET_ATS_address_add (GST_ats,
