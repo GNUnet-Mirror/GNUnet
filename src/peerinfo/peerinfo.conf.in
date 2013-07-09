@@ -24,6 +24,9 @@ HOSTS = $SERVICEHOME/peerinfo/
 # (large-scale experiments); disables persistence of HELLOs!
 NO_IO = NO
 
+# Load HELLOs shipped with GNUnet
+USE_INCLUDED_HELLOS = YES
+
 [uri]
 hello = gnunet-peerinfo
 friend-hello = gnunet-peerinfo

@@ -1230,14 +1230,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *ip;
   struct DirScanContext dsc;
   int noio;
+  int use_included;
 
   hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");
+  use_included = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "USE_INCLUDED_HELLOS");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  if (GNUNET_YES != noio)
+  if ((GNUNET_YES != noio) && (GNUNET_YES == use_included))
   {
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONFIGURATION_get_value_filename (cfg, "peerinfo",
