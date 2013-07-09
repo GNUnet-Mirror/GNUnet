@@ -10,6 +10,7 @@ BINARY = gnunet-service-namestore
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 DATABASE = sqlite
+ZONEFILE_DIRECTORY = $SERVICEHOME/zones/
 
 [namestore-sqlite]
 FILENAME = $SERVICEHOME/namestore/sqlite.db
