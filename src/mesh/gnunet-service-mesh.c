@@ -2122,6 +2122,10 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   ack = t->prev_fc.last_pid_recv + t->queue_max - t->next_fc.queue_n;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " FWD ACK %u\n", ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " last %u, qmax %u, q %u\n",
+              t->prev_fc.last_pid_recv, t->queue_max, t->next_fc.queue_n);
   if (ack == t->prev_fc.last_ack_sent && GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
@@ -3655,7 +3659,11 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# unicast received", 1, GNUNET_NO);
 //     if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv)) FIXME use
-    if (pid == t->prev_fc.last_pid_recv + 1)
+    if ( (GNUNET_NO == t->reliable &&
+          GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv))
+        ||
+          (GNUNET_YES == t->reliable &&
+           pid == t->prev_fc.last_pid_recv + 1) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " pid %u not seen yet, forwarding\n", pid);
@@ -3757,7 +3765,11 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  it's for us! sending to clients...\n");
     GNUNET_STATISTICS_update (stats, "# to origin received", 1, GNUNET_NO);
-    if (pid == t->next_fc.last_pid_recv + 1) // FIXME use "futures" as accepting
+    if ( (GNUNET_NO == t->reliable &&
+          GMC_is_pid_bigger(pid, t->next_fc.last_pid_recv))
+        ||
+          (GNUNET_YES == t->reliable &&
+           pid == t->next_fc.last_pid_recv + 1) ) // FIXME use "futures" as accepting
     {
       t->next_fc.last_pid_recv = pid;
       tunnel_send_client_to_orig (t, msg);
