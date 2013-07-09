@@ -23,6 +23,9 @@
  * @brief namestore for the GNUnet naming system
  * @author Matthias Wachs
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - actually notify monitor clients on all changes!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1394,6 +1397,70 @@ handle_zone_to_name (void *cls,
 
 
 /**
+ * Generate a 'struct LookupNameResponseMessage' and send it to the
+ * given client using the given notification context.
+ *
+ * @param nc notification context to use
+ * @param client client to unicast to
+ * @param request_id request ID to use
+ * @param zone_key zone key of the zone
+ * @param expire expiration time
+ * @param name name
+ * @param rd_count number of records
+ * @param rd array of records
+ * @param signature signature
+ */
+static void
+send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,			
+		      struct GNUNET_SERVER_Client *client,
+		      uint32_t request_id,
+		      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		      struct GNUNET_TIME_Absolute expire,
+		      const char *name,
+		      unsigned int rd_count,
+		      const struct GNUNET_NAMESTORE_RecordData *rd,
+		      const struct GNUNET_CRYPTO_EccSignature *signature)
+{
+  struct LookupNameResponseMessage *zir_msg;
+  size_t name_len;
+  size_t rd_ser_len;
+  size_t msg_size;
+  char *name_tmp;
+  char *rd_ser;
+
+  name_len = strlen (name) + 1;
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);  
+  msg_size = sizeof (struct LookupNameResponseMessage) + name_len + rd_ser_len;
+
+  zir_msg = GNUNET_malloc (msg_size);
+  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
+  zir_msg->gns_header.header.size = htons (msg_size);
+  zir_msg->gns_header.r_id = htonl (request_id);
+  zir_msg->expire = GNUNET_TIME_absolute_hton (expire);
+  zir_msg->contains_sig = htons ((NULL == signature) ? GNUNET_NO : GNUNET_YES);
+  zir_msg->name_len = htons (name_len);
+  zir_msg->rd_count = htons (rd_count);
+  zir_msg->rd_len = htons (rd_ser_len);
+  if (NULL != signature)
+    zir_msg->signature = *signature;
+  zir_msg->public_key = *zone_key;
+  name_tmp = (char *) &zir_msg[1];
+  memcpy (name_tmp, name, name_len);
+  rd_ser = &name_tmp[name_len];
+  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sending `%s' message with size %u\n", 
+	      "ZONE_ITERATION_RESPONSE",
+	      msg_size);
+  GNUNET_SERVER_notification_context_unicast (nc,
+					      client, 
+					      &zir_msg->gns_header.header,
+					      GNUNET_NO);
+  GNUNET_free (zir_msg);
+}
+
+
+/**
  * Zone iteration processor result
  */
 enum ZoneIterationResult
@@ -1466,15 +1533,9 @@ zone_iteraterate_proc (void *cls,
   struct GNUNET_NAMESTORE_CryptoContainer *cc;
   struct GNUNET_HashCode long_hash;
   struct GNUNET_CRYPTO_ShortHashCode zone_hash;
-  struct LookupNameResponseMessage *zir_msg;
   struct GNUNET_TIME_Relative rt;
   unsigned int rd_count_filtered;
   unsigned int c;
-  size_t name_len;
-  size_t rd_ser_len;
-  size_t msg_size;
-  char *name_tmp;
-  char *rd_ser;
 
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   if ((NULL == zone_key) && (NULL == name))
@@ -1543,7 +1604,7 @@ zone_iteraterate_proc (void *cls,
 			      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
 			      &zone_hash);
     GNUNET_CRYPTO_short_hash_double (&zone_hash, &long_hash);
-    if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get(zonekeys, &long_hash)))
+    if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get (zonekeys, &long_hash)))
     {
       expire = get_block_expiration_time (rd_count_filtered, rd_filtered);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1584,36 +1645,16 @@ zone_iteraterate_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Sending name `%s' for iteration over all zones\n",
 		name);
-  name_len = strlen (name) + 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count_filtered, rd_filtered);  
-  msg_size = sizeof (struct LookupNameResponseMessage) + name_len + rd_ser_len;
-
-  zir_msg = GNUNET_malloc (msg_size);
-  zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE);
-  zir_msg->gns_header.header.size = htons (msg_size);
-  zir_msg->gns_header.r_id = htonl (proc->zi->request_id);
-  zir_msg->expire = GNUNET_TIME_absolute_hton (expire);
-  zir_msg->contains_sig = htons ((NULL == signature) ? GNUNET_NO : GNUNET_YES);
-  zir_msg->name_len = htons (name_len);
-  zir_msg->rd_count = htons (rd_count_filtered);
-  zir_msg->rd_len = htons (rd_ser_len);
-  if (NULL != signature)
-    zir_msg->signature = *signature;
-  zir_msg->public_key = *zone_key;
-  name_tmp = (char *) &zir_msg[1];
-  memcpy (name_tmp, name, name_len);
-  rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize (rd_count_filtered, rd_filtered, rd_ser_len, rd_ser);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message with size %u\n", 
-	      "ZONE_ITERATION_RESPONSE",
-	      msg_size);
-  GNUNET_SERVER_notification_context_unicast (snc,
-					      proc->zi->client->client, 
-					      &zir_msg->gns_header.header,
-					      GNUNET_NO);
+  send_lookup_response (snc,
+			proc->zi->client->client,
+			proc->zi->request_id,
+			zone_key,
+			expire,
+			name,
+			rd_count_filtered,
+			rd_filtered,
+			signature);
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
-  GNUNET_free (zir_msg);
   GNUNET_free_non_null (new_signature);
 }
 
@@ -1896,7 +1937,15 @@ monitor_iterate_cb (void *cls,
     monitor_sync (zm);
     return;
   }
-  // FIXME: send message to client!
+  send_lookup_response (monitor_nc,
+			zm->client,
+			zm->request_id,
+			zone_key,
+			expire,
+			name,
+			rd_count,
+			rd,
+			signature);
   zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
 }
 
