@@ -63,11 +63,6 @@ struct GNUNET_PeerIdentity GST_my_identity;
 struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 
 /**
- * Hostkey generation context
- */
-struct GNUNET_CRYPTO_EccKeyGenerationContext *GST_keygen;
-
-/**
  * Handle to our service's server.
  */
 static struct GNUNET_SERVER_Handle *GST_server;
@@ -584,11 +579,6 @@ neighbours_address_notification (void *cls,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL != GST_keygen)
-  {
-    GNUNET_CRYPTO_ecc_key_create_stop (GST_keygen);
-    GST_keygen = NULL;
-  }
   GST_neighbours_stop ();
   GST_validation_stop ();
   GST_plugins_unload ();
@@ -620,31 +610,45 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback for hostkey read/generation
+ * Initiate transport service.
  *
- * @param cls NULL
- * @param pk the private key
- * @param emsg error message
+ * @param cls closure
+ * @param server the initialized server
+ * @param c configuration to use
  */
 static void
-key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
+run (void *cls, struct GNUNET_SERVER_Handle *server,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  char *keyfile;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
   long long unsigned int max_fd_cfg;
   int max_fd_rlimit;
   int max_fd;
   int friend_only;
 
-  GST_keygen = NULL;
-  if (NULL == pk)
+  /* setup globals */
+  GST_cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
+                                               &keyfile))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Could not access hostkey: %s. Exiting.\n"),
-                emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _
+                ("Transport service is lacking key configuration settings.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION",
+                                           &hello_expiration))
+  {
+    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
+  }
+  GST_server = server;
+  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  GNUNET_assert (NULL != pk);
   GST_my_private_key = pk;
 
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
@@ -671,10 +675,10 @@ key_generation_cb (void *cls,
   struct rlimit r_file;
   if (0 == getrlimit (RLIMIT_NOFILE, &r_file))
   {
-		max_fd_rlimit = r_file.rlim_cur;
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-								"Maximum number of open files was: %u/%u\n", r_file.rlim_cur,
-								r_file.rlim_max);
+    max_fd_rlimit = r_file.rlim_cur;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Maximum number of open files was: %u/%u\n", r_file.rlim_cur,
+		r_file.rlim_max);
   }
   max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */
 #endif
@@ -713,52 +717,6 @@ key_generation_cb (void *cls,
                         (max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start ((max_fd / 3));
-  if (NULL != GST_server)
-    GNUNET_SERVER_resume (GST_server);
-}
-
-
-/**
- * Initiate transport service.
- *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
- */
-static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  char *keyfile;
-
-  /* setup globals */
-  GST_cfg = c;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Transport service is lacking key configuration settings.  Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION",
-                                           &hello_expiration))
-  {
-    hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
-  }
-  GST_server = server;
-  GNUNET_SERVER_suspend (server);
-  GST_keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, &key_generation_cb, NULL);
-  GNUNET_free (keyfile);
-  if (NULL == GST_keygen)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service is unable to access hostkey. Exiting.\n"));
-    GNUNET_SCHEDULER_shutdown ();
-  }
 }
 
 

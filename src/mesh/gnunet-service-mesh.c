@@ -586,11 +586,6 @@ static unsigned long long drop_percent;
 /*************************** Static global variables **************************/
 
 /**
- * Hostkey generation context
- */
-static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
-
-/**
  * DLL with all the clients, head.
  */
 static struct MeshClient *clients_head;
@@ -5177,11 +5172,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
-  if (NULL != keygen)
-  {
-    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
-    keygen = NULL;
-  }
   GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
   GNUNET_CONTAINER_multihashmap_iterate (peers, &shutdown_peer, NULL);
   if (dht_handle != NULL)
@@ -5204,64 +5194,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback for hostkey read/generation.
- *
- * @param cls Closure (Configuration handle).
- * @param pk The ECC private key.
- * @param emsg Error message, if any.
- */
-static void
-key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
-{
-  const struct GNUNET_CONFIGURATION_Handle *c = cls;
-
-  keygen = NULL;
-  if (NULL == pk)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Could not access hostkey: %s. Exiting.\n"),
-                emsg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_full_id.hashPubKey);
-  myid = GNUNET_PEER_intern (&my_full_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Mesh for peer [%s] starting\n",
-              GNUNET_i2s(&my_full_id));
-
-  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to MESH functions */
-                                     &core_init,        /* Call core_init once connected */
-                                     &core_connect,     /* Handle connects */
-                                     &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Don't notify about all incoming messages */
-                                     GNUNET_NO, /* For header only in notification */
-                                     NULL,      /* Don't notify about all outbound messages */
-                                     GNUNET_NO, /* For header-only out notification */
-                                     core_handlers);    /* Register these handlers */
-  if (core_handle == NULL)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  next_tid = 0;
-  next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
-}
-
-
-/**
  * Process mesh requests.
  *
  * @param cls closure
@@ -5273,6 +5205,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
@@ -5411,10 +5344,38 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile,
-                                               &key_generation_cb,
-                                               (void *) c);
+  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
+  GNUNET_assert (NULL != pk);
+  my_private_key = pk;
+  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
+                      &my_full_id.hashPubKey);
+  myid = GNUNET_PEER_intern (&my_full_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Mesh for peer [%s] starting\n",
+              GNUNET_i2s(&my_full_id));
+
+  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
+                                     NULL,      /* Closure passed to MESH functions */
+                                     &core_init,        /* Call core_init once connected */
+                                     &core_connect,     /* Handle connects */
+                                     &core_disconnect,  /* remove peers on disconnects */
+                                     NULL,      /* Don't notify about all incoming messages */
+                                     GNUNET_NO, /* For header only in notification */
+                                     NULL,      /* Don't notify about all outbound messages */
+                                     GNUNET_NO, /* For header-only out notification */
+                                     core_handlers);    /* Register these handlers */
+  if (NULL == core_handle)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  next_tid = 0;
+  next_local_tid = GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
+  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
 
 

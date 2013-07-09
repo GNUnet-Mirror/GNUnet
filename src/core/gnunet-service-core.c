@@ -54,11 +54,6 @@ struct GNUNET_STATISTICS_Handle *GSC_stats;
  */
 static struct GNUNET_SERVER_Handle *GSC_server;
 
-/**
- * Hostkey generation context
- */
-static struct GNUNET_CRYPTO_EccKeyGenerationContext *keygen;
-
 
 /**
  * Last task run during shutdown.  Disconnects us from
@@ -71,11 +66,6 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
-  if (NULL != keygen)
-  {
-    GNUNET_CRYPTO_ecc_key_create_stop (keygen);
-    keygen = NULL;
-  }
   GSC_CLIENTS_done ();
   GSC_NEIGHBOURS_done ();
   GSC_SESSIONS_done ();
@@ -90,42 +80,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-/**
- * Callback for hostkey read/generation
- *
- * @param cls NULL
- * @param pk the private key
- * @param emsg error message
- */
-static void
-key_generation_cb (void *cls,
-                   struct GNUNET_CRYPTO_EccPrivateKey *pk,
-                   const char *emsg)
-{
-  keygen = NULL;
-  if (NULL == pk)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to read or generate private key: %s\n"),
-		emsg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if ((GNUNET_OK != GSC_KX_init (pk)) || 
-      (GNUNET_OK != GSC_NEIGHBOURS_init ()))
-  {
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  GSC_SESSIONS_init ();
-  GSC_CLIENTS_init (GSC_server);
-  GNUNET_SERVER_resume (GSC_server);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Core service of `%4s' ready.\n"),
-              GNUNET_i2s (&GSC_my_identity));
-}
-
-
 /**
  * Initiate core service.
  *
@@ -137,6 +91,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
   char *keyfile;
 
   GSC_cfg = c;
@@ -156,14 +111,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
-  keygen = GNUNET_CRYPTO_ecc_key_create_start (keyfile, &key_generation_cb, NULL);
+  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
-  if (NULL == keygen)
+  GNUNET_assert (NULL != pk);
+  if ((GNUNET_OK != GSC_KX_init (pk)) || 
+      (GNUNET_OK != GSC_NEIGHBOURS_init ()))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Transport service is unable to access hostkey. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
+    return;
   }
+  GSC_SESSIONS_init ();
+  GSC_CLIENTS_init (GSC_server);
+  GNUNET_SERVER_resume (GSC_server);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Core service of `%4s' ready.\n"),
+              GNUNET_i2s (&GSC_my_identity));
 }
 
 
