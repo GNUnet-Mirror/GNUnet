@@ -856,6 +856,9 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
     d_msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     d_msg.tunnel_id = msg->tunnel_id;
+    memset (&d_msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+    d_msg.port = 0;
+    d_msg.options = 0;
 
     send_packet (h, &d_msg.header, NULL);
   }
@@ -1506,6 +1509,9 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (tunnel->tid);
+  memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  msg.port = 0;
+  msg.options = 0;
   th = h->th_head;
   while (th != NULL)
   {
