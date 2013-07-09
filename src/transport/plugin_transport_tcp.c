@@ -617,10 +617,9 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     sb = &a4;
     break;
   default:
-    LOG (GNUNET_ERROR_TYPE_ERROR, 
-	 _("Unexpected address length: %u bytes\n"),
-	 (unsigned int) addrlen);
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+    		_("Unexpected address length: %u bytes\n"),
+    		(unsigned int) addrlen);
     return NULL;
   }
   if (NULL == inet_ntop (af, sb, buf, INET6_ADDRSTRLEN))
