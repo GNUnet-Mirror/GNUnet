@@ -536,6 +536,7 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
  * Talk to a nym.
  *
  * FIXME: look up nym in GADS and talk to its place.
+ * FIXME: do we want this in this API!?  Not sure. -CG
  *
  * @param nym Nym we want to talk to.
  * @param method_name Method to invoke on the @a nym.
