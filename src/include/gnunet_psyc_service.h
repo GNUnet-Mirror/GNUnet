@@ -616,8 +616,8 @@ GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  * small, large data is to be passed as streaming data to methods).
  *
  * A name matches if it includes the @a state_name prefix, thus requesting the
- * empty state ("") will match all values; requesting "a_b" will also return
- * values stored under "a_b_c".
+ * empty state ("") will match all values; requesting "_a_b" will also return
+ * values stored under "_a_b_c".
  *
  * @param member Membership handle.
  * @param state_name Name of the state to query (full name 
@@ -643,7 +643,7 @@ GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
  *
  * If the requested variable name does not have an exact state in
  * the state, the nearest less-specific name is matched; for example,
- * requesting "a_b" will match "a" if "a_b" does not exist.
+ * requesting "_a_b" will match "_a" if "_a_b" does not exist.
  *
  * @param member Membership handle.
  * @param variable_name Name of the variable to query.
