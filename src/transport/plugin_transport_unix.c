@@ -726,6 +726,20 @@ session_timeout (void *cls,
   disconnect_session (s);
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+int unix_get_network (void *cls,
+                     void *session)
+{
+	GNUNET_assert (NULL != session);
+	return GNUNET_ATS_NET_LOOPBACK;
+}
+
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
@@ -940,7 +954,12 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 					ua_len);
   s = lookup_session (plugin, sender, ua, ua_len);
   if (NULL == s)
+  {
     s = unix_plugin_get_session (plugin, addr);
+    /* Notify transport and ATS about new session */
+    plugin->env->session_start (NULL, sender,
+    		PLUGIN_NAME, ua, ua_len, s, &plugin->ats_network, 1);
+  }
   reschedule_session_timeout (s);
 
   plugin->env->receive (plugin->env->cls, sender, currhdr,
@@ -1599,6 +1618,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->address_to_string = &unix_address_to_string;
   api->check_address = &unix_check_address;
   api->string_to_address = &unix_string_to_address;
+  api->get_network = &unix_get_network;
   sockets_created = unix_transport_server_start (plugin);
   if (0 == sockets_created)
     LOG (GNUNET_ERROR_TYPE_WARNING,

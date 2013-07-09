@@ -1022,6 +1022,19 @@ create_macendpoint (struct Plugin *plugin,
   return pos;
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+int wlan_get_network (void *cls,
+                     void *session)
+{
+	GNUNET_assert (NULL != session);
+	return GNUNET_ATS_NET_WLAN;
+}
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
@@ -1876,6 +1889,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;
   api->string_to_address = &wlan_string_to_address;
+  api->get_network = &wlan_get_network;
   return api;
 }
 
