@@ -449,6 +449,44 @@ plugin_env_update_metrics (void *cls,
   GST_update_ats_metrics (peer, &haddress, session, ats, ats_count);
 }
 
+static void
+plugin_env_session_start (void *cls,
+	   const struct GNUNET_PeerIdentity *peer,
+	   const char *plugin,
+	   const void *address,
+	   uint16_t address_len,
+	   struct Session *session,
+	   const struct GNUNET_ATS_Information *ats,
+	   uint32_t ats_count)
+{
+	if (NULL == peer)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == plugin)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == address)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == session)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	struct GNUNET_HELLO_Address *addr;
+	addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding peer `%s' address %s session %p\n",
+			GNUNET_i2s (peer), GST_plugins_a2s(addr), session);
+	GNUNET_ATS_address_add (GST_ats, addr, session, ats, ats_count);
+	GNUNET_free (addr);
+}
 
 /**
  * Function called by ATS to notify the callee that the
@@ -707,6 +745,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_manipulation_init (GST_cfg);
   GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
+                    &plugin_env_session_start,
                     &plugin_env_session_end,
                     &plugin_env_address_to_type,
                     &plugin_env_update_metrics);
