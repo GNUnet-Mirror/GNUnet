@@ -78,6 +78,31 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
 
 
 /**
+ * Function that will be called whenever the plugin internally
+ * creates a new session and hence transport need to tell ATS.
+ * This happens when we have a inbound connection we did not
+ * initiate.
+ *
+ * @param cls closure
+ * @param peer peer
+ * @param plugin plugin
+ * @param address address
+ * @param address_len length of the address
+ * @param session session
+ * @param ats ATS information
+ * @param ats_count number of ATS information contained
+ */
+typedef void
+(*GNUNET_TRANSPORT_SessionStart) (void *cls,
+					  const struct GNUNET_PeerIdentity *peer,
+					  const char *plugin,
+					  const void *address,
+					  uint16_t address_len,
+					  struct Session *session,
+					  const struct GNUNET_ATS_Information *ats,
+					  uint32_t ats_count);
+
+/**
  * Function called by the transport for each received message.
  * This function should also be called with "NULL" for the
  * message to signal that the other peer disconnected.
@@ -247,6 +272,12 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * session handle stops being valid (is destroyed).
    */
   GNUNET_TRANSPORT_SessionEnd session_end;
+
+  /**
+   * Function called by the plugin when a new (incoming) session was created
+   * not explicitly created using the the get_session function
+   */
+  GNUNET_TRANSPORT_SessionStart session_start;
 
   /**
    * Function that will be called to figure if an address is an loopback,
