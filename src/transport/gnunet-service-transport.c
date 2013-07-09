@@ -179,7 +179,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im->peer = *peer;
   memcpy (&im[1], message, ntohs (message->size));
 
-  GNUNET_ATS_address_add (GST_ats, address, session, NULL, 0);
+  //GNUNET_ATS_address_add (GST_ats, address, session, NULL, 0);
   GST_clients_broadcast (&im->header, GNUNET_YES);
 
   return ret;
