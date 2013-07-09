@@ -1938,6 +1938,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   struct IPv6TcpAddress *t6;
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
+  struct GNUNET_ATS_Information ats;
 
   if (0 ==
       memcmp (&wm->clientIdentity, plugin->env->my_identity,
@@ -1945,11 +1946,12 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   {
     /* refuse connections from ourselves */
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_break (0);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Received %s message from `%4s'\n", "WELCOME",
-       GNUNET_i2s (&wm->clientIdentity));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received %s message from `%4s' %p\n", "WELCOME",
+       GNUNET_i2s (&wm->clientIdentity), client);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP WELCOME messages received"), 1,
                             GNUNET_NO);
@@ -1958,7 +1960,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   {
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Found existing session %p for peer `%s'\n",
 	   session,
 	   GNUNET_a2s (vaddr, alen));
@@ -1998,32 +2000,41 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         session->addrlen = sizeof (struct IPv6TcpAddress);
       }
 
-      struct GNUNET_ATS_Information ats;
       ats = plugin->env->get_address_type (plugin->env->cls, vaddr ,alen);
       session->ats_address_network_type = ats.value;
-
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+     "Creating new session %p for peer `%s'\n",
+     session,
+     GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
+      GNUNET_CONTAINER_multihashmap_put (plugin->sessionmap,
+  				       &session->target.hashPubKey,
+  				       session,
+  				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      inc_sessions (plugin, session, __LINE__);
     }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	   "Did not obtain TCP socket address for incoming connection\n");
+      GNUNET_break (0);
     }
-    GNUNET_CONTAINER_multihashmap_put (plugin->sessionmap, 
-				       &session->target.hashPubKey, 
-				       session, 
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    inc_sessions (plugin, session, __LINE__);
   }
 
   if (session->expecting_welcome != GNUNET_YES)
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_break (0);
     return;
   }
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
+
+
+  /* Notify transport and ATS about new session */
+  plugin->env->session_start (NULL, &wm->clientIdentity,
+  		PLUGIN_NAME, session->addr, session->addrlen, session, &ats, 1);
 
 
   process_pending_messages (session);
@@ -2368,6 +2379,20 @@ stop_session_timeout (struct Session *s)
   }
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+int tcp_get_network (void *cls,
+                     void *session)
+{
+	struct Session *s = (struct Session *) session;
+	return s->ats_address_network_type;
+}
+
 
 /**
  * Entry point for the plugin.
@@ -2502,6 +2527,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->check_address = &tcp_plugin_check_address;
   api->address_to_string = &tcp_address_to_string;
   api->string_to_address = &tcp_string_to_address;
+  api->get_network = &tcp_get_network;
   plugin->service = service;
   if (service != NULL)
   {

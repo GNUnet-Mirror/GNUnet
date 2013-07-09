@@ -494,6 +494,17 @@ typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
 
 
 /**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+typedef int (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
+                                                void *session);
+
+
+/**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
@@ -556,6 +567,12 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * object
    */
   GNUNET_TRANSPORT_CreateSession get_session;
+
+
+  /**
+   * Function to obtain the network type for a session
+   */
+  GNUNET_TRANSPORT_GetNetworkType get_network;
 };
 
 
