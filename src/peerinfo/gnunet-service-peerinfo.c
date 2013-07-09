@@ -1239,7 +1239,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   use_included = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "USE_INCLUDED_HELLOS");
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  if ((GNUNET_YES != noio) && (GNUNET_YES == use_included))
+  if (GNUNET_YES != noio)
   {
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONFIGURATION_get_value_filename (cfg, "peerinfo",
@@ -1257,23 +1257,25 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 					&cron_clean_data_hosts, NULL);
-
-    ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-    GNUNET_asprintf (&peerdir,
+    if (GNUNET_YES == use_included)
+    {
+    	ip = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+    	GNUNET_asprintf (&peerdir,
 		     "%shellos",
 		     ip);
-    GNUNET_free (ip);
+    	GNUNET_free (ip);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Importing HELLOs from `%s'\n"),
-		peerdir);
-    dsc.matched = 0;
-    dsc.remove_files = GNUNET_NO;
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			_("Importing HELLOs from `%s'\n"),
+			peerdir);
+			dsc.matched = 0;
+			dsc.remove_files = GNUNET_NO;
 
-    GNUNET_DISK_directory_scan (peerdir,
-				&hosts_directory_scan_callback, &dsc);
+			GNUNET_DISK_directory_scan (peerdir,
+					&hosts_directory_scan_callback, &dsc);
 
-    GNUNET_free (peerdir);
+			GNUNET_free (peerdir);
+    }
   }
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &disconnect_cb, NULL) ;
