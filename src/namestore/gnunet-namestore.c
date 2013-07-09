@@ -163,6 +163,15 @@ static struct GNUNET_TIME_Absolute etime_abs;
  */
 static int etime_is_rel = GNUNET_SYSERR;
 
+/**
+ * Monitor handle.
+ */
+static struct GNUNET_NAMESTORE_ZoneMonitor *zm;
+
+/**
+ * Enables monitor mode.
+ */
+static int monitor;
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -214,6 +223,11 @@ do_shutdown (void *cls,
   {
     GNUNET_free (uri);
     uri = NULL;
+  }
+  if (NULL != zm)
+  {
+    GNUNET_NAMESTORE_zone_monitor_stop (zm);
+    zm = NULL;
   }
 }
 
@@ -354,6 +368,18 @@ display_record (void *cls,
   }
   FPRINTF (stdout, "%s", "\n");
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
+}
+
+
+/**
+ * Function called once we are in sync in monitor mode.
+ *
+ * @param cls NULL
+ */
+static void
+sync_cb (void *cls)
+{
+  FPRINTF (stdout, "%s", "Monitor is now in sync.\n");
 }
 
 
@@ -643,6 +669,14 @@ key_generation_cb (void *cls,
 							   &add_qe_uri);
   }
   GNUNET_free_non_null (data);
+  if (monitor)
+  {
+    zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
+					      &zone,
+					      &display_record,
+					      &sync_cb,
+					      NULL);
+  }
 }
 
 
@@ -740,6 +774,9 @@ main (int argc, char *const *argv)
     {'e', "expiration", "TIME",
      gettext_noop ("expiration time for record to use (for adding only), \"never\" is possible"), 1,
      &GNUNET_GETOPT_set_string, &expirationstring},   
+    {'m', "monitor", NULL,
+     gettext_noop ("monitor changes in the namestore"), 0,
+     &GNUNET_GETOPT_set_one, &monitor},   
     {'n', "name", "NAME",
      gettext_noop ("name of the record to add/delete/display"), 1,
      &GNUNET_GETOPT_set_string, &name},   

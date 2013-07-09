@@ -1408,6 +1408,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START 441
 
 /**
+ * Service to client: you're now in sync.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC 442
+
+/**
  * Client to service: please start iteration; receives
  * "GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE" messages in return.
  */

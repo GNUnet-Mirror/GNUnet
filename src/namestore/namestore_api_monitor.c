@@ -56,9 +56,14 @@ struct GNUNET_NAMESTORE_ZoneMonitor
   GNUNET_NAMESTORE_RecordMonitor monitor;
 
   /**
-   * Closure for 'monitor'.
+   * Function called when we've synchronized.
    */
-  void *monitor_cls;
+  GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb;
+
+  /**
+   * Closure for 'monitor' and 'sync_cb'.
+   */
+  void *cls;
 
   /**
    * Transmission handle to client.
@@ -101,7 +106,7 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
 {
   if (NULL != zm->h)
     GNUNET_CLIENT_disconnect (zm->h);
-  zm->monitor (zm->monitor_cls,
+  zm->monitor (zm->cls,
 	       NULL,
 	       GNUNET_TIME_UNIT_ZERO_ABS,
 	       NULL, 0, NULL, NULL);
@@ -140,6 +145,17 @@ handle_updates (void *cls,
   if (NULL == msg)
   {
     reconnect (zm);
+    return;
+  }
+  if ( (ntohs (msg->size) == sizeof (struct GNUNET_MessageHeader)) &&
+       (GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC == ntohs (msg->type) ) )
+  {
+    GNUNET_CLIENT_receive (zm->h,
+			   &handle_updates,
+			   zm,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+    if (NULL != zm->sync_cb)
+      zm->sync_cb (zm->cls);
     return;
   }
   if ( (ntohs (msg->size) < sizeof (struct LookupNameResponseMessage)) ||
@@ -189,7 +205,7 @@ handle_updates (void *cls,
 			   &handle_updates,
 			   zm,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    zm->monitor(zm->monitor_cls, 
+    zm->monitor(zm->cls, 
 		&lrm->public_key, expire, 
 		name_tmp, 
 		rd_count, rd, &lrm->signature);
@@ -238,14 +254,16 @@ transmit_monitor_message (void *cls,
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor, NULL for all zones
  * @param monitor function to call on zone changes
- * @param monitor_cls closure for 'monitor'
+ * @param sync_cb function called when we're in sync with the namestore
+ * @param cls closure for 'monitor' and 'sync_cb'
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
-				     void *monitor_cls)
+				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
+				     void *cls)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm;
   struct GNUNET_CLIENT_Connection *client;
@@ -260,7 +278,8 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
   else
     zm->zone = *zone;
   zm->monitor = monitor;
-  zm->monitor_cls = monitor_cls;
+  zm->sync_cb = sync_cb;
+  zm->cls = cls;
   zm->th = GNUNET_CLIENT_notify_transmit_ready (zm->h,
 						sizeof (struct ZoneMonitorStartMessage),
 						GNUNET_TIME_UNIT_FOREVER_REL,

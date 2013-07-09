@@ -484,21 +484,37 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor)(void *cls,
 
 
 /**
+ * Function called once the monitor has caught up with the current 
+ * state of the database.  Will be called AGAIN after each disconnect
+ * (record monitor called with 'NULL' for zone_key) once we're again
+ * in sync.
+ *
+ * @param cls closure
+ */
+typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
+
+
+/**
  * Begin monitoring a zone for changes.  Will first call the 'monitor' function
- * on all existing records in the selected zone(s) and then call it whenever
- * a record changes.
+ * on all existing records in the selected zone(s), then calls 'sync_cb',
+ * and then calls the 'monitor' whenever a record changes.  If the namestore
+ * disconnects, the 'monitor' function is called with a disconnect event; if
+ * the connection is re-established, the process begins from the start (all
+ * existing records, sync, then updates).
  *
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor, NULL for all zones
  * @param monitor function to call on zone changes
- * @param monitor_cls closure for 'monitor'
+ * @param sync_cb function called when we're in sync with the namestore
+ * @param cls closure for 'monitor' and 'sync_cb'
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_ShortHashCode *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
-				     void *monitor_cls);
+				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
+				     void *cls);
 
 
 /**
