@@ -466,7 +466,12 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 			GNUNET_break (0);
 			return;
 	}
-  GNUNET_ATS_address_update (GST_ats, address, session, ats_new, ats_count);
+  if (GNUNET_NO == GNUNET_ATS_address_update (GST_ats, address, session, ats_new, ats_count))
+  {
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  			_("Address or session unknown: failed to update properties for peer `%s' plugin `%s' address `%s'\n"),
+  			GNUNET_i2s (peer), address->transport_name, GST_plugins_a2s (address));
+  }
   GNUNET_free (ats_new);
 }
 
