@@ -2065,6 +2065,7 @@ static void
 tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 {
   uint32_t ack;
+  int use_delta = GNUNET_NO;
 
   /* Is it after unicast retransmission? */
   switch (type)
@@ -2085,9 +2086,11 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
       tunnel_send_fwd_data_ack (t);
-      /* fall through */
-    case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
+      break;
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      use_delta = GNUNET_YES;
+      /* falltrough */
+    case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
       t->force_ack = GNUNET_YES;
       break;
     default:
@@ -2110,7 +2113,8 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
-  ack = t->prev_fc.last_pid_recv + t->queue_max - t->next_fc.queue_n;
+  ack = t->queue_max - t->next_fc.queue_n;
+  ack += use_delta ? 0 : t->prev_fc.last_pid_recv;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " FWD ACK %u\n", ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " last %u, qmax %u, q %u\n",
@@ -2121,7 +2125,8 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
     return;
   }
 
-  t->prev_fc.last_ack_sent = ack;
+  if (GNUNET_NO == use_delta) 
+    t->prev_fc.last_ack_sent = ack;
   if (NULL != t->owner)
     send_local_ack (t, t->owner, ack, GNUNET_YES);
   else if (0 != t->prev_hop)
@@ -3077,6 +3082,7 @@ queue_send (void *cls, size_t size, void *buf)
 
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   pid = ((struct GNUNET_MESH_Data *) buf)->pid;
+  pid = ntohl (pid);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
@@ -3634,8 +3640,11 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received PID %u, ACK %u\n",
                 pid, t->prev_fc.last_ack_sent);
-    tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_POLL);
-    return GNUNET_OK;
+    // FIXME address this in some sensible manner
+    // - remember that we were polled and last ack might not be accurate
+    // - eliminate altogether and just drop messages of full queue
+//     tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_POLL);
+//     return GNUNET_OK;
   }
 
   tunnel_reset_timeout (t);
@@ -3742,8 +3751,11 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received PID %u, ACK %u\n",
                 pid, t->next_fc.last_ack_sent);
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
-    return GNUNET_OK;
+    // FIXME address this in some sensible manner
+    // - remember that we were polled and last ack might not be accurate
+    // - eliminate altogether and just drop messages of full queue
+//     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
+//     return GNUNET_OK;
   }
 
   if (myid == t->id.oid)
@@ -3906,6 +3918,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_ACK *msg;
   struct MeshTunnel *t;
+  struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
   uint32_t ack;
 
@@ -3930,34 +3943,40 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     debug_fwd_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    if (GNUNET_SCHEDULER_NO_TASK != t->next_fc.poll_task &&
-        GMC_is_pid_bigger (ack, t->next_fc.last_ack_recv))
-    {
-      GNUNET_SCHEDULER_cancel (t->next_fc.poll_task);
-      t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
-      t->next_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
-    }
-    t->next_fc.last_ack_recv = ack;
-    peer_unlock_queue (t->next_hop);
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    fc = &t->next_fc;
   }
   else if (t->prev_hop == id)
   {
     debug_bck_ack++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    if (GNUNET_SCHEDULER_NO_TASK != t->prev_fc.poll_task &&
-        GMC_is_pid_bigger (ack, t->prev_fc.last_ack_recv))
-    {
-      GNUNET_SCHEDULER_cancel (t->prev_fc.poll_task);
-      t->prev_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
-      t->prev_fc.poll_time = GNUNET_TIME_UNIT_SECONDS;
-    }
-    t->prev_fc.last_ack_recv = ack;
-    peer_unlock_queue (t->prev_hop);
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+    fc = &t->prev_fc;
   }
   else
+  {
     GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  /* If we have already polled, the response will be a delta (free queue) */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  LAST %u\n", fc->last_pid_sent);
+  if (fc->poll_time.rel_value > GNUNET_TIME_UNIT_SECONDS.rel_value)
+    ack += fc->last_pid_sent;
+
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
+      GMC_is_pid_bigger (ack, fc->last_ack_recv))
+  {
+    GNUNET_SCHEDULER_cancel (fc->poll_task);
+    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
+  }
+  fc->last_ack_recv = ack;
+  peer_unlock_queue (id);
+
+  if (t->next_hop == id)
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+  else
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK);
+
   return GNUNET_OK;
 }
 
