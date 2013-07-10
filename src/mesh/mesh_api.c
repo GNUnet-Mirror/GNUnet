@@ -1427,6 +1427,10 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.port = htonl (port);
   msg.peer = *peer;
   msg.options = 0;
+  if (GNUNET_YES == reliable)
+    msg.options |= GNUNET_MESH_OPTION_RELIABLE;
+  if (GNUNET_NO == buffer)
+    msg.options |= GNUNET_MESH_OPTION_NOBUFFER;
   t->allow_send = 0;
   send_packet (h, &msg.header, t);
   return t;
