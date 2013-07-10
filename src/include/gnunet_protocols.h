@@ -817,34 +817,39 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
 /**
- * Confirm data end-to-end.
+ * Confirm owner->dest data end-to-end (ack goes dest->owner).
  */
-#define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               263
+#define GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK            263
+
+/**
+ * Confirm dest->owner data end-to-end (ack goes owner->dest).
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK            264
 
 /**
  * Avoid path timeouts
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE         264
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE         265
 
 /**
  * Request the destuction of a path
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           265
+#define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           266
 
 /**
  * Request the destruction of a whole tunnel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         266
+#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
 
 /**
  * ACK for a data packet.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_ACK                    267
+#define GNUNET_MESSAGE_TYPE_MESH_ACK                    268
 
 /**
  * Poll for an ACK.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_POLL                   268
+#define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
 
 /**
  * Connect to the mesh service, specifying subscriptions
