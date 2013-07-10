@@ -97,6 +97,26 @@ GST_receive_callback (void *cls,
 		      uint16_t sender_address_len);
 
 
+/**
+ * Notify ATS about the new address including the network this address is
+ * located in.
+ *
+ * @param address the address
+ * @param session the session
+ */
+void
+GST_ats_add_address (struct GNUNET_HELLO_Address *address, void *session);
+
+/**
+ * Notify ATS about property changes to an address
+ *
+ * @param peer the peer
+ * @param address the address
+ * @param session the session
+ * @param ats performance information
+ * @param ats_count number of elements in ats
+ */
+
 void
 GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
 			const struct GNUNET_HELLO_Address *address,

@@ -934,44 +934,6 @@ free_address (struct NeighbourAddress *na)
 
 
 /**
- * Notify ATS about the new address including the network this address is
- * located in.
- *
- * @param address the address
- * @param session the session*
- */
-static void
-add_address (struct GNUNET_HELLO_Address *address,
-						 void *session)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-	struct GNUNET_ATS_Information ats;
-	uint32_t net;
-
-  /* valid new address, let ATS know! */
-  if (NULL == address->transport_name)
-  {
-  	GNUNET_break (0);
-  	return;
-  }
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))
-  {
-    /* we don't have the plugin for this address */
-  	GNUNET_break (0);
-  	return;
-  }
-
-	net = papi->get_network (NULL, session);
-	ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-	ats.value = htonl(net);
-//      		GNUNET_break (0);
-//      		fprintf (stderr, "NET: %u\n", ntohl(net));
-	GNUNET_ATS_address_add (GST_ats,
-			address, session, &ats, 1);
-}
-
-
-/**
  * Initialize the 'struct NeighbourAddress'.
  *
  * @param na neighbour address to initialize
@@ -1581,7 +1543,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
   else
     latency = n->latency.rel_value;
   ats.value = htonl (latency);
-  GST_update_ats_metrics (&n->id,
+  GST_ats_update_metrics (&n->id,
   		 	 	 	 	 	 	 	 	 	  n->primary_address.address,
 			     	 	 	 	 	 	 	 	n->primary_address.session,
 			     	 	 	 	 	 	 	 	&ats, 1);
@@ -2026,7 +1988,7 @@ handle_test_blacklist_cont (void *cls,
     break; 
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
     if (GNUNET_OK == result)
-      add_address (bcc->na.address, bcc->na.session);
+    	GST_ats_add_address (bcc->na.address, bcc->na.session);
 
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
@@ -2835,7 +2797,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
-    add_address (n->primary_address.address, n->primary_address.session);
+    GST_ats_add_address (n->primary_address.address, n->primary_address.session);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2881,7 +2843,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
 
-    add_address (n->alternative_address.address, n->alternative_address.session);
+    GST_ats_add_address (n->alternative_address.address, n->alternative_address.session);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
@@ -3089,7 +3051,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                      n->primary_address.bandwidth_in,
                      n->primary_address.bandwidth_out);
 
-  add_address (n->primary_address.address, n->primary_address.session);
+  GST_ats_add_address (n->primary_address.address, n->primary_address.session);
   set_address (&n->primary_address,
 	       n->primary_address.address,
 	       n->primary_address.session,

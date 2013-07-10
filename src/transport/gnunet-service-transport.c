@@ -393,8 +393,56 @@ plugin_env_address_to_type (void *cls,
 }
 
 
+/**
+ * Notify ATS about the new address including the network this address is
+ * located in.
+ *
+ * @param address the address
+ * @param session the session
+ */
 void
-GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
+GST_ats_add_address (struct GNUNET_HELLO_Address *address,
+						 void *session)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+	struct GNUNET_ATS_Information ats;
+	uint32_t net;
+
+  /* valid new address, let ATS know! */
+  if (NULL == address->transport_name)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+  if (NULL == (papi = GST_plugins_find (address->transport_name)))
+  {
+    /* we don't have the plugin for this address */
+  	GNUNET_break (0);
+  	return;
+  }
+
+	net = papi->get_network (NULL, session);
+	ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+	ats.value = htonl(net);
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Notifying ATS about new address `%s' in network %s\n",
+			(0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
+			GNUNET_ATS_print_network_type(net));
+	GNUNET_ATS_address_add (GST_ats,
+			address, session, &ats, 1);
+}
+
+
+/**
+ * Notify ATS about property changes to an address
+ *
+ * @param peer the peer
+ * @param address the address
+ * @param session the session
+ * @param ats performance information
+ * @param ats_count number of elements in ats
+ */
+void
+GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 			const struct GNUNET_HELLO_Address *address,
 			struct Session *session,
 			const struct GNUNET_ATS_Information *ats,
@@ -446,7 +494,7 @@ plugin_env_update_metrics (void *cls,
   haddress.address_length = address_len;
   haddress.transport_name = plugin_name;
 
-  GST_update_ats_metrics (peer, &haddress, session, ats, ats_count);
+  GST_ats_update_metrics (peer, &haddress, session, ats, ats_count);
 }
 
 static void
@@ -484,7 +532,9 @@ plugin_env_session_start (void *cls,
 	addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding peer `%s' address %s session %p\n",
 			GNUNET_i2s (peer), GST_plugins_a2s(addr), session);
-	GNUNET_ATS_address_add (GST_ats, addr, session, ats, ats_count);
+	GST_ats_add_address (addr, session);
+	if (0 < ats_count)
+		GST_ats_update_metrics (peer, addr, session, ats, ats_count);
 	GNUNET_free (addr);
 }
 
