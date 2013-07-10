@@ -711,7 +711,7 @@ state_machine (void *cls,
     put_uri = NULL;
     return;
   }
-  if (GNUNET_YES == get_info)
+  else if (GNUNET_YES == get_info)
   {
     get_info = GNUNET_NO;
     GPI_plugins_load (cfg);
@@ -720,7 +720,7 @@ state_machine (void *cls,
 				   &print_peer_info, NULL);
     return;
   }
-  if (GNUNET_YES == get_self)
+  else if (GNUNET_YES == get_self)
   {
     struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -731,7 +731,7 @@ state_machine (void *cls,
     else
       printf (_("I am peer `%s'.\n"), (const char *) &enc);
   }
-  if (GNUNET_YES == get_uri)
+  else if (GNUNET_YES == get_uri)
   {
     GPI_plugins_load (cfg);
     pic = GNUNET_PEERINFO_iterate (peerinfo, include_friend_only, &my_peer_identity,
@@ -739,12 +739,21 @@ state_machine (void *cls,
     get_uri = GNUNET_NO;
     return;
   }
-  if (NULL != dump_hello)
+  else if (NULL != dump_hello)
   {
     pic = GNUNET_PEERINFO_iterate (peerinfo, include_friend_only, &my_peer_identity,
 				   TIMEOUT, &dump_my_hello, NULL);
     return;
   }
+  else
+  {
+  	/* default operation list all */
+  	get_info = GNUNET_YES;
+  	tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  	return;
+  }
+
+
   GNUNET_SCHEDULER_shutdown ();
 }
 
