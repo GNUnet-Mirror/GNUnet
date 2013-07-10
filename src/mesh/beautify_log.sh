@@ -14,5 +14,6 @@ rm __tmp_peers
 cat .log | sed -e 's/mesh-api-/mesh-api-                                            /g' > .log2
 mv .log2 .log
 
-kwrite .log --geometry 960x1140-960 &
-
+if [[ "`ps aux | grep "kwrite .lo[g]"`" = "" ]]; then
+    kwrite .log --geometry 960x1140-960 &
+fi
