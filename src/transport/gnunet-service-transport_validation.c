@@ -266,6 +266,8 @@ struct ValidationEntry
   /* FIXME: DEBUGGING */
   int last_line_set_to_no;
   int last_line_set_to_yes;
+
+  enum GNUNET_ATS_Network_Type network;
 };
 
 
@@ -473,6 +475,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_TIME_Absolute next;
   const struct GNUNET_MessageHeader *hello;
+  enum GNUNET_ATS_Network_Type network;
   ssize_t ret;
   size_t tsize;
   size_t slen;
@@ -546,6 +549,14 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
                           message_buf, tsize,
                           PING_PRIORITY, ACCEPTABLE_PING_DELAY,
                           NULL, NULL);
+        network = papi->get_network (ve->address, session);
+        if (GNUNET_ATS_NET_UNSPECIFIED == network)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          						"Could not obtain a valid network for `%s' %s\n",
+                      GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
+        	GNUNET_break (0);
+        }
       }
       else
       {
@@ -563,6 +574,8 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
                               gettext_noop
                               ("# PING without HELLO messages sent"), 1,
                               GNUNET_NO);
+
+    ve->network = network;
     ve->expecting_pong = GNUNET_YES;
     validations_running ++;
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -723,6 +736,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
   const struct GNUNET_HELLO_Message *hello = cls;
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
+  struct GNUNET_ATS_Information ats;
   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
 
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
@@ -744,7 +758,11 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
 
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
-  GNUNET_ATS_address_add (GST_ats, address, NULL, NULL, 0);
+
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl (ve->network);
+  GNUNET_ATS_address_add (GST_ats, address, NULL, &ats, 1);
+
   return GNUNET_OK;
 }
 
@@ -1248,10 +1266,12 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
  	ve->pong_sig_valid_until = GNUNET_TIME_absolute_ntoh (pong->expiration);
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {
-    struct GNUNET_ATS_Information ats;
-    ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-    ats.value = htonl ((uint32_t) ve->latency.rel_value);
-    GNUNET_ATS_address_add (GST_ats, ve->address, NULL, &ats, 1);
+    struct GNUNET_ATS_Information ats[2];
+    ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+    ats[0].value = htonl ((uint32_t) ve->latency.rel_value);
+    ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+    ats[1].value = htonl ((uint32_t) ve->network);
+    GNUNET_ATS_address_add (GST_ats, ve->address, NULL, ats, 2);
   }
   if (validations_running > 0)
   {

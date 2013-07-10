@@ -422,10 +422,20 @@ GST_ats_add_address (struct GNUNET_HELLO_Address *address,
   }
 
 	net = papi->get_network (NULL, session);
+  if (GNUNET_ATS_NET_UNSPECIFIED == net)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    						_("Could not obtain a valid network for `%s' %s\n"),
+                GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+  	GNUNET_break (0);
+  }
 	ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
 	ats.value = htonl(net);
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Notifying ATS about new address `%s' in network %s\n",
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			"Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
+			GNUNET_i2s (&address->peer),
 			(0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
+			session,
 			GNUNET_ATS_print_network_type(net));
 	GNUNET_ATS_address_add (GST_ats,
 			address, session, &ats, 1);
