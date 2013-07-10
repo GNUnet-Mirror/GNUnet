@@ -934,6 +934,44 @@ free_address (struct NeighbourAddress *na)
 
 
 /**
+ * Notify ATS about the new address including the network this address is
+ * located in.
+ *
+ * @param address the address
+ * @param session the session*
+ */
+static void
+add_address (struct GNUNET_HELLO_Address *address,
+						 void *session)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+	struct GNUNET_ATS_Information ats;
+	uint32_t net;
+
+  /* valid new address, let ATS know! */
+  if (NULL == address->transport_name)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+  if (NULL == (papi = GST_plugins_find (address->transport_name)))
+  {
+    /* we don't have the plugin for this address */
+  	GNUNET_break (0);
+  	return;
+  }
+
+	net = papi->get_network (NULL, session);
+	ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+	ats.value = htonl(net);
+//      		GNUNET_break (0);
+//      		fprintf (stderr, "NET: %u\n", ntohl(net));
+	GNUNET_ATS_address_add (GST_ats,
+			address, session, &ats, 1);
+}
+
+
+/**
  * Initialize the 'struct NeighbourAddress'.
  *
  * @param na neighbour address to initialize
@@ -1925,9 +1963,6 @@ handle_test_blacklist_cont (void *cls,
 {
   struct BlackListCheckContext *bcc = cls;
   struct NeighbourMapEntry *n;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-	struct GNUNET_ATS_Information ats;
-	int net;
 
   bcc->bc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1991,32 +2026,8 @@ handle_test_blacklist_cont (void *cls,
     break; 
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
     if (GNUNET_OK == result)
-    {
-      /* valid new address, let ATS know! */
-      GNUNET_assert (bcc->na.address->transport_name != NULL);
-      if (NULL == (papi = GST_plugins_find (bcc->na.address->transport_name)))
-      {
-        /* we don't have the plugin for this address */
-      	GNUNET_break (0);
-      }
-      else
-      {
-      	if (NULL != papi->get_network)
-      	{
-      		net = papi->get_network (NULL, bcc->na.session);
-      		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      		ats.value = htonl(net);
-//      		GNUNET_break (0);
-//      		fprintf (stderr, "NET: %u\n", ntohl(net));
-      		GNUNET_ATS_address_add (GST_ats,
-																bcc->na.address,
-																bcc->na.session,
-																&ats, 1);
-      	}
-      	else
-      		GNUNET_break (0);
-      }
-    }
+      add_address (bcc->na.address, bcc->na.session);
+
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
@@ -2777,9 +2788,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   const struct SessionConnectMessage *scm;
   struct GNUNET_TIME_Absolute ts;
   struct NeighbourMapEntry *n;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-	struct GNUNET_ATS_Information ats;
-	int net;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT_ACK message from peer `%s'\n",
@@ -2827,29 +2835,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successfull */
-    GNUNET_assert (n->primary_address.address->transport_name != NULL);
-    if (NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)))
-    {
-      /* we don't have the plugin for this address */
-    	GNUNET_break (0);
-    }
-    else
-    {
-    	if (NULL != papi->get_network)
-    	{
-    		net = papi->get_network (NULL, n->primary_address.session);
-    		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    		ats.value = htonl(net);
-//    		GNUNET_break (0);
-//    		fprintf (stderr, "NET: %u\n", ntohl(net));
-        GNUNET_ATS_address_add (GST_ats,
-                                n->primary_address.address,
-                                n->primary_address.session,
-                                &ats, 1);
-    	}
-    	else
-    		GNUNET_break (0);
-    }
+    add_address (n->primary_address.address, n->primary_address.session);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2895,30 +2881,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
 
-    GNUNET_assert (n->alternative_address.address->transport_name != NULL);
-    if (NULL == (papi = GST_plugins_find (n->alternative_address.address->transport_name)))
-    {
-      /* we don't have the plugin for this address */
-    	GNUNET_break (0);
-    }
-    else
-    {
-    	if (NULL != papi->get_network)
-    	{
-    		net = papi->get_network (NULL, n->alternative_address.session);
-    		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    		ats.value = htonl(net);
-//    		GNUNET_break (0);
-//    		fprintf (stderr, "NET: %u\n", ntohl(net));
-        GNUNET_ATS_address_add (GST_ats,
-                                n->alternative_address.address,
-                                n->alternative_address.session,
-                                &ats, 1);
-    	}
-    	else
-    		GNUNET_break (0);
-    }
-
+    add_address (n->alternative_address.address, n->alternative_address.session);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
@@ -3126,31 +3089,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                      n->primary_address.bandwidth_in,
                      n->primary_address.bandwidth_out);
 
-  GNUNET_assert (n->primary_address.address->transport_name != NULL);
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  if (NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)))
-  {
-    /* we don't have the plugin for this address */
-  	GNUNET_break (0);
-  }
-  else
-  {
-  	if (NULL != papi->get_network)
-  	{
-  		int net = papi->get_network (NULL, n->primary_address.session);
-  		struct GNUNET_ATS_Information ats;
-  		ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  		ats.value = htonl(net);
-//  		GNUNET_break (0);
-//  		fprintf (stderr, "NET: %u\n", ntohl(net));
-      GNUNET_ATS_address_add (GST_ats,
-                              n->primary_address.address,
-                              n->primary_address.session,
-                              &ats, 1);
-  	}
-  	else
-  		GNUNET_break (0);
-  }
+  add_address (n->primary_address.address, n->primary_address.session);
   set_address (&n->primary_address,
 	       n->primary_address.address,
 	       n->primary_address.session,
