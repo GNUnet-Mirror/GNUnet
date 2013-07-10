@@ -235,7 +235,7 @@ GNUNET_CONTAINER_multihashmap32_iterate (const struct
 int
 GNUNET_CONTAINER_multihashmap32_remove (struct GNUNET_CONTAINER_MultiHashMap32
                                         *map,
-                                        uint32_t key, void *value)
+                                        uint32_t key, const void *value)
 {
   struct MapEntry *e;
   struct MapEntry *p;

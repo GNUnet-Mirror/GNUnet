@@ -348,7 +348,7 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
 int
 GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
                                       const struct GNUNET_HashCode *key, 
-				      void *value)
+				      const void *value)
 {
   union MapEntry me;
   unsigned int i;

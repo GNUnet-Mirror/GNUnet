@@ -597,7 +597,8 @@ GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
  */
 int
 GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                      const struct GNUNET_HashCode * key, void *value);
+                                      const struct GNUNET_HashCode * key, 
+				      const void *value);
 
 /**
  * Remove all entries for the given key from the map.
@@ -807,7 +808,8 @@ GNUNET_CONTAINER_multihashmap32_iterate (const struct
 int
 GNUNET_CONTAINER_multihashmap32_remove (struct GNUNET_CONTAINER_MultiHashMap32
                                         *map,
-                                        uint32_t key, void *value);
+                                        uint32_t key, 
+					const void *value);
 
 
 /**
