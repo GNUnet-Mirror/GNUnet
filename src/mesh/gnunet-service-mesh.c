@@ -1978,7 +1978,6 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
  * 
  * @param t Tunnel on which to send the ACK.
  * @param c Client to whom send the ACK.
- * @param ack Value of the ACK.
  * @param is_fwd Set to GNUNET_YES for FWD ACK (dest->owner)
  */
 static void
