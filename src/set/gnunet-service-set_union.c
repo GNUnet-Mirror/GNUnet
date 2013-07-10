@@ -1415,18 +1415,18 @@ union_op_cancel (struct SetState *set_state, uint32_t op_id)
 
 
 const struct SetVT *
-_GSS_union_vt (void)
+_GSS_union_vt ()
 {
   static const struct SetVT union_vt = {
-    .create = union_set_create,
-    .msg_handler = union_handle_p2p_message,
-    .add = union_add,
-    .remove = union_remove,
-    .destroy_set = union_set_destroy,
-    .evaluate = union_evaluate,
-    .accept = union_accept,
-    .peer_disconnect = union_peer_disconnect,
-    .cancel = union_op_cancel
+    .create = &union_set_create,
+    .msg_handler = &union_handle_p2p_message,
+    .add = &union_add,
+    .remove = &union_remove,
+    .destroy_set = &union_set_destroy,
+    .evaluate = &union_evaluate,
+    .accept = &union_accept,
+    .peer_disconnect = &union_peer_disconnect,
+    .cancel = &union_op_cancel
   };
 
   return &union_vt;
