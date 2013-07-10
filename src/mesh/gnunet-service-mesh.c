@@ -3096,11 +3096,13 @@ queue_send (void *cls, size_t size, void *buf)
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      t->next_fc.last_pid_sent = pid;
+      if (GMC_is_pid_bigger(pid, t->next_fc.last_pid_sent))
+        t->next_fc.last_pid_sent = pid;
       tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      t->prev_fc.last_pid_sent = pid;
+      if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_sent))
+        t->prev_fc.last_pid_sent = pid;
       tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
       break;
     default:
@@ -4013,6 +4015,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_Poll *msg;
   struct MeshTunnel *t;
   GNUNET_PEER_Id id;
+  uint32_t pid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an POLL packet from %s!\n",
               GNUNET_i2s (peer));
@@ -4031,16 +4034,20 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search(peer);
+  pid = ntohl (msg->pid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  PID %u\n", pid);
   if (t->next_hop == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
-    t->next_fc.last_pid_recv = ntohl (msg->pid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  was %u\n", t->next_fc.last_pid_recv);
+    t->next_fc.last_pid_recv = pid;
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
   else if (t->prev_hop == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from BCK\n");
-    t->prev_fc.last_pid_recv = ntohl (msg->pid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  was %u\n", t->prev_fc.last_pid_recv);
+    t->prev_fc.last_pid_recv = pid;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
   else
