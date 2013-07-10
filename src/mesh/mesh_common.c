@@ -91,34 +91,39 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN";
 
       /**
-       * Send origin an ACK that the path is complete
+       * Send origin an ACK that UNICAST arrived
        */
-    case 263: return "GNUNET_MESSAGE_TYPE_MESH_DATA_ACK";
+    case 263: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK";
+
+      /**
+       * Send origin an ACK that TO_ORIGIN arrived
+       */
+    case 264: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK";
 
       /**
        * Avoid path timeouts
        */
-    case 264: return "GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE";
+    case 265: return "GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE";
 
       /**
        * Request the destuction of a path
        */
-    case 265: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY";
+    case 266: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY";
 
       /**
        * Request the destruction of a whole tunnel
        */
-    case 266: return "GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY";
+    case 267: return "GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY";
 
       /**
        * ACK for a data packet.
        */
-    case 267: return "GNUNET_MESSAGE_TYPE_MESH_ACK";
+    case 268: return "GNUNET_MESSAGE_TYPE_MESH_ACK";
 
       /**
        * POLL for ACK.
        */
-    case 268: return "GNUNET_MESSAGE_TYPE_MESH_POLL";
+    case 269: return "GNUNET_MESSAGE_TYPE_MESH_POLL";
 
       /**
        * Connect to the mesh service, specifying subscriptions
