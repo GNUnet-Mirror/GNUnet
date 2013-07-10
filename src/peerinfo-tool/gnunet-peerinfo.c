@@ -54,6 +54,11 @@ struct AddressRecord
   struct GNUNET_TRANSPORT_AddressToStringContext *atsc;
 
   /**
+   * Address expiration time
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
    * Printable address.
    */
   char *result;
@@ -233,7 +238,7 @@ dump_pc (struct PrintContext *pc)
   {
     if (NULL != pc->address_list[i].result)
     {
-      printf ("\t%s\n", pc->address_list[i].result);
+      printf (_("\tExpires: %s \t %s\n"), GNUNET_STRINGS_absolute_time_to_string(pc->address_list[i].expiration), pc->address_list[i].result);
       GNUNET_free (pc->address_list[i].result);
     }
   }
@@ -310,10 +315,10 @@ print_address (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct PrintContext *pc = cls;
   struct AddressRecord *ar;
-
   GNUNET_assert (0 < pc->off);
   ar = &pc->address_list[--pc->off];
   ar->pc = pc;
+  ar->expiration = expiration;
   ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg, address, no_resolve,
 						 GNUNET_TIME_relative_multiply
 						 (GNUNET_TIME_UNIT_SECONDS, 10),
