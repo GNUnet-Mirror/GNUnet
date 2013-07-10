@@ -751,6 +751,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
+    tmsg.port = htonl (t->port);
     GNUNET_PEER_resolve (t->peer, &tmsg.peer);
 
     options = 0;
@@ -1489,6 +1490,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.tunnel_id = htonl (t->tid);
   msg.port = htonl (port);
   msg.peer = *peer;
+  msg.options = 0;
   t->last_ack_sent = 0;
   send_packet (h, &msg.header, t);
   return t;
