@@ -35,6 +35,7 @@
 #include "gnunet_scheduler_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_ats_service.h"
 
 /**
  * Opaque pointer that plugins can use to distinguish specific
@@ -498,9 +499,9 @@ typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
- * @return the network type in HBO or GNUNET_SYSERR
+ * @return the network type
  */
-typedef int (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
+typedef enum GNUNET_ATS_Network_Type (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
                                                 void *session);
 
 

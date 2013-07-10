@@ -1434,8 +1434,8 @@ session_cmp_it (void *cls,
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
-int udp_get_network (void *cls,
-                     void *session)
+static enum GNUNET_ATS_Network_Type
+udp_get_network (void *cls, void *session)
 {
 	struct Session *s = (struct Session *) session;
 

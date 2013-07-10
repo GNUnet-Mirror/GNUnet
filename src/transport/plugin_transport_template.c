@@ -205,6 +205,20 @@ template_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   // FIXME
 }
 
+/**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type in HBO or GNUNET_SYSERR
+ */
+static enum GNUNET_ATS_Network_Type
+template_plugin_get_network (void *cls, void *session)
+{
+	struct Session *s = (struct Session *) session;
+	GNUNET_assert (NULL != s);
+	return GNUNET_ATS_NET_UNSPECIFIED; /* Change to correct network type */
+}
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -354,6 +368,7 @@ libgnunet_plugin_transport_template_init (void *cls)
   api->address_to_string = &template_plugin_address_to_string;
   api->string_to_address = &template_plugin_string_to_address;
   api->get_session = &template_plugin_get_session;
+  api->get_network = &template_plugin_get_network;
   LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
   return api;
 }

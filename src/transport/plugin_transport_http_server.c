@@ -3011,8 +3011,8 @@ const char *http_plugin_address_to_string (void *cls,
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
-int http_server_get_network (void *cls,
-                     void *session)
+static enum GNUNET_ATS_Network_Type
+http_server_get_network (void *cls, void *session)
 {
 	struct Session *s = (struct Session *) session;
 	GNUNET_assert (NULL != s);

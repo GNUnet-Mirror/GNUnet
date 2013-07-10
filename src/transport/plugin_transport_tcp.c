@@ -2386,8 +2386,8 @@ stop_session_timeout (struct Session *s)
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
-int tcp_get_network (void *cls,
-                     void *session)
+static enum GNUNET_ATS_Network_Type
+tcp_get_network (void *cls,void *session)
 {
 	struct Session *s = (struct Session *) session;
 	GNUNET_assert (NULL != session);

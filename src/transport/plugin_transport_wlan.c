@@ -1029,8 +1029,8 @@ create_macendpoint (struct Plugin *plugin,
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
-int wlan_get_network (void *cls,
-                     void *session)
+static enum GNUNET_ATS_Network_Type
+wlan_get_network (void *cls, void *session)
 {
 	GNUNET_assert (NULL != session);
 	return GNUNET_ATS_NET_WLAN;

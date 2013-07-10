@@ -1444,8 +1444,8 @@ client_connect (struct Session *s)
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
-int http_client_get_network (void *cls,
-                     void *session)
+static enum GNUNET_ATS_Network_Type
+http_client_get_network (void *cls, void *session)
 {
 	struct Session *s = (struct Session *) session;
 	GNUNET_assert (NULL != s);
