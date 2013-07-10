@@ -145,6 +145,11 @@ static int get_self;
 static int get_uri;
 
 /**
+ * Option
+ */
+static int default_operation;
+
+/**
  * Option '-i'
  */
 static int get_info;
@@ -730,6 +735,7 @@ state_machine (void *cls,
       printf ("%s\n", (char *) &enc);
     else
       printf (_("I am peer `%s'.\n"), (const char *) &enc);
+
   }
   else if (GNUNET_YES == get_uri)
   {
@@ -745,9 +751,10 @@ state_machine (void *cls,
 				   TIMEOUT, &dump_my_hello, NULL);
     return;
   }
-  else
+  else if (GNUNET_YES == default_operation)
   {
   	/* default operation list all */
+  	default_operation = GNUNET_NO;
   	get_info = GNUNET_YES;
   	tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
   	return;
@@ -768,6 +775,7 @@ state_machine (void *cls,
 int
 main (int argc, char *const *argv)
 {
+	default_operation = GNUNET_YES;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'n', "numeric", NULL,
      gettext_noop ("don't resolve host names"),
