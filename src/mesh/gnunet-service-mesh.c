@@ -287,7 +287,13 @@ struct MESH_TunnelID
 /**
  * Info needed to retry a message in case it gets lost.
  */
-struct MeshSentMessage {
+struct MeshSentMessage
+{
+  /**
+   * Double linked list, FIFO style
+   */
+  struct MeshSentMessage *next;
+  struct MeshSentMessage *prev;
 
   /**
    * Tunnel this message is in.
@@ -440,13 +446,15 @@ struct MeshTunnel
    * Messages sent and not yet ACK'd.
    * Only present (non-NULL) at the owner of a tunnel.
    */
-  struct GNUNET_CONTAINER_MultiHashMap32 *sent_messages_fwd;
+  struct MeshSentMessage *fwd_head;
+  struct MeshSentMessage *fwd_tail;
 
   /**
    * Messages sent and not yet ACK'd.
    * Only present (non-NULL) at the destination of a tunnel.
    */
-  struct GNUNET_CONTAINER_MultiHashMap32 *sent_messages_bck;
+  struct MeshSentMessage *bck_head;
+  struct MeshSentMessage *bck_tail;
 };
 
 
@@ -3378,8 +3386,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
     if (GNUNET_YES == t->reliable)
-      t->sent_messages_bck =
-           GNUNET_CONTAINER_multihashmap32_create (t->queue_max);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
     tunnel_add_client (t, c);
     send_client_tunnel_create (t);
@@ -3832,8 +3839,9 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_DataACK *msg;
-  struct GNUNET_CONTAINER_MultiHashMap32 *hm;
   struct MeshSentMessage *copy;
+  struct MeshSentMessage *next;
+  struct MeshSentMessage *head;
   struct MeshTunnel *t;
   GNUNET_PEER_Id id;
   uint32_t ack;
@@ -3864,8 +3872,8 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       send_prebuilt_message (message, t->prev_hop, t);
       return GNUNET_OK;
     }
-    hm = t->sent_messages_fwd;
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
+    head = t->fwd_head;
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
   }
   else if (t->prev_hop == id && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
   {
@@ -3875,29 +3883,42 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       send_prebuilt_message (message, t->next_hop, t);
       return GNUNET_OK;
     }
-    hm = t->sent_messages_bck;
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
+    head = t->bck_head;
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
   }
   else
+  {
     GNUNET_break_op (0);
+    head = NULL;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK'ed \n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", ack);
-  copy = GNUNET_CONTAINER_multihashmap32_get (hm, ack);
-  if (NULL == copy)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  ack %u\n", ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %p\n", head);
+  for (copy = head; copy != NULL; copy = next)
   {
-    GNUNET_break (0); // FIXME needed?
-    return GNUNET_OK;
+    if (copy->id > ack)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head is %u, out!\n", copy->id);
+      return GNUNET_OK;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
+    next = copy->next;
+
+    /* This CANNOT use the variable 'head', as the macro must modify 't'*/
+    if (GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type)
+      GNUNET_CONTAINER_DLL_remove (t->fwd_head, t->fwd_tail, copy);
+    else
+      GNUNET_CONTAINER_DLL_remove (t->bck_head, t->bck_tail, copy);
+
+    if (GNUNET_SCHEDULER_NO_TASK != copy->retry_task)
+      GNUNET_SCHEDULER_cancel (copy->retry_task);
+    else
+      GNUNET_break (0);
+
+    GNUNET_free (copy);
   }
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap32_remove (hm, ack, copy));
-  if (GNUNET_SCHEDULER_NO_TASK != copy->retry_task)
-  {
-    GNUNET_SCHEDULER_cancel (copy->retry_task);
-  }
-  else
-    GNUNET_break (0);
-  GNUNET_free (copy);
   return GNUNET_OK;
 }
 
@@ -4441,11 +4462,8 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   t->port = ntohl (t_msg->port);
   tunnel_set_options (t, ntohl (t_msg->options));
   if (GNUNET_YES == t->reliable)
-  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
-    t->sent_messages_fwd =
-     GNUNET_CONTAINER_multihashmap32_create (t->queue_max);  
-  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x]:%u (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
 
@@ -4616,21 +4634,17 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
       copy->id = fc->last_pid_recv + 1;
       copy->is_forward = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
       copy->retry_timer = MESH_RETRANSMIT_TIME;
-      copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
-                                                       &tunnel_retransmit_message,
-                                                       copy);
-      if (GNUNET_OK !=
-          GNUNET_CONTAINER_multihashmap32_put (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ?
-                                               t->sent_messages_fwd : t->sent_messages_bck,
-                                               copy->id,
-                                               copy,
-                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      copy->retry_task =
+          GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
+                                        &tunnel_retransmit_message,
+                                        copy);
+      if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
       {
-        GNUNET_break (0);
-        GNUNET_SCHEDULER_cancel (copy->retry_task);
-        GNUNET_free (copy);
-        GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-        return;
+        GNUNET_CONTAINER_DLL_insert_tail (t->fwd_head, t->fwd_tail, copy);
+      }
+      else
+      {
+        GNUNET_CONTAINER_DLL_insert_tail (t->bck_head, t->bck_tail, copy);
       }
       payload = (struct GNUNET_MESH_Data *) &copy[1];
     }
