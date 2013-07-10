@@ -326,18 +326,6 @@ GMC_min_pid (uint32_t a, uint32_t b);
 
 
 /**
- * Expand a 32 bit value (message type) into a hash for a MultiHashMap (fast).
- * WARNING: do not use for anything other than MultiHashMap!
- *          does not alter anything other than bits used by idx_of !
- *
- * @param i 32 bit integer value.
- * @param h Hash code to fill.
- */
-void
-GMC_hash32 (uint32_t i, struct GNUNET_HashCode *h);
-
-
-/**
  * Convert a message type into a string to help debug
  * Generated with:
  * FIND:        "#define ([^ ]+)[ ]*([0-9]+)"

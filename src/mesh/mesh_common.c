@@ -52,13 +52,6 @@ GMC_min_pid (uint32_t a, uint32_t b)
   return a;
 }
 
-void
-GMC_hash32 (uint32_t i, struct GNUNET_HashCode *h)
-{
-  memset (h, 0, sizeof(struct GNUNET_HashCode));
-  *(unsigned int *) h = i;
-}
-
 
 #if !defined(GNUNET_CULL_LOGGING)
 const char *

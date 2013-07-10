@@ -467,12 +467,12 @@ struct MeshClient
     /**
      * Tunnels that belong to this client, indexed by local id
      */
-  struct GNUNET_CONTAINER_MultiHashMap *own_tunnels;
+  struct GNUNET_CONTAINER_MultiHashMap32 *own_tunnels;
 
    /**
      * Tunnels this client has accepted, indexed by incoming local id
      */
-  struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
+  struct GNUNET_CONTAINER_MultiHashMap32 *incoming_tunnels;
 
     /**
      * Handle to communicate with the client
@@ -481,9 +481,9 @@ struct MeshClient
 
     /**
      * Ports that this client has declared interest in.
-     * Indexed by a GMC_hash32 (type), contains *Client.
+     * Indexed by port, contains *Client.
      */
-  struct GNUNET_CONTAINER_MultiHashMap *ports;
+  struct GNUNET_CONTAINER_MultiHashMap32 *ports;
 
     /**
      * Whether the client is active or shutting down (don't send confirmations
@@ -609,7 +609,7 @@ static unsigned long long n_tunnels;
  * Tunnels incoming, indexed by MESH_TunnelNumber
  * (which is greater than GNUNET_MESH_LOCAL_TUNNEL_ID_SERV).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *incoming_tunnels;
+static struct GNUNET_CONTAINER_MultiHashMap32 *incoming_tunnels;
 
 /**
  * Peers known, indexed by PeerIdentity (MeshPeerInfo).
@@ -679,7 +679,7 @@ static MESH_TunnelNumber next_local_tid;
 /**
  * All ports clients of this peer have opened.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *ports;
+static struct GNUNET_CONTAINER_MultiHashMap32 *ports;
 
 /**
  * Task to periodically announce itself in the network.
@@ -957,23 +957,19 @@ client_get (struct GNUNET_SERVER_Client *client)
 static void
 client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 {
-  struct GNUNET_HashCode hash;
-
   if (c == t->owner)
   {
-    GMC_hash32 (t->local_tid, &hash);
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels,
-                                                         &hash,
-                                                         t));
+                   GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels,
+                                                           t->local_tid,
+                                                           t));
   }
   else if (c == t->client)
   {
-    GMC_hash32 (t->local_tid_dest, &hash);
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels,
-                                                         &hash,
-                                                         t));
+                   GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
+                                                           t->local_tid_dest,
+                                                           t));
   }
   else
   {
@@ -1785,11 +1781,8 @@ path_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static struct MeshTunnel *
 tunnel_get_incoming (MESH_TunnelNumber tid)
 {
-  struct GNUNET_HashCode hash;
-
   GNUNET_assert (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
-  GMC_hash32 (tid, &hash);
-  return GNUNET_CONTAINER_multihashmap_get (incoming_tunnels, &hash);
+  return GNUNET_CONTAINER_multihashmap32_get (incoming_tunnels, tid);
 }
 
 
@@ -1810,10 +1803,7 @@ tunnel_get_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
   }
   else
   {
-    struct GNUNET_HashCode hash;
-
-    GMC_hash32 (tid, &hash);
-    return GNUNET_CONTAINER_multihashmap_get (c->own_tunnels, &hash);
+    return GNUNET_CONTAINER_multihashmap32_get (c->own_tunnels, tid);
   }
 }
 
@@ -1864,24 +1854,23 @@ tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 static void
 tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 {
-  struct GNUNET_HashCode hash;
-
   if (NULL != t->client)
   {
     GNUNET_break(0);
     return;
   }
-  GMC_hash32 (t->local_tid_dest, &hash);
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (c->incoming_tunnels, &hash, t,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      GNUNET_CONTAINER_multihashmap32_put (c->incoming_tunnels,
+                                           t->local_tid_dest, t,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (incoming_tunnels, &hash, t,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+      GNUNET_CONTAINER_multihashmap32_put (incoming_tunnels,
+                                           t->local_tid_dest, t,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return;
@@ -2491,9 +2480,8 @@ tunnel_destroy (struct MeshTunnel *t)
 
   if (NULL != c)
   {
-    GMC_hash32 (t->local_tid, &hash);
     if (GNUNET_YES !=
-        GNUNET_CONTAINER_multihashmap_remove (c->own_tunnels, &hash, t))
+      GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels, t->local_tid, t))
     {
       GNUNET_break (0);
       r = GNUNET_SYSERR;
@@ -2503,15 +2491,16 @@ tunnel_destroy (struct MeshTunnel *t)
   if (NULL != t->client)
   {
     c = t->client;
-    GMC_hash32 (t->local_tid_dest, &hash);
     if (GNUNET_YES !=
-          GNUNET_CONTAINER_multihashmap_remove (c->incoming_tunnels, &hash, t))
+        GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
+                                                t->local_tid_dest, t))
     {
       GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
     if (GNUNET_YES != 
-      GNUNET_CONTAINER_multihashmap_remove (incoming_tunnels, &hash, t))
+        GNUNET_CONTAINER_multihashmap32_remove (incoming_tunnels,
+                                                t->local_tid_dest, t))
     {
       GNUNET_break (0);
       r = GNUNET_SYSERR;
@@ -2638,10 +2627,10 @@ tunnel_new (GNUNET_PEER_Id owner,
 
   if (NULL != client)
   {
-    GMC_hash32 (t->local_tid, &hash);
     if (GNUNET_OK !=
-        GNUNET_CONTAINER_multihashmap_put (client->own_tunnels, &hash, t,
-                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+        GNUNET_CONTAINER_multihashmap32_put (client->own_tunnels,
+                                             t->local_tid, t,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       tunnel_destroy (t);
       GNUNET_break (0);
@@ -2672,14 +2661,14 @@ tunnel_set_options (struct MeshTunnel *t, uint32_t options)
  * Iterator for deleting each tunnel whose client endpoint disconnected.
  *
  * @param cls Closure (client that has disconnected).
- * @param key The hash of the local tunnel id (used to access the hashmap).
+ * @param key The local tunnel id (used to access the hashmap).
  * @param value The value stored at the key (tunnel to destroy).
  *
  * @return GNUNET_OK, keep iterating.
  */
 static int
 tunnel_destroy_iterator (void *cls,
-                         const struct GNUNET_HashCode * key,
+                         uint32_t key,
                          void *value)
 {
   struct MeshTunnel *t = value;
@@ -3362,11 +3351,9 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (own_pos == size - 1)
   {
     struct MeshClient *c;
-    struct GNUNET_HashCode hc;
 
     /* Find target client */
-    GMC_hash32 (t->port, &hc);
-    c = GNUNET_CONTAINER_multihashmap_get (ports, &hc);
+    c = GNUNET_CONTAINER_multihashmap32_get (ports, t->port);
     if (NULL == c)
     {
       /* TODO send reject */
@@ -4277,15 +4264,15 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                 c->id);
     GNUNET_SERVER_client_drop (c->handle);
     c->shutting_down = GNUNET_YES;
-    GNUNET_CONTAINER_multihashmap_iterate (c->own_tunnels,
-                                           &tunnel_destroy_iterator, c);
-    GNUNET_CONTAINER_multihashmap_iterate (c->incoming_tunnels,
-                                           &tunnel_destroy_iterator, c);
-    GNUNET_CONTAINER_multihashmap_destroy (c->own_tunnels);
-    GNUNET_CONTAINER_multihashmap_destroy (c->incoming_tunnels);
+    GNUNET_CONTAINER_multihashmap32_iterate (c->own_tunnels,
+                                             &tunnel_destroy_iterator, c);
+    GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_tunnels,
+                                             &tunnel_destroy_iterator, c);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->own_tunnels);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_tunnels);
 
     if (NULL != c->ports)
-      GNUNET_CONTAINER_multihashmap_destroy (c->ports);
+      GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
@@ -4338,30 +4325,28 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   if (size > 0)
   {
     uint32_t u32;
-    struct GNUNET_HashCode hc;
 
     p = (uint32_t *) &cc_msg[1];
-    c->ports = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_NO);
+    c->ports = GNUNET_CONTAINER_multihashmap32_create (size);
     for (i = 0; i < size; i++)
     {
       u32 = ntohl (p[i]);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
-      GMC_hash32 (u32, &hc);
 
       /* store in client's hashmap */
-      GNUNET_CONTAINER_multihashmap_put (c->ports, &hc, c,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+      GNUNET_CONTAINER_multihashmap32_put (c->ports, u32, c,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
       /* store in global hashmap */
       /* FIXME only allow one client to have the port open,
        *       have a backup hashmap with waiting clients */
-      GNUNET_CONTAINER_multihashmap_put (ports, &hc, c,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multihashmap32_put (ports, u32, c,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
 
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
-  c->own_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  c->incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  c->own_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
+  c->incoming_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
 
@@ -5369,9 +5354,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  incoming_tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  incoming_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
   peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  ports = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  ports = GNUNET_CONTAINER_multihashmap32_create (32);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
   if (NULL == dht_handle)
