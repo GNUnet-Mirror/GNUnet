@@ -4594,13 +4594,14 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                             + size);
       copy->t = t;
       copy->id = fc->last_pid_recv + 1;
-      copy->is_forward = GNUNET_YES;
+      copy->is_forward = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
       copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
       copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
                                                        &tunnel_retransmit_message,
                                                        copy);
       if (GNUNET_OK !=
-          GNUNET_CONTAINER_multihashmap32_put (t->sent_messages_fwd,
+          GNUNET_CONTAINER_multihashmap32_put (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ?
+                                               t->sent_messages_fwd : t->sent_messages_bck,
                                                copy->id,
                                                copy,
                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
