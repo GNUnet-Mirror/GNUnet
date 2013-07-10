@@ -1431,6 +1431,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
     msg.options |= GNUNET_MESH_OPTION_RELIABLE;
   if (GNUNET_NO == buffer)
     msg.options |= GNUNET_MESH_OPTION_NOBUFFER;
+  msg.options = htonl (msg.options);
   t->allow_send = 0;
   send_packet (h, &msg.header, t);
   return t;
