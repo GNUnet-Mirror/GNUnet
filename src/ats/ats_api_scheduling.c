@@ -1241,8 +1241,10 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param session session handle, can be NULL
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
+ * @return GNUNET_YES on success, GNUNET_NO if address or session are unknown,
+ * GNUNET_SYSERR on hard failure
  */
-void
+int
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_HELLO_Address *address,
                            struct Session *session,
@@ -1257,14 +1259,18 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   size_t msize;
   uint32_t s = 0;
 
-  if (address == NULL)
+  if (NULL == address)
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
+  }
+  if (NULL == sh)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
 
-  namelen =
-      (address->transport_name ==
+  namelen = (address->transport_name ==
        NULL) ? 0 : strlen (address->transport_name) + 1;
   msize =
       sizeof (struct AddressUpdateMessage) + address->address_length +
@@ -1276,22 +1282,14 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
 
   if (NULL != session)
   {
     s = find_session_id (sh, session, &address->peer);
     if (NOT_FOUND == s)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Update for unknown address for peer `%s', plugin `%s', session %p id %u\n",
-                  GNUNET_i2s (&address->peer),
-                  address->transport_name, session, s);
-
-      GNUNET_break (0);
-      return;
-    }
+      return GNUNET_NO;
   }
 
   p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
@@ -1319,7 +1317,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
-  return;
+  return GNUNET_YES;
 }
 
 
