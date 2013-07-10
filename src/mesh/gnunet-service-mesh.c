@@ -964,16 +964,12 @@ client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
                                                            t->local_tid,
                                                            t));
   }
-  else if (c == t->client)
+  if (c == t->client)
   {
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
                                                            t->local_tid_dest,
                                                            t));
-  }
-  else
-  {
-    GNUNET_break (0);
   }
 }
 
@@ -2688,7 +2684,7 @@ tunnel_destroy_iterator (void *cls,
         t->next_hop = 0;
     }
   }
-  else if (c == t->owner)
+  if (c == t->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
     t->owner = NULL;
@@ -2697,10 +2693,7 @@ tunnel_destroy_iterator (void *cls,
         t->prev_hop = 0;
     }
   }
-  else
-  {
-    GNUNET_break (0);
-  }
+
   tunnel_destroy_empty (t);
 
   return GNUNET_OK;
@@ -4499,7 +4492,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   {
     t->client = NULL;
   }
-  else if (c == t->owner)
+  if (c == t->owner)
   {
     peer_info_remove_tunnel (peer_get_short (t->dest), t);
     t->owner = NULL;
