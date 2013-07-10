@@ -992,7 +992,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
   name_tmp = (char *) &msg[1];
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize(rd_count, rd, rd_ser_len, rd_ser);
+  GNUNET_break (rd_ser_len == GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Sending `%s' message for name `%s' with size %u\n", 
        "NAMESTORE_RECORD_PUT", 
@@ -1139,7 +1139,7 @@ GNUNET_NAMESTORE_record_put_by_authority (struct GNUNET_NAMESTORE_Handle *h,
   name_tmp = &pkey_tmp[key_len];
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
+  GNUNET_break (rd_ser_len == GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
   GNUNET_free (pkey_enc);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
