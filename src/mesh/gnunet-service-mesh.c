@@ -51,6 +51,9 @@
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
+#define MESH_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply (\
+                                  GNUNET_TIME_UNIT_SECONDS,\
+                                  5)
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -2281,6 +2284,8 @@ tunnel_retransmit_message (void *cls,
   struct GNUNET_MESH_Data *payload;
   GNUNET_PEER_Id hop;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Retransmit \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
   copy->retry_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -2288,7 +2293,7 @@ tunnel_retransmit_message (void *cls,
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   hop = copy->is_forward ? copy->t->next_hop : copy->t->prev_hop;
   send_prebuilt_message (&payload->header, hop, copy->t);
-  GNUNET_STATISTICS_update (stats, "# unicast retransmitted", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   copy->retry_timer = GNUNET_TIME_STD_BACKOFF (copy->retry_timer);
   copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
                                                    &tunnel_retransmit_message,
@@ -3868,6 +3873,8 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
     GNUNET_break_op (0);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK'ed \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", ack);
   copy = GNUNET_CONTAINER_multihashmap32_get (hm, ack);
   if (NULL == copy)
   {
@@ -4424,8 +4431,11 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   t->port = ntohl (t_msg->port);
   tunnel_set_options (t, ntohl (t_msg->options));
   if (GNUNET_YES == t->reliable)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable \n");
     t->sent_messages_fwd =
-     GNUNET_CONTAINER_multihashmap32_create (t->queue_max);
+     GNUNET_CONTAINER_multihashmap32_create (t->queue_max);  
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x]:%u (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
 
@@ -4595,7 +4605,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
       copy->t = t;
       copy->id = fc->last_pid_recv + 1;
       copy->is_forward = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
-      copy->retry_timer = GNUNET_TIME_UNIT_MINUTES;
+      copy->retry_timer = MESH_RETRANSMIT_TIME;
       copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
                                                        &tunnel_retransmit_message,
                                                        copy);
