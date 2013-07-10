@@ -33,10 +33,14 @@
 #include "plugin_transport_http_common.h"
 #include <microhttpd.h>
 
+
+
 #if BUILD_HTTPS
+#define PLUGIN_NAME "https_server"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_server_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_https_server_done
 #else
+#define PLUGIN_NAME "http_server"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_server_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_server_done
 #endif
@@ -1150,7 +1154,10 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_recv = sc;
 
   if ((NULL != s->server_send) && (NULL != s->server_recv))
+  {
     s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
+    plugin->env->session_start (NULL, &s->target, PLUGIN_NAME,s->addr, s->addrlen,s, NULL, 0);
+  }
 
 #if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))

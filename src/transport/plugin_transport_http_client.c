@@ -25,9 +25,11 @@
  */
 
 #if BUILD_HTTPS
+#define PLUGIN_NAME "https_client"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_client_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_https_client_done
 #else
+#define PLUGIN_NAME "http_client"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_client_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_client_done
 #endif
