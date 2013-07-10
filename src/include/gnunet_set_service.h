@@ -74,9 +74,16 @@ struct GNUNET_SET_OperationHandle;
 enum GNUNET_SET_OperationType
 {
   /**
+   * A purely local set that does not support any
+   * operation.
+   */
+  GNUNET_SET_OPERATION_NONE,
+
+  /**
    * Set intersection, only return elements that are in both sets.
    */
   GNUNET_SET_OPERATION_INTERSECTION,
+
   /**
    * Set union, return all elements that are in at least one of the sets.
    */
@@ -116,6 +123,7 @@ enum GNUNET_SET_Status
   GNUNET_SET_STATUS_DONE
 };
 
+
 /**
  * The way results are given to the client.
  */
@@ -136,6 +144,7 @@ enum GNUNET_SET_ResultMode
    */
   GNUNET_SET_RESULT_REMOVED
 };
+
 
 /**
  * Element stored in a set.
@@ -182,18 +191,19 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
 
 /**
  * Called when another peer wants to do a set operation with the
- * local peer.
+ * local peer. If a listen error occurs, the 'request' is NULL.
  *
  * @param cls closure
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
  *        the other peer
  * @param request request from the other peer, use GNUNET_SET_accept
+ *        Will be NULL if the listener failed.
  *        to accept it, otherwise the request will be refused
- *        Note that we don't use a return value here, as it is also
- *        necessary to specify the set we want to do the operation with,
- *        whith sometimes can be derived from the context message.
- *        Also necessary to specify the timeout.
+ *        Note that we can't just return value from the listen callback,
+ *        as it is also necessary to specify the set we want to do the
+ *        operation with, whith sometimes can be derived from the context
+ *        message. It's necessary to specify the timeout.
  */
 typedef void
 (*GNUNET_SET_ListenCallback) (void *cls,

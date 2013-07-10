@@ -612,6 +612,7 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
 struct GNUNET_MQ_Handle *
 GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
                                        const struct GNUNET_MQ_MessageHandler *handlers,
+                                       GNUNET_MQ_ErrorHandler error_handler,
                                        void *cls)
 {
   struct GNUNET_MQ_Handle *mq;
@@ -621,6 +622,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
 
   mq = GNUNET_new (struct GNUNET_MQ_Handle);
   mq->handlers = handlers;
+  mq->error_handler = error_handler;
   mq->handlers_cls = cls;
   state = GNUNET_new (struct ClientConnectionState);
   state->connection = connection;
@@ -708,16 +710,27 @@ GNUNET_MQ_notify_sent (struct GNUNET_MQ_Envelope *mqm,
 void
 GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 {
-  /* FIXME: destroy all pending messages in the queue */
-
   if (NULL != mq->destroy_impl)
   {
     mq->destroy_impl (mq, mq->impl_state);
   }
 
+  while (NULL != mq->envelope_head)
+  {
+    struct GNUNET_MQ_Envelope *ev;
+    ev = mq->envelope_head;
+    GNUNET_MQ_discard (ev);
+    GNUNET_CONTAINER_DLL_remove (mq->envelope_head, mq->envelope_tail, ev);
+  }
+
+  if (NULL != mq->current_envelope)
+  {
+    GNUNET_MQ_discard (mq->current_envelope);
+    mq->current_envelope = NULL;
+  }
+
   GNUNET_free (mq);
 }
-
 
 
 struct GNUNET_MessageHeader *

@@ -194,6 +194,24 @@ struct GNUNET_SET_ElementMessage
 };
 
 
+/**
+ * Sent to the service by the client
+ * in order to cancel a set operation.
+ */
+struct GNUNET_SET_CancelMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SET_CANCEL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the request we want to cancel.
+   */
+  uint32_t request_id GNUNET_PACKED;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

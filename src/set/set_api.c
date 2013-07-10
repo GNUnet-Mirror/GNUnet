@@ -33,7 +33,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "set-api",__VA_ARGS__)
 
-
 /**
  * Opaque handle to a set.
  */
@@ -42,20 +41,47 @@ struct GNUNET_SET_Handle
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_MQ_Handle *mq;
   unsigned int messages_since_ack;
+  struct GNUNET_SET_OperationHandle *ops_head;
+  struct GNUNET_SET_OperationHandle *ops_tail;
+  int destroy_requested;
 };
+
 
 /**
  * Opaque handle to a set operation request from another peer.
  */
 struct GNUNET_SET_Request
 {
+  /**
+   * Id of the request, used to identify the request when
+   * accepting/rejecting it.
+   */
   uint32_t accept_id;
+
+  /**
+   * Has the request been accepted already?
+   * GNUNET_YES/GNUNET_NO
+   */
   int accepted;
 };
 
+
+/**
+ * Handle to an operation.
+ * Only known to the service after commiting
+ * the handle with a set.
+ */
 struct GNUNET_SET_OperationHandle
 {
+  /**
+   * Function to be called when we have a result,
+   * or an error.
+   */
   GNUNET_SET_ResultIterator result_cb;
+
+  /**
+   * Closure for result_cb.
+   */
   void *result_cls;
 
   /**
@@ -80,6 +106,17 @@ struct GNUNET_SET_OperationHandle
    * used to patch the request id into the message when the set is known.
    */
   uint32_t *request_id_addr;
+
+  /**
+   * Handles are kept in a linked list.
+   */
+  struct GNUNET_SET_OperationHandle *prev;
+
+  /**
+   * Handles are kept in a linked list.
+   */
+  struct GNUNET_SET_OperationHandle *next;
+
 };
 
 
@@ -88,9 +125,25 @@ struct GNUNET_SET_OperationHandle
  */
 struct GNUNET_SET_ListenHandle
 {
+  /**
+   * Connection to the service.
+   */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Message queue for the client.
+   */
   struct GNUNET_MQ_Handle* mq;
+
+  /**
+   * Function to call on a new incoming request,
+   * or on error.
+   */
   GNUNET_SET_ListenCallback listen_cb;
+
+  /**
+   * Closure for listen_cb.
+   */
   void *listen_cls;
 };
 
@@ -108,10 +161,12 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   struct GNUNET_SET_Handle *set = cls;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_Element e;
-
+  enum GNUNET_SET_Status result_status;
 
   GNUNET_assert (NULL != set);
   GNUNET_assert (NULL != set->mq);
+
+  result_status = ntohs (msg->result_status);
 
   if (set->messages_since_ack >= GNUNET_SET_ACK_WINDOW/2)
   {
@@ -123,11 +178,14 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   GNUNET_assert (NULL != oh);
   /* status is not STATUS_OK => there's no attached element,
    * and this is the last result message we get */
-  if (htons (msg->result_status) != GNUNET_SET_STATUS_OK)
+  if (GNUNET_SET_STATUS_OK != result_status)
   {
     GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
+    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
+    if (GNUNET_YES == oh->set->destroy_requested)
+      GNUNET_SET_destroy (oh->set);
     if (NULL != oh->result_cb)
-      oh->result_cb (oh->result_cls, NULL, htons (msg->result_status));
+      oh->result_cb (oh->result_cls, NULL, result_status);
     GNUNET_free (oh);
     return;
   }
@@ -136,7 +194,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   e.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ResultMessage);
   e.type = msg->element_type;
   if (NULL != oh->result_cb)
-    oh->result_cb (oh->result_cls, &e, htons (msg->result_status));
+    oh->result_cb (oh->result_cls, &e, result_status);
 }
 
 /**
@@ -153,7 +211,7 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
   struct GNUNET_SET_Request *req;
   struct GNUNET_MessageHeader *context_msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "processing request\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "processing operation request\n");
   req = GNUNET_new (struct GNUNET_SET_Request);
   req->accept_id = ntohl (msg->accept_id);
   context_msg = GNUNET_MQ_extract_nested_mh (msg);
@@ -171,13 +229,39 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
     amsg->accept_reject_id = msg->accept_id;
     GNUNET_MQ_send (lh->mq, mqm);
     GNUNET_free (req);
-    LOG (GNUNET_ERROR_TYPE_INFO, "rejecting request\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "rejecting request\n");
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "processed op request from service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "processed op request from service\n");
 
   /* the accept-case is handled in GNUNET_SET_accept,
    * as we have the accept message available there */
+}
+
+
+static void
+handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_SET_ListenHandle *lh = cls;
+
+  lh->listen_cb (lh->listen_cls, NULL, NULL, NULL);
+}
+
+
+static void
+handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_SET_Handle *set = cls;
+
+  while (NULL != set->ops_head)
+  {
+    if (NULL != set->ops_head->result_cb)
+      set->ops_head->result_cb (set->ops_head->result_cls, NULL,
+                                GNUNET_SET_STATUS_FAILURE);
+    GNUNET_SET_operation_cancel (set->ops_head);
+  }
+
+  /* FIXME: there should be a set error handler */
 }
 
 
@@ -200,15 +284,16 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *msg;
   static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {handle_result, GNUNET_MESSAGE_TYPE_SET_RESULT},
+    {handle_result, GNUNET_MESSAGE_TYPE_SET_RESULT, 0},
     GNUNET_MQ_HANDLERS_END
   };
 
   set = GNUNET_new (struct GNUNET_SET_Handle);
   set->client = GNUNET_CLIENT_connect ("set", cfg);
-  LOG (GNUNET_ERROR_TYPE_INFO, "set client created\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "set client created\n");
   GNUNET_assert (NULL != set->client);
-  set->mq = GNUNET_MQ_queue_for_connection_client (set->client, mq_handlers, set);
+  set->mq = GNUNET_MQ_queue_for_connection_client (set->client, mq_handlers,
+                                                   handle_client_set_error, set);
   GNUNET_assert (NULL != set->mq);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_CREATE);
   msg->operation = htons (op);
@@ -279,6 +364,11 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
 void
 GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 {
+  if (NULL != set->ops_head)
+  {
+    set->destroy_requested = GNUNET_YES;
+    return;
+  }
   GNUNET_CLIENT_disconnect (set->client);
   set->client = NULL;
   GNUNET_MQ_destroy (set->mq);
@@ -332,7 +422,6 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   return oh;
 }
 
-
 /**
  * Wait for set operation requests for the given application id
  * 
@@ -365,7 +454,8 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lh->listen_cb = listen_cb;
   lh->listen_cls = listen_cls;
   GNUNET_assert (NULL != lh->client);
-  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client, mq_handlers, lh);
+  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client, mq_handlers,
+                                                  handle_client_listener_error, lh);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
   msg->operation = htons (operation);
   msg->app_id = *app_id;
@@ -413,6 +503,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_AcceptRejectMessage *msg;
 
+  GNUNET_assert (NULL != request);
   GNUNET_assert (GNUNET_NO == request->accepted);
   request->accepted = GNUNET_YES;
 
@@ -432,6 +523,9 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
 /**
  * Cancel the given set operation.
+ * We need to send an explicit cancel message, as
+ * all operations communicate with the set's client
+ * handle.
  *
  * @param oh set operation to cancel
  */
@@ -441,16 +535,19 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_OperationHandle *h_assoc;
 
-  if (NULL != oh->set)
-  {
-    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
-    GNUNET_assert (h_assoc == oh);
-    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
-    GNUNET_MQ_send (oh->set->mq, mqm);
-  }
+  GNUNET_assert (NULL != oh->set);
+
+  GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
+  h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
+  GNUNET_assert (h_assoc == oh);
+  mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
+  GNUNET_MQ_send (oh->set->mq, mqm);
 
   if (NULL != oh->conclude_mqm)
     GNUNET_MQ_discard (oh->conclude_mqm);
+
+  if (GNUNET_YES == oh->set->destroy_requested)
+    GNUNET_SET_destroy (oh->set);
 
   GNUNET_free (oh);
 }
@@ -469,14 +566,15 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
  */
 void
 GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
-		     struct GNUNET_SET_Handle *set)
+                   struct GNUNET_SET_Handle *set)
 {
   GNUNET_assert (NULL == oh->set);
   GNUNET_assert (NULL != oh->conclude_mqm);
   oh->set = set;
-  oh->request_id = GNUNET_MQ_assoc_add (oh->set->mq, oh);
+  GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, oh);
+  oh->request_id = GNUNET_MQ_assoc_add (set->mq, oh);
   *oh->request_id_addr = htonl (oh->request_id);
-  GNUNET_MQ_send (oh->set->mq, oh->conclude_mqm);
+  GNUNET_MQ_send (set->mq, oh->conclude_mqm);
   oh->conclude_mqm = NULL;
   oh->request_id_addr = NULL;
 }

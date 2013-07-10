@@ -16,7 +16,7 @@
       along with GNUnet; see the file COPYING.  If not, write to the
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
- */
+*/
 
 /**
  * @file set/gnunet-set-profiler.c
@@ -42,39 +42,23 @@ static char *op_str = "union";
 
 const static struct GNUNET_CONFIGURATION_Handle *config;
 
-struct GNUNET_CONTAINER_MultiHashMap *map_a;
-struct GNUNET_CONTAINER_MultiHashMap *map_b;
-struct GNUNET_CONTAINER_MultiHashMap *map_c;
+struct SetInfo
+{
+  char *id;
+  struct GNUNET_SET_Handle *set;
+  struct GNUNET_SET_OperationHandle *oh;
+  struct GNUNET_CONTAINER_MultiHashMap *sent;
+  struct GNUNET_CONTAINER_MultiHashMap *received;
+  int done;
+} info1, info2;
 
-
-/**
- * Elements that set a received, should match map_c
- * in the end.
- */
-struct GNUNET_CONTAINER_MultiHashMap *map_a_received;
-
-/**
- * Elements that set b received, should match map_c
- * in the end.
- */
-struct GNUNET_CONTAINER_MultiHashMap *map_b_received;
-
-struct GNUNET_SET_Handle *set_a;
-struct GNUNET_SET_Handle *set_b;
+struct GNUNET_CONTAINER_MultiHashMap *common_sent;
 
 struct GNUNET_HashCode app_id;
 
 struct GNUNET_PeerIdentity local_peer;
 
 struct GNUNET_SET_ListenHandle *set_listener;
-
-struct GNUNET_SET_OperationHandle *set_oh1;
-struct GNUNET_SET_OperationHandle *set_oh2;
-
-
-int a_done;
-int b_done;
-
 
 
 static int
@@ -85,66 +69,69 @@ map_remove_iterator (void *cls,
   struct GNUNET_CONTAINER_MultiHashMap *m = cls;
   int ret;
 
+  GNUNET_assert (NULL != key);
+
   ret = GNUNET_CONTAINER_multihashmap_remove (m, key, NULL);
-  GNUNET_assert (GNUNET_OK == ret);
+  if (GNUNET_OK != ret)
+    printf ("spurious element\n");
   return GNUNET_YES;
 
 }
 
-
 static void
-set_result_cb_1 (void *cls,
-                 const struct GNUNET_SET_Element *element,
-                 enum GNUNET_SET_Status status)
+check_all_done (void)
 {
-  GNUNET_assert (GNUNET_NO == a_done);
-  GNUNET_assert (element->size == sizeof (struct GNUNET_HashCode));
-  switch (status)
-  {
-    case GNUNET_SET_STATUS_DONE:
-    case GNUNET_SET_STATUS_HALF_DONE:
-      a_done = GNUNET_YES;
-      GNUNET_CONTAINER_multihashmap_iterate (map_c, map_remove_iterator, map_a_received);
-      GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (map_a_received));
-      return;
-    case GNUNET_SET_STATUS_FAILURE:
-      GNUNET_assert (0);
-      return;
-    case GNUNET_SET_STATUS_OK:
-      break;
-    default:
-      GNUNET_assert (0);
-  }
-  GNUNET_CONTAINER_multihashmap_put (map_a_received,
-                                     element->data, NULL,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  if (info1.done == GNUNET_NO || info2.done == GNUNET_NO)
+    return;
+
+  GNUNET_CONTAINER_multihashmap_iterate (info1.received, map_remove_iterator, info2.sent);
+  GNUNET_CONTAINER_multihashmap_iterate (info2.received, map_remove_iterator, info1.sent);
+
+  printf ("set a: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info1.sent));
+  printf ("set b: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info2.sent));
+
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
 static void
-set_result_cb_2 (void *cls,
+set_result_cb (void *cls,
                  const struct GNUNET_SET_Element *element,
                  enum GNUNET_SET_Status status)
 {
-  GNUNET_assert (GNUNET_NO == b_done);
-  GNUNET_assert (element->size == sizeof (struct GNUNET_HashCode));
+  struct SetInfo *info = cls;
+
+  GNUNET_assert (GNUNET_NO == info->done);
   switch (status)
   {
     case GNUNET_SET_STATUS_DONE:
     case GNUNET_SET_STATUS_HALF_DONE:
-      b_done = GNUNET_YES;
-      GNUNET_CONTAINER_multihashmap_iterate (map_c, map_remove_iterator, map_b_received);
-      GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (map_b_received));
+      info->done = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set %s done\n", info->id);
+      check_all_done ();
+      info->oh = NULL;
       return;
     case GNUNET_SET_STATUS_FAILURE:
-      GNUNET_assert (0);
+      info->oh = NULL;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "failure\n");
+      GNUNET_SCHEDULER_shutdown ();
       return;
     case GNUNET_SET_STATUS_OK:
       break;
     default:
       GNUNET_assert (0);
   }
-  GNUNET_CONTAINER_multihashmap_put (map_b_received,
+
+  if (element->size != sizeof (struct GNUNET_HashCode))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "wrong element size: %u\n", element->size);
+    GNUNET_assert (0);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set %s: got element (%s)\n",
+              info->id, GNUNET_h2s (element->data));
+  GNUNET_assert (NULL != element->data);
+  GNUNET_CONTAINER_multihashmap_put (info->received,
                                      element->data, NULL,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 }
@@ -156,11 +143,16 @@ set_listen_cb (void *cls,
                const struct GNUNET_MessageHeader *context_msg,
                struct GNUNET_SET_Request *request)
 {
-  GNUNET_assert (NULL == set_oh2);
+  if (NULL == request)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "listener failed\n");
+    return;
+  }
+  GNUNET_assert (NULL == info2.oh);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set listen cb called\n");
-  set_oh2 = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
-                               set_result_cb_2, NULL);
-  GNUNET_SET_commit (set_oh2, set_b);
+  info2.oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
+                               set_result_cb, &info2);
+  GNUNET_SET_commit (info2.oh, info2.set);
 }
 
 
@@ -185,6 +177,37 @@ set_insert_iterator (void *cls,
 
 
 static void
+handle_shutdown (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != set_listener)
+  {
+    GNUNET_SET_listen_cancel (set_listener);
+    set_listener = NULL;
+  }
+  if (NULL != info1.oh)
+  {
+    GNUNET_SET_operation_cancel (info1.oh);
+    info1.oh = NULL;
+  }
+  if (NULL != info2.oh)
+  {
+    GNUNET_SET_operation_cancel (info2.oh);
+    info2.oh = NULL;
+  }
+  if (NULL != info1.set)
+  {
+    GNUNET_SET_destroy (info1.set);
+    info1.set = NULL;
+  }
+  if (NULL != info2.set)
+  {
+    GNUNET_SET_destroy (info2.set);
+    info2.set = NULL;
+  }
+}
+
+static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -195,63 +218,41 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK != GNUNET_CRYPTO_get_host_identity (cfg, &local_peer))
   {
-    GNUNET_assert (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not retrieve host identity\n");
+    ret = 0;
     return;
   }
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, handle_shutdown, NULL);
+
+  info1.id = "a";
+  info2.id = "b";
   
-  map_a = GNUNET_CONTAINER_multihashmap_create (num_a, GNUNET_NO);
-  map_b = GNUNET_CONTAINER_multihashmap_create (num_b, GNUNET_NO);
-  map_c = GNUNET_CONTAINER_multihashmap_create (num_c, GNUNET_NO);
+  info1.sent = GNUNET_CONTAINER_multihashmap_create (num_a, GNUNET_NO);
+  info2.sent = GNUNET_CONTAINER_multihashmap_create (num_b, GNUNET_NO);
+  common_sent = GNUNET_CONTAINER_multihashmap_create (num_c, GNUNET_NO);
+
+  info1.received = GNUNET_CONTAINER_multihashmap_create (num_a, GNUNET_NO);
+  info2.received = GNUNET_CONTAINER_multihashmap_create (num_b, GNUNET_NO);
 
   for (i = 0; i < num_a; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_a, &hash))
-    {
-      i--;
-      continue;
-    }
-    GNUNET_CONTAINER_multihashmap_put (map_a, &hash, &hash,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_CONTAINER_multihashmap_put (info1.sent, &hash, NULL,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
 
   for (i = 0; i < num_b; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_a, &hash))
-    {
-      i--;
-      continue;
-    }
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_b, &hash))
-    {
-      i--;
-      continue;
-    }
-    GNUNET_CONTAINER_multihashmap_put (map_b, &hash, NULL,
+    GNUNET_CONTAINER_multihashmap_put (info2.sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
 
   for (i = 0; i < num_c; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_a, &hash))
-    {
-      i--;
-      continue;
-    }
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_b, &hash))
-    {
-      i--;
-      continue;
-    }
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (map_c, &hash))
-    {
-      i--;
-      continue;
-    }
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    GNUNET_CONTAINER_multihashmap_put (map_c, &hash, NULL,
+    GNUNET_CONTAINER_multihashmap_put (common_sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
 
@@ -259,20 +260,22 @@ run (void *cls, char *const *args, const char *cfgfile,
   app_id = hash;
 
   /* FIXME: also implement intersection etc. */
-  set_a = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
-  set_b = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
+  info1.set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
+  info2.set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
 
-  GNUNET_CONTAINER_multihashmap_iterate (map_a, set_insert_iterator, set_a);
-  GNUNET_CONTAINER_multihashmap_iterate (map_b, set_insert_iterator, set_b);
-  GNUNET_CONTAINER_multihashmap_iterate (map_c, set_insert_iterator, set_a);
-  GNUNET_CONTAINER_multihashmap_iterate (map_c, set_insert_iterator, set_b);
+  GNUNET_CONTAINER_multihashmap_iterate (info1.sent, set_insert_iterator, info1.set);
+  GNUNET_CONTAINER_multihashmap_iterate (info2.sent, set_insert_iterator, info2.set);
+  GNUNET_CONTAINER_multihashmap_iterate (common_sent, set_insert_iterator, info1.set);
+  GNUNET_CONTAINER_multihashmap_iterate (common_sent, set_insert_iterator, info2.set);
 
   set_listener = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                     &app_id, set_listen_cb, NULL);
 
-  set_oh1 = GNUNET_SET_prepare (&local_peer, &app_id, NULL, salt, GNUNET_SET_RESULT_ADDED,
-                       set_result_cb_1, NULL);
-  GNUNET_SET_commit (set_oh1, set_a);
+  info1.oh = GNUNET_SET_prepare (&local_peer, &app_id, NULL, salt, GNUNET_SET_RESULT_ADDED,
+                       set_result_cb, &info1);
+  GNUNET_SET_commit (info1.oh, info1.set);
+  GNUNET_SET_destroy (info1.set);
+  info1.set = NULL;
 }
 
 

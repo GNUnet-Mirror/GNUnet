@@ -266,8 +266,6 @@ have_exp_subround_finished (const struct ConsensusSession *session)
 }
 
 
-
-
 /**
  * Destroy a session, free all resources associated with it.
  * 

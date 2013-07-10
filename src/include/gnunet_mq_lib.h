@@ -328,12 +328,14 @@ GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
  *
  * @param connection the client connection
  * @param handlers handlers for receiving messages
+ * @param error_handler error handler
  * @param cls closure for the handlers
  * @return the message queue
  */
 struct GNUNET_MQ_Handle *
 GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
                                        const struct GNUNET_MQ_MessageHandler *handlers,
+                                       GNUNET_MQ_ErrorHandler error_handler,
                                        void *cls);
 
 

@@ -16,8 +16,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-consensus \
- gnunet-consensus-start-peers
+ gnunet-consensus
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -40,17 +39,6 @@ gnunet_consensus_LDADD = \
   $(GN_LIBINTL)
 gnunet_consensus_DEPENDENCIES = \
   libgnunetconsensus.la
-
-gnunet_consensus_start_peers_SOURCES = \
- gnunet-consensus-start-peers.c
-gnunet_consensus_start_peers_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/consensus/libgnunetconsensus.la \
-  $(GN_LIBINTL)
-gnunet_consensus_start_peers_DEPENDENCIES = \
-  libgnunetconsensus.la
-
 
 gnunet_service_consensus_SOURCES = \
  gnunet-service-consensus.c

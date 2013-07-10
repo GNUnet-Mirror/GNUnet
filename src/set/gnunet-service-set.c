@@ -46,11 +46,14 @@ struct Incoming
 
   /**
    * Detail information about the operation.
+   * NULL as long as we did not receive the operation
+   * request from the remote peer.
    */
   struct OperationSpecification *spec;
 
   /**
-   * The identity of the requesting peer.
+   * The identity of the requesting peer.  Needs to
+   * be stored here as the op spec might not have been created yet.
    */
   struct GNUNET_PeerIdentity peer;
 
@@ -83,17 +86,55 @@ struct Incoming
 
 
 /**
- * Configuration of our local peer.
- * (Not declared 'static' as also needed in gnunet-service-set_union.c)
+ * A listener is inhabited by a client, and
+ * waits for evaluation requests from remote peers.
  */
-const struct GNUNET_CONFIGURATION_Handle *configuration;
+struct Listener
+{
+  /**
+   * Listeners are held in a doubly linked list.
+   */
+  struct Listener *next;
+
+  /**
+   * Listeners are held in a doubly linked list.
+   */
+  struct Listener *prev;
+
+  /**
+   * Client that owns the listener.
+   * Only one client may own a listener.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Message queue for the client
+   */
+  struct GNUNET_MQ_Handle *client_mq;
+
+  /**
+   * The type of the operation.
+   */
+  enum GNUNET_SET_OperationType operation;
+
+  /**
+   * Application ID for the operation, used to distinguish
+   * multiple operations of the same type with the same peer.
+   */
+  struct GNUNET_HashCode app_id;
+};
+
+
+/**
+ * Configuration of our local peer.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *configuration;
 
 /**
  * Handle to the mesh service, used
  * to listen for and connect to remote peers.
- * (Not declared 'static' as also needed in gnunet-service-set_union.c)
  */
-struct GNUNET_MESH_Handle *mesh;
+static struct GNUNET_MESH_Handle *mesh;
 
 /**
  * Sets are held in a doubly linked list.
@@ -204,8 +245,9 @@ listener_destroy (struct Listener *listener)
    * The client's destroy callback will destroy the listener again. */
   if (NULL != listener->client)
   {
-    GNUNET_SERVER_client_disconnect (listener->client);
+    struct GNUNET_SERVER_Client *client = listener->client;
     listener->client = NULL;
+    GNUNET_SERVER_client_disconnect (client);
     return;
   }
   if (NULL != listener->client_mq)
@@ -230,22 +272,19 @@ set_destroy (struct Set *set)
    * The client's destroy callback will destroy the set again. */
   if (NULL != set->client)
   {
-    GNUNET_SERVER_client_disconnect (set->client);
+    struct GNUNET_SERVER_Client *client = set->client;
     set->client = NULL;
+    GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  switch (set->operation)
+  if (NULL != set->client_mq)
   {
-    case GNUNET_SET_OPERATION_INTERSECTION:
-      GNUNET_assert (0);
-      break;
-    case GNUNET_SET_OPERATION_UNION:
-      _GSS_union_set_destroy (set);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
+    GNUNET_MQ_destroy (set->client_mq);
+    set->client_mq = NULL;
   }
+  GNUNET_assert (NULL != set->state);
+  set->vt->destroy_set (set->state);
+  set->state = NULL;
   GNUNET_CONTAINER_DLL_remove (sets_head, sets_tail, set);
   GNUNET_free (set);
 }
@@ -263,6 +302,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct Set *set;
   struct Listener *listener;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, cleaning up\n");
 
   set = set_get (client);
   if (NULL != set)
@@ -287,6 +328,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 static void
 incoming_destroy (struct Incoming *incoming)
 {
+  GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
   if (NULL != incoming->tunnel)
   {
     struct GNUNET_MESH_Tunnel *t = incoming->tunnel;
@@ -294,7 +336,6 @@ incoming_destroy (struct Incoming *incoming)
     GNUNET_MESH_tunnel_destroy (t);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
   GNUNET_free (incoming);
 }
 
@@ -338,7 +379,7 @@ incoming_suggest (struct Incoming *incoming, struct Listener *listener)
   mqm = GNUNET_MQ_msg_nested_mh (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "suggesting request with accept id %u\n", incoming->suggest_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "suggesting request with accept id %u\n", incoming->suggest_id);
   cmsg->accept_id = htonl (incoming->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
   GNUNET_MQ_send (listener->client_mq, mqm);
@@ -350,32 +391,27 @@ incoming_suggest (struct Incoming *incoming, struct Listener *listener)
  * Handle a request for a set operation from
  * another peer.
  *
- * @param cls the incoming socket
- * @param tunnel the tunnel that sent the message
- * @param tunnel_ctx the tunnel context
- * @param mh the message
+ * @param op the operation state
+ * @param mh the received message
+ * @return GNUNET_OK if the tunnel should be kept alive,
+ *         GNUNET_SYSERR to destroy the tunnel
  */
 static int
-handle_p2p_operation_request (void *cls,
-                              struct GNUNET_MESH_Tunnel *tunnel,
-                              void **tunnel_ctx,
-                              const struct GNUNET_MessageHeader *mh)
+handle_incoming_msg (struct OperationState *op,
+                     const struct GNUNET_MessageHeader *mh)
 {
-  struct TunnelContext *tc = *tunnel_ctx;
-  struct Incoming *incoming;
+  struct Incoming *incoming = (struct Incoming *) op;
   const struct OperationRequestMessage *msg = (const struct OperationRequestMessage *) mh;
   struct Listener *listener;
   struct OperationSpecification *spec;
 
-  if (CONTEXT_INCOMING != tc->type)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got op request\n");
+
+  if (GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST != ntohs (mh->type))
   {
-    /* unexpected request */
     GNUNET_break_op (0);
-    /* kill the tunnel, cleaner will be called */
     return GNUNET_SYSERR;
   }
-
-  incoming = tc->data.incoming;
 
   if (NULL != incoming->spec)
   {
@@ -385,8 +421,9 @@ handle_p2p_operation_request (void *cls,
   }
 
   spec = GNUNET_new (struct OperationSpecification);
-  spec->context_msg = 
-      GNUNET_copy_message (GNUNET_MQ_extract_nested_mh (msg));
+  spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
+  if (NULL != spec->context_msg)
+    spec->context_msg = GNUNET_copy_message (spec->context_msg);
   spec->operation = ntohl (msg->operation);
   spec->app_id = msg->app_id;
   spec->salt = ntohl (msg->salt);
@@ -401,12 +438,12 @@ handle_p2p_operation_request (void *cls,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received P2P operation request (op %u, app %s)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received P2P operation request (op %u, app %s)\n",
               ntohs (msg->operation), GNUNET_h2s (&msg->app_id));
   listener = listener_get_by_target (ntohs (msg->operation), &msg->app_id);
   if (NULL == listener)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "no listener matches incoming request, waiting with timeout\n");
     return GNUNET_OK;
   }
@@ -430,7 +467,7 @@ handle_client_create (void *cls,
   struct GNUNET_SET_CreateMessage *msg = (struct GNUNET_SET_CreateMessage *) m;
   struct Set *set;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client created new set (operation %u)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client created new set (operation %u)\n",
               ntohs (msg->operation));
 
   if (NULL != set_get (client))
@@ -441,14 +478,15 @@ handle_client_create (void *cls,
   }
 
   set = NULL;
+  set = GNUNET_new (struct Set);
 
   switch (ntohs (msg->operation))
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      //set = _GSS_intersection_set_create ();
+      // FIXME
       break;
     case GNUNET_SET_OPERATION_UNION:
-      set = _GSS_union_set_create ();
+      set->vt = _GSS_union_vt ();
       break;
     default:
       GNUNET_break (0);
@@ -456,8 +494,7 @@ handle_client_create (void *cls,
       return;
   }
 
-  GNUNET_assert (NULL != set);
-
+  set->state = set->vt->create ();
   set->client = client;
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head, sets_tail, set);
@@ -493,7 +530,7 @@ handle_client_listen (void *cls,
   listener->app_id = msg->app_id;
   listener->operation = ntohs (msg->operation);
   GNUNET_CONTAINER_DLL_insert_tail (listeners_head, listeners_tail, listener);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "new listener created (op %u, app %s)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new listener created (op %u, app %s)\n",
               listener->operation, GNUNET_h2s (&listener->app_id));
   for (incoming = incoming_head; NULL != incoming; incoming = incoming->next)
   {
@@ -508,46 +545,6 @@ handle_client_listen (void *cls,
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
-
-
-/**
- * Called when a client wants to remove an element
- * from the set it inhabits.
- *
- * @param cls unused
- * @param client client that sent the message
- * @param m message sent by the client
- */
-static void
-handle_client_remove (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *m)
-{
-  struct Set *set;
-
-  set = set_get (client);
-  if (NULL == set)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
-    return;
-  }
-  switch (set->operation)
-  {
-    case GNUNET_SET_OPERATION_UNION:
-      _GSS_union_remove ((struct GNUNET_SET_ElementMessage *) m, set);
-      break;
-    case GNUNET_SET_OPERATION_INTERSECTION:
-      //_GSS_intersection_remove ((struct GNUNET_SET_ElementMessage *) m, set);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-  }
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
 
 
 /**
@@ -574,11 +571,10 @@ handle_client_reject (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "peer request rejected by client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer request rejected by client\n");
   GNUNET_MESH_tunnel_destroy (incoming->tunnel);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
-
 
 
 /**
@@ -590,11 +586,13 @@ handle_client_reject (void *cls,
  * @param m message sent by the client
  */
 static void
-handle_client_add (void *cls,
-                   struct GNUNET_SERVER_Client *client,
-                   const struct GNUNET_MessageHeader *m)
+handle_client_add_remove (void *cls,
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
+  const struct GNUNET_SET_ElementMessage *msg;
+  struct GNUNET_SET_Element el;
 
   set = set_get (client);
   if (NULL == set)
@@ -603,19 +601,14 @@ handle_client_add (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  switch (set->operation)
-  {
-    case GNUNET_SET_OPERATION_UNION:
-      _GSS_union_add ((struct GNUNET_SET_ElementMessage *) m, set);
-      break;
-    case GNUNET_SET_OPERATION_INTERSECTION:
-      //_GSS_intersection_add ((struct GNUNET_SET_ElementMessage *) m, set);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-  }
-
+  msg = (const struct GNUNET_SET_ElementMessage *) m;
+  el.size = ntohs (m->size) - sizeof *msg;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client ins/rem element of size %u\n", el.size);
+  el.data = &msg[1];
+  if (GNUNET_MESSAGE_TYPE_SET_REMOVE == ntohs (m->type))
+    set->vt->remove (set->state, &el);
+  else
+    set->vt->add (set->state, &el);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -653,27 +646,15 @@ handle_client_evaluate (void *cls,
   spec->app_id = msg->app_id;
   spec->salt = ntohl (msg->salt);
   spec->peer = msg->target_peer;
+  spec->set = set;
+  spec->client_request_id = ntohl (msg->request_id);
 
   tunnel = GNUNET_MESH_tunnel_create (mesh, tc, &msg->target_peer,
                                       GNUNET_APPLICATION_TYPE_SET,
                                       GNUNET_YES,
                                       GNUNET_YES);
 
-  switch (set->operation)
-  {
-    case GNUNET_SET_OPERATION_INTERSECTION:
-      tc->type = CONTEXT_OPERATION_INTERSECTION;
-      //_GSS_intersection_evaluate ((struct GNUNET_SET_EvaluateMessage *) m, set);
-      break;
-    case GNUNET_SET_OPERATION_UNION:
-      tc->type = CONTEXT_OPERATION_UNION;
-      tc->data.union_op =
-          _GSS_union_evaluate (spec, tunnel);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-  }
+  set->vt->evaluate (spec, tunnel, tc);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -705,6 +686,35 @@ handle_client_ack (void *cls,
  * @param mh the message
  */
 static void
+handle_client_cancel (void *cls,
+                      struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *mh)
+{
+  const struct GNUNET_SET_CancelMessage *msg =
+      (const struct GNUNET_SET_CancelMessage *) mh;
+  struct Set *set;
+
+  set = set_get (client);
+  if (NULL == set)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+  /* FIXME: maybe cancel should return success/error code? */
+  set->vt->cancel (set->state, ntohl (msg->request_id));
+}
+
+
+/**
+ * Handle a request from the client to accept
+ * a set operation that came from a remote peer.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param mh the message
+ */
+static void
 handle_client_accept (void *cls,
                       struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *mh)
@@ -712,12 +722,10 @@ handle_client_accept (void *cls,
   struct Set *set;
   struct Incoming *incoming;
   struct GNUNET_SET_AcceptRejectMessage *msg = (struct GNUNET_SET_AcceptRejectMessage *) mh;
-  struct OperationSpecification *spec;
-  struct TunnelContext *tc;
 
   incoming = get_incoming (ntohl (msg->accept_reject_id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client accepting %u\n", ntohl (msg->accept_reject_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client accepting %u\n", ntohl (msg->accept_reject_id));
 
   if (NULL == incoming)
   {
@@ -736,24 +744,9 @@ handle_client_accept (void *cls,
     return;
   }
 
-  spec = GNUNET_new (struct OperationSpecification);
-  tc = incoming->tc;
-
-  switch (set->operation)
-  {
-    case GNUNET_SET_OPERATION_INTERSECTION:
-      tc->type = CONTEXT_OPERATION_INTERSECTION;
-      // _GSS_intersection_accept (msg, set, incoming);
-      break;
-    case GNUNET_SET_OPERATION_UNION:
-      tc->type = CONTEXT_OPERATION_UNION;
-      tc->data.union_op = _GSS_union_accept (spec, incoming->tunnel);
-      break;
-    default:
-      GNUNET_assert (0);
-      break;
-  }
-
+  incoming->spec->set = set;
+  incoming->spec->client_request_id = ntohl (msg->request_id);
+  set->vt->accept (incoming->spec, incoming->tunnel, incoming->tc);
   /* tunnel ownership goes to operation */
   incoming->tunnel = NULL;
   incoming_destroy (incoming);
@@ -771,12 +764,6 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL != mesh)
-  {
-    GNUNET_MESH_disconnect (mesh);
-    mesh = NULL;
-  }
-
   while (NULL != incoming_head)
     incoming_destroy (incoming_head);
 
@@ -786,9 +773,17 @@ shutdown_task (void *cls,
   while (NULL != sets_head)
     set_destroy (sets_head);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "handled shutdown request\n");
-}
 
+  /* it's important to destroy mesh at the end, as tunnels
+   * must be destroyed first! */
+  if (NULL != mesh)
+  {
+    GNUNET_MESH_disconnect (mesh);
+    mesh = NULL;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled shutdown request\n");
+}
 
 
 /**
@@ -803,7 +798,18 @@ incoming_timeout_cb (void *cls,
 {
   struct Incoming *incoming = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "remote peer timed out\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "remote peer timed out\n");
+  incoming_destroy (incoming);
+}
+
+
+static void
+handle_incoming_disconnect (struct OperationState *op_state)
+{
+  struct Incoming *incoming = (struct Incoming *) op_state;
+  if (NULL == incoming->tunnel)
+    return;
+
   incoming_destroy (incoming);
 }
 
@@ -830,23 +836,25 @@ tunnel_new_cb (void *cls,
                uint32_t port)
 {
   struct Incoming *incoming;
-  struct TunnelContext *tc;
+  static const struct SetVT incoming_vt = {
+    .msg_handler = handle_incoming_msg,
+    .peer_disconnect = handle_incoming_disconnect
+  };
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "new incoming tunnel\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new incoming tunnel\n");
 
   GNUNET_assert (port == GNUNET_APPLICATION_TYPE_SET);
-  tc = GNUNET_new (struct TunnelContext);
   incoming = GNUNET_new (struct Incoming);
   incoming->peer = *initiator;
   incoming->tunnel = tunnel;
-  incoming->tc = tc;
-  tc->data.incoming = incoming;
-  tc->type = CONTEXT_INCOMING;
+  incoming->tc = GNUNET_new (struct TunnelContext);;
+  incoming->tc->vt = &incoming_vt;
+  incoming->tc->op = (struct OperationState *) incoming;
   incoming->timeout_task = 
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, incoming_timeout_cb, incoming);
   GNUNET_CONTAINER_DLL_insert_tail (incoming_head, incoming_tail, incoming);
 
-  return tc;
+  return incoming->tc;
 }
 
 
@@ -867,23 +875,42 @@ tunnel_end_cb (void *cls,
 {
   struct TunnelContext *ctx = tunnel_ctx;
 
-  switch (ctx->type)
-  {
-    case CONTEXT_INCOMING:
-      incoming_destroy (ctx->data.incoming);
-      break;
-    case CONTEXT_OPERATION_UNION:
-      _GSS_union_operation_destroy (ctx->data.union_op);
-      break;
-    case CONTEXT_OPERATION_INTERSECTION:
-      GNUNET_assert (0);
-      /* FIXME: cfuchs */
-      break;
-    default:
-      GNUNET_assert (0);
-  }
-
+  ctx->vt->peer_disconnect (ctx->op);
+  /* mesh will never call us with the context again! */
   GNUNET_free (tunnel_ctx);
+}
+
+
+/**
+ * Functions with this signature are called whenever a message is
+ * received.
+ * 
+ * Each time the function must call GNUNET_MESH_receive_done on the tunnel
+ * in order to receive the next message. This doesn't need to be immediate:
+ * can be delayed if some processing is done on the message.
+ *
+ * @param cls Closure (set from GNUNET_MESH_connect).
+ * @param tunnel Connection to the other end.
+ * @param tunnel_ctx Place to store local state associated with the tunnel.
+ * @param message The actual message.
+ * 
+ * @return GNUNET_OK to keep the tunnel open,
+ *         GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+dispatch_p2p_message (void *cls,
+                      struct GNUNET_MESH_Tunnel *tunnel,
+                      void **tunnel_ctx,
+                      const struct GNUNET_MessageHeader *message)
+{
+  struct TunnelContext *tc = *tunnel_ctx;
+  int ret;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message\n");
+  ret = tc->vt->msg_handler (tc->op, message);
+  GNUNET_MESH_receive_done (tunnel);
+
+  return ret;
 }
 
 
@@ -900,31 +927,29 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    {handle_client_accept, NULL, GNUNET_MESSAGE_TYPE_SET_ACCEPT, 0},
+    {handle_client_accept, NULL, GNUNET_MESSAGE_TYPE_SET_ACCEPT,
+        sizeof (struct GNUNET_SET_AcceptRejectMessage)},
     {handle_client_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ACK, 0},
-    {handle_client_add, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
-    {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE, 0},
+    {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
+    {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE,
+        sizeof (struct GNUNET_SET_CreateMessage)},
     {handle_client_evaluate, NULL, GNUNET_MESSAGE_TYPE_SET_EVALUATE, 0},
-    {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN, 0},
-    {handle_client_reject, NULL, GNUNET_MESSAGE_TYPE_SET_REJECT, 0},
-    {handle_client_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
+    {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN,
+        sizeof (struct GNUNET_SET_ListenMessage)},
+    {handle_client_reject, NULL, GNUNET_MESSAGE_TYPE_SET_REJECT,
+        sizeof (struct GNUNET_SET_AcceptRejectMessage)},
+    {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
+    {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE,
+        sizeof (struct GNUNET_SET_CancelMessage)},
     {NULL, NULL, 0, 0}
   };
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    {handle_p2p_operation_request,
-      GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
-    /* messages for the union operation */
-    {_GSS_union_handle_p2p_message,
-      GNUNET_MESSAGE_TYPE_SET_P2P_IBF, 0},
-    {_GSS_union_handle_p2p_message,
-      GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
-    {_GSS_union_handle_p2p_message,
-      GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
-    {_GSS_union_handle_p2p_message,
-      GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
-    {_GSS_union_handle_p2p_message,
-      GNUNET_MESSAGE_TYPE_SET_P2P_SE, 0},
-    /* FIXME: messages for intersection operation */
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_IBF, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_SE, 0},
     {NULL, 0, 0}
   };
   static const uint32_t mesh_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
@@ -943,7 +968,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "service started\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "started\n");
 }
 
 

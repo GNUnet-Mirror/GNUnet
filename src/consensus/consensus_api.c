@@ -205,7 +205,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   consensus->client = GNUNET_CLIENT_connect ("consensus", cfg);
   consensus->mq = GNUNET_MQ_queue_for_connection_client (consensus->client,
-                                                         mq_handlers, consensus);
+                                                         mq_handlers, NULL, consensus);
 
   GNUNET_assert (consensus->client != NULL);
 

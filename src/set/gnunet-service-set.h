@@ -38,67 +38,25 @@
 #include "set.h"
 
 
-/* FIXME: cfuchs */
-struct IntersectionState;
-
-
-/* FIXME: cfuchs */
-struct IntersectionOperation;
+/**
+ * Implementation-specific set state.
+ * Used as opaque pointer, and specified further
+ * in the respective implementation.
+ */
+struct SetState;
 
 
 /**
- * Extra state required for set union.
+ * Implementation-specific set operation.
+ * Used as opaque pointer, and specified further
+ * in the respective implementation.
  */
-struct UnionState;
-
-/**
- * State of a union operation being evaluated.
- */
-struct UnionEvaluateOperation;
+struct OperationState;
 
 
-
-/**
- * A set that supports a specific operation
- * with other peers.
- */
-struct Set
-{
-  /**
-   * Client that owns the set.
-   * Only one client may own a set.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Message queue for the client
-   */
-  struct GNUNET_MQ_Handle *client_mq;
-
-  /**
-   * Type of operation supported for this set
-   */
-  uint32_t operation; // use enum from API
-
-  /**
-   * Sets are held in a doubly linked list.
-   */
-  struct Set *next;
-
-  /**
-   * Sets are held in a doubly linked list.
-   */
-  struct Set *prev;
-
-  /**
-   * Appropriate state for each type of
-   * operation.
-   */
-  union {
-    struct IntersectionState *i;
-    struct UnionState *u;
-  } state;
-};
+/* forward declarations */
+struct Set;
+struct TunnelContext;
 
 
 /**
@@ -146,24 +104,136 @@ struct OperationSpecification
 
 
 /**
- * A listener is inhabited by a client, and
- * waits for evaluation requests from remote peers.
+ * Signature of functions that create the implementation-specific
+ * state for a set supporting a specific operation.
+ *
+ * @return a set state specific to the supported operation
  */
-struct Listener
+typedef struct SetState *(*CreateImpl) (void);
+
+
+/**
+ * Signature of functions that implement the add/remove functionality
+ * for a set supporting a specific operation.
+ *
+ * @param set implementation-specific set state
+ * @param msg element message from the client
+ */
+typedef void (*AddRemoveImpl) (struct SetState *state, const struct GNUNET_SET_Element *element);
+
+
+/**
+ * Signature of functions that handle disconnection
+ * of the remote peer.
+ *
+ * @param op the set operation, contains implementation-specific data
+ */
+typedef void (*PeerDisconnectImpl) (struct OperationState *op);
+
+
+/**
+ * Signature of functions that implement the destruction of the
+ * implementation-specific set state.
+ *
+ * @param state the set state, contains implementation-specific data
+ */
+typedef void (*DestroySetImpl) (struct SetState *state);
+
+
+/**
+ * Signature of functions that implement the creation of set operations
+ * (currently evaluate and accept).
+ *
+ * @param spec specification of the set operation to be created
+ * @param tunnel the tunnel with the other peer
+ * @param tc tunnel context
+ */
+typedef void (*OpCreateImpl) (struct OperationSpecification *spec,
+                              struct GNUNET_MESH_Tunnel *tunnel,
+                              struct TunnelContext *tc);
+
+
+/**
+ * Signature of functions that implement the message handling for
+ * the different set operations.
+ *
+ * @param op operation state
+ * @param msg received message
+ * @return GNUNET_OK on success, GNUNET_SYSERR to
+ *         destroy the operation and the tunnel
+ */
+typedef int (*MsgHandlerImpl) (struct OperationState *op,
+                               const struct GNUNET_MessageHeader *msg);
+
+typedef void (*CancelImpl) (struct SetState *set,
+                            uint32_t request_id);
+
+
+/**
+ * Dispatch table for a specific set operation.
+ * Every set operation has to implement the callback
+ * in this struct.
+ */
+struct SetVT
 {
   /**
-   * Listeners are held in a doubly linked list.
+   * Callback for the set creation.
    */
-  struct Listener *next;
+  CreateImpl create;
 
   /**
-   * Listeners are held in a doubly linked list.
+   * Callback for element insertion
    */
-  struct Listener *prev;
+  AddRemoveImpl add;
 
   /**
-   * Client that owns the listener.
-   * Only one client may own a listener.
+   * Callback for element removal.
+   */
+  AddRemoveImpl remove;
+
+  /**
+   * Callback for accepting a set operation request
+   */
+  OpCreateImpl accept;
+
+  /**
+   * Callback for starting evaluation with a remote peer.
+   */
+  OpCreateImpl evaluate;
+
+  /**
+   * Callback for destruction of the set state.
+   */
+  DestroySetImpl destroy_set;
+
+  /**
+   * Callback for handling operation-specific messages.
+   */
+  MsgHandlerImpl msg_handler;
+
+  /**
+   * Callback for handling the remote peer's
+   * disconnect.
+   */
+  PeerDisconnectImpl peer_disconnect;
+
+  /**
+   * Callback for canceling an operation by
+   * its ID.
+   */
+  CancelImpl cancel;
+};
+
+
+/**
+ * A set that supports a specific operation
+ * with other peers.
+ */
+struct Set
+{
+  /**
+   * Client that owns the set.
+   * Only one client may own a set.
    */
   struct GNUNET_SERVER_Client *client;
 
@@ -173,69 +243,30 @@ struct Listener
   struct GNUNET_MQ_Handle *client_mq;
 
   /**
-   * The type of the operation.
+   * Type of operation supported for this set
    */
   enum GNUNET_SET_OperationType operation;
 
   /**
-   * Application ID for the operation, used to distinguish
-   * multiple operations of the same type with the same peer.
+   * Virtual table for this set.
+   * Determined by the operation type of this set.
    */
-  struct GNUNET_HashCode app_id;
-};
-
-
-/**
- * Peer that has connected to us, but is not yet evaluating a set operation.
- * Once the peer has sent a request, and the client has
- * accepted or rejected it, this information will be deleted.
- */
-struct Incoming;
-
-
-/**
- * Different types a tunnel can be.
- */
-enum TunnelContextType 
-{
-  /**
-   * Tunnel is waiting for a set request from the tunnel,
-   * or for the ack/nack of the client for a received request.
-   */
-  CONTEXT_INCOMING,
+  const struct SetVT *vt;
 
   /**
-   * The tunnel performs a union operation.
+   * Sets are held in a doubly linked list.
    */
-  CONTEXT_OPERATION_UNION,
+  struct Set *next;
 
   /**
-   * The tunnel performs an intersection operation.
+   * Sets are held in a doubly linked list.
    */
-  CONTEXT_OPERATION_INTERSECTION,
-};
-
-
-/**
- * State associated with the tunnel, dependent on
- * tunnel type.
- */
-union TunnelContextData
-{
-  /**
-   * Valid for tag 'CONTEXT_INCOMING'
-   */
-  struct Incoming *incoming;
+  struct Set *prev;
 
   /**
-   * Valid for tag 'CONTEXT_OPERATION_UNION'
+   * Implementation-specific state.
    */
-  struct UnionEvaluateOperation *union_op;
-
-  /**
-   * Valid for tag 'CONTEXT_OPERATION_INTERSECTION'
-   */
-  struct IntersectionEvaluateOperation *intersection_op;
+  struct SetState *state;
 };
 
 
@@ -246,119 +277,24 @@ union TunnelContextData
 struct TunnelContext
 {
   /**
-   * Type of the tunnel.
+   * V-Table for the operation belonging
+   * to the tunnel contest.
    */
-  enum TunnelContextType type;
+  const struct SetVT *vt;
 
   /**
-   * State associated with the tunnel, dependent on
-   * tunnel type.
+   * Implementation-specific operation state.
    */
-  union TunnelContextData data;
+  struct OperationState *op;
 };
 
 
-
 /**
- * Configuration of the local peer.
+ * Get the table with implementing functions for
+ * set union.
  */
-extern const struct GNUNET_CONFIGURATION_Handle *configuration;
-
-/**
- * Handle to the mesh service.
- */
-extern struct GNUNET_MESH_Handle *mesh;
-
-
-/**
- * Create a new set supporting the union operation
- *
- * @return the newly created set
- */
-struct Set *
-_GSS_union_set_create (void);
-
-
-/**
- * Evaluate a union operation with
- * a remote peer.
- *
- * @param spec specification of the operation the evaluate
- * @param tunnel tunnel already connected to the partner peer
- * @return a handle to the operation
- */
-struct UnionEvaluateOperation *
-_GSS_union_evaluate (struct OperationSpecification *spec,
-                     struct GNUNET_MESH_Tunnel *tunnel);
-
-
-/**
- * Add the element from the given element message to the set.
- *
- * @param m message with the element
- * @param set set to add the element to
- */
-void
-_GSS_union_add (struct GNUNET_SET_ElementMessage *m, struct Set *set);
-
-
-/**
- * Remove the element given in the element message from the set.
- * Only marks the element as removed, so that older set operations can still exchange it.
- *
- * @param m message with the element
- * @param set set to remove the element from
- */
-void
-_GSS_union_remove (struct GNUNET_SET_ElementMessage *m, struct Set *set);
-
-
-/**
- * Destroy a set that supports the union operation
- *
- * @param set the set to destroy, must be of type GNUNET_SET_OPERATION_UNION
- */
-void
-_GSS_union_set_destroy (struct Set *set);
-
-
-/**
- * Accept an union operation request from a remote peer
- *
- * @param spec all necessary information about the operation
- * @param tunnel open tunnel to the partner's peer
- * @return operation
- */
-struct UnionEvaluateOperation *
-_GSS_union_accept (struct OperationSpecification *spec,
-                   struct GNUNET_MESH_Tunnel *tunnel);
-
-
-/**
- * Destroy a union operation, and free all resources
- * associated with it.
- *
- * @param eo the union operation to destroy
- */
-void
-_GSS_union_operation_destroy (struct UnionEvaluateOperation *eo);
-
-
-/**
- * Dispatch messages for a union operation.
- *
- * @param cls closure
- * @param tunnel mesh tunnel
- * @param tunnel_ctx tunnel context
- * @param mh message to process
- * @return GNUNET_SYSERR if the tunnel should be disconnected,
- *         GNUNET_OK otherwise
- */
-int
-_GSS_union_handle_p2p_message (void *cls,
-                               struct GNUNET_MESH_Tunnel *tunnel,
-                               void **tunnel_ctx,
-                               const struct GNUNET_MessageHeader *mh);
+const struct SetVT *
+_GSS_union_vt (void);
 
 
 #endif
