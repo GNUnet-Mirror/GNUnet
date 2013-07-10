@@ -107,6 +107,7 @@ GST_receive_callback (void *cls,
 void
 GST_ats_add_address (struct GNUNET_HELLO_Address *address, void *session);
 
+
 /**
  * Notify ATS about property changes to an address
  *
@@ -116,9 +117,8 @@ GST_ats_add_address (struct GNUNET_HELLO_Address *address, void *session);
  * @param ats performance information
  * @param ats_count number of elements in ats
  */
-
 void
-GST_update_ats_metrics (const struct GNUNET_PeerIdentity *peer,
+GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 			const struct GNUNET_HELLO_Address *address,
 			struct Session *session,
 			const struct GNUNET_ATS_Information *ats,
