@@ -1524,6 +1524,8 @@ udp_plugin_get_session (void *cls,
                                                     &s->target.hashPubKey,
                                                     s,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
+  		address->address, address->address_length, s, NULL, 0);
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UDP, sessions active",
                         GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
