@@ -197,6 +197,27 @@ struct GNUNET_MESH_TunnelNotification
 
 
 /**
+ * Message for mesh data traffic.
+ */
+struct GNUNET_MESH_LocalData
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * TID of the tunnel
+     */
+  uint32_t tid GNUNET_PACKED;
+
+    /**
+     * Payload follows
+     */
+};
+
+
+/**
  * Message to allow the client send more data to the service
  * (always service -> client).
  */
@@ -212,10 +233,6 @@ struct GNUNET_MESH_LocalAck
      */
   MESH_TunnelNumber tunnel_id GNUNET_PACKED;
 
-    /**
-     * ID of the last packet allowed.
-     */
-  uint32_t ack GNUNET_PACKED;
 };
 
 

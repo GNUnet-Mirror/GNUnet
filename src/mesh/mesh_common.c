@@ -136,6 +136,11 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 274: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY";
 
       /**
+       * Local payload traffic
+       */
+    case 275: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA";
+
+      /**
        * Local ACK for data.
        */
     case 286: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK";

@@ -862,6 +862,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
+ * Payload client <-> service
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA             275
+
+/**
  * Local ACK for data.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286

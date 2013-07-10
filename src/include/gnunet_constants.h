@@ -49,7 +49,7 @@ extern "C"
  * After how long do we consider a connection to a peer dead
  * if we don't receive messages from the peer?
  */
-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 5)
 
 /**
  * How long do we delay reading more from a peer after a quota violation?
@@ -61,7 +61,7 @@ extern "C"
  * even if we assume that the service commonly does not
  * respond instantly (DNS, Database, etc.).
  */
-#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10)
+#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
 
 /**
  * How long do we delay messages to get larger packet sizes (CORKing)?
