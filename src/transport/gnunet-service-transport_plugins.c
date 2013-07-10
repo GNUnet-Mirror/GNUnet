@@ -106,6 +106,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
   char *libname;
   char *plugs;
   char *pos;
+  int fail;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (GST_cfg, "TRANSPORT",
@@ -154,6 +155,81 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load transport plugin for `%s'\n"),
+                  plug->lib_name);
+      GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
+      GNUNET_free (plug->short_name);
+      GNUNET_free (plug->lib_name);
+      GNUNET_free (plug);
+    }
+    fail = GNUNET_NO;
+    if (NULL == plug->api->address_pretty_printer)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "address_pretty_printer",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->address_to_string)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "address_to_string",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->string_to_address)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "string_to_address",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->check_address)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "check_address",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->get_session)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "get_session",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->get_network)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "get_network",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->send)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "send",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->disconnect)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "disconnect",
+                  plug->lib_name);
+    }
+    if (GNUNET_YES == fail)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Did not load plugin `%s' due to missing functions\n"),
                   plug->lib_name);
       GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
       GNUNET_free (plug->short_name);
