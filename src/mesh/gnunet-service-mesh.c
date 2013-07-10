@@ -2654,8 +2654,10 @@ tunnel_new (GNUNET_PEER_Id owner,
 static void
 tunnel_set_options (struct MeshTunnel *t, uint32_t options)
 {
-  t->nobuffer = options & GNUNET_MESH_OPTION_NOBUFFER;
-  t->reliable = options & GNUNET_MESH_OPTION_RELIABLE;
+  t->nobuffer = (options & GNUNET_MESH_OPTION_NOBUFFER) != 0 ?
+                 GNUNET_YES : GNUNET_NO;
+  t->reliable = (options & GNUNET_MESH_OPTION_RELIABLE) != 0 ?
+                 GNUNET_YES : GNUNET_NO;
 }
 
 
@@ -4432,7 +4434,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   tunnel_set_options (t, ntohl (t_msg->options));
   if (GNUNET_YES == t->reliable)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
     t->sent_messages_fwd =
      GNUNET_CONTAINER_multihashmap32_create (t->queue_max);  
   }
