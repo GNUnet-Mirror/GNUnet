@@ -38,7 +38,7 @@
 /**
  * ATS network types as array initializer
  */
-#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
+#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT}
 
 /**
  * ATS network types as string array initializer
@@ -52,7 +52,7 @@ enum GNUNET_ATS_Network_Type
   GNUNET_ATS_NET_LAN = 2,
   GNUNET_ATS_NET_WAN = 3,
   GNUNET_ATS_NET_WLAN = 4,
-  GNUNET_ATS_NET_BT = 5
+  GNUNET_ATS_NET_BT = 5,
 };
 
 /**
@@ -674,8 +674,9 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in 'ats'
+ * @return GNUNET_OK or GNUNET_SYSERR
  */
-void
+int
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_HELLO_Address *address,
                            struct Session *session,
