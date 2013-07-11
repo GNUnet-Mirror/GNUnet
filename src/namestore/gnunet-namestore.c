@@ -424,7 +424,7 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
   if (1 != public)
     rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
-    
+  GNUNET_assert (NULL != name);
   add_qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
 						     zone_pkey,
 						     name,
@@ -630,13 +630,13 @@ testservice_task (void *cls,
   if (NULL != uri)
   {
     char sh[53];
-    char name[64];
+    char sname[64];
     struct GNUNET_CRYPTO_ShortHashCode sc;
 
     if ( (2 != (sscanf (uri,
                         "gnunet://gns/%52s/%63s",
                         sh,
-                        name)) ) ||
+                        sname)) ) ||
          (GNUNET_OK !=
           GNUNET_CRYPTO_short_hash_from_string (sh, &sc)) )
     {
@@ -664,7 +664,7 @@ testservice_task (void *cls,
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
     add_qe_uri = GNUNET_NAMESTORE_record_put_by_authority (ns,
 							   zone_pkey,
-							   name,
+							   sname,
 							   1,
 							   &rd,
 							   &add_continuation,
