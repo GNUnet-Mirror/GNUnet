@@ -3985,7 +3985,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (copy->id > ack)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->id);
-      return GNUNET_OK;
+      break;
     }
     work = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
