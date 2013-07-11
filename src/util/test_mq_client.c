@@ -113,7 +113,7 @@ void test_mq (struct GNUNET_CLIENT_Connection *client)
   struct GNUNET_MQ_Envelope *mqm;
 
   /* FIXME: test handling responses */
-  mq = GNUNET_MQ_queue_for_connection_client (client, NULL, NULL);
+  mq = GNUNET_MQ_queue_for_connection_client (client, NULL, NULL, NULL);
 
   mqm = GNUNET_MQ_msg_header (MY_TYPE);
   GNUNET_MQ_send (mq, mqm);
