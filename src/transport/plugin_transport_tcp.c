@@ -616,6 +616,12 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
     break;
+  case 0:
+    {
+      GNUNET_snprintf (rbuf, sizeof (rbuf), "%s",
+      		"<inbound>");
+      return rbuf;
+    }
   default:
     LOG (GNUNET_ERROR_TYPE_WARNING,
     		_("Unexpected address length: %u bytes\n"),
@@ -1355,7 +1361,7 @@ tcp_plugin_get_session (void *cls,
     if (si_ctx.result != NULL)
     {
       session = si_ctx.result;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Found existing session for `%s' address `%s' session %p\n",
 	   GNUNET_i2s (&address->peer),
 	   tcp_address_to_string(NULL, address->address, address->address_length),
@@ -1676,7 +1682,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   }
   else if (0 == addrlen)
   {
-    asc (asc_cls, "<inbound connection>");
+    asc (asc_cls, "<inbound>");
     asc (asc_cls, NULL);
     return;
   }
@@ -2031,11 +2037,14 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
 
-
   /* Notify transport and ATS about new session */
-  plugin->env->session_start (NULL, &wm->clientIdentity,
-  		PLUGIN_NAME, session->addr, session->addrlen, session, &ats, 1);
-
+  if (GNUNET_YES == session->inbound)
+  {
+  	plugin->env->session_start (NULL, &wm->clientIdentity, PLUGIN_NAME,
+  		(GNUNET_YES == session->inbound) ? NULL : session->addr,
+		  (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
+		  session, &ats, 1);
+  }
 
   process_pending_messages (session);
 
@@ -2154,10 +2163,8 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   plugin->env->update_address_metrics (plugin->env->cls,
   		&session->target,
   		(GNUNET_YES == session->inbound) ? NULL : session->addr,
-				       (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
-				       session,
-				       &distance,
-				       1);
+		  (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
+		  session, &distance, 1);
 
   reschedule_session_timeout (session);
 
