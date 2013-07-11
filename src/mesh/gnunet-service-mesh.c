@@ -3234,7 +3234,6 @@ queue_add (void *cls, uint16_t type, size_t size,
             GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                         "dropping pid: %u\n", pid_q);
             queue_destroy (queue, GNUNET_YES);
-            fc->queue_n--;
             t->pending_messages--;
             priority = GNUNET_YES;
             break;
