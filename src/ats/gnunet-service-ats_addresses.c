@@ -852,10 +852,15 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
 		for (c1 = 0; c1 < atsi_delta_count; c1++)
 		{
-			if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
+			if ((GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type)) &&
+					(addr_net != ntohl (atsi_delta[c1].value)))
 			{
 				/* Network type changed */
-				GNUNET_break (0);
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address for peer `%s' %p changed from network %s to %s\n",
+	           GNUNET_i2s (peer),
+	           existing_address,
+	           GNUNET_ATS_print_network_type (addr_net),
+	           GNUNET_ATS_print_network_type (ntohl (atsi_delta[c1].value)));
   			handle->s_address_update_network (handle->solver, existing_address,
   					ntohl (atsi_delta[c1].value),
   					get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE));
