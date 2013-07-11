@@ -3214,6 +3214,8 @@ queue_add (void *cls, uint16_t type, size_t size,
         if (queue->type == type && queue->tunnel == t)
         {
           pid_q = ntohl (((struct GNUNET_MESH_Data *)(queue->cls))->pid);
+          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                      "pid: %u, pid_q: %u\n", pid, pid_q);
           break;
         }
       GNUNET_assert (NULL != queue);
@@ -3228,9 +3230,9 @@ queue_add (void *cls, uint16_t type, size_t size,
           if (queue->type == type && queue->tunnel == t)
           {
             /* Drop message from queue */
-            GNUNET_CONTAINER_DLL_remove (dst->queue_head,
-                                         dst->queue_tail,
-                                         queue);
+            pid_q = ntohl (((struct GNUNET_MESH_Data *)(queue->cls))->pid);
+            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                        "dropping pid: %u\n", pid_q);
             queue_destroy (queue, GNUNET_YES);
             fc->queue_n--;
             t->pending_messages--;
