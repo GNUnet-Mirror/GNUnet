@@ -287,41 +287,71 @@ struct MESH_TunnelID
 /**
  * Info needed to retry a message in case it gets lost.
  */
-struct MeshSentMessage
+struct MeshReliableMessage
 {
-  /**
-   * Double linked list, FIFO style
-   */
-  struct MeshSentMessage *next;
-  struct MeshSentMessage *prev;
+    /**
+     * Double linked list, FIFO style
+     */
+  struct MeshReliableMessage    *next;
+  struct MeshReliableMessage    *prev;
 
-  /**
-   * Tunnel this message is in.
-   */
-  struct MeshTunnel                 *t;
+    /**
+     * Tunnel Reliability queue this message is in.
+     */
+  struct MeshTunnelReliability  *rel;
 
-  /**
-   * ID of the message (ACK needed to free)
-   */
-  uint32_t                          id;
+    /**
+     * ID of the message (ACK needed to free)
+     */
+  uint32_t                      id;
 
-  /**
-   * Task to resend/poll in case no ACK is received.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier   retry_task; // FIXME move to per tunnel timer?
-
-  /**
-   * Counter for exponential backoff.
-   */
-  struct GNUNET_TIME_Relative       retry_timer;
-
-  /**
-   * Is this a forward or backward going message?
-   */
-  int                               is_forward;
+    /**
+     * When was this message issued (to calculate ACK delay) FIXME update with traffic
+     */
+  struct GNUNET_TIME_Absolute   timestamp;
 
   /* struct GNUNET_MESH_Data with payload */
 };
+
+
+/**
+ * Data needed for reliable tunnel endpoint retransmission management.
+ */
+struct MeshTunnelReliability
+{
+    /**
+     * Tunnel this is about.
+     */
+  struct MeshTunnel *t;
+
+    /**
+     * DLL of messages sent and not yet ACK'd.
+     */
+  struct MeshReliableMessage            *head_sent;
+  struct MeshReliableMessage            *tail_sent;
+
+    /**
+     * DLL of messages received out of order.
+     */
+  struct MeshReliableMessage            *head_recv;
+  struct MeshReliableMessage            *tail_recv;
+
+    /**
+     * Task to resend/poll in case no ACK is received.
+     */
+  GNUNET_SCHEDULER_TaskIdentifier       retry_task;
+
+    /**
+     * Counter for exponential backoff.
+     */
+  struct GNUNET_TIME_Relative           retry_timer;
+
+    /**
+     * How long does it usually take to get an ACK. FIXME update with traffic
+     */
+  struct GNUNET_TIME_Relative           expected_delay;
+};
+
 
 /**
  * Struct containing all information regarding a tunnel
@@ -442,19 +472,17 @@ struct MeshTunnel
      */
   unsigned int pending_messages;
 
-  /**
-   * Messages sent and not yet ACK'd.
-   * Only present (non-NULL) at the owner of a tunnel.
-   */
-  struct MeshSentMessage *fwd_head;
-  struct MeshSentMessage *fwd_tail;
+    /**
+     * Reliability data.
+     * Only present (non-NULL) at the owner of a tunnel.
+     */
+  struct MeshTunnelReliability *fwd_rel;
 
-  /**
-   * Messages sent and not yet ACK'd.
-   * Only present (non-NULL) at the destination of a tunnel.
-   */
-  struct MeshSentMessage *bck_head;
-  struct MeshSentMessage *bck_tail;
+    /**
+     * Reliability data.
+     * Only present (non-NULL) at the destination of a tunnel.
+     */
+  struct MeshTunnelReliability *bck_rel;
 };
 
 
@@ -2284,29 +2312,34 @@ tunnel_send_client_to_orig (struct MeshTunnel *t,
 /**
  * We haven't received an ACK after a certain time: restransmit the message.
  *
- * @param cls Closure (MeshSentMessage with the message to restransmit)
+ * @param cls Closure (MeshReliableMessage with the message to restransmit)
  * @param tc TaskContext.
  */
 static void
 tunnel_retransmit_message (void *cls,
                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshSentMessage *copy = cls;
+  struct MeshTunnelReliability *rel = cls;
+  struct MeshReliableMessage *copy;
+  struct MeshTunnel *t;
   struct GNUNET_MESH_Data *payload;
   GNUNET_PEER_Id hop;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Retransmit \n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
-  copy->retry_task = GNUNET_SCHEDULER_NO_TASK;
+  rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
+  t = rel->t;
+  copy = rel->head_sent;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Retransmit \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
+
   payload = (struct GNUNET_MESH_Data *) &copy[1];
-  hop = copy->is_forward ? copy->t->next_hop : copy->t->prev_hop;
-  send_prebuilt_message (&payload->header, hop, copy->t);
+  hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
+  send_prebuilt_message (&payload->header, hop, t);
   GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
-  copy->retry_timer = GNUNET_TIME_STD_BACKOFF (copy->retry_timer);
-  copy->retry_task = GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
+  rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer); // FIXME adapt
+  rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                                    &tunnel_retransmit_message,
                                                    cls);
 }
@@ -3428,7 +3461,12 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
     if (GNUNET_YES == t->reliable)
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+      t->bck_rel = GNUNET_malloc (sizeof (struct MeshTunnelReliability));
+      t->bck_rel->t = t;
+      t->bck_rel->expected_delay = MESH_RETRANSMIT_TIME;
+    }
 
     tunnel_add_client (t, c);
     send_client_tunnel_create (t);
@@ -3883,13 +3921,14 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_DataACK *msg;
-  struct MeshSentMessage *copy;
-  struct MeshSentMessage *next;
-  struct MeshSentMessage *head;
+  struct MeshTunnelReliability *rel;
+  struct MeshReliableMessage *copy;
+  struct MeshReliableMessage *next;
   struct MeshTunnel *t;
   GNUNET_PEER_Id id;
   uint32_t ack;
   uint16_t type;
+  int work;
 
   type = ntohs (message->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a %s message from %s!\n",
@@ -3916,7 +3955,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       send_prebuilt_message (message, t->prev_hop, t);
       return GNUNET_OK;
     }
-    head = t->fwd_head;
+    rel = t->fwd_rel;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
   }
   else if (t->prev_hop == id && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
@@ -3927,41 +3966,64 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       send_prebuilt_message (message, t->next_hop, t);
       return GNUNET_OK;
     }
-    head = t->bck_head;
+    rel = t->bck_rel;
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
   }
   else
   {
     GNUNET_break_op (0);
-    head = NULL;
+    return GNUNET_OK;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK \n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  ack %u\n", ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %p\n", head);
-  for (copy = head; copy != NULL; copy = next)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  ack  %u\n", ack);
+  for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
+    struct GNUNET_TIME_Relative time;
+
     if (copy->id > ack)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head is %u, out!\n", copy->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->id);
       return GNUNET_OK;
     }
-
+    work = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
+    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     next = copy->next;
+    GNUNET_free (copy);
+    time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
+    rel->expected_delay.rel_value += time.rel_value;
+    rel->expected_delay.rel_value /= 2;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s!\n",
+                GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
+                                                        GNUNET_NO));
+    rel->retry_timer = rel->expected_delay;
+  }
+  if (GNUNET_YES == work)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+    {
+      GNUNET_SCHEDULER_cancel (rel->retry_task);
+      if (NULL == rel->head_sent)
+      {
+        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      else
+      {
+        struct GNUNET_TIME_Absolute new_target;
+        struct GNUNET_TIME_Relative delay;
 
-    /* This CANNOT use the variable 'head', as the macro must modify 't'*/
-    if (GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type)
-      GNUNET_CONTAINER_DLL_remove (t->fwd_head, t->fwd_tail, copy);
-    else
-      GNUNET_CONTAINER_DLL_remove (t->bck_head, t->bck_tail, copy);
-
-    if (GNUNET_SCHEDULER_NO_TASK != copy->retry_task)
-      GNUNET_SCHEDULER_cancel (copy->retry_task);
+        new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
+                                               rel->retry_timer);
+        delay = GNUNET_TIME_absolute_get_remaining (new_target);
+        rel->retry_task =
+            GNUNET_SCHEDULER_add_delayed (delay,
+                                          &tunnel_retransmit_message,
+                                          rel);
+      }
+    }
     else
       GNUNET_break (0);
-
-    GNUNET_free (copy);
   }
   return GNUNET_OK;
 }
@@ -4520,7 +4582,12 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   t->port = ntohl (t_msg->port);
   tunnel_set_options (t, ntohl (t_msg->options));
   if (GNUNET_YES == t->reliable)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+    t->fwd_rel = GNUNET_malloc (sizeof (struct MeshTunnelReliability));
+    t->fwd_rel->t = t;
+    t->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x]:%u (%x)\n",
               GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
@@ -4683,26 +4750,24 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
     fc = tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ? &t->prev_fc : &t->next_fc;
     if (GNUNET_YES == t->reliable)
     {
-      struct MeshSentMessage *copy;
+      struct MeshTunnelReliability *rel;
+      struct MeshReliableMessage *copy;
 
-      copy = GNUNET_malloc (sizeof (struct MeshSentMessage)
+      copy = GNUNET_malloc (sizeof (struct MeshReliableMessage)
                             + sizeof(struct GNUNET_MESH_Data)
                             + size);
-      copy->t = t;
       copy->id = fc->last_pid_recv + 1;
-      copy->is_forward = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV);
-      copy->retry_timer = MESH_RETRANSMIT_TIME;
-      copy->retry_task =
-          GNUNET_SCHEDULER_add_delayed (copy->retry_timer,
-                                        &tunnel_retransmit_message,
-                                        copy);
-      if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
+      copy->timestamp = GNUNET_TIME_absolute_get ();
+      rel = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV) ? t->fwd_rel : t->bck_rel;
+      copy->rel = rel;
+      GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
+      if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
-        GNUNET_CONTAINER_DLL_insert_tail (t->fwd_head, t->fwd_tail, copy);
-      }
-      else
-      {
-        GNUNET_CONTAINER_DLL_insert_tail (t->bck_head, t->bck_tail, copy);
+        rel->retry_timer = rel->expected_delay;
+        rel->retry_task =
+            GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
+                                          &tunnel_retransmit_message,
+                                          rel);
       }
       payload = (struct GNUNET_MESH_Data *) &copy[1];
     }
