@@ -241,7 +241,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
               t->no, GNUNET_i2s (peer));
   GNUNET_free (ps);
@@ -254,7 +254,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *p = cls;
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
               GNUNET_i2s (peer));
 
