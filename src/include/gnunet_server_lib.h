@@ -297,6 +297,52 @@ GNUNET_SERVER_client_set_timeout (struct GNUNET_SERVER_Client *client,
                                   struct GNUNET_TIME_Relative timeout);
 
 
+
+/**
+ * Return user context associated with the given client.
+ * Note: you should probably use the macro (call without the underscore).
+ *
+ * @param client client to query
+ * @param size number of bytes in user context struct (for verification only)
+ * @return pointer to user context
+ */
+void *
+GNUNET_SERVER_client_get_user_context_ (struct GNUNET_SERVER_Client *client,
+					size_t size);
+
+
+/**
+ * Set user context to be associated with the given client.
+ * Note: you should probably use the macro (call without the underscore).
+ *
+ * @param client client to query
+ * @param ptr pointer to user context
+ * @param size number of bytes in user context struct (for verification only)
+ */
+void 
+GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
+					void *ptr,
+					size_t size);
+
+
+/**
+ * Return user context associated with the given client.
+ *
+ * @param client client to query
+ * @param type expected return type (i.e. 'struct Foo')
+ * @return pointer to user context of type 'type *'.
+ */
+#define GNUNET_SERVER_client_get_user_context(client,type) (type *) GNUNET_SERVER_client_get_user_context_ (client, sizeof (type))
+
+/**
+ * Set user context to be associated with the given client.
+ *
+ * @param client client to query
+ * @param ptr pointer to user context
+ */
+#define GNUNET_SERVER_client_set_user_context(client,value) GNUNET_SERVER_client_set_user_context_ (client, value, sizeof (*value))
+
+
 /**
  * Disable the warning the server issues if a message is not acknowledged
  * in a timely fashion.  Use this call if a client is intentionally delayed

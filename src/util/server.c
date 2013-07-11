@@ -239,6 +239,12 @@ struct GNUNET_SERVER_Client
   struct GNUNET_CONNECTION_Handle *connection;
 
   /**
+   * User context value, manipulated using
+   * 'GNUNET_SERVER_client_{get/set}_user_context' functions.
+   */
+  void *user_context;
+
+  /**
    * ID of task used to restart processing.
    */
   GNUNET_SCHEDULER_TaskIdentifier restart_task;
@@ -286,6 +292,12 @@ struct GNUNET_SERVER_Client
   unsigned int suspended;
 
   /**
+   * Last size given when user context was initialized; used for
+   * sanity check.
+   */
+  size_t user_context_size;
+
+  /**
    * Are we currently in the "process_client_buffer" function (and
    * will hence restart the receive job on exit if suspended == 0 once
    * we are done?).  If this is set, then "receive_done" will
@@ -327,15 +339,40 @@ struct GNUNET_SERVER_Client
 };
 
 
+
 /**
- * Scheduler says our listen socket is ready.  Process it!
+ * Return user context associated with the given client.
+ * Note: you should probably use the macro (call without the underscore).
  *
- * @param cls handle to our server for which we are processing the listen
- *        socket
- * @param tc reason why we are running right now
+ * @param client client to query
+ * @param size number of bytes in user context struct (for verification only)
+ * @return pointer to user context
  */
-static void
-process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+void *
+GNUNET_SERVER_client_get_user_context_ (struct GNUNET_SERVER_Client *client,
+					size_t size)
+{
+  GNUNET_assert (size == client->user_context_size);
+  return client->user_context;
+}
+
+
+/**
+ * Set user context to be associated with the given client.
+ * Note: you should probably use the macro (call without the underscore).
+ *
+ * @param client client to query
+ * @param ptr pointer to user context
+ * @param size number of bytes in user context struct (for verification only)
+ */
+void 
+GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
+					void *ptr,
+					size_t size)
+{
+  client->user_context_size = size;
+  client->user_context = ptr;
+}
 
 
 /**
