@@ -922,7 +922,6 @@ client_receive_mst_cb (void *cls, void *client,
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
-
   delay = s->plugin->env->receive (plugin->env->cls, &s->target, message,
                                    s, (const char *) s->addr, s->addrlen);
 
@@ -1540,6 +1539,12 @@ http_client_plugin_get_session (void *cls,
   s->put_tmp_disconnecting = GNUNET_NO;
   s->put_tmp_disconnected = GNUNET_NO;
   client_start_session_timeout (s);
+
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                   "Created new session %p for `%s' address `%s''\n",
+                   s,
+                   http_common_plugin_address_to_string (NULL, plugin->protocol, s->addr, s->addrlen),
+                   GNUNET_i2s (&s->target));
 
   /* add new session */
   GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
