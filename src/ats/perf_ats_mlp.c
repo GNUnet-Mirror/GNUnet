@@ -357,6 +357,14 @@ check (void *cls, char *const *args, const char *cfgfile,
 			/* solve */
 			if (cp + 1 >= N_peers_start)
 			{
+
+				update_mip_dur = GNUNET_TIME_UNIT_FOREVER_REL;
+				update_lp_dur = GNUNET_TIME_UNIT_FOREVER_REL;
+				update_build_dur = GNUNET_TIME_UNIT_FOREVER_REL;
+				update_mip_presolv = GNUNET_SYSERR;
+				update_lp_presolv = GNUNET_SYSERR;
+				update_mip_res = GNUNET_SYSERR;
+				update_lp_res = GNUNET_SYSERR;
 				/* Solve the full problem */
 				GAS_mlp_solve_problem (mlp);
 				full_lp_res = mlp->ps.lp_res;
