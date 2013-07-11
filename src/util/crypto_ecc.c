@@ -431,6 +431,7 @@ short_wait ()
  * are invalid the old file is deleted and a fresh key is
  * created.
  *
+ * @param filename name of file to use to store the key
  * @return new private key, NULL on error (for example,
  *   permission denied)
  */
