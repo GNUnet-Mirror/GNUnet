@@ -657,12 +657,19 @@ http_server_plugin_address_suggested (void *cls, const void *addr,
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *next;
   struct HttpAddressWrapper *pos;
-
-
+	struct HttpAddress *h_addr;
+GNUNET_break (0);
+	h_addr = (struct HttpAddress *) addr;
   if ((NULL != plugin->ext_addr) &&
 	   GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
 			   	   	   plugin->ext_addr, plugin->ext_addr_len)))
+  {
+  	if ((ntohl(h_addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) != HTTP_OPTIONS_VERIFY_CERTIFICATE)
+			GNUNET_break (0);
+  	else
+  		GNUNET_break (0);
     return GNUNET_OK;
+  }
 
   next  = plugin->addr_head;
   while (NULL != (pos = next))

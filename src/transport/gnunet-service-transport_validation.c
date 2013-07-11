@@ -956,6 +956,26 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     address.transport_name = addr;
     address.peer = GST_my_identity;
 
+    if (NULL == address.transport_name)
+    {
+    	GNUNET_break (0);
+    }
+    if (NULL == (papi = GST_plugins_find (address.transport_name)))
+    {
+      /* we don't have the plugin for this address */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Plugin `%s' not available, cannot confirm having this address \n",
+      		address.transport_name) ;
+      return;
+    }
+    if (GNUNET_OK != papi->check_address (papi->cls, addrend, alen))
+		{
+    	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address `%s' is not one of my addresses, not confirming PING\n",
+    		GST_plugins_a2s (&address));
+    	return;
+		}
+    else
+    	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address `%s' is one of my addresses, confirming PING\n",
+    	    		GST_plugins_a2s (&address)); /* DEBUGGING*/
 
     if (GNUNET_YES != GST_hello_test_address (&address, &sig_cache, &sig_cache_exp))
     {
@@ -1033,7 +1053,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
   /* first see if the session we got this PING from can be used to transmit
    * a response reliably */
-  papi = GST_plugins_find (sender_address->transport_name);
   if (papi == NULL)
     ret = -1;
   else
