@@ -2913,6 +2913,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     else
     {
       GNUNET_break (0);
+      GNUNET_free (queue);
       return;
     }
     fc->queue_n--;
