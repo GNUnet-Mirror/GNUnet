@@ -218,6 +218,11 @@ do_shutdown (void *cls,
     GNUNET_NAMESTORE_zone_monitor_stop (zm);
     zm = NULL;
   }
+  if (NULL != data)
+  {
+    GNUNET_free (data);
+    data = NULL;
+  }
 }
 
 
@@ -670,7 +675,6 @@ testservice_task (void *cls,
 							   &add_continuation,
 							   &add_qe_uri);
   }
-  GNUNET_free_non_null (data);
   if (monitor)
   {
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
