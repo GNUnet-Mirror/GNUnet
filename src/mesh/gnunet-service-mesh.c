@@ -4013,8 +4013,10 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_Poll *msg;
   struct MeshTunnel *t;
+  struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
   uint32_t pid;
+  uint32_t old;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an POLL packet from %s!\n",
               GNUNET_i2s (peer));
@@ -4039,18 +4041,25 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  was %u\n", t->next_fc.last_pid_recv);
-    t->next_fc.last_pid_recv = pid;
+    fc = &t->next_fc;
+    old = fc->last_pid_recv;
+    fc->last_pid_recv = pid;
     tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
   else if (t->prev_hop == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from BCK\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  was %u\n", t->prev_fc.last_pid_recv);
-    t->prev_fc.last_pid_recv = pid;
+    fc = &t->prev_fc;
+    old = fc->last_pid_recv;
+    fc->last_pid_recv = pid;
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL);
   }
   else
     GNUNET_break (0);
+  
+  if (GNUNET_YES == t->reliable)
+    fc->last_pid_recv = old;
 
   return GNUNET_OK;
 }
