@@ -3724,7 +3724,8 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
     return GNUNET_OK;
   }
-  t->prev_fc.last_pid_recv = pid;
+  if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv))
+    t->prev_fc.last_pid_recv = pid;
   if (0 == t->next_hop)
   {
     GNUNET_break (0);
@@ -3829,7 +3830,8 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
-  t->next_fc.last_pid_recv = pid;
+  if (GMC_is_pid_bigger (pid, t->next_fc.last_pid_recv))
+    t->next_fc.last_pid_recv = pid;
   if (0 == t->prev_hop) /* No owner AND no prev hop */
   {
     if (GNUNET_YES == t->destroy)
