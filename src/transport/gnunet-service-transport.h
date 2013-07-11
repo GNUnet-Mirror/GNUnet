@@ -105,7 +105,8 @@ GST_receive_callback (void *cls,
  * @param session the session
  */
 void
-GST_ats_add_address (struct GNUNET_HELLO_Address *address, void *session);
+GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
+										 struct Session *session);
 
 
 /**

@@ -171,6 +171,8 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     return ret;
   }
 
+  GST_ats_add_address ((struct GNUNET_HELLO_Address *) address, session);
+
   if (do_forward != GNUNET_YES)
     return ret;
   im = (struct InboundMessage *) buf;
@@ -400,8 +402,8 @@ plugin_env_address_to_type (void *cls,
  * @param session the session
  */
 void
-GST_ats_add_address (struct GNUNET_HELLO_Address *address,
-						 void *session)
+GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
+						 	 	 	 	 struct Session *session)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 	struct GNUNET_ATS_Information ats;
@@ -420,7 +422,10 @@ GST_ats_add_address (struct GNUNET_HELLO_Address *address,
   	return;
   }
 
-	net = papi->get_network (NULL, session);
+  if (GNUNET_YES == GNUNET_ATS_session_known (GST_ats, address, session))
+  	return;
+
+	net = papi->get_network (NULL, (void *) session);
   if (GNUNET_ATS_NET_UNSPECIFIED == net)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -458,6 +463,10 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 			uint32_t ats_count)
 {
 	struct GNUNET_ATS_Information *ats_new;
+
+  if (GNUNET_NO == GNUNET_ATS_session_known (GST_ats, address, session))
+  	return;
+
 	/* Call to manipulation to manipulate ATS information */
 	ats_new = GST_manipulation_manipulate_metrics (peer, address, session, ats, ats_count);
 	if (NULL == ats_new)
