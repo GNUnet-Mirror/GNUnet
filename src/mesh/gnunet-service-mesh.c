@@ -2204,8 +2204,11 @@ tunnel_send_bck_ack (struct MeshTunnel *t, uint16_t type)
       }
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      if (NULL != t->client && GNUNET_YES == t->reliable)
-        return;
+      /* Why was this here?!
+       * This prevents the destination from starting traffic to the origin
+       */
+//       if (NULL != t->client && GNUNET_YES == t->reliable)
+//         return; 
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
