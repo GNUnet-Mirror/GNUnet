@@ -644,6 +644,19 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
                              socklen_t addrlen);
 
 /**
+ * Test if a address and a session is known to ATS
+ *
+ * @param sh the scheduling handle
+ * @param address the address
+ * @param session the session
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
+    											const struct GNUNET_HELLO_Address *address,
+    											struct Session *session);
+
+/**
  * We have a new address ATS should know. Addresses have to be added with this
  * function before they can be: updated, set in use and destroyed
  *

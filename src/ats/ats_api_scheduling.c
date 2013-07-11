@@ -1134,6 +1134,32 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * Test if a address and a session is known to ATS
+ *
+ * @param sh the scheduling handle
+ * @param address the address
+ * @param session the session
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
+    											const struct GNUNET_HELLO_Address *address,
+    											struct Session *session)
+{
+	int s;
+  if (NULL != session)
+  {
+    if (NOT_FOUND != (s = find_session_id (sh, session, &address->peer)))
+    {
+      /* Existing */
+      return GNUNET_YES;
+    }
+    return GNUNET_NO;
+  }
+  return GNUNET_NO;
+}
+
+/**
  * We have a new address ATS should know. Addresses have to be added with this
  * function before they can be: updated, set in use and destroyed
  *
@@ -1184,14 +1210,9 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
 
   if (NULL != session)
   {
-    s = find_session_id (sh, session, &address->peer);
-    if (NOT_FOUND != s)
+    if (NOT_FOUND != (s = find_session_id (sh, session, &address->peer)))
     {
       /* Already existing, nothing todo */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Adding duplicate address for peer `%s', plugin `%s', session %p id %u\n",
-                  GNUNET_i2s (&address->peer),
-                  address->transport_name, session, s);
       return GNUNET_SYSERR;
     }
     s = find_empty_session_slot (sh, session, &address->peer);
