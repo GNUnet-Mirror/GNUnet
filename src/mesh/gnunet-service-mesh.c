@@ -3180,7 +3180,7 @@ queue_send (void *cls, size_t size, void *buf)
     else
     {
       GNUNET_break (0);
-      fc = NULL;
+      return data_size;
     }
     if (NULL != fc && GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
     {
