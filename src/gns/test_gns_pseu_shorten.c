@@ -168,7 +168,7 @@ process_shorten_result (void* cls, const char* sname)
     if (0 != strcmp(sname, TEST_EXPECTED_RESULT))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "shorten test failed! (wanted: %s got: %s\n",
+                  "shorten test failed! (wanted: %s got: %s)\n",
                   TEST_EXPECTED_RESULT, sname);
       ok = 1;
     }
