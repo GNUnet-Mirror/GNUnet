@@ -1213,11 +1213,11 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 			  hdr, 
 			  mas->session,
 			  (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-			  (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+			  (mas->endpoint == NULL) ? 0 : sizeof (struct WlanAddress));
     plugin->env->update_address_metrics (plugin->env->cls,
 					 &tmpsource,
 					 (mas->endpoint == NULL) ? NULL : (const char *) &mas->endpoint->addr,
-					 (mas->endpoint == NULL) ? 0 : sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress),
+					 (mas->endpoint == NULL) ? 0 : sizeof (struct WlanAddress),
 					 mas->session,
 					 &ats, 1);
     break;
