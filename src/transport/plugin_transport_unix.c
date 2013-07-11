@@ -962,7 +962,6 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   s = lookup_session (plugin, sender, ua, ua_len);
   if (NULL == s)
   {
-  	GNUNET_break (0);
     s = unix_plugin_get_session (plugin, addr);
     s->inbound = GNUNET_YES;
     /* Notify transport and ATS about new inbound session */
