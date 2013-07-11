@@ -107,6 +107,8 @@ struct Session
 
   size_t addrlen;
 
+  int inbound;
+
   /**
    * Session timeout task
    */
@@ -433,13 +435,17 @@ lookup_session_it (void *cls,
   struct Session *t = value;
 
   if (t->addrlen != lctx->ua_len)
+  {
+  	GNUNET_break (0);
     return GNUNET_YES;
+  }
 
-  if (0 == memcmp (&t->addr, lctx->ua, lctx->ua_len))
+  if (0 == memcmp (t->addr, lctx->ua, lctx->ua_len))
   {
     lctx->s = t;
     return GNUNET_NO;
   }
+  GNUNET_break (0);
   return GNUNET_YES;
 }
 
@@ -808,6 +814,7 @@ unix_plugin_get_session (void *cls,
   s->addr = (struct UnixAddress *) &s[1];
   s->addrlen = address->address_length;
   s->plugin = plugin;
+  s->inbound = GNUNET_NO;
   memcpy (s->addr, address->address, address->address_length);
   memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
@@ -940,7 +947,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message from %s\n",
        unix_address_to_string(NULL, ua, ua_len));
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -955,21 +962,23 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   s = lookup_session (plugin, sender, ua, ua_len);
   if (NULL == s)
   {
+  	GNUNET_break (0);
     s = unix_plugin_get_session (plugin, addr);
-    /* Notify transport and ATS about new session */
+    s->inbound = GNUNET_YES;
+    /* Notify transport and ATS about new inbound session */
     plugin->env->session_start (NULL, sender,
-    		PLUGIN_NAME, ua, ua_len, s, &plugin->ats_network, 1);
+    		PLUGIN_NAME, NULL, 0, s, &plugin->ats_network, 1);
   }
   reschedule_session_timeout (s);
 
-  plugin->env->receive (plugin->env->cls, sender, currhdr,
-                        s, (const char *) ua, ua_len);
+  plugin->env->receive (plugin->env->cls, sender, currhdr, s,
+                        (GNUNET_YES == s->inbound) ? NULL : (const char *) ua,
+             				    (GNUNET_YES == s->inbound) ? 0 : ua_len);
 
-  plugin->env->update_address_metrics (plugin->env->cls,
-				       sender,
-				       (const char *) ua, ua_len,
-				       s,
-				       &plugin->ats_network, 1);
+  plugin->env->update_address_metrics (plugin->env->cls, sender,
+				       (GNUNET_YES == s->inbound) ? NULL : (const char *) ua,
+				       (GNUNET_YES == s->inbound) ? 0 : ua_len,
+				       s, &plugin->ats_network, 1);
 
   GNUNET_free (addr);
 }
@@ -1280,10 +1289,13 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
   static char rbuf[1024];
 	struct UnixAddress *ua = (struct UnixAddress *) addr;
 	char *addrstr;
-	char *tmp;
 	size_t addr_str_len;
 
-  if ((NULL == addr) || (0 == addrlen) || (sizeof (struct UnixAddress) > addrlen))
+	if (0 == addrlen)
+	{
+		GNUNET_snprintf(rbuf, sizeof (rbuf), "%s", "<inbound>");
+	}
+  if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
     GNUNET_break (0);
     return NULL;
@@ -1308,9 +1320,7 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
 
-  GNUNET_asprintf(&tmp, "%s.%u.%s", PLUGIN_NAME, ntohl (ua->options), addrstr);
-  memcpy (rbuf, tmp, strlen (tmp) + 1);
-  GNUNET_free (tmp);
+  GNUNET_snprintf(rbuf, sizeof (rbuf), "%s.%u.%s", PLUGIN_NAME, ntohl (ua->options), addrstr);
   return rbuf;
 }
 
@@ -1387,6 +1397,10 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
   if ((NULL != addr) && (addrlen > 0))
   {
     asc (asc_cls, unix_address_to_string (NULL, addr, addrlen));
+  }
+  else if (0 == addrlen)
+  {
+    asc (asc_cls, "<inbound>");
   }
   else
   {
