@@ -107,7 +107,8 @@ check_PROGRAMS = \
   test_mesh_small_speed_nobuf  \
   test_mesh_small_speed_backwards  \
   test_mesh_small_speed_nobuf_backwards \
-  test_mesh_small_speed_reliable
+  test_mesh_small_speed_reliable \
+  test_mesh_small_speed_reliable_backwards
 endif
 
 ld_mesh_test_lib = \
@@ -170,6 +171,11 @@ test_mesh_small_speed_reliable_SOURCES = \
   test_mesh_small.c
 test_mesh_small_speed_reliable_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_reliable_DEPENDENCIES = $(dep_mesh_test_lib)
+
+test_mesh_small_speed_reliable_backwards_SOURCES = \
+  test_mesh_small.c
+test_mesh_small_speed_reliable_backwards_LDADD = $(ld_mesh_test_lib)
+test_mesh_small_speed_reliable_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 
 if ENABLE_TEST_RUN

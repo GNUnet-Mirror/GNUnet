@@ -2334,8 +2334,7 @@ tunnel_retransmit_message (void *cls,
 
   t = rel->t;
   copy = rel->head_sent;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Retransmit \n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->id);
 
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
@@ -3978,8 +3977,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK \n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  ack  %u\n", ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK %u\n", ack);
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
     struct GNUNET_TIME_Relative time;
@@ -3991,17 +3989,18 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     work = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->id);
-    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     next = copy->next;
-    GNUNET_free (copy);
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
     rel->expected_delay.rel_value += time.rel_value;
     rel->expected_delay.rel_value /= 2;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
                 GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                         GNUNET_NO));
     rel->retry_timer = rel->expected_delay;
+    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+    GNUNET_free (copy);
   }
+
   if (GNUNET_YES == work)
   {
     if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
@@ -4760,6 +4759,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                             + sizeof(struct GNUNET_MESH_Data)
                             + size);
       copy->id = fc->last_pid_recv + 1;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! DATA %u\n", copy->id);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV) ? t->fwd_rel : t->bck_rel;
       copy->rel = rel;
