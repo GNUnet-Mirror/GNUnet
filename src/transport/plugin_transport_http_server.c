@@ -1118,10 +1118,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       ats.type = htonl (GNUNET_ATS_NET_WAN);
       return NULL;
     }
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Creating new session for peer `%s' connecting from `%s'\n",
-                     GNUNET_i2s (&target),
-                     http_common_plugin_address_to_string (NULL,  p->protocol, addr, addr_len));
 
     s = GNUNET_malloc (sizeof (struct Session));
     memcpy (&s->target, &target, sizeof (struct GNUNET_PeerIdentity));
@@ -1138,6 +1134,11 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->connect_in_progress = GNUNET_YES;
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
+
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Creating new session %p for peer `%s' connecting from `%s'\n",
+                     s, GNUNET_i2s (&target),
+                     http_common_plugin_address_to_string (NULL, p->protocol, addr, addr_len));
   }
   sc = GNUNET_malloc (sizeof (struct ServerConnection));
   if (conn_info->client_addr->sa_family == AF_INET)
@@ -1156,7 +1157,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((NULL != s->server_send) && (NULL != s->server_recv))
   {
     s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
-    plugin->env->session_start (NULL, &s->target, PLUGIN_NAME,s->addr, s->addrlen,s, NULL, 0);
+    plugin->env->session_start (NULL, &s->target, PLUGIN_NAME, NULL, 0 ,s, NULL, 0);
   }
 
 #if MHD_VERSION >= 0x00090E00
@@ -1305,14 +1306,11 @@ server_receive_mst_cb (void *cls, void *client,
   delay = plugin->env->receive (plugin->env->cls,
                                 &s->target,
                                 message,
-                                s, s->addr, s->addrlen);
+                                s, NULL, 0);
 
   plugin->env->update_address_metrics (plugin->env->cls,
 				       &s->target,
-				       s->addr,
-				       s->addrlen,
-				       s,
-				       &atsi, 1);
+				       NULL, 0, s, &atsi, 1);
 
   GNUNET_asprintf (&stat_txt, "# bytes received via %s_server", plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,
