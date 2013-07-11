@@ -325,7 +325,12 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
   static char unable_to_show[1024];
 
   if (address == NULL)
-    return "<inbound>";
+  {
+  	GNUNET_break (0); /* a HELLO address cannot be NULL */
+    return "<invalid>";
+  }
+  if (0 == address->address_length)
+    return "<inbound>"; /* Addresse with length 0 are inbound, address->address itself may be NULL */
   api = GST_plugins_printer_find (address->transport_name);
   if (NULL == api)
     return "<plugin unknown>";
