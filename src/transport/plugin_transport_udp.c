@@ -153,6 +153,8 @@ struct Session
   unsigned int rc;
 
   int in_destroy;
+
+  int inbound;
 };
 
 
@@ -545,6 +547,11 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
   }
+  else if (addrlen == 0)
+	{
+		GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", "<inbound>");
+		return rbuf;
+	}
   else
   {
     GNUNET_break_op (0);
@@ -1378,6 +1385,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   s->last_expected_msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
   s->flow_delay_from_other_peer = GNUNET_TIME_UNIT_ZERO_ABS;
   s->flow_delay_for_other_peer = GNUNET_TIME_UNIT_ZERO;
+  s->inbound = GNUNET_NO;
   start_session_timeout (s);
   return s;
 }
@@ -1451,10 +1459,9 @@ udp_get_network (void *cls, void *session)
  * @return the session or NULL of max connections exceeded
  */
 static struct Session *
-udp_plugin_get_session (void *cls,
-                  const struct GNUNET_HELLO_Address *address)
+udp_plugin_lookup_session (void *cls,
+                 const struct GNUNET_HELLO_Address *address)
 {
-  struct Session * s = NULL;
   struct Plugin * plugin = cls;
   struct IPv6UdpAddress * udp_a6;
   struct IPv4UdpAddress * udp_a4;
@@ -1507,6 +1514,14 @@ udp_plugin_get_session (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p\n", cctx.res);
     return cctx.res;
   }
+  return NULL;
+}
+
+static struct Session *
+udp_plugin_create_session (void *cls,
+                  const struct GNUNET_HELLO_Address *address)
+{
+  struct Session * s = NULL;
 
   /* otherwise create new */
   s = create_session (plugin,
@@ -1524,14 +1539,36 @@ udp_plugin_get_session (void *cls,
                                                     &s->target.hashPubKey,
                                                     s,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
-  		address->address, address->address_length, s, NULL, 0);
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UDP, sessions active",
                         GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
                         GNUNET_NO);
   return s;
 }
+
+
+
+/**
+ * Creates a new outbound session the transport service will use to send data to the
+ * peer
+ *
+ * @param cls the plugin
+ * @param address the address
+ * @return the session or NULL of max connections exceeded
+ */
+static struct Session *
+udp_plugin_get_session (void *cls,
+                  const struct GNUNET_HELLO_Address *address)
+{
+  struct Session * s = NULL;
+
+  /* otherwise create new */
+  if (NULL != (s = udp_plugin_lookup_session(cls, address)))
+  	return s;
+  else
+  	return udp_plugin_create_session (cls, address);
+}
+
 
 static void 
 enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
@@ -1830,13 +1867,13 @@ process_inbound_tokenized_messages (void *cls, void *client,
 				&si->sender,
 				hdr,
 				si->session,
-				si->arg,
-				si->args);
+ 	  	 (GNUNET_YES == si->session->inbound) ? NULL : si->arg,
+ 	  	 (GNUNET_YES == si->session->inbound) ? 0 : si->args);
 
   plugin->env->update_address_metrics (plugin->env->cls,
 				       &si->sender,
-				       si->arg,
-				       si->args,
+			  	  	 (GNUNET_YES == si->session->inbound) ? NULL : si->arg,
+			  	  	 (GNUNET_YES == si->session->inbound) ? 0 : si->args,
 				       si->session,
 				       &si->session->ats, 1);
 
@@ -1909,7 +1946,15 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
        GNUNET_a2s (sender_addr, sender_addr_len));
 
   struct GNUNET_HELLO_Address * address = GNUNET_HELLO_address_allocate(&msg->sender, "udp", arg, args);
-  s = udp_plugin_get_session(plugin, address);
+  if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
+  {
+  		s = udp_plugin_create_session(plugin, address);
+  		s->inbound = GNUNET_YES;
+  	  plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
+  	  		(GNUNET_YES == s->inbound) ? NULL : address->address,
+  	  		(GNUNET_YES == s->inbound) ? 0 : address->address_length,
+  	  	  s, NULL, 0);
+  }
   GNUNET_free (address);
 
   /* iterate over all embedded messages */
