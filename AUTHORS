@@ -23,6 +23,7 @@ Martin Schanzenbach <schanzen@in.tum.de>
 Maximilian Szengel <gnunet@maxsz.de>
 Florian Dold <florian.dold@gmail.com>
 Christian Fuchs <christian.fuchs@cfuchs.net>
+Gabor X Toth <tg-x.net>
 
 Code contributions also came from:
 Adam Warrington [ UPnP ]
@@ -36,7 +37,6 @@ Enrico Scholz <enrico.scholz@informatik.tu-chemnitz.de>
 Eric Haumant
 Eric Noack <corvus-gnunet@cybertrench.com>
 Felix von Leitner [ diet libc snprintf for win32 ]
-Gabor Toth
 Gerd Knorr <kraxel@bytesex.org>
 Glenn McGrath <bug1@iinet.net.au>
 Hendrik Pagenhardt <Hendrik.Pagenhardt@gmx.net>

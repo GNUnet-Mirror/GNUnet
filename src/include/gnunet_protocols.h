@@ -1878,52 +1878,31 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST
 
-
 /**
  * A peer wants to join the group.
  *
- * Unicast message to a group member.
+ * Unicast message to the origin or another group member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST_JOIN
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST
 
 /**
- * A join request was rejected.
+ * Response to a join request.
  *
- * Unicast response to a join request.
+ * Unicast message from a group member to the peer wanting to join.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REJECT_JOIN
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION
 
 /**
- * A peer joined the group.
+ * A peer wants to part the group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST
+
+/**
+ * Acknowledgement sent in response to a part request.
  *
- * Sent to all members by the origin.
+ * Unicast message from a group member to the peer wanting to part.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_NOTICE_JOIN
-
-/**
- * A peer wants to leave the group.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST_LEAVE
-
-/**
- * A peer left the group.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_NOTICE_LEAVE
-
-/**
- * Ping request from a peer.
- *
- * A ping is sent after a period of inactivity and contains the last received
- * message ID.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_PING
-
-/**
- * Response to a ping.
- *
- * Contains the last received message ID.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PEER_PONG
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK
 
 /**
  * Group terminated.

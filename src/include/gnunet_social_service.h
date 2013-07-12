@@ -21,7 +21,7 @@
 /** 
  * @file include/gnunet_social_service.h
  * @brief Social service; implements social functionality using the PSYC service.
- * @author tg(x)
+ * @author Gabor X Toth
  * @author Christian Grothoff
  */
 #ifndef GNUNET_SOCIAL_SERVICE_H
@@ -36,6 +36,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_psyc_lib.h"
 #include "gnunet_psyc_service.h"
 #include "gnunet_multicast_service.h"
 
@@ -74,7 +75,7 @@ struct GNUNET_SOCIAL_Slicer;
 
 /** 
  * Method called from SOCIAL upon receiving a message indicating a call
- * to a @a method.
+ * to a @e method.
  *
  * @param cls Closure.
  * @param full_method_name Original method name from PSYC (may be more
@@ -171,13 +172,13 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
  *
  * @param cls Closure.
  * @param nym Handle for the user who wants to join.
- * @param join_msg_size Number of bytes in @a join_msg.
- * @param join_msg Payload given on join (e.g. a password).
+ * @param msg_size Number of bytes in @a msg.
+ * @param msg Payload given on enter (e.g. a password).
  */
 typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
 						 struct GNUNET_SOCIAL_Nym *nym,
-						 size_t join_msg_size,
-						 const void *join_msg);
+						 size_t msg_size,
+						 const void *msg);
 
 
 /** 
@@ -244,7 +245,7 @@ GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
  * #GNUNET_SOCIAL_FarewellCallback is invoked,
  * which should be very soon after this call.
  *
- * @param home Home to eject nym from.
+ * @param home Home to eject @a nym from.
  * @param nym Handle for the entity to be ejected.
  */
 void
@@ -277,7 +278,7 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
  * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
  *
  * @param nym Pseudonym to map to a cryptographic identifier.
- * @param identity Set to the identity of the nym (short hash of the public key).
+ * @param[out] identity Set to the identity of the nym (short hash of the public key).
  */
 void
 GNUNET_SOCIAL_nym_get_identity (struct GNUNET_SOCIAL_Nym *nym,
@@ -288,7 +289,7 @@ GNUNET_SOCIAL_nym_get_identity (struct GNUNET_SOCIAL_Nym *nym,
  * Obtain the (cryptographic, binary) address for the home.
  * 
  * @param home Home to get the (public) address from.
- * @param crypto_address Address suitable for storing in GADS, i.e. in
+ * @param[out] crypto_address Address suitable for storing in GADS, i.e. in
  *        'HEX.place' or within the respective GADS record type ("PLACE")
  */
 void
@@ -296,10 +297,25 @@ GNUNET_SOCIAL_home_get_address (struct GNUNET_SOCIAL_Home *home,
 				struct GNUNET_HashCode *crypto_address);
 
 
+
+/** 
+ * Advertise @a home under @a name in the GADS zone of the @e ego.
+ *
+ * @param home The home to advertise.
+ * @param name The name to put in the zone.
+ * @param expiration_time Expiration time of the record, use 0 to remove the record.
+ */
+void
+GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
+                              const char *name,
+                              GNUNET_TIME_Relative expiration_time);
+
+
+
 /** 
  * (Re)decorate the home by changing objects in it.
  *
- * If the operation is #GNUNET_PSYC_SOT_SET_VARIABLE then the decoration only
+ * If the operation is #GNUNET_PSYC_OP_SET then the decoration only
  * applies to the next announcement by the home owner.
  *
  * @param home The home to decorate.
@@ -325,17 +341,18 @@ struct GNUNET_SOCIAL_Announcement;
 /** 
  * Send a message to all nyms that are present in the home.
  *
- * This function is restricted to the home owner. Nyms can 
+ * This function is restricted to the home owner.  Nyms can only send requests
+ * to the home owner who can decide to relay it to other guests.
  *
  * @param home Home to address the announcement to.
- * @param full_method_name Method to use for the announcement.
+ * @param method_name Method to use for the announcement.
  * @param notify Function to call to get the payload of the announcement.
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (announcement already in progress?).
  */
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
-                             const char *full_method_name,
+                             const char *method_name,
                              GNUNET_PSYC_OriginReadyNotify notify,
                              void *notify_cls);
 
@@ -361,15 +378,15 @@ GNUNET_SOCIAL_home_to_place (struct GNUNET_SOCIAL_Home *home);
 
 
 /** 
- * Leave a home, visitors can stay.
+ * Leave a home temporarily, visitors can stay.
  *
  * After leaving, handling of incoming messages are left to other clients of the
  * social service, and stops after the last client exits.
  *
- * @param home Home to leave (handle becomes invalid).
+ * @param home Home to leave temporarily (handle becomes invalid).
  */
 void
-GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_away (struct GNUNET_SOCIAL_Home *home);
 
 
 /** 
@@ -380,30 +397,50 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
 void
 GNUNET_SOCIAL_home_destroy (struct GNUNET_SOCIAL_Home *home);
 
-
 /** 
- * Join a place (home hosted by someone else).
+ * Request entry to a place (home hosted by someone else).
  *
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
- * @param address Address of the place to join (GADS name, i.e. 'room.friend.gads'),
+ * @param address Address of the place to enter (GADS name, i.e. 'room.friend.gads'),
  *        if the name has the form 'HEX.place', GADS is not
  *        used and HEX is assumed to be the hash of the public
  *        key already; 'HEX.zkey' however would refer to
  *        the 'PLACE' record in the GADS zone with the public key
  *        'HEX'.
- * @param slicer slicer to use to process messages from this place
- * @param join_msg_size Number of bytes in @a join_msg.
- * @param join_msg Message to give to the join callback.
+ * @param msg_size Number of bytes in @a msg.
+ * @param msg Message to give to the enter callback.
+ * @param slicer Slicer to use for processing incoming requests from guests.
  * @return NULL on errors, otherwise handle to the place.
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_place_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			  struct GNUNET_SOCIAL_Ego *ego,
-			  const char *address,
-			  struct GNUNET_SOCIAL_Slicer *slicer,
-			  size_t join_msg_size,
-			  const void *join_msg);
+GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           struct GNUNET_SOCIAL_Ego *ego,
+                           char *address,
+                           size_t msg_size,
+                           const void *msg,
+                           struct GNUNET_SOCIAL_Slicer *slicer);
+
+/** 
+ * Request entry to a place (home hosted by someone else).
+ *
+ * @param cfg Configuration to contact the social service.
+ * @param ego Owner of the home (host).
+ * @param crypto_address Public key of the place to enter.
+ * @param peer Peer to send request to.
+ * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param msg_size Number of bytes in @a msg.
+ * @param msg Message to give to the enter callback.
+ * @return NULL on errors, otherwise handle to the place.
+ */
+struct GNUNET_SOCIAL_Place *
+GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           struct GNUNET_SOCIAL_Ego *ego,
+                           struct GNUNET_HashCode *crypto_address,
+                           struct GNUNET_PeerIdentity *peer,
+                           struct GNUNET_SOCIAL_Slicer *slicer,
+                           size_t msg_size,
+                           const void *msg);
 
 
 struct GNUNET_SOCIAL_WatchHandle;
@@ -515,7 +552,6 @@ GNUNET_SOCIAL_place_frame_talk (struct GNUNET_SOCIAL_Place *place,
  */
 struct GNUNET_SOCIAL_TalkRequest;
 
-
 /** 
  * Talk to the host of the place.
  *
@@ -532,25 +568,6 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
 			  GNUNET_PSYC_OriginReadyNotify cb,
 			  void *cb_cls);
 
-/** 
- * Talk to a nym.
- *
- * FIXME: look up nym in GADS and talk to its place.
- * FIXME: do we want this in this API!?  Not sure. -CG
- *
- * @param nym Nym we want to talk to.
- * @param method_name Method to invoke on the @a nym.
- * @param cb Function to use to get the payload for the method.
- * @param cb_cls Closure for @a cb.
- * @return NULL if we are already trying to talk to the host,
- *         otherwise handle to cancel the request.
- */
-struct GNUNET_SOCIAL_TalkRequest *
-GNUNET_SOCIAL_nym_talk (struct GNUNET_SOCIAL_Nym *nym,
-                        const char *method_name,
-                        GNUNET_PSYC_OriginReadyNotify cb,
-                        void *cb_cls);
-
 
 /** 
  * Cancel talking to the host of the place.
@@ -559,19 +576,20 @@ GNUNET_SOCIAL_nym_talk (struct GNUNET_SOCIAL_Nym *nym,
  */
 void
 GNUNET_SOCIAL_place_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
-		
+
 
 /** 
  * A history lesson.
  */
 struct GNUNET_SOCIAL_HistoryLesson;
 
-
 /** 
  * Learn about the history of a place.
  *
  * Sends messages through the given slicer function where
  * start_message_id <= message_id <= end_message_id.
+ *
+ * To get the latest message, use 0 for both the start and end message ID.
  * 
  * @param place Place we want to learn more about.
  * @param start_message_id First historic message we are interested in.
@@ -600,20 +618,27 @@ GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist
 
 	  
 /** 
- * Leave a place (destroys the place handle).
- * 
- * Can either move our user into an @e away state (in which we continue to record
- * ongoing conversations and state changes if our peer is running), or leave the
- * place entirely and stop following the conversation.
+ * Leave a place permanently.
  *
- * @param place Place to leave.
- * @param keep_following #GNUNET_YES to ask the social service to continue
- *        to follow the conversation, #GNUNET_NO to fully leave the place.
+ * Notifies the owner of the place about leaving, and destroys the place handle.
+ * 
+ * @param place Place to leave permanently.
  */
 void
-GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place,
-			   int keep_following);
+GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place);
 
+
+/** 
+ * Leave a place temporarily.
+ *
+ * Stop following the conversation for the @a place and destroy the @a place
+ * handle.  Only affects the application calling this function, other clients of
+ * the service continue receiving the messages.
+ *
+ * @param place Place to leave temporarily.
+ */
+void
+GNUNET_SOCIAL_place_away (struct GNUNET_SOCIAL_Place *place);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

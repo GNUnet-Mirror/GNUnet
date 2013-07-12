@@ -153,7 +153,7 @@ struct GNUNET_CRYPTO_HashAsciiEncoded
 
 
 /**
- * @brief 0-terminated ASCII encoding of a 'struct GNUNET_ShortHashCode'.
+ * @brief 0-terminated ASCII encoding of a struct GNUNET_CRYPTO_ShortHashCode.
  */
 struct GNUNET_CRYPTO_ShortHashAsciiEncoded
 {

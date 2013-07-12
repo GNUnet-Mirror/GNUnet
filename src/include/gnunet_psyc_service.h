@@ -28,6 +28,7 @@
  *        and this API deliberately exposes as little as possible
  *        of the actual data stream format to the application!
  * @author Christian Grothoff
+ * @author Gabor X Toth
  *
  * NOTE:
  * - this API does not know about psyc's "root" and "places";
@@ -52,7 +53,7 @@
  * - PSYC defines standard variables, methods, etc.  This
  *   library deliberately abstracts over all of these; a
  *   higher-level API should combine the naming system (GADS)
- *   and standard methods (message, join, leave, warn,
+ *   and standard methods (message, join, part, warn,
  *   fail, error) and variables (action, color, time,
  *   tag, etc.).  However, this API does take over the
  *   routing variables, specifically 'context' (channel),
@@ -75,6 +76,7 @@
  * Idee (lynx): 
  * - rename "channel" to "master"
  * - rename "member" to "slave"
+ * - rename "group" to "channel"
  */
 
 #ifndef GNUNET_PSYC_SERVICE_H
@@ -89,6 +91,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_psyc_lib.h"
 #include "gnunet_multicast_service.h"
 
 
@@ -121,12 +124,27 @@ enum GNUNET_PSYC_FragmentStatus
 
 
 /** 
+ * Handle that identifies a join request.
+ *
+ * Used to match calls to #GNUNET_PSYC_JoinCallback to the
+ * corresponding calls to GNUNET_PSYC_join_decision().
+ */
+struct GNUNET_PSYC_JoinHandle;
+
+/** 
+ * Handle that identifies a part request.
+ *
+ * Used to match calls to #GNUNET_PSYC_PartCallback to the
+ * corresponding calls to GNUNET_PSYC_part_ack().
+ */
+struct GNUNET_PSYC_PartHandle;
+
+
+/** 
  * Method called from PSYC upon receiving a message indicating a call
  * to a @e method.  
  *
  * @param cls Closure.
- * @param full_method_name Original method name from PSYC (may be more
- *        specific than the registered method name due to try-and-slice matching).
  * @param sender Who transmitted the message (origin, except for messages
  *        from one of the members to the origin).
  * @param message_id Unique message counter for this message;
@@ -134,6 +152,9 @@ enum GNUNET_PSYC_FragmentStatus
  *                    this channel).
  * @param group_generation Group generation counter for this message
  *                   (always zero for messages from members to channel owner); FIXME: needed?
+ * @param method_name Original method name from PSYC (may be more
+ *        specific than the registered method name due to try-and-slice matching).
+ *        FIXME: no try-and-slice for methods defined here.
  * @param data_off Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
@@ -141,14 +162,80 @@ enum GNUNET_PSYC_FragmentStatus
  * @param frag Fragmentation status for the data.
  */
 typedef int (*GNUNET_PSYC_Method)(void *cls,
-				  const char *full_method_name,
 				  const struct GNUNET_PeerIdentity *sender,
 				  uint64_t message_id,
 				  uint64_t group_generation,
+				  const char *method_name,
 				  uint64_t data_off,
 				  size_t data_size,
 				  const void *data,
 				  enum GNUNET_PSYC_FragmentStatus frag);
+
+
+/** 
+ * Method called from PSYC upon receiving a join request.
+ *
+ * @param cls Closure.
+ * @param sender Who transmitted the message.
+ * @param method_name Method name in the join request.
+ * @param data_size Number of bytes in @a data.
+ * @param data Data stream given to the method (might not be zero-terminated 
+ *             if data is binary).
+ */
+typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
+                                        const struct GNUNET_PeerIdentity *sender,
+                                        const char *method_name,
+                                        size_t data_size,
+                                        const void *data,
+                                        struct GNUNET_PSYC_JoinHandle *jh);
+
+
+/** 
+ * Method called from PSYC upon receiving a part request.
+ *
+ * @param cls Closure.
+ * @param sender Who transmitted the message.
+ * @param method_name Method name in the part request.
+ * @param data_size Number of bytes in @a data.
+ * @param data Data stream given to the method (might not be zero-terminated 
+ *             if data is binary).
+ */
+typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
+                                        const struct GNUNET_PeerIdentity *sender,
+                                        const char *method_name,
+                                        size_t data_size,
+                                        const void *data,
+                                        struct GNUNET_PSYC_PartHandle *ph);
+
+
+/** 
+ * Function to call with the decision made for a join request.
+ *
+ * Must be called once and only once in response to an invocation of the
+ * #GNUNET_PSYC_JoinCallback.
+ *
+ * @param jh Join request handle.
+ * @param is_admitted #GNUNET_YES if joining is approved,
+ *        #GNUNET_NO if it is disapproved
+ * @param method_name Method name for the message transmitted with the response.
+ * @param data_size Size of @a data.
+ * @param data Data of the message.
+ */
+void
+GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
+                           int is_admitted,
+                           const char *method_name,
+                           size_t data_size,
+                           const void *data);
+
+
+/** 
+ * Send a part acknowledgment.
+ *
+ * @param ph Part handle.
+ */
+void
+GNUNET_PSYC_part_ack (struct GNUNET_PSYC_PartHandle *ph);
 
 
 /** 
@@ -166,13 +253,10 @@ struct GNUNET_PSYC_Channel;
  * invoked; the join handler must then generate a "join" message to approve the
  * joining of the new member.  The channel can also change group membership
  * without explicit requests.  Note that PSYC doesn't itself "understand" join
- * or leave messages, the respective methods must call other PSYC functions to
+ * or part messages, the respective methods must call other PSYC functions to
  * inform PSYC about the meaning of the respective events.
  *
  * @param cfg Configuration to use (to connect to PSYC service).
- * @param method Function to invoke on messages received from members,
- *                typcially at least contains functions for @e join and @e leave.
- * @param method_cls Closure for @a method.
  * @param priv_key ECC key that will be used to sign messages for this
  *                 PSYC session; public key is used to identify the
  *                 PSYC group; FIXME: we'll likely want to use
@@ -183,75 +267,46 @@ struct GNUNET_PSYC_Channel;
  *                 key(s) when setting up their own channels
  * @param join_policy What is the membership policy of the group?
  *                 Used to automate group management decisions.
+ * @param method_cb Function to invoke on messages received from members.
+ * @param join_cb Function to invoke when a peer wants to join.
+ * @param part_cb Function to invoke when a peer wants to part.
+ * @param cls Closure for the callbacks.
  * @return Handle for the channel, NULL on error.
  */
 struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_channel_create (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-                            GNUNET_PSYC_Method method,
-                            void *method_cls,
+GNUNET_PSYC_channel_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                            enum GNUNET_MULTICAST_JoinPolicy join_policy);
+                            enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                            GNUNET_PSYC_Method method_cb,
+                            GNUNET_PSYC_JoinCallback join_cb,
+                            GNUNET_PSYC_PartCallback part_cb,
+                            void *cls);
 
 
 /** 
- * Possible operations on PSYC state (persistent) and variables (per message).
- */
-enum GNUNET_PSYC_Operator
-{
-  /** 
-   * Replace the full state with the new value ("=").
-   */
-  GNUNET_PSYC_SOT_SET_STATE = 0,
-  
-  /** 
-   * Delete the complete entry from the state (given data must be
-   * empty).  Equivalent to @a SET with empty data, but more
-   * explicit ("=");
-   */
-  GNUNET_PSYC_SOT_DELETE = 0,
-  
-  /** 
-   * Set the value of a variable to a new value (":").
-   */
-  GNUNET_PSYC_SOT_SET_VARIABLE,
-  
-  /** 
-   * Add the given value to the set of values in the state ("+").
-   */
-  GNUNET_PSYC_SOT_ADD_STATE,
-  
-  /** 
-   * Remove the given value from the set of values in the state ("-").
-   */
-  GNUNET_PSYC_SOT_REMOVE_STATE
-  
-};
-
-
-/** 
- * Update channel state (or set a variable).
+ * Modify channel state (or set a transient variable).
  *
  * The state of a channel must fit into the memory of each member (and the
  * channel); large values that require streaming must only be passed as the
- * stream arguments to methods.  State updates might not be transmitted to group
- * members until the next call to GNUNET_PSYC_channel_notify_transmit_ready().
+ * stream arguments to methods.  State modifications might not be transmitted to
+ * group members until the next call to GNUNET_PSYC_channel_transmit().
  * Variable updates must be given just before the call to the respective method
  * that needs the variables.
  *
  * @param channel Handle to the PSYC group / channel.
- * @param full_state_name Name of the field in the channel state to change.
- * @param type Kind of update operation (add, remove, replace, delete).
- * @param data_size Number of bytes in data.
- * @param data New state value.
+ * @param oper Kind of update operation (add, remove, replace, delete).
+ * @param name Name of the state or transient variable to modify.
+ * @param value_size Number of bytes in @a value.
+ * @param value Value of state variable.
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on internal error
  *        (i.e. state too large).
  */
 int
-GNUNET_PSYC_channel_state_update (struct GNUNET_PSYC_Channel *channel,
-				  const char *full_state_name,
-				  enum GNUNET_PSYC_Operator type,
-				  size_t data_size,
-				  const void *data);
+GNUNET_PSYC_channel_state_modify (struct GNUNET_PSYC_Channel *channel,
+				  enum GNUNET_PSYC_Operator oper,
+				  const char *name,
+				  size_t value_size,
+				  const void *value);
 
 
 /** 
@@ -264,10 +319,10 @@ GNUNET_PSYC_channel_state_update (struct GNUNET_PSYC_Channel *channel,
  * @param message_id Set to the unique message ID that was generated for
  *        this message.
  * @param group_generation Set to the group generation used for this
- *        message.
+  *        message.
  * @param data_size[in,out] Initially set to the number of bytes available in @a data,
  *        should be set to the number of bytes written to data (IN/OUT).
- * @param data[out] Where to write the body of the message to give to the method;
+ * @param[out] data Where to write the body of the message to give to the method;
  *        function must copy at most @a *data_size bytes to @a data.
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
  *         #GNUNET_NO on success, if more data is to be transmitted later 
@@ -275,14 +330,14 @@ GNUNET_PSYC_channel_state_update (struct GNUNET_PSYC_Channel *channel,
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
-					      uint64_t message_id,
-					      uint64_t group_generation,
-					      size_t *data_size,
-					      void *data);
+                                              uint64_t message_id,
+                                              uint64_t group_generation,
+                                              size_t *data_size,
+                                              void *data);
 
 
 /** 
- * Handle for a pending PSYC transmission operation.
+ * Handle for a pending PSYC transmission operation. 
  */
 struct GNUNET_PSYC_ChannelTransmitHandle;
 
@@ -293,17 +348,17 @@ struct GNUNET_PSYC_ChannelTransmitHandle;
  * @param channel Handle to the PSYC multicast group.
  * @param increment_group_generation #GNUNET_YES if we need to increment
  *        the group generation counter after transmitting this message.
- * @param full_method_name Which method should be invoked.
+ * @param method_name Which method should be invoked.
  * @param notify Function to call to obtain the arguments.
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
 struct GNUNET_PSYC_ChannelTransmitHandle *
-GNUNET_PSYC_channel_notify_transmit_ready (struct GNUNET_PSYC_Channel *channel,
-					   int increment_group_generation,
-					   const char *full_method_name,
-					   GNUNET_PSYC_ChannelReadyNotify notify,
-					   void *notify_cls);
+GNUNET_PSYC_channel_transmit (struct GNUNET_PSYC_Channel *channel,
+                              int increment_group_generation,
+                              const char *method_name,
+                              GNUNET_PSYC_ChannelReadyNotify notify,
+                              void *notify_cls);
 
 
 /** 
@@ -312,7 +367,7 @@ GNUNET_PSYC_channel_notify_transmit_ready (struct GNUNET_PSYC_Channel *channel,
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_channel_notify_transmit_ready_cancel (struct GNUNET_PSYC_ChannelTransmitHandle *th);
+GNUNET_PSYC_channel_transmit_cancel (struct GNUNET_PSYC_ChannelTransmitHandle *th);
 
 
 /** 
@@ -358,13 +413,12 @@ GNUNET_PSYC_member_get_group (struct GNUNET_PSYC_Member *member);
  * channel still needs to explicitly transmit a @e join message to notify other
  * group members and they then also must still call this function in their
  * respective methods handling the @e join message.  This way, how @e join and
- * @e leave operations are exactly implemented is still up to the application;
- * for example, there might be a @e leave_all method to kick out everyone.
+ * @e part operations are exactly implemented is still up to the application;
+ * for example, there might be a @e part_all method to kick out everyone.
  *
- * Note that group members are explicitly trusted to execute such 
- * methods correctly; not doing so correctly will result in either
- * denying members access or offering access to group data to
- * non-members.
+ * Note that group members are explicitly trusted to execute such methods
+ * correctly; not doing so correctly will result in either denying members
+ * access or offering access to group data to non-members.
  *
  * @param group Group handle.
  * @param member Which peer to add.
@@ -383,11 +437,11 @@ GNUNET_PSYC_group_member_add (struct GNUNET_PSYC_Group *group,
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
  * local data base to modify how we react to <em>membership test</em> queries.  The
- * channel still needs to explicitly transmit a @e leave message to notify other
+ * channel still needs to explicitly transmit a @e part message to notify other
  * group members and they then also must still call this function in their
- * respective methods handling the @e leave message.  This way, how @e join and
- * @e leave operations are exactly implemented is still up to the application;
- * for example, there might be a @e leave_all message to kick out everyone.
+ * respective methods handling the @e part message.  This way, how @e join and
+ * @e part operations are exactly implemented is still up to the application;
+ * for example, there might be a @e part_all message to kick out everyone.
  *
  * Note that group members are explicitly trusted to perform these
  * operations correctly; not doing so correctly will result in either
@@ -447,22 +501,22 @@ struct GNUNET_PSYC_StateHandler
 
 };
 
-
 /** 
  * Join a PSYC group.
  *
  * The entity joining is always the local peer.  The user must immediately use
- * the GNUNET_PSYC_member_send_to_host() (and possibly
- * GNUNET_PSYC_member_host_variable_set()) functions to transmit a @e join_msg to
+ * the GNUNET_PSYC_member_to_origin() (and possibly
+ * GNUNET_PSYC_member_origin_variable_set()) functions to transmit a @e join_msg to
  * the channel; if the join request succeeds, the channel state (and @e recent
  * method calls) will be replayed to the joining member.  There is no explicit
- * notification on failure (as the channel may simply take days to approve, and
+ * notification on failure (as the channel may simply take days to approve, a-v/snd
  * disapproval is simply being ignored).
  *
  * @param cfg Configuration to use.
  * @param pub_key ECC key that identifies the channel we wish to join
+ * @param origin Peer identity of the origin.
  * @param method Function to invoke on messages received from the channel,
- *                typically at least contains functions for @e join and @e leave.
+ *                typically at least contains functions for @e join and @e part.
  * @param method_cls Closure for @a method.
  * @param state_count Number of @a state_handlers.
  * @param state_handlers Array of state event handlers.
@@ -471,6 +525,7 @@ struct GNUNET_PSYC_StateHandler
 struct GNUNET_PSYC_Member *
 GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
 			 const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
+			 const struct GNUNET_PeerIdentity *origin,
 			 GNUNET_PSYC_Method method,
 			 void *method_cls,
 			 unsigned int state_count,
@@ -478,16 +533,15 @@ GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /** 
- * Leave a multicast group.
+ * Part a PSYC group.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
- * first explicitly send a @e leave request (via
- * GNUNET_PSYC_member_send_to_host()).
+ * first explicitly send a @e part request (via GNUNET_PSYC_member_to_origin()).
  *
  * @param member membership handle
  */
 void
-GNUNET_PSYC_member_leave (struct GNUNET_PSYC_Member *member);
+GNUNET_PSYC_member_part (struct GNUNET_PSYC_Member *member);
 
 
 /** 
@@ -500,13 +554,13 @@ GNUNET_PSYC_member_leave (struct GNUNET_PSYC_Member *member);
  * @param cls Closure.
  * @param data_size[in,out] Initially set to the number of bytes available in @a data,
  *        should be set to the number of bytes written to data (IN/OUT).
- * @param data[out] Where to write the body of the message to give to the method;
+ * @param[out] data Where to write the body of the message to give to the method;
  *        function must copy at most @a *data_size bytes to @a data.
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission).
  *         #GNUNET_NO on success, if more data is to be transmitted later.
  *         #GNUNET_YES if this completes the transmission (all data supplied).
  */
-typedef int (*GNUNET_PSYC_OriginReadyNotify)(void *cls,
+typedef int (*GNUNET_PSYC_MemberReadyNotify)(void *cls,
 					     size_t *data_size,
 					     char *data);
 
@@ -514,7 +568,7 @@ typedef int (*GNUNET_PSYC_OriginReadyNotify)(void *cls,
 /** 
  * Handle for a pending PSYC transmission operation.
  */
-struct GNUNET_PSYC_OriginTransmitHandle;
+struct GNUNET_PSYC_MemberTransmitHandle;
 
 
 /** 
@@ -526,18 +580,18 @@ struct GNUNET_PSYC_OriginTransmitHandle;
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
-struct GNUNET_PSYC_OriginTransmitHandle *
-GNUNET_PSYC_member_send_to_origin (struct GNUNET_PSYC_Member *member,
-				   const char *method_name,
-				   GNUNET_PSYC_OriginReadyNotify notify,
-				   void *notify_cls);
+struct GNUNET_PSYC_MemberTransmitHandle *
+GNUNET_PSYC_member_to_origin (struct GNUNET_PSYC_Member *member,
+                              const char *method_name,
+                              GNUNET_PSYC_MemberReadyNotify notify,
+                              void *notify_cls);
 
 
 /** 
  * Set a (temporary, ":") variable for the next message being transmitted
- * via GNUNET_PSYC_member_send_to_host().
+ * via GNUNET_PSYC_member_to_origin().
  *
- * If GNUNET_PSYC_member_send_to_host() is called and then cancelled, all
+ * If GNUNET_PSYC_member_to_origin() is called and then cancelled, all
  * variables that were set using this function will be unset (lost/forgotten).
  * To clear a variable state after setting it, you can also call this function
  * again with NULL/0 for the @a value.
@@ -560,7 +614,7 @@ GNUNET_PSYC_member_origin_variable_set (struct GNUNET_PSYC_Member *member,
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_member_send_to_origin_cancel (struct GNUNET_PSYC_OriginTransmitHandle *th);
+GNUNET_PSYC_member_to_origin_cancel (struct GNUNET_PSYC_MemberTransmitHandle *th);
 
 
 /** 
@@ -575,9 +629,11 @@ struct GNUNET_PSYC_Story;
  * Historic messages (but NOT the state at the time) will be replayed (given to
  * the normal method handlers) if available and if access is permitted.
  *
+ * To get the latest message, use 0 for both the start and end message ID.
+ *
  * @param member Which channel should be replayed?
- * @param start Earliest interesting point in history.
- * @param end Last (exclusive) interesting point in history.
+ * @param start_message_id Earliest interesting point in history.
+ * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
  * @param method_cls Closure for @a method.
  * @param finish_cb Function to call when the requested story has been fully 
@@ -591,8 +647,8 @@ struct GNUNET_PSYC_Story;
  */
 struct GNUNET_PSYC_Story *
 GNUNET_PSYC_member_story_tell (struct GNUNET_PSYC_Member *member,
-			       uint64_t start,
-			       uint64_t end,
+			       uint64_t start_message_id,
+			       uint64_t end_message_id,
 			       GNUNET_PSYC_Method method,
 			       void *method_cls,
 			       void (*finish_cb)(void *),
@@ -651,7 +707,7 @@ GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
  *
  * @param member Membership handle.
  * @param variable_name Name of the variable to query.
- * @param return_value_size Set to number of bytes in variable, 
+ * @param[out] return_value_size Set to number of bytes in variable, 
  *        needed as variables might contain binary data and
  *        might also not be 0-terminated; set to 0 on errors.
  * @return NULL on error (no matching state or variable), pointer
@@ -661,7 +717,6 @@ const void *
 GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
 			      const char *variable_name,
 			      size_t *return_value_size);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
