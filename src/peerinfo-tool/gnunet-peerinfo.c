@@ -714,7 +714,6 @@ state_machine (void *cls,
     }
     GNUNET_free (put_uri);
     put_uri = NULL;
-    return;
   }
   else if (GNUNET_YES == get_info)
   {
