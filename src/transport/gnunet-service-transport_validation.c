@@ -903,10 +903,13 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_TRANSPORT_PluginFunctions *server_papi;
   struct GNUNET_CRYPTO_EccSignature *sig_cache;
   struct GNUNET_TIME_Absolute *sig_cache_exp;
   const char *addr;
   const char *addrend;
+  char *plugin_name;
+  char *pos;
   size_t alen;
   size_t slen;
   ssize_t ret;
@@ -960,13 +963,26 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     {
     	GNUNET_break (0);
     }
-    if (NULL == (papi = GST_plugins_find (address.transport_name)))
+
+    if (0 != strstr (address.transport_name, "_client"))
+		{
+    	plugin_name = GNUNET_strdup (address.transport_name);
+    	pos = strstr (plugin_name, "_client");
+    	GNUNET_assert (NULL != pos);
+    	GNUNET_snprintf (pos, strlen ("_server") + 1, "%s", "_server");
+		}
+    else
+    	plugin_name = GNUNET_strdup (address.transport_name);
+
+    if (NULL == (papi = GST_plugins_find (plugin_name)))
     {
       /* we don't have the plugin for this address */
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Plugin `%s' not available, cannot confirm having this address \n",
-      		address.transport_name) ;
+      		plugin_name);
+      GNUNET_free (plugin_name);
       return;
     }
+    GNUNET_free (plugin_name);
     if (GNUNET_OK != papi->check_address (papi->cls, addrend, alen))
 		{
     	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address `%s' is not one of my addresses, not confirming PING\n",
