@@ -271,7 +271,7 @@ http_common_plugin_address_to_string (void *cls, char *plugin, const void *addr,
   if (NULL == addr)
       return NULL;
   if (0 == addrlen)
-    return "<inbound>";
+    return TRANSPORT_SESSION_INBOUND_STRING;
   if (addrlen != http_common_address_get_size (address))
   	return NULL;
   addr_str = (char *) &address[1];

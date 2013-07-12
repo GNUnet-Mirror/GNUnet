@@ -330,7 +330,7 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
     return "<invalid>";
   }
   if (0 == address->address_length)
-    return "<inbound>"; /* Addresse with length 0 are inbound, address->address itself may be NULL */
+    return TRANSPORT_SESSION_INBOUND_STRING; /* Addresse with length 0 are inbound, address->address itself may be NULL */
   api = GST_plugins_printer_find (address->transport_name);
   if (NULL == api)
     return "<plugin unknown>";

@@ -549,7 +549,7 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   }
   else if (addrlen == 0)
 	{
-		GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", "<inbound>");
+		GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
 		return rbuf;
 	}
   else
@@ -764,7 +764,7 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   }
   else if (0 == addrlen)
   {
-    asc (asc_cls, "<inbound connection>");
+    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
     asc (asc_cls, NULL);
     return;
   }

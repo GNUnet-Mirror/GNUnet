@@ -1292,7 +1292,7 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
 
 	if (0 == addrlen)
 	{
-		GNUNET_snprintf(rbuf, sizeof (rbuf), "%s", "<inbound>");
+		GNUNET_snprintf(rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
 	}
   if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
@@ -1399,7 +1399,7 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
   }
   else if (0 == addrlen)
   {
-    asc (asc_cls, "<inbound>");
+    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
   }
   else
   {

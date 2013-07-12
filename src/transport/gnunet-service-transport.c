@@ -247,14 +247,14 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PING",
                 (sender_address !=
-                 NULL) ? GST_plugins_a2s (&address) : "<inbound>");
+                 NULL) ? GST_plugins_a2s (&address) : TRANSPORT_SESSION_INBOUND_STRING);
     GST_validation_handle_ping (peer, message, &address, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PONG",
                 (sender_address !=
-                 NULL) ? GST_plugins_a2s (&address) : "<inbound>");
+                 NULL) ? GST_plugins_a2s (&address) : TRANSPORT_SESSION_INBOUND_STRING);
     GST_validation_handle_pong (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
