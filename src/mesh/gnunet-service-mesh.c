@@ -54,6 +54,7 @@
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_SECONDS,\
                                   5)
+#define MESH_RETRANSMIT_MARGIN  4
 
 #if MESH_DEBUG_CONNECTION
 #define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
@@ -2325,16 +2326,22 @@ tunnel_retransmit_message (void *cls,
 
   t = rel->t;
   copy = rel->head_sent;
+  if (NULL == copy)
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->id);
 
+  copy->timestamp = GNUNET_TIME_absolute_get ();
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
   send_prebuilt_message (&payload->header, hop, t);
   GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
-  rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer); // FIXME adapt
+  rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
   rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                                   &tunnel_retransmit_message,
-                                                   cls);
+                                                  &tunnel_retransmit_message,
+                                                  cls);
 }
 
 
@@ -4754,7 +4761,9 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
-        rel->retry_timer = rel->expected_delay;
+        rel->retry_timer =
+            GNUNET_TIME_relative_multiply (rel->expected_delay,
+                                           MESH_RETRANSMIT_MARGIN);
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                           &tunnel_retransmit_message,
