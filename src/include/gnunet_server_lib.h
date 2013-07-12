@@ -338,7 +338,7 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
  * Set user context to be associated with the given client.
  *
  * @param client client to query
- * @param ptr pointer to user context
+ * @param value pointer to user context
  */
 #define GNUNET_SERVER_client_set_user_context(client,value) GNUNET_SERVER_client_set_user_context_ (client, value, sizeof (*value))
 
