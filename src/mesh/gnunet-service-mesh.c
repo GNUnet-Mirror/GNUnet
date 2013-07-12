@@ -3752,7 +3752,7 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                   " Pid %u not expected (%u), sending FWD ACK!\n",
                   pid, t->prev_fc.last_pid_recv + 1);
     }
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
   }
   if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv))
@@ -3856,7 +3856,7 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   " Pid %u not expected, sending FWD ACK!\n", pid);
     }
-    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
+    tunnel_send_bck_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
     return GNUNET_OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
