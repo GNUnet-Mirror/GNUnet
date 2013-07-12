@@ -84,6 +84,8 @@ struct GNUNET_SOCIAL_Slicer;
  * @param message_id Unique message counter for this message
  *                   (unique only in combination with the given sender for
  *                    this channel).
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  * @param data_off Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
@@ -93,6 +95,8 @@ struct GNUNET_SOCIAL_Slicer;
 typedef int (*GNUNET_SOCIAL_Method)(void *cls,
 				    const char *full_method_name,
 				    uint64_t message_id,
+                                    size_t header_length,
+                                    GNUNET_PSYC_Modifier *header,
 				    uint64_t data_off,
 				    size_t data_size,
 				    const void *data,
@@ -172,11 +176,15 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
  *
  * @param cls Closure.
  * @param nym Handle for the user who wants to join.
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  * @param msg_size Number of bytes in @a msg.
  * @param msg Payload given on enter (e.g. a password).
  */
 typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
 						 struct GNUNET_SOCIAL_Nym *nym,
+                                                 size_t header_length,
+                                                 GNUNET_PSYC_Modifier *header,
 						 size_t msg_size,
 						 const void *msg);
 
@@ -189,9 +197,13 @@ typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
  *
  * @param cls Closure.
  * @param nym Handle for the user who left.
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  */
 typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
-					       struct GNUNET_SOCIAL_Nym *nym);
+					       struct GNUNET_SOCIAL_Nym *nym,
+                                               size_t header_length,
+                                               GNUNET_PSYC_Modifier *header);
 
 
 /** 

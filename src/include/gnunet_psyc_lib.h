@@ -78,6 +78,32 @@ enum GNUNET_PSYC_Type
 };
 
 
+/**
+ * PSYC state modifier.
+ */
+struct GNUNET_PSYC_Modifier {
+  /**
+   * State operation.
+   */
+  GNUNET_PSYC_Operator oper;
+
+  /**
+   * Variable name.
+   */
+  const char *name;
+
+  /**
+   * Size of @a value.
+   */
+  size_t value_size;
+
+  /**
+   * Value of variable.
+   */
+  const void *value;
+};
+
+
 /** 
  * Get the type of variable.
  *

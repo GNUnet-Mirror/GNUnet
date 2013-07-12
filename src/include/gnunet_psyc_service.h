@@ -155,6 +155,8 @@ struct GNUNET_PSYC_PartHandle;
  * @param method_name Original method name from PSYC (may be more
  *        specific than the registered method name due to try-and-slice matching).
  *        FIXME: no try-and-slice for methods defined here.
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  * @param data_off Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
@@ -178,6 +180,8 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
  * @param cls Closure.
  * @param sender Who transmitted the message.
  * @param method_name Method name in the join request.
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
  *             if data is binary).
@@ -185,6 +189,8 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
 typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
                                         const struct GNUNET_PeerIdentity *sender,
                                         const char *method_name,
+                                        size_t header_length,
+                                        GNUNET_PSYC_Modifier *header,
                                         size_t data_size,
                                         const void *data,
                                         struct GNUNET_PSYC_JoinHandle *jh);
@@ -196,6 +202,8 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
  * @param cls Closure.
  * @param sender Who transmitted the message.
  * @param method_name Method name in the part request.
+ * @param header_length Number of modifiers in header.
+ * @param header Modifiers present in the message.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
  *             if data is binary).
@@ -203,6 +211,8 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
 typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
                                         const struct GNUNET_PeerIdentity *sender,
                                         const char *method_name,
+                                        size_t header_length,
+                                        GNUNET_PSYC_Modifier *header,
                                         size_t data_size,
                                         const void *data,
                                         struct GNUNET_PSYC_PartHandle *ph);
