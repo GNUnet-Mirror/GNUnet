@@ -242,6 +242,11 @@ template_plugin_address_pretty_printer (void *cls, const char *type,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
+	if (0 == addrlen)
+	{
+		asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
+	}
+
   asc (asc_cls, NULL);
 }
 
@@ -284,8 +289,13 @@ static const char *
 template_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
 	/*
-	 * Parse string in format template.options.address
+	 * Print address in format template.options.address
 	 */
+
+	if (0 == addrlen)
+	{
+		return TRANSPORT_SESSION_INBOUND_STRING;
+	}
 
   GNUNET_break (0);
   return NULL;
@@ -310,8 +320,9 @@ template_plugin_string_to_address (void *cls, const char *addr, uint16_t addrlen
 {
 
 	/*
-	 * Print address in format template.options.address
+	 * Parse string in format template.options.address
 	 */
+
 
   GNUNET_break (0);
   return GNUNET_SYSERR;
