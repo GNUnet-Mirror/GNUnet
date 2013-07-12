@@ -37,6 +37,8 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_ats_service.h"
 
+#define TRANSPORT_SESSION_INBOUND_STRING "<inbound>"
+
 /**
  * Opaque pointer that plugins can use to distinguish specific
  * connections to a given peer.  Typically used by stateful plugins to
