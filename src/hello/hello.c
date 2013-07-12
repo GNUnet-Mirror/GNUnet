@@ -811,7 +811,10 @@ add_address_to_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   const char *addr;
   char *uri_addr;
   char *ret;
+  char *addr_dup;
+  char *pos;
   char tbuf[16] = "";
+  char *client_str = "_client";
   struct tm *t;
   time_t seconds;
 
@@ -829,11 +832,18 @@ add_address_to_uri (void *cls, const struct GNUNET_HELLO_Address *address,
     return GNUNET_OK;
   }
   addr = papi->address_to_string (papi->cls, address->address, address->address_length);
+
   if ( (addr == NULL) || (strlen(addr) == 0) )
     return GNUNET_OK;
+
+  addr_dup = GNUNET_strdup (addr);
+  if (NULL != (pos = strstr (addr_dup, "_server")))
+  	memcpy (pos, client_str, strlen(client_str)); /* Replace all server addresses with client addresses */
+
    /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
       characters in URIs */
-  uri_addr = map_characters (addr, "[]", "()");
+  uri_addr = map_characters (addr_dup, "[]", "()");
+  GNUNET_free (addr_dup);
   seconds = expiration.abs_value / 1000;
   t = gmtime (&seconds);
 
