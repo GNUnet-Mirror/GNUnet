@@ -658,17 +658,17 @@ http_server_plugin_address_suggested (void *cls, const void *addr,
   struct HttpAddressWrapper *next;
   struct HttpAddressWrapper *pos;
 	struct HttpAddress *h_addr;
-GNUNET_break (0);
 	h_addr = (struct HttpAddress *) addr;
+
   if ((NULL != plugin->ext_addr) &&
 	   GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
 			   	   	   plugin->ext_addr, plugin->ext_addr_len)))
   {
-  	if ((ntohl(h_addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) != HTTP_OPTIONS_VERIFY_CERTIFICATE)
-			GNUNET_break (0);
-  	else
-  		GNUNET_break (0);
-    return GNUNET_OK;
+  	/* Checking HTTP_OPTIONS_VERIFY_CERTIFICATE option for external hostname */
+  	if ((ntohl(h_addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) !=
+  			(plugin->options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+			return GNUNET_NO; /* VERIFY option not set as required! */
+  	return GNUNET_OK;
   }
 
   next  = plugin->addr_head;
