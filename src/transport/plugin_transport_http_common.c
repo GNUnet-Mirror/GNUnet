@@ -266,6 +266,7 @@ http_common_plugin_address_to_string (void *cls, char *plugin, const void *addr,
   const char * addr_str;
   char *res;
 
+  GNUNET_assert (NULL != plugin);
 
   if (NULL == addr)
       return NULL;
@@ -277,7 +278,6 @@ http_common_plugin_address_to_string (void *cls, char *plugin, const void *addr,
 
   if (addr_str[ntohl(address->urlen) -1] != '\0')
     return NULL;
-
   GNUNET_asprintf (&res, "%s.%u.%s", plugin, ntohl(address->options), &address[1]);
   if (strlen(res) + 1 < 500)
   {

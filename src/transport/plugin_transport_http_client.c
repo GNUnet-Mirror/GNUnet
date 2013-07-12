@@ -1771,7 +1771,7 @@ const char *http_plugin_address_to_string (void *cls,
                                            const void *addr,
                                            size_t addrlen)
 {
-	return http_common_plugin_address_to_string (cls, p->protocol, addr, addrlen);
+	return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 }
 
 /**
