@@ -328,29 +328,34 @@ struct MeshTunnelReliability
     /**
      * DLL of messages sent and not yet ACK'd.
      */
-  struct MeshReliableMessage            *head_sent;
-  struct MeshReliableMessage            *tail_sent;
+  struct MeshReliableMessage        *head_sent;
+  struct MeshReliableMessage        *tail_sent;
+
+    /**
+     * Messages pending
+     */
+  unsigned int                      n_sent;
 
     /**
      * DLL of messages received out of order.
      */
-  struct MeshReliableMessage            *head_recv;
-  struct MeshReliableMessage            *tail_recv;
+  struct MeshReliableMessage        *head_recv;
+  struct MeshReliableMessage        *tail_recv;
 
     /**
      * Task to resend/poll in case no ACK is received.
      */
-  GNUNET_SCHEDULER_TaskIdentifier       retry_task;
+  GNUNET_SCHEDULER_TaskIdentifier   retry_task;
 
     /**
      * Counter for exponential backoff.
      */
-  struct GNUNET_TIME_Relative           retry_timer;
+  struct GNUNET_TIME_Relative       retry_timer;
 
     /**
      * How long does it usually take to get an ACK. FIXME update with traffic
      */
-  struct GNUNET_TIME_Relative           expected_delay;
+  struct GNUNET_TIME_Relative       expected_delay;
 };
 
 
@@ -2109,6 +2114,9 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
       }
       if (GNUNET_YES == t->reliable && NULL != t->client)
         tunnel_send_fwd_data_ack (t);
+      if (GNUNET_YES == t->reliable && NULL != t->owner)
+        if (t->fwd_rel->n_sent > 10)
+          return;
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
       if (NULL != t->owner && GNUNET_YES == t->reliable)
@@ -4015,6 +4023,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
     rel->expected_delay.rel_value += time.rel_value;
     rel->expected_delay.rel_value /= 2;
+    rel->n_sent--;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
                 GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                         GNUNET_NO));
@@ -4782,6 +4791,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV) ? t->fwd_rel : t->bck_rel;
       copy->rel = rel;
+      rel->n_sent++;
       GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
