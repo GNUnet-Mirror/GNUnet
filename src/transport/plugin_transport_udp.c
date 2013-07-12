@@ -1341,6 +1341,10 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   case sizeof (struct IPv4UdpAddress):
     if (NULL == plugin->sockv4)
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Could not create session for peer `%s' address `%s': IPv4 is not enabled\n",
+           GNUNET_i2s(target),
+           udp_address_to_string(NULL, addr, addrlen));
       return NULL;
     }
     t4 = addr;
@@ -1358,6 +1362,10 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   case sizeof (struct IPv6UdpAddress):
     if (NULL == plugin->sockv6)
     {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Could not create session for peer `%s' address `%s': IPv6 is not enabled\n",
+           GNUNET_i2s(target),
+           udp_address_to_string(NULL, addr, addrlen));
       return NULL;
     }
     t6 = addr;
@@ -1529,6 +1537,8 @@ udp_plugin_create_session (void *cls,
       address->address,
       address->address_length,
       NULL, NULL);
+  if (NULL == s)
+  	return NULL; /* protocol not supported or address invalid */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session %p for peer `%s' address `%s'\n",
        s,
