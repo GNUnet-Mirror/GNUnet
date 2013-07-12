@@ -985,13 +985,23 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     GNUNET_free (plugin_name);
     if (GNUNET_OK != papi->check_address (papi->cls, addrend, alen))
 		{
+      GNUNET_STATISTICS_update (GST_stats,
+                                gettext_noop
+                                ("# failed address checks during validation"), 1,
+                                GNUNET_NO);
     	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address `%s' is not one of my addresses, not confirming PING\n",
     		GST_plugins_a2s (&address));
     	return;
 		}
     else
-    	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address `%s' is one of my addresses, confirming PING\n",
-    	    		GST_plugins_a2s (&address)); /* DEBUGGING*/
+    {
+      GNUNET_STATISTICS_update (GST_stats,
+                                gettext_noop
+                                ("# successful address checks during validation"), 1,
+                                GNUNET_NO);
+    	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Address `%s' is one of my addresses, confirming PING\n",
+    	    		GST_plugins_a2s (&address));
+    }
 
     if (GNUNET_YES != GST_hello_test_address (&address, &sig_cache, &sig_cache_exp))
     {
