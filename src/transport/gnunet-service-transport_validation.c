@@ -903,7 +903,6 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_TRANSPORT_PluginFunctions *server_papi;
   struct GNUNET_CRYPTO_EccSignature *sig_cache;
   struct GNUNET_TIME_Absolute *sig_cache_exp;
   const char *addr;
