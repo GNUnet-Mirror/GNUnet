@@ -2316,6 +2316,8 @@ tunnel_retransmit_message (void *cls,
 {
   struct MeshTunnelReliability *rel = cls;
   struct MeshReliableMessage *copy;
+  struct MeshPeerQueue *q;
+  struct MeshPeerInfo *pi;
   struct MeshTunnel *t;
   struct GNUNET_MESH_Data *payload;
   GNUNET_PEER_Id hop;
@@ -2331,13 +2333,35 @@ tunnel_retransmit_message (void *cls,
     GNUNET_break (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->id);
 
-  copy->timestamp = GNUNET_TIME_absolute_get ();
+  /* Search the message to be retransmitted in the outgoing queue */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
-  send_prebuilt_message (&payload->header, hop, t);
-  GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
+  pi = peer_get_short (hop);
+  for (q = pi->queue_head; NULL != q; q = q->next)
+  {
+    if (ntohs (payload->header.type) == q->type)
+    {
+      struct GNUNET_MESH_Data *queued_data = q->cls;
+
+      if (queued_data->pid == payload->pid)
+        break;
+    }
+  }
+
+  /* Message not found in the queue */
+  if (NULL == q)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->id);
+    copy->timestamp = GNUNET_TIME_absolute_get ();
+    send_prebuilt_message (&payload->header, hop, t);
+    GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! QUEUED %u\n", copy->id);
+  }
+
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
   rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                                   &tunnel_retransmit_message,
