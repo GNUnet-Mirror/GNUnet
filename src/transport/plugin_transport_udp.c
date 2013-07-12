@@ -1562,6 +1562,15 @@ udp_plugin_get_session (void *cls,
 {
   struct Session * s = NULL;
 
+  if (NULL == address)
+  {
+  	GNUNET_break (0);
+  	return NULL;
+  }
+  if ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
+  		(address->address_length != sizeof (struct IPv6UdpAddress)))
+  		return NULL;
+
   /* otherwise create new */
   if (NULL != (s = udp_plugin_lookup_session(cls, address)))
   	return s;
