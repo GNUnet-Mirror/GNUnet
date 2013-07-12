@@ -973,16 +973,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static struct MeshClient *
 client_get (struct GNUNET_SERVER_Client *client)
 {
-  struct MeshClient *c;
-
-  c = clients_head;
-  while (NULL != c)
-  {
-    if (c->handle == client)
-      return c;
-    c = c->next;
-  }
-  return NULL;
+  return GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
 }
 
 
@@ -4409,17 +4400,9 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   }
 
-  c = clients_head;
-  while (NULL != c)
+  c = client_get (client);
+  if (NULL != c)
   {
-    if (c->handle != client)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "   ... searching %p (%u)\n",
-                  c->handle, c->id);
-      c = c->next;
-      continue;
-    }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u)\n",
                 c->id);
     GNUNET_SERVER_client_drop (c->handle);
@@ -4439,6 +4422,10 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_free (c);
     GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
     c = next;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " context NULL!\n");
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "done!\n");
   return;
@@ -4482,6 +4469,7 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
+  GNUNET_SERVER_client_set_user_context (client, c);
   if (size > 0)
   {
     uint32_t u32;
