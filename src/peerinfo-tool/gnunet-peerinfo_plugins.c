@@ -168,14 +168,23 @@ GPI_plugins_find (const char *name)
   struct TransportPlugin *head = plugins_head;
 
   char *stripped = GNUNET_strdup (name);
+  char *head_stripped;
   char *sep = strchr (stripped, '_');
   if (NULL != sep)
     sep[0] = '\0';
 
   while (head != NULL)
   {
-    if (head->short_name == strstr (head->short_name, stripped))
-        break;
+  	head_stripped = GNUNET_strdup(head->short_name);
+    char *head_sep = strchr (head_stripped, '_');
+    if (NULL != head_sep)
+    	head_sep[0] = '\0';
+    if (0 == strcmp (head_stripped, stripped))
+    {
+    	GNUNET_free (head_stripped);
+      break;
+    }
+    GNUNET_free (head_stripped);
     head = head->next;
   }
   GNUNET_free (stripped);
