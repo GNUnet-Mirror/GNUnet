@@ -46,7 +46,9 @@ test_connection (void *cls,
   }
   ok = 0;
   if (1)
+  {
     GNUNET_SCHEDULER_shutdown ();
+  }
   else
     fprintf (stderr, "Test passed, press CTRL-C to shut down\n");
 }

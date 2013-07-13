@@ -40,8 +40,14 @@ test_connection (void *cls,
 {
   if ( (4 == num_peers) && (0 == links_failed) )
   {
-    fprintf (stderr, "Testbed connect peers despite blacklist!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Testbed connect peers despite blacklist!\n");
     ok = 1;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Note that getting a message about a timeout during setup is expected for this test.\n");
   }
   GNUNET_SCHEDULER_shutdown ();
 }
