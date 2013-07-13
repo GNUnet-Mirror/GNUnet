@@ -2156,7 +2156,9 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   delta = t->queue_max - t->next_fc.queue_n;
-  if (0 > delta)
+  if (0 > delta || (GNUNET_YES == t->reliable && 
+                    NULL != t->owner &&
+                    t->fwd_rel->n_sent > 10))
     delta = 0;
   if (NULL != t->owner && delta > 1)
     delta = 1;
@@ -2365,8 +2367,13 @@ tunnel_retransmit_message (void *cls,
   /* Message not found in the queue */
   if (NULL == q)
   {
+    struct GNUNET_TIME_Relative diff;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %llu\n", copy->mid);
-    copy->timestamp = GNUNET_TIME_absolute_get ();
+    diff = GNUNET_TIME_absolute_get_duration (copy->timestamp);
+    diff = GNUNET_TIME_relative_divide (diff, 10);
+    copy->timestamp = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get(),
+                                                     diff);
 
     fc->last_ack_sent++;
     payload->pid = htonl (fc->last_pid_recv + 1);
@@ -3770,24 +3777,36 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
 //     if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv)) FIXME use
     if (GMC_is_pid_bigger (pid, t->prev_fc.last_pid_recv))
     {
+      uint64_t mid;
+
+      mid = GNUNET_ntohll (msg->mid);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " pid %u not seen yet\n", pid);
+                  " pid %u (%llu) not seen yet\n", pid, mid);
       t->prev_fc.last_pid_recv = pid;
 
       if (GNUNET_NO == t->reliable ||
-          GNUNET_ntohll (msg->mid) == t->bck_rel->mid_recv)
+          (mid >= t->bck_rel->mid_recv && mid < t->bck_rel->mid_recv + 64))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "!!! RECV %llu\n", GNUNET_ntohll(msg->mid));
         if (GNUNET_YES == t->reliable)
-          t->bck_rel->mid_recv++;
+        {
+          if (mid == t->bck_rel->mid_recv)
+            t->bck_rel->mid_recv++;
+        }
         tunnel_send_client_ucast (t, msg);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    " MID %llu not expected (%llu), dropping!\n",
+                    GNUNET_ntohll (msg->mid), t->bck_rel->mid_recv);
       }
     }
     else
     {
 //       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " Pid %u not expected (%u), dropping!\n",
                   pid, t->prev_fc.last_pid_recv + 1);
     }
