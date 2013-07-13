@@ -28,52 +28,124 @@
 #include "platform.h"
 #include "gnunet_fs_service.h"
 
+/**
+ * Global return value from 'main'.
+ */
 static int ret = 1;
 
+/**
+ * Command line option 'verbose' set
+ */
 static int verbose;
 
+/**
+ * Handle to our configuration.
+ */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Handle for interaction with file-sharing service.
+ */
 static struct GNUNET_FS_Handle *ctx;
 
+/**
+ * Handle to FS-publishing operation.
+ */
 static struct GNUNET_FS_PublishContext *pc;
 
+/**
+ * Meta-data provided via command-line option.
+ */
 static struct GNUNET_CONTAINER_MetaData *meta;
 
+/**
+ * Keywords provided via command-line option.
+ */
 static struct GNUNET_FS_Uri *topKeywords;
 
-static struct GNUNET_FS_Uri *uri;
-
+/**
+ * Options we set for published blocks.
+ */
 static struct GNUNET_FS_BlockOptions bo = { {0LL}, 1, 365, 1 };
 
+/**
+ * Value of URI provided on command-line (when not publishing
+ * a file but just creating UBlocks to refer to an existing URI).
+ */
 static char *uri_string;
 
-static char *next_id;
-
-static char *this_id;
-
-static char *pseudonym;
-
-static int do_insert;
-
-static int disable_extractor;
-
-static int do_simulate;
-
-static int extract_only;
-
-static int do_disable_creation_time;
-
-static GNUNET_SCHEDULER_TaskIdentifier kill_task;
-
-static struct GNUNET_FS_DirScanner *ds;
-
-static struct GNUNET_FS_ShareTreeItem * directory_scan_result;
-
-static struct GNUNET_FS_Namespace *namespace;
+/**
+ * Value of URI provided on command-line (when not publishing
+ * a file but just creating UBlocks to refer to an existing URI);
+ * parsed version of 'uri_string'.
+ */
+static struct GNUNET_FS_Uri *uri;
 
 /**
- * FIXME: docu
+ * Command-line option for namespace publishing: identifier for updates
+ * to this publication.
+ */
+static char *next_id;
+
+/**
+ * Command-line option for namespace publishing: identifier for this
+ * publication.
+ */
+static char *this_id;
+
+/**
+ * Command-line option identifying the pseudonym to use for the publication.
+ */
+static char *pseudonym;
+
+/**
+ * Command-line option for 'inserting'
+ */
+static int do_insert;
+
+/**
+ * Command-line option to disable meta data extraction.
+ */
+static int disable_extractor;
+
+/**
+ * Command-line option to merely simulate publishing operation.
+ */
+static int do_simulate;
+
+/**
+ * Command-line option to only perform meta data extraction, but not publish.
+ */
+static int extract_only;
+
+/**
+ * Command-line option to disable adding creation time.
+ */
+static int do_disable_creation_time;
+
+/**
+ * Task run on CTRL-C to kill everything nicely.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+
+/**
+ * Handle to the directory scanner (for recursive insertions).
+ */
+static struct GNUNET_FS_DirScanner *ds;
+
+/**
+ * Which namespace do we publish to? NULL if we do not publish to
+ * a namespace.
+ */
+static struct GNUNET_FS_Namespace *namespace;
+
+
+/**
+ * We are finished with the publishing operation, clean up all
+ * FS state.
+ *
+ * @param cls NULL
+ * @param tc scheduler context
  */
 static void
 do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -110,7 +182,7 @@ stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_FS_directory_scan_abort (ds);
     ds = NULL;
   } 
-  if (namespace != NULL)
+  if (NULL != namespace)
   {
     GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     namespace = NULL;
@@ -172,9 +244,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                                  completed.chk_uri);
     FPRINTF (stdout, _("URI is `%s'.\n"), suri);
     GNUNET_free (suri);
-    if (info->value.publish.pctx == NULL)
+    if (NULL == info->value.publish.pctx)
     {
-      if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+      if (GNUNET_SCHEDULER_NO_TASK != kill_task)
       {
         GNUNET_SCHEDULER_cancel (kill_task);
         kill_task = GNUNET_SCHEDULER_NO_TASK;
@@ -217,10 +289,10 @@ meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
               enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
               const char *data, size_t data_size)
 {
-  if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
-      (format != EXTRACTOR_METAFORMAT_C_STRING))
+  if ((EXTRACTOR_METAFORMAT_UTF8 != format) &&
+      (EXTRACTOR_METAFORMAT_C_STRING != format))
     return 0;
-  if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
+  if (EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME == type)
     return 0;
   FPRINTF (stdout, "\t%s - %s\n", EXTRACTOR_metatype_to_string (type), data);
   return 0;
@@ -281,7 +353,7 @@ publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
   }
   if (NULL != topKeywords)
   {
-    if (*uri != NULL)
+    if (NULL != *uri)
     {
       new_uri = GNUNET_FS_uri_ksk_merge (topKeywords, *uri);
       GNUNET_FS_uri_destroy (*uri);
@@ -323,13 +395,19 @@ publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
 
 
 /**
- * FIXME: docu
+ * Function called upon completion of the publishing
+ * of the UBLOCK for the SKS URI.  As this is the last
+ * step, stop our interaction with FS (clean up).
+ *
+ * @param cls NULL (closure)
+ * @param sks_uri URI for the block that was published
+ * @param emsg error message, NULL on success
  */
 static void
-uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
+uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *sks_uri,
                       const char *emsg)
 {
-  if (emsg != NULL)
+  if (NULL != emsg)
   {
     FPRINTF (stderr, "%s\n", emsg);
     ret = 1;
@@ -342,7 +420,13 @@ uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 
 
 /**
- * FIXME: docu
+ * Function called upon completion of the publishing
+ * of the UBLOCK for the KSK URI.  Continue with
+ * publishing the SKS URI (if applicable) or clean up.
+ *
+ * @param cls NULL (closure)
+ * @param ksk_uri URI for the block that was published
+ * @param emsg error message, NULL on success
  */
 static void
 uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
@@ -350,15 +434,15 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 {
   struct GNUNET_FS_Namespace *ns;
 
-  if (emsg != NULL)
+  if (NULL != emsg)
   {
     FPRINTF (stderr, "%s\n", emsg);
     ret = 1;
   }
-  if (pseudonym != NULL)
+  if (NULL != pseudonym)
   {
     ns = GNUNET_FS_namespace_create (ctx, pseudonym);
-    if (ns == NULL)
+    if (NULL == ns)
     {
       FPRINTF (stderr, _("Failed to create namespace `%s' (illegal filename?)\n"), pseudonym);
       ret = 1;
@@ -380,7 +464,11 @@ uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
 
 
 /**
- * FIXME: docu
+ * Iterate over the results from the directory scan and extract
+ * the desired information for the publishing operation.
+ *
+ * @param item root with the data from the directroy scan
+ * @return handle with the information for the publishing operation
  */
 static struct GNUNET_FS_FileInformation *
 get_file_information (struct GNUNET_FS_ShareTreeItem *item)
@@ -389,10 +477,11 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
   struct GNUNET_FS_FileInformation *fic;
   struct GNUNET_FS_ShareTreeItem *child;
 
-  if (item->is_directory == GNUNET_YES)
+  if (GNUNET_YES == item->is_directory)
   {
     GNUNET_CONTAINER_meta_data_delete (item->meta,
-        EXTRACTOR_METATYPE_MIMETYPE, NULL, 0);
+				       EXTRACTOR_METATYPE_MIMETYPE, 
+				       NULL, 0);
     GNUNET_FS_meta_data_make_directory (item->meta);
     if (NULL == item->ksk_uri)
     {
@@ -401,10 +490,11 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
     }
     else
       GNUNET_FS_uri_ksk_add_keyword (item->ksk_uri, GNUNET_FS_DIRECTORY_MIME,
-        GNUNET_NO);
-    fi = GNUNET_FS_file_information_create_empty_directory (
-        ctx, NULL, item->ksk_uri,
-        item->meta, &bo, item->filename);
+				     GNUNET_NO);
+    fi = GNUNET_FS_file_information_create_empty_directory (ctx, NULL, 
+							    item->ksk_uri,
+							    item->meta, 
+							    &bo, item->filename);
     for (child = item->children_head; child; child = child->next)
     {
       fic = get_file_information (child);
@@ -413,30 +503,33 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
   }
   else
   {
-    fi = GNUNET_FS_file_information_create_from_file (
-        ctx, NULL, item->filename,
-        item->ksk_uri, item->meta, !do_insert,
-        &bo);
+    fi = GNUNET_FS_file_information_create_from_file (ctx, NULL, 
+						      item->filename,
+						      item->ksk_uri, item->meta, 
+						      !do_insert,
+						      &bo);
   }
   return fi;
 }
 
 
 /**
- * FIXME: docu
+ * We've finished scanning the directory and optimized the meta data.
+ * Begin the publication process.
+ *
+ * @param directroy_scan_result result from the directory scan, freed in this function
  */
 static void
-directory_trim_complete ()
+directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
 {
   struct GNUNET_FS_FileInformation *fi;
 
   fi = get_file_information (directory_scan_result);
   GNUNET_FS_share_tree_free (directory_scan_result);
-  directory_scan_result = NULL;
-  if (fi == NULL)
+  if (NULL == fi)
   {
     FPRINTF (stderr, "%s", _("Could not publish\n"));
-    if (namespace != NULL)
+    if (NULL != namespace)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     GNUNET_FS_stop (ctx);
     ret = 1;
@@ -445,11 +538,11 @@ directory_trim_complete ()
   GNUNET_FS_file_information_inspect (fi, &publish_inspector, NULL);
   if (extract_only)
   {
-    if (namespace != NULL)
+    if (NULL != namespace)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     GNUNET_FS_file_information_destroy (fi, NULL, NULL);
     GNUNET_FS_stop (ctx);
-    if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+    if (GNUNET_SCHEDULER_NO_TASK != kill_task)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
       kill_task = GNUNET_SCHEDULER_NO_TASK;
@@ -487,6 +580,8 @@ directory_scan_cb (void *cls,
 		   int is_directory,
 		   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
+  struct GNUNET_FS_ShareTreeItem *directory_scan_result;
+
   switch (reason)
   {
   case GNUNET_FS_DIRSCANNER_FILE_START:
@@ -517,7 +612,7 @@ directory_scan_cb (void *cls,
     directory_scan_result = GNUNET_FS_directory_scan_get_result (ds);
     ds = NULL;
     GNUNET_FS_share_tree_trim (directory_scan_result);
-    directory_trim_complete ();
+    directory_trim_complete (directory_scan_result);
     break;
   case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
     FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
@@ -552,26 +647,26 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *emsg;
 
   /* check arguments */
-  if ((uri_string != NULL) && (extract_only))
+  if ((NULL != uri_string) && (extract_only))
   {
     printf (_("Cannot extract metadata from a URI!\n"));
     ret = -1;
     return;
   }
-  if (((uri_string == NULL) || (extract_only)) &&
-      ((args[0] == NULL) || (args[1] != NULL)))
+  if (((NULL == uri_string) || (extract_only)) &&
+      ((NULL == args[0]) || (NULL != args[1])))
   {
     printf (_("You must specify one and only one filename for insertion.\n"));
     ret = -1;
     return;
   }
-  if ((uri_string != NULL) && (args[0] != NULL))
+  if ((NULL != uri_string) && (NULL != args[0]))
   {
     printf (_("You must NOT specify an URI and a filename.\n"));
     ret = -1;
     return;
   }
-  if (pseudonym != NULL)
+  if (NULL != pseudonym)
   {
     if (NULL == this_id)
     {
@@ -623,8 +718,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != uri_string)
   {
     emsg = NULL;
-    uri = GNUNET_FS_uri_parse (uri_string, &emsg);
-    if (uri == NULL)
+    if (NULL == (uri = GNUNET_FS_uri_parse (uri_string, &emsg)))
     {
       FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
       GNUNET_free (emsg);
@@ -637,7 +731,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_FS_publish_ksk (ctx, topKeywords, meta, uri, &bo,
                            GNUNET_FS_PUBLISH_OPTION_NONE, &uri_ksk_continuation,
                            NULL);
-    if (namespace != NULL)
+    if (NULL != namespace)
       GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     return;
   }
