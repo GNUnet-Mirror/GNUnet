@@ -3750,28 +3750,25 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (GMC_is_pid_bigger (pid, t->prev_fc.last_pid_recv)
         &&
           (GNUNET_NO == t->reliable ||
-                     (GNUNET_ntohll (msg->mid) == (t->bck_rel->mid_recv + 1) &&
-                      t->bck_rel->mid_recv++) 
-          )
-       )
+           GNUNET_ntohll (msg->mid) == t->bck_rel->mid_recv) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " pid %u not seen yet, forwarding\n", pid);
       t->prev_fc.last_pid_recv = pid;
+      if (GNUNET_YES == t->reliable)
+        t->bck_rel->mid_recv++;
       tunnel_send_client_ucast (t, msg);
     }
     else
     {
 //       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  " Pid %u not expected (%u), sending FWD ACK!\n",
+                  " Pid %u not expected (%u), dropping!\n",
                   pid, t->prev_fc.last_pid_recv + 1);
     }
-    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
   }
-  if (GMC_is_pid_bigger(pid, t->prev_fc.last_pid_recv))
-    t->prev_fc.last_pid_recv = pid;
+  t->prev_fc.last_pid_recv = pid;
   if (0 == t->next_hop)
   {
     GNUNET_break (0);
@@ -3876,8 +3873,7 @@ handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
-  if (GMC_is_pid_bigger (pid, t->next_fc.last_pid_recv))
-    t->next_fc.last_pid_recv = pid;
+  t->next_fc.last_pid_recv = pid;
   if (0 == t->prev_hop) /* No owner AND no prev hop */
   {
     if (GNUNET_YES == t->destroy)
