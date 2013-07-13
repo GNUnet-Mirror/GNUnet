@@ -121,7 +121,7 @@ struct GNUNET_MESH_Data
   uint32_t ttl GNUNET_PACKED;
 
     /**
-     * Unique ID of the packet
+     * ID of the packet
      */
   uint32_t pid GNUNET_PACKED;
 
@@ -129,6 +129,11 @@ struct GNUNET_MESH_Data
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
+
+  /**
+   * Unique ID of the payload message
+   */
+  uint64_t mid GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -157,16 +162,16 @@ struct GNUNET_MESH_DataACK
   struct GNUNET_PeerIdentity oid;
 
   /**
-   * Maximum packet ID acknowledged.
+   * Last message ID received.
    */
-  uint32_t pid;
+  uint64_t mid GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages // TODO implement and use
    * pid +  1 @ LSB
    * pid + 32 @ MSB
    */
-  uint32_t futures;
+  uint32_t futures GNUNET_PACKED;
 };
 
 
@@ -193,7 +198,7 @@ struct GNUNET_MESH_ACK
     /**
      * Maximum packet ID authorized.
      */
-  uint32_t pid;
+  uint32_t pid GNUNET_PACKED;
 };
 
 
