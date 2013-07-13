@@ -91,6 +91,14 @@ GNUNET_IDENTITY_pseudonym_get_key (struct GNUNET_IDENTITY_Pseudonym *pseudonym);
  * call to the identity callback of 'GNUNET_IDENTITY_connect' (if 
  * that one was not NULL).
  *
+ * When an identity is renamed, this function is called with the
+ * (known) pseudonym but the NEW identifier.  
+ *
+ * When an identity is deleted, this function is called with the
+ * (known) pseudonym and "NULL" for the 'identifier'.  In this case,
+ * the 'pseu' is henceforth invalid (and the 'ctx' should also be
+ * cleaned up).
+ *
  * @param cls closure
  * @param pseu pseudonym handle
  * @param pseu_ctx context for application to store data for this pseudonym
@@ -187,6 +195,40 @@ struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			const char *identifier,
 			GNUNET_IDENTITY_Callback cb,
+			void *cb_cls);
+
+
+/** 
+ * Renames an existing identity.
+ *
+ * @param id identity service to use
+ * @param old_identifier old identifier
+ * @param new_identifier desired new identifier
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
+			const char *old_identifier,
+			const char *new_identifier,
+			GNUNET_IDENTITY_Continuation cb,
+			void *cb_cls);
+
+
+/** 
+ * Delete an existing identity.
+ *
+ * @param id identity service to use
+ * @param identifier identifier of the identity to delete
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
+			const char *identifier,
+			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls);
 
 
