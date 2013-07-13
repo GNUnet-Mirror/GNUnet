@@ -99,7 +99,7 @@ parent_control_handler (void *cls,
   {
     if (-1 == ret)
       LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "GNUNET_DISK_file_read");
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Closing control pipe\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Closing control pipe\n");
     GNUNET_DISK_file_close (control_pipe);
     control_pipe = NULL;
     return;
