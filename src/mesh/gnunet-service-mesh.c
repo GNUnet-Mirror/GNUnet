@@ -338,7 +338,7 @@ struct MeshTunnelReliability
   unsigned int                      n_sent;
 
     /**
-     * Next MID to use
+     * Next MID to use.
      */
   uint64_t                          mid_sent;
 
@@ -348,6 +348,9 @@ struct MeshTunnelReliability
   struct MeshReliableMessage        *head_recv;
   struct MeshReliableMessage        *tail_recv;
 
+    /**
+     * Next MID expected.
+     */
   uint64_t                          mid_recv;
 
     /**
@@ -2065,7 +2068,7 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-  msg.mid = GNUNET_htonll (t->bck_rel->mid_recv);
+  msg.mid = GNUNET_htonll (t->bck_rel->mid_recv - 1);
   msg.futures = 0; // FIXME set bits of other newer messages received
 
   send_prebuilt_message (&msg.header, t->prev_hop, t);
@@ -2086,7 +2089,7 @@ tunnel_send_bck_data_ack (struct MeshTunnel *t)
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-  msg.mid = GNUNET_htonll (t->fwd_rel->mid_recv);
+  msg.mid = GNUNET_htonll (t->fwd_rel->mid_recv - 1);
   msg.futures = 0; // FIXME set bits of other newer messages received
 
   send_prebuilt_message (&msg.header, t->next_hop, t);
@@ -2136,7 +2139,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   }
 
   /* Check if we need to transmit the ACK */
-  if (NULL == t->owner && 
+  if (0 && NULL == t->owner && 
       t->queue_max > t->next_fc.queue_n * 4 &&
       GMC_is_pid_bigger(t->prev_fc.last_ack_sent, t->prev_fc.last_pid_recv) &&
       GNUNET_NO == t->force_ack)
@@ -3781,8 +3784,9 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
 //       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  " Pid %u not expected (%u), dropping!\n",
-                  pid, t->prev_fc.last_pid_recv + 1);
+                  " Pid %u (%llu) not expected (%u / %llu), dropping!\n",
+                  pid, GNUNET_ntohll(msg->mid),
+                  t->prev_fc.last_pid_recv + 1, t->bck_rel->mid_recv);
     }
     tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
