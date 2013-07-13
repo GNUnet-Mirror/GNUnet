@@ -41,8 +41,7 @@
 #include "gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
 
-#define HARD_CODED_PORT_NUMBER 10
-#define HARD_CODED_PORT_NUMBER2 10
+#define MAX_PORTS 30
 
 /**
  * Maximum size of a message allowed in either direction
@@ -1020,6 +1019,8 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   /* payload contains MAC address, but we don't trust it, so we'll
   * overwrite it with OUR MAC address to prevent mischief */
   mac_set (blueheader, dev);
+  memcpy (&blueheader->addr1, &header->frame.addr1, 
+          sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)); //FIXME is this correct?
   write_pout.size = sendsize;
 }
 
@@ -1048,6 +1049,7 @@ main (int argc, char *argv[])
   struct MessageStreamTokenizer *stdin_mst;
   int raw_eno, i;
   uid_t uid;
+  int crt_rfds = 0, crt_wfds = 0, rfds_list[MAX_PORTS], wfds_list[MAX_PORTS];
 
   /* Assert privs so we can modify the firewall rules! */
   uid = getuid ();
@@ -1161,11 +1163,24 @@ main (int argc, char *argv[])
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
+    
+    for (i = 0; i < crt_rfds; i++)
+    {
+      FD_SET (rfds_list[i], &rfds);
+      maxfd = MAX (maxfd, rfds_list[i]);
+    }
+
+    for (i = 0; i < crt_wfds; i++)
+    {
+      FD_SET (wfds_list[i], &wfds);
+      maxfd = MAX (maxfd, wfds_list[i]);
+    }
+    
     if (0 < write_pout.size)
     {
       int sendsocket, status;
       struct sockaddr_rc addr = { 0 };
-      struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame frame;
+      struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *frame;
       
       memset (dest, 0, sizeof (dest));
       
@@ -1179,15 +1194,10 @@ main (int argc, char *argv[])
       }
       
       /* Get the destination address */
-      if (write_pout.pos == 0) //FIXME: if write_pout.pos != 0, I cannot get the destination address
-      {
-        //FIXME : not sure if this is correct
-        memset (&frame, 0, sizeof (frame));
-        memcpy (&frame, write_pout.buf + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
-                                      - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
-                        sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame));
-        memcpy (&addr.rc_bdaddr, &frame.addr1, sizeof (bdaddr_t));                            
-      }    
+      //FIXME : not sure if this is correct
+      frame = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) write_pout.buf;
+      memcpy (&addr.rc_bdaddr, &frame->addr1, sizeof (bdaddr_t));                            
+      
       addr.rc_family = AF_BLUETOOTH;
       addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
       
@@ -1205,6 +1215,15 @@ main (int argc, char *argv[])
       
       FD_SET (sendsocket, &wfds);
       maxfd = MAX (maxfd, sendsocket);
+      
+      if (crt_wfds < MAX_PORTS)
+        wfds_list[crt_wfds++] = sendsocket; //add the socket to the list
+      else
+      {
+        fprintf (stderr, "The limit for the write file descriptors list was \
+                        reached\n");
+        break;
+      }
     }
     {
       int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
@@ -1287,20 +1306,29 @@ main (int argc, char *argv[])
         } 
         else if (i == dev.fd_rfcomm) 
         {
-          int newfd;
+          int readsocket;
           struct sockaddr_rc addr = { 0 };
           unsigned int opt = sizeof (addr);
           
-          newfd = accept (dev.fd_rfcomm, (struct sockaddr *) &addr, &opt);
+          readsocket = accept (dev.fd_rfcomm, (struct sockaddr *) &addr, &opt);
           
-          if (newfd == -1)
+          if (readsocket == -1)
           {
             fprintf (stderr, "Failed to accept a connection on interface: %s\n", 
                 strerror (errno));
             return -1;
           } else {
-            FD_SET (newfd, &rfds);
-            maxfd = MAX (maxfd, newfd);
+            FD_SET (readsocket, &rfds);
+            maxfd = MAX (maxfd, readsocket);
+            
+            if (crt_rfds < MAX_PORTS)
+              rfds_list[crt_rfds++] = readsocket;
+            else
+            {
+              fprintf (stderr, "The limit for the read file descriptors list was \
+                              reached\n");
+              break;
+            }
           }
           
         } 
@@ -1328,20 +1356,29 @@ main (int argc, char *argv[])
 	      - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
             rrm->header.size = htons (write_std.size);
             rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
-            (void) close (i);
           }
-          if (0 == ret)
-            (void) close (i);
         }
       }
     }
   }
   /* Error handling, try to clean up a bit at least */
   mst_destroy (stdin_mst);
+  sdp_close (dev.session);
+   
   (void) close (dev.fd_rfcomm);
-  
+  for (i = 0; i < crt_rfds; i++)
+    (void) close (rfds_list[i]);
+
+  for (i = 0; i < crt_wfds; i++)
+    (void) close (wfds_list[i]);
+
   return 1;                     /* we never exit 'normally' */
   
+  /**
+   *TODO
+   * 1. check if the rate from get_wlan_header (plugin_transport_bluetooth.c) is correct
+   * 2. 
+  */
 }
 
 
