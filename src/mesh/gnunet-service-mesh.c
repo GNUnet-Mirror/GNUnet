@@ -3750,12 +3750,14 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (GMC_is_pid_bigger (pid, t->prev_fc.last_pid_recv)
         &&
           (GNUNET_NO == t->reliable ||
-           GNUNET_ntohll (msg->mid) == (t->bck_rel->mid_recv + 1)) )
+                     (GNUNET_ntohll (msg->mid) == (t->bck_rel->mid_recv + 1) &&
+                      t->bck_rel->mid_recv++) 
+          )
+       )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " pid %u not seen yet, forwarding\n", pid);
       t->prev_fc.last_pid_recv = pid;
-      t->bck_rel->mid_recv++;
       tunnel_send_client_ucast (t, msg);
     }
     else
