@@ -4044,8 +4044,10 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
         struct GNUNET_TIME_Absolute new_target;
         struct GNUNET_TIME_Relative delay;
 
+        delay = GNUNET_TIME_relative_multiply (rel->retry_timer,
+                                               MESH_RETRANSMIT_MARGIN);
         new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
-                                               rel->retry_timer);
+                                               delay);
         delay = GNUNET_TIME_absolute_get_remaining (new_target);
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (delay,
