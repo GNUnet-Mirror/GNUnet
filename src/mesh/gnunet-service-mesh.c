@@ -2476,7 +2476,6 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
     if (copy->mid > target)
     {
      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %llu\n", copy->mid);
-     copy = copy->next;
      continue;
     }
 
