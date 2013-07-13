@@ -2087,8 +2087,7 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
     mask = 0x1 << delta;
     msg.futures |= mask;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures\n");
-  msg.futures = GNUNET_htonll (msg.futures);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures %llX\n", msg.futures);
 
   send_prebuilt_message (&msg.header, t->prev_hop, t);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_fwd_data_ack END\n");
@@ -2424,7 +2423,7 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
   uint64_t target;
   unsigned int i;
 
-  bitfield = GNUNET_ntohll (msg->futures);
+  bitfield = msg->futures;
   mid = GNUNET_ntohll (msg->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "free_sent_buffer %llu %llX\n",
