@@ -2072,6 +2072,12 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "send_fwd_data_ack for %llu\n",
               t->bck_rel->mid_recv - 1);
+
+  if (GNUNET_NO == t->reliable)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
@@ -2430,18 +2436,20 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
 
   bitfield = msg->futures;
   mid = GNUNET_ntohll (msg->mid);
+  rel = t->fwd_rel;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "free_sent_buffer %llu %llX\n",
               mid, bitfield);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " rel %p, copy %p\n",
-              mid, bitfield);
-  rel = t->fwd_rel;
-  for (i = 0, copy = rel->head_recv;
+              " rel %p, head %p\n",
+              rel, rel->head_sent);
+  for (i = 0, copy = rel->head_sent;
        i < 64 && NULL != copy && 0 != bitfield;
-       i++, copy = next)
+       i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " trying %u\n", i);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " trying bit %u (mid %llu)\n",
+                i, mid + i + 1);
     mask = 0x1LL << i;
     if (0 == (bitfield & mask))
      continue;
@@ -2468,15 +2476,16 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
     if (copy->mid > target)
     {
      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %llu\n", copy->mid);
-     next = copy;
+     copy = copy->next;
      continue;
     }
 
     /* Now copy->mid == target, free it */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", target);
-    copy = copy->next;
+    next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     GNUNET_free (copy);
+    copy = next;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "free_sent_buffer END\n");
 }
