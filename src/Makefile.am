@@ -10,7 +10,7 @@ if HAVE_TESTING
 endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = gns set dv $(CONSENSUS) $(EXPERIMENTATION)
+ EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION)
 endif
 
 if LINUX
@@ -63,6 +63,8 @@ SUBDIRS = \
   lockmanager \
   stream \
   dns \
+  gns \
+  set \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
