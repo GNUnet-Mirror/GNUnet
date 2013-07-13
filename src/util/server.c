@@ -352,6 +352,9 @@ void *
 GNUNET_SERVER_client_get_user_context_ (struct GNUNET_SERVER_Client *client,
 					size_t size)
 {
+  if ((0 == client->user_context_size) &&
+      (NULL == client->user_context))
+    return NULL; /* never set */
   GNUNET_assert (size == client->user_context_size);
   return client->user_context;
 }
