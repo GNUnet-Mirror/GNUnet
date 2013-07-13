@@ -4395,6 +4395,24 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
+ * Handler for client connection.
+ *
+ * @param cls Closure (unused).
+ * @param client Client handler.
+ */
+static void
+handle_local_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  struct MeshClient *c;
+
+  c = GNUNET_malloc (sizeof (struct MeshClient));
+  c->handle = client;
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_SERVER_client_set_user_context (client, c);
+}
+
+
+/**
  * Handler for client disconnection
  *
  * @param cls closure
@@ -4476,14 +4494,11 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   }
   size /= sizeof (uint32_t);
 
-  /* Create new client structure */
-  c = GNUNET_malloc (sizeof (struct MeshClient));
+  /* Initialize new client structure */
+  c = GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
   c->id = next_client_id++; /* overflow not important: just for debug */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
-  c->handle = client;
-  GNUNET_SERVER_client_keep (client);
-  GNUNET_SERVER_client_set_user_context (client, c);
   if (size > 0)
   {
     uint32_t u32;
@@ -5113,6 +5128,8 @@ static void
 server_init (void)
 {
   GNUNET_SERVER_add_handlers (server_handle, client_handlers);
+  GNUNET_SERVER_connect_notify (server_handle,
+                                &handle_local_client_connect, NULL);
   GNUNET_SERVER_disconnect_notify (server_handle,
                                    &handle_local_client_disconnect, NULL);
   nc = GNUNET_SERVER_notification_context_create (server_handle, 1);
