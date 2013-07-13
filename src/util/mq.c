@@ -719,8 +719,8 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
   {
     struct GNUNET_MQ_Envelope *ev;
     ev = mq->envelope_head;
-    GNUNET_MQ_discard (ev);
     GNUNET_CONTAINER_DLL_remove (mq->envelope_head, mq->envelope_tail, ev);
+    GNUNET_MQ_discard (ev);
   }
 
   if (NULL != mq->current_envelope)
