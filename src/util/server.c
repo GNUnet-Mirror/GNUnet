@@ -1342,7 +1342,11 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
 /**
  * Ask the server to notify us whenever a client connects.
  * This function is called whenever the actual network connection
- * is opened.
+ * is opened. If the server is destroyed before this
+ * notification is explicitly cancelled, the 'callback' will
+ * once be called with a 'client' argument of NULL to indicate
+ * that the server itself is now gone (and that the callback
+ * won't be called anymore and also can no longer be cancelled).
  *
  * @param server the server manageing the clients
  * @param callback function to call on sconnect

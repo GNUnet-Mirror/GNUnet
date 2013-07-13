@@ -4405,6 +4405,8 @@ handle_local_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
 
+  if (NULL == client)
+    return;
   c = GNUNET_malloc (sizeof (struct MeshClient));
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
