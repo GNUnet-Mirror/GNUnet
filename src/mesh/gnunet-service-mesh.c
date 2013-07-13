@@ -3305,6 +3305,8 @@ queue_add (void *cls, uint16_t type, size_t size,
     prev = d->pid;
     for (queue = dst->queue_tail; NULL != queue; queue = queue->prev)
     {
+      if (queue->type != type)
+        continue;
       d = (struct GNUNET_MESH_Data *) queue->cls;
       next = d->pid;
       d->pid = prev;
