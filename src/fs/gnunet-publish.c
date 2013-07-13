@@ -517,7 +517,7 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
  * We've finished scanning the directory and optimized the meta data.
  * Begin the publication process.
  *
- * @param directroy_scan_result result from the directory scan, freed in this function
+ * @param directory_scan_result result from the directory scan, freed in this function
  */
 static void
 directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
