@@ -2086,6 +2086,9 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
     delta = copy->mid - t->bck_rel->mid_recv;
     mask = 0x1 << delta;
     msg.futures |= mask;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " setting bit for %u (delta %u) (%llX) -> %llX\n",
+                copy->mid, delta, mask, msg.futures);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures %llX\n", msg.futures);
 
@@ -2384,6 +2387,8 @@ tunnel_add_buffer_ucast (struct MeshTunnel *t,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffer_ucast %llu\n", mid);
 
   copy = GNUNET_malloc (sizeof (*copy) + size);
+  copy->mid = mid;
+  copy->rel = rel;
   memcpy (&copy[1], msg, size);
 
   // FIXME do something better than O(n), although n < 64...
@@ -2428,13 +2433,16 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "free_sent_buffer %llu %llX\n",
               mid, bitfield);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              " rel %p, copy %p\n",
+              mid, bitfield);
   rel = t->fwd_rel;
   for (i = 0, copy = rel->head_recv;
        i < 64 && NULL != copy && 0 != bitfield;
        i++, copy = next)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " trying %u\n", i);
-    mask = 0x1 << i;
+    mask = 0x1LL << i;
     if (0 == (bitfield & mask))
      continue;
 
