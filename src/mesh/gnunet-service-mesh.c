@@ -2069,6 +2069,9 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
   unsigned int i;
   unsigned int delta;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "send_fwd_data_ack for %llu\n",
+              t->bck_rel->mid_recv - 1);
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
@@ -2084,9 +2087,11 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
     mask = 0x1 << delta;
     msg.futures |= mask;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures\n");
   msg.futures = GNUNET_htonll (msg.futures);
 
   send_prebuilt_message (&msg.header, t->prev_hop, t);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_fwd_data_ack END\n");
 }
 
 
@@ -2330,6 +2335,7 @@ tunnel_send_client_buffered_ucast (struct MeshTunnel *t)
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_unicast\n");
   rel = t->bck_rel;
   for (copy = rel->head_recv; NULL != copy; copy = next)
   {
@@ -2338,6 +2344,9 @@ tunnel_send_client_buffered_ucast (struct MeshTunnel *t)
     {
       struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " have %llu! now expecting %llu\n",
+                  copy->mid, rel->mid_recv + 1LL);
       tunnel_send_client_ucast (t, msg);
       rel->mid_recv++;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
@@ -2345,9 +2354,14 @@ tunnel_send_client_buffered_ucast (struct MeshTunnel *t)
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  " don't have %llu, (%llu)\n",
+                  rel->mid_recv,
+                  copy->mid);
       return;
     }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_unicast END\n");
 }
 
 
@@ -2368,6 +2382,7 @@ tunnel_add_buffer_ucast (struct MeshTunnel *t,
   rel = t->bck_rel;
   size = ntohs (msg->header.size);
   mid = GNUNET_ntohll (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffer_ucast %llu\n", mid);
 
   copy = GNUNET_malloc (sizeof (*copy) + size);
   memcpy (&copy[1], msg, size);
@@ -2375,12 +2390,18 @@ tunnel_add_buffer_ucast (struct MeshTunnel *t,
   // FIXME do something better than O(n), although n < 64...
   for (prev = rel->head_recv; NULL != prev; prev = prev->next)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " prev %llu\n", prev->mid);
     if (mid < prev->mid)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
       GNUNET_CONTAINER_DLL_insert_before (rel->head_recv, rel->tail_recv,
                                           prev, copy);
       return;
+    }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffer_ucast END\n");
 }
 
 
@@ -2405,40 +2426,52 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
 
   bitfield = GNUNET_ntohll (msg->futures);
   mid = GNUNET_ntohll (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "free_sent_buffer %llu %llX\n",
+              mid, bitfield);
   rel = t->fwd_rel;
   for (i = 0, copy = rel->head_recv;
        i < 64 && NULL != copy && 0 != bitfield;
        i++, copy = next)
-   {
-     mask = 0x1 << i;
-     if (0 == (bitfield & mask))
-       continue;
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " trying %u\n", i);
+    mask = 0x1 << i;
+    if (0 == (bitfield & mask))
+     continue;
 
-     /* Bit was set, clear the bit from the bitfield */
-     bitfield &= ~mask;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " set!\n");
+    /* Bit was set, clear the bit from the bitfield */
+    bitfield &= ~mask;
 
-     /* The i-th bit was set. Do we have that copy? */
-     /* Skip copies with mid < target */
-     target = mid + i + 1;
-     while (NULL != copy && copy->mid < target)
-       copy = copy->next;
-
-     /* Did we run out of copies? (previously freed, it's ok) */
-     if (NULL == copy)
-       return;
-
-     /* Did we overshoot the target? (previously freed, it's ok) */
-     if (copy->mid > target)
-     {
-       next = copy;
-       continue;
-     }
-
-     /* Now copy->mid == target, free it */
+    /* The i-th bit was set. Do we have that copy? */
+    /* Skip copies with mid < target */
+    target = mid + i + 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " target %llu\n", target);
+    while (NULL != copy && copy->mid < target)
      copy = copy->next;
-     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-     GNUNET_free (copy);
-   }
+
+    /* Did we run out of copies? (previously freed, it's ok) */
+    if (NULL == copy)
+    {
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
+     return;
+    }
+
+    /* Did we overshoot the target? (previously freed, it's ok) */
+    if (copy->mid > target)
+    {
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %llu\n", copy->mid);
+     next = copy;
+     continue;
+    }
+
+    /* Now copy->mid == target, free it */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", target);
+    copy = copy->next;
+    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+    GNUNET_free (copy);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "free_sent_buffer END\n");
 }
 
 
@@ -3933,12 +3966,14 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
           /* Is this the exact next expected messasge? */
           if (mid == t->bck_rel->mid_recv)
           {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
             t->bck_rel->mid_recv++;
             tunnel_send_client_ucast (t, msg);
             tunnel_send_client_buffered_ucast (t);
           }
           else
           {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
             tunnel_add_buffer_ucast (t, msg);
           }
         }
