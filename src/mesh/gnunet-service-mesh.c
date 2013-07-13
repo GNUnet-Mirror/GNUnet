@@ -3770,6 +3770,8 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " pid %u not seen yet, forwarding\n", pid);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "!!! RECV %llu\n", GNUNET_ntohll(msg->mid));
       t->prev_fc.last_pid_recv = pid;
       if (GNUNET_YES == t->reliable)
         t->bck_rel->mid_recv++;
