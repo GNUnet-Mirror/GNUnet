@@ -634,6 +634,26 @@ dv_plugin_string_to_address (void *cls,
 }
 
 
+
+/**
+ * Function to obtain the network type for a session
+ * FIXME: we should probably look at the network type
+ * used by the next hop here.  Or find some other way
+ * to properly allow ATS-DV resource allocation.
+ *
+ * @param cls closure ('struct Plugin*')
+ * @param session the session
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type 
+dv_get_network (void *cls,
+		struct Session *session)
+{
+  GNUNET_assert (NULL != session);
+  return GNUNET_ATS_NET_UNSPECIFIED;
+}
+
+
 /**
  * Entry point for the plugin.
  */
@@ -670,7 +690,8 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->check_address = &dv_plugin_check_address;
   api->address_to_string = &dv_plugin_address_to_string;
   api->string_to_address = &dv_plugin_string_to_address;
-  api->get_session = dv_get_session;
+  api->get_session = &dv_get_session;
+  api->get_network = &dv_get_network;
   return api;
 }
 

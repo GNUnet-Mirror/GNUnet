@@ -1438,6 +1438,7 @@ client_connect (struct Session *s)
   return res;
 }
 
+
 /**
  * Function obtain the network type for a session
  *
@@ -1446,11 +1447,11 @@ client_connect (struct Session *s)
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-http_client_get_network (void *cls, void *session)
+http_client_get_network (void *cls,
+			 struct Session *session)
 {
-	struct Session *s = (struct Session *) session;
-	GNUNET_assert (NULL != s);
-	return ntohl(s->ats_address_network_type);
+  GNUNET_assert (NULL != session);
+  return ntohl (session->ats_address_network_type);
 }
 
 

@@ -732,6 +732,7 @@ session_timeout (void *cls,
   disconnect_session (s);
 }
 
+
 /**
  * Function obtain the network type for a session
  *
@@ -740,10 +741,11 @@ session_timeout (void *cls,
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-unix_get_network (void *cls, void *session)
+unix_get_network (void *cls, 
+		  struct Session *session)
 {
-	GNUNET_assert (NULL != session);
-	return GNUNET_ATS_NET_LOOPBACK;
+  GNUNET_assert (NULL != session);
+  return GNUNET_ATS_NET_LOOPBACK;
 }
 
 

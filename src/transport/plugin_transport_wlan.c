@@ -1057,6 +1057,7 @@ create_macendpoint (struct Plugin *plugin,
   return pos;
 }
 
+
 /**
  * Function obtain the network type for a session
  *
@@ -1065,11 +1066,13 @@ create_macendpoint (struct Plugin *plugin,
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-wlan_get_network (void *cls, void *session)
+wlan_get_network (void *cls, 
+		  struct Session *session)
 {
-	GNUNET_assert (NULL != session);
-	return GNUNET_ATS_NET_WLAN;
+  GNUNET_assert (NULL != session);
+  return GNUNET_ATS_NET_WLAN;
 }
+
 
 /**
  * Creates a new outbound session the transport service will use to send data to the

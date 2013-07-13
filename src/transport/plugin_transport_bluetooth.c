@@ -1024,6 +1024,7 @@ create_macendpoint (struct Plugin *plugin,
   return pos;
 }
 
+
 /**
  * Function obtain the network type for a session
  *
@@ -1032,10 +1033,11 @@ create_macendpoint (struct Plugin *plugin,
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-bluetooth_get_network (void *cls, void *session)
+bluetooth_get_network (void *cls,
+		       struct Session *session)
 {
-	GNUNET_assert (NULL != session);
-	return GNUNET_ATS_NET_BT;
+  GNUNET_assert (NULL != session);
+  return GNUNET_ATS_NET_BT;
 }
 
 

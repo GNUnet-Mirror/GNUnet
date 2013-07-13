@@ -2394,11 +2394,11 @@ stop_session_timeout (struct Session *s)
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-tcp_get_network (void *cls,void *session)
+tcp_get_network (void *cls,
+		 struct Session *session)
 {
-	struct Session *s = (struct Session *) session;
-	GNUNET_assert (NULL != session);
-	return ntohl(s->ats_address_network_type);
+  GNUNET_assert (NULL != session);
+  return ntohl (session->ats_address_network_type);
 }
 
 

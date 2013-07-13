@@ -497,14 +497,14 @@ typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
 
 
 /**
- * Function obtain the network type for a session
+ * Function to obtain the network type for a session
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
  * @return the network type
  */
 typedef enum GNUNET_ATS_Network_Type (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
-                                                void *session);
+									 struct Session *session);
 
 
 /**
@@ -570,7 +570,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * object
    */
   GNUNET_TRANSPORT_CreateSession get_session;
-
 
   /**
    * Function to obtain the network type for a session

@@ -1443,6 +1443,7 @@ session_cmp_it (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * Function obtain the network type for a session
  *
@@ -1451,12 +1452,12 @@ session_cmp_it (void *cls,
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-udp_get_network (void *cls, void *session)
+udp_get_network (void *cls, 
+		 struct Session *session)
 {
-	struct Session *s = (struct Session *) session;
-
-	return ntohl(s->ats.value);
+  return ntohl (session->ats.value);
 }
+
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
