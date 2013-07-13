@@ -2155,6 +2155,8 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
   delta = t->queue_max - t->next_fc.queue_n;
   if (0 > delta)
     delta = 0;
+  if (NULL != t->owner && delta > 1)
+    delta = 1;
   ack = t->prev_fc.last_pid_recv + delta;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " FWD ACK %u\n", ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2344,7 +2346,7 @@ tunnel_retransmit_message (void *cls,
   /* Search the message to be retransmitted in the outgoing queue */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
-  fc = rel == t->fwd_rel ? &t->next_fc : &t->prev_fc;
+  fc = rel == t->fwd_rel ? &t->prev_fc : &t->next_fc;
   pi = peer_get_short (hop);
   for (q = pi->queue_head; NULL != q; q = q->next)
   {
@@ -3733,8 +3735,8 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# unsolicited unicast", 1, GNUNET_NO);
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received PID %u, ACK %u\n",
-                pid, t->prev_fc.last_ack_sent);
+                "Received PID %u, (prev %u), ACK %u\n",
+                pid, t->prev_fc.last_pid_recv, t->prev_fc.last_ack_sent);
     tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_POLL);
     return GNUNET_OK;
   }
@@ -3766,6 +3768,7 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
                   " Pid %u not expected (%u), dropping!\n",
                   pid, t->prev_fc.last_pid_recv + 1);
     }
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
     return GNUNET_OK;
   }
   t->prev_fc.last_pid_recv = pid;
