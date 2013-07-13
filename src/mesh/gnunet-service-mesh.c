@@ -4411,6 +4411,7 @@ handle_local_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
   c->handle = client;
   GNUNET_SERVER_client_keep (client);
   GNUNET_SERVER_client_set_user_context (client, c);
+  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
 }
 
 
@@ -4441,12 +4442,19 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                 c->id);
     GNUNET_SERVER_client_drop (c->handle);
     c->shutting_down = GNUNET_YES;
-    GNUNET_CONTAINER_multihashmap32_iterate (c->own_tunnels,
+    if (NULL != c->own_tunnels)
+    {
+      GNUNET_CONTAINER_multihashmap32_iterate (c->own_tunnels,
+                                               &tunnel_destroy_iterator, c);
+      GNUNET_CONTAINER_multihashmap32_destroy (c->own_tunnels);
+    }
+
+    if (NULL != c->incoming_tunnels)
+    {
+      GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_tunnels,
                                              &tunnel_destroy_iterator, c);
-    GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_tunnels,
-                                             &tunnel_destroy_iterator, c);
-    GNUNET_CONTAINER_multihashmap32_destroy (c->own_tunnels);
-    GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_tunnels);
+      GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_tunnels);
+    }
 
     if (NULL != c->ports)
       GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
@@ -4523,7 +4531,6 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
 
-  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
   c->own_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
   c->incoming_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
   GNUNET_SERVER_notification_context_add (nc, client);
