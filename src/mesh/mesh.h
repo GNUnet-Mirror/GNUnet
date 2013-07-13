@@ -174,7 +174,7 @@ struct GNUNET_MESH_TunnelMessage
     /**
      * Options.
      */
-  uint32_t options GNUNET_PACKED;
+  uint32_t opt GNUNET_PACKED;
 };
 
 

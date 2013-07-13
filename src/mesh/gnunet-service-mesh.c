@@ -1036,10 +1036,10 @@ send_client_tunnel_create (struct MeshTunnel *t)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.tunnel_id = htonl (t->local_tid_dest);
   msg.port = htonl (t->port);
-  msg.options = 0;
-  msg.options |= GNUNET_YES == t->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
-  msg.options |= GNUNET_YES == t->nobuffer ? GNUNET_MESH_OPTION_NOBUFFER : 0;
-  msg.options = htonl (msg.options);
+  msg.opt = 0;
+  msg.opt |= GNUNET_YES == t->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
+  msg.opt |= GNUNET_YES == t->nobuffer ? GNUNET_MESH_OPTION_NOBUFFER : 0;
+  msg.opt = htonl (msg.opt);
   GNUNET_PEER_resolve (t->id.oid, &msg.peer);
   GNUNET_SERVER_notification_context_unicast (nc, t->client->handle,
                                               &msg.header, GNUNET_NO);
@@ -4836,7 +4836,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   t->port = ntohl (t_msg->port);
-  tunnel_set_options (t, ntohl (t_msg->options));
+  tunnel_set_options (t, ntohl (t_msg->opt));
   if (GNUNET_YES == t->reliable)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");

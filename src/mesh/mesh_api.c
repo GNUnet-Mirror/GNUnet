@@ -736,7 +736,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     if (GNUNET_YES == t->reliable)
       options |= GNUNET_MESH_OPTION_RELIABLE;
 
-    tmsg.options = htonl (options);
+    tmsg.opt = htonl (options);
     send_packet (h, &tmsg.header, t);
   }
   return GNUNET_YES;
@@ -791,7 +791,7 @@ reconnect (struct GNUNET_MESH_Handle *h)
  */
 static void
 process_tunnel_created (struct GNUNET_MESH_Handle *h,
-                        const struct GNUNET_MESH_TunnelNotification *msg)
+                        const struct GNUNET_MESH_TunnelMessage *msg)
 {
   struct GNUNET_MESH_Tunnel *t;
   MESH_TunnelNumber tid;
@@ -834,7 +834,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     d_msg.tunnel_id = msg->tunnel_id;
     memset (&d_msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
     d_msg.port = 0;
-    d_msg.options = 0;
+    d_msg.opt = 0;
 
     send_packet (h, &d_msg.header, NULL);
   }
@@ -1076,7 +1076,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     /* Notify of a new incoming tunnel */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
-    process_tunnel_created (h, (struct GNUNET_MESH_TunnelNotification *) msg);
+    process_tunnel_created (h, (struct GNUNET_MESH_TunnelMessage *) msg);
     break;
     /* Notify of a tunnel disconnection */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY:
@@ -1426,12 +1426,12 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.tunnel_id = htonl (t->tid);
   msg.port = htonl (port);
   msg.peer = *peer;
-  msg.options = 0;
+  msg.opt = 0;
   if (GNUNET_YES == reliable)
-    msg.options |= GNUNET_MESH_OPTION_RELIABLE;
+    msg.opt |= GNUNET_MESH_OPTION_RELIABLE;
   if (GNUNET_NO == buffer)
-    msg.options |= GNUNET_MESH_OPTION_NOBUFFER;
-  msg.options = htonl (msg.options);
+    msg.opt |= GNUNET_MESH_OPTION_NOBUFFER;
+  msg.opt = htonl (msg.opt);
   t->allow_send = 0;
   send_packet (h, &msg.header, t);
   return t;
@@ -1453,7 +1453,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
   msg.tunnel_id = htonl (tunnel->tid);
   memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
   msg.port = 0;
-  msg.options = 0;
+  msg.opt = 0;
   th = h->th_head;
   while (th != NULL)
   {
