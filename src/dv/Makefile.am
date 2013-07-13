@@ -23,7 +23,7 @@ lib_LTLIBRARIES = libgnunetdv.la
 plugin_LTLIBRARIES = libgnunet_plugin_transport_dv.la
 
 libgnunetdv_la_SOURCES = \
-  dv_api.c dv.h gnunet_dv_service.h
+  dv_api.c dv.h 
 libgnunetdv_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
