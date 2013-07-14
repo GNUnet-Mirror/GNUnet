@@ -37,21 +37,203 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+
 /**
- * Network size estimate sent from the service
- * to clients.  Contains the current size estimate
- * (or 0 if none has been calculated) and the
- * standard deviation of known estimates.
- *
+ * Answer from service to client about last operation;
+ * GET_DEFAULT maybe answered with this message on failure;
+ * CREATE and RENAME will always be answered with this message.
  */
-struct GNUNET_IDENTITY_XXXMessage
+struct GNUNET_IDENTITY_ResultCodeMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_XXX
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Status code for the last operation, in NBO.
+   */
+  uint32_t result_code GNUNET_PACKED;
+
+  /* followed by 0-terminated error message (on error) */
+
 };
+
+
+/**
+ * Service informs client about status of a pseudonym.
+ */
+struct GNUNET_IDENTITY_UpdateMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of bytes in identity name string including 0-termination, in NBO;
+   * 0 if the identity was deleted.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * Public key of the identity that we provide an update about.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+
+  /* followed by 0-terminated identity name */
+
+};
+
+
+
+/**
+ * Client requests knowledge about default identity for
+ * a subsystem from identity service.
+ */
+struct GNUNET_IDENTITY_GetDefaultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of bytes in service name string including 0-termination, in NBO.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+
+  /* followed by 0-terminated service name */
+
+};
+
+
+/**
+ * Used from service to client as a result to the GET_DEFAULT
+ * message, used from client to service to SET_DEFAULT.
+ */
+struct GNUNET_IDENTITY_SetDefaultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of bytes in service name string including 0-termination, in NBO.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * Public key of the identity to use.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+
+  /* followed by 0-terminated service name */
+
+};
+
+
+/**
+ * Client requests creation of an identity.  Service
+ * will respond with a result code.  
+ */
+struct GNUNET_IDENTITY_CreateRequestMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_CREATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of bytes in identity name string including 0-termination, in NBO.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * Public key of the identity to use.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+
+  /* followed by 0-terminated identity name */
+
+};
+
+
+/**
+ * Client requests renaming of an identity.  Service
+ * will respond with a result code.
+ */
+struct GNUNET_IDENTITY_RenameMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_RENAME
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of characters in the old name including 0-termination, in NBO.
+   */
+  uint16_t old_name_len GNUNET_PACKED;
+
+  /**
+   * Number of characters in the new name including 0-termination, in NBO.
+   */
+  uint16_t new_name_len GNUNET_PACKED;
+
+  /* followed by 0-terminated old name */
+  /* followed by 0-terminated new name */
+};
+
+
+/**
+ * Client requests deletion of an identity.  Service
+ * will respond with a result code.
+ */
+struct GNUNET_IDENTITY_DeleteMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_DELETE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of characters in the name including 0-termination, in NBO.
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /* followed by 0-terminated name */
+
+};
+
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

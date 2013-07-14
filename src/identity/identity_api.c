@@ -37,6 +37,14 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
 
+/** 
+ * Handle for a pseudonym.
+ */
+struct GNUNET_IDENTITY_Pseudonym
+{
+};
+
+
 /**
  * Handle for the service.
  */
@@ -77,7 +85,8 @@ struct GNUNET_IDENTITY_Handle
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -88,7 +97,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+message_handler (void *cls, 
+		 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   const struct GNUNET_IDENTITY_ClientMessage *client_msg;
@@ -148,9 +158,11 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
  * @return number of bytes copied to buf
  */
 static size_t
-send_start (void *cls, size_t size, void *buf)
+send_start (void *cls, 
+	    size_t size, 
+	    void *buf)
 {
-  return sizeof (struct GNUNET_MessageHeader);
+  return 0;
 }
 
 
@@ -206,6 +218,133 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   ret->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, ret);
   return ret;
+}
+
+
+/**
+ * Obtain the ECC key associated with a pseudonym.
+ *
+ * @param pseudonym the pseudonym
+ * @return associated ECC key, valid as long as the pseudonym is valid
+ */
+const struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_IDENTITY_pseudonym_get_key (struct GNUNET_IDENTITY_Pseudonym *pseudonym)
+{
+  return NULL;
+}
+
+
+/**
+ * Obtain the identity that is currently preferred/default
+ * for a service.
+ *
+ * @param id identity service to query
+ * @param service_name for which service is an identity wanted
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
+		     const char *service_name,
+		     GNUNET_IDENTITY_Callback cb,
+		     void *cb_cls)
+{
+  return NULL;
+}
+
+
+/**
+ * Set the preferred/default identity for a service.
+ *
+ * @param id identity service to inform
+ * @param service_name for which service is an identity set
+ * @param pseu new default identity to be set for this service
+ * @param cont function to call once the operation finished
+ * @param cont_cls closure for cont
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
+		     const char *service_name,
+		     struct GNUNET_IDENTITY_Pseudonym *pseu,
+		     GNUNET_IDENTITY_Continuation cont,
+		     void *cont_cls)
+{
+  return NULL;
+}
+
+
+/** 
+ * Create a new identity with the given identifier.
+ *
+ * @param id identity service to use
+ * @param identifier desired identifier
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
+			const char *identifier,
+			GNUNET_IDENTITY_Callback cb,
+			void *cb_cls)
+{
+  return NULL;
+}
+
+
+/** 
+ * Renames an existing identity.
+ *
+ * @param id identity service to use
+ * @param old_identifier old identifier
+ * @param new_identifier desired new identifier
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
+			const char *old_identifier,
+			const char *new_identifier,
+			GNUNET_IDENTITY_Continuation cb,
+			void *cb_cls)
+{
+  return NULL;
+}
+
+
+/** 
+ * Delete an existing identity.
+ *
+ * @param id identity service to use
+ * @param identifier identifier of the identity to delete
+ * @param cb function to call with the result (will only be called once)
+ * @param cb_cls closure for cb
+ * @return handle to abort the operation
+ */
+struct GNUNET_IDENTITY_Operation *
+GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
+			const char *identifier,
+			GNUNET_IDENTITY_Continuation cb,
+			void *cb_cls)
+{
+  return NULL;
+}
+
+
+/**
+ * Cancel an identity operation. Note that the operation MAY still
+ * be executed; this merely cancels the continuation; if the request
+ * was already transmitted, the service may still choose to complete
+ * the operation.
+ *
+ * @param op operation to cancel
+ */
+void
+GNUNET_IDENITY_cancel (struct GNUNET_IDENTITY_Operation *op)
+{
 }
 
 
