@@ -401,12 +401,12 @@ run (void *cls,
                                                                &rd.data_size));
   rd.record_type = GNUNET_GNS_RECORD_VPN;
 
-  GNUNET_NAMESTORE_record_create (namestore,
-                                  host_key,
-                                  "www",
-                                  &rd,
-                                  &commence_testing,
-                                  NULL);
+  GNUNET_NAMESTORE_record_put_by_authority (namestore,
+					    host_key,
+					    "www",
+					    1, &rd,
+					    &commence_testing,
+					    NULL);
   GNUNET_free ((void**)rd.data);
   GNUNET_free (rd_string);
   GNUNET_free (zone_keyfile);
