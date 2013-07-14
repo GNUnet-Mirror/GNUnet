@@ -98,3 +98,10 @@ INTERFACE = mon0
 # Real hardware, no testing
 TESTMODE = 0
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+
+[transport-bluetooth]
+# Name of the interface (typically hciX)
+INTERFACE = hci0
+# Real hardware, no testing
+TESTMODE = 0
+TESTING_IGNORE_KEYS = ACCEPT_FROM;
