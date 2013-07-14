@@ -1288,6 +1288,8 @@ src/gns/nss/Makefile
 src/hello/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
+src/identity/Makefile
+src/identity/identity.conf
 src/hostlist/Makefile
 src/lockmanager/Makefile
 src/lockmanager/lockmanager.conf
