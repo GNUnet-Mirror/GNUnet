@@ -181,10 +181,10 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 /**
  * Disconnect from identity service.
  *
- * @param id identity service to disconnect
+ * @param h identity service to disconnect
  */ 
 void
-GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *id);
+GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 
 
 /** 
