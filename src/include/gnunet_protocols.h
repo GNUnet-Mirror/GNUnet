@@ -1821,9 +1821,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_ACK 601
 
-/**
- *  Next available: 605
- */
 
 /*******************************************************************************
  * EXPERIMENTATION message types
@@ -1854,12 +1851,55 @@ extern "C"
  */ 
 #define GNUNET_MESSAGE_TYPE_REGEX_RESULT 622
 
+/*******************************************************************************
+ * IDENTITY message types
+ ******************************************************************************/
 
 /**
- *  Next available: 624
+ * First message send from identity client to service (to subscribe to
+ * updates).
  */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_START 624
+
+/**
+ * Generic response from identity service with success and/or error message.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE 625
+
+/**
+ * Update about identity status from service to clients.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE 626
+
+/**
+ * Client requests to know default identity for a subsystem.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT 627
+
+/**
+ * Client sets default identity; or service informs about default identity.
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT 628
+
+/**
+ * Create new identity (client->service).
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_CREATE 629
+
+/**
+ * Rename existing identity (client->service).
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_RENAME 630
+
+/**
+ * Delete identity (client->service).
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_DELETE 631
 
 
+/**
+ *  Next available: 640
+ */
 
 
 /* WIP: no numbers assigned yet */

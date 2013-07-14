@@ -233,7 +233,10 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
 
 
 /**
- * Cancel an identity operation.
+ * Cancel an identity operation.  Note that the operation MAY still
+ * be executed; this merely cancels the continuation; if the request
+ * was already transmitted, the service may still choose to complete
+ * the operation.
  *
  * @param op operation to cancel
  */
