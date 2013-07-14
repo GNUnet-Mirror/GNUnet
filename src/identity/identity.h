@@ -30,10 +30,6 @@
 
 #include "gnunet_common.h"
 
-/**
- * Generate debug-level log messages?
- */
-#define DEBUG_IDENTITY GNUNET_EXTRA_LOGGING
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
