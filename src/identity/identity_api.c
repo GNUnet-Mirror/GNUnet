@@ -593,6 +593,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
 		     GNUNET_IDENTITY_Callback cb,
 		     void *cb_cls)
 {
+  GNUNET_break (0); // FIXME
   return NULL;
 }
 
@@ -614,6 +615,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 		     GNUNET_IDENTITY_Continuation cont,
 		     void *cont_cls)
 {
+  GNUNET_break (0); // FIXME
   return NULL;
 }
 
@@ -633,6 +635,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Callback cb,
 			void *cb_cls)
 {
+  GNUNET_break (0); // FIXME
   return NULL;
 }
 
@@ -654,6 +657,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
+  GNUNET_break (0); // FIXME
   return NULL;
 }
 
@@ -673,6 +677,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
+  GNUNET_break (0); // FIXME
   return NULL;
 }
 
