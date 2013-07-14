@@ -48,6 +48,7 @@ struct GNUNET_IDENTITY_ResultCodeMessage
 
   /**
    * Status code for the last operation, in NBO.
+   * (currently not used).
    */
   uint32_t result_code GNUNET_PACKED;
 
@@ -80,7 +81,7 @@ struct GNUNET_IDENTITY_UpdateMessage
   /**
    * Public key of the identity that we provide an update about.
    */
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key_FIXME;
 
   /* followed by 0-terminated identity name */
 
@@ -139,7 +140,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
   /**
    * Public key of the identity to use.
    */
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key_FIXME;
 
   /* followed by 0-terminated service name */
 
@@ -170,7 +171,7 @@ struct GNUNET_IDENTITY_CreateRequestMessage
   /**
    * Public key of the identity to use.
    */
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private_key_FIXME;
 
   /* followed by 0-terminated identity name */
 

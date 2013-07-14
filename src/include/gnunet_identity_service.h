@@ -61,6 +61,11 @@ struct GNUNET_IDENTITY_Handle;
  */
 struct GNUNET_IDENTITY_Ego;
 
+/** 
+ * Handle for an operation with the identity service.
+ */
+struct GNUNET_IDENTITY_Operation;
+
 
 /**
  * Obtain the ECC key associated with a ego.

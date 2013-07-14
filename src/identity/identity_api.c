@@ -42,6 +42,72 @@
  */
 struct GNUNET_IDENTITY_Ego
 {
+  /**
+   * Private key associated with this ego.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+
+  /**
+   * Current identifier (name) associated with this ego.
+   */
+  char *identifier;
+
+  /**
+   * Client context associated with this ego.
+   */
+  void *ctx;
+
+  /**
+   * Hash of the public key of this ego.
+   */
+  struct GNUNET_HashCode id;
+};
+
+
+/** 
+ * Handle for an operation with the identity service.
+ */
+struct GNUNET_IDENTITY_Operation
+{
+
+  /**
+   * Main identity handle.
+   */
+  struct GNUNET_IDENTITY_Handle *h;
+  
+  /**
+   * We keep operations in a DLL.
+   */
+  struct GNUNET_IDENTITY_Operation *next;
+
+  /**
+   * We keep operations in a DLL.
+   */
+  struct GNUNET_IDENTITY_Operation *prev;
+
+  /**
+   * Message to send to the identity service.
+   * Allocated at the end of this struct.
+   */
+  const struct GNUNET_MessageHeader *msg;
+
+  /**
+   * Continuation to invoke with the result of the transmission; 'cb'
+   * will be NULL in this case.
+   */
+  GNUNET_IDENTITY_Continuation cont;
+
+  /**
+   * Continuation to invoke with the result of the transmission for
+   * 'get' operations ('cont' will be NULL in this case).
+   */
+  GNUNET_IDENTITY_Callback cb;
+
+  /**
+   * Closure for 'cont' or 'cb'.
+   */
+  void *cls;
+
 };
 
 
@@ -61,7 +127,33 @@ struct GNUNET_IDENTITY_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Currently pending transmission request.
+   * Hash map from the hash of the public key to the
+   * respective 'GNUNET_IDENTITY_Ego' handle.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *egos;
+
+  /**
+   * Function to call when we receive updates.
+   */
+  GNUNET_IDENTITY_Callback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+
+  /**
+   * Head of active operations.
+   */ 
+  struct GNUNET_IDENTITY_Operation *op_head;
+
+  /**
+   * Tail of active operations.
+   */ 
+  struct GNUNET_IDENTITY_Operation *op_tail;
+
+  /**
+   * Currently pending transmission request, or NULL for none.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
 
@@ -75,7 +167,13 @@ struct GNUNET_IDENTITY_Handle
    */
   struct GNUNET_TIME_Relative reconnect_delay;
 
+  /**
+   * Are we polling for incoming messages right now?
+   */
+  int in_receive;
+
 };
+
 
 
 /**
@@ -87,36 +185,6 @@ struct GNUNET_IDENTITY_Handle
 static void
 reconnect (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Type of a function to call when we receive a message
- * from the service.
- *
- * @param cls closure
- * @param msg message received, NULL on timeout or fatal error
- */
-static void
-message_handler (void *cls, 
-		 const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_IDENTITY_Handle *h = cls;
-  const struct GNUNET_IDENTITY_ClientMessage *client_msg;
-
-  if (msg == NULL)
-  {
-    /* Error, timeout, death */
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
-    h->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
-    return;
-  }
-  // FIXME: process...
-  GNUNET_CLIENT_receive (h->client, &message_handler, h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
 
 
 /**
@@ -139,10 +207,10 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-
+  h->in_receive = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Scheduling task to reconnect to identity service in %llu ms.\n",
-       h->reconnect_delay.rel_value);
+       "Scheduling task to reconnect to identity service in %s.\n",
+       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay, GNUNET_YES));
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
@@ -150,19 +218,282 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
 
 
 /**
- * Transmit START message to service.
+ * Type of a function to call when we receive a message
+ * from the service.
  *
- * @param cls unused
+ * @param cls closure
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void
+message_handler (void *cls, 
+		 const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_IDENTITY_Handle *h = cls;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_Ego *ego;
+  const struct GNUNET_IDENTITY_ResultCodeMessage *rcm;
+  const struct GNUNET_IDENTITY_UpdateMessage *um;
+  const struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
+  struct GNUNET_CRYPTO_EccPrivateKey *priv;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+  struct GNUNET_HashCode id;
+  const char *str;
+  uint16_t size;
+
+  if (NULL == msg)
+  {
+    reschedule_connect (h);
+    return;
+  }
+  size = ntohs (msg->size);
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE:
+    if (size < sizeof (struct GNUNET_IDENTITY_ResultCodeMessage))
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    rcm = (const struct GNUNET_IDENTITY_ResultCodeMessage *) msg;
+    str = (const char *) &rcm[1];
+    if ( (size > sizeof (struct GNUNET_IDENTITY_ResultCodeMessage)) &&
+	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) - 1]) )
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    if (size == sizeof (struct GNUNET_IDENTITY_ResultCodeMessage))
+      str = NULL;
+
+    op = h->op_head;
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    if (NULL != op->cont)
+      op->cont (op->cls,
+		str);
+    GNUNET_break (NULL == op->cb);
+    GNUNET_free (op);
+    break;
+  case GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE:
+    if (size < sizeof (struct GNUNET_IDENTITY_UpdateMessage))
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    um = (const struct GNUNET_IDENTITY_UpdateMessage *) msg;
+    str = (const char *) &um[1];
+    if ( (size > sizeof (struct GNUNET_IDENTITY_UpdateMessage)) &&
+	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_UpdateMessage) - 1]) )
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    if (size == sizeof (struct GNUNET_IDENTITY_UpdateMessage))
+      str = NULL;
+
+    // FIXME: um->pk does NOT work!
+    priv = GNUNET_CRYPTO_ecc_decode_key (NULL, 0, GNUNET_YES); // FIXME...
+    if (NULL == priv)
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    GNUNET_CRYPTO_ecc_key_get_public (priv,
+				      &pub);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
+
+    ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
+					     &id);
+    if (NULL == ego)
+    {
+      /* ego was created */
+      if (NULL == str)
+      {
+	/* deletion of unknown ego? not allowed */
+	GNUNET_break (0);
+	GNUNET_CRYPTO_ecc_key_free (priv);
+	reschedule_connect (h);
+	return;
+      }
+      ego = GNUNET_new (struct GNUNET_IDENTITY_Ego);
+      ego->pk = priv;
+      ego->identifier = GNUNET_strdup (str);
+      ego->id = id;
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_put (h->egos,
+							&ego->id,
+							ego,
+							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    }
+    else
+    {
+      GNUNET_CRYPTO_ecc_key_free (priv);
+    }
+    /* inform application about change */
+    h->cb (h->cb_cls,
+	   ego,
+	   &ego->ctx,
+	   str);
+    if (NULL == str)
+    {
+      /* ego was deleted */
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (h->egos,
+							   &ego->id,
+							   ego));
+      GNUNET_CRYPTO_ecc_key_free (ego->pk);
+      GNUNET_free (ego->identifier);
+      GNUNET_free (ego);
+    }
+    else
+      {
+      /* ego changed name */
+      GNUNET_free (ego->identifier);
+      ego->identifier = GNUNET_strdup (str);
+    }    
+    break;
+  case GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT:
+    if (size < sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) msg;
+    str = (const char *) &sdm[1];
+    if ( (size > sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) &&
+	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) - 1]) )
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    if (size == sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
+      str = NULL;
+    // FIXME: sdr->pk does NOT work!
+    priv = GNUNET_CRYPTO_ecc_decode_key (NULL, 0, GNUNET_YES); // FIXME...
+    if (NULL == priv)
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    GNUNET_CRYPTO_ecc_key_get_public (priv,
+				      &pub);
+    GNUNET_CRYPTO_ecc_key_free (priv);
+    GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
+    ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
+					     &id);
+    if (NULL == ego)
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    op = h->op_head;
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    if (NULL != op->cb)
+      op->cb (op->cls,
+	      ego,
+	      &ego->ctx,
+	      ego->identifier);
+    GNUNET_break (NULL == op->cont);
+    GNUNET_free (op);
+    break;
+  default:
+    GNUNET_break (0);
+    reschedule_connect (h);
+    return;
+  }
+  GNUNET_CLIENT_receive (h->client, &message_handler, h,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+
+/**
+ * Schedule transmission of the next message from our queue.
+ *
+ * @param h identity handle
+ */
+static void
+transmit_next (struct GNUNET_IDENTITY_Handle *h);
+
+
+/**
+ * Transmit next message to service.
+ *
+ * @param cls the 'struct GNUNET_IDENTITY_Handle'.
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes copied to buf
  */
 static size_t
-send_start (void *cls, 
-	    size_t size, 
-	    void *buf)
+send_next_message (void *cls, 
+		   size_t size, 
+		   void *buf)
 {
-  return 0;
+  struct GNUNET_IDENTITY_Handle *h = cls;
+  struct GNUNET_IDENTITY_Operation *op = h->op_head;
+  size_t ret;
+  
+  h->th = NULL;
+  if (NULL == op)
+    return 0;
+  ret = ntohs (op->msg->size);
+  if (ret > size)
+  {
+    reschedule_connect (h);
+    return 0;
+  }  
+  memcpy (buf, op->msg, ret);
+  if ( (NULL == op->cont) &&
+       (NULL == op->cb) )
+  {
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    GNUNET_free (op);
+    transmit_next (h);
+  }
+  if (GNUNET_NO == h->in_receive)
+  {
+    h->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (h->client,
+			   &message_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  return ret;
+}
+
+
+/**
+ * Schedule transmission of the next message from our queue.
+ *
+ * @param h identity handle
+ */
+static void
+transmit_next (struct GNUNET_IDENTITY_Handle *h)
+{
+  struct GNUNET_IDENTITY_Operation *op = h->op_head;
+
+  GNUNET_assert (NULL == h->th);
+  if (NULL == op)
+    return;
+  h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
+					       ntohs (op->msg->size),
+					       GNUNET_TIME_UNIT_FOREVER_REL,
+					       GNUNET_NO,
+					       &send_next_message,
+					       h);
+					       
 }
 
 
@@ -176,25 +507,27 @@ static void
 reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_MessageHeader msg;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    /* shutdown, just give up */
-    return;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connecting to network size estimation service.\n");
-  GNUNET_assert (h->client == NULL);
+       "Connecting to identity service.\n");
+  GNUNET_assert (NULL == h->client);
   h->client = GNUNET_CLIENT_connect ("identity", h->cfg);
-  GNUNET_assert (h->client != NULL);
-
-  h->th =
-      GNUNET_CLIENT_notify_transmit_ready (h->client,
-                                           sizeof (struct GNUNET_MessageHeader),
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &send_start, h);
-  GNUNET_assert (h->th != NULL);
+  GNUNET_assert (NULL != h->client);
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) + 
+		      sizeof (struct GNUNET_MessageHeader));
+  op->h = h;
+  op->msg = (const struct GNUNET_MessageHeader *) &op[1];
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_START);
+  memcpy (&op[1], &msg, sizeof (msg));
+  GNUNET_CONTAINER_DLL_insert (h->op_head,
+			       h->op_tail,
+			       op);
+  transmit_next (h);
+  GNUNET_assert (NULL != h->th);
 }
 
 
@@ -211,13 +544,15 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 GNUNET_IDENTITY_Callback cb,
 			 void *cb_cls)
 {
-  struct GNUNET_IDENTITY_Handle *ret;
+  struct GNUNET_IDENTITY_Handle *h;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Handle));
-  ret->cfg = cfg;
-  ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
-  ret->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, ret);
-  return ret;
+  h = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Handle));
+  h->cfg = cfg;
+  h->cb = cb;
+  h->cb_cls = cb_cls;
+  h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
+  h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
+  return h;
 }
 
 
@@ -230,7 +565,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 const struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego)
 {
-  return NULL;
+  return ego->pk;
 }
 
 
@@ -345,6 +680,33 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
 void
 GNUNET_IDENITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 {
+  struct GNUNET_IDENTITY_Handle *h = op->h;
+
+  if ( (h->op_head != op) ||
+       (NULL == h->client) )
+  {
+    /* request not active, can simply remove */
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    GNUNET_free (op);
+    return;
+  }
+  if (NULL != h->th)
+  {
+    /* request active but not yet with service, can still abort */
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    GNUNET_free (op);
+    transmit_next (h);
+    return;
+  }
+  /* request active with service, simply ensure continuations are not called */
+  op->cont = NULL;
+  op->cb = NULL;
 }
 
 
@@ -362,12 +724,12 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
     h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (h->th != NULL)
+  if (NULL != h->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
   }
-  if (h->client != NULL)
+  if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;

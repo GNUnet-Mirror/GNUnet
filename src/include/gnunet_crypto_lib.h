@@ -1206,6 +1206,7 @@ void
 GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
                                   struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
 
+
 /**
  * Convert a public key to a string.
  *
