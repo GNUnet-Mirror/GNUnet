@@ -59,6 +59,11 @@
 #define USE_RANDOM_DELAYS GNUNET_YES
 
 /**
+ * Generate extensive debug-level log messages?
+ */
+#define DEBUG_NSE GNUNET_NO
+
+/**
  * Over how many values do we calculate the weighted average?
  */
 #define HISTORY_SIZE 64
@@ -1052,9 +1057,8 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_snprintf (origin, sizeof (origin), "%s", GNUNET_i2s (&os));
     GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Flood at %llu from `%s' via `%s' at `%s' with bits %u\n",
-                (unsigned long long)
-                GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp).abs_value,
+                "Flood at %s from `%s' via `%s' at `%s' with bits %u\n",
+                GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp)),
                 origin, pred, GNUNET_i2s (&my_identity),
                 (unsigned int) matching_bits);
   }
