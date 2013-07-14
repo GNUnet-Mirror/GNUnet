@@ -20,27 +20,16 @@
 
 /**
  * @file identity/gnunet-service-identity.c
- * @brief network size estimation service
- * @author Nathan Evans
+ * @brief identity (management_ service
  * @author Christian Grothoff
  *
- * The purpose of this service is to estimate the size of the network.
- * Given a specified interval, each peer hashes the most recent
- * timestamp which is evenly divisible by that interval.  This hash is
- * compared in distance to the peer identity to choose an offset.  The
- * closer the peer identity to the hashed timestamp, the earlier the
- * peer sends out a "nearest peer" message.  The closest peer's
- * message should thus be received before any others, which stops
- * those peer from sending their messages at a later duration.  So
- * every peer should receive the same nearest peer message, and from
- * this can calculate the expected number of peers in the network.
+ * The purpose of this service is to manage private keys that
+ * represent the various egos/pseudonyms/identities of a GNUnet user.
  */
 #include "platform.h"
-#include <math.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
-#include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_identity_service.h"
 #include "identity.h"

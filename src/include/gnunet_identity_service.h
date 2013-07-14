@@ -25,9 +25,9 @@
  *
  * Identities in GNUnet are ECDSA keys.  You assume an identity by
  * using (signing with) a particular private key.  As GNUnet users are
- * expected to have many pseudonyms, we need an identity service to
- * allow users to manage their pseudonyms.  The identity service
- * manages the pseudonyms (private keys) of the local user; it does
+ * expected to have many egos, we need an identity service to
+ * allow users to manage their egos.  The identity service
+ * manages the egos (private keys) of the local user; it does
  * NOT manage identities of other users (public keys).  For giving
  * names to other users and manage their public keys securely, we
  * use GADS/GNS.
@@ -57,58 +57,58 @@ extern "C"
 struct GNUNET_IDENTITY_Handle;
 
 /** 
- * Handle for a pseudonym.
+ * Handle for a ego.
  */
-struct GNUNET_IDENTITY_Pseudonym;
+struct GNUNET_IDENTITY_Ego;
 
 
 /**
- * Obtain the ECC key associated with a pseudonym.
+ * Obtain the ECC key associated with a ego.
  *
- * @param pseudonym the pseudonym
- * @return associated ECC key, valid as long as the pseudonym is valid
+ * @param ego the ego
+ * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_pseudonym_get_key (struct GNUNET_IDENTITY_Pseudonym *pseudonym);
+GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego);
 
 
 /** 
- * Method called to inform about the pseudonyms of
+ * Method called to inform about the egos of
  * this peer. 
  *
  * When used with 'GNUNET_IDENTITY_connect', this function is
- * initially called for all pseudonyms and then again whenever a
- * pseudonym's identifier changes or if it is deleted.  At the end of
- * the initial pass over all pseudonyms, the function is once called
- * with 'NULL' for 'pseu'. That does NOT mean that the callback won't
+ * initially called for all egos and then again whenever a
+ * ego's identifier changes or if it is deleted.  At the end of
+ * the initial pass over all egos, the function is once called
+ * with 'NULL' for 'ego'. That does NOT mean that the callback won't
  * be invoked in the future or that there was an error.
  *
  * When used with 'GNUNET_IDENTITY_create' or 'GNUNET_IDENTITY_get',
  * this function is only called ONCE, and 'NULL' being passed in
- * 'pseu' does indicate an error (i.e. name is taken or no default
- * value is known).  If 'pseu' is non-NULL and if '*ctx'
+ * 'ego' does indicate an error (i.e. name is taken or no default
+ * value is known).  If 'ego' is non-NULL and if '*ctx'
  * is set in those callbacks, the value WILL be passed to a subsequent
  * call to the identity callback of 'GNUNET_IDENTITY_connect' (if 
  * that one was not NULL).
  *
  * When an identity is renamed, this function is called with the
- * (known) pseudonym but the NEW identifier.  
+ * (known) ego but the NEW identifier.  
  *
  * When an identity is deleted, this function is called with the
- * (known) pseudonym and "NULL" for the 'identifier'.  In this case,
- * the 'pseu' is henceforth invalid (and the 'ctx' should also be
+ * (known) ego and "NULL" for the 'identifier'.  In this case,
+ * the 'ego' is henceforth invalid (and the 'ctx' should also be
  * cleaned up).
  *
  * @param cls closure
- * @param pseu pseudonym handle
- * @param pseu_ctx context for application to store data for this pseudonym
+ * @param ego ego handle
+ * @param ego_ctx context for application to store data for this ego
  *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this pseudonym,
- *                   NULL if the user just deleted the pseudonym and it
+ * @param identifier identifier assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
 typedef void (*GNUNET_IDENTITY_Callback)(void *cls,
-					 struct GNUNET_IDENTITY_Pseudonym *pseu,
+					 struct GNUNET_IDENTITY_Ego *ego,
 					 void **ctx,
 					 const char *identifier);
 
@@ -160,7 +160,7 @@ typedef void (*GNUNET_IDENTITY_Continuation)(void *cls,
  *
  * @param id identity service to inform
  * @param service_name for which service is an identity set
- * @param pseu new default identity to be set for this service
+ * @param ego new default identity to be set for this service
  * @param cont function to call once the operation finished
  * @param cont_cls closure for cont
  * @return handle to abort the operation
@@ -168,7 +168,7 @@ typedef void (*GNUNET_IDENTITY_Continuation)(void *cls,
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 		     const char *service_name,
-		     struct GNUNET_IDENTITY_Pseudonym *pseu,
+		     struct GNUNET_IDENTITY_Ego *ego,
 		     GNUNET_IDENTITY_Continuation cont,
 		     void *cont_cls);
 

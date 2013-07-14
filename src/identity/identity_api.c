@@ -20,8 +20,8 @@
 
 /**
  * @file identity/identity_api.c
- * @brief api to get information from the network size estimation service
- * @author Nathan Evans
+ * @brief api to interact with the identity service
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_client_lib.h"
@@ -38,9 +38,9 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
 
 /** 
- * Handle for a pseudonym.
+ * Handle for a ego.
  */
-struct GNUNET_IDENTITY_Pseudonym
+struct GNUNET_IDENTITY_Ego
 {
 };
 
@@ -222,13 +222,13 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Obtain the ECC key associated with a pseudonym.
+ * Obtain the ECC key associated with a ego.
  *
- * @param pseudonym the pseudonym
- * @return associated ECC key, valid as long as the pseudonym is valid
+ * @param ego the ego
+ * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_pseudonym_get_key (struct GNUNET_IDENTITY_Pseudonym *pseudonym)
+GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego)
 {
   return NULL;
 }
@@ -259,7 +259,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
  *
  * @param id identity service to inform
  * @param service_name for which service is an identity set
- * @param pseu new default identity to be set for this service
+ * @param ego new default identity to be set for this service
  * @param cont function to call once the operation finished
  * @param cont_cls closure for cont
  * @return handle to abort the operation
@@ -267,7 +267,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 		     const char *service_name,
-		     struct GNUNET_IDENTITY_Pseudonym *pseu,
+		     struct GNUNET_IDENTITY_Ego *ego,
 		     GNUNET_IDENTITY_Continuation cont,
 		     void *cont_cls)
 {
