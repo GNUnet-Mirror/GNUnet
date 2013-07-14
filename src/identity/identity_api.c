@@ -239,6 +239,8 @@ message_handler (void *cls,
   struct GNUNET_HashCode id;
   const char *str;
   uint16_t size;
+  uint16_t pk_len;
+  uint16_t name_len;
 
   if (NULL == msg)
   {
@@ -285,19 +287,18 @@ message_handler (void *cls,
       return;
     }
     um = (const struct GNUNET_IDENTITY_UpdateMessage *) msg;
+    pk_len = ntohs (um->pk_len);
+    name_len = ntohs (um->name_len);    
     str = (const char *) &um[1];
-    if ( (size > sizeof (struct GNUNET_IDENTITY_UpdateMessage)) &&
-	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_UpdateMessage) - 1]) )
+    if ( (size != pk_len + name_len + sizeof (struct GNUNET_IDENTITY_UpdateMessage)) ||
+	 ( (0 != name_len) &&
+	   ('\0' != str[pk_len + name_len - 1])) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if (size == sizeof (struct GNUNET_IDENTITY_UpdateMessage))
-      str = NULL;
-
-    // FIXME: um->pk does NOT work!
-    priv = GNUNET_CRYPTO_ecc_decode_key (NULL, 0, GNUNET_YES); // FIXME...
+    priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
     if (NULL == priv)
     {
       GNUNET_break (0);
@@ -307,7 +308,10 @@ message_handler (void *cls,
     GNUNET_CRYPTO_ecc_key_get_public (priv,
 				      &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
-
+    if (0 == name_len)
+      str = NULL;
+    else
+      str = &str[pk_len];
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
 					     &id);
     if (NULL == ego)
@@ -366,18 +370,18 @@ message_handler (void *cls,
       return;
     }
     sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) msg;
+    pk_len = ntohs (sdm->pk_len);
+    name_len = ntohs (sdm->name_len);
     str = (const char *) &sdm[1];
-    if ( (size > sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) &&
-	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) - 1]) )
+    if ( (size != pk_len + name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) ||
+	 ( (0 != name_len) &&
+	   ('\0' != str[pk_len + name_len - 1]) ) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if (size == sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
-      str = NULL;
-    // FIXME: sdr->pk does NOT work!
-    priv = GNUNET_CRYPTO_ecc_decode_key (NULL, 0, GNUNET_YES); // FIXME...
+    priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
     if (NULL == priv)
     {
       GNUNET_break (0);
@@ -388,6 +392,10 @@ message_handler (void *cls,
 				      &pub);
     GNUNET_CRYPTO_ecc_key_free (priv);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
+    if (0 == name_len)
+      str = NULL;
+    else
+      str = &str[pk_len];
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
 					     &id);
     if (NULL == ego)
