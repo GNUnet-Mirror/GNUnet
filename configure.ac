@@ -362,6 +362,18 @@ AC_RUN_IFELSE(
 AC_LANG_POP(C)
 fi	# $build = $target
 
+# check for bluetooth library
+bluetooth=0
+AC_CHECK_LIB(bluetooth, ba2str, bluetooth=1, bluetooth=0) 
+if test "$bluetooth" = 1
+then
+  AM_CONDITIONAL(HAVE_LIBBLUETOOTH, true)
+  AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])
+else
+  AM_CONDITIONAL(HAVE_LIBBLUETOOTH, false)
+fi
+
+
 # libcurl
 LIBCURL_CHECK_CONFIG(,7.21.3,curl=1,curl=0)
 if test "$curl" = 1
@@ -1365,6 +1377,12 @@ fi
 if test "x$curl" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: libcurl not found.  http client support will not be compiled.])
+fi
+
+# bluetooth
+if test "x$bluetooth" = "x0"
+then
+  AC_MSG_NOTICE([NOTICE: bluetooth library not found.  bluetooth support will not be compiled.])
 fi
 
 #gnutls

@@ -59,12 +59,28 @@ if LINUX
 		test_quota_compliance_wlan_asymmetric
 endif
 
-
 if LINUX
 install-exec-hook:
 	$(top_srcdir)/src/transport/install-wlan-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
+endif
+
+if LINUX
+if HAVE_LIBBLUETOOTH
+ AM_LDFLAGS = -lbluetooth
+ BT_BIN = gnunet-helper-transport-bluetooth
+ BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
+endif
+endif
+
+if LINUX
+if HAVE_LIBBLUETOOTH
+install-exec-hook2:
+	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+endif
+else
+install-exec-hook2:
 endif
 
 if !MINGW
@@ -118,6 +134,7 @@ libgnunettransport_la_LDFLAGS = \
 libexec_PROGRAMS = \
  $(WLAN_BIN) \
  $(WLAN_BIN_DUMMY) \
+ $(BT_BIN) \
  gnunet-service-transport 
 
 bin_PROGRAMS = \
@@ -149,6 +166,9 @@ gnunet_transport_wlan_receiver_SOURCES = \
  gnunet-transport-wlan-receiver.c
 gnunet_transport_wlan_receiver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
+
+gnunet_helper_transport_bluetooth_SOURCES = \
+ gnunet-helper-transport-bluetooth.c
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c         
@@ -311,6 +331,17 @@ libgnunet_plugin_transport_https_server_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS 
+
+libgnunet_plugin_transport_bluetooth_la_SOURCES = \
+  plugin_transport_bluetooth.c plugin_transport_wlan.h
+libgnunet_plugin_transport_bluetooth_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+libgnunet_plugin_transport_bluetooth_la_LDFLAGS = \
+  $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_TESTING
 check_PROGRAMS = \
