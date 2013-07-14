@@ -173,11 +173,11 @@ send_start (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
 
   h->th = NULL;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     /* Connect error... */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Shutdown while trying to transmit `%s' request.\n", "START");
+         "Error while trying to transmit `%s' request.\n", "START");
     reschedule_connect (h);
     return 0;
   }
@@ -205,23 +205,18 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_NSE_Handle *h = cls;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
-  {
-    /* shutdown, just give up */
-    return;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to network size estimation service.\n");
-  GNUNET_assert (h->client == NULL);
+  GNUNET_assert (NULL == h->client);
   h->client = GNUNET_CLIENT_connect ("nse", h->cfg);
-  GNUNET_assert (h->client != NULL);
-
+  GNUNET_assert (NULL != h->client);
+  GNUNET_assert (NULL == h->th);
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client,
                                            sizeof (struct GNUNET_MessageHeader),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &send_start, h);
-  GNUNET_assert (h->th != NULL);
+  GNUNET_assert (NULL != h->th);
 }
 
 
@@ -259,18 +254,18 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h)
 {
-  GNUNET_assert (h != NULL);
+  GNUNET_assert (NULL != h);
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
     h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (h->th != NULL)
+  if (NULL != h->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
   }
-  if (h->client != NULL)
+  if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
