@@ -1,0 +1,39 @@
+[nse]
+AUTOSTART = YES
+@JAVAPORT@PORT = 2097
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+BINARY = gnunet-service-nse
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = /tmp/test-nse-service-nse.unix
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+PROOFFILE = $SERVICEHOME/.nse-proof
+
+# The directory where the NSE services logs timestamps everytime 
+# a size estime flooding message is received
+# This option is only used for benchmarking, not in production.
+HISTOGRAM_DIR = $SERVICEHOME
+
+# How 'slowly' should the proof-of-work be constructed (delay
+# between rounds); sane values between 0 and ~1000.
+# It should rarely make sense to change this value.
+# Only systems with slow CPUs where 5ms is a long time might
+# want it to be reduced.
+WORKDELAY = 5 ms
+
+# Note: changing any of the values below will make this peer
+# completely incompatible with other peers!
+
+# How often do peers exchange network size messages?
+# Note that all peers MUST use the same interval.
+# DO NOT CHANGE THIS VALUE, doing so will break the protocol!
+INTERVAL = 1 h
+
+# 2^22 hash operations take about 2-3h on a modern i7 (single-core)
+# for SCRYPT; with 2ms/op and 5ms workdelay, we can expect
+# the POW calculation to be done by a high-end peer in about 6h
+# DO NOT CHANGE THIS VALUE, doing so will break the protocol!
+WORKBITS = 22
+
