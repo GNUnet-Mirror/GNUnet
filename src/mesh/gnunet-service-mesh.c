@@ -308,7 +308,7 @@ struct MeshReliableMessage
     /**
      * ID of the message (ACK needed to free)
      */
-  uint64_t                      mid;
+  uint32_t                      mid;
 
     /**
      * When was this message issued (to calculate ACK delay) FIXME update with traffic
@@ -340,7 +340,7 @@ struct MeshTunnelReliability
     /**
      * Next MID to use.
      */
-  uint64_t                          mid_sent;
+  uint32_t                          mid_sent;
 
     /**
      * DLL of messages received out of order.
@@ -351,7 +351,7 @@ struct MeshTunnelReliability
     /**
      * Next MID expected.
      */
-  uint64_t                          mid_recv;
+  uint32_t                          mid_recv;
 
     /**
      * Task to resend/poll in case no ACK is received.
@@ -2107,7 +2107,7 @@ tunnel_send_data_ack (struct MeshTunnel *t, int fwd)
   rel = fwd ? t->bck_rel  : t->fwd_rel;
   hop = fwd ? t->prev_hop : t->next_hop;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "send_data_ack for %llu\n",
+              "send_data_ack for %u\n",
               rel->mid_recv - 1);
 
   if (GNUNET_NO == t->reliable)
@@ -2120,7 +2120,7 @@ tunnel_send_data_ack (struct MeshTunnel *t, int fwd)
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-  msg.mid = GNUNET_htonll (rel->mid_recv - 1);
+  msg.mid = htonl (rel->mid_recv - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
@@ -2161,7 +2161,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
   struct MeshClient *c;
   struct MeshClient *o;
   GNUNET_PEER_Id hop;
-  uint64_t delta_mid;
+  uint32_t delta_mid;
   uint32_t ack;
   int delta;
 
@@ -2331,8 +2331,8 @@ tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
       struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " have %llu! now expecting %llu\n",
-                  copy->mid, rel->mid_recv + 1LL);
+                  " have %u! now expecting %u\n",
+                  copy->mid, rel->mid_recv + 1);
       tunnel_send_client_data (t, msg, (rel == t->bck_rel));
       rel->mid_recv++;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
@@ -2341,7 +2341,7 @@ tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " don't have %llu, next is %llu\n",
+                  " don't have %u, next is %u\n",
                   rel->mid_recv,
                   copy->mid);
       return;
@@ -2366,12 +2366,12 @@ tunnel_add_buffered_data (struct MeshTunnel *t,
 {
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *prev;
-  uint64_t mid;
+  uint32_t mid;
   uint16_t size;
 
   size = ntohs (msg->header.size);
-  mid = GNUNET_ntohll (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %llu\n", mid);
+  mid = ntohl (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %u\n", mid);
 
   copy = GNUNET_malloc (sizeof (*copy) + size);
   copy->mid = mid;
@@ -2382,8 +2382,8 @@ tunnel_add_buffered_data (struct MeshTunnel *t,
   // FIXME start from the end (most messages are the latest ones)
   for (prev = rel->head_recv; NULL != prev; prev = prev->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " prev %llu\n", prev->mid);
-    if (mid < prev->mid)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " prev %u\n", prev->mid);
+    if (GMC_is_pid_bigger (prev->mid, mid))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
       GNUNET_CONTAINER_DLL_insert_before (rel->head_recv, rel->tail_recv,
@@ -2416,7 +2416,7 @@ tunnel_free_reliable_message (struct MeshReliableMessage *copy)
   rel->expected_delay.rel_value += time.rel_value;
   rel->expected_delay.rel_value /= 8;
   rel->n_sent--;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", copy->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
               GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
@@ -2445,14 +2445,14 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
   struct MeshReliableMessage *next;
   uint64_t bitfield;
   uint64_t mask;
-  uint64_t mid;
-  uint64_t target;
+  uint32_t mid;
+  uint32_t target;
   unsigned int i;
 
   bitfield = msg->futures;
-  mid = GNUNET_ntohll (msg->mid);
+  mid = ntohl (msg->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "free_sent_reliable %llu %llX\n",
+              "free_sent_reliable %u %llX\n",
               mid, bitfield);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " rel %p, head %p\n",
@@ -2462,7 +2462,7 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
        i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " trying bit %u (mid %llu)\n",
+                " trying bit %u (mid %u)\n",
                 i, mid + i + 1);
     mask = 0x1LL << i;
     if (0 == (bitfield & mask))
@@ -2475,8 +2475,8 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
     /* The i-th bit was set. Do we have that copy? */
     /* Skip copies with mid < target */
     target = mid + i + 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " target %llu\n", target);
-    while (NULL != copy && copy->mid < target)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " target %u\n", target);
+    while (NULL != copy && GMC_is_pid_bigger (target, copy->mid))
      copy = copy->next;
 
     /* Did we run out of copies? (previously freed, it's ok) */
@@ -2487,9 +2487,9 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
     }
 
     /* Did we overshoot the target? (previously freed, it's ok) */
-    if (copy->mid > target)
+    if (GMC_is_pid_bigger (copy->mid, target))
     {
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %llu\n", copy->mid);
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
      continue;
     }
 
@@ -2552,7 +2552,7 @@ tunnel_retransmit_message (void *cls,
   /* Message not found in the queue */
   if (NULL == q)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %llu\n", copy->mid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
     fc->last_ack_sent++;
     fc->last_pid_recv++;
@@ -2562,7 +2562,7 @@ tunnel_retransmit_message (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! STILL IN QUEUE %llu\n", copy->mid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! STILL IN QUEUE %u\n", copy->mid);
   }
 
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
@@ -3228,8 +3228,8 @@ queue_get_next (const struct MeshPeerInfo *peer)
         return q;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*     ACK: %u, PID: %u, MID: %llu\n",
-                ack, pid, GNUNET_ntohll (dmsg->mid));
+                "*     ACK: %u, PID: %u, MID: %u\n",
+                ack, pid, ntohl (dmsg->mid));
     if (GNUNET_NO == GMC_is_pid_bigger (pid, ack))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3361,14 +3361,14 @@ queue_send (void *cls, size_t size, void *buf)
       t->next_fc.last_pid_sent = pid;
       tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, GNUNET_YES);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "!!! FWD  %llu\n",
-                  GNUNET_ntohll ( ((struct GNUNET_MESH_Data *) buf)->mid ));
+                  "!!! FWD  %u\n",
+                  ntohl ( ((struct GNUNET_MESH_Data *) buf)->mid ) );
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       t->prev_fc.last_pid_sent = pid;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "!!! BCK  %llu\n",
-                  GNUNET_ntohll ( ((struct GNUNET_MESH_Data *) buf)->mid ));
+                  "!!! BCK  %u\n",
+                  ntohl ( ((struct GNUNET_MESH_Data *) buf)->mid ) );
       tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, GNUNET_NO);
       break;
     default:
@@ -3974,18 +3974,19 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
     if (GMC_is_pid_bigger (pid, fc->last_pid_recv))
     {
-      uint64_t mid;
+      uint32_t mid;
 
-      mid = GNUNET_ntohll (msg->mid);
+      mid = ntohl (msg->mid);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " pid %u (%llu) not seen yet\n", pid, mid);
+                  " pid %u (mid %u) not seen yet\n", pid, mid);
       fc->last_pid_recv = pid;
 
       if (GNUNET_NO == t->reliable ||
-          (mid >= rel->mid_recv && mid <= rel->mid_recv + 64))
+          ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
+            GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "!!! RECV %llu\n", GNUNET_ntohll (msg->mid));
+                    "!!! RECV %u\n", ntohl (msg->mid));
         if (GNUNET_YES == t->reliable)
         {
           /* Is this the exact next expected messasge? */
@@ -4010,16 +4011,15 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    " MID %llu not expected (%llu - %llu), dropping!\n",
-                    GNUNET_ntohll (msg->mid),
-                    rel->mid_recv, rel->mid_recv + 64LL);
+                    " MID %u not expected (%u - %u), dropping!\n",
+                    ntohl (msg->mid), rel->mid_recv, rel->mid_recv + 64);
       }
     }
     else
     {
 //       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " Pid %u not expected (%u), dropping!\n",
+                  " Pid %u not expected (%u+), dropping!\n",
                   pid, fc->last_pid_recv + 1);
     }
     tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, fwd);
@@ -4106,7 +4106,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshReliableMessage *next;
   struct MeshTunnel *t;
   GNUNET_PEER_Id id;
-  uint64_t ack;
+  uint32_t ack;
   uint16_t type;
   int work;
 
@@ -4122,8 +4122,8 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# ack on unknown tunnel", 1, GNUNET_NO);
     return GNUNET_OK;
   }
-  ack = GNUNET_ntohll (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %llu\n", ack);
+  ack = ntohl (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
@@ -4155,17 +4155,17 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK %llu\n", ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK %u\n", ack);
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
-   if (copy->mid > ack)
+   if (GMC_is_pid_bigger (copy->mid, ack))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %llu, out!\n", copy->mid);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
       tunnel_free_sent_reliable (t, msg, rel);
       break;
     }
     work = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %llu\n", copy->mid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
     next = copy->next;
     tunnel_free_reliable_message (copy);
   }
@@ -4948,7 +4948,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                             + sizeof(struct GNUNET_MESH_Data)
                             + size);
       copy->mid = rel->mid_sent++;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! DATA %llu\n", copy->mid);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! DATA %u\n", copy->mid);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       copy->rel = rel;
       rel->n_sent++;
@@ -4965,14 +4965,12 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                                           rel);
       }
       payload = (struct GNUNET_MESH_Data *) &copy[1];
-      payload->mid = GNUNET_htonll (copy->mid);
+      payload->mid = htonl (copy->mid);
     }
     else
     {
       payload = (struct GNUNET_MESH_Data *) cbuf;
-      payload->mid = GNUNET_htonll ((uint64_t)(fc->last_pid_recv + 1));
-      // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
-      // use different struct for unreliable traffic, save 8 bytes
+      payload->mid = htonl (fc->last_pid_recv + 1);
     }
     memcpy (&payload[1], &data_msg[1], size);
     payload->header.size = htons (sizeof (struct GNUNET_MESH_Data) + size);
