@@ -2177,6 +2177,8 @@ tunnel_send_bck_data_ack (struct MeshTunnel *t)
 static void
 tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 {
+  struct MeshTunnelReliability *rel = t->fwd_rel;
+  uint64_t delta_mid;
   uint32_t ack;
   int delta;
 
@@ -2224,17 +2226,22 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
 
   /* Ok, ACK might be necessary, what PID to ACK? */
   delta = t->queue_max - t->next_fc.queue_n;
+  if (NULL != t->owner && GNUNET_YES == t->reliable && NULL != rel->head_sent)
+    delta_mid = rel->mid_sent - rel->head_sent->mid;
+  else
+    delta_mid = 0;
   if (0 > delta || (GNUNET_YES == t->reliable && 
                     NULL != t->owner &&
-                    t->fwd_rel->n_sent > 10))
+                    (rel->n_sent > 10 || delta_mid > 64)))
     delta = 0;
   if (NULL != t->owner && delta > 1)
     delta = 1;
   ack = t->prev_fc.last_pid_recv + delta;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " FWD ACK %u\n", ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " last %u, qmax %u, q %u\n",
-              t->prev_fc.last_pid_recv, t->queue_max, t->next_fc.queue_n);
+              " last pid %u, last ack %u, qmax %u, q %u\n",
+              t->prev_fc.last_pid_recv, t->prev_fc.last_ack_sent,
+              t->queue_max, t->next_fc.queue_n);
   if (ack == t->prev_fc.last_ack_sent && GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
@@ -2470,11 +2477,14 @@ tunnel_free_reliable_message (struct MeshReliableMessage *copy)
 
   rel = copy->rel;
   time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
+  rel->expected_delay.rel_value *= 7;
   rel->expected_delay.rel_value += time.rel_value;
-  rel->expected_delay.rel_value /= 2;
+  rel->expected_delay.rel_value /= 8;
   rel->n_sent--;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", copy->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
+              GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
               GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                       GNUNET_NO));
@@ -2621,17 +2631,11 @@ tunnel_retransmit_message (void *cls,
   /* Message not found in the queue */
   if (NULL == q)
   {
-    struct GNUNET_TIME_Relative diff;
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %llu\n", copy->mid);
-    diff = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-    diff = GNUNET_TIME_relative_divide (diff, 10);
-    copy->timestamp = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get(),
-                                                     diff);
 
     fc->last_ack_sent++;
-    payload->pid = htonl (fc->last_pid_recv + 1);
     fc->last_pid_recv++;
+    payload->pid = htonl (fc->last_pid_recv);
     send_prebuilt_message (&payload->header, hop, t);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   }
@@ -3433,6 +3437,9 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
       t->next_fc.last_pid_sent = pid;
       tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "!!! SEND %llu\n",
+                  GNUNET_ntohll ( ((struct GNUNET_MESH_Data *) buf)->mid ));
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       t->prev_fc.last_pid_sent = pid;
@@ -4017,7 +4024,6 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received PID %u, (prev %u), ACK %u\n",
                 pid, t->prev_fc.last_pid_recv, t->prev_fc.last_ack_sent);
-    tunnel_send_fwd_ack(t, GNUNET_MESSAGE_TYPE_MESH_POLL);
     return GNUNET_OK;
   }
 
