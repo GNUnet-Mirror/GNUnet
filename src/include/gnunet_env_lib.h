@@ -147,7 +147,7 @@ GNUNET_ENV_environment_operation (struct GNUNET_ENV_Environment *env,
  * 
  * @return Array of modifiers.
  */
-struct GNUNET_ENV_Modifier *
+const struct GNUNET_ENV_Modifier *
 GNUNET_ENV_environment_get_modifiers (const struct GNUNET_ENV_Environment *env,
                                       size_t *modifiers_length);
 

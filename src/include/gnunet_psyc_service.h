@@ -41,7 +41,7 @@
  *   'places' and 'persons' can then be made with the help
  *   of the naming system (and/or conventions).
  *   Channels are (as in PSYC) organized into a hierarchy; each
- *   channel owner (the one with the private key) is then
+ *   channel master (the one with the private key) is then
  *   the operator of the multicast group (its Origin in 
  *   the terminology of the multicast API).
  * - The API supports passing large amounts of data using
@@ -61,7 +61,7 @@
  *   the target is either everyone in the group or the
  *   origin, and never just a single member of the group;
  *   for such individual messages, an application needs to
- *   construct an 'inbox' channel where the owner (only)
+ *   construct an 'inbox' channel where the master (only)
  *   receives messages (but never forwards; private responses
  *   would be transmitted by joining the senders 'inbox'
  *   channel -- or a inbox#bob subchannel).  The
@@ -72,11 +72,6 @@
  *   be called 'PSYC-low', whereas a higher-level API
  *   implementing defaults for standard methods and
  *   variables might be called 'PSYC-std' or 'PSYC-high'.
- *
- * Idee (lynx): 
- * - rename "channel" to "master"
- * - rename "member" to "slave"
- * - rename "group" to "channel"
  */
 
 #ifndef GNUNET_PSYC_SERVICE_H
@@ -142,8 +137,8 @@ struct GNUNET_PSYC_PartHandle;
  * to a @e method.  
  *
  * @param cls Closure.
- * @param sender Who transmitted the message (origin, except for messages
- *        from one of the members to the origin).
+ * @param sender Who transmitted the message (master, except for messages
+ *        from one of the slaves to the master).
  * @param message_id Unique message counter for this message;
  *                   (unique only in combination with the given sender for
  *                    this channel).
@@ -247,13 +242,13 @@ GNUNET_PSYC_part_ack (struct GNUNET_PSYC_PartHandle *ph);
 
 
 /** 
- * Handle for the channel of a PSYC group.
+ * Handle for the master of a PSYC channel.
  */
-struct GNUNET_PSYC_Channel;
+struct GNUNET_PSYC_Master;
 
 
 /** 
- * Create a PSYC channel.
+ * Create a PSYC channel master.
  *
  * Will create a multicast group identified by the given ECC key.  Messages
  * received from group members will be given to the respective handler methods.
@@ -267,10 +262,10 @@ struct GNUNET_PSYC_Channel;
  * @param cfg Configuration to use (to connect to PSYC service).
  * @param priv_key ECC key that will be used to sign messages for this
  *                 PSYC session; public key is used to identify the
- *                 PSYC group; FIXME: we'll likely want to use
- *                 NOT the p521 curve here, but a cheaper one in the future
+ *                 PSYC channel; FIXME: we'll likely want to use
+ *                 NOT the p512 curve here, but a cheaper one in the future
  *                 Note that end-users will usually not use the private key
- *                 directly, but rather look it up in GADS for groups 
+ *                 directly, but rather look it up in GADS for places
  *                 managed by other users, or select a file with the private
  *                 key(s) when setting up their own channels
  * @param join_policy What is the membership policy of the group?
@@ -279,16 +274,16 @@ struct GNUNET_PSYC_Channel;
  * @param join_cb Function to invoke when a peer wants to join.
  * @param part_cb Function to invoke when a peer wants to part.
  * @param cls Closure for the callbacks.
- * @return Handle for the channel, NULL on error.
+ * @return Handle for the channel master, NULL on error.
  */
-struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_channel_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                            enum GNUNET_MULTICAST_JoinPolicy join_policy,
-                            GNUNET_PSYC_Method method_cb,
-                            GNUNET_PSYC_JoinCallback join_cb,
-                            GNUNET_PSYC_PartCallback part_cb,
-                            void *cls);
+struct GNUNET_PSYC_Master *
+GNUNET_PSYC_master_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+                           enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                           GNUNET_PSYC_Method method_cb,
+                           GNUNET_PSYC_JoinCallback join_cb,
+                           GNUNET_PSYC_PartCallback part_cb,
+                           void *cls);
 
 
 /** 
@@ -309,22 +304,22 @@ GNUNET_PSYC_channel_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         (should be used if @a *data_size was not big enough to take all the data)
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
-typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
-                                              uint64_t message_id,
-                                              size_t *data_size,
-                                              void *data);
+typedef int (*GNUNET_PSYC_MasterReadyNotify)(void *cls,
+                                             uint64_t message_id,
+                                             size_t *data_size,
+                                             void *data);
 
 
 /** 
  * Handle for a pending PSYC transmission operation. 
  */
-struct GNUNET_PSYC_ChannelTransmitHandle;
+struct GNUNET_PSYC_MasterTransmitHandle;
 
 
 /** 
  * Send a message to call a method to all members in the PSYC channel.
  *
- * @param channel Handle to the PSYC multicast group.
+ * @param master Handle to the PSYC channel.
  * @param increment_group_generation #GNUNET_YES if we need to increment
  *        the group generation counter after transmitting this message.
  * @param method_name Which method should be invoked.
@@ -333,13 +328,13 @@ struct GNUNET_PSYC_ChannelTransmitHandle;
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
-struct GNUNET_PSYC_ChannelTransmitHandle *
-GNUNET_PSYC_channel_transmit (struct GNUNET_PSYC_Channel *channel,
-                              int increment_group_generation,
-                              const char *method_name,
-                              const struct GNUNET_ENV_Environment *env,
-                              GNUNET_PSYC_ChannelReadyNotify notify,
-                              void *notify_cls);
+struct GNUNET_PSYC_MasterTransmitHandle *
+GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
+                             int increment_group_generation,
+                             const char *method_name,
+                             const struct GNUNET_ENV_Environment *env,
+                             GNUNET_PSYC_MasterReadyNotify notify,
+                             void *notify_cls);
 
 
 /** 
@@ -348,93 +343,95 @@ GNUNET_PSYC_channel_transmit (struct GNUNET_PSYC_Channel *channel,
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_channel_transmit_cancel (struct GNUNET_PSYC_ChannelTransmitHandle *th);
+GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th);
 
 
 /** 
- * Destroy a PSYC channel.
+ * Destroy a PSYC channel master.
  *
- * @param channel PSYC channel to terminate.
+ * @param master PSYC channel master to terminate.
  */
 tvoid
-GNUNET_PSYC_channel_destroy (struct GNUNET_PSYC_Channel *channel);
+GNUNET_PSYC_master_destroy (struct GNUNET_PSYC_Master *master);
 
 
 /** 
- * Handle to access PSYC group operations for all members.
+ * Handle to access PSYC channel operations for both the master and slaves.
  */
-struct GNUNET_PSYC_Group;
+struct GNUNET_PSYC_Channel;
 
 
 /** 
- * Convert @a channel to a @e group handle to access the @e group APIs.
+ * Convert a channel @a master to a @e channel handle to access the @e channel APIs.
  * 
- * @param channel Channel handle.
- * @return Group handle, valid for as long as @a channel is valid.
+ * @param master Channel master handle.
+ * @return Channel handle, valid for as long as @a master is valid.
  */ 
-struct GNUNET_PSYC_Group *
-GNUNET_PSYC_channel_get_group (struct GNUNET_PSYC_Channel *channel);
+struct GNUNET_PSYC_Channel *
+GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
 
 
 /** 
- * Convert @a member to a @e group handle to access the @e group APIs.
+ * Convert @a slave to a @e channel handle to access the @e channel APIs.
  * 
- * @param member Membership handle.
- * @return Group handle, valid for as long as @a member is valid.
+ * @param slave Slave handle.
+ * @return Channel handle, valid for as long as @a slave is valid.
  */ 
-struct GNUNET_PSYC_Group *
-GNUNET_PSYC_member_get_group (struct GNUNET_PSYC_Member *member);
+struct GNUNET_PSYC_Channel *
+GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
 
 
 /** 
- * Add a member to the group.
+ * Add a member to the channel.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
- * local data base to modify how we react to <em>membership test</em> queries.  The
- * channel still needs to explicitly transmit a @e join message to notify other
- * group members and they then also must still call this function in their
- * respective methods handling the @e join message.  This way, how @e join and
- * @e part operations are exactly implemented is still up to the application;
- * for example, there might be a @e part_all method to kick out everyone.
+ * local data base to modify how we react to <em>membership test</em> queries.
+ * The channel master still needs to explicitly transmit a @e join message to
+ * notify other channel members and they then also must still call this function
+ * in their respective methods handling the @e join message.  This way, how @e
+ * join and @e part operations are exactly implemented is still up to the
+ * application; for example, there might be a @e part_all method to kick out
+ * everyone.
  *
- * Note that group members are explicitly trusted to execute such methods
+ * Note that channel members are explicitly trusted to execute such methods
  * correctly; not doing so correctly will result in either denying members
- * access or offering access to group data to non-members.
+ * access or offering access to channel data to non-members.
  *
- * @param group Group handle.
+ * @param channel Channel handle.
  * @param member Which peer to add.
  * @param message_id Message ID for the message that changed the membership.
  */
 void
-GNUNET_PSYC_group_member_add (struct GNUNET_PSYC_Group *group,
-			      const struct GNUNET_PeerIdentity *member,
-			      uint64_t message_id);
+GNUNET_PSYC_channel_member_add (struct GNUNET_PSYC_Channel *channel,
+                                const struct GNUNET_PeerIdentity *member,
+                                uint64_t message_id);
 
 
 /** 
- * Remove a member from the group.
+ * Remove a member from the channel.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
- * local data base to modify how we react to <em>membership test</em> queries.  The
- * channel still needs to explicitly transmit a @e part message to notify other
- * group members and they then also must still call this function in their
- * respective methods handling the @e part message.  This way, how @e join and
- * @e part operations are exactly implemented is still up to the application;
- * for example, there might be a @e part_all message to kick out everyone.
+ * local data base to modify how we react to <em>membership test</em> queries.
+ * The channel master still needs to explicitly transmit a @e part message to
+ * notify other channel members and they then also must still call this function
+ * in their respective methods handling the @e part message.  This way, how
+ * @e join and @e part operations are exactly implemented is still up to the
+ * application; for example, there might be a @e part_all message to kick out
+ * everyone.
  *
- * Note that group members are explicitly trusted to perform these
+ * Note that channel members are explicitly trusted to perform these
  * operations correctly; not doing so correctly will result in either
- * denying members access or offering access to group data to
+ * denying members access or offering access to channel data to
  * non-members.
  *
- * @param group Group handle.
+ * @param channel Channel handle.
  * @param member Which peer to remove.
  * @param message_id Message ID for the message that changed the membership.
  */
 void
-GNUNET_PSYC_group_member_remove (struct GNUNET_PSYC_Group *group,
-				 const struct GNUNET_PeerIdentity *member,
-				 uint64_t message_id);
+GNUNET_PSYC_channel_member_remove (struct GNUNET_PSYC_Channel *channel,
+                                   const struct GNUNET_PeerIdentity *member,
+                                   uint64_t message_id);
 
 
 /** 
@@ -452,47 +449,52 @@ typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
 
 
 /** 
- * Join a PSYC group.
+ * Handle for a PSYC channel slave.
+ */
+struct GNUNET_PSYC_Slave;
+
+
+/** 
+ * Join a PSYC channel.
  *
  * The entity joining is always the local peer.  The user must immediately use
- * the GNUNET_PSYC_member_to_origin() (and possibly
- * GNUNET_PSYC_member_variable_set()) functions to transmit a @e join_msg to
- * the channel; if the join request succeeds, the channel state (and @e recent
+ * the GNUNET_PSYC_slave_to_master() functions to transmit a @e join_msg to the
+ * channel; if the join request succeeds, the channel state (and @e recent
  * method calls) will be replayed to the joining member.  There is no explicit
- * notification on failure (as the channel may simply take days to approve, a-v/snd
- * disapproval is simply being ignored).
+ * notification on failure (as the channel may simply take days to approve,
+ * and disapproval is simply being ignored).
  *
  * @param cfg Configuration to use.
- * @param pub_key ECC key that identifies the channel we wish to join
+ * @param pub_key ECC key that identifies the channel we wish to join.
  * @param origin Peer identity of the origin.
  * @param method Function to invoke on messages received from the channel,
  *                typically at least contains functions for @e join and @e part.
  * @param method_cls Closure for @a method.
- * @return Handle for the member, NULL on error.
+ * @return Handle for the slave, NULL on error.
  */
-struct GNUNET_PSYC_Member *
-GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			 const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
-			 const struct GNUNET_PeerIdentity *origin,
-			 GNUNET_PSYC_Method method,
-			 void *method_cls);
+struct GNUNET_PSYC_Slave *
+GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+                        const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
+                        const struct GNUNET_PeerIdentity *origin,
+                        GNUNET_PSYC_Method method,
+                        void *method_cls);
 
 
 /** 
- * Part a PSYC group.
+ * Part a PSYC channel.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
- * first explicitly send a @e part request (via GNUNET_PSYC_member_to_origin()).
+ * first explicitly send a @e part request (via GNUNET_PSYC_slave_to_master()).
  *
- * @param member membership handle
+ * @param slave Slave handle.
  */
 void
-GNUNET_PSYC_member_part (struct GNUNET_PSYC_Member *member);
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
 
 
 /** 
  * Function called to provide data for a transmission to the channel
- * owner (aka the @e host of the channel).
+ * master (aka the @e host of the channel).
  *
  * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
  * invalidates the respective transmission handle.
@@ -506,7 +508,7 @@ GNUNET_PSYC_member_part (struct GNUNET_PSYC_Member *member);
  *         #GNUNET_NO on success, if more data is to be transmitted later.
  *         #GNUNET_YES if this completes the transmission (all data supplied).
  */
-typedef int (*GNUNET_PSYC_MemberReadyNotify)(void *cls,
+typedef int (*GNUNET_PSYC_SlaveReadyNotify)(void *cls,
 					     size_t *data_size,
 					     char *data);
 
@@ -514,34 +516,34 @@ typedef int (*GNUNET_PSYC_MemberReadyNotify)(void *cls,
 /** 
  * Handle for a pending PSYC transmission operation.
  */
-struct GNUNET_PSYC_MemberTransmitHandle;
+struct GNUNET_PSYC_SlaveTransmitHandle;
 
 
 /** 
- * Request a message to be sent to the channel origin.
+ * Request a message to be sent to the channel master.
  *
- * @param member Membership handle.
+ * @param slave Slave handle.
  * @param method_name Which (PSYC) method should be invoked (on host).
  * @param env Environment: transient variables for the message.
  * @param notify Function to call when we are allowed to transmit (to get data).
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
-struct GNUNET_PSYC_MemberTransmitHandle *
-GNUNET_PSYC_member_to_origin (struct GNUNET_PSYC_Member *member,
-                              const char *method_name,
-                              const struct GNUNET_ENV_Environment *env,
-                              GNUNET_PSYC_MemberReadyNotify notify,
-                              void *notify_cls);
+struct GNUNET_PSYC_SlaveTransmitHandle *
+GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
+                            const char *method_name,
+                            const struct GNUNET_ENV_Environment *env,
+                            GNUNET_PSYC_SlaveReadyNotify notify,
+                            void *notify_cls);
 
 
 /** 
- * Abort transmission request to origin.
+ * Abort transmission request to master.
  *
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_member_to_origin_cancel (struct GNUNET_PSYC_MemberTransmitHandle *th);
+GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th);
 
 
 /** 
@@ -558,7 +560,7 @@ struct GNUNET_PSYC_Story;
  *
  * To get the latest message, use 0 for both the start and end message ID.
  *
- * @param member Which channel should be replayed?
+ * @param slave Which channel should be replayed?
  * @param start_message_id Earliest interesting point in history.
  * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
@@ -568,30 +570,30 @@ struct GNUNET_PSYC_Story;
  *        might be secret and thus the listener would not know the story is 
  *        finished without being told explicitly); once this function
  *        has been called, the client must not call
- *        GNUNET_PSYC_member_story_tell_cancel() anymore.
+ *        GNUNET_PSYC_slave_story_tell_cancel() anymore.
  * @param finish_cb_cls Closure to finish_cb.
  * @return Handle to cancel story telling operation.
  */
 struct GNUNET_PSYC_Story *
-GNUNET_PSYC_member_story_tell (struct GNUNET_PSYC_Member *member,
-			       uint64_t start_message_id,
-			       uint64_t end_message_id,
-			       GNUNET_PSYC_Method method,
-			       void *method_cls,
-			       void (*finish_cb)(void *),
-			       void *finish_cb_cls);
+GNUNET_PSYC_slave_story_tell (struct GNUNET_PSYC_Slave *slave,
+                              uint64_t start_message_id,
+                              uint64_t end_message_id,
+                              GNUNET_PSYC_Method method,
+                              void *method_cls,
+                              void (*finish_cb)(void *),
+                              void *finish_cb_cls);
 
 
 /** 
  * Abort story telling.
  *
  * This function must not be called from within method handlers (as given to
- * GNUNET_PSYC_member_join()) of the member.
+ * GNUNET_PSYC_slave_join()) of the slave.
  *
  * @param story Story telling operation to stop.
  */
 void
-GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
+GNUNET_PSYC_slave_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 
 
 /** 
@@ -606,7 +608,7 @@ GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  * empty state ("") will match all values; requesting "_a_b" will also return
  * values stored under "_a_b_c".
  *
- * @param member Membership handle.
+ * @param slave Slave handle.
  * @param state_name Name of the state to query (full name 
  *        might be longer, this is only the prefix that must match).
  * @param cb Function to call on the matching state values.
@@ -615,10 +617,10 @@ GNUNET_PSYC_member_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  *         message ID).
  */
 uint64_t
-GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
-				  const char *state_name,
-				  GNUNET_PSYC_StateCallback cb,
-				  void *cb_cls);
+GNUNET_PSYC_slave_state_get_all (struct GNUNET_PSYC_Slave *slave,
+                                 const char *state_name,
+                                 GNUNET_PSYC_StateCallback cb,
+                                 void *cb_cls);
 
 
 /** 
@@ -632,7 +634,7 @@ GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
  * the state, the nearest less-specific name is matched; for example,
  * requesting "_a_b" will match "_a" if "_a_b" does not exist.
  *
- * @param member Membership handle.
+ * @param slave Slave handle.
  * @param variable_name Name of the variable to query.
  * @param[out] return_value_size Set to number of bytes in variable, 
  *        needed as variables might contain binary data and
@@ -641,9 +643,9 @@ GNUNET_PSYC_member_state_get_all (struct GNUNET_PSYC_Member *member,
           to the respective value otherwise.
  */
 const void *
-GNUNET_PSYC_member_state_get (struct GNUNET_PSYC_Member *member,
-			      const char *variable_name,
-			      size_t *return_value_size);
+GNUNET_PSYC_slave_state_get (struct GNUNET_PSYC_Slave *slave,
+                             const char *variable_name,
+                             size_t *return_value_size);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

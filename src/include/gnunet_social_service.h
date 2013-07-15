@@ -366,7 +366,7 @@ GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
  *         do NOT try to GNUNET_SOCIAL_place_leave() this place, it's your home!
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_home_to_place (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home);
 
 
 /** 
