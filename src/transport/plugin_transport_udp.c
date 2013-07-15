@@ -64,10 +64,40 @@
 #define UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG 128
 
 /**
+ * Running pretty printers: head
+ */
+static struct PrettyPrinterContext *ppc_dll_head;
+
+/**
+ * Running pretty printers: tail
+ */
+static struct PrettyPrinterContext *ppc_dll_tail;
+
+/**
  * Closure for 'append_port'.
  */
 struct PrettyPrinterContext
 {
+	/**
+	 * DLL
+	 */
+	struct PrettyPrinterContext *next;
+
+	/**
+	 * DLL
+	 */
+	struct PrettyPrinterContext *prev;
+
+	/**
+	 * Timeout task
+	 */
+	GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+	/**
+	 * Resolver handle
+	 */
+	struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
+
   /**
    * Function to call with the result.
    */
@@ -672,6 +702,23 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 }
 
 
+void
+ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	struct PrettyPrinterContext *ppc = cls;
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PPC %p was not removed!\n", ppc);
+	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+	if (NULL != ppc->resolver_handle)
+	{
+		GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
+		ppc->resolver_handle = NULL;
+	}
+
+	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
+	GNUNET_free (ppc);
+}
+
+
 /**
  * Append our port and forward the result.
  *
@@ -682,14 +729,31 @@ static void
 append_port (void *cls, const char *hostname)
 {
   struct PrettyPrinterContext *ppc = cls;
+  struct PrettyPrinterContext *cur;
   char *ret;
 
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
+    GNUNET_SCHEDULER_cancel (ppc->timeout_task);
+    ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ppc->resolver_handle = NULL;
+  	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was removed!\n", ppc); */
     GNUNET_free (ppc);
     return;
   }
+  for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
+  {
+  	if (cur == ppc)
+  		break;
+  }
+  if (NULL == cur)
+  {
+  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid callback for PPC %p \n", ppc);
+  	return;
+  }
+
   if (GNUNET_YES == ppc->ipv6)
     GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
   else
@@ -697,7 +761,6 @@ append_port (void *cls, const char *hostname)
   ppc->asc (ppc->asc_cls, ret);
   GNUNET_free (ret);
 }
-
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -784,7 +847,12 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     ppc->ipv6 = GNUNET_YES;
   else
     ppc->ipv6 = GNUNET_NO;
-  GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
+  ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(timeout, 2),
+  		&ppc_cancel_task, ppc);
+  GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
+	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was created!\n", ppc); */
+  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
+
 }
 
 
@@ -3083,6 +3151,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct PrettyPrinterContext *cur;
+  struct PrettyPrinterContext *next;
 
   if (NULL == plugin)
   {
@@ -3168,6 +3238,17 @@ libgnunet_plugin_transport_udp_done (void *cls)
        "Cleaning up sessions\n");
   GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions, &disconnect_and_free_it, plugin);
   GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+
+  next = ppc_dll_head;
+  for (cur = next; NULL != cur; cur = next)
+  {
+  	next = cur->next;
+  	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
+  	GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+  	GNUNET_SCHEDULER_cancel (cur->timeout_task);
+  	GNUNET_free (cur);
+  	GNUNET_break (0);
+  }
 
   plugin->nat = NULL;
   GNUNET_free (plugin);
