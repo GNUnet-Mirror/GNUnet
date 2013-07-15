@@ -501,7 +501,6 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h)
 					       GNUNET_NO,
 					       &send_next_message,
 					       h);
-					       
 }
 
 
@@ -593,8 +592,35 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
 		     GNUNET_IDENTITY_Callback cb,
 		     void *cb_cls)
 {
-  GNUNET_break (0); // FIXME
-  return NULL;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_GetDefaultMessage *gdm;
+  size_t slen;
+
+  slen = strlen (service_name) + 1; 
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_GetDefaultMessage))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
+		      sizeof (struct GNUNET_IDENTITY_GetDefaultMessage) +
+		      slen);  
+  op->cb = cb;
+  op->cls = cb_cls;
+  gdm = (struct GNUNET_IDENTITY_GetDefaultMessage *) &op[1];
+  gdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT);
+  gdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_GetDefaultMessage) +
+			    slen);
+  gdm->name_len = htons (slen);
+  gdm->reserved = htons (0);
+  memcpy (&gdm[1], service_name, slen);
+  op->msg = &gdm->header;
+  GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
+				    id->op_tail,
+				    op);
+  if (NULL == id->th)
+    transmit_next (id);
+  return op;
 }
 
 
@@ -657,8 +683,42 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
-  GNUNET_break (0); // FIXME
-  return NULL;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_RenameMessage *grm;
+  size_t slen_old;
+  size_t slen_new;
+  char *dst;
+
+  slen_old = strlen (old_identifier) + 1;
+  slen_new = strlen (new_identifier) + 1;
+  if ( (slen_old >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
+       (slen_old + slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_RenameMessage)) )
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
+		      sizeof (struct GNUNET_IDENTITY_RenameMessage) +
+		      slen_old + slen_new);
+  op->cont = cb;
+  op->cls = cb_cls;
+  grm = (struct GNUNET_IDENTITY_RenameMessage *) &op[1];
+  grm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_RENAME);
+  grm->header.size = htons (sizeof (struct GNUNET_IDENTITY_RenameMessage) +
+			    slen_old + slen_new);
+  grm->old_name_len = htons (slen_old);
+  grm->new_name_len = htons (slen_new);
+  dst = (char *) &grm[1];
+  memcpy (dst, old_identifier, slen_old);
+  memcpy (&dst[slen_old], new_identifier, slen_new);
+  op->msg = &grm->header;
+  GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
+				    id->op_tail,
+				    op);
+  if (NULL == id->th)
+    transmit_next (id);
+  return op;
 }
 
 
@@ -677,8 +737,35 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
-  GNUNET_break (0); // FIXME
-  return NULL;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_DeleteMessage *gdm;
+  size_t slen;
+
+  slen = strlen (identifier) + 1;
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_DeleteMessage))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
+		      sizeof (struct GNUNET_IDENTITY_DeleteMessage) +
+		      slen);  
+  op->cont = cb;
+  op->cls = cb_cls;
+  gdm = (struct GNUNET_IDENTITY_DeleteMessage *) &op[1];
+  gdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_DELETE);
+  gdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_DeleteMessage) +
+			    slen);
+  gdm->name_len = htons (slen);
+  gdm->reserved = htons (0);
+  memcpy (&gdm[1], identifier, slen);
+  op->msg = &gdm->header;
+  GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
+				    id->op_tail,
+				    op);
+  if (NULL == id->th)
+    transmit_next (id);
+  return op;
 }
 
 
