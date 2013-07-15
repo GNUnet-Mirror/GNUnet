@@ -1907,6 +1907,8 @@ udp_nat_port_map_callback (void *cls, int add_remove,
     u4.options = htonl(myoptions);
     u4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
     u4.u4_port = ((struct sockaddr_in *) addr)->sin_port;
+    if (0 == ((struct sockaddr_in *) addr)->sin_port)
+    	return;
     arg = &u4;
     args = sizeof (struct IPv4UdpAddress);
     break;
@@ -1914,6 +1916,8 @@ udp_nat_port_map_callback (void *cls, int add_remove,
     GNUNET_assert (addrlen == sizeof (struct sockaddr_in6));
     memset (&u4, 0, sizeof (u4));
     u6.options = htonl(myoptions);
+    if (0 == ((struct sockaddr_in6 *) addr)->sin6_port)
+    	return;
     memcpy (&u6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
             sizeof (struct in6_addr));
     u6.u6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
