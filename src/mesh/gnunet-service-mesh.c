@@ -1149,6 +1149,44 @@ peer_get_short (const GNUNET_PEER_Id peer)
 
 
 /**
+ * Select which PID to POLL for, to compensate for lost messages.
+ *
+ * @param pi Peer we want to poll.
+ * @param t Tunnel about which we want to poll.
+ * 
+ * @return PID to use, either last sent or first_in_queue - 1
+ */
+static uint32_t
+peer_get_first_payload_pid (struct MeshPeerInfo *pi, struct MeshTunnel *t)
+{
+  struct MeshPeerQueue *q;
+  uint16_t type;
+
+  type = pi->id == t->next_hop ? GNUNET_MESSAGE_TYPE_MESH_UNICAST :
+                                 GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN;
+
+  for (q = pi->queue_head; NULL != q; q = q->next)
+  {
+    if (q->type == type && q->tunnel == t)
+    {
+      struct GNUNET_MESH_Data *msg = q->cls;
+
+      /* Pretend that the last one sent was the previous to this */
+      return ntohl (msg->pid) - 1;
+    }
+  }
+
+  /* No data in queue, use last sent */
+  {
+    struct MeshFlowControl *fc;
+
+    fc = pi->id == t->next_hop ? &t->next_fc : &t->prev_fc;
+    return fc->last_pid_sent;
+  }
+}
+
+
+/**
  * Choose the best path towards a peer considering the tunnel properties.
  * 
  * @param peer The destination peer.
@@ -1670,10 +1708,6 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
-  msg.header.size = htons (sizeof (msg));
-  msg.tid = htonl (t->id.tid);
-  msg.pid = htonl (fc->last_pid_sent);
   GNUNET_PEER_resolve (t->id.oid, &msg.oid);
 
   if (fc == &t->prev_fc)
@@ -1691,6 +1725,10 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     return;
   }
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
+  msg.header.size = htons (sizeof (msg));
+  msg.tid = htonl (t->id.tid);
+  msg.pid = htonl (peer_get_first_payload_pid (peer_get_short (peer), t));
   send_prebuilt_message (&msg.header, peer, t);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -2068,7 +2106,6 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
   struct MeshTunnelReliability *rel;
   struct MeshReliableMessage *copy;
   uint64_t mask;
-  unsigned int i;
   unsigned int delta;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2087,12 +2124,12 @@ tunnel_send_fwd_data_ack (struct MeshTunnel *t)
   msg.mid = GNUNET_htonll (t->bck_rel->mid_recv - 1);
   msg.futures = 0;
   rel = t->bck_rel;
-  for (i = 0, copy = rel->head_recv;
-       i < 64 && NULL != copy;
-       i++, copy = copy->next)
+  for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
     delta = copy->mid - t->bck_rel->mid_recv;
-    mask = 0x1 << delta;
+    if (63 < delta)
+      break;
+    mask = 0x1LL << delta;
     msg.futures |= mask;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 " setting bit for %u (delta %u) (%llX) -> %llX\n",
@@ -2419,8 +2456,37 @@ tunnel_add_buffer_ucast (struct MeshTunnel *t,
 
 
 /**
- * Mark future messages as ACK'd.
+ * Destroy a reliable message after it has been acknowledged, either by
+ * direct mid ACK or bitfield. Updates the appropriate data structures and
+ * timers and frees all memory.
  * 
+ * @param copy Message that is no longer needed: remote peer got it.
+ */
+static void
+tunnel_free_reliable_message (struct MeshReliableMessage *copy)
+{
+  struct MeshTunnelReliability *rel;
+  struct GNUNET_TIME_Relative time;
+
+  rel = copy->rel;
+  time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
+  rel->expected_delay.rel_value += time.rel_value;
+  rel->expected_delay.rel_value /= 2;
+  rel->n_sent--;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", copy->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
+              GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
+                                                      GNUNET_NO));
+  rel->retry_timer = rel->expected_delay;
+  GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+  GNUNET_free (copy);
+}
+
+
+/**
+ * Mark future messages as ACK'd.
+ *
  * @param t Tunnel whose sent buffer to clean.
  * @param msg DataACK message with a bitfield of future ACK'd messages.
  */
@@ -2483,10 +2549,8 @@ tunnel_free_buffer_ucast (struct MeshTunnel *t,
     }
 
     /* Now copy->mid == target, free it */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %llu\n", target);
     next = copy->next;
-    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-    GNUNET_free (copy);
+    tunnel_free_reliable_message (copy);
     copy = next;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "free_sent_buffer END\n");
@@ -4228,9 +4292,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK %llu\n", ack);
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
-    struct GNUNET_TIME_Relative time;
-
-    if (copy->mid > ack)
+   if (copy->mid > ack)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %llu, out!\n", copy->mid);
       tunnel_free_buffer_ucast (t, msg);
@@ -4239,17 +4301,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     work = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %llu\n", copy->mid);
     next = copy->next;
-    time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-    rel->expected_delay.rel_value += time.rel_value;
-    rel->expected_delay.rel_value /= 2;
-    rel->n_sent--;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
-                GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
-                                                        GNUNET_NO));
-    rel->retry_timer = rel->expected_delay;
-    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-    GNUNET_free (copy);
+    tunnel_free_reliable_message (copy);
   }
 
   if (GNUNET_YES == work)
