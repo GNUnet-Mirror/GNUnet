@@ -143,6 +143,66 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Send a result code back to the client.
+ *
+ * @param client client that should receive the result code
+ * @param result_code code to transmit
+ * @param emsg error message to include (or NULL for none)
+ */
+static void
+send_result_code (struct GNUNET_SERVER_Client *client,
+		  uint32_t result_code,
+		  const char *emsg)
+{
+  struct GNUNET_IDENTITY_ResultCodeMessage *rcm;
+  size_t elen;
+
+  if (NULL == emsg)
+    elen = 0;
+  else
+    elen = strlen (emsg) + 1;
+  rcm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) + elen);
+  rcm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE);
+  rcm->header.size = htons (sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) + elen);
+  rcm->result_code = htonl (result_code);
+  memcpy (&rcm[1], emsg, elen);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_YES);  
+  GNUNET_free (rcm);
+}
+
+
+/**
+ * Create an update message with information about the current state of an ego.
+ *
+ * @param ego ego to create message for
+ * @return corresponding update message
+ */
+static struct GNUNET_IDENTITY_UpdateMessage *
+create_update_message (struct Ego *ego)
+{
+  struct GNUNET_IDENTITY_UpdateMessage *um;
+  char *str;
+  uint16_t pk_len;
+  size_t name_len;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
+
+  name_len = (NULL == ego->identifier) ? 0 : (strlen (ego->identifier) + 1);
+  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
+  pk_len = ntohs (enc->size);
+  um = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + pk_len + name_len);
+  um->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
+  um->header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + pk_len + name_len);
+  um->name_len = htons (name_len);
+  um->pk_len = htons (pk_len);
+  str = (char *) &um[1];
+  memcpy (str, enc, pk_len);
+  memcpy (&str[pk_len], ego->identifier, name_len);
+  GNUNET_free (enc);
+  return um;
+}
+
+
+/**
  * Handler for START message from client, sends information
  * about all identities to the client immediately and 
  * adds the client to the notification context for future
@@ -156,12 +216,18 @@ static void
 handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_IDENTITY_UpdateMessage *um;
+  struct Ego *ego;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received START message from client\n");
   GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_break (0); // not implemented!
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    um = create_update_message (ego);
+    GNUNET_SERVER_notification_context_unicast (nc, client, &um->header, GNUNET_YES);
+    GNUNET_free (um);
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -268,7 +334,9 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
   // setup_estimate_message (&em);
   // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
   GNUNET_break (0); // not implemented!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+
+  send_result_code (client, 1, gettext_noop ("no matching ego found"));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
