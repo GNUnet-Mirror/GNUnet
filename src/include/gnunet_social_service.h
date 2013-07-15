@@ -345,7 +345,7 @@ struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
-                             GNUNET_PSYC_OriginReadyNotify notify,
+                             GNUNET_CONNECTION_TransmitReadyNotify notify,
                              void *notify_cls);
 
 
@@ -533,17 +533,17 @@ struct GNUNET_SOCIAL_TalkRequest;
  *
  * @param place Place where we want to talk to the host.
  * @param method_name Method to invoke on the host.
- * @param cb Function to use to get the payload for the method.
- * @param cb_cls Closure for @a cb.
+ * @param notify Function to use to get the payload for the method.
+ * @param notifyv_cls Closure for @a notify.
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request.
  */
 struct GNUNET_SOCIAL_TalkRequest *
 GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
-			  const char *method_name,
+                          const char *method_name,
                           const struct GNUNET_ENV_Environment *env,
-			  GNUNET_PSYC_OriginReadyNotify cb,
-			  void *cb_cls);
+                          GNUNET_CONNECTION_TransmitReadyNotify notify,
+                          void *notify_cls);
 
 
 /** 

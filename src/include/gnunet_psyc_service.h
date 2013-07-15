@@ -416,8 +416,8 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
  *         #GNUNET_YES if this completes the transmission (all data supplied).
  */
 typedef int (*GNUNET_PSYC_SlaveReadyNotify)(void *cls,
-					     size_t *data_size,
-					     char *data);
+                                            size_t *data_size,
+                                            char *data);
 
 
 /** 
