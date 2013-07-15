@@ -169,9 +169,9 @@ struct GNUNET_MESH_DataACK
   /**
    * Bitfield of already-received newer messages // TODO implement and use
    * pid +  1 @ LSB
-   * pid + 32 @ MSB
+   * pid + 64 @ MSB
    */
-  uint32_t futures GNUNET_PACKED;
+  uint64_t futures GNUNET_PACKED;
 };
 
 
