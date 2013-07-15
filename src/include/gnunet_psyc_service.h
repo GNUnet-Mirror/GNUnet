@@ -356,99 +356,6 @@ GNUNET_PSYC_master_destroy (struct GNUNET_PSYC_Master *master);
 
 
 /** 
- * Handle to access PSYC channel operations for both the master and slaves.
- */
-struct GNUNET_PSYC_Channel;
-
-
-/** 
- * Convert a channel @a master to a @e channel handle to access the @e channel APIs.
- *
- * @param master Channel master handle.
- * @return Channel handle, valid for as long as @a master is valid.
- */
-struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
-
-
-/** 
- * Convert @a slave to a @e channel handle to access the @e channel APIs.
- *
- * @param slave Slave handle.
- * @return Channel handle, valid for as long as @a slave is valid.
- */
-struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
-
-
-/** 
- * Add a member to the channel.
- *
- * Note that this will NOT generate any PSYC traffic, it will merely update the
- * local data base to modify how we react to <em>membership test</em> queries.
- * The channel master still needs to explicitly transmit a @e join message to
- * notify other channel members and they then also must still call this function
- * in their respective methods handling the @e join message.  This way, how @e
- * join and @e part operations are exactly implemented is still up to the
- * application; for example, there might be a @e part_all method to kick out
- * everyone.
- *
- * Note that channel members are explicitly trusted to execute such methods
- * correctly; not doing so correctly will result in either denying members
- * access or offering access to channel data to non-members.
- *
- * @param channel Channel handle.
- * @param member Which peer to add.
- * @param message_id Message ID for the message that changed the membership.
- */
-void
-GNUNET_PSYC_channel_member_add (struct GNUNET_PSYC_Channel *channel,
-                                const struct GNUNET_PeerIdentity *member,
-                                uint64_t message_id);
-
-
-/** 
- * Remove a member from the channel.
- *
- * Note that this will NOT generate any PSYC traffic, it will merely update the
- * local data base to modify how we react to <em>membership test</em> queries.
- * The channel master still needs to explicitly transmit a @e part message to
- * notify other channel members and they then also must still call this function
- * in their respective methods handling the @e part message.  This way, how
- * @e join and @e part operations are exactly implemented is still up to the
- * application; for example, there might be a @e part_all message to kick out
- * everyone.
- *
- * Note that channel members are explicitly trusted to perform these
- * operations correctly; not doing so correctly will result in either
- * denying members access or offering access to channel data to
- * non-members.
- *
- * @param channel Channel handle.
- * @param member Which peer to remove.
- * @param message_id Message ID for the message that changed the membership.
- */
-void
-GNUNET_PSYC_channel_member_remove (struct GNUNET_PSYC_Channel *channel,
-                                   const struct GNUNET_PeerIdentity *member,
-                                   uint64_t message_id);
-
-
-/** 
- * Function called to inform a member about stored state values for a channel.
- *
- * @param cls Closure.
- * @param name Name of the state variable.
- * @param value Value of the state variable.
- * @param value_size Number of bytes in @a value.
- */
-typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
-					  const char *name,
-					  size_t value_size,
-					  const void *value);
-
-
-/** 
  * Handle for a PSYC channel slave.
  */
 struct GNUNET_PSYC_Slave;
@@ -547,6 +454,99 @@ GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th);
 
 
 /** 
+ * Handle to access PSYC channel operations for both the master and slaves.
+ */
+struct GNUNET_PSYC_Channel;
+
+
+/** 
+ * Convert a channel @a master to a @e channel handle to access the @e channel APIs.
+ *
+ * @param master Channel master handle.
+ * @return Channel handle, valid for as long as @a master is valid.
+ */
+struct GNUNET_PSYC_Channel *
+GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
+
+
+/** 
+ * Convert @a slave to a @e channel handle to access the @e channel APIs.
+ *
+ * @param slave Slave handle.
+ * @return Channel handle, valid for as long as @a slave is valid.
+ */
+struct GNUNET_PSYC_Channel *
+GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
+
+
+/** 
+ * Add a member to the channel.
+ *
+ * Note that this will NOT generate any PSYC traffic, it will merely update the
+ * local data base to modify how we react to <em>membership test</em> queries.
+ * The channel master still needs to explicitly transmit a @e join message to
+ * notify other channel members and they then also must still call this function
+ * in their respective methods handling the @e join message.  This way, how @e
+ * join and @e part operations are exactly implemented is still up to the
+ * application; for example, there might be a @e part_all method to kick out
+ * everyone.
+ *
+ * Note that channel members are explicitly trusted to execute such methods
+ * correctly; not doing so correctly will result in either denying members
+ * access or offering access to channel data to non-members.
+ *
+ * @param channel Channel handle.
+ * @param member Which peer to add.
+ * @param message_id Message ID for the message that changed the membership.
+ */
+void
+GNUNET_PSYC_channel_member_add (struct GNUNET_PSYC_Channel *channel,
+                                const struct GNUNET_PeerIdentity *member,
+                                uint64_t message_id);
+
+
+/** 
+ * Remove a member from the channel.
+ *
+ * Note that this will NOT generate any PSYC traffic, it will merely update the
+ * local data base to modify how we react to <em>membership test</em> queries.
+ * The channel master still needs to explicitly transmit a @e part message to
+ * notify other channel members and they then also must still call this function
+ * in their respective methods handling the @e part message.  This way, how
+ * @e join and @e part operations are exactly implemented is still up to the
+ * application; for example, there might be a @e part_all message to kick out
+ * everyone.
+ *
+ * Note that channel members are explicitly trusted to perform these
+ * operations correctly; not doing so correctly will result in either
+ * denying members access or offering access to channel data to
+ * non-members.
+ *
+ * @param channel Channel handle.
+ * @param member Which peer to remove.
+ * @param message_id Message ID for the message that changed the membership.
+ */
+void
+GNUNET_PSYC_channel_member_remove (struct GNUNET_PSYC_Channel *channel,
+                                   const struct GNUNET_PeerIdentity *member,
+                                   uint64_t message_id);
+
+
+/** 
+ * Function called to inform a member about stored state values for a channel.
+ *
+ * @param cls Closure.
+ * @param name Name of the state variable.
+ * @param value Value of the state variable.
+ * @param value_size Number of bytes in @a value.
+ */
+typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
+					  const char *name,
+					  size_t value_size,
+					  const void *value);
+
+
+/** 
  * Handle to a story telling operation.
  */
 struct GNUNET_PSYC_Story;
@@ -560,7 +560,7 @@ struct GNUNET_PSYC_Story;
  *
  * To get the latest message, use 0 for both the start and end message ID.
  *
- * @param slave Which channel should be replayed?
+ * @param channel Which channel should be replayed?
  * @param start_message_id Earliest interesting point in history.
  * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
@@ -570,18 +570,18 @@ struct GNUNET_PSYC_Story;
  *        might be secret and thus the listener would not know the story is
  *        finished without being told explicitly); once this function
  *        has been called, the client must not call
- *        GNUNET_PSYC_slave_story_tell_cancel() anymore.
+ *        GNUNET_PSYC_channel_story_tell_cancel() anymore.
  * @param finish_cb_cls Closure to finish_cb.
  * @return Handle to cancel story telling operation.
  */
 struct GNUNET_PSYC_Story *
-GNUNET_PSYC_slave_story_tell (struct GNUNET_PSYC_Slave *slave,
-                              uint64_t start_message_id,
-                              uint64_t end_message_id,
-                              GNUNET_PSYC_Method method,
-                              void *method_cls,
-                              void (*finish_cb)(void *),
-                              void *finish_cb_cls);
+GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
+                                uint64_t start_message_id,
+                                uint64_t end_message_id,
+                                GNUNET_PSYC_Method method,
+                                void *method_cls,
+                                void (*finish_cb)(void *),
+                                void *finish_cb_cls);
 
 
 /** 
@@ -593,7 +593,7 @@ GNUNET_PSYC_slave_story_tell (struct GNUNET_PSYC_Slave *slave,
  * @param story Story telling operation to stop.
  */
 void
-GNUNET_PSYC_slave_story_tell_cancel (struct GNUNET_PSYC_Story *story);
+GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 
 
 /** 
@@ -608,7 +608,7 @@ GNUNET_PSYC_slave_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  * empty state ("") will match all values; requesting "_a_b" will also return
  * values stored under "_a_b_c".
  *
- * @param slave Slave handle.
+ * @param channel Channel handle.
  * @param state_name Name of the state to query (full name
  *        might be longer, this is only the prefix that must match).
  * @param cb Function to call on the matching state values.
@@ -617,10 +617,10 @@ GNUNET_PSYC_slave_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  *         message ID).
  */
 uint64_t
-GNUNET_PSYC_slave_state_get_all (struct GNUNET_PSYC_Slave *slave,
-                                 const char *state_name,
-                                 GNUNET_PSYC_StateCallback cb,
-                                 void *cb_cls);
+GNUNET_PSYC_channel_state_get_all (struct GNUNET_PSYC_Channel *channel,
+                                   const char *state_name,
+                                   GNUNET_PSYC_StateCallback cb,
+                                   void *cb_cls);
 
 
 /** 
@@ -634,7 +634,7 @@ GNUNET_PSYC_slave_state_get_all (struct GNUNET_PSYC_Slave *slave,
  * the state, the nearest less-specific name is matched; for example,
  * requesting "_a_b" will match "_a" if "_a_b" does not exist.
  *
- * @param slave Slave handle.
+ * @param channel Channel handle.
  * @param variable_name Name of the variable to query.
  * @param[out] return_value_size Set to number of bytes in variable,
  *        needed as variables might contain binary data and
@@ -643,9 +643,9 @@ GNUNET_PSYC_slave_state_get_all (struct GNUNET_PSYC_Slave *slave,
           to the respective value otherwise.
  */
 const void *
-GNUNET_PSYC_slave_state_get (struct GNUNET_PSYC_Slave *slave,
-                             const char *variable_name,
-                             size_t *return_value_size);
+GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
+                               const char *variable_name,
+                               size_t *return_value_size);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
