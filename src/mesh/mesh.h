@@ -88,28 +88,6 @@ extern "C"
 #define HIGH_PID                                0xFFFF0000
 #define LOW_PID                                 0x0000FFFF
 
-/**
- * Value in tunnel info: *int (GNUNET_YES/GNUNET_NO)
- */
-typedef enum
-{
-  /**
-   * Disable buffering on intermediate nodes (for minimum latency).
-   */
-  GNUNET_MESH_OPTION_NOBUFFER   = 0x1,
-
-  /**
-   * Enable tunnel reliability, lost messages will be retransmitted.
-   */
-  GNUNET_MESH_OPTION_RELIABLE   = 0x2,
-
-  /**
-   * Enable out of order delivery of messages.
-   */
-  GNUNET_MESH_OPTION_OOORDER    = 0x4
-
-} MeshTunnelOption;
-
 #define PID_OVERFLOW(pid, max) (pid > HIGH_PID && max < LOW_PID)
 
 /******************************************************************************/

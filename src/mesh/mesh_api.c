@@ -296,12 +296,17 @@ struct GNUNET_MESH_Tunnel
     /**
      * Is the tunnel allowed to buffer?
      */
-  int buffering;
+  int nobuffer;
 
     /**
-     * Is the tunnel allowed to buffer?
+     * Is the tunnel realiable?
      */
   int reliable;
+
+    /**
+     * If reliable, is the tunnel out of order?
+     */
+  int ooorder;
 
     /**
      * Are we allowed to send to the service?
@@ -449,7 +454,7 @@ create_tunnel (struct GNUNET_MESH_Handle *h, MESH_TunnelNumber tid)
     t->tid = tid;
   }
   t->allow_send = GNUNET_NO;
-  t->buffering = GNUNET_YES;
+  t->nobuffer = GNUNET_NO;
   return t;
 }
 
@@ -730,7 +735,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     GNUNET_PEER_resolve (t->peer, &tmsg.peer);
 
     options = 0;
-    if (GNUNET_NO == t->buffering)
+    if (GNUNET_YES == t->nobuffer)
       options |= GNUNET_MESH_OPTION_NOBUFFER;
 
     if (GNUNET_YES == t->reliable)
@@ -812,13 +817,18 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->tid = tid;
     t->port = ntohl (msg->port);
     if (0 != (msg->opt & GNUNET_MESH_OPTION_NOBUFFER))
-      t->buffering = GNUNET_NO;
+      t->nobuffer = GNUNET_YES;
     else
-      t->buffering = GNUNET_YES;
+      t->nobuffer = GNUNET_NO;
     if (0 != (msg->opt & GNUNET_MESH_OPTION_RELIABLE))
       t->reliable = GNUNET_YES;
     else
       t->reliable = GNUNET_NO;
+    if (GNUNET_YES == t->reliable &&
+        0 != (msg->opt & GNUNET_MESH_OPTION_OOORDER))
+      t->ooorder = GNUNET_YES;
+    else
+      t->ooorder = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created tunnel %p\n", t);
     t->ctx = h->new_tunnel (h->cls, t, &msg->peer, t->port);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
@@ -1481,21 +1491,35 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
  * Get information about a tunnel.
  *
  * @param tunnel Tunnel handle.
- * 
- * @return Allocated, {0, NULL} terminated set of tunnel properties.
+ * @param option Query (GNUNET_MESH_OPTION_*).
+ * @param ... dependant on option, currently not used
+ *
+ * @return Union with an answer to the query.
  */
-struct MeshTunnelInfo *
-GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel)
+const union MeshTunnelInfo *
+GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel,
+                             enum MeshTunnelOption option, ...)
 {
-  struct MeshTunnelInfo *ret;
+  const union MeshTunnelInfo *ret;
 
-  ret = GNUNET_malloc (sizeof (struct MeshTunnelInfo) * 3);
-  ret[0].prop = GNUNET_MESH_OPTION_NOBUFFER;
-  ret[0].value = &tunnel->buffering; // FIXME use "nobuffer"
-  ret[1].prop = GNUNET_MESH_OPTION_RELIABLE;
-  ret[1].value = &tunnel->reliable;
-  ret[2].prop = 0;
-  ret[2].value = NULL;
+  switch (option)
+  {
+    case GNUNET_MESH_OPTION_NOBUFFER:
+      ret = (const union MeshTunnelInfo *) &tunnel->nobuffer;
+      break;
+    case GNUNET_MESH_OPTION_RELIABLE:
+      ret = (const union MeshTunnelInfo *) &tunnel->reliable;
+      break;
+    case GNUNET_MESH_OPTION_OOORDER:
+      ret = (const union MeshTunnelInfo *) &tunnel->ooorder;
+      break;
+    case GNUNET_MESH_OPTION_PEER:
+      ret = (const union MeshTunnelInfo *) &tunnel->peer;
+      break;
+    default:
+      GNUNET_break (0);
+      return NULL;
+  }
 
   return ret;
 }

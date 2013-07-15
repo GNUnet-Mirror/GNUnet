@@ -45,7 +45,7 @@ extern "C"
 /**
  * Version number of GNUnet-mesh API.
  */
-#define GNUNET_MESH_VERSION 0x00000001
+#define GNUNET_MESH_VERSION 0x00000002
 
 
 /**
@@ -57,6 +57,39 @@ struct GNUNET_MESH_Handle;
  * Opaque handle to a tunnel.
  */
 struct GNUNET_MESH_Tunnel;
+
+
+/**
+ * Options for querying a tunnel.
+ * Second line indicates filed in the MeshTunnelInfo union carrying the answer.
+ */
+enum MeshTunnelOption
+{
+  /**
+   * Disable buffering on intermediate nodes (for minimum latency).
+   * Yes/No.
+   */
+  GNUNET_MESH_OPTION_NOBUFFER   = 0x1,
+
+  /**
+   * Enable tunnel reliability, lost messages will be retransmitted.
+   * Yes/No.
+   */
+  GNUNET_MESH_OPTION_RELIABLE   = 0x2,
+
+  /**
+   * Enable out of order delivery of messages.
+   * Yes/No.
+   */
+  GNUNET_MESH_OPTION_OOORDER    = 0x4,
+
+  /**
+   * Who is the peer at the other end of the tunnel.
+   * struct GNUNET_PeerIdentity *peer
+   */
+  GNUNET_MESH_OPTION_PEER       = 0x8
+
+};
 
 
 /**
@@ -225,17 +258,17 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
 /**
  * Struct to retrieve info about a tunnel.
  */
-struct MeshTunnelInfo {
+union MeshTunnelInfo {
 
   /**
-   * Property, as listed in src/mesh/mesh.h (GNUNET_MESH_OPTION_*)
+   * GNUNET_YES / GNUNET_NO, for binary flags.
    */
-  unsigned int prop;
+  int yes_no;
 
   /**
-   * Value, of type dependant on @c prop.
+   * Peer on the other side of the tunnel
    */
-  void *value;
+  struct GNUNET_PeerIdentity *peer;
 };
 
 
@@ -243,11 +276,14 @@ struct MeshTunnelInfo {
  * Get information about a tunnel.
  *
  * @param tunnel Tunnel handle.
- * 
- * @return Allocated, {0, NULL} terminated set of tunnel properties.
+ * @param option Query, as listed in src/mesh/mesh.h (GNUNET_MESH_OPTION_*)
+ * @param ... dependant on option, currently not used
+ *
+ * @return Union with an answer to the query.
  */
-struct MeshTunnelInfo *
-GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel);
+const union MeshTunnelInfo *
+GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel,
+                             enum MeshTunnelOption option, ...);
 
 
 /**
