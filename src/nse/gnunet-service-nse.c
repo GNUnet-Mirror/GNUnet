@@ -1457,9 +1457,6 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  GNUNET_SERVER_suspend (srv);
-
-
   pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
@@ -1507,7 +1504,6 @@ run (void *cls,
     return;
   }
   stats = GNUNET_STATISTICS_create ("nse", cfg);
-  GNUNET_SERVER_resume (srv);
 }
 
 
