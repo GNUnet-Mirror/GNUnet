@@ -323,6 +323,7 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   static char unable_to_show[1024];
+  static char *s;
 
   if (address == NULL)
   {
@@ -342,8 +343,8 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
                      address->transport_name);
     return unable_to_show;
   }
-  return api->address_to_string (NULL, address->address,
-                                 address->address_length);
+  return (NULL != (s = api->address_to_string (NULL, address->address,
+                                 address->address_length)) ? s : "<invalid>");
 }
 
 
