@@ -302,12 +302,62 @@ static void
 handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
 		       const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_IDENTITY_CreateRequestMessage *crm;
+  uint16_t size;
+  uint16_t name_len;
+  uint16_t pk_len;
+  struct Ego *ego;
+  const char *str;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received CREATE message from client\n");
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
-  GNUNET_break (0); // not implemented!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_IDENTITY_CreateRequestMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  crm = (const struct GNUNET_IDENTITY_CreateRequestMessage *) message;
+  name_len = ntohs (crm->name_len);
+  pk_len = ntohs (crm->pk_len);
+  str = (const char *) &crm[1];
+  if ( (name_len + pk_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size) ||
+       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES))) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  str = &str[pk_len];
+  if ('\0' != str[name_len - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == strcmp (ego->identifier,
+		     str))
+    {
+      send_result_code (client, 1, gettext_noop ("identifier already in use for another ego"));
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_CRYPTO_ecc_key_free (pk);
+      return;
+    }
+  }
+  ego = GNUNET_new (struct Ego);
+  ego->pk = pk;
+  ego->identifier = GNUNET_strdup (str);
+  GNUNET_CONTAINER_DLL_insert (ego_head,
+			       ego_tail,
+			       ego);
+  send_result_code (client, 0, NULL);
+  /* FIXME: also write to file! */
+  notify_listeners (ego);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
