@@ -641,8 +641,44 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 		     GNUNET_IDENTITY_Continuation cont,
 		     void *cont_cls)
 {
-  GNUNET_break (0); // FIXME
-  return NULL;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
+  char *str;
+  uint16_t enc_len;
+  size_t slen;
+
+  slen = strlen (service_name) + 1;
+  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
+  enc_len = ntohs (enc->size);
+
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) - enc_len)
+  {
+    GNUNET_break (0);
+    GNUNET_free (enc);
+    return NULL;
+  }
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
+		      sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
+		      enc_len + slen);  
+  op->cont = cont;
+  op->cls = cont_cls;
+  sdm = (struct GNUNET_IDENTITY_SetDefaultMessage *) &op[1];
+  sdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
+  sdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
+			    slen + enc_len);
+  sdm->name_len = htons (slen);
+  sdm->pk_len = htons (enc_len);
+  str = (char *) &sdm[1];
+  memcpy (str, enc, enc_len);
+  memcpy (&str[enc_len], service_name, slen);
+  op->msg = &sdm->header;
+  GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
+				    id->op_tail,
+				    op);
+  if (NULL == id->th)
+    transmit_next (id);
+  return op;
 }
 
 
@@ -661,8 +697,47 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			GNUNET_IDENTITY_Callback cb,
 			void *cb_cls)
 {
-  GNUNET_break (0); // FIXME
-  return NULL;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
+  struct GNUNET_IDENTITY_Operation *op;
+  struct GNUNET_IDENTITY_CreateRequestMessage *crm;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  char *str;
+  uint16_t enc_len;
+  size_t slen;
+
+  slen = strlen (identifier) + 1;
+  pk = GNUNET_CRYPTO_ecc_key_create ();
+  enc = GNUNET_CRYPTO_ecc_encode_key (pk);
+  GNUNET_CRYPTO_ecc_key_free (pk);
+  enc_len = ntohs (enc->size);
+
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) - enc_len)
+  {
+    GNUNET_break (0);
+    GNUNET_free (enc);
+    return NULL;
+  }
+  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
+		      sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
+		      enc_len + slen);  
+  op->cb = cb;
+  op->cls = cb_cls;
+  crm = (struct GNUNET_IDENTITY_CreateRequestMessage *) &op[1];
+  crm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_CREATE);
+  crm->header.size = htons (sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
+			    slen + enc_len);
+  crm->name_len = htons (slen);
+  crm->pk_len = htons (enc_len);
+  str = (char *) &crm[1];
+  memcpy (str, enc, enc_len);
+  memcpy (&str[enc_len], identifier, slen);
+  op->msg = &crm->header;
+  GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
+				    id->op_tail,
+				    op);
+  if (NULL == id->th)
+    transmit_next (id);
+  return op;
 }
 
 
