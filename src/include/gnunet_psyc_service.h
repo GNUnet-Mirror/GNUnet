@@ -178,7 +178,7 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
  * Method called from PSYC upon receiving a join request.
  *
  * @param cls Closure.
- * @param sender Who transmitted the message.
+ * @param peer Peer requesting to join.
  * @param method_name Method name in the join request.
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
@@ -187,7 +187,7 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
  *             if data is binary).
  */
 typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
-                                        const struct GNUNET_PeerIdentity *sender,
+                                        const struct GNUNET_PeerIdentity *peer,
                                         const char *method_name,
                                         size_t header_length,
                                         GNUNET_PSYC_Modifier *header,
@@ -200,7 +200,7 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
  * Method called from PSYC upon receiving a part request.
  *
  * @param cls Closure.
- * @param sender Who transmitted the message.
+ * @param peer Peer requesting to leave.
  * @param method_name Method name in the part request.
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
@@ -209,7 +209,7 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
  *             if data is binary).
  */
 typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
-                                        const struct GNUNET_PeerIdentity *sender,
+                                        const struct GNUNET_PeerIdentity *peer,
                                         const char *method_name,
                                         size_t header_length,
                                         GNUNET_PSYC_Modifier *header,
@@ -471,52 +471,25 @@ GNUNET_PSYC_group_member_remove (struct GNUNET_PSYC_Group *group,
 
 
 /** 
- * Function called to inform a member about state changes for a channel.
- *
- * Note that (for sets) only the delta is communicated, not the full state.
+ * Function called to inform a member about stored state values for a channel.
  *
  * @param cls Closure.
- * @param full_state_name Full name of the state.
- * @param type How to interpret the change.
- * @param state_value Information about the new state.
- * @param state_value_size Number of bytes in @a state_value.
+ * @param name Name of the state variable.
+ * @param value Value of the state variable.
+ * @param value_size Number of bytes in @a value.
  */
 typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
-					  const char *full_state_name,
-					  enum GNUNET_PSYC_Operator type,
-					  const void *state_value,
-					  size_t state_value_size);
+					  const char *name,
+					  size_t value_size,
+					  const void *value);
 
-
-/** 
- * Descriptor for an event handler handling PSYC state updates.
- */
-struct GNUNET_PSYC_StateHandler
-{
-
-  /** 
-   * Name of the state variable this handler calls about, used in try-and-slice matching.
-   */
-  const char *state_name;
-
-  /** 
-   * Function to call whenever the respective state changes.
-   */
-  GNUNET_PSYC_StateCallback event_handler;
-
-  /** 
-   * Closure for the @a event_handler function.
-   */
-  void *event_handler_cls;
-
-};
 
 /** 
  * Join a PSYC group.
  *
  * The entity joining is always the local peer.  The user must immediately use
  * the GNUNET_PSYC_member_to_origin() (and possibly
- * GNUNET_PSYC_member_origin_variable_set()) functions to transmit a @e join_msg to
+ * GNUNET_PSYC_member_variable_set()) functions to transmit a @e join_msg to
  * the channel; if the join request succeeds, the channel state (and @e recent
  * method calls) will be replayed to the joining member.  There is no explicit
  * notification on failure (as the channel may simply take days to approve, a-v/snd
@@ -528,8 +501,6 @@ struct GNUNET_PSYC_StateHandler
  * @param method Function to invoke on messages received from the channel,
  *                typically at least contains functions for @e join and @e part.
  * @param method_cls Closure for @a method.
- * @param state_count Number of @a state_handlers.
- * @param state_handlers Array of state event handlers.
  * @return Handle for the member, NULL on error.
  */
 struct GNUNET_PSYC_Member *
@@ -537,9 +508,7 @@ GNUNET_PSYC_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
 			 const struct GNUNET_PeerIdentity *origin,
 			 GNUNET_PSYC_Method method,
-			 void *method_cls,
-			 unsigned int state_count,
-			 struct GNUNET_PSYC_StateHandler *state_handlers);
+			 void *method_cls);
 
 
 /** 
@@ -607,15 +576,15 @@ GNUNET_PSYC_member_to_origin (struct GNUNET_PSYC_Member *member,
  * again with NULL/0 for the @a value.
  *
  * @param member Membership handle.
- * @param variable_name Name of the variable to set.
- * @param value Value to set for the given variable.
+ * @param name Name of the variable to set.
  * @param value_size Number of bytes in @a value.
+ * @param value Value to set for the given variable.
  */
 uint64_t
-GNUNET_PSYC_member_origin_variable_set (struct GNUNET_PSYC_Member *member,
-					const char *variable_name,
-					const void *value,
-					size_t value_size);
+GNUNET_PSYC_member_variable_set (struct GNUNET_PSYC_Member *member,
+                                 const char *name,
+                                 size_t value_size,
+                                 const void *value);
 
 
 /** 
