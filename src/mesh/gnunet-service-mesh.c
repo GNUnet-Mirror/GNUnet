@@ -24,7 +24,6 @@
  * @author Bartlomiej Polot
  *
  *  FIXME in progress:
- * - keep queues until receiving ACK
  * - when sending in-order buffered data, wait for client ACKs
  * - refactor unicast to make generic handling, assigning *rel and *fc
  *
