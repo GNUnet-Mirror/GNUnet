@@ -3473,11 +3473,8 @@ queue_send (void *cls, size_t size, void *buf)
                                             &queue_send,
                                             peer);
   }
-  else if (NULL != peer->queue_head)
+  if (NULL != peer->queue_head)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "*   %s stalled\n",
-                GNUNET_i2s (&my_full_id));
     if (peer->id == t->next_hop)
       fc = &t->next_fc;
     else if (peer->id == t->prev_hop)
@@ -3487,8 +3484,11 @@ queue_send (void *cls, size_t size, void *buf)
       GNUNET_break (0);
       return data_size;
     }
-    if (NULL != fc && GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+    if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task && fc->queue_n > 0)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "*   %s starting poll timeout\n",
+                  GNUNET_i2s (&my_full_id));
       fc->t = t;
       fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                     &tunnel_poll, fc);
