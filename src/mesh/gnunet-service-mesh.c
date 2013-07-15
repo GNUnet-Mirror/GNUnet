@@ -4065,6 +4065,10 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
             tunnel_add_buffer_ucast (t, msg);
           }
         }
+        else /* Tunnel unreliable, send to clients directly */
+        {
+          tunnel_send_client_ucast (t, msg);
+        }
       }
       else
       {
