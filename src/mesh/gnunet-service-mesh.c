@@ -2187,9 +2187,10 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
       if (GNUNET_YES == t->reliable && NULL != c)
         tunnel_send_data_ack (t, fwd);
       break;
+    case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
       break;
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
     case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
@@ -4136,7 +4137,6 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     rel = t->fwd_rel;
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, GNUNET_YES);
   }
   else if (t->prev_hop == id && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
   {
@@ -4147,7 +4147,6 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     rel = t->bck_rel;
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, GNUNET_NO);
   }
   else
   {
@@ -4169,7 +4168,10 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     next = copy->next;
     tunnel_free_reliable_message (copy);
   }
+  /* Once buffers have been free'd, send ACK */
+  tunnel_send_ack (t, type, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type);
 
+  /* If some message was free'd, update the retransmission delay*/
   if (GNUNET_YES == work)
   {
     if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
@@ -4197,7 +4199,6 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
       GNUNET_break (0);
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK, GNUNET_YES);
   }
   return GNUNET_OK;
 }
