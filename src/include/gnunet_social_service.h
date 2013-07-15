@@ -88,7 +88,7 @@ struct GNUNET_SOCIAL_Slicer;
  * @param header Modifiers present in the message. FIXME: use environment instead?
  * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
- * @param data Data stream given to the method (might not be zero-terminated 
+ * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
  * @param flags Message flags indicating fragmentation status.
  */
@@ -486,7 +486,7 @@ GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
  * Look at matching objects in the place.
  *
  * @param place The place to look its objects at.
- * @param object_filter Only look at objects with names beginning with this filter value. 
+ * @param object_filter Only look at objects with names beginning with this filter value.
  * @param state_cb Function to call for each object found.
  * @param state_cb_cls Closure for callback function.
  * 
@@ -593,7 +593,7 @@ GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
 void
 GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist);
 
-	  
+
 /** 
  * Leave a place permanently.
  *

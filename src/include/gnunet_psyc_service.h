@@ -33,21 +33,21 @@
  * NOTE:
  * - this API does not know about psyc's "root" and "places";
  *   there is no 'root' in GNUnet-Psyc as we're decentralized;
- *   'places' and 'persons' are combined within the same 
+ *   'places' and 'persons' are combined within the same
  *   abstraction, that of a "channel".  Channels are identified
- *   and accessed in this API using a public/private key.  
+ *   and accessed in this API using a public/private key.
  *   Higher-level applications should use NAMES within GADS
- *   to obtain public keys, and the distinction between 
+ *   to obtain public keys, and the distinction between
  *   'places' and 'persons' can then be made with the help
  *   of the naming system (and/or conventions).
  *   Channels are (as in PSYC) organized into a hierarchy; each
  *   channel master (the one with the private key) is then
- *   the operator of the multicast group (its Origin in 
+ *   the operator of the multicast group (its Origin in
  *   the terminology of the multicast API).
  * - The API supports passing large amounts of data using
  *   'streaming' for the argument passed to a method.  State
  *   and variables must fit into memory and cannot be streamed
- *   (thus, no passing of 4 GB of data in a variable; 
+ *   (thus, no passing of 4 GB of data in a variable;
  *   once we implement this, we might want to create a
  *   @c \#define for the maximum size of a variable).
  * - PSYC defines standard variables, methods, etc.  This
@@ -65,7 +65,7 @@
  *   receives messages (but never forwards; private responses
  *   would be transmitted by joining the senders 'inbox'
  *   channel -- or a inbox#bob subchannel).  The
- *   goal for all of this is to keep the abstractions in this 
+ *   goal for all of this is to keep the abstractions in this
  *   API minimal: interaction with multicast, try \& slice,
  *   state/variable/channel management.  Higher-level
  *   operations belong elsewhere (so maybe this API should
@@ -134,7 +134,7 @@ struct GNUNET_PSYC_PartHandle;
 
 /** 
  * Method called from PSYC upon receiving a message indicating a call
- * to a @e method.  
+ * to a @e method.
  *
  * @param cls Closure.
  * @param sender Who transmitted the message (master, except for messages
@@ -149,7 +149,7 @@ struct GNUNET_PSYC_PartHandle;
  * @param header Modifiers present in the message. FIXME: use environment instead?
  * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
- * @param data Data stream given to the method (might not be zero-terminated 
+ * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
  * @param frag Fragmentation status for the data.
  */
@@ -174,7 +174,7 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
  * @param data_size Number of bytes in @a data.
- * @param data Data stream given to the method (might not be zero-terminated 
+ * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
  */
 typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
@@ -196,7 +196,7 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
  * @param data_size Number of bytes in @a data.
- * @param data Data stream given to the method (might not be zero-terminated 
+ * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
  */
 typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
@@ -300,7 +300,7 @@ GNUNET_PSYC_master_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param[out] data Where to write the body of the message to give to the method;
  *        function must copy at most @a *data_size bytes to @a data.
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
- *         #GNUNET_NO on success, if more data is to be transmitted later 
+ *         #GNUNET_NO on success, if more data is to be transmitted later
  *         (should be used if @a *data_size was not big enough to take all the data)
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
@@ -311,7 +311,7 @@ typedef int (*GNUNET_PSYC_MasterReadyNotify)(void *cls,
 
 
 /** 
- * Handle for a pending PSYC transmission operation. 
+ * Handle for a pending PSYC transmission operation.
  */
 struct GNUNET_PSYC_MasterTransmitHandle;
 
@@ -363,20 +363,20 @@ struct GNUNET_PSYC_Channel;
 
 /** 
  * Convert a channel @a master to a @e channel handle to access the @e channel APIs.
- * 
+ *
  * @param master Channel master handle.
  * @return Channel handle, valid for as long as @a master is valid.
- */ 
+ */
 struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
 
 
 /** 
  * Convert @a slave to a @e channel handle to access the @e channel APIs.
- * 
+ *
  * @param slave Slave handle.
  * @return Channel handle, valid for as long as @a slave is valid.
- */ 
+ */
 struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
 
@@ -473,7 +473,7 @@ struct GNUNET_PSYC_Slave;
  * @return Handle for the slave, NULL on error.
  */
 struct GNUNET_PSYC_Slave *
-GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                         const struct GNUNET_PeerIdentity *origin,
                         GNUNET_PSYC_Method method,
@@ -565,9 +565,9 @@ struct GNUNET_PSYC_Story;
  * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
  * @param method_cls Closure for @a method.
- * @param finish_cb Function to call when the requested story has been fully 
+ * @param finish_cb Function to call when the requested story has been fully
  *        told (counting message IDs might not suffice, as some messages
- *        might be secret and thus the listener would not know the story is 
+ *        might be secret and thus the listener would not know the story is
  *        finished without being told explicitly); once this function
  *        has been called, the client must not call
  *        GNUNET_PSYC_slave_story_tell_cancel() anymore.
@@ -609,7 +609,7 @@ GNUNET_PSYC_slave_story_tell_cancel (struct GNUNET_PSYC_Story *story);
  * values stored under "_a_b_c".
  *
  * @param slave Slave handle.
- * @param state_name Name of the state to query (full name 
+ * @param state_name Name of the state to query (full name
  *        might be longer, this is only the prefix that must match).
  * @param cb Function to call on the matching state values.
  * @param cb_cls Closure for @a cb.
@@ -636,7 +636,7 @@ GNUNET_PSYC_slave_state_get_all (struct GNUNET_PSYC_Slave *slave,
  *
  * @param slave Slave handle.
  * @param variable_name Name of the variable to query.
- * @param[out] return_value_size Set to number of bytes in variable, 
+ * @param[out] return_value_size Set to number of bytes in variable,
  *        needed as variables might contain binary data and
  *        might also not be 0-terminated; set to 0 on errors.
  * @return NULL on error (no matching state or variable), pointer

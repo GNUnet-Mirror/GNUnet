@@ -60,7 +60,7 @@ struct GNUNET_MULTICAST_Origin;
  */
 enum GNUNET_MULTICAST_JoinPolicy
 {
-  /** 
+  /**
    * Anyone can join the group, without announcing his presence;
    * all messages are always public and can be distributed freely.
    * Joins may be announced, but this is not required.
@@ -447,12 +447,12 @@ enum GNUNET_MULTICAST_ReplayErrorCode
 
   /** 
    * Everything is fine.
-   */ 
+   */
   GNUNET_MULTICAST_REC_OK = 0,
 
   /** 
    * Message fragment has been discarded (likely transient message that was too old).
-   */ 
+   */
   GNUNET_MULTICAST_REC_TRANSIENT_LOST = 1,
 
   /** 
@@ -460,12 +460,12 @@ enum GNUNET_MULTICAST_ReplayErrorCode
    * replay function has ever encountered; thus it is likely the
    * origin never sent it and we're at the HEAD of the multicast
    * stream as far as this node is concerned.
-   */ 
+   */
   GNUNET_MULTICAST_REC_PAST_HEAD = 2,
 
   /** 
    * Internal error (i.e. database error).  Try some other peer.
-   */ 
+   */
   GNUNET_MULTICAST_REC_INTERNAL_ERROR = 3
 
 };
@@ -511,7 +511,7 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @return Handle for the origin, NULL on error.
  */
 struct GNUNET_MULTICAST_Origin *
-GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			       void *cls,
 			       const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
 			       enum GNUNET_MULTICAST_JoinPolicy join_policy,
@@ -591,18 +591,18 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  *        this peer already knows from this group; NULL if this
  *        client is unable to support replay.
  * @param test_cb Function multicast can use to test group membership.
- * @param message_cb Function to be called for all message fragments we 
+ * @param message_cb Function to be called for all message fragments we
  *        receive from the group, excluding those our @a replay_cb
  *        already has.
  * @param cls Closure for callbacks.
  * @param join_req Application-dependent join message to be passed to origin
- *        (might, for example, contain a user 
+ *        (might, for example, contain a user
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.).
  * @return Handle for the member, NULL on error.
  */
 struct GNUNET_MULTICAST_Member *
-GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			      const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                               const struct GNUNET_PeerIdentity *origin,
 			      uint64_t max_known_fragment_id,
@@ -664,7 +664,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
 
 
 /** 
- * Send a message to the origin of the multicast group.  
+ * Send a message to the origin of the multicast group.
  * 
  * @param member Membership handle.
  * @param size Number of bytes we want to send to origin.

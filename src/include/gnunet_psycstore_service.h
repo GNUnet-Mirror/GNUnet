@@ -160,7 +160,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  * @param message The retrieved message fragment.
  * @param flags Message flags indicating fragmentation status.
  */
-typedef void (*GNUNET_PSYCSTORE_FragmentResultCallback)(void *cls,	
+typedef void (*GNUNET_PSYCSTORE_FragmentResultCallback)(void *cls,
 						       const struct GNUNET_MULTICAST_MessageHeader *message,
                                                        enum GNUNET_PSYC_MessageFlags flags);
 

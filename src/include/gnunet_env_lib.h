@@ -30,34 +30,34 @@
  * Possible operations on PSYC state (persistent) and transient variables (per message).
  */
 enum GNUNET_ENV_Operator
-{ 
-  /**
+{
+  /** 
    * Set value of a transient variable.
    */
   GNUNET_ENV_OP_SET = ':',
 
-  /**
+  /** 
    * Assign value for a persistent state variable.
    *
    * If an assigned value is NULL, the variable is deleted.
    */
   GNUNET_ENV_OP_ASSIGN = '=',
 
-  /**
+  /** 
    * Augment state variable.
    *
    * Used for appending strings, adding numbers, and adding new items to a list or dictionary.
    */
   GNUNET_ENV_OP_AUGMENT = '+',
 
-  /**
+  /** 
    * Diminish state variable.
    *
    * Used for subtracting numbers, and removing items from a list or dictionary.
    */
   GNUNET_ENV_OP_DIMINISH = '-',
 
-  /**
+  /** 
    * Update state variable.
    *
    * Used for modifying a single item of a list or dictionary.
@@ -66,7 +66,7 @@ enum GNUNET_ENV_Operator
 };
 
 
-/**
+/** 
  * PSYC variable types.
  */
 enum GNUNET_ENV_Type
@@ -78,33 +78,33 @@ enum GNUNET_ENV_Type
 };
 
 
-/**
+/** 
  * PSYC state modifier.
  */
 struct GNUNET_ENV_Modifier {
-  /**
+  /** 
    * State operation.
    */
   GNUNET_ENV_Operator oper;
 
-  /**
+  /** 
    * Variable name.
    */
   const char *name;
 
-  /**
+  /** 
    * Size of @a value.
    */
   size_t value_size;
 
-  /**
+  /** 
    * Value of variable.
    */
   const void *value;
 };
 
 
-/**
+/** 
  * Environment for a message.
  *
  * Contains modifiers.
@@ -159,7 +159,7 @@ GNUNET_ENV_environment_get_modifiers (const struct GNUNET_ENV_Environment *env,
  * @param modifiers_length Number of @a modifiers.
  * @param modifiers Array of modifiers to add.
  * 
- * @return 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error.
  */
 int
 GNUNET_ENV_environment_set_modifiers (const struct GNUNET_ENV_Environment *env,
@@ -192,7 +192,7 @@ GNUNET_ENV_var_get_type (char *name);
  *
  * @param size Size of value.
  * @param value Raw value of variable.
- * @param[out] number Value converted to a 64-bit integer. 
+ * @param[out] number Value converted to a 64-bit integer.
  *
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
