@@ -534,7 +534,7 @@ struct GNUNET_SOCIAL_TalkRequest;
  * @param place Place where we want to talk to the host.
  * @param method_name Method to invoke on the host.
  * @param notify Function to use to get the payload for the method.
- * @param notifyv_cls Closure for @a notify.
+ * @param notify_cls Closure for @a notify.
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request.
  */
@@ -572,8 +572,10 @@ struct GNUNET_SOCIAL_HistoryLesson;
  * @param start_message_id First historic message we are interested in.
  * @param end_message_id Last historic message we are interested in (inclusive).
  * @param slicer Slicer to use to process history.
+ *               FIXME: Needed? Could use the slicer of the place instead,
+ *                      receiving messages with the HISTORIC flag set.
  * @return Handle to abort history lesson, never NULL (multiple lessons
- *        at the same time are allowed).
+ *         at the same time are allowed).
  */
 struct GNUNET_SOCIAL_HistoryLesson *
 GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
