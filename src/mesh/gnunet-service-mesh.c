@@ -2172,13 +2172,13 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
   prev_fc = fwd ? &t->prev_fc : &t->next_fc;
   hop     = fwd ? t->prev_hop : t->next_hop;
 
-  /* Is it after unicast retransmission? */
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "ACK due to DATA retransmission\n");
+                  "ACK due to %s\n",
+                  GNUNET_MESH_DEBUG_M2S (type));
       if (GNUNET_YES == t->nobuffer)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
