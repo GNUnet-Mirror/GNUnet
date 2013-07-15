@@ -19,9 +19,9 @@
 */
 
 /** 
- * @file include/gnunet_psyc_lib.h
- * @brief Library for common PSYC functionality:
- *        types, variable (de)serialization.
+ * @file include/gnunet_env_lib.h
+ * @brief Library providing operations for the @e environment of PSYC and Social messages,
+ *        and for (de)serializing variable values.
  * @author Gabor X Toth
  */
 
@@ -29,63 +29,63 @@
 /** 
  * Possible operations on PSYC state (persistent) and transient variables (per message).
  */
-enum GNUNET_PSYC_Operator
+enum GNUNET_ENV_Operator
 { 
   /**
    * Set value of a transient variable.
    */
-  GNUNET_PSYC_OP_SET = ':',
+  GNUNET_ENV_OP_SET = ':',
 
   /**
    * Assign value for a persistent state variable.
    *
    * If an assigned value is NULL, the variable is deleted.
    */
-  GNUNET_PSYC_OP_ASSIGN = '=',
+  GNUNET_ENV_OP_ASSIGN = '=',
 
   /**
    * Augment state variable.
    *
    * Used for appending strings, adding numbers, and adding new items to a list or dictionary.
    */
-  GNUNET_PSYC_OP_AUGMENT = '+',
+  GNUNET_ENV_OP_AUGMENT = '+',
 
   /**
    * Diminish state variable.
    *
    * Used for subtracting numbers, and removing items from a list or dictionary.
    */
-  GNUNET_PSYC_OP_DIMINISH = '-',
+  GNUNET_ENV_OP_DIMINISH = '-',
 
   /**
    * Update state variable.
    *
    * Used for modifying a single item of a list or dictionary.
    */
-  GNUNET_PSYC_OP_UPDATE = '@',
+  GNUNET_ENV_OP_UPDATE = '@',
 };
 
 
 /**
  * PSYC variable types.
  */
-enum GNUNET_PSYC_Type
+enum GNUNET_ENV_Type
 {
-  GNUNET_PSYC_TYPE_DATA = 0,
-  GNUNET_PSYC_TYPE_NUMBER,
-  GNUNET_PSYC_TYPE_LIST,
-  GNUNET_PSYC_TYPE_DICT
+  GNUNET_ENV_TYPE_DATA = 0,
+  GNUNET_ENV_TYPE_NUMBER,
+  GNUNET_ENV_TYPE_LIST,
+  GNUNET_ENV_TYPE_DICT
 };
 
 
 /**
  * PSYC state modifier.
  */
-struct GNUNET_PSYC_Modifier {
+struct GNUNET_ENV_Modifier {
   /**
    * State operation.
    */
-  GNUNET_PSYC_Operator oper;
+  GNUNET_ENV_Operator oper;
 
   /**
    * Variable name.
@@ -104,6 +104,78 @@ struct GNUNET_PSYC_Modifier {
 };
 
 
+/**
+ * Environment for a message.
+ *
+ * Contains modifiers.
+ */
+struct GNUNET_ENV_Environment;
+
+
+/** 
+ * Create an environment.
+ * 
+ * @return A newly allocated environment.
+ */
+struct GNUNET_ENV_Environment *
+GNUNET_ENV_environment_create ();
+
+
+/** 
+ * Add an operation on a variable to the environment.
+ *
+ * @param env The environment.
+ * @param oper Operation to perform.
+ * @param name Name of the variable.
+ * @param value_size Size of @a value.
+ * @param value Value of the variable.
+ * 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error.
+ */
+int
+GNUNET_ENV_environment_operation (struct GNUNET_ENV_Environment *env,
+                                  enum GNUNET_ENV_Operator oper,
+                                  const char *name,
+                                  size_t value_size, const void *value);
+
+
+/** 
+ * Get all modifiers in the environment.
+ *
+ * @param env The environment.
+ * @param[out] modifiers_length Set to the number of returned modifiers.
+ * 
+ * @return Array of modifiers.
+ */
+struct GNUNET_ENV_Modifier *
+GNUNET_ENV_environment_get_modifiers (const struct GNUNET_ENV_Environment *env,
+                                      size_t *modifiers_length);
+
+
+/** 
+ * Add list of modifiers to the environment.
+ *
+ * @param env The environment.
+ * @param modifiers_length Number of @a modifiers.
+ * @param modifiers Array of modifiers to add.
+ * 
+ * @return 
+ */
+int
+GNUNET_ENV_environment_set_modifiers (const struct GNUNET_ENV_Environment *env,
+                                      size_t modifiers_length,
+                                      const struct GNUNET_ENV_Modifier *modifiers);
+
+
+/** 
+ * Destroy an environment.
+ *
+ * @param env The environment to destroy.
+ */
+void
+GNUNET_ENV_environment_destroy (struct GNUNET_ENV_Environment *env);
+
+
 /** 
  * Get the type of variable.
  *
@@ -111,8 +183,8 @@ struct GNUNET_PSYC_Modifier {
  * 
  * @return Variable type.
  */
-enum GNUNET_PSYC_Type
-GNUNET_PSYC_var_get_type (char *name);
+enum GNUNET_ENV_Type
+GNUNET_ENV_var_get_type (char *name);
 
 
 /** 
@@ -125,7 +197,7 @@ GNUNET_PSYC_var_get_type (char *name);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_PSYC_value_to_number (size_t size, const void *value, int64_t *number);
+GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
 
 
 /** 
@@ -138,7 +210,7 @@ GNUNET_PSYC_value_to_number (size_t size, const void *value, int64_t *number);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_PSYC_value_to_list (size_t size, const void *value, GNUNET_CONTAINER_SList **list);
+GNUNET_ENV_value_to_list (size_t size, const void *value, GNUNET_CONTAINER_SList **list);
 
 
 /** 
@@ -151,7 +223,7 @@ GNUNET_PSYC_value_to_list (size_t size, const void *value, GNUNET_CONTAINER_SLis
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_PSYC_value_to_dict (size_t size, const void *value, GNUNET_CONTAINER_MultiHashMap **dict);
+GNUNET_ENV_value_to_dict (size_t size, const void *value, GNUNET_CONTAINER_MultiHashMap **dict);
 
 
 /** 
@@ -163,7 +235,7 @@ GNUNET_PSYC_value_to_dict (size_t size, const void *value, GNUNET_CONTAINER_Mult
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_PSYC_value_from_number (int64_t number, size_t *value_size);
+GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
 
 
 /** 
@@ -175,7 +247,7 @@ GNUNET_PSYC_value_from_number (int64_t number, size_t *value_size);
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_PSYC_value_from_list (GNUNET_CONTAINER_SList *list, size_t *value_size);
+GNUNET_ENV_value_from_list (GNUNET_CONTAINER_SList *list, size_t *value_size);
 
 
 /** 
@@ -187,4 +259,4 @@ GNUNET_PSYC_value_from_list (GNUNET_CONTAINER_SList *list, size_t *value_size);
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_PSYC_value_from_dict (GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);
+GNUNET_ENV_value_from_dict (GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);

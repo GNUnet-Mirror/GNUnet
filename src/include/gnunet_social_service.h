@@ -85,7 +85,7 @@ struct GNUNET_SOCIAL_Slicer;
  *                   (unique only in combination with the given sender for
  *                    this channel).
  * @param header_length Number of modifiers in header.
- * @param header Modifiers present in the message.
+ * @param header Modifiers present in the message. FIXME: use environment instead?
  * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
@@ -323,27 +323,6 @@ GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
                               GNUNET_TIME_Relative expiration_time);
 
 
-
-/** 
- * (Re)decorate the home by changing objects in it.
- *
- * If the operation is #GNUNET_PSYC_OP_SET then the decoration only
- * applies to the next announcement by the home owner.
- *
- * @param home The home to decorate.
- * @param operation Operation to perform on the object.
- * @param object_name Name of the object to modify.
- * @param object_value_size Size of the given @a object_value.
- * @param object_value Value to use for the modification.
- */
-void
-GNUNET_SOCIAL_home_decorate (struct GNUNET_SOCIAL_Home *home,
-			     enum GNUNET_PSYC_Operator operation,
-			     const char *object_name,
-			     size_t object_value_size,
-			     const void *object_value);
-
-
 /** 
  * Handle for an announcement request.
  */
@@ -365,6 +344,7 @@ struct GNUNET_SOCIAL_Announcement;
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
                              const char *method_name,
+                             const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_OriginReadyNotify notify,
                              void *notify_cls);
 
@@ -429,6 +409,7 @@ struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_SOCIAL_Ego *ego,
                            char *address,
+                           const struct GNUNET_ENV_Environment *env,
                            size_t msg_size,
                            const void *msg,
                            struct GNUNET_SOCIAL_Slicer *slicer);
@@ -451,6 +432,7 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_HashCode *crypto_address,
                            struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_SOCIAL_Slicer *slicer,
+                           const struct GNUNET_ENV_Environment *env,
                            size_t msg_size,
                            const void *msg);
 
@@ -542,24 +524,6 @@ GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
 
 
 /** 
- * Frame the (next) talk by setting some variables for it.
- *
- * FIXME: use a TalkFrame struct instead that can be passed to
- * place_talk, nym_talk and home_reject_entry.
- *
- * @param place Place to talk in.
- * @param variable_name Name of variable to set.
- * @param value_size Number of bytes in @a value.
- * @param value Value of variable.
- */
-void
-GNUNET_SOCIAL_place_frame_talk (struct GNUNET_SOCIAL_Place *place,
-				const char *variable_name,
-				size_t value_size,
-				const void *value);
-
-
-/** 
  * A talk request.
  */
 struct GNUNET_SOCIAL_TalkRequest;
@@ -577,6 +541,7 @@ struct GNUNET_SOCIAL_TalkRequest;
 struct GNUNET_SOCIAL_TalkRequest *
 GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
 			  const char *method_name,
+                          const struct GNUNET_ENV_Environment *env,
 			  GNUNET_PSYC_OriginReadyNotify cb,
 			  void *cb_cls);
 
