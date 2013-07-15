@@ -210,10 +210,12 @@ create_update_message (struct Ego *ego)
  * Create a set default message with information about the current state of an ego.
  *
  * @param ego ego to create message for
+ * @param servicename name of the service to provide in the message
  * @return corresponding set default message
  */
 static struct GNUNET_IDENTITY_SetDefaultMessage *
-create_set_default_message (struct Ego *ego)
+create_set_default_message (struct Ego *ego,
+			    const char *servicename)
 {
   struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
   char *str;
@@ -221,7 +223,7 @@ create_set_default_message (struct Ego *ego)
   size_t name_len;
   struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
 
-  name_len = (NULL == ego->identifier) ? 0 : (strlen (ego->identifier) + 1);
+  name_len = (NULL == servicename) ? 0 : (strlen (servicename) + 1);
   enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
   pk_len = ntohs (enc->size);
   sdm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + pk_len + name_len);
@@ -231,7 +233,7 @@ create_set_default_message (struct Ego *ego)
   sdm->pk_len = htons (pk_len);
   str = (char *) &sdm[1];
   memcpy (str, enc, pk_len);
-  memcpy (&str[pk_len], ego->identifier, name_len);
+  memcpy (&str[pk_len], servicename, name_len);
   GNUNET_free (enc);
   return sdm;
 }
@@ -323,7 +325,8 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     if (0 == strcmp (ego->identifier,
 		     identifier))
     {
-      sdm = create_set_default_message (ego);
+      sdm = create_set_default_message (ego,
+					name);
       GNUNET_SERVER_notification_context_broadcast (nc, &sdm->header, GNUNET_YES);
       GNUNET_free (sdm);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
