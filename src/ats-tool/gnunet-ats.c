@@ -250,7 +250,9 @@ ats_perf_cb (void *cls,
     pr->bandwidth_in = bandwidth_in;
     pr->bandwidth_out = bandwidth_out;
     pr->tats_ctx = GNUNET_TRANSPORT_address_to_string(cfg, address,
-                      resolve_addresses_numeric, GNUNET_TIME_UNIT_FOREVER_REL, transport_addr_to_str_cb, pr);
+                      resolve_addresses_numeric,
+         						  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                      transport_addr_to_str_cb, pr);
     GNUNET_CONTAINER_DLL_insert (head, tail, pr);
     results++;
     pending++;
