@@ -86,21 +86,21 @@ struct GNUNET_SOCIAL_Slicer;
  *                    this channel).
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
- * @param data_off Byte offset of @a data in the overall data of the method.
+ * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
  *             if data is binary).
- * @param frag Fragmentation status for the data.
+ * @param flags Message flags indicating fragmentation status.
  */
 typedef int (*GNUNET_SOCIAL_Method)(void *cls,
 				    const char *full_method_name,
 				    uint64_t message_id,
                                     size_t header_length,
                                     GNUNET_PSYC_Modifier *header,
-				    uint64_t data_off,
+				    uint64_t data_offset,
 				    size_t data_size,
 				    const void *data,
-				    enum GNUNET_PSYC_FragmentStatus frag);
+				    enum GNUNET_PSYC_MessageFlags flags);
 
 
 /** 

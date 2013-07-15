@@ -111,7 +111,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
- * Test if a peer was a member of the channel when the message with the
+ * Test if a peer was a member of the channel when the message fragment with the
  * specified ID was sent to the channel.
  *
  * This is useful in case of retransmissions to check if the peer was authorized
@@ -119,7 +119,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * @param h Handle for the PSYCstore.
  * @param channel_id The channel we are interested in.
- * @param message_id Message ID to check.
+ * @param fragment_id Message fragment ID to check.
  * @param peer Peer whose membership to check.
  * @param ccb Callback to call with the test result.
  * @param ccb_cls Closure for the callback.
@@ -129,14 +129,14 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
 				  const struct GNUNET_HashCode *channel_id,
-				  uint64_t message_id,
+				  uint64_t fragment_id,
 				  const struct GNUNET_PeerIdentity *peer,
 				  GNUNET_PSYCSTORE_ContinuationCallback ccb,
 				  void *ccb_cls);
 
 
 /** 
- * Store a message sent to a channel.
+ * Store a message fragment sent to a channel.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_id The channel the message belongs to.
@@ -147,23 +147,43 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_message_store (struct GNUNET_PSYCSTORE_Handle *h,
-				const struct GNUNET_HashCode *channel_id,
-				const struct GNUNET_MULTICAST_MessageHeader *message,
-				GNUNET_PSYCSTORE_ContinuationCallback ccb,
-				void *ccb_cls);
+GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
+                                 const struct GNUNET_HashCode *channel_id,
+                                 const struct GNUNET_MULTICAST_MessageHeader *message,
+                                 GNUNET_PSYCSTORE_ContinuationCallback ccb,
+                                 void *ccb_cls);
 
 
 /** 
- * Function called with the result of a GNUNET_PSYCSTORE_message_get() call.
+ * Function called with one message fragment, as the result of a
+ * GNUNET_PSYCSTORE_fragment_get() or GNUNET_PSYCSTORE_message_get() call.
  *
  * @param cls Closure.
- * @param message_id ID of the message.
- * @param message The retrieved message.
+ * @param message The retrieved message fragment.
+ * @param flags Message flags indicating fragmentation status.
  */
-typedef void (*GNUNET_PSYCSTORE_MessageResultCallback)(void *cls,	
-						       uint64_t message_id,				       
-						       const struct GNUNET_MULTICAST_MessageHeader *message);
+typedef void (*GNUNET_PSYCSTORE_FragmentResultCallback)(void *cls,	
+						       const struct GNUNET_MULTICAST_MessageHeader *message,
+                                                       enum GNUNET_PSYC_MessageFlags flags);
+
+
+/** 
+ * Retrieve a message fragment by fragment ID.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_id The channel we are interested in.
+ * @param fragment_id Fragment ID to check.  Use 0 to get the latest message fragment.
+ * @param rcb Callback to call with the result of the operation.
+ * @param rcb_cls Closure for the callback.
+ * 
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
+                               const struct GNUNET_HashCode *channel_id,
+                               uint64_t message_id,
+                               GNUNET_PSYCSTORE_FragmentResultCallback rcb,
+                               void *rcb_cls);
 
 
 /** 
@@ -181,7 +201,7 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
 			      const struct GNUNET_HashCode *channel_id,
 			      uint64_t message_id,
-			      GNUNET_PSYCSTORE_MessageResultCallback rcb,
+			      GNUNET_PSYCSTORE_FragmentResultCallback rcb,
 			      void *rcb_cls);
 
 
@@ -191,7 +211,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param h Handle for the PSYCstore.
  * @param channel_id The channel we are interested in.
  * @param name Name of variable.
- * @param size Size of @a value.
+ * @param value_size Size of @a value.
  * @param value Value of variable.
  * @param ccb Callback to call with the result of the operation.
  * @param ccb_cls Closure for the callback.
@@ -202,7 +222,7 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_set (struct GNUNET_PSYCSTORE_Handle *h,
 			    const struct GNUNET_HashCode *channel_id,
 			    const char *name,
-			    size_t size,
+			    size_t value_size,
 			    const void *value,
 			    GNUNET_PSYCSTORE_ContinuationCallback ccb,
 			    void *ccb_cls);

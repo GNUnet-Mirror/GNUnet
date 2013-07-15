@@ -101,25 +101,22 @@ extern "C"
 #define GNUNET_PSYC_VERSION 0x00000000
 
 
-/** 
- * Information flags for data fragments set via PSYC.
- */
-enum GNUNET_PSYC_FragmentStatus
+enum GNUNET_PSYC_MessageFlags
 {
-  /** 
-   * This is the first part of data for the given method call.
+  /**
+   * First fragment of a message.
    */
-  GNUNET_PSYC_FS_FIRST = 1,
-  
-  /** 
-   * This is the last part of data for the given method call.
+  GNUNET_PSYC_MESSAGE_FIRST_FRAGMENT = GNUNET_MULTICAST_MESSAGE_FIRST_FRAGMENT,
+
+  /**
+   * Last fragment of a message.
    */
-  GNUNET_PSYC_FS_LAST = 2,
+  GNUNET_PSYC_MESSAGE_LAST_FRAGMENT = GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT,
 
   /** 
-   * OR'ed flags if payload is not fragmented.
+   * OR'ed flags if message is not fragmented.
    */
-  GNUNET_PSYC_FS_NOT_FRAGMENTED = (GNUNET_PSYC_FS_FIRST | GNUNET_PSYC_FS_LAST)
+  GNUNET_PSYC_MESSAGE_NOT_FRAGMENTED = GNUNET_MULTICAST_MESSAGE_NOT_FRAGMENTED
 };
 
 
@@ -157,7 +154,7 @@ struct GNUNET_PSYC_PartHandle;
  *        FIXME: no try-and-slice for methods defined here.
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
- * @param data_off Byte offset of @a data in the overall data of the method.
+ * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated 
  *             if data is binary).
@@ -168,10 +165,12 @@ typedef int (*GNUNET_PSYC_Method)(void *cls,
 				  uint64_t message_id,
 				  uint64_t group_generation,
 				  const char *method_name,
-				  uint64_t data_off,
+                                  size_t header_length,
+                                  GNUNET_PSYC_Modifier *header,                                 
+				  uint64_t data_offset,
 				  size_t data_size,
 				  const void *data,
-				  enum GNUNET_PSYC_FragmentStatus frag);
+				  enum GNUNET_PSYC_MessageFlags flags);
 
 
 /** 

@@ -94,26 +94,46 @@ enum GNUNET_MULTICAST_JoinPolicy
 
 };
 
+enum GNUNET_MULTICAST_MessageFlags
+{
+  /**
+   * First fragment of a message.
+   */
+  GNUNET_MULTICAST_MESSAGE_FIRST_FRAGMENT = 1 << 0,
+
+  /**
+   * Last fragment of a message.
+   */
+  GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT = 1 << 1,
+
+  /** 
+   * OR'ed flags if message is not fragmented.
+   */
+  GNUNET_MULTICAST_MESSAGE_NOT_FRAGMENTED
+    = GNUNET_MULTICAST_MESSAGE_FIRST_FRAGMENT
+    | GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT
+};
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /** 
- * Header of a multicast message.
+ * Header of a multicast message fragment.
  *
- * This format is public as the replay mechanism must replay messages using the
- * same format.  This is needed as we want to integrity-check messages within
+ * This format is public as the replay mechanism must replay message fragments using the
+ * same format.  This is needed as we want to integrity-check message fragments within
  * the multicast layer to avoid multicasting mal-formed messages.
  */
 struct GNUNET_MULTICAST_MessageHeader
 {
 
   /** 
-   * Header for all multicast messages from the origin.
+   * Header for all multicast message fragments from the origin.
    */
   struct GNUNET_MessageHeader header;
 
   /** 
-   * Number of hops this message has taken since the origin.
+   * Number of hops this message fragment has taken since the origin.
    *
    * Helpful to determine shortest paths to the origin for responses among
    * honest peers; updated at each hop and thus not signed and not secure.
@@ -121,21 +141,31 @@ struct GNUNET_MULTICAST_MessageHeader
   uint32_t hop_counter GNUNET_PACKED;
 
   /** 
-   * ECC signature of the message.
+   * ECC signature of the message fragment.
    *
    * Signature must match the public key of the multicast group.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
 
   /** 
-   * Signature of the multicast message.
+   * Signature of the multicast message fragment.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /** 
-   * Number of the message, monotonically increasing.
+   * Number of the message fragment, monotonically increasing.
+   */
+  uint64_t fragment_id GNUNET_PACKED;
+
+  /** 
+   * Number of the message this fragment belongs to.
    */
   uint64_t message_id GNUNET_PACKED;
+
+  /** 
+   * Byte offset of this @e fragment of the @e message.
+   */
+  uint64_t fragment_offset GNUNET_PACKED;
 
   /** 
    * Counter that monotonically increases whenever a member parts the group.
@@ -148,12 +178,12 @@ struct GNUNET_MULTICAST_MessageHeader
   uint64_t group_generation GNUNET_PACKED;
 
   /** 
-   * Difference between the current @a message_id and the @a message_id of the
+   * Difference between the current @a fragment_id and the @a fragment_id of the
    * preceeding non-transient message.
    * 
    * Zero for transient messages, @c UINT64_MAX for the first message, or any
    * other message creating a full state reset by the origin.  By subtracting
-   * @a state_delta from @a message_id, it is possible to calculate the message
+   * @a state_delta from @a fragment_id, it is possible to calculate the message
    * ID of the preceeding non-transient message and thus quickly traverse all
    * state changes up to the last full state reset by the origin.  This is
    * useful as it allows joining clients to quickly reassemble the state while
@@ -170,6 +200,11 @@ struct GNUNET_MULTICAST_MessageHeader
    */
   uint64_t state_delta GNUNET_PACKED;
 
+  /**
+   * Flags for this message.
+   */
+  enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
+
   /** 
    * Header for the message body.
    *
@@ -180,7 +215,44 @@ struct GNUNET_MULTICAST_MessageHeader
    */
   struct GNUNET_MessageHeader body;
 
-  /* followed by message body */
+  /* Followed by message body. */
+};
+
+GNUNET_NETWORK_STRUCT_END
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/** 
+ * Header of a request from a member to the origin.
+ *
+ * This format is public as the replay mechanism must replay message fragments using the
+ * same format.  This is needed as we want to integrity-check message fragments within
+ * the multicast layer to avoid multicasting mal-formed messages.
+ */
+struct GNUNET_MULTICAST_RequestHeader
+{
+
+  /** 
+   * Header for all requests from a member to the origin.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Flags for this request.
+   */
+  enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
+
+  /** 
+   * Header for the request body.
+   *
+   * Two request types are specifically understood by multicast, namely "peer
+   * join", "peer part".  Multicast will use those messages to update its list
+   * of candidates for content distribution.  All other message types are
+   * application-specific.
+   */
+  struct GNUNET_MessageHeader body;
+
+  /* Followed by request body. */
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -304,32 +376,30 @@ GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestH
  *
  * @param cls Closure.
  * @param peer Identity of the peer that we want to test.
- * @param message_id Message ID for which we want to do the test.
+ * @param fragment_id Message fragment ID for which we want to do the test.
  * @param mth Handle to give to GNUNET_MULTICAST_membership_test_answer().
  */
 typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
 							const struct GNUNET_PeerIdentity *peer,
-							uint64_t message_id,
+							uint64_t fragment_id,
 							struct GNUNET_MULTICAST_MembershipTestHandle *mth);
 
 
 /** 
- * Function called whenever a group member has transmitted a message
+ * Function called whenever a group member has transmitted a request
  * to the origin (other than joining or leaving).
  *
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start).
  * @param sender Identity of the sender.
- * @param request_id Unique counter for the request from this sender to this origin. FIXME: needed?
- * @param msg Message to the origin.
+ * @param req Request to the origin.
  */
 typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
                                                   const struct GNUNET_PeerIdentity *sender,
-                                                  uint64_t request_id,
-                                                  const struct GNUNET_MessageHeader *msg);
+                                                  const struct GNUNET_MULTICAST_RequestHeader *req);
 
 
 /** 
- * Function called whenever a group member is receiving a message from
+ * Function called whenever a group member is receiving a message fragment from
  * the origin.
  *
  * If admission to the group is denied, this function is called once with the
@@ -337,14 +407,11 @@ typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
  * then a second time with NULL to indicate that the connection failed for good.
  *
  * @param cls Closure (set from GNUNET_MULTICAST_member_join())
- * @param message_id Unique number of the message, 0 for response to join request,
- *        normal message IDs in either direction start at 1.
  * @param msg Message from the origin, NULL if the origin shut down
  *        (or we were kicked out, and we should thus call
  *        GNUNET_MULTICAST_member_part() next)
  */
 typedef void (*GNUNET_MULTICAST_MessageCallback) (void *cls,
-                                                  uint64_t message_id,
                                                   const struct GNUNET_MULTICAST_MessageHeader *msg);
 
 
@@ -364,11 +431,11 @@ struct GNUNET_MULTICAST_ReplayHandle;
  *
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start()
  *            or GNUNET_MULTICAST_member_join()).
- * @param message_id Which message should be replayed.
+ * @param fragment_id Which message fragment should be replayed.
  * @param rh Handle to pass to message transmit function.
  */
 typedef void (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
-						 uint64_t message_id,
+						 uint64_t fragment_id,
 						 struct GNUNET_MULTICAST_ReplayHandle *rh);
 
 
@@ -384,12 +451,12 @@ enum GNUNET_MULTICAST_ReplayErrorCode
   GNUNET_MULTICAST_REC_OK = 0,
 
   /** 
-   * Message has been discarded (likely transient message that was too old).
+   * Message fragment has been discarded (likely transient message that was too old).
    */ 
   GNUNET_MULTICAST_REC_TRANSIENT_LOST = 1,
 
   /** 
-   * Message ID counter was larger than the highest counter this
+   * Fragment ID counter was larger than the highest counter this
    * replay function has ever encountered; thus it is likely the
    * origin never sent it and we're at the HEAD of the multicast
    * stream as far as this node is concerned.
@@ -408,7 +475,7 @@ enum GNUNET_MULTICAST_ReplayErrorCode
  * Replay a message from the multicast group.
  *
  * @param rh Replay handle identifying which replay operation was requested.
- * @param msg Replayed message, NULL if unknown/error.
+ * @param msg Replayed message fragment, NULL if unknown/error.
  * @param ec Error code.
  */
 void
@@ -509,15 +576,14 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  * members of the group.
  *
  * @param cfg Configuration to use.
- * @param cls Closure for callbacks.
  * @param pub_key ECC key that identifies the group.
  * @param origin Peer identity of the origin.
- * @param max_known_message_id Largest known message ID to the replay service;
- *        all messages with IDs larger than this ID will be replayed if
+ * @param max_known_fragment_id Largest known message fragment ID to the replay
+          service; all messages with IDs larger than this ID will be replayed if
  *        possible (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
- * @param max_known_state_message_id Largest known message ID with a non-zero
- *        value for the @e state_delta; state messages with
+ * @param max_known_state_fragment_id Largest known message fragment ID with a
+          non-zero value for the @e state_delta; state messages with
  *        larger IDs than this value will be replayed with high priority
  *        (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
@@ -525,9 +591,10 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  *        this peer already knows from this group; NULL if this
  *        client is unable to support replay.
  * @param test_cb Function multicast can use to test group membership.
- * @param message_cb Function to be called for all messages we 
+ * @param message_cb Function to be called for all message fragments we 
  *        receive from the group, excluding those our @a replay_cb
  *        already has.
+ * @param cls Closure for callbacks.
  * @param join_req Application-dependent join message to be passed to origin
  *        (might, for example, contain a user 
  *        bind user identity/pseudonym to peer identity, application-level
@@ -536,14 +603,14 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			      void *cls,
 			      const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                               const struct GNUNET_PeerIdentity *origin,
-			      uint64_t max_known_message_id,
-			      uint64_t max_known_state_message_id,
+			      uint64_t max_known_fragment_id,
+			      uint64_t max_known_state_fragment_id,
 			      GNUNET_MULTICAST_ReplayCallback replay_cb,
 			      GNUNET_MULITCAST_MembershipTestCallback test_cb,
 			      GNUNET_MULTICAST_MessageCallback message_cb,
+			      void *cls,
 			      const struct GNUNET_MessageHeader *join_req);
 
 
@@ -560,14 +627,14 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
  * needed and not known to the client.
  *
  * @param member Membership handle.
- * @param message_id ID of a message that this client would like to see replayed.
+ * @param fragment_id ID of a message fragment that this client would like to see replayed.
  * @param message_cb Function to be called for the replayed message.
  * @param message_cb_cls Closure for @a message_cb.
  * @return Replay request handle, NULL on error.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
-					uint64_t message_id,
+					uint64_t fragment_id,
 					GNUNET_MULTICAST_MessageCallback message_cb,
 					void *message_cb_cls);
 
