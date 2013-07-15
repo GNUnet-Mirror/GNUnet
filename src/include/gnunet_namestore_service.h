@@ -72,6 +72,11 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_REV 65540
 
 /**
+ * Record type for a social place.
+ */
+#define GNUNET_NAMESTORE_TYPE_PLACE 65541
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;

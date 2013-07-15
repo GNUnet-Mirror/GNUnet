@@ -141,7 +141,12 @@ enum GNUNET_GNS_RecordType
   /**
    * Revocation, no data.
    */
-  GNUNET_GNS_RECORD_REV  = GNUNET_NAMESTORE_TYPE_REV
+  GNUNET_GNS_RECORD_REV  = GNUNET_NAMESTORE_TYPE_REV,
+
+  /**
+   * Social place.
+   */
+  GNUNET_GNS_RECORD_PLACE  = GNUNET_NAMESTORE_TYPE_PLACE
 };
 
 
