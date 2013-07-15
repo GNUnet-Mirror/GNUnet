@@ -91,7 +91,6 @@ typedef void (*GNUNET_PSYCSTORE_ContinuationCallback)(void *cls,
  * @param h Handle for the PSYCstore.
  * @param channel_id ID of the channel where the event happened.
  * @param message_id ID of the message in which this event was announced.
- * @param group_generation Generation of the group when this event was announced.
  * @param peer Identity of joining/leaving peer.
  * @param did_join #GNUNET_YES on join, #GNUNET_NO on leave.
  * @param ccb Callback to call with the result of the storage operation.
@@ -103,7 +102,6 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
                                    const struct GNUNET_HashCode *channel_id,
                                    uint64_t message_id,
-                                   uint64_t group_generation,
                                    const struct GNUNET_PeerIdentity *peer,
                                    int did_join,
                                    GNUNET_PSYCSTORE_ContinuationCallback ccb,

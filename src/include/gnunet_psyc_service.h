@@ -147,8 +147,6 @@ struct GNUNET_PSYC_PartHandle;
  * @param message_id Unique message counter for this message;
  *                   (unique only in combination with the given sender for
  *                    this channel).
- * @param group_generation Group generation counter for this message
- *                   (always zero for messages from members to channel owner); FIXME: needed?
  * @param method_name Original method name from PSYC (may be more
  *        specific than the registered method name due to try-and-slice matching).
  *        FIXME: no try-and-slice for methods defined here.
@@ -163,7 +161,6 @@ struct GNUNET_PSYC_PartHandle;
 typedef int (*GNUNET_PSYC_Method)(void *cls,
 				  const struct GNUNET_PeerIdentity *sender,
 				  uint64_t message_id,
-				  uint64_t group_generation,
 				  const char *method_name,
                                   size_t header_length,
                                   GNUNET_PSYC_Modifier *header,                                 
@@ -327,8 +324,6 @@ GNUNET_PSYC_channel_state_modify (struct GNUNET_PSYC_Channel *channel,
  * @param cls Closure.
  * @param message_id Set to the unique message ID that was generated for
  *        this message.
- * @param group_generation Set to the group generation used for this
-  *        message.
  * @param data_size[in,out] Initially set to the number of bytes available in @a data,
  *        should be set to the number of bytes written to data (IN/OUT).
  * @param[out] data Where to write the body of the message to give to the method;
@@ -340,7 +335,6 @@ GNUNET_PSYC_channel_state_modify (struct GNUNET_PSYC_Channel *channel,
  */
 typedef int (*GNUNET_PSYC_ChannelReadyNotify)(void *cls,
                                               uint64_t message_id,
-                                              uint64_t group_generation,
                                               size_t *data_size,
                                               void *data);
 
@@ -432,13 +426,11 @@ GNUNET_PSYC_member_get_group (struct GNUNET_PSYC_Member *member);
  * @param group Group handle.
  * @param member Which peer to add.
  * @param message_id Message ID for the message that changed the membership.
- * @param group_generation The generation ID where the change went into effect.
  */
 void
 GNUNET_PSYC_group_member_add (struct GNUNET_PSYC_Group *group,
 			      const struct GNUNET_PeerIdentity *member,
-			      uint64_t message_id,
-			      uint64_t group_generation);
+			      uint64_t message_id);
 
 
 /** 
@@ -460,13 +452,11 @@ GNUNET_PSYC_group_member_add (struct GNUNET_PSYC_Group *group,
  * @param group Group handle.
  * @param member Which peer to remove.
  * @param message_id Message ID for the message that changed the membership.
- * @param group_generation The generation ID where the change went into effect.
  */
 void
 GNUNET_PSYC_group_member_remove (struct GNUNET_PSYC_Group *group,
 				 const struct GNUNET_PeerIdentity *member,
-				 uint64_t message_id,
-				 uint64_t group_generation);
+				 uint64_t message_id);
 
 
 /** 
