@@ -275,6 +275,22 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Send an updated message for the given ego to all listeners.
+ *
+ * @param ego ego to send the update for
+ */
+static void
+notify_listeners (struct Ego *ego)
+{
+  struct GNUNET_IDENTITY_UpdateMessage *um;
+
+  um = create_update_message (ego);
+  GNUNET_SERVER_notification_context_broadcast (nc, &um->header, GNUNET_YES);
+  GNUNET_free (um);
+}
+
+
+/**
  * Handler for CREATE message from client, creates
  * new identity.
  *
@@ -308,12 +324,53 @@ static void
 handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 		       const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_IDENTITY_RenameMessage *rm;
+  uint16_t size;
+  uint16_t old_name_len;
+  uint16_t new_name_len;
+  struct Ego *ego;
+  const char *old_name;
+  const char *new_name;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received RENAME message from client\n");
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
-  GNUNET_break (0); // not implemented!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_IDENTITY_RenameMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  rm = (const struct GNUNET_IDENTITY_RenameMessage *) message;
+  old_name_len = ntohs (rm->old_name_len);
+  new_name_len = ntohs (rm->new_name_len);
+  old_name = (const char *) &rm[1];
+  new_name = &old_name[old_name_len];
+  if ( (old_name_len + new_name_len + sizeof (struct GNUNET_IDENTITY_RenameMessage) != size) ||
+       ('\0' != old_name[old_name_len - 1]) ||
+       ('\0' != new_name[new_name_len - 1]) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == strcmp (ego->identifier,
+		     old_name))
+    {
+      GNUNET_free (ego->identifier);
+      ego->identifier = GNUNET_strdup (new_name);
+      /* FIXME: also rename file! */
+      notify_listeners (ego);
+      send_result_code (client, 0, NULL);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+  }
+
+  send_result_code (client, 1, gettext_noop ("no matching ego found"));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -329,11 +386,51 @@ static void
 handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
 		       const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_IDENTITY_DeleteMessage *dm;
+  uint16_t size;
+  uint16_t name_len;
+  struct Ego *ego;
+  const char *name;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received DELETE message from client\n");
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
-  GNUNET_break (0); // not implemented!
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_IDENTITY_DeleteMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  dm = (const struct GNUNET_IDENTITY_DeleteMessage *) message;
+  name = (const char *) &dm[1];
+  name_len = ntohs (dm->name_len);
+  if ( (name_len + sizeof (struct GNUNET_IDENTITY_DeleteMessage) != size) ||
+       (0 != ntohs (dm->reserved)) ||
+       ('\0' != name[name_len - 1]) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == strcmp (ego->identifier,
+		     name))
+    {
+      GNUNET_CONTAINER_DLL_remove (ego_head,
+				   ego_tail,
+				   ego);
+      /* FIXME: also delete file! */
+      GNUNET_free (ego->identifier);
+      ego->identifier = NULL;
+      notify_listeners (ego);
+      GNUNET_CRYPTO_ecc_key_free (ego->pk);
+      GNUNET_free (ego);
+      send_result_code (client, 0, NULL);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+  }
 
   send_result_code (client, 1, gettext_noop ("no matching ego found"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
