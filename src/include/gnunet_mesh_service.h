@@ -241,10 +241,6 @@ struct MeshTunnelInfo {
 
 /**
  * Get information about a tunnel.
- * 
- * The existing end callback for the tunnel will be called immediately.
- * Any pending outgoing messages will be sent but no incoming messages will be
- * accepted and no data callbacks will be called.
  *
  * @param tunnel Tunnel handle.
  * 

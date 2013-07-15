@@ -1479,10 +1479,6 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
 
 /**
  * Get information about a tunnel.
- * 
- * The existing end callback for the tunnel will be called immediately.
- * Any pending outgoing messages will be sent but no incoming messages will be
- * accepted and no data callbacks will be called.
  *
  * @param tunnel Tunnel handle.
  * 
@@ -1495,7 +1491,7 @@ GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel)
 
   ret = GNUNET_malloc (sizeof (struct MeshTunnelInfo) * 3);
   ret[0].prop = GNUNET_MESH_OPTION_NOBUFFER;
-  ret[0].value = &tunnel->buffering; // FIXME return ¬buffering ("nobuffer")
+  ret[0].value = &tunnel->buffering; // FIXME use "nobuffer"
   ret[1].prop = GNUNET_MESH_OPTION_RELIABLE;
   ret[1].value = &tunnel->reliable;
   ret[2].prop = 0;
