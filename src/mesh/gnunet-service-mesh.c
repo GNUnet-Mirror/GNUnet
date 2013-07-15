@@ -2224,7 +2224,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
     delta_mid = 0;
   if (0 > delta || (GNUNET_YES == t->reliable && 
                     NULL != o &&
-                    (rel->n_sent > 10 || delta_mid > 64)))
+                    (10 < rel->n_sent || 64 <= delta_mid)))
     delta = 0;
   if (NULL != o && delta > 1)
     delta = 1;
