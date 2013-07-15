@@ -25,6 +25,8 @@
  *
  *  FIXME in progress:
  * - keep queues until receiving ACK
+ * - when sending in-order buffered data, wait for client ACKs
+ * - refactor unicast to make generic handling, assigning *rel and *fc
  *
  * TODO:
  * - relay corking down to core
@@ -2157,6 +2159,7 @@ tunnel_send_fwd_ack (struct MeshTunnel *t, uint16_t type)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
       break;
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
     case GNUNET_MESSAGE_TYPE_MESH_PATH_ACK:
@@ -4275,6 +4278,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     else
       GNUNET_break (0);
+    tunnel_send_fwd_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK);
   }
   return GNUNET_OK;
 }
