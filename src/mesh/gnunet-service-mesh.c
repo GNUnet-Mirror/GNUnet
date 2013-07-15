@@ -4243,6 +4243,7 @@ handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     rel->expected_delay.rel_value += time.rel_value;
     rel->expected_delay.rel_value /= 2;
     rel->n_sent--;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
                 GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                         GNUNET_NO));
@@ -5038,6 +5039,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
       copy->timestamp = GNUNET_TIME_absolute_get ();
       copy->rel = rel;
       rel->n_sent++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
       GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
