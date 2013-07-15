@@ -3361,11 +3361,14 @@ queue_send (void *cls, size_t size, void *buf)
       t->next_fc.last_pid_sent = pid;
       tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, GNUNET_YES);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "!!! SEND %llu\n",
+                  "!!! FWD  %llu\n",
                   GNUNET_ntohll ( ((struct GNUNET_MESH_Data *) buf)->mid ));
       break;
     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       t->prev_fc.last_pid_sent = pid;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "!!! BCK  %llu\n",
+                  GNUNET_ntohll ( ((struct GNUNET_MESH_Data *) buf)->mid ));
       tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, GNUNET_NO);
       break;
     default:
@@ -4967,7 +4970,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
     else
     {
       payload = (struct GNUNET_MESH_Data *) cbuf;
-      payload->mid = 0;
+      payload->mid = GNUNET_htonll ((uint64_t)(fc->last_pid_recv + 1));
       // FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
       // use different struct for unreliable traffic, save 8 bytes
     }
