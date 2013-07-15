@@ -207,6 +207,37 @@ create_update_message (struct Ego *ego)
 
 
 /**
+ * Create a set default message with information about the current state of an ego.
+ *
+ * @param ego ego to create message for
+ * @return corresponding set default message
+ */
+static struct GNUNET_IDENTITY_SetDefaultMessage *
+create_set_default_message (struct Ego *ego)
+{
+  struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
+  char *str;
+  uint16_t pk_len;
+  size_t name_len;
+  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
+
+  name_len = (NULL == ego->identifier) ? 0 : (strlen (ego->identifier) + 1);
+  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
+  pk_len = ntohs (enc->size);
+  sdm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + pk_len + name_len);
+  sdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
+  sdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + pk_len + name_len);
+  sdm->name_len = htons (name_len);
+  sdm->pk_len = htons (pk_len);
+  str = (char *) &sdm[1];
+  memcpy (str, enc, pk_len);
+  memcpy (&str[pk_len], ego->identifier, name_len);
+  GNUNET_free (enc);
+  return sdm;
+}
+
+
+/**
  * Handler for START message from client, sends information
  * about all identities to the client immediately and 
  * adds the client to the notification context for future
@@ -248,12 +279,61 @@ static void
 handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 			    const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_IDENTITY_GetDefaultMessage *gdm;
+  struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
+  uint16_t size;
+  uint16_t name_len;
+  struct Ego *ego;
+  const char *name;
+  char *identifier;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received GET_DEFAULT message from client\n");
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
-  GNUNET_break (0); // not implemented!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_IDENTITY_GetDefaultMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  gdm = (const struct GNUNET_IDENTITY_GetDefaultMessage *) message;
+  name = (const char *) &gdm[1];
+  name_len = ntohs (gdm->name_len);
+  if ( (name_len + sizeof (struct GNUNET_IDENTITY_GetDefaultMessage) != size) ||
+       (0 != ntohs (gdm->reserved)) ||
+       ('\0' != name[name_len - 1]) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
+					     name,
+					     "DEFAULT_IDENTIFIER",
+					     &identifier))
+  {
+    /* FIXME: not sure client API handles this case correctly right now... */
+    send_result_code (client, 1, gettext_noop ("no default known"));
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);   
+    return;
+  }
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == strcmp (ego->identifier,
+		     identifier))
+    {
+      sdm = create_set_default_message (ego);
+      GNUNET_SERVER_notification_context_broadcast (nc, &sdm->header, GNUNET_YES);
+      GNUNET_free (sdm);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      return;
+    }
+  }
+  /* FIXME: not sure client API handles this case correctly right now... */
+  send_result_code (client, 1, 
+		    gettext_noop ("default configured, but ego unknown (internal error)"));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -497,12 +577,16 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls NULL
  * @param filename name of the file to parse
+ * @return GNUNET_OK to continue to iterate,
+ *  GNUNET_NO to stop iteration with no error,
+ *  GNUNET_SYSERR to abort iteration with error!
  */
-static void
+static int
 process_ego_file (void *cls,
 		  const char *filename)
 {
   GNUNET_break (0); // not implemented
+  return GNUNET_OK;
 }
 
 
