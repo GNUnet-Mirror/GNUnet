@@ -25,6 +25,10 @@
  *
  * The purpose of this service is to manage private keys that
  * represent the various egos/pseudonyms/identities of a GNUnet user.
+ *
+ * TODO:
+ * - disk operations
+ * - default identity set/get handlers
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -488,6 +492,21 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Process the given file from the "EGODIR".  Parses the file
+ * and creates the respective 'struct Ego' in memory.
+ *
+ * @param cls NULL
+ * @param filename name of the file to parse
+ */
+static void
+process_ego_file (void *cls,
+		  const char *filename)
+{
+  GNUNET_break (0); // not implemented
+}
+
+
+/**
  * Handle network size estimate clients.
  *
  * @param cls closure
@@ -550,6 +569,9 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("identity", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
+  GNUNET_DISK_directory_scan (ego_directory,
+			      &process_ego_file,
+			      NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
 }
