@@ -226,7 +226,7 @@ typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
  * @param is_admitted #GNUNET_YES if joining is approved,
  *        #GNUNET_NO if it is disapproved
  * @param method_name Method name for the message transmitted with the response.
- * @param env Environment: transient variables for the message.
+ * @param env Environment containing transient variables for the message, or NULL.
  * @param data_size Size of @a data.
  * @param data Data of the message.
  */
@@ -330,7 +330,8 @@ struct GNUNET_PSYC_MasterTransmitHandle;
  * @param increment_group_generation #GNUNET_YES if we need to increment
  *        the group generation counter after transmitting this message.
  * @param method_name Which method should be invoked.
- * @param env Environment: state operations and transient variables for the message.
+ * @param env Environment containing state operations and transient variables
+ *            for the message, or NULL.
  * @param notify Function to call to obtain the arguments.
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
@@ -438,7 +439,7 @@ struct GNUNET_PSYC_SlaveTransmitHandle;
  *
  * @param slave Slave handle.
  * @param method_name Which (PSYC) method should be invoked (on host).
- * @param env Environment: transient variables for the message.
+ * @param env Environment containing transient variables for the message, or NULL.
  * @param notify Function to call when we are allowed to transmit (to get data).
  * @param notify_cls Closure for @a notify.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).

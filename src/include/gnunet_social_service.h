@@ -337,6 +337,7 @@ struct GNUNET_SOCIAL_Announcement;
  *
  * @param home Home to address the announcement to.
  * @param method_name Method to use for the announcement.
+ * @param env Environment containing variables for the message, or NULL.
  * @param notify Function to call to get the payload of the announcement.
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (announcement already in progress?).
@@ -394,12 +395,11 @@ GNUNET_SOCIAL_home_destroy (struct GNUNET_SOCIAL_Home *home);
  *
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
- * @param address Address of the place to enter (GADS name, i.e. 'room.friend.gads'),
- *        if the name has the form 'HEX.place', GADS is not
- *        used and HEX is assumed to be the hash of the public
- *        key already; 'HEX.zkey' however would refer to
- *        the 'PLACE' record in the GADS zone with the public key
- *        'HEX'.
+ * @param address GADS name of the place to enter.  Either in the form of
+ *        'room.friend.gads', or 'HEX.zkey'.  This latter case refers to the
+ *        'PLACE' record in the GADS zone with the public key 'HEX', and can be
+ *        used to request entry to a pseudonym's place directly.
+ * @param env Environment containing variables for the message, or NULL.
  * @param msg_size Number of bytes in @a msg.
  * @param msg Message to give to the enter callback.
  * @param slicer Slicer to use for processing incoming requests from guests.
@@ -422,6 +422,7 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param crypto_address Public key of the place to enter.
  * @param peer Peer to send request to.
  * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param env Environment containing variables for the message, or NULL.
  * @param msg_size Number of bytes in @a msg.
  * @param msg Message to give to the enter callback.
  * @return NULL on errors, otherwise handle to the place.
@@ -533,6 +534,7 @@ struct GNUNET_SOCIAL_TalkRequest;
  *
  * @param place Place where we want to talk to the host.
  * @param method_name Method to invoke on the host.
+ * @param env Environment containing variables for the message, or NULL.
  * @param notify Function to use to get the payload for the method.
  * @param notify_cls Closure for @a notify.
  * @return NULL if we are already trying to talk to the host,

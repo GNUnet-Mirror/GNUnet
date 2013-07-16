@@ -179,7 +179,7 @@ typedef void (*GNUNET_PSYCSTORE_FragmentResultCallback)(void *cls,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_HashCode *channel_id,
-                               uint64_t message_id,
+                               uint64_t fragment_id,
                                GNUNET_PSYCSTORE_FragmentResultCallback rcb,
                                void *rcb_cls);
 
