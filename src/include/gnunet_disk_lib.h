@@ -585,7 +585,9 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
  */
 ssize_t
 GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
-    const void *buffer, size_t n);
+				 const void *buffer, 
+				 size_t n);
+
 
 /**
  * Write a buffer to a file.  If the file is longer than

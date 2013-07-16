@@ -1,0 +1,44 @@
+.TH GNUNET-IDENTITY "1" "16 Jul 2013" "GNUnet"
+.SH NAME
+gnunet\-identity \- create, delete or list egos
+.SH SYNOPSIS
+.B gnunet\-identity
+[options]
+.SH DESCRIPTION
+.PP
+gnunet\-identity is a tool for managing egos.  An ego is the persona that controls a namespace.  It is identical to a public\-private ECC key pair.
+
+gnunet\-identity can be used to list all of the egos that were created locally, to create new egos, and to delete existing egos (the namespace will continue to exist, but it will be impossible to add additional data to it).
+
+Creating a new ego requires using the \-C option together with an identifier (name) that is to be used for the new ego.  This identifier is only used locally for this peer and not shared with other peers.
+
+.TP
+\fB\-C NAME\fR, \fB\-\-create=NAME\fR
+Creates a new ego with the given NAME.
+
+.TP
+\fB\-D NAME\fR, \fB\-\-delete=NAME\fR
+Delete the ego with the given NAME.
+
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help page.
+
+.TP
+\fB\-L\fR, \fB\-\-list\fR
+list all ouf our egos
+
+.TP
+\fB\-m\fR, \fB\-\-monitor\fR
+run in monitor mode, listing all ouf our egos until CTRL-C is pressed
+
+
+.SH FILES
+.TP
+~/.gnunet/egos/
+Directory where the egos are stored (by default)
+
+.SH "REPORTING BUGS"
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-pseudonym\fP(1), \fBgnunet\-gns\fP(1)

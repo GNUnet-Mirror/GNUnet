@@ -25,6 +25,10 @@
  *
  * The purpose of this service is to manage private keys that
  * represent the various egos/pseudonyms/identities of a GNUnet user.
+ *
+ * FIXME:
+ * - hint for 'end of initial list' is not implemented
+ *   (might ALSO be missing in client library!)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
