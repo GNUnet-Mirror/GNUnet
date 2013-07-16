@@ -624,7 +624,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int buf;
+  int nobuf;
   int rel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
@@ -639,10 +639,10 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (SPEED_NOBUF == test)
   {
     test = SPEED;
-    buf = GNUNET_NO;
+    nobuf = GNUNET_YES;
   }
   else
-    buf = GNUNET_YES;
+    nobuf = GNUNET_NO;
 
   if (SPEED_REL == test)
   {
@@ -651,7 +651,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
     rel = GNUNET_NO;
-  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, buf, rel);
+  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, nobuf, rel);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
