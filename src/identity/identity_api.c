@@ -299,6 +299,14 @@ message_handler (void *cls,
       reschedule_connect (h);
       return;
     }
+    if ( (0 == pk_len) &&
+	 (0 == name_len) )
+    {
+      /* end of initial list of data */
+      if (NULL != h->cb)
+	h->cb (h->cb_cls, NULL, NULL, NULL);
+      return;
+    }
     priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
     if (NULL == priv)
     {

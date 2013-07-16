@@ -25,10 +25,6 @@
  *
  * The purpose of this service is to manage private keys that
  * represent the various egos/pseudonyms/identities of a GNUnet user.
- *
- * FIXME:
- * - hint for 'end of initial list' is not implemented
- *   (might ALSO be missing in client library!)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -274,6 +270,7 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_IDENTITY_UpdateMessage *um;
+  struct GNUNET_IDENTITY_UpdateMessage ume;
   struct Ego *ego;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -285,6 +282,11 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_notification_context_unicast (nc, client, &um->header, GNUNET_YES);
     GNUNET_free (um);
   }
+  ume.header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
+  ume.header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage));
+  ume.pk_len = htons (0);
+  ume.name_len = htons (0);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_YES);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
