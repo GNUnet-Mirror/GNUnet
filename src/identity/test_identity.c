@@ -175,6 +175,7 @@ run (void *cls,
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
 						&endbadly, NULL); 
   h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
+  GNUNET_assert (NULL != h);
   op = GNUNET_IDENTITY_create (h,
 			       "test-id",
 			       &create_cb,

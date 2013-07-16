@@ -504,6 +504,8 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h)
   GNUNET_assert (NULL == h->th);
   if (NULL == op)
     return;
+  if (NULL == h->client)
+    return;
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client,
 					       ntohs (op->msg->size),
 					       GNUNET_TIME_UNIT_FOREVER_REL,
