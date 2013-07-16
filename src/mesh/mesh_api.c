@@ -1409,7 +1409,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
  * @param tunnel_ctx client's tunnel context to associate with the tunnel
  * @param peer peer identity the tunnel should go to
  * @param port Port number.
- * @param buffer Flag for buffering on relay nodes.
+ * @param nobuffer Flag for disabling buffering on relay nodes.
  * @param reliable Flag for end-to-end reliability.
  *
  * @return handle to the tunnel
@@ -1419,7 +1419,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
                            void *tunnel_ctx,
                            const struct GNUNET_PeerIdentity *peer,
                            uint32_t port,
-                           int buffer,
+                           int nobuffer,
                            int reliable)
 {
   struct GNUNET_MESH_Tunnel *t;
@@ -1439,7 +1439,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   msg.opt = 0;
   if (GNUNET_YES == reliable)
     msg.opt |= GNUNET_MESH_OPTION_RELIABLE;
-  if (GNUNET_NO == buffer)
+  if (GNUNET_YES == nobuffer)
     msg.opt |= GNUNET_MESH_OPTION_NOBUFFER;
   msg.opt = htonl (msg.opt);
   t->allow_send = 0;
