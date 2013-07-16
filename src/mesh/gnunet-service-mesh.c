@@ -1045,27 +1045,24 @@ send_client_tunnel_create (struct MeshTunnel *t)
 /**
  * Notify dest client that the incoming tunnel is no longer valid.
  *
- * @param c Client to notify..
  * @param t Tunnel that is destroyed.
+ * @param fwd Forward notification (owner->dest)?
  */
 static void
-send_client_tunnel_destroy (struct MeshClient *c, struct MeshTunnel *t)
+send_client_tunnel_destroy (struct MeshTunnel *t, int fwd)
 {
   struct GNUNET_MESH_TunnelMessage msg;
+  struct MeshClient *c;
 
+  c = fwd ? t->client : t->owner;
   if (NULL == c)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (c != t->client && c != t->owner)
   {
     GNUNET_break (0);
     return;
   }
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-  msg.tunnel_id = htonl (t->local_tid_dest);
+  msg.tunnel_id = htonl (fwd ? t->local_tid_dest : t->local_tid);
   msg.port = htonl (0);
   memset (&msg.peer, 0, sizeof (msg.peer));
   msg.opt = htonl (0);
@@ -2661,11 +2658,11 @@ tunnel_send_destroy (struct MeshTunnel *t)
   }
   if (NULL != t->owner)
   {
-    send_client_tunnel_destroy (t->owner, t);
+    send_client_tunnel_destroy (t, GNUNET_NO);
   }
   if (NULL != t->client)
   {
-    send_client_tunnel_destroy (t->client, t);
+    send_client_tunnel_destroy (t, GNUNET_YES);
   }
 }
 
@@ -3010,7 +3007,7 @@ tunnel_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Tunnel %s [%X] timed out. Destroying.\n",
               GNUNET_i2s(&id), t->id.tid);
   if (NULL != t->client)
-    send_client_tunnel_destroy (t->client, t);
+    send_client_tunnel_destroy (t, GNUNET_YES);
   tunnel_destroy (t); /* Do not notify other */
 }
 
