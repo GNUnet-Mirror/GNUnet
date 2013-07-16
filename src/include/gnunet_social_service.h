@@ -130,7 +130,18 @@ GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
 			  GNUNET_SOCIAL_Method method,
 			  void *method_cls);
 
-/* FIXME: No slicer_remove for now, is it needed? */
+
+/** 
+ * Remove a registered method from the try-and-slice instance.
+ *
+ * @param slicer The try-and-slice instance.
+ * @param method_name Name of the method to remove.
+ * @param method Method handler.
+ */
+void
+GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
+                             const char *method_name,
+                             GNUNET_SOCIAL_Method method);
 
 /** 
  * Destroy a given try-and-slice instance.
@@ -175,7 +186,7 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
  * for it.
  *
  * @param cls Closure.
- * @param nym Handle for the user who wants to join.
+ * @param nym Handle for the user who wants to enter.
  * @param header_length Number of modifiers in header.
  * @param header Modifiers present in the message.
  * @param msg_size Number of bytes in @a msg.
@@ -220,7 +231,7 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  * @param join_policy What is our policy for allowing people in?
  * @param ego Owner of the home (host).
  * @param slicer Slicer to handle guests talking.
- * @param listener_cb Function to handle new nyms that want to join.
+ * @param listener_cb Function to handle new nyms that want to enter.
  * @param farewell_cb Function to handle departing nyms.
  * @param cls Closure for @a listener_cb and @a farewell_cb.
  * @return Handle for a new home.
@@ -242,8 +253,8 @@ GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * The @a nym reference will remain valid until either the home is destroyed or
  * @a nym leaves.
  *
- * @param home Home to allow @a nym to join.
- * @param nym Handle for the entity that wants to join.
+ * @param home Home to allow @a nym to enter.
+ * @param nym Handle for the entity that wants to enter.
  */
 void
 GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
@@ -268,20 +279,20 @@ GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
 /** 
  * Refuse @a nym entry into the @a home.
  *
- * @param home Home to disallow @a nym to join.
- * @param nym Handle for the entity that wanted to join.
- * @param method Method name to invoke on caller.
- * @param message_size Number of bytes in @a message for method.
- * @param message Rejection message to send back.
- *
- * FIXME: allow setting variables as well for the message
+ * @param home Home to disallow @a nym to enter.
+ * @param nym Handle for the entity that wanted to enter.
+ * @param method_name Method name for the rejection message.
+ * @param env Environment containing variables for the message, or NULL.
+ * @param msg_size Number of bytes in @a message for method.
+ * @param msg Rejection message to send back.
  */
 void
 GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
-				 struct GNUNET_SOCIAL_Nym *nym,
-				 const char *method,
-				 size_t message_size,
-				 const void *message);
+                                 struct GNUNET_SOCIAL_Nym *nym,
+                                 const char *method_name,
+                                 const struct GNUNET_ENV_Environment *env,
+                                 size_t msg_size,
+                                 const void *msg);
 
 
 /** 
@@ -565,17 +576,21 @@ struct GNUNET_SOCIAL_HistoryLesson;
 /** 
  * Learn about the history of a place.
  *
- * Sends messages through the given slicer function where
+ * Sends messages through the slicer function of the place where
  * start_message_id <= message_id <= end_message_id.
+ * The messages will have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
  *
  * To get the latest message, use 0 for both the start and end message ID.
  * 
  * @param place Place we want to learn more about.
  * @param start_message_id First historic message we are interested in.
  * @param end_message_id Last historic message we are interested in (inclusive).
- * @param slicer Slicer to use to process history.
- *               FIXME: Needed? Could use the slicer of the place instead,
- *                      receiving messages with the HISTORIC flag set.
+ * @param slicer Slicer to use to process history.  Can be the same as the
+ *               slicer of the place, as the HISTORIC flag allows distinguishing
+ *               old messages from fresh ones.
+ * @param finish_cb Function called after the last message if the history lesson
+ *              is passed through the @a slicer. NULL if not needed.
+ * @param finish_cb_cls Closure for @a finish_cb.
  * @return Handle to abort history lesson, never NULL (multiple lessons
  *         at the same time are allowed).
  */
@@ -583,14 +598,15 @@ struct GNUNET_SOCIAL_HistoryLesson *
 GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
 				 uint64_t start_message_id,
 				 uint64_t end_message_id,
-				 struct GNUNET_SOCIAL_Slicer *slicer);
+                                 const struct GNUNET_SOCIAL_Slicer *slicer,
+                                 void (*finish_cb)(void *),
+                                 void *finish_cb_cls);
 
 
 /** 
  * Stop processing messages from the history lesson.
  *
- * Must also be called explicitly after all of the requested messages have been
- * received.
+ * Must not be called after the finish callback of the history lesson is called.
  *
  * @param hist History lesson to cancel.
  */
