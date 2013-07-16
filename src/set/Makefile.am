@@ -57,7 +57,6 @@ libgnunetset_la_SOURCES = \
   set_api.c
 libgnunetset_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/stream/libgnunetstream.la \
   $(LTLIBINTL)
 libgnunetset_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)

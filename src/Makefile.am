@@ -61,7 +61,6 @@ SUBDIRS = \
   regex \
   mesh \
   lockmanager \
-  stream \
   dns \
   gns \
   set \

@@ -78,7 +78,6 @@ gnunetinclude_HEADERS = \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
   gnunet_statistics_service.h \
-  gnunet_stream_lib.h \
   gnunet_strings_lib.h \
   gnunet_testbed_service.h \
   gnunet_testbed_logger_service.h \

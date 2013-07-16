@@ -1313,7 +1313,6 @@ src/set/Makefile
 src/set/set.conf
 src/statistics/Makefile
 src/statistics/statistics.conf
-src/stream/Makefile
 src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
