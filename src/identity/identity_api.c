@@ -276,7 +276,8 @@ message_handler (void *cls,
     if (NULL != op->cont)
       op->cont (op->cls,
 		str);
-    GNUNET_break (NULL == op->cb);
+    else if (NULL != op->cb)
+      op->cb (op->cls, NULL, NULL, NULL);
     GNUNET_free (op);
     break;
   case GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE:
@@ -340,10 +341,11 @@ message_handler (void *cls,
       GNUNET_CRYPTO_ecc_key_free (priv);
     }
     /* inform application about change */
-    h->cb (h->cb_cls,
-	   ego,
-	   &ego->ctx,
-	   str);
+    if (NULL != h->cb)
+      h->cb (h->cb_cls,
+	     ego,
+	     &ego->ctx,
+	     str);
     if (NULL == str)
     {
       /* ego was deleted */
@@ -413,7 +415,6 @@ message_handler (void *cls,
 	      ego,
 	      &ego->ctx,
 	      ego->identifier);
-    GNUNET_break (NULL == op->cont);
     GNUNET_free (op);
     break;
   default:

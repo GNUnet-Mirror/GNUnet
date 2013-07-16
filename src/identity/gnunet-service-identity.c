@@ -315,7 +315,6 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 					     "DEFAULT_IDENTIFIER",
 					     &identifier))
   {
-    /* FIXME: not sure client API handles this case correctly right now... */
     send_result_code (client, 1, gettext_noop ("no default known"));
     GNUNET_SERVER_receive_done (client, GNUNET_OK);   
     return;
@@ -333,7 +332,6 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
   }
-  /* FIXME: not sure client API handles this case correctly right now... */
   send_result_code (client, 1, 
 		    gettext_noop ("default configured, but ego unknown (internal error)"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
