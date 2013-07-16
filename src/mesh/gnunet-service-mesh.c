@@ -2248,7 +2248,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
   else if (0 != hop)
     send_ack (t, hop, ack);
   else
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_YES == t->destroy);
   t->force_ack = GNUNET_NO;
 }
 
@@ -2791,6 +2791,16 @@ tunnel_destroy (struct MeshTunnel *t)
   {
     peer_cancel_queues (t->next_hop, t);
     GNUNET_PEER_change_rc (t->next_hop, -1);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != t->next_fc.poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->next_fc.poll_task);
+    t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != t->prev_fc.poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->prev_fc.poll_task);
+    t->prev_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (0 != t->dest) {
       peer_info_remove_tunnel (peer_get_short (t->dest), t);
@@ -3395,19 +3405,19 @@ queue_send (void *cls, size_t size, void *buf)
                                             &queue_send,
                                             peer);
   }
+  if (peer->id == t->next_hop)
+    fc = &t->next_fc;
+  else if (peer->id == t->prev_hop)
+    fc = &t->prev_fc;
+  else
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id: %u, next: %u, prev: %u\n",
+                peer->id, t->next_hop, t->prev_hop);
+    return data_size;
+  }
   if (NULL != peer->queue_head)
   {
-    if (peer->id == t->next_hop)
-      fc = &t->next_fc;
-    else if (peer->id == t->prev_hop)
-      fc = &t->prev_fc;
-    else
-    {
-      GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id: %u, next: %u, prev: %u\n",
-                  peer->id, t->next_hop, t->prev_hop);
-      return data_size;
-    }
     if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task && fc->queue_n > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -3416,6 +3426,14 @@ queue_send (void *cls, size_t size, void *buf)
       fc->t = t;
       fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                     &tunnel_poll, fc);
+    }
+  }
+  else
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+    {
+      GNUNET_SCHEDULER_cancel (fc->poll_task);
+      fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
   if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
