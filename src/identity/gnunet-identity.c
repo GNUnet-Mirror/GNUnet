@@ -21,6 +21,10 @@
  * @file identity/gnunet-identity.c
  * @brief IDENTITY management command line tool
  * @author Christian Grothoff
+ *
+ * Todo:
+ * - add options to get/set default egos
+ * - print short hashes of egos when printing
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

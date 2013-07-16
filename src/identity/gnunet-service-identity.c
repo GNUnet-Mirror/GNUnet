@@ -25,6 +25,11 @@
  *
  * The purpose of this service is to manage private keys that
  * represent the various egos/pseudonyms/identities of a GNUnet user.
+ *
+ * Todo:
+ * - testcases
+ * - auto-initialze default egos; maybe trigger default
+ *   initializations (such as gnunet-gns-import.sh?)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

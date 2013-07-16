@@ -862,7 +862,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
  * @param op operation to cancel
  */
 void
-GNUNET_IDENITY_cancel (struct GNUNET_IDENTITY_Operation *op)
+GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 {
   struct GNUNET_IDENTITY_Handle *h = op->h;
 
