@@ -109,6 +109,7 @@ static struct Ego *ego_head;
 static struct Ego *ego_tail;
 
 
+
 /**
  * Task run during shutdown.
  *
@@ -413,7 +414,12 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 					     str,
 					     "DEFAULT_IDENTIFIER",
 					     ego->identifier);
-      /* fixme: write configuration to disk... */
+      if (GNUNET_OK != 
+	  GNUNET_CONFIGURATION_write (subsystem_cfg,
+				      subsystem_cfg_file))
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to write subsystem default identifier map to `%s'.\n"),
+		    subsystem_cfg_file);
       send_result_code (client, 0, NULL);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       GNUNET_CRYPTO_ecc_key_free (pk);
@@ -513,6 +519,55 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * Closure for 'handle_ego_rename'.
+ */
+struct RenameContext 
+{
+  /**
+   * Old name.
+   */
+  const char *old_name;
+
+  /**
+   * New name.
+   */
+  const char *new_name;
+};
+
+
+/**
+ * An ego was renamed; rename it in all subsystems where it is
+ * currently set as the default.
+ *
+ * @param cls the 'struct RenameContext'
+ * @param section a section in the configuration to process
+ */
+static void
+handle_ego_rename (void *cls,
+		   const char *section)
+{
+  struct RenameContext *rc = cls;
+  char *id;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
+					     section,
+					     "DEFAULT_IDENTIFIER",
+					     &id))
+    return;
+  if (0 != strcmp (id, rc->old_name))
+  {
+    GNUNET_free (id);  
+    return;
+  }
+  GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
+					 section,
+					 "DEFAULT_IDENTIFIER",
+					 rc->new_name);
+  GNUNET_free (id);  
+}
+
 
 /**
  * Handler for RENAME message from client, creates
@@ -533,6 +588,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
   struct Ego *ego;
   const char *old_name;
   const char *new_name;
+  struct RenameContext rename_ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received RENAME message from client\n");
@@ -562,6 +618,18 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 		     old_name))
     {
       GNUNET_free (ego->identifier);
+      rename_ctx.old_name = old_name;
+      rename_ctx.new_name = new_name;
+      GNUNET_CONFIGURATION_iterate_sections (subsystem_cfg,
+					     &handle_ego_rename,
+					     &rename_ctx);
+      if (GNUNET_OK != 
+	  GNUNET_CONFIGURATION_write (subsystem_cfg,
+				      subsystem_cfg_file))
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to write subsystem default identifier map to `%s'.\n"),
+		    subsystem_cfg_file);
+
       ego->identifier = GNUNET_strdup (new_name);
       /* FIXME: also rename file! */
       notify_listeners (ego);
@@ -573,6 +641,39 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 
   send_result_code (client, 1, gettext_noop ("no matching ego found"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * An ego was removed, remove it from all subsystems where it is
+ * currently set as the default.
+ *
+ * @param cls name of the removed ego (const char *)
+ * @param section a section in the configuration to process
+ */
+static void
+handle_ego_delete (void *cls,
+		   const char *section)
+{
+  const char *identifier = cls;
+  char *id;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
+					     section,
+					     "DEFAULT_IDENTIFIER",
+					     &id))
+    return;
+  if (0 != strcmp (id, identifier))
+  {
+    GNUNET_free (id);  
+    return;
+  }
+  GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
+					 section,
+					 "DEFAULT_IDENTIFIER",
+					 NULL);
+  GNUNET_free (id);  
 }
 
 
@@ -622,6 +723,15 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_CONTAINER_DLL_remove (ego_head,
 				   ego_tail,
 				   ego);
+      GNUNET_CONFIGURATION_iterate_sections (subsystem_cfg,
+					     &handle_ego_delete,
+					     ego->identifier);
+      if (GNUNET_OK != 
+	  GNUNET_CONFIGURATION_write (subsystem_cfg,
+				      subsystem_cfg_file))
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to write subsystem default identifier map to `%s'.\n"),
+		    subsystem_cfg_file);
       /* FIXME: also delete file! */
       GNUNET_free (ego->identifier);
       ego->identifier = NULL;
