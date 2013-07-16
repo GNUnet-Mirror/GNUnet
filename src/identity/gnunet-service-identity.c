@@ -28,7 +28,6 @@
  *
  * TODO:
  * - disk operations
- * - default identity set/get handlers
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -339,6 +338,26 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Compare the given two private keys for equality.
+ * 
+ * @param pk1 one private key
+ * @param pk2 another private key
+ * @return 0 if the keys are equal
+ */
+static int
+key_cmp (const struct GNUNET_CRYPTO_EccPrivateKey *pk1,
+	 const struct GNUNET_CRYPTO_EccPrivateKey *pk2)
+{
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p1;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p2;
+  
+  GNUNET_CRYPTO_ecc_key_get_public (pk1, &p1);
+  GNUNET_CRYPTO_ecc_key_get_public (pk2, &p2);
+  return memcmp (&p1, &p2, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+}
+
+
+/**
  * Handler for SET_DEFAULT message from client, updates
  * default identity for some service.
  *
@@ -350,12 +369,60 @@ static void
 handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 			    const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
+  uint16_t size;
+  uint16_t name_len;
+  uint16_t pk_len;
+  struct Ego *ego;
+  const char *str;
+  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received SET_DEFAULT message from client\n");
-  // setup_estimate_message (&em);
-  // GNUNET_SERVER_notification_context_unicast (nc, client, &em.header, GNUNET_YES);
-  GNUNET_break (0); // not implemented!
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  size = ntohs (message->size);
+  if (size <= sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) message;
+  name_len = ntohs (sdm->name_len);
+  pk_len = ntohs (sdm->pk_len);
+  str = (const char *) &sdm[1];
+  if ( (name_len + pk_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) != size) ||
+       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES))) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  str = &str[pk_len];
+  if ('\0' != str[name_len - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == key_cmp (ego->pk,
+		      pk))
+    {
+      GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
+					     str,
+					     "DEFAULT_IDENTIFIER",
+					     ego->identifier);
+      /* fixme: write configuration to disk... */
+      send_result_code (client, 0, NULL);
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_CRYPTO_ecc_key_free (pk);
+      return;
+    }
+  }  
+  send_result_code (client, 1, _("Unknown ego specified for service (internal error)"));
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_CRYPTO_ecc_key_free (pk);
 }
 
 
