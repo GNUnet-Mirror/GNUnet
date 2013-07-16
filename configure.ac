@@ -1254,6 +1254,7 @@ Makefile
 contrib/Makefile
 doc/Makefile
 doc/man/Makefile
+doc/doxygen/Makefile
 m4/Makefile
 po/Makefile.in 
 src/Makefile
