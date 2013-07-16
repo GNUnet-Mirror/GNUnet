@@ -594,6 +594,7 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
   else if (0L == i && P2P_SIGNAL == test)
   {
     ok ++;
+    t = NULL;
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
