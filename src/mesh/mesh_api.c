@@ -865,11 +865,13 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_Tunnel *t;
   MESH_TunnelNumber tid;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying tunnel from service\n");
   tid = ntohl (msg->tunnel_id);
   t = retrieve_tunnel (h, tid);
 
   if (NULL == t)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel %X unknown\n", tid);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel %X destroyed\n", t->tid);
@@ -1070,6 +1072,7 @@ static void
 msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_MESH_Handle *h = cls;
+  uint16_t type;
 
   if (msg == NULL)
   {
@@ -1078,11 +1081,11 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     reconnect (h);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n",
-       GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
+  type = ntohs (msg->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a message: %s\n",
-       GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
-  switch (ntohs (msg->type))
+       GNUNET_MESH_DEBUG_M2S (type));
+  switch (type)
   {
     /* Notify of a new incoming tunnel */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE:
