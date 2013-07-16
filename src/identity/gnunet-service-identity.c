@@ -25,9 +25,6 @@
  *
  * The purpose of this service is to manage private keys that
  * represent the various egos/pseudonyms/identities of a GNUnet user.
- *
- * TODO:
- * - disk operations
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -484,8 +481,10 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t name_len;
   uint16_t pk_len;
   struct Ego *ego;
+  const char *pks;
   const char *str;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  char *fn;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received CREATE message from client\n");
@@ -499,15 +498,15 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   crm = (const struct GNUNET_IDENTITY_CreateRequestMessage *) message;
   name_len = ntohs (crm->name_len);
   pk_len = ntohs (crm->pk_len);
-  str = (const char *) &crm[1];
+  pks = (const char *) &crm[1];
   if ( (name_len + pk_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size) ||
-       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES))) )
+       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (pks, pk_len, GNUNET_YES))) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  str = &str[pk_len];
+  str = &pks[pk_len];
   if ('\0' != str[name_len - 1])
   {
     GNUNET_break (0);
@@ -532,7 +531,15 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
 			       ego_tail,
 			       ego);
   send_result_code (client, 0, NULL);
-  /* FIXME: also write to file! */
+  fn = get_ego_filename (ego);
+  (void) GNUNET_DISK_directory_create_for_file (fn);
+  if (pk_len !=
+      GNUNET_DISK_fn_write (fn, pks, pk_len,
+			    GNUNET_DISK_PERM_USER_READ |
+			    GNUNET_DISK_PERM_USER_WRITE))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+			      "write", fn);
+  GNUNET_free (fn);
   notify_listeners (ego);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -633,6 +640,8 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  /* check if new name is already in use */
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier,
@@ -644,6 +653,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
 
+  /* locate old name and, if found, perform rename */
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier,
@@ -663,8 +673,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 		    _("Failed to write subsystem default identifier map to `%s'.\n"),
 		    subsystem_cfg_file);
       ego->identifier = GNUNET_strdup (new_name);
-      fn_new = get_ego_filename (ego);
-      
+      fn_new = get_ego_filename (ego);      
       if (0 != RENAME (fn_old, fn_new))
 	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rename", fn_old);
       GNUNET_free (fn_old);
@@ -676,6 +685,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
 
+  /* failed to locate old name */
   send_result_code (client, 1, gettext_noop ("no matching ego found"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
