@@ -62,6 +62,7 @@ SUBDIRS = \
   mesh \
   lockmanager \
   dns \
+  identity \
   gns \
   set \
   fs \
