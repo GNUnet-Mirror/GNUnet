@@ -109,6 +109,25 @@ static struct Ego *ego_head;
 static struct Ego *ego_tail;
 
 
+/**
+ * Get the name of the file we use to store a given ego.
+ *
+ * @param ego ego for which we need the filename
+ * @return full filename for the given ego
+ */
+static char *
+get_ego_filename (struct Ego *ego)
+{
+  char *filename;
+
+  GNUNET_asprintf (&filename,
+		   "%s%s%s",
+		   ego_directory,
+		   DIR_SEPARATOR_STR,
+		   ego->identifier);
+  return filename;
+}
+
 
 /**
  * Task run during shutdown.
@@ -589,6 +608,8 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
   const char *old_name;
   const char *new_name;
   struct RenameContext rename_ctx;
+  char *fn_old;
+  char *fn_new;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received RENAME message from client\n");
@@ -615,8 +636,20 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == strcmp (ego->identifier,
+		     new_name))
+    {
+      send_result_code (client, 1, gettext_noop ("target name already exists"));
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);      
+      return;
+    }
+  }
+
+  for (ego = ego_head; NULL != ego; ego = ego->next)
+  {
+    if (0 == strcmp (ego->identifier,
 		     old_name))
     {
+      fn_old = get_ego_filename (ego);
       GNUNET_free (ego->identifier);
       rename_ctx.old_name = old_name;
       rename_ctx.new_name = new_name;
@@ -629,9 +662,13 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    _("Failed to write subsystem default identifier map to `%s'.\n"),
 		    subsystem_cfg_file);
-
       ego->identifier = GNUNET_strdup (new_name);
-      /* FIXME: also rename file! */
+      fn_new = get_ego_filename (ego);
+      
+      if (0 != RENAME (fn_old, fn_new))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rename", fn_old);
+      GNUNET_free (fn_old);
+      GNUNET_free (fn_new);
       notify_listeners (ego);
       send_result_code (client, 0, NULL);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -694,6 +731,7 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t name_len;
   struct Ego *ego;
   const char *name;
+  char *fn;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received DELETE message from client\n");
@@ -732,7 +770,10 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    _("Failed to write subsystem default identifier map to `%s'.\n"),
 		    subsystem_cfg_file);
-      /* FIXME: also delete file! */
+      fn = get_ego_filename (ego);
+      if (0 != UNLINK (fn))
+	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+      GNUNET_free (fn);
       GNUNET_free (ego->identifier);
       ego->identifier = NULL;
       notify_listeners (ego);
@@ -763,7 +804,30 @@ static int
 process_ego_file (void *cls,
 		  const char *filename)
 {
-  GNUNET_break (0); // not implemented
+  struct Ego *ego;
+  const char *fn;
+
+  fn = strrchr (filename, (int) DIR_SEPARATOR);
+  if (NULL == fn)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  ego = GNUNET_new (struct Ego);
+  ego->pk = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
+  if (NULL == ego->pk)
+    {
+      GNUNET_free (ego);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Failed to parse ego information in `%s'\n"),
+		  filename);
+      return GNUNET_OK;
+    }
+  
+  ego->identifier = GNUNET_strdup (fn);
+  GNUNET_CONTAINER_DLL_insert (ego_head,
+			       ego_tail,
+			       ego);
   return GNUNET_OK;
 }
 
