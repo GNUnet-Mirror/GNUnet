@@ -3376,12 +3376,6 @@ queue_send (void *cls, size_t size, void *buf)
       break;
   }
 
-  if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
-    tunnel_destroy (t);
-  }
-
   /* If more data in queue, send next */
   queue = queue_get_next (peer);
   if (NULL != queue)
@@ -3409,6 +3403,8 @@ queue_send (void *cls, size_t size, void *buf)
     else
     {
       GNUNET_break (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id: %u, next: %u, prev: %u\n",
+                  peer->id, t->next_hop, t->prev_hop);
       return data_size;
     }
     if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task && fc->queue_n > 0)
@@ -3420,6 +3416,11 @@ queue_send (void *cls, size_t size, void *buf)
       fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                     &tunnel_poll, fc);
     }
+  }
+  if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
+    tunnel_destroy (t);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
   return data_size;
