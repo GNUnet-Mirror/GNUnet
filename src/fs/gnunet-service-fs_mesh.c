@@ -746,7 +746,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 					  sh,
 					  &sh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-                      GNUNET_YES,
+                      GNUNET_NO,
                       GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
@@ -1231,16 +1231,16 @@ GSF_mesh_stop ()
 
   while (NULL != (sc = sc_head))
     terminate_mesh (sc);
-  if (NULL != listen_socket)
-  {
-    GNUNET_MESH_disconnect (listen_socket);
-    listen_socket = NULL;
-  }
   GNUNET_CONTAINER_multihashmap_iterate (mesh_map,
 					 &release_meshs,
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (mesh_map);
   mesh_map = NULL;
+  if (NULL != listen_socket)
+  {
+    GNUNET_MESH_disconnect (listen_socket);
+    listen_socket = NULL;
+  }
 }
 
 /* end of gnunet-service-fs_mesh.c */
