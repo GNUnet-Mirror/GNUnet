@@ -67,7 +67,7 @@
  * If obtaining a block via mesh fails, how often do we retry it before
  * giving up for good (and sticking to non-anonymous transfer)?
  */
-#define STREAM_RETRY_MAX 3
+#define MESH_RETRY_MAX 3
 
 
 /**
@@ -116,9 +116,9 @@ struct GSF_PendingRequest
   struct GNUNET_DHT_GetHandle *gh;
 
   /**
-   * Stream request handle for this request (or NULL for none).
+   * Mesh request handle for this request (or NULL for none).
    */
-  struct GSF_StreamRequest *mesh_request;
+  struct GSF_MeshRequest *mesh_request;
 
   /**
    * Function to call upon completion of the local get
@@ -1163,7 +1163,7 @@ mesh_reply_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Error retrieiving block via mesh\n");
     pr->mesh_retry_count++;
-    if (pr->mesh_retry_count >= STREAM_RETRY_MAX)
+    if (pr->mesh_retry_count >= MESH_RETRY_MAX)
       return; /* give up on mesh */
     /* retry -- without delay, as this is non-anonymous
        and mesh/mesh connect will take some time anyway */
@@ -1186,7 +1186,7 @@ mesh_reply_proc (void *cls,
     return;
   }
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# Replies received from STREAM"), 1,
+                            gettext_noop ("# Replies received from MESH"), 1,
                             GNUNET_NO);
   memset (&prq, 0, sizeof (prq));
   prq.data = data;

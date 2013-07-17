@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - update comments on functions (still matches 'mesh')
  * - MESH2 API doesn't allow flow control for server yet (needed!)
  * - likely need to register clean up handler with mesh to handle
  *   client disconnect (likely leaky right now)
@@ -84,17 +83,17 @@ struct WriteQueueItem
 /**
  * Information we keep around for each active meshing client.
  */
-struct StreamClient
+struct MeshClient
 {
   /**
    * DLL
    */ 
-  struct StreamClient *next;
+  struct MeshClient *next;
 
   /**
    * DLL
    */ 
-  struct StreamClient *prev;
+  struct MeshClient *prev;
 
   /**
    * Socket for communication.
@@ -142,11 +141,11 @@ struct StreamClient
 /**
  * Query from one peer, asking the other for CHK-data.
  */
-struct StreamQueryMessage
+struct MeshQueryMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY.
+   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_QUERY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -164,13 +163,13 @@ struct StreamQueryMessage
 
 
 /**
- * Reply to a StreamQueryMessage.
+ * Reply to a MeshQueryMessage.
  */
-struct StreamReplyMessage
+struct MeshReplyMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY.
+   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_REPLY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -192,34 +191,34 @@ struct StreamReplyMessage
 /** 
  * Handle for a mesh to another peer.
  */
-struct StreamHandle;
+struct MeshHandle;
 
 
 /**
  * Handle for a request that is going out via mesh API.
  */
-struct GSF_StreamRequest
+struct GSF_MeshRequest
 {
 
   /**
    * DLL.
    */
-  struct GSF_StreamRequest *next;
+  struct GSF_MeshRequest *next;
 
   /**
    * DLL.
    */
-  struct GSF_StreamRequest *prev;
+  struct GSF_MeshRequest *prev;
 
   /**
    * Which mesh is this request associated with?
    */
-  struct StreamHandle *sh;
+  struct MeshHandle *sh;
 
   /**
    * Function to call with the result.
    */
-  GSF_StreamReplyProcessor proc;
+  GSF_MeshReplyProcessor proc;
 
   /**
    * Closure for 'proc'
@@ -247,20 +246,20 @@ struct GSF_StreamRequest
 /** 
  * Handle for a mesh to another peer.
  */
-struct StreamHandle
+struct MeshHandle
 {
   /**
    * Head of DLL of pending requests on this mesh.
    */
-  struct GSF_StreamRequest *pending_head;
+  struct GSF_MeshRequest *pending_head;
 
   /**
    * Tail of DLL of pending requests on this mesh.
    */
-  struct GSF_StreamRequest *pending_tail;
+  struct GSF_MeshRequest *pending_tail;
 
   /**
-   * Map from query to 'struct GSF_StreamRequest's waiting for
+   * Map from query to 'struct GSF_MeshRequest's waiting for
    * a reply.
    */
   struct GNUNET_CONTAINER_MultiHashMap *waiting_map;
@@ -310,12 +309,12 @@ static struct GNUNET_MESH_Handle *listen_socket;
 /**
  * Head of DLL of mesh clients.
  */ 
-static struct StreamClient *sc_head;
+static struct MeshClient *sc_head;
 
 /**
  * Tail of DLL of mesh clients.
  */ 
-static struct StreamClient *sc_tail;
+static struct MeshClient *sc_tail;
 
 /**
  * Number of active mesh clients in the 'sc_*'-DLL.
@@ -328,7 +327,7 @@ static unsigned int sc_count;
 static unsigned long long sc_count_max;
 
 /**
- * Map from peer identities to 'struct StreamHandles' with meshs to
+ * Map from peer identities to 'struct MeshHandles' with meshs to
  * those peers.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *mesh_map;
@@ -341,9 +340,9 @@ static struct GNUNET_CONTAINER_MultiHashMap *mesh_map;
  * call the 'proc' continuation and release associated
  * resources.
  *
- * @param cls the 'struct StreamHandle'
+ * @param cls the 'struct MeshHandle'
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_StreamRequest' to clean up
+ * @param value the 'struct GSF_MeshRequest' to clean up
  * @return GNUNET_YES (continue to iterate)
  */
 static int
@@ -351,7 +350,7 @@ free_waiting_entry (void *cls,
 		    const struct GNUNET_HashCode *key,
 		    void *value)
 {
-  struct GSF_StreamRequest *sr = value;
+  struct GSF_MeshRequest *sr = value;
 
   sr->proc (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY,
 	    GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -367,9 +366,9 @@ free_waiting_entry (void *cls,
  * @param sh mesh to process
  */
 static void
-destroy_mesh_handle (struct StreamHandle *sh)
+destroy_mesh_handle (struct MeshHandle *sh)
 {
-  struct GSF_StreamRequest *sr;
+  struct GSF_MeshRequest *sr;
 
   while (NULL != (sr = sh->pending_head))
   {
@@ -403,16 +402,16 @@ destroy_mesh_handle (struct StreamHandle *sh)
  * @param sh mesh to process
  */
 static void
-transmit_pending (struct StreamHandle *sh);
+transmit_pending (struct MeshHandle *sh);
 
 
 /**
  * Iterator called on each entry in a waiting map to 
  * move it back to the pending list.
  *
- * @param cls the 'struct StreamHandle'
+ * @param cls the 'struct MeshHandle'
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_StreamRequest' to move to pending
+ * @param value the 'struct GSF_MeshRequest' to move to pending
  * @return GNUNET_YES (continue to iterate)
  */
 static int
@@ -420,8 +419,8 @@ move_to_pending (void *cls,
 		 const struct GNUNET_HashCode *key,
 		 void *value)
 {
-  struct StreamHandle *sh = cls;
-  struct GSF_StreamRequest *sr = value;
+  struct MeshHandle *sh = cls;
+  struct GSF_MeshRequest *sr = value;
   
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (sh->waiting_map,
@@ -441,7 +440,7 @@ move_to_pending (void *cls,
  * @param sh mesh to reset
  */
 static void
-reset_mesh (struct StreamHandle *sh)
+reset_mesh (struct MeshHandle *sh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting mesh to %s\n",
@@ -463,14 +462,14 @@ reset_mesh (struct StreamHandle *sh)
 /**
  * Task called when it is time to destroy an inactive mesh.
  *
- * @param cls the 'struct StreamHandle' to tear down
+ * @param cls the 'struct MeshHandle' to tear down
  * @param tc scheduler context, unused
  */
 static void
 mesh_timeout (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct StreamHandle *sh = cls;
+  struct MeshHandle *sh = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh to %s\n",
@@ -483,14 +482,14 @@ mesh_timeout (void *cls,
 /**
  * Task called when it is time to reset an mesh.
  *
- * @param cls the 'struct StreamHandle' to tear down
+ * @param cls the 'struct MeshHandle' to tear down
  * @param tc scheduler context, unused
  */
 static void
 reset_mesh_task (void *cls,
 		   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct StreamHandle *sh = cls;
+  struct MeshHandle *sh = cls;
 
   sh->reset_task = GNUNET_SCHEDULER_NO_TASK;
   reset_mesh (sh);
@@ -504,7 +503,7 @@ reset_mesh_task (void *cls,
  * @param sh mesh to reset
  */
 static void
-reset_mesh_async (struct StreamHandle *sh)
+reset_mesh_async (struct MeshHandle *sh)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sh->reset_task)
     GNUNET_SCHEDULER_cancel (sh->reset_task);
@@ -517,7 +516,7 @@ reset_mesh_async (struct StreamHandle *sh)
  * Functions of this signature are called whenever we are ready to transmit
  * query via a mesh.
  *
- * @param cls the struct StreamHandle for which we did the write call
+ * @param cls the struct MeshHandle for which we did the write call
  * @param size the number of bytes that can be written to 'buf'
  * @param buf where to write the message
  * @return number of bytes written to 'buf'
@@ -527,9 +526,9 @@ transmit_sqm (void *cls,
 	      size_t size,
 	      void *buf)
 {
-  struct StreamHandle *sh = cls;
-  struct StreamQueryMessage sqm;
-  struct GSF_StreamRequest *sr;
+  struct MeshHandle *sh = cls;
+  struct MeshQueryMessage sqm;
+  struct GSF_MeshRequest *sr;
 
   sh->wh = NULL;
   if (NULL == buf)
@@ -540,7 +539,7 @@ transmit_sqm (void *cls,
   sr = sh->pending_head;
   if (NULL == sr)
     return 0;
-  GNUNET_assert (size >= sizeof (struct StreamQueryMessage));
+  GNUNET_assert (size >= sizeof (struct MeshQueryMessage));
   GNUNET_CONTAINER_DLL_remove (sh->pending_head,
 			       sh->pending_tail,
 			       sr);
@@ -553,7 +552,7 @@ transmit_sqm (void *cls,
 	      GNUNET_i2s (&sh->target));
   sr->was_transmitted = GNUNET_YES;
   sqm.header.size = htons (sizeof (sqm));
-  sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY);
+  sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_MESH_QUERY);
   sqm.type = htonl (sr->type);
   sqm.query = sr->query;
   memcpy (buf, &sqm, sizeof (sqm));
@@ -572,13 +571,13 @@ transmit_sqm (void *cls,
  * @param sh mesh to process
  */
 static void
-transmit_pending (struct StreamHandle *sh)
+transmit_pending (struct MeshHandle *sh)
 {
   if (NULL != sh->wh)
     return;
   sh->wh = GNUNET_MESH_notify_transmit_ready (sh->mesh, GNUNET_YES /* allow cork */,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
-					      sizeof (struct StreamQueryMessage),
+					      sizeof (struct MeshQueryMessage),
 					      &transmit_sqm, sh);
 }
 
@@ -622,7 +621,7 @@ struct HandleReplyClosure
  *
  * @param cls the 'struct HandleReplyClosure'
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_StreamRequest' to handle result for
+ * @param value the 'struct GSF_MeshRequest' to handle result for
  * @return GNUNET_YES (continue to iterate)
  */
 static int
@@ -631,7 +630,7 @@ handle_reply (void *cls,
 	      void *value)
 {
   struct HandleReplyClosure *hrc = cls;
-  struct GSF_StreamRequest *sr = value;
+  struct GSF_MeshRequest *sr = value;
   
   sr->proc (sr->proc_cls,
 	    hrc->type,
@@ -648,7 +647,7 @@ handle_reply (void *cls,
  * Functions with this signature are called whenever a
  * complete reply is received.
  *
- * @param cls closure with the 'struct StreamHandle'
+ * @param cls closure with the 'struct MeshHandle'
  * @param tunnel tunnel handle
  * @param tunnel_ctx tunnel context
  * @param message the actual message
@@ -660,22 +659,22 @@ reply_cb (void *cls,
 	  void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message)
 {
-  struct StreamHandle *sh = *tunnel_ctx;
-  const struct StreamReplyMessage *srm;
+  struct MeshHandle *sh = *tunnel_ctx;
+  const struct MeshReplyMessage *srm;
   struct HandleReplyClosure hrc;
   uint16_t msize;
   enum GNUNET_BLOCK_Type type;
   struct GNUNET_HashCode query;
 
   msize = ntohs (message->size);
-  if (sizeof (struct StreamReplyMessage) > msize)
+  if (sizeof (struct MeshReplyMessage) > msize)
   {
     GNUNET_break_op (0);
     reset_mesh_async (sh);
     return GNUNET_SYSERR;
   }
-  srm = (const struct StreamReplyMessage *) message;
-  msize -= sizeof (struct StreamReplyMessage);
+  srm = (const struct MeshReplyMessage *) message;
+  msize -= sizeof (struct MeshReplyMessage);
   type = (enum GNUNET_BLOCK_Type) ntohl (srm->type);
   if (GNUNET_YES !=
       GNUNET_BLOCK_get_key (GSF_block_ctx,
@@ -717,10 +716,10 @@ reply_cb (void *cls,
  *
  * @param target peer we want to communicate with
  */
-static struct StreamHandle *
+static struct MeshHandle *
 get_mesh (const struct GNUNET_PeerIdentity *target)
 {
-  struct StreamHandle *sh;
+  struct MeshHandle *sh;
 
   sh = GNUNET_CONTAINER_multihashmap_get (mesh_map,
 					  &target->hashPubKey);
@@ -736,7 +735,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Creating mesh to %s\n",
 	      GNUNET_i2s (target));
-  sh = GNUNET_malloc (sizeof (struct StreamHandle));
+  sh = GNUNET_malloc (sizeof (struct MeshHandle));
   sh->reset_task = GNUNET_SCHEDULER_add_delayed (CLIENT_RETRY_TIMEOUT,
 						 &reset_mesh_task,
 						 sh);
@@ -767,21 +766,21 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
  * @param proc_cls closure for 'proc'
  * @return handle to cancel the operation
  */
-struct GSF_StreamRequest *
+struct GSF_MeshRequest *
 GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
 		  const struct GNUNET_HashCode *query,
 		  enum GNUNET_BLOCK_Type type,
-		  GSF_StreamReplyProcessor proc, void *proc_cls)
+		  GSF_MeshReplyProcessor proc, void *proc_cls)
 {
-  struct StreamHandle *sh;
-  struct GSF_StreamRequest *sr;
+  struct MeshHandle *sh;
+  struct GSF_MeshRequest *sr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Preparing to send query for %s via mesh to %s\n",
 	      GNUNET_h2s (query),
 	      GNUNET_i2s (target));
   sh = get_mesh (target);
-  sr = GNUNET_malloc (sizeof (struct GSF_StreamRequest));
+  sr = GNUNET_malloc (sizeof (struct GSF_MeshRequest));
   sr->sh = sh;
   sr->proc = proc;
   sr->proc_cls = proc_cls;
@@ -803,9 +802,9 @@ GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_mesh_query_cancel (struct GSF_StreamRequest *sr)
+GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
 {
-  struct StreamHandle *sh = sr->sh;
+  struct MeshHandle *sh = sr->sh;
 
   if (GNUNET_YES == sr->was_transmitted)
     GNUNET_assert (GNUNET_OK ==
@@ -834,7 +833,7 @@ GSF_mesh_query_cancel (struct GSF_StreamRequest *sr)
  * @param sc client to clean up
  */
 static void
-terminate_mesh (struct StreamClient *sc)
+terminate_mesh (struct MeshClient *sc)
 {
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# mesh connections active"), -1,
@@ -867,14 +866,14 @@ terminate_mesh (struct StreamClient *sc)
 /**
  * Task run to asynchronously terminate the mesh due to timeout.
  *
- * @param cls the 'struct StreamClient'
+ * @param cls the 'struct MeshClient'
  * @param tc scheduler context
  */ 
 static void
 timeout_mesh_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct StreamClient *sc = cls;
+  struct MeshClient *sc = cls;
 
   sc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   terminate_mesh (sc);
@@ -887,7 +886,7 @@ timeout_mesh_task (void *cls,
  * @param sc client handle to reset timeout for
  */
 static void
-refresh_timeout_task (struct StreamClient *sc)
+refresh_timeout_task (struct MeshClient *sc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task); 
@@ -903,7 +902,7 @@ refresh_timeout_task (struct StreamClient *sc)
  * @param sc client to continue reading requests from
  */
 static void
-continue_reading (struct StreamClient *sc)
+continue_reading (struct MeshClient *sc)
 {
   refresh_timeout_task (sc);
 }
@@ -915,13 +914,13 @@ continue_reading (struct StreamClient *sc)
  * @param sc where to process the write queue
  */
 static void
-continue_writing (struct StreamClient *sc);
+continue_writing (struct MeshClient *sc);
 
 
 /**
  * Send a reply now, mesh is ready.
  *
- * @param cls closure with the struct StreamClient which sent the query
+ * @param cls closure with the struct MeshClient which sent the query
  * @param size number of bytes available in 'buf'
  * @param buf where to write the message
  * @return number of bytes written to 'buf'
@@ -931,7 +930,7 @@ write_continuation (void *cls,
 		    size_t size,
 		    void *buf)
 {
-  struct StreamClient *sc = cls;
+  struct MeshClient *sc = cls;
   struct WriteQueueItem *wqi;
   size_t ret;
 
@@ -971,7 +970,7 @@ write_continuation (void *cls,
  * @param sc where to process the write queue
  */
 static void
-continue_writing (struct StreamClient *sc)
+continue_writing (struct MeshClient *sc)
 {
   struct WriteQueueItem *wqi;
 
@@ -1006,7 +1005,7 @@ continue_writing (struct StreamClient *sc)
 /**
  * Process a datum that was stored in the datastore.
  *
- * @param cls closure with the struct StreamClient which sent the query
+ * @param cls closure with the struct MeshClient which sent the query
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -1027,10 +1026,10 @@ handle_datastore_reply (void *cls,
 			struct GNUNET_TIME_Absolute
 			expiration, uint64_t uid)
 {
-  struct StreamClient *sc = cls;
-  size_t msize = size + sizeof (struct StreamReplyMessage);
+  struct MeshClient *sc = cls;
+  size_t msize = size + sizeof (struct MeshReplyMessage);
   struct WriteQueueItem *wqi;
-  struct StreamReplyMessage *srm;
+  struct MeshReplyMessage *srm;
 
   sc->qe = NULL;
   if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
@@ -1063,9 +1062,9 @@ handle_datastore_reply (void *cls,
 	      GNUNET_h2s (key));
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
   wqi->msize = msize;
-  srm = (struct StreamReplyMessage *) &wqi[1];
+  srm = (struct MeshReplyMessage *) &wqi[1];
   srm->header.size = htons ((uint16_t) msize);
-  srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY);
+  srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_MESH_REPLY);
   srm->type = htonl (type);
   srm->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&srm[1], data, size);
@@ -1083,7 +1082,7 @@ handle_datastore_reply (void *cls,
  *
  * Do not call GNUNET_SERVER_mst_destroy in callback
  *
- * @param cls closure with the 'struct StreamClient'
+ * @param cls closure with the 'struct MeshClient'
  * @param tunnel tunnel handle
  * @param tunnel_ctx tunnel context
  * @param message the actual message
@@ -1095,10 +1094,10 @@ request_cb (void *cls,
 	    void **tunnel_ctx,
 	    const struct GNUNET_MessageHeader *message)
 {
-  struct StreamClient *sc = *tunnel_ctx;
-  const struct StreamQueryMessage *sqm;
+  struct MeshClient *sc = *tunnel_ctx;
+  const struct MeshQueryMessage *sqm;
 
-  sqm = (const struct StreamQueryMessage *) message;
+  sqm = (const struct MeshQueryMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received query for `%s' via mesh\n",
 	      GNUNET_h2s (&sqm->query));
@@ -1132,7 +1131,7 @@ request_cb (void *cls,
  * @param initiator the identity of the peer who wants to establish a mesh
  *            with us; NULL on binding error
  * @param port mesh port used for the incoming connection
- * @return initial tunnel context (our 'struct StreamClient')
+ * @return initial tunnel context (our 'struct MeshClient')
  */
 static void *
 accept_cb (void *cls,
@@ -1140,7 +1139,7 @@ accept_cb (void *cls,
 	   const struct GNUNET_PeerIdentity *initiator,
 	   uint32_t port)
 {
-  struct StreamClient *sc;
+  struct MeshClient *sc;
 
   GNUNET_assert (NULL != socket);
   if (sc_count >= sc_count_max)
@@ -1157,7 +1156,7 @@ accept_cb (void *cls,
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# mesh connections active"), 1,
 			    GNUNET_NO);
-  sc = GNUNET_malloc (sizeof (struct StreamClient));
+  sc = GNUNET_malloc (sizeof (struct MeshClient));
   sc->socket = socket;
   GNUNET_CONTAINER_DLL_insert (sc_head,
 			       sc_tail,
@@ -1175,8 +1174,8 @@ void
 GSF_mesh_start ()
 {
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
-    { &request_cb, GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY, sizeof (struct StreamQueryMessage)},
-    { &reply_cb, GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY, 0 },
+    { &request_cb, GNUNET_MESSAGE_TYPE_FS_MESH_QUERY, sizeof (struct MeshQueryMessage)},
+    { &reply_cb, GNUNET_MESSAGE_TYPE_FS_MESH_REPLY, 0 },
     { NULL, 0, 0 }
   };
   static const uint32_t ports[] = {
@@ -1188,7 +1187,7 @@ GSF_mesh_start ()
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
 					     "fs",
-					     "MAX_STREAM_CLIENTS",
+					     "MAX_MESH_CLIENTS",
 					     &sc_count_max))
   {
     listen_socket = GNUNET_MESH_connect (GSF_cfg,
@@ -1206,7 +1205,7 @@ GSF_mesh_start ()
  *
  * @param cls NULL
  * @param key target peer, unused
- * @param value the 'struct StreamHandle' to destroy
+ * @param value the 'struct MeshHandle' to destroy
  * @return GNUNET_YES (continue to iterate)
  */
 static int
@@ -1214,7 +1213,7 @@ release_meshs (void *cls,
 		 const struct GNUNET_HashCode *key,
 		 void *value)
 {
-  struct StreamHandle *sh = value;
+  struct MeshHandle *sh = value;
 
   destroy_mesh_handle (sh);
   return GNUNET_YES;
@@ -1227,7 +1226,7 @@ release_meshs (void *cls,
 void
 GSF_mesh_stop ()
 {
-  struct StreamClient *sc;
+  struct MeshClient *sc;
 
   while (NULL != (sc = sc_head))
     terminate_mesh (sc);

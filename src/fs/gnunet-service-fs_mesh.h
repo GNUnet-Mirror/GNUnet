@@ -29,7 +29,7 @@
 /**
  * Handle for a request that is going out via mesh API.
  */
-struct GSF_StreamRequest;
+struct GSF_MeshRequest;
 
 
 /**
@@ -41,7 +41,7 @@ struct GSF_StreamRequest;
  * @param data_size number of bytes in 'data', 0 on error
  * @param data reply block data, NULL on error
  */
-typedef void (*GSF_StreamReplyProcessor)(void *cls,
+typedef void (*GSF_MeshReplyProcessor)(void *cls,
 					 enum GNUNET_BLOCK_Type type,
 					 struct GNUNET_TIME_Absolute expiration,
 					 size_t data_size,
@@ -58,11 +58,11 @@ typedef void (*GSF_StreamReplyProcessor)(void *cls,
  * @param proc_cls closure for 'proc'
  * @return handle to cancel the operation
  */
-struct GSF_StreamRequest *
+struct GSF_MeshRequest *
 GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
 		  const struct GNUNET_HashCode *query,
 		  enum GNUNET_BLOCK_Type type,
-		  GSF_StreamReplyProcessor proc, void *proc_cls);
+		  GSF_MeshReplyProcessor proc, void *proc_cls);
 
 
 /**
@@ -72,7 +72,7 @@ GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_mesh_query_cancel (struct GSF_StreamRequest *sr);
+GSF_mesh_query_cancel (struct GSF_MeshRequest *sr);
 
 
 /**
