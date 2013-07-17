@@ -1410,9 +1410,10 @@ tcp_plugin_get_session (void *cls,
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-    	_("Trying to create session for address of unexpected length %u (should be %u or %u)\n"),
-	 	  addrlen, sizeof (struct IPv4TcpAddress), sizeof (struct IPv6TcpAddress));
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              gettext_noop
+                              ("# requests to create session with invalid address"),
+                              1, GNUNET_NO);
     return NULL;
   }
 
@@ -1629,7 +1630,7 @@ void
 ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	struct PrettyPrinterContext *ppc = cls;
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was not removed!\n", ppc);
+	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was not removed!\n", ppc); */
 	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	if (NULL != ppc->resolver_handle)
 	{
@@ -1654,7 +1655,7 @@ append_port (void *cls, const char *hostname)
   struct PrettyPrinterContext *ppc = cls;
   struct PrettyPrinterContext *cur;
   char *ret;
-
+	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC callback: %p `%s'\n",ppc, hostname); */
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -1819,10 +1820,10 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
   if ((addrlen != sizeof (struct IPv4TcpAddress)) &&
       (addrlen != sizeof (struct IPv6TcpAddress)))
   {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
 
+
+  	return GNUNET_SYSERR;
+  }
 
   if (addrlen == sizeof (struct IPv4TcpAddress))
   {

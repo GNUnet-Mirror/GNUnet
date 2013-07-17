@@ -584,7 +584,6 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
 	}
   else
   {
-    GNUNET_break_op (0);
     return NULL;
   }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
@@ -706,7 +705,7 @@ void
 ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	struct PrettyPrinterContext *ppc = cls;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PPC %p was not removed!\n", ppc);
+	/* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PPC %p was not removed!\n", ppc); */
 	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	if (NULL != ppc->resolver_handle)
 	{
@@ -731,7 +730,7 @@ append_port (void *cls, const char *hostname)
   struct PrettyPrinterContext *ppc = cls;
   struct PrettyPrinterContext *cur;
   char *ret;
-
+	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC callback: %p `%s'\n",ppc, hostname); */
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -1069,7 +1068,6 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
   if ((addrlen != sizeof (struct IPv4UdpAddress)) &&
       (addrlen != sizeof (struct IPv6UdpAddress)))
   {
-    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   if (addrlen == sizeof (struct IPv4UdpAddress))
@@ -1451,7 +1449,10 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     break;
   default:
     /* Must have a valid address to send to */
-    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              gettext_noop
+                              ("# requests to create session with invalid address"),
+                              1, GNUNET_NO);
     return NULL;
   }
   s->addrlen = len;
