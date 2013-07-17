@@ -114,11 +114,6 @@ unsigned int p_ids;
 static int initialized;
 
 /**
- * Peers that have responded
- */
-static int peers_responded;
-
-/**
  * Number of payload packes sent
  */
 static int data_sent;
@@ -425,13 +420,11 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   {
   case 0L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
-    peers_responded++;
     break;
   case 4L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Leaf client %li got a message.\n",
                 client);
-    client = 4L;
     break;
   default:
     GNUNET_assert (0);
@@ -461,7 +454,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     }
   }
 
-  if (client == expected_target_client) // Normally 3 or 4
+  if (client == expected_target_client) // Normally 4
   {
     data_received++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -658,7 +651,6 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                   (void *) __LINE__);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending data initializer...\n");
-  peers_responded = 0;
   data_ack = 0;
   data_received = 0;
   data_sent = 0;
