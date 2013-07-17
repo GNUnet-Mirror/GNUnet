@@ -33,7 +33,7 @@
 #include "gnunet_server_lib.h"
 #include "gnunet_time_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-server-nc", __VA_ARGS__)
 
 
 /**
@@ -385,7 +385,7 @@ do_unicast (struct GNUNET_SERVER_NotificationContext *nc,
   /* append */
   GNUNET_CONTAINER_DLL_insert_tail (client->pending_head, client->pending_tail,
                                     pml);
-  if (client->th == NULL)
+  if (NULL == client->th)
     client->th =
         GNUNET_SERVER_notify_transmit_ready (client->client,
                                              ntohs (client->pending_head->
