@@ -119,7 +119,7 @@ struct DiffHandle
 struct GNUNET_CONFIGURATION_Handle *
 GNUNET_CONFIGURATION_create ()
 {
-  return GNUNET_malloc (sizeof (struct GNUNET_CONFIGURATION_Handle));
+  return GNUNET_new (struct GNUNET_CONFIGURATION_Handle);
 }
 
 
@@ -400,13 +400,11 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* Pass1 : calculate the buffer size required */
   m_size = 0;
-  sec = cfg->sections;
-  while (NULL != sec)
+  for (sec = cfg->sections; NULL != sec; sec = sec->next)
   {
     /* For each section we need to add 3 charaters: {'[',']','\n'} */
     m_size += strlen (sec->name) + 3;
-    ent = sec->entries;
-    while (NULL != ent)
+    for (ent = sec->entries; NULL != ent; ent = ent->next)
     {
       if (NULL != ent->val)
       {
@@ -421,11 +419,9 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	   spaces and 1 equal-to character and 1 new line) */
 	m_size += strlen (ent->key) + strlen (ent->val) + 4;	
       }
-      ent = ent->next;
     }
     /* A new line after section end */
     m_size++;
-    sec = sec->next;
   }
 
   /* Pass2: Allocate memory and write the configuration to it */
@@ -440,8 +436,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
     memcpy (mem + c_size, cbuf, len);
     c_size += len;
     GNUNET_free (cbuf);
-    ent = sec->entries;
-    while (NULL != ent)
+    for (ent = sec->entries; NULL != ent; ent = ent->next)
     {
       if (NULL != ent->val)
       {
@@ -459,7 +454,6 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	c_size += len;
 	GNUNET_free (cbuf);	
       }
-      ent = ent->next;
     }
     memcpy (mem + c_size, "\n", 1);
     c_size ++;
@@ -530,17 +524,10 @@ GNUNET_CONFIGURATION_iterate (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct ConfigSection *spos;
   struct ConfigEntry *epos;
 
-  spos = cfg->sections;
-  while (spos != NULL)
-  {
-    epos = spos->entries;
-    while (epos != NULL)
-    {
-      iter (iter_cls, spos->name, epos->key, epos->val);
-      epos = epos->next;
-    }
-    spos = spos->next;
-  }
+  for (spos = cfg->sections; NULL != spos; spos = spos->next)
+    for (epos = spos->entries; NULL != epos; epos = epos->next)
+      if (NULL != epos->val)
+	iter (iter_cls, spos->name, epos->key, epos->val);
 }
 
 
@@ -565,16 +552,11 @@ GNUNET_CONFIGURATION_iterate_section_values (const struct
   spos = cfg->sections;
   while ((spos != NULL) && (0 != strcasecmp (spos->name, section)))
     spos = spos->next;
-
-  if (spos == NULL)
+  if (NULL == spos)
     return;
-
-  epos = spos->entries;
-  while (epos != NULL)
-  {
-    iter (iter_cls, spos->name, epos->key, epos->val);
-    epos = epos->next;
-  }
+  for (epos = spos->entries; NULL != epos; epos = epos->next)
+    if (NULL != epos->val)
+      iter (iter_cls, spos->name, epos->key, epos->val);
 }
 
 
@@ -619,11 +601,11 @@ GNUNET_CONFIGURATION_remove_section (struct GNUNET_CONFIGURATION_Handle *cfg,
 
   prev = NULL;
   spos = cfg->sections;
-  while (spos != NULL)
+  while (NULL != spos)
   {
     if (0 == strcasecmp (section, spos->name))
     {
-      if (prev == NULL)
+      if (NULL == prev)
         cfg->sections = spos->next;
       else
         prev->next = spos->next;
@@ -682,7 +664,7 @@ GNUNET_CONFIGURATION_dup (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * FIXME.
+ * Find a section entry from a configuration.
  *
  * @param cfg FIXME
  * @param section FIXME
@@ -715,8 +697,7 @@ findEntry (const struct GNUNET_CONFIGURATION_Handle *cfg, const char *section,
   struct ConfigSection *sec;
   struct ConfigEntry *pos;
 
-  sec = findSection (cfg, section);
-  if (sec == NULL)
+  if (NULL == (sec = findSection (cfg, section)))
     return NULL;
   pos = sec->entries;
   while ((pos != NULL) && (0 != strcasecmp (key, pos->key)))
@@ -743,7 +724,9 @@ compare_entries (void *cls, const char *section, const char *option,
   struct ConfigEntry *entNew;
 
   entNew = findEntry (dh->cfgDefault, section, option);
-  if ((entNew != NULL) && (strcmp (entNew->val, value) == 0))
+  if ( (NULL != entNew) &&
+       (NULL != entNew->val) &&
+       (0 == strcmp (entNew->val, value)) )
     return;
   GNUNET_CONFIGURATION_set_value_string (dh->cfgDiff, section, option, value);
 }
@@ -812,11 +795,19 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *nv;
 
   e = findEntry (cfg, section, option);
-  if (e != NULL)
+  if (NULL != e)
   {
-    nv = GNUNET_strdup (value);
-    GNUNET_free_non_null (e->val);
-    e->val = nv;
+    if (NULL == value)
+    {
+      GNUNET_free_non_null (e->val);
+      e->val = NULL;
+    }
+    else
+    {
+      nv = GNUNET_strdup (value);
+      GNUNET_free_non_null (e->val);
+      e->val = nv;
+    }
     return;
   }
   sec = findSection (cfg, section);
@@ -872,8 +863,9 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle
 {
   struct ConfigEntry *e;
 
-  e = findEntry (cfg, section, option);
-  if (e == NULL)
+  if (NULL == (e = findEntry (cfg, section, option)))
+    return GNUNET_SYSERR;
+  if (NULL == e->val)
     return GNUNET_SYSERR;
   if (1 != SSCANF (e->val, "%llu", number))
     return GNUNET_SYSERR;
@@ -898,10 +890,10 @@ GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
 {
   struct ConfigEntry *e;
 
-  e = findEntry (cfg, section, option);
-  if (e == NULL)
+  if (NULL == (e = findEntry (cfg, section, option)))
     return GNUNET_SYSERR;
-
+  if (NULL == e->val)
+    return GNUNET_SYSERR;
   return GNUNET_STRINGS_fancy_time_to_relative (e->val, time);
 }
 
@@ -923,8 +915,9 @@ GNUNET_CONFIGURATION_get_value_size (const struct GNUNET_CONFIGURATION_Handle
 {
   struct ConfigEntry *e;
 
-  e = findEntry (cfg, section, option);
-  if (e == NULL)
+  if (NULL == (e = findEntry (cfg, section, option)))
+    return GNUNET_SYSERR;
+  if (NULL == e->val)
     return GNUNET_SYSERR;
   return GNUNET_STRINGS_fancy_size_to_bytes (e->val, size);
 }
@@ -948,15 +941,13 @@ GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
   struct ConfigEntry *e;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Asked to retrieve string `%s' in section `%s'\n", option, section);
-  e = findEntry (cfg, section, option);
-  if ((e == NULL) || (e->val == NULL))
+  if ( (NULL == (e = findEntry (cfg, section, option))) ||
+       (NULL == e->val) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to retrieve the string\n");
     *value = NULL;
     return GNUNET_SYSERR;
   }
   *value = GNUNET_strdup (e->val);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Retrieved string `%s'\n", e->val);
   return GNUNET_OK;
 }
 
@@ -980,19 +971,14 @@ GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle
                                        const char **value)
 {
   struct ConfigEntry *e;
-  int i;
+  unsigned int i;
 
-  e = findEntry (cfg, section, option);
-  if (e == NULL)
+  if (NULL == (e = findEntry (cfg, section, option)))
     return GNUNET_SYSERR;
-  i = 0;
-  while (choices[i] != NULL)
-  {
+  for (i = 0; NULL != choices[i]; i++)
     if (0 == strcasecmp (choices[i], e->val))
       break;
-    i++;
-  }
-  if (choices[i] == NULL)
+  if (NULL == choices[i])
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Configuration value '%s' for '%s'"
@@ -1018,7 +1004,7 @@ GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct ConfigEntry *e;
 
-  if ((NULL == (e = findEntry (cfg, section, option))) || (e->val == NULL))
+  if ((NULL == (e = findEntry (cfg, section, option))) || (NULL == e->val))
     return GNUNET_NO;
   return GNUNET_YES;
 }
