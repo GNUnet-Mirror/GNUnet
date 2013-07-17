@@ -813,12 +813,12 @@ GNUNET_CONFIGURATION_set_value_string (struct GNUNET_CONFIGURATION_Handle *cfg,
   sec = findSection (cfg, section);
   if (sec == NULL)
   {
-    sec = GNUNET_malloc (sizeof (struct ConfigSection));
+    sec = GNUNET_new (struct ConfigSection);
     sec->name = GNUNET_strdup (section);
     sec->next = cfg->sections;
     cfg->sections = sec;
   }
-  e = GNUNET_malloc (sizeof (struct ConfigEntry));
+  e = GNUNET_new (struct ConfigEntry);
   e->key = GNUNET_strdup (option);
   e->val = GNUNET_strdup (value);
   e->next = sec->entries;
