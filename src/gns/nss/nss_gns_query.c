@@ -22,6 +22,9 @@
 #include <stdlib.h>
 #include "nss_gns_query.h"
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 
 /**
