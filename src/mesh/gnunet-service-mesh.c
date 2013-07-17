@@ -3499,6 +3499,11 @@ queue_add (void *cls, uint16_t type, size_t size,
       priority = GNUNET_YES;
     }
     fc->queue_n++;
+    if (GMC_is_pid_bigger(fc->last_pid_sent + 1, fc->last_ack_recv) &&
+        GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                    &tunnel_poll,
+                                                    fc);
   }
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
@@ -3527,6 +3532,7 @@ queue_add (void *cls, uint16_t type, size_t size,
   }
   else
     GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
+  
   if (NULL == dst->core_transmit)
   {
     GNUNET_PEER_resolve (dst->id, &id);
