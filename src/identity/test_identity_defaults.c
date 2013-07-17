@@ -119,58 +119,6 @@ end ()
 
 
 /**
- * Called with events about egos.
- *
- * @param cls NULL
- * @param ego ego handle
- * @param ego_ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
- */
-static void
-notification_cb (void *cls,
-		 struct GNUNET_IDENTITY_Ego *ego,
-		 void **ctx,
-		 const char *identifier)
-{
-#if 0
-  static struct GNUNET_IDENTITY_Ego *my_ego;
-  static int round;
-
-  switch (round)
-  {
-  case 0: /* end of initial iteration */
-    GNUNET_assert (NULL == ego);
-    GNUNET_assert (NULL == identifier);
-    break;
-  case 1: /* create */
-    GNUNET_assert (NULL != ego);
-    GNUNET_assert (0 == strcmp (identifier, "test-id"));
-    my_ego = ego;
-    *ctx = &round;
-    break;
-  case 2: /* rename */
-    GNUNET_assert (my_ego == ego);
-    GNUNET_assert (0 == strcmp (identifier, "test"));
-    GNUNET_assert (*ctx == &round);
-    break;
-  case 3: /* delete */
-    GNUNET_assert (my_ego == ego);
-    GNUNET_assert (NULL == identifier);
-    GNUNET_assert (*ctx == &round);
-    *ctx = NULL;
-    break;
-  default:
-    GNUNET_break (0);
-  }
-  round++;
-#endif
-}
-
-
-/**
  * Continuation called from successful delete operation.
  *
  * @param cls NULL
@@ -198,8 +146,8 @@ get_cb (void *cls,
 	void **ctx,
 	const char *identifier)
 {
-  GNUNET_assert (NULL != emsg);
-  GNUNET_assert (my_ego == ego);
+  GNUNET_assert (NULL != ego);
+  GNUNET_assert (NULL != identifier);
   GNUNET_assert (0 == strcmp (identifier, "test-id"));
   op = GNUNET_IDENTITY_delete (h, 
 			       "test-id",
@@ -222,7 +170,7 @@ run_get (void *cls,
 {
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
 						&endbadly, NULL); 
-  h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
+  h = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   GNUNET_assert (NULL != h);
   op = GNUNET_IDENTITY_get (h,
 			    "test-service",
@@ -248,7 +196,7 @@ success_set_cont (void *cls,
 
 
 /**
- * Called with events about created ego.
+ * Called with events about egos.
  *
  * @param cls NULL
  * @param ego ego handle
@@ -259,16 +207,33 @@ success_set_cont (void *cls,
  *                   must thus no longer be used
  */
 static void
-create_cb (void *cls,
-	   struct GNUNET_IDENTITY_Ego *ego,
-	   void **ctx,
-	   const char *identifier)
-{  
+notification_cb (void *cls,
+		 struct GNUNET_IDENTITY_Ego *ego,
+		 void **ctx,
+		 const char *identifier)
+{
+  if (NULL == ego)
+    return; /* skip first call */
   op = GNUNET_IDENTITY_set (h, 
 			    "test-service",
 			    ego,
 			    &success_set_cont, 
 			    NULL);
+}
+
+
+/**
+ * Called with events about created ego.
+ *
+ * @param cls NULL
+ * @param emsg error message
+ */
+static void
+create_cb (void *cls,
+	   const char *emsg)
+{  
+  GNUNET_assert (NULL == emsg);
+  op = NULL;
 }
 
 
@@ -299,21 +264,23 @@ run_set (void *cls,
 int
 main (int argc, char *argv[])
 {
+  GNUNET_DISK_directory_remove ("/tmp/test-identity-service");
   res = 1;
   if (0 != 
-      GNUNET_TESTING_service_run ("test-identity",
+      GNUNET_TESTING_service_run ("test-identity-defaults",
 				  "identity",
 				  "test_identity.conf",
 				  &run_set,
 				  NULL))
     return 1;
   if (0 != 
-      GNUNET_TESTING_service_run ("test-identity",
+      GNUNET_TESTING_service_run ("test-identity-defaults",
 				  "identity",
 				  "test_identity.conf",
 				  &run_get,
 				  NULL))
     return 1;
+  GNUNET_DISK_directory_remove ("/tmp/test-identity-service");
   return res;
 }
 

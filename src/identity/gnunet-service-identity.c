@@ -27,7 +27,6 @@
  * represent the various egos/pseudonyms/identities of a GNUnet user.
  *
  * Todo:
- * - testcases
  * - auto-initialze default egos; maybe trigger default
  *   initializations (such as gnunet-gns-import.sh?)
  */
@@ -320,8 +319,6 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   const char *name;
   char *identifier;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received GET_DEFAULT message from client\n");
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_GetDefaultMessage))
   {
@@ -340,6 +337,9 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received GET_DEFAULT for service `%s' from client\n",
+	      name);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (subsystem_cfg,
 					     name,
@@ -363,6 +363,9 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Failed to find ego `%s'\n",
+	      name);
   send_result_code (client, 1, 
 		    gettext_noop ("default configured, but ego unknown (internal error)"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -409,8 +412,6 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   const char *str;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received SET_DEFAULT message from client\n");
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
   {
@@ -436,6 +437,9 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received SET_DEFAULT for service `%s' from client\n",
+	      str);
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == key_cmp (ego->pk,
@@ -848,8 +852,10 @@ process_ego_file (void *cls,
 		  filename);
       return GNUNET_OK;
     }
-  
-  ego->identifier = GNUNET_strdup (fn);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Loaded ego `%s'\n",
+	      fn + 1);  
+  ego->identifier = GNUNET_strdup (fn + 1);
   GNUNET_CONTAINER_DLL_insert (ego_head,
 			       ego_tail,
 			       ego);
@@ -904,6 +910,9 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Loading subsystem configuration `%s'\n",
+	      subsystem_cfg_file);
   subsystem_cfg = GNUNET_CONFIGURATION_create ();
   if ( (GNUNET_YES ==
 	GNUNET_DISK_file_test (subsystem_cfg_file)) &&

@@ -226,19 +226,13 @@ success_rename_cont (void *cls,
  * Called with events about created ego.
  *
  * @param cls NULL
- * @param ego ego handle
- * @param ego_ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
+ * @param emsg error message
  */
 static void
 create_cb (void *cls,
-	   struct GNUNET_IDENTITY_Ego *ego,
-	   void **ctx,
-	   const char *identifier)
+	   const char *emsg)
 {  
+  GNUNET_assert (NULL == emsg);
   op = GNUNET_IDENTITY_rename (h, 
 			       "test-id",
 			       "test",
@@ -274,6 +268,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  GNUNET_DISK_directory_remove ("/tmp/test-identity-service");
   res = 1;
   if (0 != 
       GNUNET_TESTING_service_run ("test-identity",

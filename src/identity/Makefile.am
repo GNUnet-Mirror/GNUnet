@@ -56,7 +56,8 @@ gnunet_service_identity_DEPENDENCIES = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_identity
+ test_identity \
+ test_identity_defaults 
 endif
 
 if ENABLE_TEST_RUN
@@ -66,6 +67,13 @@ endif
 test_identity_SOURCES = \
  test_identity.c
 test_identity_LDADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
+test_identity_defaults_SOURCES = \
+ test_identity_defaults.c
+test_identity_defaults_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la 

@@ -707,15 +707,15 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
  *
  * @param id identity service to use
  * @param identifier desired identifier
- * @param cb function to call with the result (will only be called once)
- * @param cb_cls closure for cb
+ * @param cont function to call with the result (will only be called once)
+ * @param cont_cls closure for cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			const char *identifier,
-			GNUNET_IDENTITY_Callback cb,
-			void *cb_cls)
+			GNUNET_IDENTITY_Continuation cont,
+			void *cont_cls)
 {
   struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
   struct GNUNET_IDENTITY_Operation *op;
@@ -741,8 +741,8 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 		      sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
 		      enc_len + slen);  
   op->h = id;
-  op->cb = cb;
-  op->cls = cb_cls;
+  op->cont = cont;
+  op->cls = cont_cls;
   crm = (struct GNUNET_IDENTITY_CreateRequestMessage *) &op[1];
   crm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_CREATE);
   crm->header.size = htons (sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
