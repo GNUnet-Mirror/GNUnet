@@ -4356,7 +4356,10 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
     tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL, GNUNET_YES);
   }
   else
+  {
     GNUNET_break (0);
+    return GNUNET_OK;
+  }
 
   if (GNUNET_YES == t->reliable)
     fc->last_pid_recv = old;
