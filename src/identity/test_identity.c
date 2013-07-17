@@ -60,15 +60,15 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 static void
 cleanup ()
 {
-  if (NULL != h)
-  {
-    GNUNET_IDENTITY_disconnect (h);
-    h = NULL;
-  }
   if (NULL != op)
   {
     GNUNET_IDENTITY_cancel (op);
     op = NULL;
+  }
+  if (NULL != h)
+  {
+    GNUNET_IDENTITY_disconnect (h);
+    h = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -113,7 +113,7 @@ end ()
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  GNUNET_SCHEDULER_add_now (&end_normally, NULL);
 }
 
 
@@ -155,9 +155,9 @@ create_cb (void *cls,
 	   const char *identifier)
 {
   op = NULL;
+  fprintf (stderr, "HERE!\n");
   end (); /* yepee */
 }
-
 
 
 /**
@@ -182,8 +182,6 @@ run (void *cls,
 			       NULL);
   
 }
-
-
 
 
 int

@@ -916,6 +916,13 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("identity", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create (ego_directory))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to create directory `%s' for storing egos\n"),
+		ego_directory);
+  }
   GNUNET_DISK_directory_scan (ego_directory,
 			      &process_ego_file,
 			      NULL);

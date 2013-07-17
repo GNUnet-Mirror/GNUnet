@@ -13,3 +13,5 @@ UNIX_MATCH_GID = YES
 # Directory where we store information about our egos
 EGODIR = $SERVICEHOME/egos/
 
+# File where we store default identities for subsystems
+SUBSYSTEM_CFG = $SERVICEHOME/subsystem_defaults.conf
