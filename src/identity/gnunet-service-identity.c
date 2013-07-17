@@ -191,7 +191,11 @@ send_result_code (struct GNUNET_SERVER_Client *client,
   rcm->header.size = htons (sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) + elen);
   rcm->result_code = htonl (result_code);
   memcpy (&rcm[1], emsg, elen);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_YES);  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending result %d (%s) to client\n",
+	      (int) result_code,
+	      emsg);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_NO);  
   GNUNET_free (rcm);
 }
 
@@ -284,14 +288,14 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     um = create_update_message (ego);
-    GNUNET_SERVER_notification_context_unicast (nc, client, &um->header, GNUNET_YES);
+    GNUNET_SERVER_notification_context_unicast (nc, client, &um->header, GNUNET_NO);
     GNUNET_free (um);
   }
   ume.header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
   ume.header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage));
   ume.pk_len = htons (0);
   ume.name_len = htons (0);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_YES);  
+  GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_NO);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -353,7 +357,7 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     {
       sdm = create_set_default_message (ego,
 					name);
-      GNUNET_SERVER_notification_context_broadcast (nc, &sdm->header, GNUNET_YES);
+      GNUNET_SERVER_notification_context_broadcast (nc, &sdm->header, GNUNET_NO);
       GNUNET_free (sdm);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
@@ -470,7 +474,7 @@ notify_listeners (struct Ego *ego)
   struct GNUNET_IDENTITY_UpdateMessage *um;
 
   um = create_update_message (ego);
-  GNUNET_SERVER_notification_context_broadcast (nc, &um->header, GNUNET_YES);
+  GNUNET_SERVER_notification_context_broadcast (nc, &um->header, GNUNET_NO);
   GNUNET_free (um);
 }
 

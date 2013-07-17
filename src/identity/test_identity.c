@@ -134,6 +134,7 @@ notification_cb (void *cls,
 		 void **ctx,
 		 const char *identifier)
 {
+  // fprintf (stderr, "Notification: %s\n", identifier);
 }
 
 
@@ -155,7 +156,7 @@ create_cb (void *cls,
 	   const char *identifier)
 {
   op = NULL;
-  fprintf (stderr, "HERE!\n");
+  // fprintf (stderr, "HERE!\n");
   end (); /* yepee */
 }
 

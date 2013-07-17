@@ -247,6 +247,9 @@ message_handler (void *cls,
     reschedule_connect (h);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message of type %d from identity service\n",
+       ntohs (msg->type));
   size = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
@@ -305,7 +308,7 @@ message_handler (void *cls,
       /* end of initial list of data */
       if (NULL != h->cb)
 	h->cb (h->cb_cls, NULL, NULL, NULL);
-      return;
+      break;
     }
     priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
     if (NULL == priv)
@@ -470,6 +473,9 @@ send_next_message (void *cls,
     reschedule_connect (h);
     return 0;
   }  
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending message of type %d to identity service\n",
+       ntohs (op->msg->type));
   memcpy (buf, op->msg, ret);
   if ( (NULL == op->cont) &&
        (NULL == op->cb) )
@@ -568,6 +574,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->cfg = cfg;
   h->cb = cb;
   h->cb_cls = cb_cls;
+  h->egos = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
   return h;
@@ -902,6 +909,33 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 
 
 /**
+ * Free ego from hash map.
+ *
+ * @param cls identity service handle
+ * @param key unused
+ * @param value ego to free
+ * @return GNUNET_OK (continue to iterate)
+ */
+static int
+free_ego (void *cls,
+	  const struct GNUNET_HashCode *key,
+	  void *value)
+{
+  struct GNUNET_IDENTITY_Handle *h = cls;
+  struct GNUNET_IDENTITY_Ego *ego = value;
+
+  h->cb (h->cb_cls,
+	 ego,
+	 &ego->ctx,
+	 NULL);
+  GNUNET_CRYPTO_ecc_key_free (ego->pk);
+  GNUNET_free (ego->identifier);
+  GNUNET_free (ego);
+  return GNUNET_OK;
+}
+
+
+/**
  * Disconnect from identity service
  *
  * @param h handle to destroy
@@ -920,6 +954,14 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
+  }
+  if (NULL != h->egos)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (h->egos,
+					   &free_ego,
+					   h);
+    GNUNET_CONTAINER_multihashmap_destroy (h->egos);
+    h->egos = NULL;
   }
   if (NULL != h->client)
   {
