@@ -113,7 +113,8 @@ end ()
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_SCHEDULER_add_now (&end_normally, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+				&end_normally, NULL);
 }
 
 
@@ -134,7 +135,90 @@ notification_cb (void *cls,
 		 void **ctx,
 		 const char *identifier)
 {
-  // fprintf (stderr, "Notification: %s\n", identifier);
+  static struct GNUNET_IDENTITY_Ego *my_ego;
+  static int round;
+
+  switch (round)
+  {
+  case 0: /* end of initial iteration */
+    GNUNET_assert (NULL == ego);
+    GNUNET_assert (NULL == identifier);
+    break;
+  case 1: /* create */
+    GNUNET_assert (NULL != ego);
+    GNUNET_assert (0 == strcmp (identifier, "test-id"));
+    my_ego = ego;
+    *ctx = &round;
+    break;
+  case 2: /* rename */
+    GNUNET_assert (my_ego == ego);
+    GNUNET_assert (0 == strcmp (identifier, "test"));
+    GNUNET_assert (*ctx == &round);
+    break;
+  case 3: /* delete */
+    GNUNET_assert (my_ego == ego);
+    GNUNET_assert (NULL == identifier);
+    GNUNET_assert (*ctx == &round);
+    *ctx = NULL;
+    break;
+  default:
+    GNUNET_break (0);
+  }
+  round++;
+}
+
+
+/**
+ * Continuation called from successful delete operation.
+ *
+ * @param cls NULL
+ * @param emsg (should also be NULL)
+ */
+static void
+delete_cont (void *cls,
+	     const char *emsg)
+{
+  op = NULL;
+  GNUNET_assert (NULL == emsg);
+  end ();
+}
+
+
+/**
+ * Continuation called from expected-to-fail rename operation.
+ *
+ * @param cls NULL
+ * @param emsg (should also be NULL)
+ */
+static void
+fail_rename_cont (void *cls,
+		  const char *emsg)
+{
+  GNUNET_assert (NULL != emsg);
+  op = GNUNET_IDENTITY_delete (h, 
+			       "test",
+			       &delete_cont, 
+			       NULL);
+   end (); /* yepee */
+}
+
+
+/**
+ * Continuation called from successful rename operation.
+ *
+ * @param cls NULL
+ * @param emsg (should also be NULL)
+ */
+static void
+success_rename_cont (void *cls,
+		     const char *emsg)
+{
+  GNUNET_assert (NULL == emsg);
+  op = GNUNET_IDENTITY_rename (h, 
+			       "test-id",
+			       "test",
+			       &fail_rename_cont, 
+			       NULL);
 }
 
 
@@ -154,10 +238,12 @@ create_cb (void *cls,
 	   struct GNUNET_IDENTITY_Ego *ego,
 	   void **ctx,
 	   const char *identifier)
-{
-  op = NULL;
-  // fprintf (stderr, "HERE!\n");
-  end (); /* yepee */
+{  
+  op = GNUNET_IDENTITY_rename (h, 
+			       "test-id",
+			       "test",
+			       &success_rename_cont, 
+			       NULL);
 }
 
 
