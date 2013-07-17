@@ -520,14 +520,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP 139
 
 /**
- * P2P request for content (one FS to another via a stream).
+ * P2P request for content (one FS to another via a mesh).
  */
-#define GNUNET_MESSAGE_TYPE_FS_STREAM_QUERY 140
+#define GNUNET_MESSAGE_TYPE_FS_MESH_QUERY 140
 
 /**
- * P2P answer for content (one FS to another via a stream).
+ * P2P answer for content (one FS to another via a mesh).
  */
-#define GNUNET_MESSAGE_TYPE_FS_STREAM_REPLY 141
+#define GNUNET_MESSAGE_TYPE_FS_MESH_REPLY 141
 
 
 /*******************************************************************************
@@ -1261,66 +1261,7 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC 385
 
-/*******************************************************************************
- * STREAM messages types
- ******************************************************************************/
 
-/**
- * Message containing data exchanged between stream end-points over mesh.
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_DATA 400
-
-/**
- * ACK message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_ACK 401
-
-/**
- * Handshake hello message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_HELLO 402
-
-/**
- * Handshake hello acknowledgement message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_HELLO_ACK 403
-
-/**
- * Reset message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_RESET 404
-
-/**
- * Transmit close message (data transmission no longer possible after this
- * message) 
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE 405
-
-/**
- * Transmit close acknowledgement message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_TRANSMIT_CLOSE_ACK 406
-
-/**
- * Receive close message (data is no loger read by the receiver after this
- * message) 
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE 407
-
-/**
- * Receive close acknowledgement message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_RECEIVE_CLOSE_ACK 408
-
-/**
- * Stream close message (data is no longer sent or read after this message)
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_CLOSE 409
-
-/**
- * Close acknowledgement message
- */
-#define GNUNET_MESSAGE_TYPE_STREAM_CLOSE_ACK 410
 
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages

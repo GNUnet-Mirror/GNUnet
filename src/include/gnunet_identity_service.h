@@ -192,15 +192,15 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
  *
  * @param id identity service to use
  * @param identifier desired identifier
- * @param cb function to call with the result (will only be called once)
- * @param cb_cls closure for cb
+ * @param cont function to call with the result (will only be called once)
+ * @param cont_cls closure for cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			const char *identifier,
-			GNUNET_IDENTITY_Callback cb,
-			void *cb_cls);
+			GNUNET_IDENTITY_Continuation cont,
+			void *cont_cls);
 
 
 /** 
