@@ -3441,7 +3441,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,
                                (struct sockaddr*)&mhd_unix_sock_addr,
-                               len))
+                               len, 0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to bind unix domain socket!\n");
