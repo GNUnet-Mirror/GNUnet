@@ -616,6 +616,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_GetDefaultMessage) +
 		      slen);  
+  op->h = id;
   op->cb = cb;
   op->cls = cb_cls;
   gdm = (struct GNUNET_IDENTITY_GetDefaultMessage *) &op[1];
@@ -672,6 +673,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
 		      enc_len + slen);  
+  op->h = id;
   op->cont = cont;
   op->cls = cont_cls;
   sdm = (struct GNUNET_IDENTITY_SetDefaultMessage *) &op[1];
@@ -731,6 +733,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
 		      enc_len + slen);  
+  op->h = id;
   op->cb = cb;
   op->cls = cb_cls;
   crm = (struct GNUNET_IDENTITY_CreateRequestMessage *) &op[1];
@@ -787,6 +790,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_RenameMessage) +
 		      slen_old + slen_new);
+  op->h = id;
   op->cont = cb;
   op->cls = cb_cls;
   grm = (struct GNUNET_IDENTITY_RenameMessage *) &op[1];
@@ -836,6 +840,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_DeleteMessage) +
 		      slen);  
+  op->h = id;
   op->cont = cb;
   op->cls = cb_cls;
   gdm = (struct GNUNET_IDENTITY_DeleteMessage *) &op[1];
