@@ -4052,8 +4052,10 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   fc->last_pid_recv = pid;
   if (0 == hop)
   {
-    GNUNET_break (0);
-    return GNUNET_OK;
+    GNUNET_STATISTICS_update (stats, "# data on dying tunnel", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "data on dying tunnel %s[%X]\n",
+                GNUNET_i2s(peer), ntohl (msg->tid));
+    return GNUNET_OK; /* Next hop has destoyed the tunnel, drop */
   }
   ttl = ntohl (msg->ttl);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
