@@ -25,6 +25,7 @@
  *
  *  FIXME in progress:
  * - when sending in-order buffered data, wait for client ACKs
+ * - retransmit PATH_CREATE and PATH_ACK in case of need
  *
  * TODO:
  * - relay corking down to core
