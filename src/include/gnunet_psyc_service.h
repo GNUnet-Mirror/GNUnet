@@ -118,7 +118,7 @@ enum GNUNET_PSYC_MessageFlags
   /**
    * Historic message, retrieved from PSYCstore.
    */
-  GNUNET_PSYC_MESSAGE_HISTORIC = 1 << 2
+  GNUNET_PSYC_MESSAGE_HISTORIC = 1 << 30
 };
 
 
@@ -385,6 +385,10 @@ struct GNUNET_PSYC_Slave;
  * @param method Function to invoke on messages received from the channel,
  *                typically at least contains functions for @e join and @e part.
  * @param method_cls Closure for @a method.
+ * @param method_name Method name for the join request.
+ * @param env Environment containing transient variables for the request, or NULL.
+ * @param data_size Number of bytes in @a data.
+ * @param data Payload for the join message.
  * @return Handle for the slave, NULL on error.
  */
 struct GNUNET_PSYC_Slave *
@@ -392,7 +396,11 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                         const struct GNUNET_PeerIdentity *origin,
                         GNUNET_PSYC_Method method,
-                        void *method_cls);
+                        void *method_cls,
+                        const char *method_name,
+                        const struct GNUNET_ENV_Environment *env,
+                        size_t data_size,
+                        const void *data);
 
 
 /** 
@@ -402,9 +410,17 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * first explicitly send a @e part request (via GNUNET_PSYC_slave_to_master()).
  *
  * @param slave Slave handle.
+ * @param method_name Method name for the part request.
+ * @param env Environment containing transient variables for the request, or NULL.
+ * @param data_size Number of bytes in @a data.
+ * @param data Payload for the part message.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave,
+                        const char *method_name,
+                        const struct GNUNET_ENV_Environment *env,
+                        size_t data_size,
+                        const void *data);
 
 
 /** 

@@ -222,17 +222,19 @@ struct GNUNET_MULTICAST_MessageHeader
 /** 
  * Header of a request from a member to the origin.
  *
- * This format is public as the replay mechanism must replay message fragments using the
- * same format.  This is needed as we want to integrity-check message fragments within
- * the multicast layer to avoid multicasting mal-formed messages.
+ * FIXME: this is going to be internal.
  */
 struct GNUNET_MULTICAST_RequestHeader
 {
-
   /** 
    * Header for all requests from a member to the origin.
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Public key of the group.
+   */
+  struct GNUNET_CRYPTO_ECCPublicKey pub_key;
 
   /**
    * Flags for this request.
@@ -389,10 +391,12 @@ typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start).
  * @param sender Identity of the sender.
  * @param req Request to the origin.
+ * @param flags Flags for the request.
  */
 typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
                                                   const struct GNUNET_PeerIdentity *sender,
-                                                  const struct GNUNET_MULTICAST_RequestHeader *req);
+                                                  const struct GNUNET_MessageHeader *req,
+                                                  enum GNUNET_MULTICAST_MessageFlags flags);
 
 
 /** 
@@ -649,9 +653,11 @@ GNUNET_MULTICAST_member_request_replay_cancel (struct GNUNET_MULTICAST_MemberRep
  * Part a multicast group.
  *
  * @param member Membership handle.
+ * @param part_req Application-dependent part request to send to the origin.
  */
 void
-GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
+GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member,
+                              const struct GNUNET_MessageHeader *part_req);
 
 
 /** 
