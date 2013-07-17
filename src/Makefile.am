@@ -63,10 +63,10 @@ SUBDIRS = \
   lockmanager \
   dns \
   identity \
-  gns \
   set \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
+  gns \
   integration-tests \
   $(EXP_DIR) 
