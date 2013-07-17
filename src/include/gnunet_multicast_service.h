@@ -218,9 +218,6 @@ struct GNUNET_MULTICAST_MessageHeader
   /* Followed by message body. */
 };
 
-GNUNET_NETWORK_STRUCT_END
-
-GNUNET_NETWORK_STRUCT_BEGIN
 
 /** 
  * Header of a request from a member to the origin.
