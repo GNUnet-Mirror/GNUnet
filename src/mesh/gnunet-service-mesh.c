@@ -3948,11 +3948,9 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_Id hop;
   uint32_t pid;
   uint32_t ttl;
+  uint16_t type;
   size_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GNUNET_MESH_DEBUG_M2S (ntohs (message->type)),
-              GNUNET_i2s (peer));
   /* Check size */
   size = ntohs (message->size);
   if (size <
@@ -3962,6 +3960,9 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return GNUNET_OK;
   }
+  type =ntohs (message->type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
+              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_Data *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
@@ -4047,7 +4048,7 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
                   " Pid %u not expected (%u+), dropping!\n",
                   pid, fc->last_pid_recv + 1);
     }
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, fwd);
+    tunnel_send_ack (t, type, fwd);
     return GNUNET_OK;
   }
   fc->last_pid_recv = pid;
