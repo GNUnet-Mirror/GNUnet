@@ -1182,7 +1182,6 @@ send_callback (void *cls, size_t size, void *buf)
         continue;
       }
       t->packet_size = 0;
-      t->allow_send = GNUNET_NO;
       GNUNET_assert (size >= th->size);
       dmsg = (struct GNUNET_MESH_LocalData *) cbuf;
       mh = (struct GNUNET_MessageHeader *) &dmsg[1];
@@ -1198,6 +1197,7 @@ send_callback (void *cls, size_t size, void *buf)
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
+        t->allow_send = GNUNET_NO;
       }
       else
       {
