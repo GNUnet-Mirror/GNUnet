@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # $1 - shell
 # $2 - top_builddir
 # $3 - nssdir
