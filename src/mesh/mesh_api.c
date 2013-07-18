@@ -892,8 +892,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 {
   const struct GNUNET_MessageHeader *payload;
   const struct GNUNET_MESH_MessageHandler *handler;
-  const struct GNUNET_PeerIdentity *peer;
-  struct GNUNET_PeerIdentity id;
   struct GNUNET_MESH_LocalData *dmsg;
   struct GNUNET_MESH_Tunnel *t;
   unsigned int i;
@@ -905,11 +903,9 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 
   t = retrieve_tunnel (h, ntohl (dmsg->tid));
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
-  GNUNET_PEER_resolve (t->peer, &id);
-  peer = &id;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on tunnel %s [%X]\n",
        t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ? "fwd" : "bck",
-       GNUNET_i2s (peer), ntohl (dmsg->tid));
+       GNUNET_i2s (GNUNET_PEER_resolve2(t->peer)), ntohl (dmsg->tid));
   if (NULL == t)
   {
     /* Tunnel was ignored/destroyed, probably service didn't get it yet */
@@ -917,9 +913,13 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     return;
   }
   type = ntohs (payload->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %u\n", type);
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "    checking handler for type %u\n",
+         handler->type);
     if (handler->type == type)
     {
       if (GNUNET_OK !=
