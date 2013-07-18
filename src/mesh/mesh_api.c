@@ -876,7 +876,6 @@ process_tunnel_destroy (struct GNUNET_MESH_Handle *h,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel %X destroyed\n", t->tid);
   destroy_tunnel (t, GNUNET_YES);
-  return;
 }
 
 

@@ -81,9 +81,7 @@ libgnunetutil_la_SOURCES = \
   crypto_hash.c \
   crypto_hkdf.c \
   crypto_kdf.c \
-  crypto_ksk.c \
   crypto_random.c \
-  crypto_rsa.c \
   disk.c \
   disk.h \
   getopt.c \
@@ -136,7 +134,6 @@ bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
  $(GNUNET_ECC) \
- gnunet-rsa \
  gnunet-uri 
 
 
@@ -155,15 +152,6 @@ gnunet_resolver_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_resolver_DEPENDENCIES = \
-  libgnunetutil.la
-
-
-gnunet_rsa_SOURCES = \
- gnunet-rsa.c         
-gnunet_rsa_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) -lgcrypt
-gnunet_rsa_DEPENDENCIES = \
   libgnunetutil.la
 
 
@@ -226,9 +214,7 @@ check_PROGRAMS = \
  test_crypto_ecc \
  test_crypto_hash \
  test_crypto_hkdf \
- test_crypto_ksk \
  test_crypto_random \
- test_crypto_rsa \
  test_disk \
  test_getopt \
  test_connection \
@@ -369,19 +355,9 @@ test_crypto_hkdf_SOURCES = \
 test_crypto_hkdf_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_crypto_ksk_SOURCES = \
- test_crypto_ksk.c
-test_crypto_ksk_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
-
 test_crypto_random_SOURCES = \
  test_crypto_random.c
 test_crypto_random_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  
-
-test_crypto_rsa_SOURCES = \
- test_crypto_rsa.c
-test_crypto_rsa_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_disk_SOURCES = \
