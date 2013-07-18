@@ -170,11 +170,11 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
   struct GSF_LocalClient *pos;
 
   pos = client_head;
-  while ((pos != NULL) && (pos->client != client))
+  while ((NULL != pos) && (pos->client != client))
     pos = pos->next;
-  if (pos != NULL)
+  if (NULL != pos)
     return pos;
-  pos = GNUNET_malloc (sizeof (struct GSF_LocalClient));
+  pos = GNUNET_new (struct GSF_LocalClient);
   pos->client = client;
   GNUNET_CONTAINER_DLL_insert (client_head, client_tail, pos);
   return pos;
@@ -340,7 +340,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
       (type == GNUNET_BLOCK_TYPE_ANY))
   {
     cr = lc->cr_head;
-    while (cr != NULL)
+    while (NULL != cr)
     {
       prd = GSF_pending_request_get_data_ (cr->pr);
       /* only unify with queries that hae not yet started local processing
@@ -368,7 +368,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# client searches active"), 1,
                               GNUNET_NO);
-    cr = GNUNET_malloc (sizeof (struct ClientRequest));
+    cr = GNUNET_new (struct ClientRequest);
     cr->lc = lc;
     GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
     options = GSF_PRO_LOCAL_REQUEST;
@@ -498,7 +498,7 @@ GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_CONTAINER_DLL_remove (pos->res_head, pos->res_tail, res);
     GNUNET_free (res);
   }
-  if (pos->th != NULL)
+  if (NULL != pos->th)
   {
     GNUNET_SERVER_notify_transmit_ready_cancel (pos->th);
     pos->th = NULL;

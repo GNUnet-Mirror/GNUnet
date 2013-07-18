@@ -567,7 +567,7 @@ GSF_push_start_ (struct GSF_ConnectedPeer *peer)
 
   if (GNUNET_YES != enabled)
     return;
-  mrp = GNUNET_malloc (sizeof (struct MigrationReadyPeer));
+  mrp = GNUNET_new (struct MigrationReadyPeer);
   mrp->peer = peer;
   find_content (mrp);
   GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, mrp);

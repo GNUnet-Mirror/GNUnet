@@ -539,7 +539,7 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
       GSF_pending_request_is_compatible_ (mpr->pr, rp->pe_head->pr))
     return GNUNET_YES;
   /* merge new request with existing request plan */
-  bi = GNUNET_malloc (sizeof (struct GSF_PendingRequestPlanBijection));
+  bi = GNUNET_new (struct GSF_PendingRequestPlanBijection);
   bi->rp = rp;
   bi->pr = mpr->pr;
   prd = GSF_pending_request_get_data_ (mpr->pr);
@@ -585,7 +585,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   pp = GNUNET_CONTAINER_multihashmap_get (plans, &id->hashPubKey);
   if (NULL == pp)
   {
-    pp = GNUNET_malloc (sizeof (struct PeerPlan));
+    pp = GNUNET_new (struct PeerPlan);
     pp->plan_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
     pp->priority_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
@@ -615,8 +615,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
               GNUNET_h2s (&prd->query), GNUNET_i2s (id));
-  rp = GNUNET_malloc (sizeof (struct GSF_RequestPlan)); // 8 MB
-  bi = GNUNET_malloc (sizeof (struct GSF_PendingRequestPlanBijection));
+  rp = GNUNET_new (struct GSF_RequestPlan); // 8 MB
+  bi = GNUNET_new (struct GSF_PendingRequestPlanBijection);
   bi->rp = rp;
   bi->pr = pr;
   GNUNET_CONTAINER_MDLL_insert (PR, prd->pr_head, prd->pr_tail, bi);

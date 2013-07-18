@@ -581,7 +581,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n",
               GNUNET_i2s (peer));
-  cp = GNUNET_malloc (sizeof (struct GSF_ConnectedPeer));
+  cp = GNUNET_new (struct GSF_ConnectedPeer);
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
   cp->rc =
@@ -930,7 +930,7 @@ handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
   {
     struct GSF_DelayedHandle *dh;
 
-    dh = GNUNET_malloc (sizeof (struct GSF_DelayedHandle));
+    dh = GNUNET_new (struct GSF_DelayedHandle);
     dh->cp = cp;
     dh->pm = pm;
     dh->msize = msize;
@@ -1273,7 +1273,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     }
   }
 
-  peerreq = GNUNET_malloc (sizeof (struct PeerRequest));
+  peerreq = GNUNET_new (struct PeerRequest);
   peerreq->cp = cp;
   pr = GSF_pending_request_create_ (options, type, &gm->query, 
                                     target,
@@ -1356,7 +1356,7 @@ GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp, int is_query,
   struct GSF_PeerTransmitHandle *pos;
   struct GSF_PeerTransmitHandle *prev;
 
-  pth = GNUNET_malloc (sizeof (struct GSF_PeerTransmitHandle));
+  pth = GNUNET_new (struct GSF_PeerTransmitHandle);
   pth->transmission_request_start_time = GNUNET_TIME_absolute_get ();
   pth->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   pth->gmc = gmc;
