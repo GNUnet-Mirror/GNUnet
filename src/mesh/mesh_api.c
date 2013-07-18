@@ -1320,6 +1320,18 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
 
+  if (NULL != ports && ports[0] != 0 && NULL == new_tunnel)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "no new tunnel handler given, ports parameter is useless!!\n");
+  }
+  if ((NULL == ports || ports[0] == 0) && NULL != new_tunnel)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "no ports given, new tunnel handler will never be called!!\n");
+  }
   /* count handlers */
   for (h->n_handlers = 0;
        handlers && handlers[h->n_handlers].type;

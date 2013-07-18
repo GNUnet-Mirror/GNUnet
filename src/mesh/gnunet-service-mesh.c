@@ -2669,7 +2669,7 @@ tunnel_send_destroy (struct MeshTunnel *t)
 
 
 /**
- * Cancel all transmissions towards a neighbor that belongs to a certain tunnel.
+ * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
  *
  * @param t Tunnel which to cancel.
  * @param neighbor Short ID of the neighbor to whom cancel the transmissions.

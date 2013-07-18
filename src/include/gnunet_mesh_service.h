@@ -186,8 +186,9 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  * @param cfg Configuration to use.
  * @param cls Closure for the various callbacks that follow (including 
  *            handlers in the handlers array).
- * @param new_tunnel Function called when an *inbound* tunnel is created.
+ * @param new_tunnel Function called when an *incoming* tunnel is created.
  *                   Can be NULL if no inbound tunnels are desired.
+ *                   See @c ports.
  * @param cleaner Function called when a tunnel is destroyed by the remote peer.
  *                It is NOT called if GNUNET_MESH_tunnel_destroy is called on
  *                the tunnel.
@@ -196,6 +197,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *                 receive the next message.  Messages of a type that is not
  *                 in the handlers array are ignored if received. 
  * @param ports NULL or 0-terminated array of port numbers for incoming tunnels.
+ *              See @c new_tunnel.
  * 
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
