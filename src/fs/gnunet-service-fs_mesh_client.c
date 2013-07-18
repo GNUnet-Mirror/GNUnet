@@ -352,6 +352,8 @@ transmit_sqm (void *cls,
 static void
 transmit_pending (struct MeshHandle *mh)
 {
+  if (NULL == mh->tunnel)
+    return;
   if (NULL != mh->wh)
     return;
   mh->wh = GNUNET_MESH_notify_transmit_ready (mh->tunnel, GNUNET_YES /* allow cork */,
@@ -526,7 +528,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_NO,
+					  GNUNET_YES,
 					  GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
