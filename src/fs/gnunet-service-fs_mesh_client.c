@@ -224,7 +224,7 @@ reset_mesh (struct MeshHandle *mh)
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_YES,
+					  GNUNET_NO,
 					  GNUNET_YES);
   transmit_pending (mh);
 }
@@ -528,7 +528,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_YES,
+					  GNUNET_NO,
 					  GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
