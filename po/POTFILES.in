@@ -20,7 +20,6 @@ src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/consensus/consensus_api.c
 src/consensus/gnunet-consensus.c
-src/consensus/gnunet-consensus-start-peers.c
 src/consensus/gnunet-service-consensus.c
 src/core/core_api.c
 src/core/core_api_is_connected.c
@@ -113,7 +112,8 @@ src/fs/gnunet-service-fs.c
 src/fs/gnunet-service-fs_cp.c
 src/fs/gnunet-service-fs_indexing.c
 src/fs/gnunet-service-fs_lc.c
-src/fs/gnunet-service-fs_mesh.c
+src/fs/gnunet-service-fs_mesh_client.c
+src/fs/gnunet-service-fs_mesh_server.c
 src/fs/gnunet-service-fs_pe.c
 src/fs/gnunet-service-fs_pr.c
 src/fs/gnunet-service-fs_push.c
@@ -143,6 +143,9 @@ src/hello/hello.c
 src/hostlist/gnunet-daemon-hostlist.c
 src/hostlist/hostlist-client.c
 src/hostlist/hostlist-server.c
+src/identity/gnunet-identity.c
+src/identity/gnunet-service-identity.c
+src/identity/identity_api.c
 src/integration-tests/connection_watchdog.c
 src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
@@ -205,8 +208,6 @@ src/set/strata_estimator.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c
 src/statistics/statistics_api.c
-src/stream/mesh-test.c
-src/stream/stream_api.c
 src/sysmon/gnunet-service-sysmon.c
 src/template/gnunet-service-template.c
 src/template/gnunet-template.c
@@ -239,6 +240,7 @@ src/testing/gnunet-testing.c
 src/testing/gnunet-testing-run-service.c
 src/testing/testing.c
 src/topology/gnunet-daemon-topology.c
+src/transport/gnunet-helper-transport-bluetooth.c
 src/transport/gnunet-helper-transport-wlan.c
 src/transport/gnunet-helper-transport-wlan-dummy.c
 src/transport/gnunet-service-transport_blacklist.c
@@ -253,6 +255,7 @@ src/transport/gnunet-transport.c
 src/transport/gnunet-transport-certificate-creation.c
 src/transport/gnunet-transport-wlan-receiver.c
 src/transport/gnunet-transport-wlan-sender.c
+src/transport/plugin_transport_bluetooth.c
 src/transport/plugin_transport_http.c
 src/transport/plugin_transport_http_client.c
 src/transport/plugin_transport_http_common.c
@@ -291,9 +294,7 @@ src/util/crypto_ecc.c
 src/util/crypto_hash.c
 src/util/crypto_hkdf.c
 src/util/crypto_kdf.c
-src/util/crypto_ksk.c
 src/util/crypto_random.c
-src/util/crypto_rsa.c
 src/util/disk.c
 src/util/getopt.c
 src/util/getopt_helpers.c
@@ -301,7 +302,6 @@ src/util/gnunet-config.c
 src/util/gnunet-config-diff.c
 src/util/gnunet-ecc.c
 src/util/gnunet-resolver.c
-src/util/gnunet-rsa.c
 src/util/gnunet-service-resolver.c
 src/util/gnunet-uri.c
 src/util/helper.c
