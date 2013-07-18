@@ -160,6 +160,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
       GNUNET_free (plug);
+      continue;
     }
     fail = GNUNET_NO;
     if (NULL == plug->api->address_pretty_printer)
