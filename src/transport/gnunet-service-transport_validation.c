@@ -941,7 +941,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
   sig_cache = NULL;
   sig_cache_exp = NULL;
-
+  papi = NULL;
   if (alen > 0)
   {
     addrend = memchr (addr, '\0', alen);
