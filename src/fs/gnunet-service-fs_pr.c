@@ -1219,10 +1219,10 @@ GSF_mesh_lookup_ (struct GSF_PendingRequest *pr)
   if (NULL != pr->mesh_request)
     return;
   pr->mesh_request = GSF_mesh_query (pr->public_data.target,
-					 &pr->public_data.query,
-					 pr->public_data.type,
-					 &mesh_reply_proc,
-					 pr);
+				     &pr->public_data.query,
+				     pr->public_data.type,
+				     &mesh_reply_proc,
+				     pr);
 }
 
 
