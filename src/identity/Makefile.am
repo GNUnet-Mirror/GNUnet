@@ -41,7 +41,7 @@ gnunet_service_identity_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
 gnunet_service_identity_DEPENDENCIES = \
-  libgnunetidentity.la				 
+  $(top_builddir)/src/identity/libgnunetidentity.la				 
 
 gnunet_identity_SOURCES = \
  gnunet-identity.c         
@@ -51,7 +51,7 @@ gnunet_identity_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
 gnunet_service_identity_DEPENDENCIES = \
-  libgnunetidentity.la				 
+  $(top_builddir)/src/identity/libgnunetidentity.la
 
 
 if HAVE_TESTING
@@ -70,6 +70,8 @@ test_identity_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la 
+test_identity_DEPENDENCIES = \
+  $(top_builddir)/src/identity/libgnunetidentity.la
 
 test_identity_defaults_SOURCES = \
  test_identity_defaults.c
@@ -77,7 +79,8 @@ test_identity_defaults_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la 
-
+test_identity_defaults_DEPENDENCIES = \
+  $(top_builddir)/src/identity/libgnunetidentity.la
 
 EXTRA_DIST = \
   test_identity.conf 
