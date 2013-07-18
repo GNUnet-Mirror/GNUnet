@@ -324,7 +324,7 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   static char unable_to_show[1024];
-  static char *s;
+  static const char *s;
 
   if (address == NULL)
   {
