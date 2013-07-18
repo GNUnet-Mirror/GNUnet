@@ -312,7 +312,7 @@ struct MeshReliableMessage
   uint32_t                      mid;
 
     /**
-     * When was this message issued (to calculate ACK delay) FIXME update with traffic
+     * When was this message issued (to calculate ACK delay)
      */
   struct GNUNET_TIME_Absolute   timestamp;
 
@@ -365,7 +365,7 @@ struct MeshTunnelReliability
   struct GNUNET_TIME_Relative       retry_timer;
 
     /**
-     * How long does it usually take to get an ACK. FIXME update with traffic
+     * How long does it usually take to get an ACK.
      */
   struct GNUNET_TIME_Relative       expected_delay;
 };
@@ -1310,7 +1310,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
     }
 #endif
-    GNUNET_break (0); // FIXME sometimes fails (testing disconnect?)
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     " no direct connection to %s\n",
                     GNUNET_i2s (&id));
@@ -2200,18 +2200,13 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
   }
 
   /* Check if we need to transmit the ACK */
-  /* FIXME unlock */
-  if (0 && NULL == o && 
-      t->queue_max > next_fc->queue_n * 4 &&
-      GMC_is_pid_bigger (prev_fc->last_ack_sent, prev_fc->last_pid_recv) &&
+  if (NULL == o &&
+      prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3 &&
       GNUNET_NO == t->force_ack)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  t->qmax: %u, t->qn: %u\n",
-                t->queue_max, next_fc->queue_n);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  t->pid: %u, t->ack: %u\n",
+                "  last pid recv: %u, last ack sent: %u\n",
                 prev_fc->last_pid_recv, prev_fc->last_ack_sent);
     return;
   }
