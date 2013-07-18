@@ -216,16 +216,17 @@ reset_mesh (struct MeshHandle *mh)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting mesh tunnel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  GNUNET_mesh_handle_destroy (mh->tunnel);
+  GNUNET_MESH_tunnel_destroy (mh->tunnel);
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
-  mh->tunnel = GNUNET_mesh_handle_create (mesh_handle,
+  mh->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
 					  GNUNET_YES,
 					  GNUNET_YES);
+  transmit_pending (mh);
 }
 
 
@@ -240,7 +241,7 @@ mesh_timeout (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshHandle *mh = cls;
-  struct GNUNET_Mesh_Handle *tun;
+  struct GNUNET_MESH_Tunnel *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh tunnel to %s\n",
@@ -248,7 +249,7 @@ mesh_timeout (void *cls,
   mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = mh->tunnel;
   mh->tunnel = NULL;
-  GNUNET_mesh_handle_destroy (tun);
+  GNUNET_MESH_tunnel_destroy (tun);
 }
 
 
@@ -309,7 +310,7 @@ transmit_sqm (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Mesh tunnel to %s failed during transmission attempt, rebuilding\n",
 		GNUNET_i2s (&mh->target));
-    reset_mesh (mh);
+    reset_mesh_async (mh);
     return 0;
   }
   sr = mh->pending_head;
@@ -433,7 +434,7 @@ handle_reply (void *cls,
  */
 static int
 reply_cb (void *cls,
-	  struct GNUNET_Mesh_Handle *tunnel,
+	  struct GNUNET_MESH_Tunnel *tunnel,
 	  void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message)
 {
@@ -521,7 +522,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 						 mh);
   mh->waiting_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   mh->target = *target;
-  mh->tunnel = GNUNET_mesh_handle_create (mesh_handle,
+  mh->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
@@ -642,7 +643,7 @@ free_waiting_entry (void *cls,
  */
 static void
 cleaner_cb (void *cls,
-	    const struct GNUNET_Mesh_Handle *tunnel,
+	    const struct GNUNET_MESH_Tunnel *tunnel,
 	    void *tunnel_ctx)
 {
   struct MeshHandle *mh = tunnel_ctx;
@@ -709,7 +710,7 @@ release_meshs (void *cls,
 	       void *value)
 {
   struct MeshHandle *mh = value;
-  struct GNUNET_Mesh_Handle *tun;
+  struct GNUNET_MESH_Tunnel *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh tunnel to %s\n",
@@ -717,7 +718,7 @@ release_meshs (void *cls,
   tun = mh->tunnel;
   mh->tunnel = NULL;
   if (NULL != tun)
-    GNUNET_mesh_handle_destroy (tun);
+    GNUNET_MESH_tunnel_destroy (tun);
   return GNUNET_YES;
 }
 
