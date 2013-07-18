@@ -190,7 +190,8 @@ gnunet_service_fs_SOURCES =  \
  gnunet-service-fs_pr.c gnunet-service-fs_pr.h \
  gnunet-service-fs_push.c gnunet-service-fs_push.h \
  gnunet-service-fs_put.c gnunet-service-fs_put.h \
- gnunet-service-fs_mesh.c gnunet-service-fs_mesh.h 
+ gnunet-service-fs_mesh_client.c gnunet-service-fs_mesh.h \
+ gnunet-service-fs_mesh_server.c
 gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/dht/libgnunetdht.la \

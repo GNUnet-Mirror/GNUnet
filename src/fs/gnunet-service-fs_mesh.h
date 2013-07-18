@@ -79,13 +79,81 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr);
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_start (void);
+GSF_mesh_start_server (void);
 
 
 /**
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_stop (void);
+GSF_mesh_stop_server (void);
+
+/**
+ * Initialize subsystem for non-anonymous file-sharing.
+ */
+void
+GSF_mesh_start_client (void);
+
+
+/**
+ * Shutdown subsystem for non-anonymous file-sharing.
+ */
+void
+GSF_mesh_stop_client (void);
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Query from one peer, asking the other for CHK-data.
+ */
+struct MeshQueryMessage
+{
+
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_QUERY.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Block type must be DBLOCK or IBLOCK.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Query hash from CHK (hash of encrypted block).
+   */
+  struct GNUNET_HashCode query;
+
+};
+
+
+/**
+ * Reply to a MeshQueryMessage.
+ */
+struct MeshReplyMessage
+{
+
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_REPLY.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Block type must be DBLOCK or IBLOCK.
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Expiration time for the block.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration;
+
+  /* followed by the encrypted block */
+
+};
+
+GNUNET_NETWORK_STRUCT_END
+
 
 #endif
