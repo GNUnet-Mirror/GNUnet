@@ -838,7 +838,8 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_assert (NULL != entry);
   GNUNET_break (0 == entry->demand);
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
-  (void) GNUNET_CONTAINER_multihashmap_remove (cache, key, value);
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONTAINER_multihashmap_remove (cache, key, value));
   close_handles (entry);
   GNUNET_free_non_null (entry->hello);
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);

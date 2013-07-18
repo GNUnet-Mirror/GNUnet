@@ -201,7 +201,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);
     GNUNET_free (mq_entry);
   }
-  (void) GNUNET_BIO_write_close (bio);
+  GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bio));
 }
 
 
