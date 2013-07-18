@@ -157,12 +157,13 @@ struct GNUNET_SET_ListenHandle
 static void
 handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct GNUNET_SET_ResultMessage *msg = (struct GNUNET_SET_ResultMessage *) mh;
+  const struct GNUNET_SET_ResultMessage *msg;
   struct GNUNET_SET_Handle *set = cls;
   struct GNUNET_SET_OperationHandle *oh;
   struct GNUNET_SET_Element e;
   enum GNUNET_SET_Status result_status;
 
+  msg = (const struct GNUNET_SET_ResultMessage *) mh;
   GNUNET_assert (NULL != set);
   GNUNET_assert (NULL != set->mq);
 

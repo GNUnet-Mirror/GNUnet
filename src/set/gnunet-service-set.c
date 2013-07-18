@@ -561,8 +561,9 @@ handle_client_reject (void *cls,
                       const struct GNUNET_MessageHeader *m)
 {
   struct Incoming *incoming;
-  struct GNUNET_SET_AcceptRejectMessage *msg = (struct GNUNET_SET_AcceptRejectMessage *) m;
+  const struct GNUNET_SET_AcceptRejectMessage *msg;
 
+  msg = (const struct GNUNET_SET_AcceptRejectMessage *) m;
   GNUNET_break (0 == ntohl (msg->request_id));
 
   incoming = get_incoming (ntohl (msg->accept_reject_id));
@@ -603,7 +604,8 @@ handle_client_add_remove (void *cls,
   }
   msg = (const struct GNUNET_SET_ElementMessage *) m;
   el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client ins/rem element of size %u\n", el.size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "client ins/rem element of size %u\n", el.size);
   el.data = &msg[1];
   if (GNUNET_MESSAGE_TYPE_SET_REMOVE == ntohs (m->type))
     set->vt->remove (set->state, &el);

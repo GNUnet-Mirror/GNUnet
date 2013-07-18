@@ -38,6 +38,9 @@
 #include "dv.h"
 
 
+#define LOG(kind,...) GNUNET_log_from (kind, "transport-dv",__VA_ARGS__)
+
+
 /**
  * Encapsulation of all of the state of the plugin.
  */
@@ -287,7 +290,7 @@ handle_dv_connect (void *cls,
       notify_distance_change (session);
     return; /* nothing to do */  
   }
-  session = GNUNET_malloc (sizeof (struct Session));
+  session = GNUNET_new (struct Session);
   session->sender = *peer;
   session->distance = distance;
   GNUNET_assert (GNUNET_YES ==
@@ -451,7 +454,7 @@ dv_plugin_send (void *cls,
     memcpy (&box[1], msgbuf, msgbuf_size);
     msg = box;
   }
-  pr = GNUNET_malloc (sizeof (struct PendingRequest));
+  pr = GNUNET_new (struct PendingRequest);
   pr->transmit_cont = cont;
   pr->transmit_cont_cls = cont_cls;
   pr->session = session;
@@ -656,6 +659,9 @@ dv_get_network (void *cls,
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls closure with the plugin environment
+ * @return plugin API
  */
 void *
 libgnunet_plugin_transport_dv_init (void *cls)
@@ -664,7 +670,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->sessions = GNUNET_CONTAINER_multihashmap_create (1024 * 8, GNUNET_YES);
   plugin->mst = GNUNET_SERVER_mst_create (&unbox_cb,
@@ -682,7 +688,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
     GNUNET_free (plugin);
     return NULL;
   }
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &dv_plugin_send;
   api->disconnect = &dv_plugin_disconnect;
@@ -718,6 +724,9 @@ free_session_iterator (void *cls,
 
 /**
  * Exit point from the plugin.
+ *
+ * @param cls plugin API
+ * @return NULL
  */
 void *
 libgnunet_plugin_transport_dv_done (void *cls)

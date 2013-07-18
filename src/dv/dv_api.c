@@ -516,7 +516,7 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_DV_ServiceHandle *sh;
 
-  sh = GNUNET_malloc (sizeof (struct GNUNET_DV_ServiceHandle));
+  sh = GNUNET_new (struct GNUNET_DV_ServiceHandle);
   sh->cfg = cfg;
   sh->cls = cls;
   sh->connect_cb = connect_cb;

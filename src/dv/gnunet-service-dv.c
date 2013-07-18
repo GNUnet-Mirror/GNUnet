@@ -769,8 +769,10 @@ build_set (void *cls)
   if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
   {
     /* we have added all elements to the set, run the operation */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Finished building my SET, committing\n");
     GNUNET_SET_commit (neighbor->set_op,
-		         neighbor->my_set);
+		       neighbor->my_set);
     GNUNET_SET_destroy (neighbor->my_set);
     neighbor->my_set = NULL;
     return;
@@ -783,6 +785,8 @@ build_set (void *cls)
 	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
 	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
     neighbor->consensus_insertion_offset++;  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding element to SET\n");
   GNUNET_SET_add_element (neighbor->my_set,
 			  &element,
 			  &build_set, neighbor);
@@ -801,6 +805,9 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
   struct Route *route;
   struct GNUNET_HashCode session_id;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Direct connection to %s established, routing table exchange begins.\n",
+	      GNUNET_i2s (&neighbor->peer));
   GNUNET_STATISTICS_update (stats,
 			    "# peers connected (1-hop)",
 			    1, GNUNET_NO);
@@ -823,15 +830,21 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 		      &session_id, sizeof (session_id),
 		      NULL, 0);
   if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
-				   &my_identity.hashPubKey))
+				   &my_identity.hashPubKey))  
+  {
     neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
-							neighbor);
+							neighbor);  
+  }
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Starting SET listen operation\n");
     neighbor->listen_handle = GNUNET_SET_listen (cfg,
 						 GNUNET_SET_OPERATION_UNION,
 						 &neighbor->real_session_id,
 						 &listen_set_union,
 						 neighbor);
+  }
 }
 
 
@@ -842,7 +855,8 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+handle_core_connect (void *cls, 
+		     const struct GNUNET_PeerIdentity *peer)
 {
   struct DirectNeighbor *neighbor;
  
@@ -868,7 +882,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Core connected to %s (distance unknown)\n",
 	      GNUNET_i2s (peer));
-  neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
+  neighbor = GNUNET_new (struct DirectNeighbor);
   neighbor->peer = *peer;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
@@ -909,14 +923,16 @@ free_targets (void *cls,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value)
+check_possible_route (void *cls, 
+		      const struct GNUNET_HashCode *key, 
+		      void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target = value;
   struct Route *route;
   
   route = GNUNET_CONTAINER_multihashmap_get (all_routes,
-					   key);
+					     key);
   if (NULL != route)
   {
     if (ntohl (route->target.distance) > ntohl (target->distance) + 1)
@@ -928,7 +944,7 @@ check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value
     }
     return GNUNET_YES; /* got a route to this target already */
   }
-  route = GNUNET_malloc (sizeof (struct Route));
+  route = GNUNET_new (struct Route);
   route->next_hop = neighbor;
   route->target.distance = htonl (ntohl (target->distance) + 1);
   route->target.peer = target->peer;
@@ -953,7 +969,9 @@ check_possible_route (void *cls, const struct GNUNET_HashCode * key, void *value
  * @return GNUNET_YES to continue iteration
  */
 static int
-refresh_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
+refresh_routes (void *cls, 
+		const struct GNUNET_HashCode *key, 
+		void *value)
 {
   struct DirectNeighbor *neighbor = value;
 
@@ -1000,7 +1018,9 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-cull_routes (void *cls, const struct GNUNET_HashCode * key, void *value)
+cull_routes (void *cls, 
+	     const struct GNUNET_HashCode *key, 
+	     void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Route *route = value;
@@ -1133,7 +1153,7 @@ handle_ats_update (void *cls,
     handle_direct_connect (neighbor);
     return;
   }
-  neighbor = GNUNET_malloc (sizeof (struct DirectNeighbor));
+  neighbor = GNUNET_new (struct DirectNeighbor);
   neighbor->peer = address->peer;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
@@ -1201,8 +1221,8 @@ check_target_removed (void *cls,
  */
 static int
 check_target_added (void *cls,
-		      const struct GNUNET_HashCode *key,
-		      void *value)
+		    const struct GNUNET_HashCode *key,
+		    void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target = value;
@@ -1244,7 +1264,7 @@ check_target_added (void *cls,
 	      "Discovered new route to %s using %u hops\n",
 	      GNUNET_i2s (&target->peer),
 	      (unsigned int) (ntohl (target->distance) + 1));
-  current_route = GNUNET_malloc (sizeof (struct Route));
+  current_route = GNUNET_new (struct Route);
   current_route->next_hop = neighbor;
   current_route->target.peer = target->peer;
   current_route->target.distance = htonl (ntohl (target->distance) + 1);
@@ -1277,6 +1297,9 @@ handle_set_union_result (void *cls,
   struct DirectNeighbor *neighbor = cls;
   struct Target *target;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got SET union result: %d\n",
+	      status);
   switch (status)
   {
   case GNUNET_SET_STATUS_OK:
@@ -1285,7 +1308,7 @@ handle_set_union_result (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    target = GNUNET_malloc (sizeof (struct Target));
+    target = GNUNET_new (struct Target);
     memcpy (target, element->data, sizeof (struct Target));
     if (GNUNET_YES !=
 	GNUNET_CONTAINER_multihashmap_put (neighbor->neighbor_table_consensus,
@@ -1422,6 +1445,8 @@ initiate_set_union (void *cls,
 {
   struct DirectNeighbor *neighbor = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Initiating SET union\n");
   neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
@@ -1455,6 +1480,8 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   const struct GNUNET_MessageHeader *payload;
   struct Route *route;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Handling DV message\n");
   if (ntohs (message->size) < sizeof (struct RouteMessage) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -1506,6 +1533,9 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 			      1, GNUNET_NO);
     return GNUNET_OK;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Forwarding message to %s\n",
+	      GNUNET_i2s (&rm->target));
   forward_payload (route->next_hop,
 		   ntohl (route->target.distance),
 		   0,
