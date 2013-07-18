@@ -26,7 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_testbed_service.h"
 
@@ -83,9 +83,9 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_TESTBED_Operation *operation;
 
 /**
- * Handle to peer's DHT service
+ * Handle to peer's ARM service
  */
-static struct GNUNET_DHT_Handle *dht_handle;
+static struct GNUNET_ARM_Handle *arm_handle;
 
 /**
  * Abort task identifier
@@ -197,13 +197,13 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-dht_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+arm_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   FAIL_TEST (NULL == cls, return NULL);
   FAIL_TEST (OTHER == sub_test, return NULL);
   sub_test = PEER_SERVICE_CONNECT;
-  dht_handle = GNUNET_DHT_connect (cfg, 10);
-  return dht_handle;
+  arm_handle = GNUNET_ARM_connect (cfg, NULL, NULL);
+  return arm_handle;
 }
 
 
@@ -215,12 +215,12 @@ dht_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param op_result service handle returned from the connect adapter
  */
 static void
-dht_disconnect_adapter (void *cls, void *op_result)
+arm_disconnect_adapter (void *cls, void *op_result)
 {
   FAIL_TEST (NULL != op_result, return);
-  FAIL_TEST (op_result == dht_handle, return);
-  GNUNET_DHT_disconnect (dht_handle);
-  dht_handle = NULL;
+  FAIL_TEST (op_result == arm_handle, return);
+  GNUNET_ARM_disconnect_and_free (arm_handle);
+  arm_handle = NULL;
   FAIL_TEST (PEER_SERVICE_CONNECT == sub_test, return);
   FAIL_TEST (NULL != operation, return);
   operation = GNUNET_TESTBED_peer_stop (NULL, peer, NULL, NULL);
@@ -247,7 +247,7 @@ service_connect_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     FAIL_TEST (operation == op, return);
     FAIL_TEST (NULL == emsg, return);
     FAIL_TEST (NULL == cls, return);
-    FAIL_TEST (ca_result == dht_handle, return);
+    FAIL_TEST (ca_result == arm_handle, return);
     GNUNET_TESTBED_operation_done (operation);  /* This results in call to
                                                  * disconnect adapter */
     break;
@@ -318,8 +318,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       FAIL_TEST (event->op == operation, return);
       FAIL_TEST (NULL == event->op_cls, return);
       FAIL_TEST (NULL == event->details.operation_finished.emsg, return);
-      FAIL_TEST (NULL != dht_handle, return);
-      FAIL_TEST (event->details.operation_finished.generic == dht_handle, return);
+      FAIL_TEST (NULL != arm_handle, return);
+      FAIL_TEST (event->details.operation_finished.generic == arm_handle, return);
       break;
     default:
       FAIL_TEST (0, return);
@@ -334,8 +334,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     operation =
         GNUNET_TESTBED_service_connect (NULL, peer, "dht",
                                         &service_connect_comp_cb, NULL,
-                                        &dht_connect_adapter,
-                                        &dht_disconnect_adapter, NULL);
+                                        &arm_connect_adapter,
+                                        &arm_disconnect_adapter, NULL);
     FAIL_TEST (NULL != operation, return);
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
