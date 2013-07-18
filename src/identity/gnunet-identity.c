@@ -128,17 +128,15 @@ delete_finished (void *cls,
  */
 static void
 create_finished (void *cls,
-		 struct GNUNET_IDENTITY_Ego *ego,
-		 void **ctx,
-		 const char *identifier)
+		 const char *emsg)
 {
   struct GNUNET_IDENTITY_Operation **op = cls;
 
   *op = NULL;
-  if (NULL == ego)
+  if (NULL != emsg)
     fprintf (stderr,
-	     "%s\n",
-	     _("Failed to create ego\n"));
+	     _("Failed to create ego: %s\n"),
+	     emsg);
   test_finished ();
 }
 
