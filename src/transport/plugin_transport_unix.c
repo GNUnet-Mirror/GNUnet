@@ -1043,6 +1043,7 @@ unix_plugin_select_read (struct Plugin *plugin)
   if ((csize < sizeof (struct UNIXMessage)) || (csize > ret))
   {
     GNUNET_break_op (0);
+    GNUNET_free (ua);
     return;
   }
   msgbuf = (char *) &msg[1];
