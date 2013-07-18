@@ -1195,17 +1195,22 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (size >= psize);
         dmsg->header.size = htons (psize);
         dmsg->tid = htonl (t->tid);
+        dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
+             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       }
-      dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
-           GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
-
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "#  callback returned size 0, "
+             "application canceled transmission\n");
+      }
     }
     else
     {
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  mesh traffic, type %s\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  mesh internal traffic, type %s\n",
            GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
