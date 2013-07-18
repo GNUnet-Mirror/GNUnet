@@ -155,7 +155,7 @@ struct MeshHandle
 /**
  * Mesh tunnel for creating outbound tunnels.
  */
-static struct GNUNET_MESH_Handle *mesh_tunnel;
+static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * Map from peer identities to 'struct MeshHandles' with mesh
@@ -216,16 +216,16 @@ reset_mesh (struct MeshHandle *mh)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting mesh tunnel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  GNUNET_MESH_tunnel_destroy (mh->tunnel);
+  GNUNET_mesh_handle_destroy (mh->tunnel);
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
-  mh->tunnel = GNUNET_MESH_tunnel_create (mesh_tunnel,
-					mh,
-					&mh->target,
-					GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					GNUNET_YES,
-					GNUNET_YES);
+  mh->tunnel = GNUNET_mesh_handle_create (mesh_handle,
+					  mh,
+					  &mh->target,
+					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+					  GNUNET_YES,
+					  GNUNET_YES);
 }
 
 
@@ -240,7 +240,7 @@ mesh_timeout (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshHandle *mh = cls;
-  struct GNUNET_MESH_Tunnel *tun;
+  struct GNUNET_Mesh_Handle *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh tunnel to %s\n",
@@ -248,7 +248,7 @@ mesh_timeout (void *cls,
   mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = mh->tunnel;
   mh->tunnel = NULL;
-  GNUNET_MESH_tunnel_destroy (tun);
+  GNUNET_mesh_handle_destroy (tun);
 }
 
 
@@ -306,6 +306,9 @@ transmit_sqm (void *cls,
   mh->wh = NULL;
   if (NULL == buf)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Mesh tunnel to %s failed during transmission attempt, rebuilding\n",
+		GNUNET_i2s (&mh->target));
     reset_mesh (mh);
     return 0;
   }
@@ -430,7 +433,7 @@ handle_reply (void *cls,
  */
 static int
 reply_cb (void *cls,
-	  struct GNUNET_MESH_Tunnel *tunnel,
+	  struct GNUNET_Mesh_Handle *tunnel,
 	  void **tunnel_ctx,
           const struct GNUNET_MessageHeader *message)
 {
@@ -464,6 +467,7 @@ reply_cb (void *cls,
 	      "Received reply `%s' via mesh from peer %s\n",
 	      GNUNET_h2s (&query),
 	      GNUNET_i2s (&mh->target));
+  GNUNET_MESH_receive_done (tunnel);
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# replies received via mesh"), 1,
 			    GNUNET_NO);
@@ -517,12 +521,12 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 						 mh);
   mh->waiting_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   mh->target = *target;
-  mh->tunnel = GNUNET_MESH_tunnel_create (mesh_tunnel,
-					mh,
-					&mh->target,
-					GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					GNUNET_NO,
-					GNUNET_YES);
+  mh->tunnel = GNUNET_mesh_handle_create (mesh_handle,
+					  mh,
+					  &mh->target,
+					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+					  GNUNET_NO,
+					  GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
 						    &mh->target.hashPubKey,
@@ -638,7 +642,7 @@ free_waiting_entry (void *cls,
  */
 static void
 cleaner_cb (void *cls,
-	    const struct GNUNET_MESH_Tunnel *tunnel,
+	    const struct GNUNET_Mesh_Handle *tunnel,
 	    void *tunnel_ctx)
 {
   struct MeshHandle *mh = tunnel_ctx;
@@ -680,18 +684,14 @@ GSF_mesh_start_client ()
     { &reply_cb, GNUNET_MESSAGE_TYPE_FS_MESH_REPLY, 0 },
     { NULL, 0, 0 }
   };
-  static const uint32_t ports[] = {
-    GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-    0
-  };
 
   mesh_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
-  mesh_tunnel = GNUNET_MESH_connect (GSF_cfg,
-					 NULL,
-					 NULL,
-					 &cleaner_cb,
-					 handlers,
-					 ports);
+  mesh_handle = GNUNET_MESH_connect (GSF_cfg,
+				     NULL,
+				     NULL,
+				     &cleaner_cb,
+				     handlers,
+				     NULL);
 }
 
 
@@ -709,7 +709,7 @@ release_meshs (void *cls,
 	       void *value)
 {
   struct MeshHandle *mh = value;
-  struct GNUNET_MESH_Tunnel *tun;
+  struct GNUNET_Mesh_Handle *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh tunnel to %s\n",
@@ -717,7 +717,7 @@ release_meshs (void *cls,
   tun = mh->tunnel;
   mh->tunnel = NULL;
   if (NULL != tun)
-    GNUNET_MESH_tunnel_destroy (tun);
+    GNUNET_mesh_handle_destroy (tun);
   return GNUNET_YES;
 }
 
@@ -733,10 +733,10 @@ GSF_mesh_stop_client ()
 					 NULL);
   GNUNET_CONTAINER_multihashmap_destroy (mesh_map);
   mesh_map = NULL;
-  if (NULL != mesh_tunnel)
+  if (NULL != mesh_handle)
   {
-    GNUNET_MESH_disconnect (mesh_tunnel);
-    mesh_tunnel = NULL;
+    GNUNET_MESH_disconnect (mesh_handle);
+    mesh_handle = NULL;
   }
 }
 

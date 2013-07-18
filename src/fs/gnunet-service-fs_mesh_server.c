@@ -544,6 +544,9 @@ GSF_mesh_start_server ()
 					     "MAX_MESH_CLIENTS",
 					     &sc_count_max))
     return;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Initializing mesh FS server with a limit of %llu connections\n",
+	      sc_count_max);
   listen_tunnel = GNUNET_MESH_connect (GSF_cfg,
 				       NULL,
 				       &accept_cb,
