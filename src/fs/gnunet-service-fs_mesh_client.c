@@ -93,7 +93,7 @@ struct GSF_MeshRequest
 
   /**
    * Did we transmit this request already? YES if we are
-   * in the 'waiting' DLL, NO if we are in the 'pending' DLL.
+   * in the 'waiting_map', NO if we are in the 'pending' DLL.
    */
   int was_transmitted;
 };
@@ -316,15 +316,16 @@ transmit_sqm (void *cls,
   GNUNET_CONTAINER_DLL_remove (mh->pending_head,
 			       mh->pending_tail,
 			       sr);
-  GNUNET_CONTAINER_multihashmap_put (mh->waiting_map,
-				     &sr->query,
-				     sr,
-				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multihashmap_put (mh->waiting_map,
+						    &sr->query,
+						    sr,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  sr->was_transmitted = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending query for %s via mesh to %s\n",
 	      GNUNET_h2s (&sr->query),
 	      GNUNET_i2s (&mh->target));
-  sr->was_transmitted = GNUNET_YES;
   sqm.header.size = htons (sizeof (sqm));
   sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_MESH_QUERY);
   sqm.type = htonl (sr->type);

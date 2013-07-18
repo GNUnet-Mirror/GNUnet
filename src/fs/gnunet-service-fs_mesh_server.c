@@ -166,6 +166,9 @@ timeout_mesh_task (void *cls,
   sc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = sc->tunnel;
   sc->tunnel = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Timeout for inactive mesh client %p\n",
+	      sc);
   GNUNET_MESH_tunnel_destroy (tun);
 }
 
@@ -195,6 +198,9 @@ static void
 continue_reading (struct MeshClient *sc)
 {
   refresh_timeout_task (sc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Finished processing mesh request from client %p, ready to receive the next one\n",
+	      sc);
   GNUNET_MESH_receive_done (sc->tunnel);
 }
 
@@ -246,8 +252,9 @@ write_continuation (void *cls,
 			       sc->wqi_tail,
 			       wqi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitted %u byte reply via mesh\n",
-	      (unsigned int) size);
+	      "Transmitted %u byte reply via mesh to %p\n",
+	      (unsigned int) size,
+	      sc);
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# Blocks transferred via mesh"), 1,
 			    GNUNET_NO);
@@ -355,9 +362,10 @@ handle_datastore_reply (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting transmission of %u byte reply for query `%s' via mesh\n",
+	      "Starting transmission of %u byte reply for query `%s' via mesh to %p\n",
 	      (unsigned int) size,
-	      GNUNET_h2s (key));
+	      GNUNET_h2s (key),
+	      sc);
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
   wqi->msize = msize;
   srm = (struct MeshReplyMessage *) &wqi[1];
