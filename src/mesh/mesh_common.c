@@ -101,11 +101,6 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 264: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK";
 
       /**
-       * Avoid path timeouts
-       */
-    case 265: return "GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE";
-
-      /**
        * Request the destuction of a path
        */
     case 266: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY";
@@ -126,6 +121,16 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 269: return "GNUNET_MESSAGE_TYPE_MESH_POLL";
 
       /**
+       * Announce origin is still alive.
+       */
+    case 270: return "GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE";
+
+      /**
+       * Announce destination is still alive.
+       */
+    case 271: return "GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE";
+
+    /**
        * Connect to the mesh service, specifying subscriptions
        */
     case 272: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT";

@@ -326,7 +326,7 @@ struct GNUNET_MESH_TunnelDestroy
 struct GNUNET_MESH_TunnelKeepAlive
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE
+   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_(FWD|BCK)_KEEPALIVE
    */
   struct GNUNET_MessageHeader header;
   
