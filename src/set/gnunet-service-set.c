@@ -477,7 +477,6 @@ handle_client_create (void *cls,
     return;
   }
 
-  set = NULL;
   set = GNUNET_new (struct Set);
 
   switch (ntohs (msg->operation))
@@ -489,6 +488,7 @@ handle_client_create (void *cls,
       set->vt = _GSS_union_vt ();
       break;
     default:
+      GNUNET_free (set);
       GNUNET_break (0);
       GNUNET_SERVER_client_disconnect (client);
       return;
