@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_mesh.c
+ * @file fs/gnunet-service-fs_mesh_server.c
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  *

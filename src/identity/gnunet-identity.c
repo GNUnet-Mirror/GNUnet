@@ -121,10 +121,7 @@ delete_finished (void *cls,
  * Creation operation finished.
  *
  * @param cls pointer to operation handle
- * @param ego ego handle
- * @param ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this ego
+ * @param emsg error message, NULL on success
  */
 static void
 create_finished (void *cls,
