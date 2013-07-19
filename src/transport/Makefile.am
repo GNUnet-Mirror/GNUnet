@@ -211,6 +211,7 @@ plugin_LTLIBRARIES = \
   $(HTTP_SERVER_PLUGIN_LA) \
   $(HTTPS_SERVER_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
+  $(BT_PLUGIN_LA) \
   libgnunet_plugin_transport_template.la
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \
@@ -242,6 +243,17 @@ libgnunet_plugin_transport_wlan_la_LIBADD = \
   $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_wlan_la_LDFLAGS = \
+  $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_transport_bluetooth_la_SOURCES = \
+  plugin_transport_bluetooth.c plugin_transport_wlan.h
+libgnunet_plugin_transport_bluetooth_la_LIBADD = \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunet_plugin_transport_bluetooth_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
@@ -332,16 +344,6 @@ libgnunet_plugin_transport_https_server_la_LDFLAGS = \
 libgnunet_plugin_transport_https_server_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS 
 
-libgnunet_plugin_transport_bluetooth_la_SOURCES = \
-  plugin_transport_bluetooth.c plugin_transport_wlan.h
-libgnunet_plugin_transport_bluetooth_la_LIBADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-libgnunet_plugin_transport_bluetooth_la_LDFLAGS = \
-  $(GN_PLUGIN_LDFLAGS)
 
 if HAVE_TESTING
 check_PROGRAMS = \
