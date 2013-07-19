@@ -827,11 +827,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK            264
 
 /**
- * Avoid path timeouts
- */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_KEEPALIVE         265
-
-/**
  * Request the destuction of a path
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           266
@@ -850,6 +845,16 @@ extern "C"
  * Poll for an ACK.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
+
+/**
+ * Announce origin is still alive.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE          270
+
+/**
+ * Announce destination is still alive.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE          271
 
 /**
  * Connect to the mesh service, specifying subscriptions
