@@ -4061,7 +4061,6 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  not for us, retransmitting...\n");
-  peer_info = peer_get (&msg->oid);
   send_prebuilt_message (message, t->prev_hop, t);
   return GNUNET_OK;
 }
