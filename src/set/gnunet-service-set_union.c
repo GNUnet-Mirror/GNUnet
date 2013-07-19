@@ -929,6 +929,7 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     {
       GNUNET_break (0);
       fail_union_operation (eo);
+      return;
     }
   }
   else if (eo->phase == PHASE_EXPECT_IBF_CONT)
