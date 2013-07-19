@@ -114,6 +114,8 @@ static struct SendBuffer write_pout;
 static struct SendBuffer write_std;
 
 
+static struct GNUNET_TRANSPORT_WLAN_MacAddress broadcast = {{255, 255, 255, 255, 255, 255}};
+
 /* *********** specialized version of server_mst.c begins here ********** */
 /* ****** this is the same version as the one used in gnunet-helper-transport-wlan.c ****** */ 
 
@@ -208,6 +210,8 @@ mst_create (MessageTokenizerCallback cb,
   ret->curr_buf = MIN_BUFFER_SIZE;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
+  ret->pos = 0;
+  
   return ret;
 }
 
@@ -236,6 +240,7 @@ mst_receive (struct MessageStreamTokenizer *mst,
 
   ret = GNUNET_OK;
   ibuf = (char *) mst->hdr;
+  
   while (mst->pos > 0)
   {
 do_align:
@@ -309,6 +314,7 @@ do_align:
       mst->pos = 0;
     }
   }
+  
   while (size > 0)
   {
     if (size < sizeof (struct GNUNET_MessageHeader))
@@ -363,6 +369,7 @@ do_align:
   }
   return ret;
 }
+
 
 
 /**
@@ -538,7 +545,7 @@ register_service (struct HardwareInfos *dev, int rc_channel)
    * 6. register the service record to the local SDP server
    * 7. cleanup
    */
-  
+
   //FIXME: probably this is not the best idea. I should find a different uuid
   uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             dev->pl_mac.mac[5], dev->pl_mac.mac[4], dev->pl_mac.mac[3],
@@ -811,11 +818,11 @@ open_device (struct HardwareInfos *dev)
     
     if (strcmp (dev_info.name, dev->iface) == 0)
     {
-      char addr[19] = { 0 };  //the device MAC address
+      //char addr[19] = { 0 };  //the device MAC address
       
       dev_id = dev_info.dev_id; //the device was found
       
-      ba2str (&dev_info.bdaddr, addr); //get the device's MAC address 
+     // ba2str (&dev_info.bdaddr, addr); //get the device's MAC address 
       /**
        * Copy the MAC address to the device structure
        * FIXME: probably this is not the best solution
@@ -1025,6 +1032,15 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
 }
 
 
+//TODO
+/**
+ * Broadcast a HELLO message for peer discovery
+ */
+static void 
+send_broadcast () 
+{
+    // Use a hard coded port number to send hello messages to all the neighbours
+}
 /**
  * Main function of the helper.  This code accesses a bluetooth interface
  * forwards traffic in both directions between the bluetooth interface and 
@@ -1041,7 +1057,6 @@ main (int argc, char *argv[])
 {   
   struct HardwareInfos dev;
   char readbuf[MAXLINE];
-  char dest[18];
   int maxfd;
   fd_set rfds;
   fd_set wfds;
@@ -1128,8 +1143,7 @@ main (int argc, char *argv[])
 #endif
   }
 
-
-  /* Send MAC address of the bluetooth interface to STDOUT first */
+ /* Send MAC address of the bluetooth interface to STDOUT first */
   {
     struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
@@ -1140,89 +1154,114 @@ main (int argc, char *argv[])
     write_std.size = sizeof (macmsg);
   }
     
-
+ 
   stdin_mst = mst_create (&stdin_send_hw, &dev);  
   stdin_open = 1;
-  while (1)
+  
+ while (1)
   {
     maxfd = -1;
     FD_ZERO (&rfds);
     if ((0 == write_pout.size) && (1 == stdin_open))
     {
+      fprintf(stderr, "LOG : %s adds STDIN to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDIN_FILENO, &rfds);
       maxfd = MAX (maxfd, STDIN_FILENO);
     }
     if (0 == write_std.size)
     {
+      fprintf(stderr, "LOG : %s adds fd_rfcomm to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (dev.fd_rfcomm, &rfds);
       maxfd = MAX (maxfd, dev.fd_rfcomm);
     }
     FD_ZERO (&wfds);
     if (0 < write_std.size)
     {
+      fprintf(stderr, "LOG : %s adds STDOUT to wfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
     
     for (i = 0; i < crt_rfds; i++)
     {
+      fprintf(stderr, "LOG : %s adds extra fds to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (rfds_list[i], &rfds);
       maxfd = MAX (maxfd, rfds_list[i]);
     }
 
     for (i = 0; i < crt_wfds; i++)
     {
+      fprintf(stderr, "LOG : %s adds extra fds to wfds\n", dev.iface); //FIXME: debugging message
       FD_SET (wfds_list[i], &wfds);
       maxfd = MAX (maxfd, wfds_list[i]);
     }
-    
+   
     if (0 < write_pout.size)
     {
       int sendsocket, status;
       struct sockaddr_rc addr = { 0 };
       struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *frame;
       
-      memset (dest, 0, sizeof (dest));
-      
-      sendsocket = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-      
-      if (sendsocket < 0) 
-      {
-        fprintf (stderr, "Failed to create a RFCOMM socket (sending stage): %s\n", 
-                strerror (errno));
-        return -1;
-      }
-      
       /* Get the destination address */
       //FIXME : not sure if this is correct
       frame = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) write_pout.buf;
-      memcpy (&addr.rc_bdaddr, &frame->addr1, sizeof (bdaddr_t));                            
       
-      addr.rc_family = AF_BLUETOOTH;
-      addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
-      
-      /*TODO: use a NON-BLOCKING socket
-       *    sock_flags = fcntl (sendsocket, F_GETFL, 0);
-       *    fcntl( sendsocket, F_SETFL, sock_flags | O_NONBLOCK);
-      */
-      status = connect (sendsocket, (struct sockaddr *) &addr, sizeof (addr));
-	    if (0 != status && errno != EAGAIN)
-	    {
-	        //fprintf (stderr, "connect error on %s\n", argv[1]);
-	      perror("Connect error");
-	      return -1;
-	    }
-      
-      FD_SET (sendsocket, &wfds);
-      maxfd = MAX (maxfd, sendsocket);
-      
-      if (crt_wfds < MAX_PORTS)
-        wfds_list[crt_wfds++] = sendsocket; //add the socket to the list
-      else
+      if (memcmp (&frame->addr1, &dev.pl_mac, 
+                  sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
       {
-        fprintf (stderr, "The limit for the write file descriptors list was \
-                        reached\n");
-        break;
+        fprintf (stderr, "LOG : %s has a message for him:)\n", dev.iface); //FIXME: debugging message
+        memset (&write_pout, 0, sizeof (write_pout)); // clear the buffer
+      } 
+      else if (memcmp (&frame->addr1, &broadcast, 
+                sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
+      {
+        fprintf (stderr, "LOG : %s has a broadcast message\n", dev.iface); //FIXME: debugging message
+        memset (&write_pout, 0, sizeof (write_pout)); //FIXME for now just clear the buffer
+        send_broadcast();
+      } 
+      else 
+      {
+        fprintf (stderr, "LOG : %s has a new message for %x:%x:%x:%x:%x:%x\n", dev.iface, 
+                frame->addr1.mac[5], frame->addr1.mac[4], frame->addr1.mac[3],
+                frame->addr1.mac[2], frame->addr1.mac[1], frame->addr1.mac[0]); //FIXME: debugging message
+      
+        memcpy (&addr.rc_bdaddr, &frame->addr1, sizeof (bdaddr_t));
+        
+        sendsocket = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+        
+        if (sendsocket < 0) 
+        {
+          fprintf (stderr, "Failed to create a RFCOMM socket (sending stage): %s\n", 
+                  strerror (errno));
+          return -1;
+        }
+                                
+        
+        addr.rc_family = AF_BLUETOOTH;
+        addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
+        
+        /*TODO: use a NON-BLOCKING socket
+         *    sock_flags = fcntl (sendsocket, F_GETFL, 0);
+         *    fcntl( sendsocket, F_SETFL, sock_flags | O_NONBLOCK);
+        */
+        status = connect (sendsocket, (struct sockaddr *) &addr, sizeof (addr));
+	      if (0 != status && errno != EAGAIN)
+	      {
+	        fprintf (stderr, "%s failed to connect\n", dev.iface);
+	        return -1;
+	      }
+        
+        FD_SET (sendsocket, &wfds);
+        maxfd = MAX (maxfd, sendsocket);
+        
+        if (crt_wfds < MAX_PORTS)
+          wfds_list[crt_wfds++] = sendsocket; //add the socket to the list
+        else
+        {
+          fprintf (stderr, "The limit for the write file descriptors list was \
+                          reached\n");
+          break;
+        }
       }
     }
     {
@@ -1235,8 +1274,7 @@ main (int argc, char *argv[])
 	break;
       }
     }
-    
-    for (i = 0; i <= maxfd; i++)
+    for (i = maxfd; i >= 0; i--)
     {
       if (FD_ISSET (i , &wfds))
       {
@@ -1256,6 +1294,7 @@ main (int argc, char *argv[])
             write_std.pos = 0;
             write_std.size = 0;
           }
+          fprintf(stderr, "LOG : %s sends a message to STDOUT\n", dev.iface); //FIXME: debugging message
         } 
         else 
         {
@@ -1283,7 +1322,9 @@ main (int argc, char *argv[])
             write_pout.size = 0;
             (void) close (i);
           }
+          fprintf(stderr, "LOG : %s sends a message to a DEVICE\n", dev.iface); //FIXME: debugging message
         }
+        
       }
 
       if (FD_ISSET (i, &rfds))
@@ -1302,6 +1343,7 @@ main (int argc, char *argv[])
             /* stop reading... */
             stdin_open = 0;
           }
+          fprintf(stderr, "LOG : %s receives a message from STDIN\n", dev.iface); //FIXME: debugging message
           mst_receive (stdin_mst, readbuf, ret);
         } 
         else if (i == dev.fd_rfcomm) 
@@ -1311,7 +1353,7 @@ main (int argc, char *argv[])
           unsigned int opt = sizeof (addr);
           
           readsocket = accept (dev.fd_rfcomm, (struct sockaddr *) &addr, &opt);
-          
+          fprintf(stderr, "LOG : %s accepts a message\n", dev.iface); //FIXME: debugging message
           if (readsocket == -1)
           {
             fprintf (stderr, "Failed to accept a connection on interface: %s\n", 
@@ -1344,6 +1386,7 @@ main (int argc, char *argv[])
 		          - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
 		          + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
 		          rrm);
+          fprintf (stderr, "LOG: %s reads something from the socket\n", dev.iface);//FIXME : debugging message 
           if (0 > ret)
           {
             fprintf (stderr, "Read error from rfcomm socket: %s\n", strerror (errno));
@@ -1363,8 +1406,8 @@ main (int argc, char *argv[])
   }
   /* Error handling, try to clean up a bit at least */
   mst_destroy (stdin_mst);
+  stdin_mst = NULL;
   sdp_close (dev.session);
-   
   (void) close (dev.fd_rfcomm);
   for (i = 0; i < crt_rfds; i++)
     (void) close (rfds_list[i]);
