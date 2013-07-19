@@ -837,6 +837,16 @@ tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid);
 
 
 /**
+ * Change the tunnel state.
+ *
+ * @param t Tunnel whose ttate to change.
+ * @param state New state.
+ */
+static void
+tunnel_change_state (struct MeshTunnel *t, enum MeshTunnelState state);
+
+
+/**
  * Notify a tunnel that a connection has broken that affects at least
  * some of its peers.
  *
@@ -957,6 +967,45 @@ queue_send (void *cls, size_t size, void *buf);
  */
 void
 __mesh_divider______________________________________________________________();
+
+
+static const char *
+GNUNET_MESH_DEBUG_S2S (enum MeshTunnelState s)
+{
+  static char buf[128];
+
+  switch (s)
+  {
+    /**
+     * Uninitialized status, should never appear in operation.
+     */
+    case MESH_TUNNEL_NEW: return "MESH_TUNNEL_NEW";
+
+    /**
+     * Path to the peer not known yet
+     */
+    case MESH_TUNNEL_SEARCHING: return "MESH_TUNNEL_SEARCHING";
+
+    /**
+     * Request sent, not yet answered.
+     */
+    case MESH_TUNNEL_WAITING: return "MESH_TUNNEL_WAITING";
+
+    /**
+     * Peer connected and ready to accept data
+     */
+    case MESH_TUNNEL_READY: return "MESH_TUNNEL_READY";
+
+    /**
+     * Peer connected previosly but not responding
+     */
+    case MESH_TUNNEL_RECONNECTING: return "MESH_TUNNEL_RECONNECTING";
+
+    default:
+      sprintf (buf, "%u (UNKNOWN STATE)", s);
+      return buf;
+  }
+}
 
 
 /******************************************************************************/
@@ -1236,7 +1285,7 @@ send_path_create (struct MeshTunnel *t)
                 (t->path->length * sizeof (struct GNUNET_PeerIdentity)),
              neighbor,
              t);
-  t->state = MESH_TUNNEL_WAITING;
+  tunnel_change_state (t, MESH_TUNNEL_WAITING);
 }
 
 
@@ -1248,16 +1297,16 @@ send_path_create (struct MeshTunnel *t)
 static void
 send_path_ack (struct MeshTunnel *t) 
 {
-  struct MeshPeerInfo *peer;
+  struct MeshPeerInfo *neighbor;
 
-  peer = peer_get_short (t->prev_hop);
-  t->state = MESH_TUNNEL_WAITING;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send path ack\n");
+  neighbor = peer_get_short (t->prev_hop);
   queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_ACK,
              sizeof (struct GNUNET_MESH_PathACK),
-             peer,
+             neighbor,
              t);
+  tunnel_change_state (t, MESH_TUNNEL_WAITING);
 }
 
 
@@ -1574,7 +1623,7 @@ peer_connect (struct MeshPeerInfo *peer, struct MeshTunnel *t)
                                          NULL,       /* xquery */
                                          0,     /* xquery bits */
                                          &dht_get_id_handler, peer);
-    t->state = MESH_TUNNEL_SEARCHING;
+    tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
   }
   else
   {
@@ -2159,6 +2208,28 @@ tunnel_get (const struct GNUNET_PeerIdentity *oid, MESH_TunnelNumber tid)
 {
   return tunnel_get_by_pi (GNUNET_PEER_search (oid), tid);
 }
+
+
+/**
+ * Change the tunnel state.
+ *
+ * @param t Tunnel whose ttate to change.
+ * @param state New state.
+ */
+static void
+tunnel_change_state (struct MeshTunnel *t, enum MeshTunnelState state)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Tunnel %s[%X] state was %s\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid,
+              GNUNET_MESH_DEBUG_S2S (t->state));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Tunnel %s[%X] state is now %s\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid,
+              GNUNET_MESH_DEBUG_S2S (state));
+  t->state = state;
+}
+
 
 
 /**
@@ -3810,7 +3881,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  nobuffer:%d\n", t->nobuffer);
   }
   tunnel_reset_timeout (t, GNUNET_YES);
-  t->state = MESH_TUNNEL_WAITING;
+  tunnel_change_state (t,  MESH_TUNNEL_WAITING);
   dest_peer_info =
       GNUNET_CONTAINER_multihashmap_get (peers, &pi[size - 1].hashPubKey);
   if (NULL == dest_peer_info)
@@ -3964,7 +4035,7 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
   }
-  t->state = MESH_TUNNEL_READY;
+  tunnel_change_state (t, MESH_TUNNEL_READY);
   tunnel_reset_timeout (t, GNUNET_NO);
   t->next_fc.last_ack_recv = (NULL == t->client) ? ntohl (msg->ack) : 0;
   t->prev_fc.last_ack_sent = ntohl (msg->ack);
@@ -4170,7 +4241,7 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   if (NULL != c)
-    t->state = MESH_TUNNEL_READY;
+    tunnel_change_state (t, MESH_TUNNEL_READY);
   tunnel_reset_timeout (t, fwd);
   if (NULL != c)
   {
@@ -4472,7 +4543,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   fc->last_ack_recv = ack;
   peer_unlock_queue (id);
-  t->state = MESH_TUNNEL_READY;
+  tunnel_change_state (t, MESH_TUNNEL_READY);
 
   tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK, t->next_hop == id);
 
@@ -4589,7 +4660,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   hop = fwd ? t->next_hop : t->prev_hop;
 
   if (NULL != c)
-    t->state = MESH_TUNNEL_READY;
+    tunnel_change_state (t, MESH_TUNNEL_READY);
   tunnel_reset_timeout (t, fwd);
   if (NULL != c || 0 == hop || myid == hop)
     return GNUNET_OK;
