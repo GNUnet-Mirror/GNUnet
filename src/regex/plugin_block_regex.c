@@ -290,7 +290,7 @@ block_plugin_regex_get_key (void *cls, enum GNUNET_BLOCK_Type type,
       }
       return GNUNET_OK;
     case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
-      if (sizeof (struct RegexAcceptBlock) != block_size);
+      if (sizeof (struct RegexAcceptBlock) != block_size)
       {
 	GNUNET_break_op (0);
 	return GNUNET_NO;
