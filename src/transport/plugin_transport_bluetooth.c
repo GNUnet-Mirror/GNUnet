@@ -1311,7 +1311,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     xmas.endpoint = mas->endpoint;
     xmas.session = create_session (mas->endpoint, &wlanheader->sender);
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	 "Processing %u bytes of WLAN DATA from peer `%s'\n",
+	 "Processing %u bytes of BLUETOOTH DATA from peer `%s'\n",
 	 (unsigned int) msize,
 	 GNUNET_i2s (&wlanheader->sender));
     (void) GNUNET_SERVER_mst_receive (plugin->wlan_header_payload_tokenizer, 
@@ -1395,7 +1395,7 @@ handle_helper_message (void *cls, void *client,
       plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
 				   &wa,
 				   sizeof (wa),
-				   "wlan");
+				   "bluetooth");
     }
     plugin->mac_address = cm->mac;
     plugin->have_mac = GNUNET_YES;
@@ -1403,13 +1403,13 @@ handle_helper_message (void *cls, void *client,
     wa.mac = plugin->mac_address;
     wa.options = htonl(plugin->options);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Received WLAN_HELPER_CONTROL message with MAC address `%s' for peer `%s'\n",
+	 "Received BT_HELPER_CONTROL message with MAC address `%s' for peer `%s'\n",
 	 mac_to_string (&cm->mac),
 	 GNUNET_i2s (plugin->env->my_identity));
     plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
                                  &wa,
                                  sizeof (struct WlanAddress),
-                                 "wlan");
+                                 "bluetooth");
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER:
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1666,7 +1666,7 @@ libgnunet_plugin_transport_bluetooth_done (void *cls)
       plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
                                &wa,
                                sizeof (struct WlanAddress),
-                               "wlan");
+                               "bluetooth");
       plugin->have_mac = GNUNET_NO;
   }
 
@@ -1727,7 +1727,7 @@ bluetooth_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   struct WlanAddress *wa;
   unsigned int a[6];
   unsigned int i;
-  char plugin[5];
+  char plugin[10];
   uint32_t options;
 
   if ((NULL == addr) || (addrlen == 0))
@@ -1747,7 +1747,7 @@ bluetooth_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   }
 
   if (8 != SSCANF (addr,
-		   "%4s.%u.%X:%X:%X:%X:%X:%X",
+		   "%9s.%u.%X:%X:%X:%X:%X:%X",
 		   plugin, &options,
 		   &a[0], &a[1], &a[2], &a[3], &a[4], &a[5]))
   {
@@ -1803,7 +1803,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
 	 (testmode > 2) ) )
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "transport-wlan", "TESTMODE");
+			       "transport-bluetooth", "TESTMODE");
     return NULL;
   }
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-transport-bluetooth");
@@ -1811,7 +1811,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
        (GNUNET_YES != GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL)) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Helper binary `%s' not SUID, cannot run WLAN transport\n"),
+	 _("Helper binary `%s' not SUID, cannot run bluetooth transport\n"),
 	 "gnunet-helper-transport-bluetooth");
     GNUNET_free (binary);
     return NULL;
