@@ -778,6 +778,7 @@ build_set (void *cls)
     return;
   }
   element.size = sizeof (struct Target);
+  element.type = htons (0); /* do we need this? */
   element.data = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset++]->target;
 
   /* skip over NULL entries */
