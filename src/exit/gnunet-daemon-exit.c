@@ -1807,6 +1807,11 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpServiceStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
 
+  if (NULL == state) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if (GNUNET_YES == state->is_dns)
   {
     GNUNET_break_op (0);
@@ -1831,8 +1836,7 @@ receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   start = (const struct GNUNET_EXIT_TcpServiceStartMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_TcpServiceStartMessage);
-  if ( (NULL == state) ||
-       (NULL != state->specifics.tcp_udp.serv) ||
+  if ( (NULL != state->specifics.tcp_udp.serv) ||
        (NULL != state->specifics.tcp_udp.heap_node) )
   {
     GNUNET_break_op (0);
@@ -1896,6 +1900,11 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const void *payload;
   int af;
 
+  if (NULL == state) 
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if (GNUNET_YES == state->is_dns)
   {
     GNUNET_break_op (0);
@@ -1919,8 +1928,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   start = (const struct GNUNET_EXIT_TcpInternetStartMessage*) message;
   pkt_len -= sizeof (struct GNUNET_EXIT_TcpInternetStartMessage);  
-  if ( (NULL == state) ||
-       (NULL != state->specifics.tcp_udp.serv) ||
+  if ( (NULL != state->specifics.tcp_udp.serv) ||
        (NULL != state->specifics.tcp_udp.heap_node) )
   {
     GNUNET_break_op (0);
