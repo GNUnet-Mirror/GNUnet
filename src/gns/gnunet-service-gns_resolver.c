@@ -1530,6 +1530,7 @@ read_dns_response (void *cls,
       npacket.queries = &query;
       npacket.answers = NULL;
       npacket.authority_records = NULL;
+      npacket.additional_records = NULL;
       npacket.num_queries = 1;
       npacket.num_answers = 0;
       npacket.num_authority_records = 0;
@@ -1548,6 +1549,7 @@ read_dns_response (void *cls,
 		    rh->id);
 	GNUNET_NETWORK_socket_close (rh->dns_sock);
 	finish_lookup (rh, rlh, 0, NULL);
+	GNUNET_DNSPARSER_free_packet (packet);
 	return;
       }
       continue;
