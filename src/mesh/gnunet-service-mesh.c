@@ -3178,8 +3178,8 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->owner = client;
   fc_init (&t->next_fc);
   fc_init (&t->prev_fc);
-  t->next_fc->t = t;
-  t->prev_fc->t = t;
+  t->next_fc.t = t;
+  t->prev_fc.t = t;
   t->local_tid = local;
   n_tunnels++;
   GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
@@ -3668,7 +3668,6 @@ queue_send (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "*   %s starting poll timeout\n",
                   GNUNET_i2s (&my_full_id));
-      fc->t = t;
       fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                     &tunnel_poll, fc);
     }
