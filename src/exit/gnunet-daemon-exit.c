@@ -3331,6 +3331,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   unsigned int app_idx;
   char *exit_ifname;
   char *tun_ifname;
+  char *policy;
   char *ipv6addr;
   char *ipv6prefix_s;
   char *ipv4addr;
@@ -3565,40 +3566,54 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   /* Mesh handle acquired, now announce regular expressions matching our exit */
   if ( (GNUNET_YES == ipv4_enabled) && (GNUNET_YES == ipv4_exit) )
   {
+    policy = NULL;
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,
                                                "exit",
                                                "EXIT_RANGE_IPV4_REGEX",
-                                               &regex))
-      regex = GNUNET_strdup ("(0|1)*");
-    (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
-                            GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-                            "4", regex);
-    regex4 = GNUNET_REGEX_announce (cfg,			    
-				    prefixed_regex,
-				    REGEX_REFRESH_FREQUENCY,
-				    REGEX_MAX_PATH_LEN_IPV4);
-    GNUNET_free (regex);
-    GNUNET_free (prefixed_regex);
+                                               &policy))
+      regex = NULL;
+    else
+      regex = GNUNET_TUN_ipv4policy2regex (policy);
+    GNUNET_free_non_null (policy);
+    if (NULL != regex)
+    {
+      (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+			      GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+			      "4", regex);
+      regex4 = GNUNET_REGEX_announce (cfg,			    
+				      prefixed_regex,
+				      REGEX_REFRESH_FREQUENCY,
+				      REGEX_MAX_PATH_LEN_IPV4);
+      GNUNET_free (regex);
+      GNUNET_free (prefixed_regex);    
+    }
   }
 
   if (GNUNET_YES == ipv6_enabled && GNUNET_YES == ipv6_exit)
   {
+    policy = NULL;
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,
                                                "exit",
                                                "EXIT_RANGE_IPV6_REGEX",
-                                               &regex))
-      regex = GNUNET_strdup ("(0|1)*");
-    (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
-                            GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-                            "6", regex);
-    regex6 = GNUNET_REGEX_announce (cfg,
-				    prefixed_regex,
-				    REGEX_REFRESH_FREQUENCY,
-				    REGEX_MAX_PATH_LEN_IPV6);
-    GNUNET_free (regex);
-    GNUNET_free (prefixed_regex);
+                                               &policy))
+      regex = NULL;
+    else
+      regex = GNUNET_TUN_ipv6policy2regex (policy);
+    GNUNET_free_non_null (policy);      
+    if (NULL != regex)
+    {
+      (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+			      GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+			      "6", regex);
+      regex6 = GNUNET_REGEX_announce (cfg,
+				      prefixed_regex,
+				      REGEX_REFRESH_FREQUENCY,
+				      REGEX_MAX_PATH_LEN_IPV6);
+      GNUNET_free (regex);
+      GNUNET_free (prefixed_regex);
+    }
   }
   if ((ipv4_exit) || (ipv6_exit))
     helper_handle = GNUNET_HELPER_start (GNUNET_NO,

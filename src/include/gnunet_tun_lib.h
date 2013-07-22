@@ -455,5 +455,30 @@ GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6,
 			unsigned int prefixlen, char *rxstr);
 
 
+/**
+ * Convert an exit policy to a regular expression.  The exit policy
+ * specifies a set of subnets this peer is willing to serve as an
+ * exit for; the resulting regular expression will match the
+ * IPv6 address strings as returned by 'GNUNET_TUN_ipv6toregex'.
+ *
+ * @param policy exit policy specification
+ * @return regular expression, NULL on error
+ */
+char *
+GNUNET_TUN_ipv6policy2regex (const char *policy);
+
+
+/**
+ * Convert an exit policy to a regular expression.  The exit policy
+ * specifies a set of subnets this peer is willing to serve as an
+ * exit for; the resulting regular expression will match the
+ * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregex'.
+ *
+ * @param policy exit policy specification
+ * @return regular expression, NULL on error
+ */
+char *
+GNUNET_TUN_ipv4policy2regex (const char *policy);
+
 
 #endif
