@@ -2444,7 +2444,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "ACK due to %s\n",
                   GNUNET_MESH_DEBUG_M2S (type));
-      if (GNUNET_YES == t->nobuffer)
+      if (GNUNET_YES == t->nobuffer && (GNUNET_NO == t->reliable || NULL == c))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
         return;
