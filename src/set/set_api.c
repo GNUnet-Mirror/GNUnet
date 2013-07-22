@@ -533,22 +533,24 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 void
 GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 {
-  struct GNUNET_MQ_Envelope *mqm;
-  struct GNUNET_SET_OperationHandle *h_assoc;
-
-  GNUNET_assert (NULL != oh->set);
-
-  GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
-  h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
-  GNUNET_assert (h_assoc == oh);
-  mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
-  GNUNET_MQ_send (oh->set->mq, mqm);
-
   if (NULL != oh->conclude_mqm)
     GNUNET_MQ_discard (oh->conclude_mqm);
 
-  if (GNUNET_YES == oh->set->destroy_requested)
-    GNUNET_SET_destroy (oh->set);
+  /* is the operation still not commited? */
+  if (NULL != oh->set)
+  {
+    struct GNUNET_SET_OperationHandle *h_assoc;
+    struct GNUNET_MQ_Envelope *mqm;
+
+    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
+    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
+    GNUNET_assert (h_assoc == oh);
+    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
+    GNUNET_MQ_send (oh->set->mq, mqm);
+
+    if (GNUNET_YES == oh->set->destroy_requested)
+      GNUNET_SET_destroy (oh->set);
+  }
 
   GNUNET_free (oh);
 }
