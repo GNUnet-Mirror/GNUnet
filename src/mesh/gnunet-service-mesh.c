@@ -1097,19 +1097,21 @@ client_get (struct GNUNET_SERVER_Client *client)
 static void
 client_delete_tunnel (struct MeshClient *c, struct MeshTunnel *t)
 {
+  int res;
+
   if (c == t->owner)
   {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels,
-                                                           t->local_tid,
-                                                           t));
+    res = GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels,
+                                                  t->local_tid, t);
+    if (GNUNET_YES != res)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel owner KO\n");
   }
   if (c == t->client)
   {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
-                                                           t->local_tid_dest,
-                                                           t));
+    res = GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
+                                                  t->local_tid_dest, t);
+    if (GNUNET_YES != res)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel client KO\n");
   }
 }
 
