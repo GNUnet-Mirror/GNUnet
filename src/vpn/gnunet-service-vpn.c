@@ -855,7 +855,7 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     {
       char address[GNUNET_TUN_IPV4_REGEXLEN];
 
-      GNUNET_TUN_ipv4toregex (&de->details.exit_destination.ip.v4,
+      GNUNET_TUN_ipv4toregexsearch (&de->details.exit_destination.ip.v4,
 		   "255.255.255.255", address);
       GNUNET_asprintf (&policy, "%s%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
@@ -867,7 +867,7 @@ create_tunnel_to_destination (struct DestinationEntry *de,
     {
       char address[GNUNET_TUN_IPV6_REGEXLEN];
       
-      GNUNET_TUN_ipv6toregex (&de->details.exit_destination.ip.v6,
+      GNUNET_TUN_ipv6toregexsearch (&de->details.exit_destination.ip.v6,
 		   128, address);
       GNUNET_asprintf (&policy, "%s%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,

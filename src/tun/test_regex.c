@@ -39,7 +39,7 @@ test_iptoregex (const char *ipv4, const char *netmask, const char *expectedv4,
   char rxv6[GNUNET_TUN_IPV6_REGEXLEN];
 
   GNUNET_assert (1 == inet_pton (AF_INET, ipv4, &a));
-  GNUNET_TUN_ipv4toregex (&a, netmask, rxv4);
+  GNUNET_TUN_ipv4toregexsearch (&a, netmask, rxv4);
 
 
   if (0 != strcmp (rxv4, expectedv4))
@@ -50,7 +50,7 @@ test_iptoregex (const char *ipv4, const char *netmask, const char *expectedv4,
   }
 
   GNUNET_assert (1 == inet_pton (AF_INET6, ipv6, &b));
-  GNUNET_TUN_ipv6toregex (&b, prefixlen, rxv6);
+  GNUNET_TUN_ipv6toregexsearch (&b, prefixlen, rxv6);
 
   if (0 != strcmp (rxv6, expectedv6))
   {

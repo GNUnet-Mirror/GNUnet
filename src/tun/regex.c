@@ -107,7 +107,7 @@ ipv4netmasktoprefixlen (const char *netmask)
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv4toregex (const struct in_addr *ip, const char *netmask,
+GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
 			char *rxstr)
 {
   unsigned int pfxlen;
@@ -129,7 +129,7 @@ GNUNET_TUN_ipv4toregex (const struct in_addr *ip, const char *netmask,
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
+GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6, unsigned int prefixlen,
 			char *rxstr)
 {
   iptobinstr (AF_INET6, ipv6, rxstr);
@@ -143,7 +143,7 @@ GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6, unsigned int prefixlen,
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregex'.
+ * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
@@ -159,7 +159,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregex'.
+ * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error

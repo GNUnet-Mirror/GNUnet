@@ -47,13 +47,13 @@
 
 
 /**
- * Maximum regex string length for use with GNUNET_TUN_ipv4toregex
+ * Maximum regex string length for use with GNUNET_TUN_ipv4toregexsearch
  */
 #define GNUNET_TUN_IPV4_REGEXLEN 32 + 6
 
 
 /**
- * Maximum regex string length for use with GNUNET_TUN_ipv6toregex
+ * Maximum regex string length for use with GNUNET_TUN_ipv6toregexsearch
  */
 #define GNUNET_TUN_IPV6_REGEXLEN 128 + 6
 
@@ -438,7 +438,7 @@ GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv4toregex (const struct in_addr *ip, const char *netmask,
+GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
 			char *rxstr);
 
 
@@ -451,7 +451,7 @@ GNUNET_TUN_ipv4toregex (const struct in_addr *ip, const char *netmask,
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6,
+GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
 			unsigned int prefixlen, char *rxstr);
 
 
@@ -459,7 +459,7 @@ GNUNET_TUN_ipv6toregex (const struct in6_addr *ipv6,
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv6 address strings as returned by 'GNUNET_TUN_ipv6toregex'.
+ * IPv6 address strings as returned by 'GNUNET_TUN_ipv6toregexsearch'.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
@@ -472,7 +472,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy);
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregex'.
+ * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
