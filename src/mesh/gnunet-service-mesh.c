@@ -3936,7 +3936,8 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   tid = ntohl (msg->tid);
   pi = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    path is for tunnel %s[%X].\n", GNUNET_i2s (pi), tid);
+              "    path is for tunnel %s[%X]:%u.\n",
+              GNUNET_i2s (pi), tid, ntohl (msg->port));
   t = tunnel_get (pi, tid);
   if (NULL == t) /* might be a local tunnel */
   {
@@ -5032,8 +5033,8 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   t_msg = (struct GNUNET_MESH_TunnelMessage *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n",
-              GNUNET_i2s (&t_msg->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
+              GNUNET_i2s (&t_msg->peer), ntohl (t_msg->port));
   tid = ntohl (t_msg->tunnel_id);
   /* Sanity check for duplicate tunnel IDs */
   if (NULL != tunnel_get_by_local_id (c, tid))

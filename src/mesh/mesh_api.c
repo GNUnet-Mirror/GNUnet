@@ -800,9 +800,11 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_Tunnel *t;
   MESH_TunnelNumber tid;
+  uint32_t port;
 
   tid = ntohl (msg->tunnel_id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating incoming tunnel %X\n", tid);
+  port = ntohl (msg->port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating incoming tunnel %X:%u\n", tid, port);
   if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     GNUNET_break (0);
@@ -815,7 +817,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t->peer = GNUNET_PEER_intern (&msg->peer);
     t->mesh = h;
     t->tid = tid;
-    t->port = ntohl (msg->port);
+    t->port = port;
     if (0 != (msg->opt & GNUNET_MESH_OPTION_NOBUFFER))
       t->nobuffer = GNUNET_YES;
     else
@@ -1444,7 +1446,9 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_Tunnel *t;
   struct GNUNET_MESH_TunnelMessage msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating new tunnel\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating new tunnel to %s:%u\n",
+       GNUNET_i2s (peer), port);
   t = create_tunnel (h, 0);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", t->tid);
