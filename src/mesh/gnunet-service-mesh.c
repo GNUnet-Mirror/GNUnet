@@ -1699,6 +1699,7 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
   struct MeshPeerInfo *peer_info;
   struct MeshPeerQueue *pq;
   struct MeshPeerQueue *next;
+  struct MeshFlowControl *fc;
 
   if (0 == neighbor)
     return; /* Was local peer, 0'ed in tunnel_destroy_iterator */
@@ -1720,8 +1721,14 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
   }
   if (NULL == peer_info->queue_head && NULL != peer_info->core_transmit)
   {
-    GNUNET_CORE_notify_transmit_ready_cancel(peer_info->core_transmit);
+    GNUNET_CORE_notify_transmit_ready_cancel (peer_info->core_transmit);
     peer_info->core_transmit = NULL;
+  }
+  fc = neighbor == t->next_hop ? &t->next_fc : &t->prev_fc;
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (fc->poll_task);
+    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 
