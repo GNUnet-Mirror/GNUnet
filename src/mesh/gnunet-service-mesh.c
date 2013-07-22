@@ -1711,8 +1711,9 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
       if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == pq->type ||
           GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == pq->type)
       {
-        /* Should have been removed on destroy children */
-        GNUNET_break (0);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "peer_cancel_queues %s\n",
+                    GNUNET_MESH_DEBUG_M2S (pq->type));
       }
       queue_destroy (pq, GNUNET_YES);
     }
