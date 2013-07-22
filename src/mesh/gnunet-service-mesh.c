@@ -3073,17 +3073,17 @@ tunnel_destroy (struct MeshTunnel *t)
 
   if (NULL != c)
   {
-    if (GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels, t->local_tid, t))
+    if (GNUNET_YES != GNUNET_CONTAINER_multihashmap32_remove (c->own_tunnels,
+                                                              t->local_tid, t))
     {
       GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
   }
 
-  if (NULL != t->client)
+  c = t->client;
+  if (NULL != c)
   {
-    c = t->client;
     if (GNUNET_YES !=
         GNUNET_CONTAINER_multihashmap32_remove (c->incoming_tunnels,
                                                 t->local_tid_dest, t))
@@ -4873,8 +4873,8 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   c = client_get (client);
   if (NULL != c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u)\n",
-                c->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u, %p)\n",
+                c->id, c);
     GNUNET_SERVER_client_drop (c->handle);
     c->shutting_down = GNUNET_YES;
     if (NULL != c->own_tunnels)
@@ -4899,7 +4899,7 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
     GNUNET_free (c);
     GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
     c = next;
@@ -5112,11 +5112,11 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Cleanup after the tunnel */
   client_delete_tunnel (c, t);
-  if (c == t->client && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV >= tid)
+  if (c == t->client && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV <= tid)
   {
     t->client = NULL;
   }
-  else if (c == t->owner && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV < tid)
+  else if (c == t->owner && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV > tid)
   {
     peer_info_remove_tunnel (peer_get_short (t->dest), t);
     t->owner = NULL;
