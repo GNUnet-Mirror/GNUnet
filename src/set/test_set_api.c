@@ -173,6 +173,8 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
 
+  struct GNUNET_SET_OperationHandle *my_oh;
+
   config = cfg;
   GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
   printf ("my id (from CRYPTO): %s\n", GNUNET_h2s (&local_id.hashPubKey));
@@ -181,6 +183,14 @@ run (void *cls,
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);
+
+  /* test if canceling an uncommited request works! */
+  my_oh = GNUNET_SET_prepare (&local_id, &app_id, NULL, 0,
+                              GNUNET_SET_RESULT_ADDED, NULL, NULL);
+
+  GNUNET_SET_operation_cancel (my_oh);
+
+  /* test the real set reconciliation */
   init_set1 ();
 }
 
