@@ -5038,7 +5038,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Retrieve tunnel */
   tid = ntohl (tunnel_msg->tunnel_id);
-  t = tunnel_get_by_local_id(c, tid);
+  t = tunnel_get_by_local_id (c, tid);
   if (NULL == t)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
@@ -5049,14 +5049,21 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Cleanup after the tunnel */
   client_delete_tunnel (c, t);
-  if (c == t->client)
+  if (c == t->client && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV >= tid)
   {
     t->client = NULL;
   }
-  if (c == t->owner)
+  else if (c == t->owner && GNUNET_MESH_LOCAL_TUNNEL_ID_SERV < tid)
   {
     peer_info_remove_tunnel (peer_get_short (t->dest), t);
     t->owner = NULL;
+  }
+  else 
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "  tunnel %X client %p (%p, %p)\n",
+                tid, c, t->owner, t->client);
+    GNUNET_break (0);
   }
 
   /* The tunnel will be destroyed when the last message is transmitted. */
