@@ -3178,6 +3178,8 @@ tunnel_new (GNUNET_PEER_Id owner,
   t->owner = client;
   fc_init (&t->next_fc);
   fc_init (&t->prev_fc);
+  t->next_fc->t = t;
+  t->prev_fc->t = t;
   t->local_tid = local;
   n_tunnels++;
   GNUNET_STATISTICS_update (stats, "# tunnels", 1, GNUNET_NO);
