@@ -2715,7 +2715,7 @@ tunnel_free_reliable_all (struct MeshTunnelReliability *rel)
   for (copy = rel->head_sent; NULL != copy; copy = next)
   {
     next = copy->next;
-    GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+    GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     GNUNET_free (copy);
   }
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
