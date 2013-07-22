@@ -2164,6 +2164,7 @@ tunnel_get_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
   if (0 == (tid & GNUNET_MESH_LOCAL_TUNNEL_ID_CLI))
   {
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TID %X not a local tid\n", tid);
     return NULL;
   }
   if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
