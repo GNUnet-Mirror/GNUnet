@@ -2691,6 +2691,40 @@ tunnel_free_reliable_message (struct MeshReliableMessage *copy)
 
 
 /**
+ * Destroy all reliable messages queued for a tunnel,
+ * during a tunnel destruction.
+ * Frees the reliability structure itself.
+ *
+ * @param rel Reliability data for a tunnel.
+ */
+static void
+tunnel_free_reliable_all (struct MeshTunnelReliability *rel)
+{
+  struct MeshReliableMessage *copy;
+  struct MeshReliableMessage *next;
+
+  if (NULL == rel)
+    return;
+
+  for (copy = rel->head_recv; NULL != copy; copy = next)
+  {
+    next = copy->next;
+    GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+    GNUNET_free (copy);
+  }
+  for (copy = rel->head_sent; NULL != copy; copy = next)
+  {
+    next = copy->next;
+    GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+    GNUNET_free (copy);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+    GNUNET_SCHEDULER_cancel (rel->retry_task);
+  GNUNET_free (rel);
+}
+
+
+/**
  * Mark future messages as ACK'd.
  *
  * @param t Tunnel whose sent buffer to clean.
@@ -3000,9 +3034,9 @@ tunnel_send_destroy (struct MeshTunnel *t)
 
 /**
  * Destroy the tunnel.
- * 
+ *
  * This function does not generate any warning traffic to clients or peers.
- * 
+ *
  * Tasks:
  * Remove the tunnel from peer_info's and clients' hashmaps.
  * Cancel messages belonging to this tunnel queued to neighbors.
@@ -3024,17 +3058,11 @@ tunnel_destroy (struct MeshTunnel *t)
 
   r = GNUNET_OK;
   c = t->owner;
-#if MESH_DEBUG
-  {
-    struct GNUNET_PeerIdentity id;
 
-    GNUNET_PEER_resolve (t->id.oid, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s [%x]\n",
-                GNUNET_i2s (&id), t->id.tid);
-    if (NULL != c)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
-  }
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s [%x]\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid);
+  if (NULL != c)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &hash, t))
@@ -3072,6 +3100,11 @@ tunnel_destroy (struct MeshTunnel *t)
     }
   }
 
+  if(GNUNET_YES == t->reliable)
+  {
+    tunnel_free_reliable_all (t->fwd_rel);
+    tunnel_free_reliable_all (t->bck_rel);
+  }
   if (0 != t->prev_hop)
   {
     peer_cancel_queues (t->prev_hop, t);
