@@ -1410,6 +1410,8 @@ listen_set_union (void *cls,
 {
   struct DirectNeighbor *neighbor = cls;
 
+  if (NULL == request)
+    return; /* why??? */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting to create consensus with %s!\n",
 	      GNUNET_i2s (&neighbor->peer));
