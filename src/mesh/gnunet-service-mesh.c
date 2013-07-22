@@ -902,6 +902,23 @@ static void
 tunnel_destroy_empty (struct MeshTunnel *t);
 
 /**
+ * Destroy the tunnel.
+ *
+ * This function does not generate any warning traffic to clients or peers.
+ *
+ * Tasks:
+ * Remove the tunnel from peer_info's and clients' hashmaps.
+ * Cancel messages belonging to this tunnel queued to neighbors.
+ * Free any allocated resources linked to the tunnel.
+ *
+ * @param t the tunnel to destroy
+ *
+ * @return GNUNET_OK on success
+ */
+static int
+tunnel_destroy (struct MeshTunnel *t);
+
+/**
  * @brief Queue and pass message to core when possible.
  * 
  * If type is payload (UNICAST, TO_ORIGIN, MULTICAST) checks for queue status
@@ -2011,10 +2028,22 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** peer: %s!\n", 
+                GNUNET_i2s(GNUNET_PEER_resolve2 (peer)));
+  if (0 == peer)
+  {
+    if (GNUNET_YES == t->destroy)
+      tunnel_destroy (t);
+    else
+      GNUNET_break (0);
+
+    return;
+  }
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.tid = htonl (t->id.tid);
   msg.pid = htonl (peer_get_first_payload_pid (peer_get_short (peer), t));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", ntohl (msg.pid));
   send_prebuilt_message (&msg.header, peer, t);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -3031,21 +3060,6 @@ tunnel_send_destroy (struct MeshTunnel *t)
   }
 }
 
-
-/**
- * Destroy the tunnel.
- *
- * This function does not generate any warning traffic to clients or peers.
- *
- * Tasks:
- * Remove the tunnel from peer_info's and clients' hashmaps.
- * Cancel messages belonging to this tunnel queued to neighbors.
- * Free any allocated resources linked to the tunnel.
- *
- * @param t the tunnel to destroy
- *
- * @return GNUNET_OK on success
- */
 static int
 tunnel_destroy (struct MeshTunnel *t)
 {
