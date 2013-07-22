@@ -310,12 +310,14 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     set->client = NULL;
     set_destroy (set);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(client's set destroyed)\n");
   }
   listener = listener_get (client);
   if (NULL != listener)
   {
     listener->client = NULL;
     listener_destroy (listener);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "(client's listener destroyed)\n");
   }
 }
 
@@ -908,9 +910,11 @@ dispatch_p2p_message (void *cls,
   struct TunnelContext *tc = *tunnel_ctx;
   int ret;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message (type: %u)\n",
+              ntohs (message->type));
   ret = tc->vt->msg_handler (tc->op, message);
   GNUNET_MESH_receive_done (tunnel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message\n");
 
   return ret;
 }

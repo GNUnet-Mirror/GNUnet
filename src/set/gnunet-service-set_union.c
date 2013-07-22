@@ -745,7 +745,6 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
   struct StrataEstimator *remote_se;
   int diff;
 
-
   if (eo->phase != PHASE_EXPECT_SE)
   {
     fail_union_operation (eo);
@@ -756,8 +755,9 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
                                        SE_IBF_HASH_NUM);
   strata_estimator_read (&mh[1], remote_se);
   GNUNET_assert (NULL != eo->se);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got se, calculating diff\n");
   diff = strata_estimator_difference (remote_se, eo->se);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got se, diff=%d\n", diff);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "se diff=%d\n", diff);
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (eo->se);
   eo->se = NULL;
@@ -800,7 +800,7 @@ send_element_iterator (void *cls,
       continue;
     }
     memcpy (&mh[1], element->data, element->size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element to client\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element to peer\n");
     GNUNET_MQ_send (eo->mq, ev);
     ke = ke->next_colliding;
   }
@@ -837,6 +837,7 @@ decode_and_send (struct OperationState *eo)
 {
   struct IBF_Key key;
   int side;
+  unsigned int num_decoded;
   struct InvertibleBloomFilter *diff_ibf;
 
   GNUNET_assert (PHASE_EXPECT_ELEMENTS == eo->phase);
@@ -848,12 +849,18 @@ decode_and_send (struct OperationState *eo)
   ibf_destroy (eo->remote_ibf);
   eo->remote_ibf = NULL;
 
+  num_decoded = 0;
+
   while (1)
   {
     int res;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoding IBF for elements\n");
     res = ibf_decode (diff_ibf, &side, &key);
-    if (GNUNET_SYSERR == res)
+    num_decoded += 1;
+    if (num_decoded > diff_ibf->size)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf\n");
+    if ((GNUNET_SYSERR == res) || (num_decoded > diff_ibf->size))
     {
       int next_order;
       next_order = 0;

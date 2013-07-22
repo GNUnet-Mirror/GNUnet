@@ -109,25 +109,26 @@ strata_estimator_difference (const struct StrataEstimator *se1,
     struct InvertibleBloomFilter *diff;
     /* number of keys decoded from the ibf */
     int ibf_count;
-    int more;
-    ibf_count = 0;
     /* FIXME: implement this without always allocating new IBFs */
     diff = ibf_dup (se1->strata[i]);
     ibf_subtract (diff, se2->strata[i]);
-    for (;;)
+    for (ibf_count = 0; GNUNET_YES; ibf_count++)
     {
+      int more;
+
       more = ibf_decode (diff, NULL, NULL);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding\n");
       if (GNUNET_NO == more)
       {
         count += ibf_count;
         break;
       }
-      if (GNUNET_SYSERR == more)
+      /* Estimate if decoding fails or would not terminate */
+      if ((GNUNET_SYSERR == more) || (ibf_count > diff->size))
       {
         ibf_destroy (diff);
         return count * (1 << (i + 1));
       }
-      ibf_count++;
     }
     ibf_destroy (diff);
   }
