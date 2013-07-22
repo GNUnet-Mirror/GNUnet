@@ -4239,9 +4239,8 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited data", 1, GNUNET_NO);
-    GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received PID %u, (prev %u), ACK %u\n",
+                "WARNING Received PID %u, (prev %u), ACK %u\n",
                 pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
