@@ -2161,13 +2161,17 @@ tunnel_get_incoming (MESH_TunnelNumber tid)
 static struct MeshTunnel *
 tunnel_get_by_local_id (struct MeshClient *c, MESH_TunnelNumber tid)
 {
+  if (0 == (tid & GNUNET_MESH_LOCAL_TUNNEL_ID_CLI))
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
   if (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV)
   {
     return tunnel_get_incoming (tid);
   }
   else
   {
-    GNUNET_assert (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_CLI);
     return GNUNET_CONTAINER_multihashmap32_get (c->own_tunnels, tid);
   }
 }
@@ -4950,14 +4954,7 @@ handle_local_tunnel_create (void *cls, struct GNUNET_SERVER_Client *client,
   t_msg = (struct GNUNET_MESH_TunnelMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n",
               GNUNET_i2s (&t_msg->peer));
-  /* Sanity check for tunnel numbering */
   tid = ntohl (t_msg->tunnel_id);
-  if (0 == (tid & GNUNET_MESH_LOCAL_TUNNEL_ID_CLI))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   /* Sanity check for duplicate tunnel IDs */
   if (NULL != tunnel_get_by_local_id (c, tid))
   {
@@ -5118,12 +5115,6 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Tunnel exists? */
   tid = ntohl (data_msg->tid);
-  if (tid < GNUNET_MESH_LOCAL_TUNNEL_ID_CLI)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   t = tunnel_get_by_local_id (c, tid);
   if (NULL == t)
   {
