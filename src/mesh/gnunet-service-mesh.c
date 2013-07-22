@@ -3611,7 +3611,7 @@ queue_send (void *cls, size_t size, void *buf)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Queue send\n");
 
-  if (NULL == buf || 0 ==size)
+  if (NULL == buf || 0 == size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
     return 0;
@@ -3733,19 +3733,23 @@ queue_send (void *cls, size_t size, void *buf)
   queue = queue_get_next (peer);
   if (NULL != queue)
   {
-      struct GNUNET_PeerIdentity id;
-
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
-      GNUNET_PEER_resolve (peer->id, &id);
-      peer->core_transmit =
-          GNUNET_CORE_notify_transmit_ready(core_handle,
-                                            0,
-                                            0,
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            &id,
-                                            queue->size,
-                                            &queue_send,
-                                            peer);
+      if (NULL == peer->core_transmit) {
+        peer->core_transmit =
+            GNUNET_CORE_notify_transmit_ready(core_handle,
+                                              0,
+                                              0,
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              &dst_id,
+                                              queue->size,
+                                              &queue_send,
+                                              peer);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "*   tmt rdy called somewhere else\n");
+      }
   }
   if (peer->id == t->next_hop)
     fc = &t->next_fc;
