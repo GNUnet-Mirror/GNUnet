@@ -4303,7 +4303,7 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   {
     /* TODO notify back: we don't know this tunnel */
     GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING tunnel unknown\n");
     return GNUNET_OK;
   }
 
