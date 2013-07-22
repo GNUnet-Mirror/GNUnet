@@ -151,6 +151,7 @@ GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6, unsigned int prefixle
 char *
 GNUNET_TUN_ipv4policy2regex (const char *policy)
 {
+  // FIXME: do actual policy parsing here, see #2919
   return GNUNET_strdup (policy);
 }
 
@@ -167,6 +168,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
 char *
 GNUNET_TUN_ipv6policy2regex (const char *policy)
 {
+  // FIXME: do actual policy parsing here, see #2919
   return GNUNET_strdup (policy);
 }
 
