@@ -3283,6 +3283,34 @@ tunnel_destroy_iterator (void *cls,
   return GNUNET_OK;
 }
 
+
+/**
+ * remove client's ports from the global hashmap on diconnect.
+ *
+ * @param cls Closure (unused).
+ * @param key Port.
+ * @param value ThClient structure.
+ *
+ * @return GNUNET_OK, keep iterating.
+ */
+static int
+client_release_ports (void *cls,
+                      uint32_t key,
+                      void *value)
+{
+  int res;
+
+  res = GNUNET_CONTAINER_multihashmap32_remove (ports, key, value);
+  if (GNUNET_YES != res)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Port %u by client %p was not registered.\n",
+                key, value);
+  }
+  return GNUNET_OK;
+}
+
 /**
  * Timeout function due to lack of keepalive/traffic from the owner.
  * Destroys tunnel if called.
@@ -4826,12 +4854,16 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     if (NULL != c->incoming_tunnels)
     {
       GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_tunnels,
-                                             &tunnel_destroy_iterator, c);
+                                               &tunnel_destroy_iterator, c);
       GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_tunnels);
     }
 
     if (NULL != c->ports)
+    {
+      GNUNET_CONTAINER_multihashmap32_iterate (c->ports,
+                                               &client_release_ports, c);
       GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
+    }
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  CLIENT FREE at %p\n", c);
