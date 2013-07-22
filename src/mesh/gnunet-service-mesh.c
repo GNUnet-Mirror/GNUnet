@@ -3610,6 +3610,12 @@ queue_send (void *cls, size_t size, void *buf)
   peer->core_transmit = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Queue send\n");
+
+  if (NULL == buf || 0 ==size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
+    return 0;
+  }
   queue = queue_get_next (peer);
 
   /* Queue has no internal mesh traffic nor sendable payload */
@@ -3620,6 +3626,7 @@ queue_send (void *cls, size_t size, void *buf)
       GNUNET_break (0); /* Core tmt_rdy should've been canceled */
     return 0;
   }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   not empty\n");
 
   GNUNET_PEER_resolve (peer->id, &dst_id);
@@ -3802,7 +3809,6 @@ queue_add (void *cls, uint16_t type, size_t size,
            struct MeshPeerInfo *dst, struct MeshTunnel *t)
 {
   struct MeshPeerQueue *queue;
-  struct GNUNET_PeerIdentity id;
   struct MeshFlowControl *fc;
   int priority;
 
@@ -3869,16 +3875,15 @@ queue_add (void *cls, uint16_t type, size_t size,
   }
   else
     GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
-  
+
   if (NULL == dst->core_transmit)
   {
-    GNUNET_PEER_resolve (dst->id, &id);
     dst->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
                                            0,
                                            0,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           &id,
+                                           GNUNET_PEER_resolve2 (dst->id),
                                            size,
                                            &queue_send,
                                            dst);
@@ -4662,7 +4667,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t pid;
   uint32_t old;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an POLL packet from %s!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
               GNUNET_i2s (peer));
 
   msg = (struct GNUNET_MESH_Poll *) message;
