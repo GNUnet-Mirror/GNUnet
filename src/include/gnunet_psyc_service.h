@@ -255,9 +255,9 @@ struct GNUNET_PSYC_Master;
 
 
 /** 
- * Create a PSYC channel master.
+ * Start a PSYC master channel.
  *
- * Will create a multicast group identified by the given ECC key.  Messages
+ * Will start a multicast group identified by the given ECC key.  Messages
  * received from group members will be given to the respective handler methods.
  * If a new member wants to join a group, the "join" method handler will be
  * invoked; the join handler must then generate a "join" message to approve the
@@ -284,13 +284,13 @@ struct GNUNET_PSYC_Master;
  * @return Handle for the channel master, NULL on error.
  */
 struct GNUNET_PSYC_Master *
-GNUNET_PSYC_master_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                           enum GNUNET_MULTICAST_JoinPolicy join_policy,
-                           GNUNET_PSYC_Method method_cb,
-                           GNUNET_PSYC_JoinCallback join_cb,
-                           GNUNET_PSYC_PartCallback part_cb,
-                           void *cls);
+GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+                          enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                          GNUNET_PSYC_Method method_cb,
+                          GNUNET_PSYC_JoinCallback join_cb,
+                          GNUNET_PSYC_PartCallback part_cb,
+                          void *cls);
 
 
 /** 
@@ -302,7 +302,7 @@ GNUNET_PSYC_master_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cls Closure.
  * @param message_id Set to the unique message ID that was generated for
  *        this message.
- * @param data_size[in,out] Initially set to the number of bytes available in @a data,
+ * @param[in,out] data_size Initially set to the number of bytes available in @a data,
  *        should be set to the number of bytes written to data (IN/OUT).
  * @param[out] data Where to write the body of the message to give to the method;
  *        function must copy at most @a *data_size bytes to @a data.
@@ -355,12 +355,12 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
 
 
 /** 
- * Destroy a PSYC channel master.
+ * Stop a PSYC master channel.
  *
- * @param master PSYC channel master to terminate.
+ * @param master PSYC channel master to stop.
  */
 tvoid
-GNUNET_PSYC_master_destroy (struct GNUNET_PSYC_Master *master);
+GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master);
 
 
 /** 
@@ -431,7 +431,7 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave,
  * invalidates the respective transmission handle.
  *
  * @param cls Closure.
- * @param data_size[in,out] Initially set to the number of bytes available in @a data,
+ * @param[in,out] data_size Initially set to the number of bytes available in @a data,
  *        should be set to the number of bytes written to data (IN/OUT).
  * @param[out] data Where to write the body of the message to give to the method;
  *        function must copy at most @a *data_size bytes to @a data.

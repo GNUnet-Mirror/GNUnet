@@ -556,12 +556,12 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginMessageHand
 
 
 /** 
- * End a multicast group.
+ * Stop a multicast group.
  *
- * @param origin multicast group to terminate
+ * @param origin Multicast group to stop.
  */
 void
-GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
+GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
 
 
 /** 
