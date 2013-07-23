@@ -36,7 +36,7 @@
 
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
-#include "mesh.h"
+#include "mesh_enc.h"
 #include "mesh_protocol_enc.h"
 #include "mesh_path.h"
 #include "block_mesh.h"
@@ -415,7 +415,7 @@ struct MeshTunnelReliability
  * - paths[0]  To know where to send it next
  * - metainfo: ready, speeds, accounting
  */
-struct MeshTunnel
+struct MeshChannel
 {
     /**
      * Tunnel ID
