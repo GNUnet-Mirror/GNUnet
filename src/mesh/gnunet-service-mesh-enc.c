@@ -37,7 +37,7 @@
 #include "platform.h"
 #include "gnunet_crypto_lib.h"
 #include "mesh.h"
-#include "mesh_protocol.h"
+#include "mesh_protocol_enc.h"
 #include "mesh_path.h"
 #include "block_mesh.h"
 #include "gnunet_dht_service.h"
