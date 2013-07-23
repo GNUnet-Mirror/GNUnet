@@ -4044,23 +4044,27 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_info_add_path_to_origin (orig_peer_info, path, GNUNET_YES);
-
-    /* Assign local tid */
-    while (NULL != tunnel_get_incoming (next_local_tid))
-      next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-    t->local_tid_dest = next_local_tid++;
-    next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
-
-    if (GNUNET_YES == t->reliable)
+    /* This can be a retransmission due to a lost PATH ACK.
+     * Check if we already have a destination client for the tunnel. */
+    if (t->client != c)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
-      t->bck_rel = GNUNET_malloc (sizeof (struct MeshTunnelReliability));
-      t->bck_rel->t = t;
-      t->bck_rel->expected_delay = MESH_RETRANSMIT_TIME;
-    }
+      /* Assign local tid */
+      while (NULL != tunnel_get_incoming (next_local_tid))
+        next_local_tid = (next_local_tid + 1) | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
+      t->local_tid_dest = next_local_tid++;
+      next_local_tid = next_local_tid | GNUNET_MESH_LOCAL_TUNNEL_ID_SERV;
 
-    tunnel_add_client (t, c);
-    send_local_tunnel_create (t);
+      if (GNUNET_YES == t->reliable)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+        t->bck_rel = GNUNET_malloc (sizeof (struct MeshTunnelReliability));
+        t->bck_rel->t = t;
+        t->bck_rel->expected_delay = MESH_RETRANSMIT_TIME;
+      }
+
+      tunnel_add_client (t, c);
+      send_local_tunnel_create (t);
+    }
     send_path_ack (t);
      /* Eliminate tunnel when origin dies */
     tunnel_reset_timeout (t, GNUNET_YES);
