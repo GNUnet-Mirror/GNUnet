@@ -402,9 +402,8 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
  * @param set the set to iterate over
  * @param iter the iterator to call for each element
  * @param cls closure for 'iter'
- * @return GNUNET_YES if every element was iterated over, GNUNET_NO
- *         if the iterator prematurely stopped, GNUNET_SYSERR if the set
- *         is invalid (e.g. the server crashed, disconnected)
+ * @return GNUNET_YES if the iteration started successfuly,
+ *         GNUNET_SYSERR if the set  is invalid (e.g. the server crashed, disconnected)
  */
 int
 GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls);
