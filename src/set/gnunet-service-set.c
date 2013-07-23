@@ -455,6 +455,32 @@ handle_incoming_msg (struct OperationState *op,
 
 
 /**
+ * Called when a client wants to iterate the elements of a set.
+ *
+ * @param cls unused
+ * @param client client that sent the message
+ * @param m message sent by the client
+ */
+static void
+handle_client_iterate (void *cls,
+                       struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *m)
+{
+  struct Set *set;
+  
+  set = set_get (client);
+  if (NULL == set)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
+  set->vt->iterate (set);
+}
+
+
+/**
  * Called when a client wants to create a new set.
  *
  * @param cls unused
@@ -939,6 +965,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
     {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE,
         sizeof (struct GNUNET_SET_CreateMessage)},
+    {handle_client_iterate, NULL, GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST,
+        sizeof (struct GNUNET_MessageHeader)},
     {handle_client_evaluate, NULL, GNUNET_MESSAGE_TYPE_SET_EVALUATE, 0},
     {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN,
         sizeof (struct GNUNET_SET_ListenMessage)},

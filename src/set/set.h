@@ -211,6 +211,21 @@ struct GNUNET_SET_CancelMessage
   uint32_t request_id GNUNET_PACKED;
 };
 
+struct GNUNET_SET_IterResponseMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SET_ITER_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of the element attachted to the message,
+   * if any.
+   */
+  uint16_t element_type GNUNET_PACKED;
+
+  /* rest: element */
+};
 
 GNUNET_NETWORK_STRUCT_END
 

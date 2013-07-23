@@ -1421,6 +1421,53 @@ union_op_cancel (struct SetState *set_state, uint32_t op_id)
 }
 
 
+/**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+send_iter_element_iter (void *cls,
+                        const struct GNUNET_HashCode *key,
+                        void *value)
+{
+  struct ElementEntry *ee = value;
+  struct Set *set = cls;
+  struct GNUNET_SET_IterResponseMessage *m;
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg_extra (m, ee->element.size,
+                            GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
+
+  m->element_type = ee->element.type;
+  memcpy (&m[1], ee->element.data, ee->element.size);
+  GNUNET_MQ_send (set->client_mq, ev);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Send all elements of the union set to the client.
+ *
+ * @param set set to iterate over
+ */
+static void
+union_iterate (struct Set *set)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  GNUNET_CONTAINER_multihashmap_iterate (set->state->elements, send_iter_element_iter, set);
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
+  GNUNET_MQ_send (set->client_mq, ev);
+}
+
+
 const struct SetVT *
 _GSS_union_vt ()
 {
@@ -1433,7 +1480,8 @@ _GSS_union_vt ()
     .evaluate = &union_evaluate,
     .accept = &union_accept,
     .peer_disconnect = &union_peer_disconnect,
-    .cancel = &union_op_cancel
+    .cancel = &union_op_cancel,
+    .iterate = &union_iterate
   };
 
   return &union_vt;

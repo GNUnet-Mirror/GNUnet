@@ -67,6 +67,17 @@ struct GNUNET_SET_Handle
    * Has the set become invalid (e.g. service died)?
    */
   int invalid;
+
+  /**
+   * Callback for the current iteration over the set,
+   * NULL if no iterator is active.
+   */
+  GNUNET_SET_ElementIterator iterator;
+
+  /**
+   * Closure for 'iterator'
+   */
+  void *iterator_cls;
 };
 
 
@@ -168,6 +179,47 @@ struct GNUNET_SET_ListenHandle
    */
   void *listen_cls;
 };
+
+
+/**
+ * Handle element for iteration over the set.
+ *
+ * @param cls the set
+ * @param mh the message
+ */
+static void
+handle_iter_element (void *cls, const struct GNUNET_MessageHeader *mh)
+{
+  struct GNUNET_SET_Handle *set = cls;
+  struct GNUNET_SET_Element element;
+  const struct GNUNET_SET_IterResponseMessage *msg =
+    (const struct GNUNET_SET_IterResponseMessage *) mh;
+
+  if (NULL == set->iterator)
+    return;
+
+  element.type = htons (mh->type);
+  element.data = &msg[1];
+  set->iterator (set->iterator_cls, &element);
+}
+
+
+/**
+ * Handle element for iteration over the set.
+ *
+ * @param cls the set
+ * @param mh the message
+ */
+static void
+handle_iter_done (void *cls, const struct GNUNET_MessageHeader *mh)
+{
+  struct GNUNET_SET_Handle *set = cls;
+
+  if (NULL == set->iterator)
+    return;
+
+  set->iterator (set->iterator_cls, NULL);
+}
 
 
 /**
@@ -302,6 +354,8 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_SET_CreateMessage *msg;
   static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {handle_result, GNUNET_MESSAGE_TYPE_SET_RESULT, 0},
+    {handle_iter_element, GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT, 0},
+    {handle_iter_done, GNUNET_MESSAGE_TYPE_SET_ITER_DONE, 0},
     GNUNET_MQ_HANDLERS_END
   };
 
@@ -621,5 +675,38 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
   oh->conclude_mqm = NULL;
   oh->request_id_addr = NULL;
   return GNUNET_OK;
+}
+
+
+
+/**
+ * Iterate over all elements in the given set.
+ * Note that this operation involves transferring every element of the set
+ * from the service to the client, and is thus costly.
+ *
+ * @param set the set to iterate over
+ * @param iter the iterator to call for each element
+ * @param cls closure for 'iter'
+ * @return GNUNET_YES if the iteration started successfuly,
+ *         GNUNET_NO if another iteration is active
+ *         GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
+ */
+int
+GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  GNUNET_assert (NULL != iter);
+
+  if (GNUNET_YES == set->invalid)
+    return GNUNET_SYSERR;
+  if (NULL != set->iterator)
+    return GNUNET_NO;
+
+  set->iterator = iter;
+  set->iterator_cls = cls;
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST);
+  GNUNET_MQ_send (set->mq, ev);
+  return GNUNET_YES;
 }
 

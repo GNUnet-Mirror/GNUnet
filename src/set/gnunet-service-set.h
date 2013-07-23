@@ -170,6 +170,15 @@ typedef void (*CancelImpl) (struct SetState *set,
 
 
 /**
+ * Signature of functions that implement sending all the set's
+ * elements to the client.
+ *
+ * @param set set that should be iterated over
+ */
+typedef void (*IterateImpl) (struct Set *set);
+
+
+/**
  * Dispatch table for a specific set operation.
  * Every set operation has to implement the callback
  * in this struct.
@@ -222,6 +231,11 @@ struct SetVT
    * its ID.
    */
   CancelImpl cancel;
+
+  /**
+   * Callback for iterating over all set elements.
+   */
+  IterateImpl iterate;
 };
 
 
