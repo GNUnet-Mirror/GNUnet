@@ -302,7 +302,6 @@ destroy_session (struct ConsensusSession *session)
 }
 
 
-
 /**
  * Iterator for set elements.
  *
@@ -403,7 +402,7 @@ shuffle (struct ConsensusSession *session)
   {
     uint32_t x;
     uint32_t tmp;
-    x = randomness[i-1];
+    x = randomness[i-1] % session->num_peers;
     tmp = session->shuffle[x];
     session->shuffle[x] = session->shuffle[i];
     session->shuffle[i] = tmp;
