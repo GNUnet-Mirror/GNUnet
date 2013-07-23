@@ -302,6 +302,35 @@ destroy_session (struct ConsensusSession *session)
 }
 
 
+
+/**
+ * Iterator for set elements.
+ *
+ * @param cls closure
+ * @param element the current element, NULL if all elements have been
+ *        iterated over
+ * @return GNUNET_YES to continue iterating, GNUNET_NO to stop.
+ */
+static int
+send_to_client_iter (void *cls,
+                     const struct GNUNET_SET_Element *element)
+{
+  struct ConsensusSession *session = cls;
+
+  if (NULL != element)
+  {
+    struct GNUNET_MQ_Envelope *ev;
+    struct GNUNET_CONSENSUS_ElementMessage *m;
+
+    ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
+    m->element_type = htons (element->type);
+    memcpy (&m[1], element->data, element->size);
+    GNUNET_MQ_send (session->client_mq, ev);
+  }
+  return GNUNET_YES;
+}
+
+
 /**
  * Start the next round.
  * This function can be invoked as a timeout task, or called manually (tc will be NULL then).
@@ -336,8 +365,10 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       subround_over (session, NULL);
       break;
     case CONSENSUS_ROUND_EXCHANGE:
-      /* FIXME: send all elements to client */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: finished, sending elements to client\n",
+                  session->local_peer_idx);
       session->current_round = CONSENSUS_ROUND_FINISH;
+      GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
     default:
       GNUNET_assert (0);
   }
