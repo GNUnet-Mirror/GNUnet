@@ -188,6 +188,16 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
                                            const struct GNUNET_SET_Element *element,
                                            enum GNUNET_SET_Status status);
 
+/**
+ * Iterator for set elements.
+ *
+ * @param cls closure
+ * @param element the element
+ * @return GNUNET_YES to continue iterating, GNUNET_NO to stop.
+ */
+typedef int (*GNUNET_SET_ElementIterator) (void *cls,
+                                           const struct GNUNET_SET_Element *element);
+
 
 /**
  * Called when another peer wants to do a set operation with the
@@ -239,8 +249,10 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param element element to add to the set
  * @param cont continuation called after the element has been added
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
                         const struct GNUNET_SET_Element *element,
                         GNUNET_SET_Continuation cont,
@@ -257,8 +269,10 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
  * @param element element to remove from the set
  * @param cont continuation called after the element has been removed
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
                            const struct GNUNET_SET_Element *element,
                            GNUNET_SET_Continuation cont,
@@ -359,8 +373,10 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  *
  * @param oh handle to the set operation 
  * @param set the set to use for the operation
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
                    struct GNUNET_SET_Handle *set);
 
@@ -374,6 +390,22 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
  */
 void
 GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
+
+
+/**
+ * Iterate over all elements in the given set.
+ * Note that this operation involves transferring every element of the set
+ * from the service to the client, and is thus costly.
+ *
+ * @param set the set to iterate over
+ * @param iter the iterator to call for each element
+ * @param cls closure for 'iter'
+ * @return GNUNET_YES if every element was iterated over, GNUNET_NO
+ *         if the iterator prematurely stopped, GNUNET_SYSERR if the set
+ *         is invalid (e.g. the server crashed, disconnected)
+ */
+int
+GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
