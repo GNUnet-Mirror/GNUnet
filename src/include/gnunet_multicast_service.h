@@ -364,7 +364,7 @@ struct GNUNET_MULTICAST_MembershipTestHandle;
  */
 void
 GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
-					 int decision);
+                                         int decision);
 
 
 /** 
@@ -379,9 +379,9 @@ GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestH
  * @param mth Handle to give to GNUNET_MULTICAST_membership_test_answer().
  */
 typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
-							const struct GNUNET_PeerIdentity *peer,
-							uint64_t fragment_id,
-							struct GNUNET_MULTICAST_MembershipTestHandle *mth);
+                                                        const struct GNUNET_PeerIdentity *peer,
+                                                        uint64_t fragment_id,
+                                                        struct GNUNET_MULTICAST_MembershipTestHandle *mth);
 
 
 /** 
@@ -436,8 +436,8 @@ struct GNUNET_MULTICAST_ReplayHandle;
  * @param rh Handle to pass to message transmit function.
  */
 typedef void (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
-						 uint64_t fragment_id,
-						 struct GNUNET_MULTICAST_ReplayHandle *rh);
+                                                 uint64_t fragment_id,
+                                                 struct GNUNET_MULTICAST_ReplayHandle *rh);
 
 
 /** 
@@ -481,8 +481,8 @@ enum GNUNET_MULTICAST_ReplayErrorCode
  */
 void
 GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
-			 const struct GNUNET_MULTICAST_MessageHeader *msg,
-			 enum GNUNET_MULTICAST_ReplayErrorCode ec);
+                         const struct GNUNET_MULTICAST_MessageHeader *msg,
+                         enum GNUNET_MULTICAST_ReplayErrorCode ec);
 
 
 /** 
@@ -513,14 +513,14 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  */
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			       void *cls,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-			       enum GNUNET_MULTICAST_JoinPolicy join_policy,
-			       GNUNET_MULITCAST_ReplayCallback replay_cb,
-			       GNUNET_MULITCAST_MembershipTestCallback test_cb,
-			       GNUNET_MULTICAST_JoinCallback join_cb,
-			       GNUNET_MULTICAST_PartCallback part_cb,
-			       GNUNET_MULTICAST_RequestCallback request_cb);
+                               void *cls,
+                               const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+                               enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                               GNUNET_MULITCAST_ReplayCallback replay_cb,
+                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
+                               GNUNET_MULTICAST_JoinCallback join_cb,
+                               GNUNET_MULTICAST_PartCallback part_cb,
+                               GNUNET_MULTICAST_RequestCallback request_cb);
 
 
 /** 
@@ -541,9 +541,9 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  */
 struct GNUNET_MULTICAST_OriginMessageHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
-				size_t size,
-				GNUNET_CONNECTION_TransmitReadyNotify cb,
-				void *cb_cls);
+                                size_t size,
+                                GNUNET_CONNECTION_TransmitReadyNotify cb,
+                                void *cb_cls);
 
 
 /** 
@@ -604,15 +604,15 @@ GNUNET_MULTICAST_origin_end (struct GNUNET_MULTICAST_Origin *origin);
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
+                              const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                               const struct GNUNET_PeerIdentity *origin,
-			      uint64_t max_known_fragment_id,
-			      uint64_t max_known_state_fragment_id,
-			      GNUNET_MULTICAST_ReplayCallback replay_cb,
-			      GNUNET_MULITCAST_MembershipTestCallback test_cb,
-			      GNUNET_MULTICAST_MessageCallback message_cb,
-			      void *cls,
-			      const struct GNUNET_MessageHeader *join_req);
+                              uint64_t max_known_fragment_id,
+                              uint64_t max_known_state_fragment_id,
+                              GNUNET_MULTICAST_ReplayCallback replay_cb,
+                              GNUNET_MULITCAST_MembershipTestCallback test_cb,
+                              GNUNET_MULTICAST_MessageCallback message_cb,
+                              void *cls,
+                              const struct GNUNET_MessageHeader *join_req);
 
 
 /** 
@@ -635,9 +635,9 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
-					uint64_t fragment_id,
-					GNUNET_MULTICAST_MessageCallback message_cb,
-					void *message_cb_cls);
+                                        uint64_t fragment_id,
+                                        GNUNET_MULTICAST_MessageCallback message_cb,
+                                        void *message_cb_cls);
 
 
 /** 
@@ -677,9 +677,9 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  */
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
-				   size_t size,
-				   GNUNET_CONNECTION_TransmitReadyNotify cb,
-				   void *cb_cls);
+                                   size_t size,
+                                   GNUNET_CONNECTION_TransmitReadyNotify cb,
+                                   void *cb_cls);
 
 
 /** 

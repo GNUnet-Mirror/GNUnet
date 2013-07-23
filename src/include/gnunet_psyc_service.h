@@ -161,15 +161,15 @@ struct GNUNET_PSYC_PartHandle;
  * @param frag Fragmentation status for the data.
  */
 typedef int (*GNUNET_PSYC_Method)(void *cls,
-				  const struct GNUNET_PeerIdentity *sender,
-				  uint64_t message_id,
-				  const char *method_name,
+                                  const struct GNUNET_PeerIdentity *sender,
+                                  uint64_t message_id,
+                                  const char *method_name,
                                   size_t header_length,
                                   GNUNET_PSYC_Modifier *header,
-				  uint64_t data_offset,
-				  size_t data_size,
-				  const void *data,
-				  enum GNUNET_PSYC_MessageFlags flags);
+                                  uint64_t data_offset,
+                                  size_t data_size,
+                                  const void *data,
+                                  enum GNUNET_PSYC_MessageFlags flags);
 
 
 /** 
@@ -565,9 +565,9 @@ GNUNET_PSYC_channel_member_remove (struct GNUNET_PSYC_Channel *channel,
  * @param value_size Number of bytes in @a value.
  */
 typedef void (*GNUNET_PSYC_StateCallback)(void *cls,
-					  const char *name,
-					  size_t value_size,
-					  const void *value);
+                                          const char *name,
+                                          size_t value_size,
+                                          const void *value);
 
 
 /** 

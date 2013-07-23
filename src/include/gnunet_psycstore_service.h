@@ -82,7 +82,7 @@ struct GNUNET_PSYCSTORE_OperationHandle;
  *        #GNUNET_NO if the peer was not a member
  */
 typedef void (*GNUNET_PSYCSTORE_ContinuationCallback)(void *cls,
-						      int result);
+                                                      int result);
 
 /** 
  * Store join/leave events for a PSYC channel in order to be able to answer
@@ -126,11 +126,11 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
-				  const struct GNUNET_HashCode *channel_id,
-				  uint64_t fragment_id,
-				  const struct GNUNET_PeerIdentity *peer,
-				  GNUNET_PSYCSTORE_ContinuationCallback ccb,
-				  void *ccb_cls);
+                                  const struct GNUNET_HashCode *channel_id,
+                                  uint64_t fragment_id,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  GNUNET_PSYCSTORE_ContinuationCallback ccb,
+                                  void *ccb_cls);
 
 
 /** 
@@ -161,7 +161,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  * @param flags Message flags indicating fragmentation status.
  */
 typedef void (*GNUNET_PSYCSTORE_FragmentResultCallback)(void *cls,
-						       const struct GNUNET_MULTICAST_MessageHeader *message,
+                                                       const struct GNUNET_MULTICAST_MessageHeader *message,
                                                        enum GNUNET_PSYC_MessageFlags flags);
 
 
@@ -197,10 +197,10 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
-			      const struct GNUNET_HashCode *channel_id,
-			      uint64_t message_id,
-			      GNUNET_PSYCSTORE_FragmentResultCallback rcb,
-			      void *rcb_cls);
+                              const struct GNUNET_HashCode *channel_id,
+                              uint64_t message_id,
+                              GNUNET_PSYCSTORE_FragmentResultCallback rcb,
+                              void *rcb_cls);
 
 
 /** 
@@ -218,12 +218,12 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_set (struct GNUNET_PSYCSTORE_Handle *h,
-			    const struct GNUNET_HashCode *channel_id,
-			    const char *name,
-			    size_t value_size,
-			    const void *value,
-			    GNUNET_PSYCSTORE_ContinuationCallback ccb,
-			    void *ccb_cls);
+                            const struct GNUNET_HashCode *channel_id,
+                            const char *name,
+                            size_t value_size,
+                            const void *value,
+                            GNUNET_PSYCSTORE_ContinuationCallback ccb,
+                            void *ccb_cls);
 
 
 /** 
@@ -236,9 +236,9 @@ GNUNET_PSYCSTORE_state_set (struct GNUNET_PSYCSTORE_Handle *h,
 t * 
  */
 typedef void (*GNUNET_PSYCSTORE_StateResultCallback)(void *cls,
-						     const char *name,
-						     size_t size,
-						     const void *value);
+                                                     const char *name,
+                                                     size_t size,
+                                                     const void *value);
 
 
 /** 
@@ -254,10 +254,10 @@ typedef void (*GNUNET_PSYCSTORE_StateResultCallback)(void *cls,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
-			    const struct GNUNET_HashCode *channel_id,
-			    const char *name,
-			    GNUNET_PSYCSTORE_StateResultCallback rcb,
-			    void *rcb_cls);
+                            const struct GNUNET_HashCode *channel_id,
+                            const char *name,
+                            GNUNET_PSYCSTORE_StateResultCallback rcb,
+                            void *rcb_cls);
 
 
 /** 
@@ -272,9 +272,9 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_get_all (struct GNUNET_PSYCSTORE_Handle *h,
-				const struct GNUNET_HashCode *channel_id,
-				GNUNET_PSYCSTORE_StateResultCallback rcb,
-				void *rcb_cls);
+                                const struct GNUNET_HashCode *channel_id,
+                                GNUNET_PSYCSTORE_StateResultCallback rcb,
+                                void *rcb_cls);
 
 
 /** 

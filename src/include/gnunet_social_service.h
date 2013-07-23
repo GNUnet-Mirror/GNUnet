@@ -93,14 +93,14 @@ struct GNUNET_SOCIAL_Slicer;
  * @param flags Message flags indicating fragmentation status.
  */
 typedef int (*GNUNET_SOCIAL_Method)(void *cls,
-				    const char *full_method_name,
-				    uint64_t message_id,
+                                    const char *full_method_name,
+                                    uint64_t message_id,
                                     size_t header_length,
                                     GNUNET_PSYC_Modifier *header,
-				    uint64_t data_offset,
-				    size_t data_size,
-				    const void *data,
-				    enum GNUNET_PSYC_MessageFlags flags);
+                                    uint64_t data_offset,
+                                    size_t data_size,
+                                    const void *data,
+                                    enum GNUNET_PSYC_MessageFlags flags);
 
 
 /** 
@@ -126,9 +126,9 @@ GNUNET_SOCIAL_slicer_create (void);
  */
 void
 GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
-			  const char *method_name,
-			  GNUNET_SOCIAL_Method method,
-			  void *method_cls);
+                          const char *method_name,
+                          GNUNET_SOCIAL_Method method,
+                          void *method_cls);
 
 
 /** 
@@ -193,11 +193,11 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
  * @param data Payload given on enter (e.g. a password).
  */
 typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
-						 struct GNUNET_SOCIAL_Nym *nym,
+                                                 struct GNUNET_SOCIAL_Nym *nym,
                                                  size_t header_length,
                                                  GNUNET_PSYC_Modifier *header,
-						 size_t data_size,
-						 const void *data);
+                                                 size_t data_size,
+                                                 const void *data);
 
 
 /** 
@@ -212,7 +212,7 @@ typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
  * @param header Modifiers present in the message.
  */
 typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
-					       struct GNUNET_SOCIAL_Nym *nym,
+                                               struct GNUNET_SOCIAL_Nym *nym,
                                                size_t header_length,
                                                GNUNET_PSYC_Modifier *header);
 
@@ -226,7 +226,7 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  *
  * @param cfg Configuration to contact the social service.
  * @param home_keyfile File with the private key for the home,
- * 		created if the file does not exist;
+ *              created if the file does not exist;
  *              pass NULL for ephemeral homes.
  * @param join_policy What is our policy for allowing people in?
  * @param ego Owner of the home (host).
@@ -238,13 +238,13 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  */
 struct GNUNET_SOCIAL_Home *
 GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			  const char *home_keyfile,
-			  enum GNUNET_MULTICAST_JoinPolicy join_policy,
-			  struct GNUNET_SOCIAL_Ego *ego,
-			  struct GNUNET_SOCIAL_Slicer *slicer,
-			  GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
-			  GNUNET_SOCIAL_FarewellCallback farewell_cb,
-			  void *cls);
+                          const char *home_keyfile,
+                          enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                          struct GNUNET_SOCIAL_Ego *ego,
+                          struct GNUNET_SOCIAL_Slicer *slicer,
+                          GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
+                          GNUNET_SOCIAL_FarewellCallback farewell_cb,
+                          void *cls);
 
 
 /** 
@@ -258,7 +258,7 @@ GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
-			  struct GNUNET_SOCIAL_Nym *nym);
+                          struct GNUNET_SOCIAL_Nym *nym);
 
 
 /** 
@@ -305,7 +305,7 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
  */
 void
 GNUNET_SOCIAL_nym_get_identity (struct GNUNET_SOCIAL_Nym *nym,
-				struct GNUNET_CRYPTO_ShortHashCode *identity);
+                                struct GNUNET_CRYPTO_ShortHashCode *identity);
 
 
 /** 
@@ -317,7 +317,7 @@ GNUNET_SOCIAL_nym_get_identity (struct GNUNET_SOCIAL_Nym *nym,
  */
 void
 GNUNET_SOCIAL_home_get_address (struct GNUNET_SOCIAL_Home *home,
-				struct GNUNET_HashCode *crypto_address);
+                                struct GNUNET_HashCode *crypto_address);
 
 
 
@@ -463,9 +463,9 @@ struct GNUNET_SOCIAL_WatchHandle;
  */
 struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
-			   const char *object_filter,
-			   GNUNET_PSYC_StateCallback state_cb,
-			   void *state_cb_cls);
+                           const char *object_filter,
+                           GNUNET_PSYC_StateCallback state_cb,
+                           void *state_cb_cls);
 
 
 /** 
@@ -490,8 +490,8 @@ struct GNUNET_SOCIAL_LookHandle;
  */
 struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
-			  GNUNET_PSYC_StateCallback state_cb,
-			  void *state_cb_cls);
+                          GNUNET_PSYC_StateCallback state_cb,
+                          void *state_cb_cls);
 
 
 /** 
@@ -506,9 +506,9 @@ GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
  */
 struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *place,
-			      const char *object_filter,
-			      GNUNET_PSYC_StateCallback state_cb,
-			      void *state_cb_cls);
+                              const char *object_filter,
+                              GNUNET_PSYC_StateCallback state_cb,
+                              void *state_cb_cls);
 
 
 /** 
@@ -531,8 +531,8 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
  */
 const void *
 GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
-			     const char *object_name,
-			     size_t *value_size);
+                             const char *object_name,
+                             size_t *value_size);
 
 
 /** 
@@ -596,8 +596,8 @@ struct GNUNET_SOCIAL_HistoryLesson;
  */
 struct GNUNET_SOCIAL_HistoryLesson *
 GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
-				 uint64_t start_message_id,
-				 uint64_t end_message_id,
+                                 uint64_t start_message_id,
+                                 uint64_t end_message_id,
                                  const struct GNUNET_SOCIAL_Slicer *slicer,
                                  void (*finish_cb)(void *),
                                  void *finish_cb_cls);
