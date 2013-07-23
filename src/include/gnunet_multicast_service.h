@@ -164,6 +164,8 @@ struct GNUNET_MULTICAST_MessageHeader
 
   /** 
    * Byte offset of this @e fragment of the @e message.
+   *
+   * FIXME: needed?
    */
   uint64_t fragment_offset GNUNET_PACKED;
 
@@ -201,7 +203,7 @@ struct GNUNET_MULTICAST_MessageHeader
   uint64_t state_delta GNUNET_PACKED;
 
   /**
-   * Flags for this message.
+   * Flags for this message fragment.
    */
   enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
 
@@ -265,14 +267,6 @@ GNUNET_NETWORK_STRUCT_END
  */
 struct GNUNET_MULTICAST_JoinHandle;
 
-/** 
- * Handle that identifies a part request.
- *
- * Used to match calls to #GNUNET_MULTICAST_PartCallback to the
- * corresponding calls to GNUNET_MULTICAST_part_ack().
- */
-struct GNUNET_MULTICAST_PartHandle;
-
 
 /** 
  * Function to call with the decision made for a join request.
@@ -305,15 +299,6 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
 
 
 /** 
- * Part acknowledgment.
- *
- * @param ph Part handle.
- */
-void
-GNUNET_MULTICAST_part_ack (struct GNUNET_MULTICAST_PartHandle *ph);
-
-
-/** 
  * Method called whenever another peer wants to join the multicast group.
  *
  * Implementations of this function must call GNUNET_MULTICAST_join_decision()
@@ -331,22 +316,6 @@ typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
                                               const struct GNUNET_PeerIdentity *peer,
                                               const struct GNUNET_MessageHeader *msg,
                                               struct GNUNET_MULTICAST_JoinHandle *jh);
-
-
-/** 
- * Method called whenever another peer wants to part the multicast group.
- *
- * A part request must always be honoured, and answered with GNUNET_MULTICAST_part_ack();
- *
- * @param cls Closure.
- * @param peer Identity of the peer that wants to part.
- * @param msg Application-dependent part message from the leaving user.
- * @param ph Part handle.
- */
-typedef void (*GNUNET_MULTICAST_PartCallback)(void *cls,
-                                              const struct GNUNET_PeerIdentity *peer,
-                                              const struct GNUNET_MessageHeader *msg,
-                                              struct GNUNET_MULTICAST_PartHandle *ph);
 
 
 /** 
@@ -507,7 +476,6 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param replay_cb Function that can be called to replay a message.
  * @param test_cb Function multicast can use to test group membership.
  * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param part_cb Function called when a member wants to part the group.
  * @param request_cb Function called with messages from group members.
  * @return Handle for the origin, NULL on error.
  */
@@ -519,7 +487,6 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                GNUNET_MULITCAST_ReplayCallback replay_cb,
                                GNUNET_MULITCAST_MembershipTestCallback test_cb,
                                GNUNET_MULTICAST_JoinCallback join_cb,
-                               GNUNET_MULTICAST_PartCallback part_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb);
 
 
@@ -580,11 +547,11 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  * @param pub_key ECC key that identifies the group.
  * @param origin Peer identity of the origin.
  * @param max_known_fragment_id Largest known message fragment ID to the replay
-          service; all messages with IDs larger than this ID will be replayed if
+ *        service; all messages with IDs larger than this ID will be replayed if
  *        possible (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
  * @param max_known_state_fragment_id Largest known message fragment ID with a
-          non-zero value for the @e state_delta; state messages with
+ *        non-zero value for the @e state_delta; state messages with
  *        larger IDs than this value will be replayed with high priority
  *        (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
@@ -652,12 +619,15 @@ GNUNET_MULTICAST_member_request_replay_cancel (struct GNUNET_MULTICAST_MemberRep
 /** 
  * Part a multicast group.
  *
+ * Disconnects from all group members and invalidates the @a member handle.
+ *
+ * An application-dependent part message can be transmitted beforehand using
+ * GNUNET_MULTICAST_member_to_origin())
+ *
  * @param member Membership handle.
- * @param part_req Application-dependent part request to send to the origin.
  */
 void
-GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member,
-                              const struct GNUNET_MessageHeader *part_req);
+GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
 
 
 /** 

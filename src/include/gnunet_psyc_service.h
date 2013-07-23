@@ -130,14 +130,6 @@ enum GNUNET_PSYC_MessageFlags
  */
 struct GNUNET_PSYC_JoinHandle;
 
-/** 
- * Handle that identifies a part request.
- *
- * Used to match calls to #GNUNET_PSYC_PartCallback to the
- * corresponding calls to GNUNET_PSYC_part_ack().
- */
-struct GNUNET_PSYC_PartHandle;
-
 
 /** 
  * Method called from PSYC upon receiving a message indicating a call
@@ -195,28 +187,6 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
 
 
 /** 
- * Method called from PSYC upon receiving a part request.
- *
- * @param cls Closure.
- * @param peer Peer requesting to leave.
- * @param method_name Method name in the part request.
- * @param header_length Number of modifiers in header.
- * @param header Modifiers present in the message.
- * @param data_size Number of bytes in @a data.
- * @param data Data stream given to the method (might not be zero-terminated
- *             if data is binary).
- */
-typedef int (*GNUNET_PSYC_PartCallback)(void *cls,
-                                        const struct GNUNET_PeerIdentity *peer,
-                                        const char *method_name,
-                                        size_t header_length,
-                                        GNUNET_PSYC_Modifier *header,
-                                        size_t data_size,
-                                        const void *data,
-                                        struct GNUNET_PSYC_PartHandle *ph);
-
-
-/** 
  * Function to call with the decision made for a join request.
  *
  * Must be called once and only once in response to an invocation of the
@@ -237,15 +207,6 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            const struct GNUNET_ENV_Environment *env,
                            size_t data_size,
                            const void *data);
-
-
-/** 
- * Send a part acknowledgment.
- *
- * @param ph Part handle.
- */
-void
-GNUNET_PSYC_part_ack (struct GNUNET_PSYC_PartHandle *ph);
 
 
 /** 
@@ -279,7 +240,6 @@ struct GNUNET_PSYC_Master;
  *                 Used to automate group management decisions.
  * @param method_cb Function to invoke on messages received from members.
  * @param join_cb Function to invoke when a peer wants to join.
- * @param part_cb Function to invoke when a peer wants to part.
  * @param cls Closure for the callbacks.
  * @return Handle for the channel master, NULL on error.
  */
@@ -289,7 +249,6 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           enum GNUNET_MULTICAST_JoinPolicy join_policy,
                           GNUNET_PSYC_Method method_cb,
                           GNUNET_PSYC_JoinCallback join_cb,
-                          GNUNET_PSYC_PartCallback part_cb,
                           void *cls);
 
 
@@ -410,17 +369,9 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * first explicitly send a @e part request (via GNUNET_PSYC_slave_to_master()).
  *
  * @param slave Slave handle.
- * @param method_name Method name for the part request.
- * @param env Environment containing transient variables for the request, or NULL.
- * @param data_size Number of bytes in @a data.
- * @param data Payload for the part message.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave,
-                        const char *method_name,
-                        const struct GNUNET_ENV_Environment *env,
-                        size_t data_size,
-                        const void *data);
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
 
 
 /** 
