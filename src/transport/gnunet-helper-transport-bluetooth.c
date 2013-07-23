@@ -539,7 +539,7 @@ register_service (struct HardwareInfos *dev, int rc_channel)
   /**
    * 1. initializations
    * 2. set the service ID, class, profile information
-   * 3. make the service record publicly nrowsable
+   * 3. make the service record publicly browsable
    * 4. register the RFCOMM channel
    * 5. set the name, provider and description
    * 6. register the service record to the local SDP server
@@ -1157,49 +1157,48 @@ main (int argc, char *argv[])
  
   stdin_mst = mst_create (&stdin_send_hw, &dev);  
   stdin_open = 1;
-  
+  int ok = 0;
+  fprintf (stderr, "Check if the program exits\n");
  while (1)
   {
     maxfd = -1;
     FD_ZERO (&rfds);
     if ((0 == write_pout.size) && (1 == stdin_open))
     {
-      fprintf(stderr, "LOG : %s adds STDIN to rfds\n", dev.iface); //FIXME: debugging message
+    //  fprintf(stderr, "LOG : %s adds STDIN to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDIN_FILENO, &rfds);
       maxfd = MAX (maxfd, STDIN_FILENO);
     }
     if (0 == write_std.size)
     {
-      fprintf(stderr, "LOG : %s adds fd_rfcomm to rfds\n", dev.iface); //FIXME: debugging message
+    //  fprintf(stderr, "LOG : %s adds fd_rfcomm to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (dev.fd_rfcomm, &rfds);
       maxfd = MAX (maxfd, dev.fd_rfcomm);
     }
     FD_ZERO (&wfds);
     if (0 < write_std.size)
     {
-      fprintf(stderr, "LOG : %s adds STDOUT to wfds\n", dev.iface); //FIXME: debugging message
+    //  fprintf(stderr, "LOG : %s adds STDOUT to wfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
     
     for (i = 0; i < crt_rfds; i++)
     {
-      fprintf(stderr, "LOG : %s adds extra fds to rfds\n", dev.iface); //FIXME: debugging message
+     // fprintf(stderr, "LOG : %s adds extra fds to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (rfds_list[i], &rfds);
       maxfd = MAX (maxfd, rfds_list[i]);
     }
 
     for (i = 0; i < crt_wfds; i++)
     {
-      fprintf(stderr, "LOG : %s adds extra fds to wfds\n", dev.iface); //FIXME: debugging message
+     // fprintf(stderr, "LOG : %s adds extra fds to wfds\n", dev.iface); //FIXME: debugging message
       FD_SET (wfds_list[i], &wfds);
       maxfd = MAX (maxfd, wfds_list[i]);
     }
    
     if (0 < write_pout.size)
-    {
-      int sendsocket, status;
-      struct sockaddr_rc addr = { 0 };
+    {    
       struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *frame;
       
       /* Get the destination address */
@@ -1209,19 +1208,23 @@ main (int argc, char *argv[])
       if (memcmp (&frame->addr1, &dev.pl_mac, 
                   sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
       {
-        fprintf (stderr, "LOG : %s has a message for him:)\n", dev.iface); //FIXME: debugging message
+       // fprintf (stderr, "LOG : %s has a message for him:)\n", dev.iface); //FIXME: debugging message
         memset (&write_pout, 0, sizeof (write_pout)); // clear the buffer
       } 
       else if (memcmp (&frame->addr1, &broadcast, 
                 sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
       {
-        fprintf (stderr, "LOG : %s has a broadcast message\n", dev.iface); //FIXME: debugging message
+      //  fprintf (stderr, "LOG : %s has a broadcast message\n", dev.iface); //FIXME: debugging message
         memset (&write_pout, 0, sizeof (write_pout)); //FIXME for now just clear the buffer
         send_broadcast();
+        ok = 1;
       } 
       else 
       {
-        fprintf (stderr, "LOG : %s has a new message for %x:%x:%x:%x:%x:%x\n", dev.iface, 
+        int sendsocket, status;
+        struct sockaddr_rc addr = { 0 };
+      
+        fprintf (stderr, "LOG : %s has a new message for %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", dev.iface, 
                 frame->addr1.mac[5], frame->addr1.mac[4], frame->addr1.mac[3],
                 frame->addr1.mac[2], frame->addr1.mac[1], frame->addr1.mac[0]); //FIXME: debugging message
       
@@ -1247,7 +1250,7 @@ main (int argc, char *argv[])
         status = connect (sendsocket, (struct sockaddr *) &addr, sizeof (addr));
 	      if (0 != status && errno != EAGAIN)
 	      {
-	        fprintf (stderr, "%s failed to connect\n", dev.iface);
+	        fprintf (stderr, "%s failed to connect : %s\n", dev.iface, strerror (errno));
 	        return -1;
 	      }
         
@@ -1264,6 +1267,8 @@ main (int argc, char *argv[])
         }
       }
     }
+    //fprintf (stderr, "inainte de select\n");
+    if (ok == 0)
     {
       int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
       if ((-1 == retval) && (EINTR == errno))
@@ -1273,135 +1278,139 @@ main (int argc, char *argv[])
 	fprintf (stderr, "select failed: %s\n", strerror (errno));
 	break;
       }
-    }
-    for (i = maxfd; i >= 0; i--)
-    {
-      if (FD_ISSET (i , &wfds))
+    
+    //  fprintf (stderr, "dupa select\n");
+      for (i = 0; i <= maxfd; i++) //FIXME it should be incremented
       {
-        if (i == STDOUT_FILENO)
+        if (FD_ISSET (i , &wfds))
         {
-          ssize_t ret =
-              write (STDOUT_FILENO, write_std.buf + write_std.pos,
-                     write_std.size - write_std.pos);
-          if (0 > ret)
+          if (i == STDOUT_FILENO)
           {
-            fprintf (stderr, "Failed to write to STDOUT: %s\n", strerror (errno));
-            break;
-          }
-          write_std.pos += ret;
-          if (write_std.pos == write_std.size)
-          {
-            write_std.pos = 0;
-            write_std.size = 0;
-          }
-          fprintf(stderr, "LOG : %s sends a message to STDOUT\n", dev.iface); //FIXME: debugging message
-        } 
-        else 
-        {
-          ssize_t ret =
-	    write (i, write_pout.buf + write_std.pos, 
-	           write_pout.size - write_pout.pos);
-          if (0 > ret)
-          {
-            fprintf (stderr, "Failed to write to bluetooth device: %s\n",
-                     strerror (errno));
-            break;
-          }
-          write_pout.pos += ret;
-          if ((write_pout.pos != write_pout.size) && (0 != ret))
-          {
-            /* we should not get partial sends with packet-oriented devices... */
-            fprintf (stderr, "Write error, partial send: %u/%u\n",
-                     (unsigned int) write_pout.pos,
-		     (unsigned int) write_pout.size);
-            break;
-          }
-          if (write_pout.pos == write_pout.size)
-          {
-            write_pout.pos = 0;
-            write_pout.size = 0;
-            (void) close (i);
-          }
-          fprintf(stderr, "LOG : %s sends a message to a DEVICE\n", dev.iface); //FIXME: debugging message
-        }
-        
-      }
-
-      if (FD_ISSET (i, &rfds))
-      {
-        if (i == STDIN_FILENO)
-        {
-          ssize_t ret = 
-	    read (i, readbuf, sizeof (readbuf));
-          if (0 > ret)
-          {
-            fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
-            break;
-          }
-          if (0 == ret)
-          {
-            /* stop reading... */
-            stdin_open = 0;
-          }
-          fprintf(stderr, "LOG : %s receives a message from STDIN\n", dev.iface); //FIXME: debugging message
-          mst_receive (stdin_mst, readbuf, ret);
-        } 
-        else if (i == dev.fd_rfcomm) 
-        {
-          int readsocket;
-          struct sockaddr_rc addr = { 0 };
-          unsigned int opt = sizeof (addr);
-          
-          readsocket = accept (dev.fd_rfcomm, (struct sockaddr *) &addr, &opt);
-          fprintf(stderr, "LOG : %s accepts a message\n", dev.iface); //FIXME: debugging message
-          if (readsocket == -1)
-          {
-            fprintf (stderr, "Failed to accept a connection on interface: %s\n", 
-                strerror (errno));
-            return -1;
-          } else {
-            FD_SET (readsocket, &rfds);
-            maxfd = MAX (maxfd, readsocket);
-            
-            if (crt_rfds < MAX_PORTS)
-              rfds_list[crt_rfds++] = readsocket;
-            else
+            ssize_t ret =
+                write (STDOUT_FILENO, write_std.buf + write_std.pos,
+                       write_std.size - write_std.pos);
+            if (0 > ret)
             {
-              fprintf (stderr, "The limit for the read file descriptors list was \
-                              reached\n");
+              fprintf (stderr, "Failed to write to STDOUT: %s\n", strerror (errno));
               break;
             }
+            write_std.pos += ret;
+            if (write_std.pos == write_std.size)
+            {
+              write_std.pos = 0;
+              write_std.size = 0;
+            }
+          //  fprintf(stderr, "LOG : %s sends a message to STDOUT\n", dev.iface); //FIXME: debugging message
+          } 
+          else 
+          {
+            ssize_t ret =
+	      write (i, write_pout.buf + write_std.pos, 
+	             write_pout.size - write_pout.pos);
+            if (0 > ret)
+            {
+              fprintf (stderr, "Failed to write to bluetooth device: %s\n",
+                       strerror (errno));
+              break;
+            }
+            write_pout.pos += ret;
+            if ((write_pout.pos != write_pout.size) && (0 != ret))
+            {
+              /* we should not get partial sends with packet-oriented devices... */
+              fprintf (stderr, "Write error, partial send: %u/%u\n",
+                       (unsigned int) write_pout.pos,
+		       (unsigned int) write_pout.size);
+              break;
+            }
+            if (write_pout.pos == write_pout.size)
+            {
+              write_pout.pos = 0;
+              write_pout.size = 0;
+              //(void) close (i);
+            }
+           // fprintf(stderr, "LOG : %s sends a message to a DEVICE\n", dev.iface); //FIXME: debugging message
           }
           
-        } 
-        else 
-        {
-          struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *rrm;
-          ssize_t ret;
+        }
 
-          rrm = (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) write_std.buf;
-          ret =
-              read_from_the_socket (i, (unsigned char *) &rrm->frame,
-                          sizeof (write_std.buf) 
-		          - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
-		          + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
-		          rrm);
-          fprintf (stderr, "LOG: %s reads something from the socket\n", dev.iface);//FIXME : debugging message 
-          if (0 > ret)
+        if (FD_ISSET (i, &rfds))
+        {
+          if (i == STDIN_FILENO)
           {
-            fprintf (stderr, "Read error from rfcomm socket: %s\n", strerror (errno));
-            break;
-          }
-          if ((0 < ret) && (0 == mac_test (&rrm->frame, &dev)))
+            ssize_t ret = 
+	      read (i, readbuf, sizeof (readbuf));
+            if (0 > ret)
+            {
+              fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
+              break;
+            }
+            if (0 == ret)
+            {
+              /* stop reading... */
+              stdin_open = 0;
+            }
+           // fprintf(stderr, "LOG : %s receives a message from STDIN\n", dev.iface); //FIXME: debugging message
+            mst_receive (stdin_mst, readbuf, ret);
+          } 
+          else if (i == dev.fd_rfcomm) 
           {
-            write_std.size = ret 
-	      + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
-	      - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
-            rrm->header.size = htons (write_std.size);
-            rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
+            int readsocket;
+            struct sockaddr_rc addr = { 0 };
+            unsigned int opt = sizeof (addr);
+            
+            readsocket = accept (dev.fd_rfcomm, (struct sockaddr *) &addr, &opt);
+            fprintf(stderr, "LOG : %s accepts a message\n", dev.iface); //FIXME: debugging message
+            if (readsocket == -1)
+            {
+              fprintf (stderr, "Failed to accept a connection on interface: %s\n", 
+                  strerror (errno));
+              return -1;
+            } else {
+              FD_SET (readsocket, &rfds);
+              maxfd = MAX (maxfd, readsocket);
+              
+              if (crt_rfds < MAX_PORTS)
+                rfds_list[crt_rfds++] = readsocket;
+              else
+              {
+                fprintf (stderr, "The limit for the read file descriptors list was \
+                                reached\n");
+                break;
+              }
+            }
+            
+          } 
+          else 
+          {
+            struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *rrm;
+            ssize_t ret;
+
+            rrm = (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) write_std.buf;
+            ret =
+                read_from_the_socket (i, (unsigned char *) &rrm->frame,
+                            sizeof (write_std.buf) 
+		            - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
+		            + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
+		            rrm);
+            fprintf (stderr, "LOG: %s reads something from the socket\n", dev.iface);//FIXME : debugging message 
+            if (0 > ret)
+            {
+              fprintf (stderr, "Read error from rfcomm socket: %s\n", strerror (errno));
+              break;
+            }
+            if ((0 < ret) && (0 == mac_test (&rrm->frame, &dev)))
+            {
+              write_std.size = ret 
+	        + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
+	        - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
+              rrm->header.size = htons (write_std.size);
+              rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
+            }
           }
         }
       }
+    } else {
+      ok = 0;
     }
   }
   /* Error handling, try to clean up a bit at least */
