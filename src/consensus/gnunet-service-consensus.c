@@ -487,7 +487,7 @@ set_result_cb (void *cls,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set result: failure\n");
-      break;
+      return;
     case GNUNET_SET_STATUS_HALF_DONE:
     case GNUNET_SET_STATUS_DONE:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set result: done\n");
