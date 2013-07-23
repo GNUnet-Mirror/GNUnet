@@ -97,8 +97,9 @@ ibf_get_indices (const struct InvertibleBloomFilter *ibf,
 {
   uint32_t filled;
   uint32_t i;
-  uint32_t bucket = key.key_val & 0xFFFFFFFF;
+  uint32_t bucket;
 
+  bucket = GNUNET_CRYPTO_crc32_n (&key, sizeof key);
   for (i = 0, filled=0; filled < ibf->hash_num; i++)
   {
     unsigned int j;

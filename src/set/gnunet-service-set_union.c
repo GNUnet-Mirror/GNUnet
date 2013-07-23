@@ -59,6 +59,12 @@
  */
 #define MAX_IBF_ORDER (16)
 
+/**
+ * Number of buckets used in the ibf per estimated
+ * difference.
+ */
+#define IBF_ALPHA 1
+
 
 /**
  * Current phase we are in for a union operation.
@@ -724,7 +730,7 @@ get_order_from_difference (unsigned int diff)
   unsigned int ibf_order;
 
   ibf_order = 2;
-  while ((1<<ibf_order) < (2 * diff))
+  while ((1<<ibf_order) < (IBF_ALPHA * diff))
     ibf_order++;
   if (ibf_order > MAX_IBF_ORDER)
     ibf_order = MAX_IBF_ORDER;
@@ -800,7 +806,8 @@ send_element_iterator (void *cls,
       continue;
     }
     memcpy (&mh[1], element->data, element->size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element to peer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (%s) to peer\n",
+                GNUNET_h2s (&ke->element->element_hash));
     GNUNET_MQ_send (eo->mq, ev);
     ke = ke->next_colliding;
   }
@@ -836,6 +843,7 @@ static void
 decode_and_send (struct OperationState *eo)
 {
   struct IBF_Key key;
+  struct IBF_Key last_key;
   int side;
   unsigned int num_decoded;
   struct InvertibleBloomFilter *diff_ibf;
@@ -851,15 +859,24 @@ decode_and_send (struct OperationState *eo)
 
   num_decoded = 0;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoding IBF (size=%u)\n", diff_ibf->size);
+
   while (1)
   {
     int res;
 
+    if (num_decoded > 0)
+      last_key = key;
+
     res = ibf_decode (diff_ibf, &side, &key);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoded ibf key %lx\n",
+                key.key_val);
     num_decoded += 1;
-    if (num_decoded > diff_ibf->size)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf\n");
-    if ((GNUNET_SYSERR == res) || (num_decoded > diff_ibf->size))
+    if (num_decoded > diff_ibf->size || (num_decoded > 1 && last_key.key_val == key.key_val))
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf (decoded %u/%u)\n",
+                  num_decoded, diff_ibf->size);
+    if ((GNUNET_SYSERR == res) || (num_decoded > diff_ibf->size) ||
+        (num_decoded > 1 && last_key.key_val == key.key_val))
     {
       int next_order;
       next_order = 0;
@@ -893,7 +910,7 @@ decode_and_send (struct OperationState *eo)
     {
       send_elements_for_key (eo, key);
     }
-    else
+    else if (-1 == side)
     {
       struct GNUNET_MQ_Envelope *ev;
       struct GNUNET_MessageHeader *msg;
@@ -902,8 +919,14 @@ decode_and_send (struct OperationState *eo)
       /* FIXME: merge multiple requests */
       ev = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
                                         GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
+      
       *(struct IBF_Key *) &msg[1] = key;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element request\n");
       GNUNET_MQ_send (eo->mq, ev);
+    }
+    else
+    {
+      GNUNET_assert (0);
     }
   }
   ibf_destroy (diff_ibf);
@@ -970,7 +993,6 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
 
   if (eo->ibf_buckets_received == eo->remote_ibf->size)
   {
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received full ibf\n");
     eo->phase = PHASE_EXPECT_ELEMENTS;
     decode_and_send (eo);
@@ -992,7 +1014,7 @@ send_client_element (struct OperationState *eo,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending el of size %u\n", element->size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (size %u) to client\n", element->size);
   GNUNET_assert (0 != eo->spec->client_request_id);
   ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
   if (NULL == ev)
@@ -1060,6 +1082,7 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   ee->element.size = element_size;
   ee->element.data = &ee[1];
   ee->remote = GNUNET_YES;
+  GNUNET_CRYPTO_hash (ee->element.data, ee->element.size, &ee->element_hash);
 
   insert_element (eo, ee);
   send_client_element (eo, &ee->element);
