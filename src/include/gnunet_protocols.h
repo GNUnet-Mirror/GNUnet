@@ -864,11 +864,13 @@ extern "C"
 /**
  * Ask the mesh service to create a new tunnel
  */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE   273
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE    273
 
 /**
  * Ask the mesh service to destroy a tunnel
  */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY  274
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
@@ -885,11 +887,13 @@ extern "C"
  * Local information about all tunnels of service.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     287
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS    287
 
 /**
  * Local information of service about a specific tunnel.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      288
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     288
 
 /**
  * 640kb should be enough for everybody
