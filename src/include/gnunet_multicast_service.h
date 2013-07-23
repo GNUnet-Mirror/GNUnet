@@ -661,6 +661,45 @@ void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberRequestHandle *rh);
 
 
+/** 
+ * Handle to access multicast group operations for both the origin and members.
+ */
+struct GNUNET_MULTICAST_Group;
+
+
+/** 
+ * Convert a group @a origin to a @e group handle to access the @e group APIs.
+ *
+ * @param origin Group origin handle.
+ * @return Group handle, valid for as long as @a origin is valid.
+ */
+struct GNUNET_MULTICAST_Group *
+GNUNET_MULTICAST_origin_get_group (struct GNUNET_MULTICAST_Origin *origin);
+
+
+/** 
+ * Convert @a member to a @e group handle to access the @e group APIs.
+ *
+ * @param member Member handle.
+ * @return Group handle, valid for as long as @a member is valid.
+ */
+struct GNUNET_MULTICAST_Group *
+GNUNET_MULTICAST_member_get_group (struct GNUNET_MULTICAST_Member *member);
+
+
+/**
+ * Remove a peer from the group.
+ *
+ * After a message was received notifying about a leaving member, remove the
+ * member from the multicast group.  Fragments with a greater @a message_id than
+ * the specified one won't be transmitted to the member anymore, but the
+ * transmission of lower or equal ones will still be performed.
+ */
+void
+GNUNET_MULTICAST_group_member_remove (struct GNUNET_MULTICAST_Group *group,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      uint64_t message_id);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
