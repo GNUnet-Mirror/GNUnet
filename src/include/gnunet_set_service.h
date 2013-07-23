@@ -192,7 +192,8 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
  * Iterator for set elements.
  *
  * @param cls closure
- * @param element the element
+ * @param element the current element, NULL if all elements have been
+ *        iterated over
  * @return GNUNET_YES to continue iterating, GNUNET_NO to stop.
  */
 typedef int (*GNUNET_SET_ElementIterator) (void *cls,
@@ -396,6 +397,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
  * Iterate over all elements in the given set.
  * Note that this operation involves transferring every element of the set
  * from the service to the client, and is thus costly.
+ * Only one iteration per set may be active at the same time.
  *
  * @param set the set to iterate over
  * @param iter the iterator to call for each element
