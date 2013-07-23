@@ -78,26 +78,6 @@ struct GNUNET_MESH_CreateTunnel
   /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
-/**
- * Message for mesh path destruction.
- */
-struct GNUNET_MESH_DestroyTunnel
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY
-   *
-   * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
-   *       path_length * sizeof (struct GNUNET_PeerIdentity)
-   */
-  struct GNUNET_MessageHeader header;
-  
-  /**
-   * Global id of the tunnel this path belongs to,
-   * unique in conjunction with the origin.
-   */
-  uint32_t tid GNUNET_PACKED;
-};
-
 
 /**
  * Message for mesh data traffic.
