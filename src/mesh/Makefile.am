@@ -21,7 +21,7 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-mesh $(EXP_LIBEXEC)
+ gnunet-service-mesh gnunet-service-mesh-enc $(EXP_LIBEXEC)
 
 bin_PROGRAMS = \
  gnunet-mesh
@@ -82,6 +82,28 @@ gnunet_service_mesh_DEPENDENCIES = \
 if LINUX
   gnunet_service_mesh_LDFLAGS = -lrt
 endif
+
+gnunet_service_mesh_enc_SOURCES = \
+ gnunet-service-mesh-enc.c \
+ mesh_path.c \
+ mesh_common.c
+gnunet_service_mesh_enc_CFLAGS = $(AM_CFLAGS)
+gnunet_service_mesh_enc_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/block/libgnunetblock.la
+gnunet_service_mesh_enc_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/block/libgnunetblock.la
+if LINUX
+  gnunet_service_mesh_enc_LDFLAGS = -lrt
+endif
+
 
 if HAVE_TESTING
 noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
