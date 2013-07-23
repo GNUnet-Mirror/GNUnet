@@ -117,7 +117,6 @@ strata_estimator_difference (const struct StrataEstimator *se1,
       int more;
 
       more = ibf_decode (diff, NULL, NULL);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "decoding\n");
       if (GNUNET_NO == more)
       {
         count += ibf_count;

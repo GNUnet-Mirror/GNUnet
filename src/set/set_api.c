@@ -38,12 +38,35 @@
  */
 struct GNUNET_SET_Handle
 {
+  /**
+   * Client connected to the set service.
+   */
   struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Message queue for 'client'.
+   */
   struct GNUNET_MQ_Handle *mq;
-  unsigned int messages_since_ack;
+
+  /**
+   * Linked list of operations on the set.
+   */
   struct GNUNET_SET_OperationHandle *ops_head;
+
+  /**
+   * Linked list of operations on the set.
+   */
   struct GNUNET_SET_OperationHandle *ops_tail;
+
+  /**
+   * Should the set be destroyed once all operations are gone?
+   */
   int destroy_requested;
+
+  /**
+   * Has the set become invalid (e.g. service died)?
+   */
+  int invalid;
 };
 
 
@@ -116,7 +139,6 @@ struct GNUNET_SET_OperationHandle
    * Handles are kept in a linked list.
    */
   struct GNUNET_SET_OperationHandle *next;
-
 };
 
 
@@ -169,12 +191,6 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 
   result_status = ntohs (msg->result_status);
 
-  if (set->messages_since_ack >= GNUNET_SET_ACK_WINDOW/2)
-  {
-    struct GNUNET_MQ_Envelope *mqm;
-    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ACK);
-    GNUNET_MQ_send (set->mq, mqm);
-  }
   oh = GNUNET_MQ_assoc_get (set->mq, ntohl (msg->request_id));
   GNUNET_assert (NULL != oh);
   /* status is not STATUS_OK => there's no attached element,
@@ -262,7 +278,7 @@ handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
     GNUNET_SET_operation_cancel (set->ops_head);
   }
 
-  /* FIXME: there should be a set error handler */
+  set->invalid = GNUNET_YES;
 }
 
 
@@ -313,8 +329,10 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param element element to add to the set
  * @param cont continuation called after the element has been added
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
                         const struct GNUNET_SET_Element *element,
                         GNUNET_SET_Continuation cont,
@@ -323,11 +341,19 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
+  if (GNUNET_YES == set->invalid)
+  {
+    if (NULL != cont)
+      cont (cont_cls);
+    return GNUNET_SYSERR;
+  }
+
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_ADD);
   msg->element_type = element->type;
   memcpy (&msg[1], element->data, element->size);
   GNUNET_MQ_notify_sent (mqm, cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);
+  return GNUNET_OK;
 }
 
 
@@ -341,8 +367,10 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
  * @param element element to remove from the set
  * @param cont continuation called after the element has been removed
  * @param cont_cls closure for cont
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
                            const struct GNUNET_SET_Element *element,
                            GNUNET_SET_Continuation cont,
@@ -351,11 +379,19 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ElementMessage *msg;
 
+  if (GNUNET_YES == set->invalid)
+  {
+    if (NULL != cont)
+      cont (cont_cls);
+    return GNUNET_SYSERR;
+  }
+
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_REMOVE);
   msg->element_type = element->type;
   memcpy (&msg[1], element->data, element->size);
   GNUNET_MQ_notify_sent (mqm, cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);
+  return GNUNET_OK;
 }
 
 
@@ -536,7 +572,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
   if (NULL != oh->conclude_mqm)
     GNUNET_MQ_discard (oh->conclude_mqm);
 
-  /* is the operation still not commited? */
+  /* is the operation already commited? */
   if (NULL != oh->set)
   {
     struct GNUNET_SET_OperationHandle *h_assoc;
@@ -544,7 +580,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 
     GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
     h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
-    GNUNET_assert (h_assoc == oh);
+    GNUNET_assert ((h_assoc == NULL) || (h_assoc == oh));
     mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
     GNUNET_MQ_send (oh->set->mq, mqm);
 
@@ -566,12 +602,16 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
  *
  * @param oh handle to the set operation 
  * @param set the set to use for the operation
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ *         set is invalid (e.g. the set service crashed)
  */
-void
+int
 GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
                    struct GNUNET_SET_Handle *set)
 {
   GNUNET_assert (NULL == oh->set);
+  if (GNUNET_YES == set->invalid)
+    return GNUNET_SYSERR;
   GNUNET_assert (NULL != oh->conclude_mqm);
   oh->set = set;
   GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, oh);
@@ -580,5 +620,6 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
   GNUNET_MQ_send (set->mq, oh->conclude_mqm);
   oh->conclude_mqm = NULL;
   oh->request_id_addr = NULL;
+  return GNUNET_OK;
 }
 

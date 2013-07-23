@@ -855,7 +855,6 @@ decode_and_send (struct OperationState *eo)
   {
     int res;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoding IBF for elements\n");
     res = ibf_decode (diff_ibf, &side, &key);
     num_decoded += 1;
     if (num_decoded > diff_ibf->size)
