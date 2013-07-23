@@ -91,6 +91,10 @@ listen_cb (void *cls,
 {
   struct GNUNET_SET_OperationHandle *oh;
 
+  GNUNET_assert (NULL != context_msg);
+
+  GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
 
@@ -108,10 +112,14 @@ static void
 start (void *cls)
 {
   struct GNUNET_SET_OperationHandle *oh;
+  struct GNUNET_MessageHeader context_msg;
+
+  context_msg.size = htons (sizeof context_msg);
+  context_msg.type = htons (GNUNET_MESSAGE_TYPE_TEST);
 
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  oh = GNUNET_SET_prepare (&local_id, &app_id, NULL, 42,
+  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg, 42,
                            GNUNET_SET_RESULT_ADDED,
                            result_cb_set1, NULL);
   GNUNET_SET_commit (oh, set1);

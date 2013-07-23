@@ -381,7 +381,8 @@ incoming_suggest (struct Incoming *incoming, struct Listener *listener)
   mqm = GNUNET_MQ_msg_nested_mh (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "suggesting request with accept id %u\n", incoming->suggest_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "suggesting request with accept id %u\n",
+              incoming->suggest_id);
   cmsg->accept_id = htonl (incoming->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
   GNUNET_MQ_send (listener->client_mq, mqm);
@@ -678,6 +679,9 @@ handle_client_evaluate (void *cls,
   spec->peer = msg->target_peer;
   spec->set = set;
   spec->client_request_id = ntohl (msg->request_id);
+  spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
+  if (NULL != spec->context_msg)
+    spec->context_msg = GNUNET_copy_message (spec->context_msg);
 
   tunnel = GNUNET_MESH_tunnel_create (mesh, tc, &msg->target_peer,
                                       GNUNET_APPLICATION_TYPE_SET,
@@ -940,8 +944,8 @@ dispatch_p2p_message (void *cls,
               ntohs (message->type));
   ret = tc->vt->msg_handler (tc->op, message);
   GNUNET_MESH_receive_done (tunnel);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message (type: %u)\n",
+              ntohs (message->type));
   return ret;
 }
 

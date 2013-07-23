@@ -499,12 +499,16 @@ send_operation_request (struct OperationState *eo)
   GNUNET_MQ_send (eo->mq, ev);
 
   if (NULL != eo->spec->context_msg)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request with context message\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request without context message\n");
+
+  if (NULL != eo->spec->context_msg)
   {
     GNUNET_free (eo->spec->context_msg);
     eo->spec->context_msg = NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request\n");
 }
 
 
