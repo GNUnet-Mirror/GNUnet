@@ -1689,8 +1689,8 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
 /**
  * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
  *
- * @param t Tunnel which to cancel.
  * @param neighbor Short ID of the neighbor to whom cancel the transmissions.
+ * @param t Tunnel which to cancel.
  */
 static void
 peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
