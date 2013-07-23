@@ -2939,10 +2939,10 @@ tunnel_keepalive (struct MeshTunnel *t, int fwd)
 
 
 /**
- * Send keepalive packets for a tunnel.
+ * Send create (PATH_CREATE/PATH_ACK) packets for a tunnel.
  *
- * @param cls Closure (tunnel for which to send the keepalive).
- * @param tc Notification context.
+ * @param t Tunnel for which to send the message.
+ * @param fwd If GNUNET_YES, send CREATE, otherwise send ACK.
  */
 static void
 tunnel_recreate (struct MeshTunnel *t, int fwd)
@@ -2963,7 +2963,7 @@ tunnel_recreate (struct MeshTunnel *t, int fwd)
  * appropriate message (build or keepalive)
  *
  * @param t Tunnel to maintain.
- * @param fw Is FWD?
+ * @param fwd Is FWD?
  */
 static void
 tunnel_maintain (struct MeshTunnel *t, int fwd)
