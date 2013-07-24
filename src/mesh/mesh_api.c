@@ -1723,7 +1723,7 @@ mesh_mq_ntr (void *cls, size_t size,
   uint16_t msize;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "mesh-mq",
-                   "writing message (t: %s, s: %s) to buffer\n",
+                   "writing message (t: %u, s: %u) to buffer\n",
                    ntohs (msg->type), ntohs (msg->size));
 
   state->th = NULL;
@@ -1757,7 +1757,7 @@ mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_assert (NULL == state->th);
   GNUNET_MQ_impl_send_commit (mq);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "mesh-mq",
-                   "calling ntr for message (t: %s, s: %s)\n",
+                   "calling ntr for message (t: %u, s: %u)\n",
                    ntohs (msg->type), ntohs (msg->size));
   state->th =
       GNUNET_MESH_notify_transmit_ready (state->tunnel,
