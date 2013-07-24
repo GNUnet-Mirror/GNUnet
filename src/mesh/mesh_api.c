@@ -1722,6 +1722,10 @@ mesh_mq_ntr (void *cls, size_t size,
   const struct GNUNET_MessageHeader *msg = GNUNET_MQ_impl_current (mq);
   uint16_t msize;
 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "mesh-mq",
+                   "writing message (t: %s, s: %s) to buffer\n",
+                   ntohs (msg->type), ntohs (msg->size));
+
   state->th = NULL;
   if (NULL == buf)
   {
@@ -1752,6 +1756,9 @@ mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
 
   GNUNET_assert (NULL == state->th);
   GNUNET_MQ_impl_send_commit (mq);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "mesh-mq",
+                   "calling ntr for message (t: %s, s: %s)\n",
+                   ntohs (msg->type), ntohs (msg->size));
   state->th =
       GNUNET_MESH_notify_transmit_ready (state->tunnel,
                                          /* FIXME: add option for corking */
