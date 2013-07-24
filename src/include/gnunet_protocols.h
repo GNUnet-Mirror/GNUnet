@@ -1755,6 +1755,21 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_P2P_DONE 586
 
+/**
+ * Start iteration over set elements.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST 587
+
+/**
+ * Element result for the iterating client.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT 588
+
+/**
+ * Iteration end marker for the client.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_ITER_DONE 589
+
 
 
 /*******************************************************************************
