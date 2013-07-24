@@ -1,4 +1,4 @@
-/*
+7/*
      This file is part of GNUnet.
      (C) 2013 Christian Grothoff (and other contributing authors)
 
@@ -1325,7 +1325,6 @@ handle_set_union_result (void *cls,
   case GNUNET_SET_STATUS_FAILURE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Failed to establish DV union, will try again later\n");
-    GNUNET_SET_operation_cancel (neighbor->set_op); /* FIXME: needed? */
     neighbor->set_op = NULL;
     if (NULL != neighbor->neighbor_table_consensus)
     {
@@ -1371,7 +1370,6 @@ handle_set_union_result (void *cls,
     break;
   case GNUNET_SET_STATUS_DONE:
     /* operation done, schedule next run! */
-    GNUNET_SET_operation_cancel (neighbor->set_op); /* FIXME: needed? */
     neighbor->set_op = NULL;
     if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
 				     &my_identity.hashPubKey))
