@@ -21,7 +21,7 @@ plugindir = $(libdir)/gnunet
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-mesh gnunet-service-mesh-enc $(EXP_LIBEXEC)
+ gnunet-service-mesh $(EXP_LIBEXEC)
 
 bin_PROGRAMS = \
  gnunet-mesh
