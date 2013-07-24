@@ -190,24 +190,29 @@ struct MeshPeerQueue
  */
 struct MeshFlowControl
 {
-    /**
-    * Transmission queue to core DLL head
-    */
+  /**
+   * Transmission queue to core DLL head
+   */
   struct MeshPeerQueue *queue_head;
 
-   /**
-    * Transmission queue to core DLL tail
-    */
-   struct MeshPeerQueue *queue_tail;
+  /**
+   * Transmission queue to core DLL tail
+   */
+  struct MeshPeerQueue *queue_tail;
 
-   /**
-    * How many messages are in the queue to this peer.
-    */
-   unsigned int queue_n;
+  /**
+   * How many messages are in the queue to this peer.
+   */
+  unsigned int queue_n;
 
-   /**
-    * Handle for queued transmissions
-    */
+  /**
+   * How many messages do we accept in the queue.
+   */
+  unsigned int queue_max;
+
+  /**
+   * Handle for queued transmissions
+   */
   struct GNUNET_CORE_TransmitHandle *core_transmit;
 
   /**
@@ -414,11 +419,6 @@ struct MeshChannel
   int force_ack;
 
     /**
-     * How many messages do we accept in the forward queue.
-     */
-  unsigned int queue_max;
-
-    /**
      * Last time the channel was used
      */
   struct GNUNET_TIME_Absolute timestamp;
@@ -468,9 +468,14 @@ struct MeshConnection
   struct MeshConnection prev;
 
   /**
+   * Tunnes this belongs to
+   */
+  struct MeshTunnel2 *t;
+
+  /**
    * Connection number
    */
-  uint32_t cid;
+  uint32_t id;
 
   /**
    * Path being used for the tunnel.
@@ -497,24 +502,6 @@ struct MeshConnection
 
 
 /**
- * Globally unique tunnel identification (owner + number)
- * DO NOT USE OVER THE NETWORK
- */
-struct MESH_TunnelID
-{
-    /**
-     * Tunnel Owner.
-     */
-  GNUNET_PEER_Id oid;
-
-    /**
-     * Tunnel Destination.
-     */
-  GNUNET_PEER_Id did;
-};
-
-
-/**
  * Struct containing all information regarding a tunnel to a peer.
  */
 struct MeshTunnel2
@@ -522,7 +509,7 @@ struct MeshTunnel2
     /**
      * Tunnel ID (owner, destination)
      */
-  struct MESH_TunnelID id;
+  struct MeshPeer *peer;
 
     /**
      * State of the tunnel.
@@ -1333,7 +1320,7 @@ send_connection_create (struct MeshTunnel2 *t,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
   neighbor = peer_get_short (connection_get_next_hop (connection));
-  queue_add (t,
+  queue_add (connection,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
              sizeof (struct GNUNET_MESH_ConnectionCreate) +
                 (connection->path->length *
@@ -1359,7 +1346,7 @@ send_connection_ack (struct MeshTunnel2 *t, struct MeshConnection *connection)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
   neighbor = peer_get_short (connection_get_prev_hop (connection));
-  queue_add (t,
+  queue_add (connection,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
              sizeof (struct GNUNET_MESH_ConnectionACK),
              neighbor,
@@ -1377,7 +1364,7 @@ send_connection_ack (struct MeshTunnel2 *t, struct MeshConnection *connection)
  * @param ack Value of the ACK.
  */
 static void
-send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer,  uint32_t ack)
+send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer, uint32_t ack)
 {
   struct GNUNET_MESH_ACK msg;
 
@@ -1429,19 +1416,20 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  * @return number of bytes written to buf
  */
 static size_t
-send_core_path_create (void *cls, size_t size, void *buf)
+send_core_connection_create (void *cls, size_t size, void *buf)
 {
-  struct MeshTunnel *t = cls;
-  struct GNUNET_MESH_CreateTunnel *msg;
+  struct MeshConnection *c = cls;
+  struct MeshTunnel2 *t = c->t;
+  struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
-  struct MeshPeerPath *p = t->path;
+  struct MeshPeerPath *p = c->path;
   size_t size_needed;
   uint32_t opt;
   int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATE PATH sending...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
   size_needed =
-      sizeof (struct GNUNET_MESH_CreateTunnel) +
+      sizeof (struct GNUNET_MESH_ConnectionCreate) +
       p->length * sizeof (struct GNUNET_PeerIdentity);
 
   if (size < size_needed || NULL == buf)
@@ -1449,18 +1437,10 @@ send_core_path_create (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  msg = (struct GNUNET_MESH_CreateTunnel *) buf;
+  msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
-  msg->tid = ntohl (t->id.tid);
-
-  opt = 0;
-  if (GNUNET_YES == t->nobuffer)
-    opt |= GNUNET_MESH_OPTION_NOBUFFER;
-  if (GNUNET_YES == t->reliable)
-    opt |= GNUNET_MESH_OPTION_RELIABLE;
-  msg->opt = htonl (opt);
-  msg->port = htonl (t->port);
+  msg->cid = ntohl (c->id);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -1469,7 +1449,61 @@ send_core_path_create (void *cls, size_t size, void *buf)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CREATE PATH (%u bytes long) sent!\n", size_needed);
+              "CONNECTION CREATE (%u bytes long) sent!\n", size_needed);
+  return size_needed;
+}
+
+
+/**
+ * Function to send a create path packet to a peer.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+send_core_channel_create (void *cls, size_t size, void *buf)
+{
+//   struct MeshChannel *ch = cls;
+//   struct MeshTunnel2 *t = ch->t;
+//   struct GNUNET_MESH_ConnectionCreate *msg;
+//   struct GNUNET_PeerIdentity *peer_ptr;
+  size_t size_needed;
+//   uint32_t opt;
+//   int i;
+// 
+//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CHANNEL CREATE...\n");
+//   size_needed =
+//       sizeof (struct GNUNET_MESH_ConnectionCreate) +
+//       p->length * sizeof (struct GNUNET_PeerIdentity);
+// 
+//   if (size < size_needed || NULL == buf)
+//   {
+//     GNUNET_break (0);
+//     return 0;
+//   }
+//   msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
+//   msg->header.size = htons (size_needed);
+//   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
+//   msg->tid = ntohl (t->id.tid);
+// 
+//   opt = 0;
+//   if (GNUNET_YES == ch->nobuffer)
+//     opt |= GNUNET_MESH_OPTION_NOBUFFER;
+//   if (GNUNET_YES == ch->reliable)
+//     opt |= GNUNET_MESH_OPTION_RELIABLE;
+//   msg->opt = htonl (opt);
+//   msg->port = htonl (ch->port);
+// 
+//   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
+//   for (i = 0; i < p->length; i++)
+//   {
+//     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
+//   }
+// 
+//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+//               "CREATE PATH (%u bytes long) sent!\n", size_needed);
   return size_needed;
 }
 
@@ -1483,29 +1517,30 @@ send_core_path_create (void *cls, size_t size, void *buf)
  * @return number of bytes written to buf
  */
 static size_t
-send_core_path_ack (void *cls, size_t size, void *buf)
+send_core_connection_ack (void *cls, size_t size, void *buf)
 {
-  struct MeshTunnel *t = cls;
-  struct GNUNET_MESH_PathACK *msg = buf;
+  struct GNUNET_MESH_ConnectionACK *msg = buf;
+  struct MeshConnection *c = cls;
+  struct MeshTunnel2 *t = c->t;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
   GNUNET_assert (NULL != t);
-  if (sizeof (struct GNUNET_MESH_PathACK) > size)
+  if (sizeof (struct GNUNET_MESH_ConnectionACK) > size)
   {
     GNUNET_break (0);
     return 0;
   }
-  t->prev_fc.last_ack_sent = t->nobuffer ? 0 : t->queue_max - 1;
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_PathACK));
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
-  GNUNET_PEER_resolve (t->id.oid, &msg->oid);
-  msg->tid = htonl (t->id.tid);
-  msg->peer_id = my_full_id;
-  msg->ack = htonl (t->prev_fc.last_ack_sent);
+  GNUNET_CRYPTO_hash_xor (&GNUNET_PEER_resolve2 (t->peer->id)->hashPubKey,
+                          &my_full_id.hashPubKey,
+                          &msg->tid.hashPubKey);
+  msg->cid = htonl (c->id);
 
   /* TODO add signature */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PATH ACK sent!\n");
-  return sizeof (struct GNUNET_MESH_PathACK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
+  return sizeof (struct GNUNET_MESH_ConnectionACK);
 }
 
 
