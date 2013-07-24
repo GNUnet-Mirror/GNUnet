@@ -238,7 +238,8 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
   int abs_value = 1;
 
   if (0 !=
-      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, &abs_value,
+      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, 
+		  (const void *) &abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 }
@@ -264,7 +265,8 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
   const char *abs_value = "1";
 
   if (0 !=
-      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, abs_value,
+      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, 
+		  (const void *) abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
 #endif
@@ -385,7 +387,9 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     const int on = 1;
 
     if (desc->af == AF_INET6)
-      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof (on)))
+      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, 
+		      (const void *) &on, 
+		      sizeof (on)))
         LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
 #endif
