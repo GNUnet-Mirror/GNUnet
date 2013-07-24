@@ -564,8 +564,9 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 {
-  GNUNET_CLIENT_disconnect (lh->client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "canceling listener\n");
   GNUNET_MQ_destroy (lh->mq);
+  GNUNET_CLIENT_disconnect (lh->client);
   GNUNET_free (lh);
 }
 

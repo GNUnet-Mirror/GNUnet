@@ -873,8 +873,9 @@ decode_and_send (struct OperationState *eo)
       last_key = key;
 
     res = ibf_decode (diff_ibf, &side, &key);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoded ibf key %lx\n",
-                key.key_val);
+    if (res == GNUNET_OK)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoded ibf key %lx\n",
+                  key.key_val);
     num_decoded += 1;
     if (num_decoded > diff_ibf->size || (num_decoded > 1 && last_key.key_val == key.key_val))
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf (decoded %u/%u)\n",

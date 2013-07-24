@@ -293,7 +293,11 @@ destroy_session (struct ConsensusSession *session)
     {
       struct ConsensusPeerInformation *cpi;
       cpi = &session->info[i];
-      GNUNET_free (cpi);
+      if (NULL != cpi->set_op)
+      {
+        GNUNET_SET_operation_cancel (cpi->set_op);
+        cpi->set_op = NULL;
+      }
     }
     GNUNET_free (session->info);
     session->info = NULL;
@@ -315,15 +319,25 @@ send_to_client_iter (void *cls,
                      const struct GNUNET_SET_Element *element)
 {
   struct ConsensusSession *session = cls;
+  struct GNUNET_MQ_Envelope *ev;
 
   if (NULL != element)
   {
-    struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_CONSENSUS_ElementMessage *m;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got element for client\n",
+                session->local_peer_idx);
 
     ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
     m->element_type = htons (element->type);
     memcpy (&m[1], element->data, element->size);
+    GNUNET_MQ_send (session->client_mq, ev);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: finished iterating elements for client\n",
+                session->local_peer_idx);
+    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
     GNUNET_MQ_send (session->client_mq, ev);
   }
   return GNUNET_YES;
@@ -368,6 +382,7 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   session->local_peer_idx);
       session->current_round = CONSENSUS_ROUND_FINISH;
       GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
+      break;
     default:
       GNUNET_assert (0);
   }
@@ -425,9 +440,12 @@ find_partners (struct ConsensusSession *session)
   int largest_arc;
   int num_ghosts;
 
+  /* shuffled local index */
+  int my_idx = session->shuffle[session->local_peer_idx];
+
   /* distance to neighboring peer in current subround */
   arc = 1 << session->exp_subround;
-  partner_idx = (session->local_peer_idx + arc) % session->num_peers;
+  partner_idx = (my_idx + arc) % session->num_peers;
   largest_arc = 1;
   while (largest_arc < session->num_peers)
     largest_arc <<= 1;
@@ -435,7 +453,7 @@ find_partners (struct ConsensusSession *session)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "num ghosts: %d\n", num_ghosts);
 
-  if (0 == (session->local_peer_idx & arc))
+  if (0 == (my_idx & arc))
   {
     /* we are outgoing */
     session->partner_outgoing = &session->info[session->shuffle[partner_idx]];
@@ -443,10 +461,10 @@ find_partners (struct ConsensusSession *session)
      * the number of peers was a power of two, and thus have to partner
      * with an additional peer?
      */
-    if (session->local_peer_idx < num_ghosts)
+    if (my_idx < num_ghosts)
     {
       int ghost_partner_idx;
-      ghost_partner_idx = (session->local_peer_idx - arc) % session->num_peers;
+      ghost_partner_idx = (my_idx - arc) % session->num_peers;
       /* platform dependent; modulo sometimes returns negative values */
       if (ghost_partner_idx < 0)
         ghost_partner_idx += arc;
@@ -487,11 +505,13 @@ set_result_cb (void *cls,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set result: failure\n");
+      cpi->set_op = NULL;
       return;
     case GNUNET_SET_STATUS_HALF_DONE:
     case GNUNET_SET_STATUS_DONE:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set result: done\n");
       cpi->exp_subround_finished = GNUNET_YES;
+      cpi->set_op = NULL;
       if (have_exp_subround_finished (cpi->session) == GNUNET_YES)
         subround_over (cpi->session, NULL);
       return;
@@ -536,6 +556,13 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
     session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
   }
+  
+  if (session->exp_round > NUM_EXP_ROUNDS)
+  {
+    round_over (session, NULL);
+    return;
+  }
+
   if (session->exp_round == 0)
   {
     /* initialize everything for the log-rounds */
@@ -752,6 +779,12 @@ set_listen_cb (void *cls,
   struct ConsensusPeerInformation *cpi;
   int index;
 
+  /* FIXME: should this even happen? */
+  /*
+  if (NULL == request)
+    return;
+  */
+
   if (NULL == context_msg)
   {
     GNUNET_break_op (0);
@@ -900,6 +933,7 @@ client_join (void *cls,
   }
   session = GNUNET_new (struct ConsensusSession);
   session->client = client;
+  session->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert (sessions_head, sessions_tail, session);
   initialize_session (session, (struct GNUNET_CONSENSUS_JoinMessage *) m);
