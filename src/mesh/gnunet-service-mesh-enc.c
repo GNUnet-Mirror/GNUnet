@@ -25,13 +25,21 @@
  *
  *  FIXME in progress:
  * - when sending in-order buffered data, wait for client ACKs
+ * - add signatures
+ * - add encryption
  *
  * TODO:
  * - relay corking down to core
  * - set ttl relative to path length
- * - add signatures
- * - add encryption
  * TODO END
+ * 
+ * Dictionary:
+ * - peer: other mesh instance. If there is direct connection it's a neighbor.
+ * - tunnel: encrypted connection to a peer, neighbor or not.
+ * - channel: connection between two clients, on the same or different peers.
+ *            have properties like reliability.
+ * - path: series of directly connected peer from one peer to another.
+ * - connection: path which is being used in a tunnel.
  */
 
 #include "platform.h"
