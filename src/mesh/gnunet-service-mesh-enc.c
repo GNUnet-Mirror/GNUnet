@@ -419,24 +419,9 @@ struct MeshChannel
   unsigned int queue_max;
 
     /**
-     * Last time the tunnel was used
+     * Last time the channel was used
      */
   struct GNUNET_TIME_Absolute timestamp;
-
-    /**
-     * Destination of the tunnel.
-     */
-  GNUNET_PEER_Id dest;
-
-    /**
-     * Next hop in the tunnel. If 0, @c client must be set.
-     */
-  GNUNET_PEER_Id next_hop;
-
-    /**
-     * Previous hop in the tunnel. If 0, @c owner must be set.
-     */
-  GNUNET_PEER_Id prev_hop;
 
     /**
      * Client owner of the tunnel, if any
@@ -474,18 +459,23 @@ struct MeshChannel
 };
 
 
-struct MeshPath
+struct MeshConnection
 {
   /**
    * DLL
    */
-  struct MeshPath next;
-  struct MeshPath prev;
+  struct MeshConnection next;
+  struct MeshConnection prev;
 
   /**
    * Path being used for the tunnel.
    */
   struct MeshPeerPath *path;
+
+  /**
+   * Position of the local peer in the path.
+   */
+  unsigned int own_pos;
 
   /**
    * Task to keep the used paths alive at the owner,
@@ -562,8 +552,8 @@ struct MeshTunnel2
   /**
    * Paths that are actively used to reach the destination peer.
    */
-  struct MeshPath *connection_head;
-  struct MeshPath *connection_tail;
+  struct MeshConnection *connection_head;
+  struct MeshConnection *connection_tail;
 
   /**
    * Channels inside this tunnel.
@@ -1255,16 +1245,13 @@ send_local_ack (struct MeshTunnel *t,
 static void
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        GNUNET_PEER_Id peer,
-                       struct MeshTunnel *t)
+                       struct MeshTunnel2 *t)
 {
-  struct GNUNET_PeerIdentity id;
   struct MeshPeer *neighbor;
   struct MeshPeerPath *p;
   void *data;
   size_t size;
   uint16_t type;
-
-//   GNUNET_TRANSPORT_try_connect(); FIXME use?
 
   if (0 == peer)
     return;
@@ -1281,8 +1268,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     u = (struct GNUNET_MESH_Data *) data;
     u->ttl = htonl (ntohl (u->ttl) - 1);
   }
-  GNUNET_PEER_resolve (peer, &id);
-  neighbor = peer_get (&id);
+  neighbor = peer_get_short (peer);
   for (p = neighbor->path_head; NULL != p; p = p->next)
   {
     if (2 >= p->length)
@@ -1292,30 +1278,6 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == p)
   {
-#if MESH_DEBUG
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  %s IS NOT DIRECTLY CONNECTED\n",
-                GNUNET_i2s(&id));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  PATHS TO %s:\n",
-                GNUNET_i2s(&id));
-    for (p = neighbor->path_head; NULL != p; p = p->next)
-    {
-      struct GNUNET_PeerIdentity debug_id;
-      unsigned int i;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "    path with %u hops through:\n",
-                  p->length);
-      for (i = 0; i < p->length; i++)
-      {
-        GNUNET_PEER_resolve(p->peers[i], &debug_id);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "      hop %u: %s\n",
-                    i, GNUNET_i2s(&debug_id));
-      }
-    }
-#endif
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     " no direct connection to %s\n",
@@ -1323,13 +1285,31 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_free (data);
     return;
   }
-  if (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK == type)
+  if (GNUNET_MESSAGE_TYPE_MESH_PATH_ACK == type) // FIXME
     type = 0;
   queue_add (data,
              type,
              size,
              neighbor,
              t);
+}
+
+
+GNUNET_PEER_Id
+connection_get_prev_hop (struct MeshConnection *c)
+{
+  if (0 == c->own_pos || c->path->length < 2)
+    return c->path->peers[0];
+  return c->path->peers[c->own_pos - 1];
+}
+
+
+GNUNET_PEER_Id
+connection_get_next_hop (struct MeshConnection *c)
+{
+  if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
+    return c->path->peers[c->path->length - 1];
+  return c->path->peers[c->own_pos + 1];
 }
 
 
@@ -1340,19 +1320,22 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @param t Tunnel for which the path is created.
  */
 static void
-send_path_create (struct MeshTunnel *t)
+send_connection_create (struct MeshTunnel2 *t,
+                        struct MeshConnection *connection)
 {
   struct MeshPeer *neighbor;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send create path\n");
-  neighbor = peer_get_short (t->next_hop);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
+  neighbor = peer_get_short (connection_get_next_hop (connection));
   queue_add (t,
              GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE,
              sizeof (struct GNUNET_MESH_CreateTunnel) +
-                (t->path->length * sizeof (struct GNUNET_PeerIdentity)),
+                (connection->path->length *
+                 sizeof (struct GNUNET_PeerIdentity)),
              neighbor,
              t);
-  tunnel_change_state (t, MESH_TUNNEL_WAITING);
+  if (MESH_TUNNEL_SEARCHING == t->state)
+    tunnel_change_state (t, MESH_TUNNEL_WAITING);
 }
 
 
