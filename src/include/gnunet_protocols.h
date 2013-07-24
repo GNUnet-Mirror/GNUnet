@@ -787,22 +787,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
 
 /**
- * Request the creation of a path
+ * Request the creation of a connection
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE            256
+#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE      256
 
 /**
- * Send origin an ACK that the path is complete
+ * Send origin an ACK that the connection is complete
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               257
+#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK         257
 
 /**
- * Notify that a connection of a path is no longer valid
+ * Notify that a connection is no longer valid
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN            258
 
 /**
- * At some point, the route will spontaneously change
+ * At some point, the route will spontaneously change TODO
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
 
@@ -830,9 +832,10 @@ extern "C"
  * Request the destuction of a path
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           266
+#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     266
 
 /**
- * Request the destruction of a whole tunnel
+ * Request the destruction of a whole tunnel 
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
 
