@@ -127,8 +127,11 @@ enum MeshTunnelState
 /******************************************************************************/
 
 /** FWD declaration */
-struct MeshPeer;
 struct MeshClient;
+struct MeshPeer;
+struct MeshTunnel2;
+struct MeshChannel;
+struct MeshChannelReliability;
 
 
 /**
@@ -154,7 +157,7 @@ struct MeshPeerQueue
     /**
      * Tunnel this message belongs to.
      */
-  struct MeshTunnel *tunnel;
+  struct MeshTunnel2 *tunnel;
 
     /**
      * Pointer to info stucture used as cls.
@@ -172,6 +175,63 @@ struct MeshPeerQueue
   size_t size;
 };
 
+
+/**
+ * Struct to encapsulate all the Flow Control information to a peer to which
+ * we are directly connected (on a core level).
+ */
+struct MeshFlowControl
+{
+    /**
+    * Transmission queue to core DLL head
+    */
+  struct MeshPeerQueue *queue_head;
+
+   /**
+    * Transmission queue to core DLL tail
+    */
+   struct MeshPeerQueue *queue_tail;
+
+   /**
+    * How many messages are in the queue to this peer.
+    */
+   unsigned int queue_n;
+
+   /**
+    * Handle for queued transmissions
+    */
+  struct GNUNET_CORE_TransmitHandle *core_transmit;
+
+  /**
+   * ID of the last packet sent towards the peer.
+   */
+  uint32_t last_pid_sent;
+
+  /**
+   * ID of the last packet received from the peer.
+   */
+  uint32_t last_pid_recv;
+
+  /**
+   * Last ACK sent to the peer (peer can't send more than this PID).
+   */
+  uint32_t last_ack_sent;
+
+  /**
+   * Last ACK sent towards the origin (for traffic towards leaf node).
+   */
+  uint32_t last_ack_recv;
+
+  /**
+   * Task to poll the peer in case of a lost ACK causes stall.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier poll_task;
+
+  /**
+   * How frequently to poll for ACKs.
+   */
+  struct GNUNET_TIME_Relative poll_time;
+};
 
 
 /**
@@ -210,115 +270,16 @@ struct MeshPeer
   struct GNUNET_DHT_GetHandle *dhtget;
 
     /**
-     * Array of tunnels this peer is the target of.
-     * Most probably a small amount, therefore not a hashmap.
-     * When the path to the peer changes, notify these tunnels to let them
-     * re-adjust their path trees.
+     * Tunnel to this peer, if any.
      */
-  struct MeshTunnel **tunnels;
+  struct MeshTunnel2 *tunnel;
 
     /**
-     * Number of tunnels this peers participates in
+     * Flow control information for direct traffic.
      */
-  unsigned int ntunnels;
+  struct MeshFlowControl *fc;
 
-   /**
-    * Transmission queue to core DLL head
-    */
-  struct MeshPeerQueue *queue_head;
-
-   /**
-    * Transmission queue to core DLL tail
-    */
-   struct MeshPeerQueue *queue_tail;
-
-   /**
-    * How many messages are in the queue to this peer.
-    */
-   unsigned int queue_n;
-
-   /**
-    * Handle for queued transmissions
-    */
-  struct GNUNET_CORE_TransmitHandle *core_transmit;
 };
-
-
-/**
- * Struct to encapsulate all the Flow Control information to a peer in the
- * context of a tunnel: Same peer in different tunnels will have independent
- * flow control structures, allowing to choke/free tunnels according to its
- * own criteria.
- */
-struct MeshFlowControl
-{
-  /**
-   * ID of the last packet sent towards the peer.
-   */
-  uint32_t last_pid_sent;
-
-  /**
-   * ID of the last packet received from the peer.
-   */
-  uint32_t last_pid_recv;
-
-  /**
-   * Last ACK sent to the peer (peer can't send more than this PID).
-   */
-  uint32_t last_ack_sent;
-
-  /**
-   * Last ACK sent towards the origin (for traffic towards leaf node).
-   */
-  uint32_t last_ack_recv;
-
-  /**
-   * How many payload messages are in the queue towards this peer.
-   */
-  uint32_t queue_n;
-
-  /**
-   * Task to poll the peer in case of a lost ACK causes stall.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier poll_task;
-
-  /**
-   * How frequently to poll for ACKs.
-   */
-  struct GNUNET_TIME_Relative poll_time;
-
-  /**
-   * On which tunnel to poll.
-   * Using an explicit poll_ctx would not help memory wise,
-   * since the allocated context would have to be stored in the
-   * fc struct in order to free it upon cancelling poll_task.
-   */
-  struct MeshTunnel *t;
-};
-
-
-/**
- * Globally unique tunnel identification (owner + number)
- * DO NOT USE OVER THE NETWORK
- */
-struct MESH_TunnelID
-{
-    /**
-     * Tunnel Owner.
-     */
-  GNUNET_PEER_Id oid;
-
-    /**
-     * Tunnel Destination.
-     */
-  GNUNET_PEER_Id did;
-};
-
-
-/**
- * Data needed for reliable tunnel endpoint retransmission management.
- */
-struct MeshChannelReliability;
 
 
 /**
@@ -354,9 +315,9 @@ struct MeshReliableMessage
 struct MeshChannelReliability
 {
     /**
-     * Tunnel this is about.
+     * Channel this is about.
      */
-  struct MeshTunnel *t;
+  struct MeshChannel *t;
 
     /**
      * DLL of messages sent and not yet ACK'd.
@@ -407,6 +368,11 @@ struct MeshChannelReliability
  */
 struct MeshChannel
 {
+    /**
+     * Tunnel this channel is in.
+     */
+  struct MeshTunnel2 *t;
+
     /**
      * Port of the channel.
      */
@@ -465,16 +431,6 @@ struct MeshChannel
   GNUNET_PEER_Id prev_hop;
 
     /**
-     * Flow control information about @c next_hop or @c client.
-     */
-  struct MeshFlowControl next_fc;
-
-  /**
-   * Flow control information about @c prev_hop or @c owner.
-   */
-  struct MeshFlowControl prev_fc;
-
-    /**
      * Client owner of the tunnel, if any
      */
   struct MeshClient *owner;
@@ -513,6 +469,12 @@ struct MeshChannel
 struct MeshPath
 {
   /**
+   * DLL
+   */
+  struct MeshPath next;
+  struct MeshPath prev;
+
+  /**
    * Path being used for the tunnel.
    */
   struct MeshPeerPath *path;
@@ -532,9 +494,27 @@ struct MeshPath
 
 
 /**
+ * Globally unique tunnel identification (owner + number)
+ * DO NOT USE OVER THE NETWORK
+ */
+struct MESH_TunnelID
+{
+    /**
+     * Tunnel Owner.
+     */
+  GNUNET_PEER_Id oid;
+
+    /**
+     * Tunnel Destination.
+     */
+  GNUNET_PEER_Id did;
+};
+
+
+/**
  * Struct containing all information regarding a tunnel to a peer.
  */
-struct MeshTunnel
+struct MeshTunnel2
 {
     /**
      * Tunnel ID (owner, destination)
@@ -549,17 +529,17 @@ struct MeshTunnel
   /**
    * Local peer ephemeral private key
    */
-  struct GNUNET_CRYPTO_EccPrivateKey* my_eph_key;
+  struct GNUNET_CRYPTO_EccPrivateKey *my_eph_key;
 
   /**
    * Local peer ephemeral public key
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded* my_eph;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *my_eph;
 
   /**
    * Remote peer's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded* peers_eph;
+  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *peers_eph;
 
   /**
    * Encryption ("our") key.
@@ -571,7 +551,18 @@ struct MeshTunnel
    */
   struct GNUNET_CRYPTO_AesSessionKey d_key;
 
-}
+  /**
+   * Paths that are actively used to reach the destination peer.
+   */
+  struct MeshPath *connection_head;
+  struct MeshPath *connection_tail;
+
+  /**
+   * Channels inside this tunnel.
+   */
+  struct MeshChannel *channel_head;
+  struct MeshChannel *channel_tail;
+};
 
 
 
@@ -595,12 +586,12 @@ struct MeshClient
     /**
      * Tunnels that belong to this client, indexed by local id
      */
-  struct GNUNET_CONTAINER_MultiHashMap32 *own_tunnels;
+  struct GNUNET_CONTAINER_MultiHashMap32 *own_channels;
 
    /**
      * Tunnels this client has accepted, indexed by incoming local id
      */
-  struct GNUNET_CONTAINER_MultiHashMap32 *incoming_tunnels;
+  struct GNUNET_CONTAINER_MultiHashMap32 *incoming_channels;
 
     /**
      * Handle to communicate with the client
@@ -623,7 +614,6 @@ struct MeshClient
      * ID of the client, mainly for debug messages
      */
   unsigned int id;
-
 };
 
 
