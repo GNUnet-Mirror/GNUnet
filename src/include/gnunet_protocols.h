@@ -839,7 +839,6 @@ extern "C"
  * Request the destruction of a whole tunnel 
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
-#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     267
 
 /**
  * ACK for a data packet.
