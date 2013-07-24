@@ -548,18 +548,23 @@ struct MeshTunnel2
   struct MeshConnection *connection_tail;
 
   /**
+   * Next connection number.
+   */
+  static uint32_t next_cid;
+
+  /**
    * Channels inside this tunnel.
    */
   struct MeshChannel *channel_head;
   struct MeshChannel *channel_tail;
 
   /**
-   * Tunnel ID for the next created tunnel (global tunnel number).
+   * Channel ID for the next created tunnel.
    */
   static MESH_ChannelNumber next_chid;
 
   /**
-   * Tunnel ID for the next incoming tunnel (local tunnel number).
+   * Channel ID for the next incoming tunnel.
    */
   static MESH_ChannelNumber next_local_chid;
 };
@@ -897,8 +902,10 @@ tunnel_notify_connection_broken (struct MeshTunnel2 *t,
  * 
  * @param t Tunnel to update.
  * @param p Path to use.
+ *
+ * @return Connection created.
  */
-static void
+static struct MeshConnection *
 tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p);
 
 /**
@@ -1646,11 +1653,7 @@ peer_get_path_cost (const struct MeshPeer *peer,
 
   overlap = 0;
   GNUNET_assert (NULL != peer->tunnel);
-  /* If tunnel has no connection, choose shortest one */
-  if (NULL == peer->tunnel->connection_head)
-  {
-    return path->length;
-  }
+
   for (i = 0; i < path->length; i++)
   {
     for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
@@ -1703,21 +1706,22 @@ peer_get_best_path (const struct MeshPeer *peer)
 /**
  * Try to establish a new connection to this peer in the given tunnel.
  * If the peer doesn't have any path to it yet, try to get one.
- * If the peer already has some path, send a CREATE PATH towards it.
+ * If the peer already has some path, send a CREATE CONNECTION towards it.
  *
  * @param peer PeerInfo of the peer.
  * @param t Tunnel for which to create the path, if possible.
  */
 static void
-peer_connect (struct MeshPeer *peer, struct MeshTunnel *t)
+peer_connect (struct MeshPeer *peer, struct MeshTunnel2 *t)
 {
   struct MeshPeerPath *p;
+  struct MeshConnection *c;
 
   if (NULL != peer->path_head)
   {
     p = peer_get_best_path (peer, t);
-    tunnel_use_path (t, p);
-    send_path_create (t);
+    c = tunnel_use_path (t, p);
+    send_connection_create (t, c);
   }
   else if (NULL == peer->dhtget)
   {
@@ -2403,11 +2407,13 @@ tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
 }
 
 
-static void
-tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
+static struct MeshConnection *
+tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
 {
+  struct MeshConnection *c;
   unsigned int own_pos;
 
+  c = GNUNET_new (struct MeshConnection);
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
     if (p->peers[own_pos] == myid)
@@ -2418,29 +2424,21 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p)
     GNUNET_break (0);
     return;
   }
+  c->own_pos = own_pos;
+  c->path = p;
+  c->id = t->next_cid++;
+  c->t = t;
+  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, c);
 
-  if (own_pos < p->length - 1)
-    t->next_hop = p->peers[own_pos + 1];
-  else
-    t->next_hop = p->peers[own_pos];
-  GNUNET_PEER_change_rc (t->next_hop, 1);
-  if (0 < own_pos)
-    t->prev_hop = p->peers[own_pos - 1];
-  else
-    t->prev_hop = p->peers[0];
-  GNUNET_PEER_change_rc (t->prev_hop, 1);
-
-  if (NULL != t->path)
-    path_destroy (t->path);
-  t->path = path_duplicate (p);
   if (0 == own_pos)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != t->fwd_maintenance_task)
-      GNUNET_SCHEDULER_cancel (t->fwd_maintenance_task);
-    t->fwd_maintenance_task =
+    if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
+      GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
+    c->fwd_maintenance_task =
         GNUNET_SCHEDULER_add_delayed (refresh_path_time,
-                                      &tunnel_fwd_keepalive, t);
+                                      &connection_fwd_keepalive, c);
   }
+  return c;
 }
 
 
