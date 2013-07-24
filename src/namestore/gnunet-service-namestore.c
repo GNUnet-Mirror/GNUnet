@@ -1639,11 +1639,33 @@ zone_iteraterate_proc (void *cls,
     if (NULL != (cc = GNUNET_CONTAINER_multihashmap_get (zonekeys, &long_hash)))
     {
       expire = get_block_expiration_time (rd_count_filtered, rd_filtered);
+
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
 		  name, GNUNET_NAMESTORE_short_h2s(&zone_hash), 
 		  rd_count_filtered,
 		  (unsigned long long) expire.abs_value);
+      /* TODO 1) AB: New publishing
+       * - Create HDKF(Q,i)
+       * - Encrypt record block R with HKDF: HDKF(Q,i) == E(R)
+       * - Create block |e,E(R)|
+       * - Create d: h * x mod n == hash (name, zone)  * c->privkey mod n
+       * - Create ECC signature S_d (e, E_HKDF(Q,i))
+       *
+       * Return: zone_key , expire, name, rd_count_filtered, new signature S_d
+       *
+       * Q: zone's public key
+       * x: zone's private key
+       * i: name
+       * d: derived secret
+       *
+       * - how do I get n:
+       * Extract from private key s_expression
+       * Question
+       * - how do I multiply h * x?
+       */
+
       new_signature = GNUNET_NAMESTORE_create_signature (cc->privkey, expire, name, 
 							 rd_filtered, rd_count_filtered);
       GNUNET_assert (NULL != new_signature);

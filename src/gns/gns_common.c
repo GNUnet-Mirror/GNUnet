@@ -44,6 +44,10 @@ GNUNET_GNS_get_key_for_record (const char *name,
   struct GNUNET_HashCode name_hash_double;
   struct GNUNET_HashCode zone_hash_double;
 
+  /* TODO 3) AB: New publishing
+   * Create new key V = H(H(i,Q) * Q)
+   */
+
   GNUNET_CRYPTO_short_hash (name,
 			    strlen (name),
 			    &name_hash);

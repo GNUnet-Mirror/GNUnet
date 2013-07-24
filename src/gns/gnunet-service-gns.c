@@ -462,6 +462,17 @@ put_gns_record (void *cls,
     return;
   }
   
+  /* TODO 2) AB: New publishing
+   *
+   * - Use new signature S_d
+   * - Obtain new derived public key V = H(H(i,Q) * Q)
+   * - Obtain HKDF(i,Q)
+   * - Compute encrypte record block E with HKDF(i,Q) (rd, rd_count)
+   * - Create block B = |V,E,S_d|
+   * - Compute new DHT key H(V) in TODO 3)
+   *
+   * -> Put (H(V), B)
+   */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Putting records for `%s' into the DHT\n", name); 
   rd_payload_length = GNUNET_NAMESTORE_records_get_size (rd_count, rd); 
@@ -491,7 +502,7 @@ put_gns_record (void *cls,
                                                    NULL);
     return;
   }
-
+  /* TODO AB: Here records are put in the DHT: modify dht_key to H(key) = H(H(name,zone) * zone) */
   GNUNET_GNS_get_key_for_record (name, &zhash, &dht_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "putting %u records from zone %s for `%s' under key: %s with size %u and timeout %s\n",
