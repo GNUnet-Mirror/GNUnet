@@ -42,7 +42,7 @@ extern "C"
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message for mesh path creation.
+ * Message for mesh connection creation.
  */
 struct GNUNET_MESH_ConnectionCreate
 {
@@ -55,7 +55,7 @@ struct GNUNET_MESH_ConnectionCreate
   struct GNUNET_MessageHeader header;
 
     /**
-     * Global id of the connection.
+     * ID of the connection for that tunnel.
      */
   uint32_t cid GNUNET_PACKED;
 
@@ -70,7 +70,6 @@ struct GNUNET_MESH_ConnectionCreate
   uint32_t reserved GNUNET_PACKED;
 
     /**
-     * TODO do not add the first hop
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
@@ -78,12 +77,12 @@ struct GNUNET_MESH_ConnectionCreate
 };
 
 /**
- * Message for ack'ing a path
+ * Message for ack'ing a connection
  */
 struct GNUNET_MESH_ConnnectionACK
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_ACK
+     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK
      */
   struct GNUNET_MessageHeader header;
 
@@ -93,19 +92,9 @@ struct GNUNET_MESH_ConnnectionACK
   uint32_t cid GNUNET_PACKED;
 
     /**
-     * OID of the tunnel
+     * TID of the tunnel
      */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
-     * ID of the endpoint
-     */
-  struct GNUNET_PeerIdentity peer_id;
-
-    /**
-     * Initial ACK value for payload.
-     */
-  uint32_t ack GNUNET_PACKED;
+  struct GNUNET_PeerIdentity tid;
 
   /* TODO: signature */
 };
