@@ -802,6 +802,7 @@ extern "C"
  * Notify that a connection is no longer valid
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN            258
+#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN      258
 
 /**
  * At some point, the route will spontaneously change TODO
@@ -838,6 +839,7 @@ extern "C"
  * Request the destruction of a whole tunnel 
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
+#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     267
 
 /**
  * ACK for a data packet.
