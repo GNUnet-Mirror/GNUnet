@@ -85,10 +85,19 @@ struct IPv6NetworkSet
 };
 
 
+/**
+ * Start task that may speed up our system clock artificially
+ *
+ * @param cfg configuration to use
+ * @return GNUNET_OK on success, GNUNET_SYSERR if the speedup was not configured
+ */
 int
 GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
-int
+/**
+ * Stop tasks that modify clock behavior.
+ */
+void
 GNUNET_SPEEDUP_stop_ (void);
 
 
@@ -1506,7 +1515,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-  GNUNET_SPEEDUP_start_ (sctx->cfg);
+  (void) GNUNET_SPEEDUP_start_ (sctx->cfg);
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
     sctx->server =

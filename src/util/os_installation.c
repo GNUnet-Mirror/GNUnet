@@ -744,7 +744,9 @@ GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *p
     PROCESS_INFORMATION proc;
     DWORD exit_value;
     
-    GNUNET_snprintf (&parameters, 512, "-d %s", params);
+    GNUNET_snprintf (parameters, 
+		     sizeof (parameters), 
+		     "-d %s", params);
     memset (&start, 0, sizeof (start));
     start.cb = sizeof (start);
     memset (&proc, 0, sizeof (proc));
