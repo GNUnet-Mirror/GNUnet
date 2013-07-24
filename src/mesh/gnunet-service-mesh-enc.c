@@ -1614,61 +1614,82 @@ peer_get_short (const GNUNET_PEER_Id peer)
  * Select which PID to POLL for, to compensate for lost messages.
  *
  * @param pi Peer we want to poll.
- * @param t Tunnel about which we want to poll.
- * 
- * @return PID to use, either last sent or first_in_queue - 1
+ *
+ * @return PID to use, (last sent).
  */
 static uint32_t
-peer_get_first_payload_pid (struct MeshPeer *p, struct MeshTunnel *t)
+peer_get_first_pid (struct MeshPeer *p)
 {
-  struct MeshPeerQueue *q;
-  uint16_t type;
+  return p->fc->last_pid_sent;
+}
 
-  type = p->id == t->next_hop ? GNUNET_MESSAGE_TYPE_MESH_UNICAST :
-                                 GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN;
 
-  for (q = p->queue_head; NULL != q; q = q->next)
+/**
+ * Get a cost of a path for a peer considering existing tunnel connections.
+ *
+ * @param peer Peer towards which the path is considered.
+ * @param path Candidate path.
+ *
+ * @return Cost of the path (path length + number of overlapping nodes)
+ */
+static unsigned int
+peer_get_path_cost (const struct MeshPeer *peer,
+                    const struct MeshPeerPath *path)
+{
+  struct MeshConnection *c;
+  unsigned int overlap;
+  unsigned int i;
+  unsigned int j;
+
+  if (NULL == path)
+    return 0;
+
+  overlap = 0;
+  GNUNET_assert (NULL != peer->tunnel);
+  /* If tunnel has no connection, choose shortest one */
+  if (NULL == peer->tunnel->connection_head)
   {
-    if (q->type == type && q->tunnel == t)
+    return path->length;
+  }
+  for (i = 0; i < path->length; i++)
+  {
+    for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
     {
-      struct GNUNET_MESH_Data *msg = q->cls;
-
-      /* Pretend that the last one sent was the previous to this */
-      return ntohl (msg->pid) - 1;
+      for (j = 0; j < c->path->length; j++)
+      {
+        if (path->peers[i] == c->path->peers[j])
+        {
+          overlap++;
+          break;
+        }
+      }
     }
   }
-
-  /* No data in queue, use last sent */
-  {
-    struct MeshFlowControl *fc;
-
-    fc = p->id == t->next_hop ? &t->next_fc : &t->prev_fc;
-    return fc->last_pid_sent;
-  }
+  return path->length + overlap;
 }
 
 
 /**
  * Choose the best path towards a peer considering the tunnel properties.
- * 
+ *
  * @param peer The destination peer.
  * @param t The tunnel the path is for.
  *
  * @return Best current known path towards the peer, if any.
  */
 static struct MeshPeerPath *
-peer_get_best_path (const struct MeshPeer *peer, const struct MeshTunnel *t)
+peer_get_best_path (const struct MeshPeer *peer)
 {
   struct MeshPeerPath *best_p;
   struct MeshPeerPath *p;
   unsigned int best_cost;
   unsigned int cost;
 
-  best_p = p = peer->path_head;
-  best_cost = cost = p->length;
+  best_p    = p    = peer->path_head;
+  best_cost = cost = peer_get_path_cost (peer, p);
   while (NULL != p)
   {
-    if ((cost = p->length) < best_cost)
+    if ((cost = peer_get_path_cost (peer, p)) < best_cost)
     {
       best_cost = cost;
       best_p = p;
