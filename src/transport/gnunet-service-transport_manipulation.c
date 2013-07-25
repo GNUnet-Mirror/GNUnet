@@ -41,9 +41,6 @@ enum TRAFFIC_METRIC_DIRECTION
 	TM_BOTH = 2
 };
 
-struct GST_ManipulationHandle man_handle;
-
-
 
 /**
  * Struct containing information about manipulations to a specific peer
@@ -184,6 +181,8 @@ struct DelayQueueEntry
 	 */
 	void *cont_cls;
 };
+
+struct GST_ManipulationHandle man_handle;
 
 /**
  * DLL head for delayed messages based on general delay
