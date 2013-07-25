@@ -1367,12 +1367,11 @@ send_connection_ack (struct MeshTunnel2 *t, struct MeshConnection *connection)
 /**
  * Build an ACK message and queue it to send to the given peer.
  * 
- * @param t Tunnel on which to send the ACK.
  * @param peer Peer to whom send the ACK.
  * @param ack Value of the ACK.
  */
 static void
-send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer, uint32_t ack)
+send_ack (GNUNET_PEER_Id peer, uint32_t ack)
 {
   struct GNUNET_MESH_ACK msg;
 
@@ -1380,9 +1379,8 @@ send_ack (struct MeshTunnel *t, GNUNET_PEER_Id peer, uint32_t ack)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
   msg.pid = htonl (ack);
-  msg.tid = htonl (t->id.tid);
 
-  send_prebuilt_message (&msg.header, peer, t);
+  send_prebuilt_message (&msg.header, peer, NULL);
 }
 
 
@@ -1677,7 +1675,6 @@ peer_get_path_cost (const struct MeshPeer *peer,
  * Choose the best path towards a peer considering the tunnel properties.
  *
  * @param peer The destination peer.
- * @param t The tunnel the path is for.
  *
  * @return Best current known path towards the peer, if any.
  */
@@ -1686,19 +1683,24 @@ peer_get_best_path (const struct MeshPeer *peer)
 {
   struct MeshPeerPath *best_p;
   struct MeshPeerPath *p;
+  struct MeshConnection *c;
   unsigned int best_cost;
   unsigned int cost;
 
-  best_p    = p    = peer->path_head;
-  best_cost = cost = peer_get_path_cost (peer, p);
-  while (NULL != p)
+  best_cost = UINT_MAX;
+  best_p = NULL;
+  for (p = peer->path_head; NULL != p; p = p->next)
   {
+    for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
+      if (c->path == p)
+        break;
+    if (NULL != p)
+      continue;
     if ((cost = peer_get_path_cost (peer, p)) < best_cost)
     {
       best_cost = cost;
       best_p = p;
     }
-    p = p->next;
   }
   return best_p;
 }
@@ -1710,19 +1712,23 @@ peer_get_best_path (const struct MeshPeer *peer)
  * If the peer already has some path, send a CREATE CONNECTION towards it.
  *
  * @param peer PeerInfo of the peer.
- * @param t Tunnel for which to create the path, if possible.
  */
 static void
-peer_connect (struct MeshPeer *peer, struct MeshTunnel2 *t)
+peer_connect (struct MeshPeer *peer)
 {
+  struct MeshTunnel2 *t;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
 
+  t = peer->tunnel;
   if (NULL != peer->path_head)
   {
-    p = peer_get_best_path (peer, t);
-    c = tunnel_use_path (t, p);
-    send_connection_create (t, c);
+    p = peer_get_best_path (peer);
+    if (NULL != p)
+    {
+      c = tunnel_use_path (t, p);
+      send_connection_create (t, c);
+    }
   }
   else if (NULL == peer->dhtget)
   {
@@ -4934,22 +4940,12 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                            put_path, put_path_length);
   path_add_to_peers (p, GNUNET_NO);
   path_destroy (p);
-  for (i = 0; i < peer->ntunnels; i++)
+  
+  if (peer->tunnel->state == MESH_TUNNEL_SEARCHING)
   {
-    struct GNUNET_PeerIdentity id;
-
-    GNUNET_PEER_resolve (peer->tunnels[i]->id.oid, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... tunnel %s:%X (%X / %X)\n",
-                GNUNET_i2s (&id), peer->tunnels[i]->id.tid,
-                peer->tunnels[i]->local_tid, 
-                peer->tunnels[i]->local_tid_dest);
-    if (peer->tunnels[i]->state == MESH_TUNNEL_SEARCHING)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
-      peer_connect (peer, peer->tunnels[i]);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
+    peer_connect (peer);
   }
-
   return;
 }
 
