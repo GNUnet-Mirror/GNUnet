@@ -203,38 +203,6 @@ GNUNET_NETWORK_STRUCT_END
 /******************************************************************************/
 
 /**
- * All the states a channel can be in.
- */
-enum MeshChannelState
-{
-    /**
-     * Uninitialized status, should never appear in operation.
-     */
-  MESH_TUNNEL_NEW,
-
-    /**
-     * Path to the peer not known yet
-     */
-  MESH_TUNNEL_SEARCHING,
-
-    /**
-     * Request sent, not yet answered.
-     */
-  MESH_TUNNEL_WAITING,
-
-    /**
-     * Peer connected and ready to accept data
-     */
-  MESH_TUNNEL_READY,
-
-    /**
-     * Peer connected previosly but not responding
-     */
-  MESH_TUNNEL_RECONNECTING
-};
-
-
-/**
  * Check if one pid is bigger than other, accounting for overflow.
  *
  * @param bigger Argument that should be bigger.
