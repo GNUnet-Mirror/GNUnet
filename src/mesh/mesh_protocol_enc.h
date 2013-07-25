@@ -187,19 +187,15 @@ struct GNUNET_MESH_ACK
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * Maximum packet ID authorized.
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t pid GNUNET_PACKED;
 
     /**
      * OID of the tunnel
      */
   struct GNUNET_PeerIdentity oid;
 
-    /**
-     * Maximum packet ID authorized.
-     */
-  uint32_t pid GNUNET_PACKED;
 };
 
 
