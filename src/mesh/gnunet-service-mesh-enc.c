@@ -1424,7 +1424,6 @@ static size_t
 send_core_connection_create (void *cls, size_t size, void *buf)
 {
   struct MeshConnection *c = cls;
-  struct MeshTunnel2 *t = c->t;
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
   struct MeshPeerPath *p = c->path;
@@ -1858,7 +1857,6 @@ peer_destroy (struct MeshPeer *peer)
   struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *nextp;
-  unsigned int i;
 
   GNUNET_PEER_resolve (peer->id, &id);
   GNUNET_PEER_change_rc (peer->id, -1);
@@ -1882,9 +1880,7 @@ peer_destroy (struct MeshPeer *peer)
     path_destroy (p);
     p = nextp;
   }
-  for (i = 0; i < peer->ntunnels; i++)
-    tunnel_destroy_empty (peer->tunnels[i]);
-  GNUNET_array_grow (peer->tunnels, peer->ntunnels, 0);
+  tunnel_destroy_empty (peer->tunnel);
   GNUNET_free (peer);
   return GNUNET_OK;
 }
@@ -1932,17 +1928,14 @@ peer_remove_path (struct MeshPeer *peer, GNUNET_PEER_Id p1,
   if (0 == destroyed)
     return;
 
-  for (i = 0; i < peer->ntunnels; i++)
-  {
-    d = tunnel_notify_connection_broken (peer->tunnels[i], p1, p2);
-    if (0 == d)
-      continue;
 
-    peer_d = peer_get_short (d);
-    next = peer_get_best_path (peer_d, peer->tunnels[i]);
-    tunnel_use_path (peer->tunnels[i], next);
-    peer_connect (peer_d, peer->tunnels[i]);
-  }
+  d = tunnel_notify_connection_broken (peer->tunnel, p1, p2);
+
+  peer_d = peer_get_short (d); // FIXME
+  next = peer_get_best_path (peer_d);
+  tunnel_use_path (peer->tunnel, next);
+  peer_connect (peer_d);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path END\n");
 }
 
