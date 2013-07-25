@@ -79,7 +79,7 @@ struct GNUNET_MESH_ConnectionCreate
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_MESH_ConnnectionACK
+struct GNUNET_MESH_ConnectionACK
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK
