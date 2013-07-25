@@ -1375,7 +1375,6 @@ send_ack (GNUNET_PEER_Id peer, uint32_t ack)
 {
   struct GNUNET_MESH_ACK msg;
 
-  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
   msg.pid = htonl (ack);
@@ -1430,7 +1429,6 @@ send_core_connection_create (void *cls, size_t size, void *buf)
   struct GNUNET_PeerIdentity *peer_ptr;
   struct MeshPeerPath *p = c->path;
   size_t size_needed;
-  uint32_t opt;
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
@@ -1446,7 +1444,7 @@ send_core_connection_create (void *cls, size_t size, void *buf)
   msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
-  msg->cid = ntohl (c->id);
+  msg->cid = htonl (c->id);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -1773,15 +1771,15 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
   size_t size;
 
   peer = peer_get_short (peer_id);
-  if (NULL != peer->core_transmit)
-    return;
+  if (NULL != peer->fc->core_transmit)
+    return; /* Already unlocked */
 
   q = queue_get_next (peer);
   if (NULL == q)
-    return;
+    return; /* Nothing to transmit */
 
   size = q->size;
-  peer->core_transmit =
+  peer->fc->core_transmit =
       GNUNET_CORE_notify_transmit_ready (core_handle,
                                          GNUNET_NO,
                                          0,
@@ -1800,7 +1798,7 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
  * @param t Tunnel which to cancel.
  */
 static void
-peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
+peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel2 *t)
 {
   struct MeshPeer *peer;
   struct MeshPeerQueue *q;
@@ -1810,7 +1808,13 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
   if (0 == neighbor)
     return; /* Was local peer, 0'ed in tunnel_destroy_iterator */
   peer = peer_get_short (neighbor);
-  for (q = peer->queue_head; NULL != q; q = next)
+  if (NULL == peer || NULL == peer->fc)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  fc = peer->fc;
+  for (q = fc->queue_head; NULL != q; q = next)
   {
     next = q->next;
     if (q->tunnel == t)
@@ -1819,22 +1823,24 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel *t)
           GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == q->type)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "peer_cancel_queues %s\n",
+                    "peer_cancel_queue %s\n",
                     GNUNET_MESH_DEBUG_M2S (q->type));
       }
       queue_destroy (q, GNUNET_YES);
     }
   }
-  if (NULL == peer->queue_head && NULL != peer->core_transmit)
+  if (NULL == fc->queue_head)
   {
-    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-    peer->core_transmit = NULL;
-  }
-  fc = neighbor == t->next_hop ? &t->next_fc : &t->prev_fc;
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    if (NULL != fc->core_transmit)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (fc->core_transmit);
+      fc->core_transmit = NULL;
+    }
+    if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+    {
+      GNUNET_SCHEDULER_cancel (fc->poll_task);
+      fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   }
 }
 
@@ -2279,21 +2285,6 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
 
 
 /**
- * Search for a tunnel among the incoming tunnels
- *
- * @param tid the local id of the tunnel
- *
- * @return tunnel handler, NULL if doesn't exist
- */
-static struct MeshTunnel *
-channel_get_incoming (MESH_ChannelNumber tid)
-{
-  GNUNET_assert (tid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV);
-  return GNUNET_CONTAINER_multihashmap32_get (incoming_tunnels, tid);
-}
-
-
-/**
  * Search for a tunnel among the tunnels for a client
  *
  * @param c the client whose tunnels to search in
@@ -2302,22 +2293,19 @@ channel_get_incoming (MESH_ChannelNumber tid)
  * @return tunnel handler, NULL if doesn't exist
  */
 static struct MeshTunnel *
-channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber tid)
+channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
 {
-  if (0 == (tid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
+  if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TID %X not a local tid\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
     return NULL;
   }
-  if (tid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
   {
-    return channel_get_incoming (tid);
+    return channel_get_incoming (chid);
   }
-  else
-  {
-    return GNUNET_CONTAINER_multihashmap32_get (c->own_tunnels, tid);
-  }
+  return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
 }
 
 
