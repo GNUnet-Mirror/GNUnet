@@ -43,6 +43,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Message for mesh connection creation.
+ * TODO onionify path, add random tunnel ID
  */
 struct GNUNET_MESH_ConnectionCreate
 {
@@ -50,7 +51,7 @@ struct GNUNET_MESH_ConnectionCreate
      * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE
      *
      * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
-     *       path_length * sizeof (struct GNUNET_PeerIdentity)
+     *              path_length * sizeof (struct GNUNET_PeerIdentity)
      */
   struct GNUNET_MessageHeader header;
 
@@ -58,16 +59,6 @@ struct GNUNET_MESH_ConnectionCreate
      * ID of the connection for that tunnel.
      */
   uint32_t cid GNUNET_PACKED;
-
-    /**
-     * Tunnel options (GNUNET_MESH_OPTION_*).
-     */
-  uint32_t opt GNUNET_PACKED;
-
-    /**
-     * Reserved, always 0.
-     */
-  uint32_t reserved GNUNET_PACKED;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
