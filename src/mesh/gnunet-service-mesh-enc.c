@@ -464,8 +464,8 @@ struct MeshConnection
   /**
    * DLL
    */
-  struct MeshConnection next;
-  struct MeshConnection prev;
+  struct MeshConnection *next;
+  struct MeshConnection *prev;
 
   /**
    * Tunnes this belongs to
@@ -550,7 +550,7 @@ struct MeshTunnel2
   /**
    * Next connection number.
    */
-  static uint32_t next_cid;
+  uint32_t next_cid;
 
   /**
    * Channels inside this tunnel.
@@ -561,12 +561,12 @@ struct MeshTunnel2
   /**
    * Channel ID for the next created tunnel.
    */
-  static MESH_ChannelNumber next_chid;
+  MESH_ChannelNumber next_chid;
 
   /**
    * Channel ID for the next incoming tunnel.
    */
-  static MESH_ChannelNumber next_local_chid;
+  MESH_ChannelNumber next_local_chid;
 };
 
 
@@ -1162,6 +1162,7 @@ static void
 send_local_channel_create (struct MeshChannel *ch)
 {
   struct GNUNET_MESH_ChannelMessage msg;
+  struct MeshTunnel2 *t = ch->t;
 
   if (NULL == ch->client)
     return;
@@ -1173,7 +1174,7 @@ send_local_channel_create (struct MeshChannel *ch)
   msg.opt |= GNUNET_YES == ch->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
   msg.opt |= GNUNET_YES == ch->nobuffer ? GNUNET_MESH_OPTION_NOBUFFER : 0;
   msg.opt = htonl (msg.opt);
-  GNUNET_PEER_resolve (ch->id.oid, &msg.peer);
+  GNUNET_PEER_resolve (t->peer->id, &msg.peer);
   GNUNET_SERVER_notification_context_unicast (nc, ch->client->handle,
                                               &msg.header, GNUNET_NO);
 }
@@ -1211,12 +1212,12 @@ send_local_channel_destroy (struct MeshChannel *ch, int fwd)
 /**
  * Build a local ACK message and send it to a local client.
  * 
- * @param t Tunnel on which to send the ACK.
+ * @param ch Channel on which to send the ACK.
  * @param c Client to whom send the ACK.
  * @param is_fwd Set to GNUNET_YES for FWD ACK (dest->owner)
  */
 static void
-send_local_ack (struct MeshTunnel *t,
+send_local_ack (struct MeshChannel *ch,
                 struct MeshClient *c,
                 int is_fwd)
 {
@@ -1224,7 +1225,7 @@ send_local_ack (struct MeshTunnel *t,
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.tunnel_id = htonl (is_fwd ? t->local_tid : t->local_tid_dest);
+  msg.channel_id = htonl (is_fwd ? ch->local_tid : ch->local_tid_dest);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
                                               &msg.header,
@@ -1280,7 +1281,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     " no direct connection to %s\n",
-                    GNUNET_i2s (&id));
+                    GNUNET_i2s (GNUNET_PEER_resolve2 (peer)));
     GNUNET_free (data);
     return;
   }

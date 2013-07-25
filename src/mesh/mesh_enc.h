@@ -198,9 +198,7 @@ struct GNUNET_MESH_LocalMonitor
 
 GNUNET_NETWORK_STRUCT_END
 
-/******************************************************************************/
-/************************        ENUMERATIONS      ****************************/
-/******************************************************************************/
+
 
 /**
  * Check if one pid is bigger than other, accounting for overflow.
