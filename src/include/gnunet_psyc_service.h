@@ -195,6 +195,14 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
  * @param jh Join request handle.
  * @param is_admitted #GNUNET_YES if joining is approved,
  *        #GNUNET_NO if it is disapproved
+ * @param relay_count Number of relays given.
+ * @param relays Array of suggested peers that might be useful relays to use
+ *        when joining the multicast group (essentially a list of peers that
+ *        are already part of the multicast group and might thus be willing
+ *        to help with routing).  If empty, only this local peer (which must
+ *        be the multicast origin) is a good candidate for building the
+ *        multicast tree.  Note that it is unnecessary to specify our own
+ *        peer identity in this array.
  * @param method_name Method name for the message transmitted with the response.
  * @param env Environment containing transient variables for the message, or NULL.
  * @param data_size Size of @a data.
@@ -203,6 +211,8 @@ typedef int (*GNUNET_PSYC_JoinCallback)(void *cls,
 void
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
+                           unsigned int relay_count,
+                           const struct GNUNET_PeerIdentity *relays,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
                            size_t data_size,
