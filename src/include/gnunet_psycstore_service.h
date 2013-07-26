@@ -36,6 +36,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
+#include "gnunet_env_lib.h"
 
 /** 
  * Version number of GNUnet PSYCstore API.
@@ -204,10 +205,17 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
- * Store a state variable.
+ * Modify the channel state.
+ *
+ * Applies the operation to the current channel state.
+ *
+ * An error is returned if there are missing messages containing state
+ * operations before the current one.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_id The channel we are interested in.
+ * @param message_id ID of the message that contains this state modifier.
+ * @param oper Operation to perform.
  * @param name Name of variable.
  * @param value_size Size of @a value.
  * @param value Value of variable.
@@ -217,13 +225,15 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_state_set (struct GNUNET_PSYCSTORE_Handle *h,
-                            const struct GNUNET_HashCode *channel_id,
-                            const char *name,
-                            size_t value_size,
-                            const void *value,
-                            GNUNET_PSYCSTORE_ContinuationCallback ccb,
-                            void *ccb_cls);
+GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
+                               const struct GNUNET_HashCode *channel_id,
+                               uint64_t message_id,
+                               enum GNUNET_ENV_Operator *oper,
+                               const char *name,
+                               size_t value_size,
+                               const void *value,
+                               GNUNET_PSYCSTORE_ContinuationCallback ccb,
+                               void *ccb_cls);
 
 
 /** 
