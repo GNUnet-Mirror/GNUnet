@@ -394,12 +394,15 @@ GNUNET_SOCIAL_home_away (struct GNUNET_SOCIAL_Home *home);
 
 
 /** 
- * Destroy a home, all guests will be ejected.
+ * Leave a home.
+
+ * Invalidates home handle.
+ * Guests will be disconnected until the home is restarted.
  *
- * @param home Home to destroy.
+ * @param home Home to leave.
  */
 void
-GNUNET_SOCIAL_home_destroy (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
 
 /** 
  * Request entry to a place (home hosted by someone else).
