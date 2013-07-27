@@ -130,6 +130,29 @@ enum MeshTunnelState
   MESH_TUNNEL_RECONNECTING
 };
 
+
+/**
+ * All the states a connection can be in.
+ */
+enum MeshConnectionState
+{
+  /**
+   * Uninitialized status, should never appear in operation.
+   */
+  MESH_CONNECTION_NEW,
+
+  /**
+   * Connection created, waiting for ACK.
+   */
+  MESH_CONNECTION_SENT,
+
+  /**
+   * Connection confirmed, ready to carry traffic..
+   */
+  MESH_CONNECTION_READY,
+};
+
+
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
 /******************************************************************************/
@@ -478,6 +501,11 @@ struct MeshConnection
   uint32_t id;
 
   /**
+   * State of the connection
+   */
+  enum MeshConnectionState state;
+
+  /**
    * Path being used for the tunnel.
    */
   struct MeshPeerPath *path;
@@ -658,7 +686,7 @@ mesh_debug (void *cls, int success)
 /**
  * How often to send path keepalives. Paths timeout after 4 missed.
  */
-static struct GNUNET_TIME_Relative refresh_path_time;
+static struct GNUNET_TIME_Relative refresh_connection_time;
 
 /**
  * How often to PUT own ID in the DHT.
@@ -873,7 +901,7 @@ channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid);
 /**
  * Change the tunnel state.
  *
- * @param t Tunnel whose ttate to change.
+ * @param t Tunnel whose state to change.
  * @param state New state.
  */
 static void
@@ -1023,43 +1051,61 @@ void
 __mesh_divider______________________________________________________________();
 
 
+/**
+ * Get string description for tunnel state.
+ *
+ * @param s Tunnel state.
+ *
+ * @return String representation. 
+ */
 static const char *
-GNUNET_MESH_DEBUG_S2S (enum MeshTunnelState s)
+GNUNET_MESH_DEBUG_TS2S (enum MeshTunnelState s)
 {
   static char buf[128];
 
   switch (s)
   {
-    /**
-     * Uninitialized status, should never appear in operation.
-     */
-    case MESH_TUNNEL_NEW: return "MESH_TUNNEL_NEW";
-
-    /**
-     * Path to the peer not known yet
-     */
-    case MESH_TUNNEL_SEARCHING: return "MESH_TUNNEL_SEARCHING";
-
-    /**
-     * Request sent, not yet answered.
-     */
-    case MESH_TUNNEL_WAITING: return "MESH_TUNNEL_WAITING";
-
-    /**
-     * Peer connected and ready to accept data
-     */
-    case MESH_TUNNEL_READY: return "MESH_TUNNEL_READY";
-
-    /**
-     * Peer connected previosly but not responding
-     */
-    case MESH_TUNNEL_RECONNECTING: return "MESH_TUNNEL_RECONNECTING";
+    case MESH_TUNNEL_NEW:
+      return "MESH_TUNNEL_NEW";
+    case MESH_TUNNEL_SEARCHING:
+      return "MESH_TUNNEL_SEARCHING";
+    case MESH_TUNNEL_WAITING:
+      return "MESH_TUNNEL_WAITING";
+    case MESH_TUNNEL_READY:
+      return "MESH_TUNNEL_READY";
+    case MESH_TUNNEL_RECONNECTING:
+      return "MESH_TUNNEL_RECONNECTING";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", s);
       return buf;
   }
 }
+
+
+/**
+ * Get string description for tunnel state.
+ *
+ * @param s Tunnel state.
+ *
+ * @return String representation. 
+ */
+static const char *
+GNUNET_MESH_DEBUG_CS2S (enum MeshTunnelState s)
+{
+  switch (s) 
+  {
+    case MESH_CONNECTION_NEW:
+      return "MESH_CONNECTION_NEW";
+    case MESH_CONNECTION_SENT:
+      return "MESH_CONNECTION_SENT";
+    case MESH_CONNECTION_READY:
+      return "MESH_CONNECTION_READY";
+    default:
+      return "MESH_CONNECTION_STATE_ERROR";
+  }
+}
+
 
 
 /******************************************************************************/
@@ -1664,7 +1710,7 @@ peer_get_path_cost (const struct MeshPeer *peer,
       }
     }
   }
-  return path->length + overlap;
+  return (path->length + overlap) * (path->score * -1);
 }
 
 
@@ -1692,7 +1738,8 @@ peer_get_best_path (const struct MeshPeer *peer)
       if (c->path == p)
         break;
     if (NULL != p)
-      continue;
+      continue; /* If path is in use in a connection, skip it. */
+
     if ((cost = peer_get_path_cost (peer, p)) < best_cost)
     {
       best_cost = cost;
@@ -1725,6 +1772,7 @@ peer_connect (struct MeshPeer *peer)
     {
       c = tunnel_use_path (t, p);
       send_connection_create (t, c);
+      connection_change_state (c, MESH_CONNECTION_SENT);
     }
   }
   else if (NULL == peer->dhtget)
@@ -2342,7 +2390,7 @@ channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid)
 /**
  * Change the tunnel state.
  *
- * @param t Tunnel whose ttate to change.
+ * @param t Tunnel whose state to change.
  * @param state New state.
  */
 static void
@@ -2351,14 +2399,34 @@ tunnel_change_state (MeshTunnel2* t, MeshTunnelState state)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s[%X] state was %s\n",
               GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid,
-              GNUNET_MESH_DEBUG_S2S (t->state));
+              GNUNET_MESH_DEBUG_TS2S (t->state));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s[%X] state is now %s\n",
               GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid,
-              GNUNET_MESH_DEBUG_S2S (state));
+              GNUNET_MESH_DEBUG_TS2S (state));
   t->state = state;
 }
 
+
+/**
+ * Change the tunnel state.
+ *
+ * @param c Connection whose state to change.
+ * @param state New state.
+ */
+static void
+connection_change_state (MeshConnection* c, MeshConnectionState state)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %s[%X] state was %s\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id,
+              GNUNET_MESH_DEBUG_CS2S (c->state));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %s[%X] state is now %s\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id,
+              GNUNET_MESH_DEBUG_CS2S (state));
+  c->state = state;
+}
 
 
 /**
@@ -2423,7 +2491,7 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
     if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
       GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
     c->fwd_maintenance_task =
-        GNUNET_SCHEDULER_add_delayed (refresh_path_time,
+        GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
                                       &connection_fwd_keepalive, c);
   }
   return c;
@@ -2988,13 +3056,13 @@ tunnel_retransmit_message (void *cls,
 /**
  * Send keepalive packets for a tunnel.
  *
- * @param t Tunnel to keep alive..
+ * @param c Connection to keep alive..
  * @param fwd Is this a FWD keepalive? (owner -> dest).
  */
 static void
-tunnel_keepalive (struct MeshTunnel *t, int fwd)
+connection_keepalive (struct MeshConnection *c, int fwd)
 {
-  struct GNUNET_MESH_TunnelKeepAlive *msg;
+  struct GNUNET_MESH_ConnectionKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
   GNUNET_PEER_Id hop;
@@ -3002,11 +3070,11 @@ tunnel_keepalive (struct MeshTunnel *t, int fwd)
 
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE :
                GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE;
-  hop  = fwd ? t->next_hop : t->prev_hop;
+  hop  = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "sending %s keepalive for tunnel %d\n",
-              fwd ? "FWD" : "BCK", t->id.tid);
+              "sending %s keepalive for connection %d\n",
+              fwd ? "FWD" : "BCK", c->id);
 
   msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
   msg->header.size = htons (size);
@@ -3024,7 +3092,7 @@ tunnel_keepalive (struct MeshTunnel *t, int fwd)
  * @param fwd If GNUNET_YES, send CREATE, otherwise send ACK.
  */
 static void
-tunnel_recreate (struct MeshTunnel *t, int fwd)
+connection_recreate (struct MeshTunnel *t, int fwd)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "sending path recreate for tunnel %s[%X]\n",
@@ -3037,28 +3105,30 @@ tunnel_recreate (struct MeshTunnel *t, int fwd)
 
 
 /**
- * Generic tunnel timer management.
- * Depending on the role of the peer in the tunnel will send the
+ * Generic connection timer management.
+ * Depending on the role of the peer in the connection will send the
  * appropriate message (build or keepalive)
  *
- * @param t Tunnel to maintain.
+ * @param c Conncetion to maintain.
  * @param fwd Is FWD?
  */
 static void
-tunnel_maintain (struct MeshTunnel *t, int fwd)
+connection_maintain (struct MeshConnection *c, int fwd)
 {
-  switch (t->state)
+  if (MESH_TUNNEL_SEARCHING == c->t->state)
   {
-    case MESH_TUNNEL_NEW:
+    /* TODO DHT GET with RO_BART */
+    return;
+  }
+  switch (c->state)
+  {
+    case MESH_CONNECTION_NEW:
       GNUNET_break (0);
-    case MESH_TUNNEL_SEARCHING:
-      /* TODO DHT GET with RO_BART */
+    case MESH_CONNECTION_SENT:
+      connection_recreate (t, fwd);
       break;
-    case MESH_TUNNEL_WAITING:
-      tunnel_recreate (t, fwd);
-      break;
-    case MESH_TUNNEL_READY:
-      tunnel_keepalive (t, fwd);
+    case MESH_CONNECTION_READY:
+      connection_keepalive (t, fwd);
       break;
     default:
       break;
@@ -3067,36 +3137,34 @@ tunnel_maintain (struct MeshTunnel *t, int fwd)
 
 
 static void
-tunnel_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel *t = cls;
+  struct MeshConnection *c = cls;
 
-  t->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      NULL == t->owner)
+  c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  tunnel_maintain (t, GNUNET_YES);
-  t->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_path_time,
-                                                          &tunnel_fwd_keepalive,
-                                                          t);
+  connection_keepalive (c, GNUNET_YES);
+  c->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+                                                          &connection_fwd_keepalive,
+                                                          c);
 }
 
 
 static void
-tunnel_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel *t = cls;
+  struct MeshConnection *c = cls;
 
-  t->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
-      NULL == t->client)
+  c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  tunnel_keepalive (t, GNUNET_NO);
-  t->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_path_time,
-                                                          &tunnel_bck_keepalive,
-                                                          t);
+  connection_keepalive (c, GNUNET_NO);
+  c->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+                                                          &connection_bck_keepalive,
+                                                          c);
 }
 
 
@@ -3399,9 +3467,10 @@ tunnel_destroy_iterator (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
     t->client = NULL;
-    if (0 != t->next_hop) { /* destroy could come before a path is used */
-        GNUNET_PEER_change_rc (t->next_hop, -1);
-        t->next_hop = 0;
+    if (0 != t->next_hop) /* destroy could come before a path is used */
+    {
+      GNUNET_PEER_change_rc (t->next_hop, -1);
+      t->next_hop = 0;
     }
   }
   if (c == t->owner)
@@ -3524,13 +3593,13 @@ tunnel_reset_timeout (struct MeshTunnel *t, int fwd)
   if (NULL != c)
   {
     f  = fwd ? &tunnel_fwd_keepalive : &tunnel_bck_keepalive;
-    *ti = GNUNET_SCHEDULER_add_delayed (refresh_path_time, f, t);
+    *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, t);
   }
   else
   {
     f  = fwd ? &tunnel_fwd_timeout : &tunnel_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                            (refresh_path_time, 4),
+                                            (refresh_connection_time, 4),
                                         f, t);
   }
 }
@@ -4910,6 +4979,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   struct MeshPeer *peer = cls;
   struct MeshPeerPath *p;
+  struct MeshConnection *c;
   struct GNUNET_PeerIdentity pi;
   int i;
 
@@ -4921,7 +4991,13 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                            put_path, put_path_length);
   path_add_to_peers (p, GNUNET_NO);
   path_destroy (p);
-  
+
+  /* Count connections */
+  for (c = peer->tunnel->connection_head, i = 0; NULL != c; c = c->next, i++);
+
+  if (3 <= i)
+    return;
+
   if (peer->tunnel->state == MESH_TUNNEL_SEARCHING)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
@@ -5856,8 +5932,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_PATH_TIME",
-                                           &refresh_path_time))
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
+                                           &refresh_connection_time))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _

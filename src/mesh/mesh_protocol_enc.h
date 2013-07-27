@@ -281,19 +281,19 @@ struct GNUNET_MESH_ConnectionDestroy
 struct GNUNET_MESH_ConnectionKeepAlive
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_(FWD|BCK)_KEEPALIVE
+   * Type: GNUNET_MESSAGE_TYPE_MESH_(FWD|BCK)_KEEPALIVE
    */
   struct GNUNET_MessageHeader header;
   
   /**
-   * TID of the tunnel
+   * ID of the connection
    */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t cid GNUNET_PACKED;
   
   /**
-   * OID of the tunnel
+   * ID of the tunnel
    */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode tid;
 };
 
 

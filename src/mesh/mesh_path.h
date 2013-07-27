@@ -63,6 +63,11 @@ struct MeshPeerPath
      */
   unsigned int length;
 
+    /**
+     * Path's score, how reliable is the path.
+     */
+  int score;
+
 };
 
 /******************************************************************************/
