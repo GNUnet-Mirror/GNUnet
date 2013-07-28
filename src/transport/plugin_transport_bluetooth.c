@@ -51,14 +51,14 @@
 /**
  * time out of a mac endpoint
  */
-#define MACENDPOINT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 2)
+#define MACENDPOINT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, 60)
 
 /**
  * We reduce the frequence of HELLO beacons in relation to
  * the number of MAC addresses currently visible to us.
  * This is the multiplication factor.
  */
-#define HELLO_BEACON_SCALING_FACTOR GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define HELLO_BEACON_SCALING_FACTOR GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * Maximum number of messages in defragmentation queue per MAC
