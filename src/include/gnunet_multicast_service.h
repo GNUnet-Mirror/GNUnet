@@ -600,10 +600,11 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  *        possible (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
  *        FIXME: needed? can be optional or moved to a separate function.
+ * @param join_cb Function called to approve / disapprove joining of a peer.
+ * @param test_cb Function multicast can use to test group membership.
  * @param replay_cb Function that can be called to replay messages
  *        this peer already knows from this group; NULL if this
  *        client is unable to support replay.
- * @param test_cb Function multicast can use to test group membership.
  * @param message_cb Function to be called for all message fragments we
  *        receive from the group, excluding those our @a replay_cb
  *        already has.
@@ -618,8 +619,9 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_PeerIdentity *members,
                               const struct GNUNET_MessageHeader *join_request,
                               uint64_t max_known_fragment_id,
-                              GNUNET_MULTICAST_ReplayCallback replay_cb,
+                              GNUNET_MULTICAST_JoinCallback join_cb,
                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
+                              GNUNET_MULITCAST_ReplayCallback replay_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,
                               void *cls);
 

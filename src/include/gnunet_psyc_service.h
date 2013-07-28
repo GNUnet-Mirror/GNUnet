@@ -247,16 +247,16 @@ struct GNUNET_PSYC_Master;
  *        one in the future.
  * @param policy Group policy specifying join and history restrictions.
  *        Used to automate group management decisions.
- * @param method_cb Function to invoke on messages received from members.
+ * @param method Function to invoke on messages received from members.
  * @param join_cb Function to invoke when a peer wants to join.
- * @param cls Closure for the callbacks.
+ * @param cls Closure for @a method and @a join_cb.
  * @return Handle for the channel master, NULL on error.
  */
 struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
                           enum GNUNET_MULTICAST_GroupPolicy policy,
-                          GNUNET_PSYC_Method method_cb,
+                          GNUNET_PSYC_Method method,
                           GNUNET_PSYC_JoinCallback join_cb,
                           void *cls);
 
@@ -351,8 +351,9 @@ struct GNUNET_PSYC_Slave;
  * @param pub_key ECC key that identifies the channel we wish to join.
  * @param origin Peer identity of the origin.
  * @param method Function to invoke on messages received from the channel,
- *                typically at least contains functions for @e join and @e part.
- * @param method_cls Closure for @a method.
+ *        typically at least contains functions for @e join and @e part.
+ * @param join_cb Function to invoke when a peer wants to join.
+ * @param cls Closure for @a method_cb and @a join_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
  * @param data_size Number of bytes in @a data.
@@ -364,7 +365,8 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                         const struct GNUNET_PeerIdentity *origin,
                         GNUNET_PSYC_Method method,
-                        void *method_cls,
+                        GNUNET_PSYC_JoinCallback join_cb,
+                        void *cls,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,
                         size_t data_size,
