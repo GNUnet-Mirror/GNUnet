@@ -239,15 +239,14 @@ struct GNUNET_PSYC_Master;
  *
  * @param cfg Configuration to use (to connect to PSYC service).
  * @param priv_key ECC key that will be used to sign messages for this
- *                 PSYC session; public key is used to identify the
- *                 PSYC channel; FIXME: we'll likely want to use
- *                 NOT the p512 curve here, but a cheaper one in the future
- *                 Note that end-users will usually not use the private key
- *                 directly, but rather look it up in GADS for places
- *                 managed by other users, or select a file with the private
- *                 key(s) when setting up their own channels
- * @param join_policy What is the membership policy of the group?
- *                 Used to automate group management decisions.
+ *        PSYC session. The public key is used to identify the PSYC channel.
+ *        Note that end-users will usually not use the private key directly, but
+ *        rather look it up in GADS for places managed by other users, or select
+ *        a file with the private key(s) when setting up their own channels
+ *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
+ *        one in the future.
+ * @param policy Group policy specifying join and history restrictions.
+ *        Used to automate group management decisions.
  * @param method_cb Function to invoke on messages received from members.
  * @param join_cb Function to invoke when a peer wants to join.
  * @param cls Closure for the callbacks.
@@ -256,7 +255,7 @@ struct GNUNET_PSYC_Master;
 struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                          enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                          enum GNUNET_MULTICAST_GroupPolicy policy,
                           GNUNET_PSYC_Method method_cb,
                           GNUNET_PSYC_JoinCallback join_cb,
                           void *cls);

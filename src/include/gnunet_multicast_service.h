@@ -56,40 +56,62 @@ struct GNUNET_MULTICAST_Member;
 struct GNUNET_MULTICAST_Origin;
 
 /** 
+ * Policy flags for the group.
+ */
+enum GNUNET_MULTICAST_GroupFlags
+{
+  /**
+   * Admission must be confirmed by the origin.
+   */
+  GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL = 1 << 0,
+
+  /**
+   * Past messages are only available to peers who were a member at the time
+   * they were sent to the group.
+   */
+  GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY = 1 << 1,
+};
+
+/** 
  * Group membership policies.
  */
-enum GNUNET_MULTICAST_JoinPolicy
+enum GNUNET_MULTICAST_GroupPolicy
 {
   /**
    * Anyone can join the group, without announcing his presence;
    * all messages are always public and can be distributed freely.
    * Joins may be announced, but this is not required.
    */
-  GNUNET_MULTICAST_JP_ANONYMOUS = 0,
+  GNUNET_MULTICAST_GROUP_ANONYMOUS = 0,
 
   /** 
    * Origin must approve membership to the group, messages must only be
    * distributed to current group members.  This includes the group
    * state as well as transient messages.
    */
-  GNUNET_MULTICAST_JP_PRIVATE = 1,
+  GNUNET_MULTICAST_GROUP_PRIVATE
+    = GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL
+    | GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY,
 
 #if IDEAS_FOR_FUTURE
   /** 
-   * Anyone can freely join the group (no approval required); however,
-   * transient messages must only be distributed to current group
+   * Anyone can freely join the group (no approval required);
+   * however, messages must only be distributed to current group
    * members, so the origin must still acknowledge that the member
    * joined before transient messages are delivered.  As approval is
    * guaranteed, the presistent group state can be synchronized freely
    * immediately, prior to origin confirmation.
    */
-  GNUNET_MULTICAST_JP_OPEN = 2,
+  GNUNET_MULTICAST_GROUP_OPEN
+    = GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY,
 
   /**
    * Origin must approve membership to the group, but past messages can be
    * freely distributed to members.
    */
-  GNUNET_MULTICAST_JP_CLOSED = 3,
+  GNUNET_MULTICAST_GROUP_CLOSED
+    = GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL,
+,
 #endif
 
 };
@@ -281,10 +303,6 @@ struct GNUNET_MULTICAST_JoinHandle;
  * #GNUNET_MULTICAST_JoinCallback.
  *
  * @param jh Join request handle.
- * @param join_response Message to send in response to the joining peer;
- *        can also be used to redirect the peer to a different group at the
- *        application layer; this response is to be transmitted to the
- *        peer that issued the request even if admission is denied.
  * @param is_admitted #GNUNET_YES if joining is approved,
  *        #GNUNET_NO if it is disapproved
  * @param relay_count Number of relays given.
@@ -295,13 +313,17 @@ struct GNUNET_MULTICAST_JoinHandle;
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
+ * @param join_response Message to send in response to the joining peer;
+ *        can also be used to redirect the peer to a different group at the
+ *        application layer; this response is to be transmitted to the
+ *        peer that issued the request even if admission is denied.
  */
 void
 GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
-                                const struct GNUNET_MessageHeader *join_response,
                                 int is_admitted,
                                 unsigned int relay_count,
-                                const struct GNUNET_PeerIdentity *relays);
+                                const struct GNUNET_PeerIdentity *relays,
+                                const struct GNUNET_MessageHeader *join_response);
 
 
 /** 
@@ -312,7 +334,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  *
  * @param cls Closure.
  * @param peer Identity of the peer that wants to join.
- * @param msg Application-dependent join message from the new user
+ * @param join_req Application-dependent join message from the new user
  *        (might, for example, contain a user,
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.).
@@ -320,7 +342,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  */
 typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
                                               const struct GNUNET_PeerIdentity *peer,
-                                              const struct GNUNET_MessageHeader *msg,
+                                              const struct GNUNET_MessageHeader *join_req,
                                               struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
@@ -466,41 +488,41 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * Will advertise the origin in the P2P overlay network under the respective
  * public key so that other peer can find this peer to join it.  Peers that
  * issue GNUNET_MULTICAST_member_join() can then transmit a join request to
- * either an existing group member (if the @a join_policy is permissive) or to
+ * either an existing group member (if the @a policy is permissive) or to
  * the origin.  If the joining is approved, the member is cleared for @e replay
  * and will begin to receive messages transmitted to the group.  If joining is
  * disapproved, the failed candidate will be given a response.  Members in the
  * group can send messages to the origin (one at a time).
  *
  * @param cfg Configuration to use.
- * @param cls Closure for the various callbacks that follow.
  * @param priv_key ECC key that will be used to sign messages for this
- *                 multicast session; public key is used to identify the
- *                 multicast group; FIXME: we'll likely want to use
- *                 NOT the p521 curve here, but a cheaper one in the future.
- * @param join_policy What is the membership policy of the group?
+ *        multicast session; public key is used to identify the multicast group;
+ *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
+ *        one in the future.
+ * @param policy Group policy specifying join and history restrictions.
  * @param last_fragment_id Last fragment ID to continue counting fragments from
- *            when restarting the origin.  0 for a new group.
- * @param replay_cb Function that can be called to replay a message.
- * @param test_cb Function multicast can use to test group membership.
+ *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
+ * @param test_cb Function multicast can use to test group membership.
+ * @param replay_cb Function that can be called to replay a message.
  * @param request_cb Function called with message fragments from group members.
  * @param message_cb Function called with the message fragments sent to the
- *               network by GNUNET_MULTICAST_origin_to_all().  These message
- *               fragments should be stored for answering replay requests later.
+ *        network by GNUNET_MULTICAST_origin_to_all().  These message fragments
+ *        should be stored for answering replay requests later.
+ * @param cls Closure for the various callbacks that follow.
  * @return Handle for the origin, NULL on error.
  */
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               void *cls,
                                const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                               enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                               enum GNUNET_MULTICAST_GroupPolicy policy,
                                uint64_t last_fragment_id,
-                               GNUNET_MULITCAST_ReplayCallback replay_cb,
-                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
                                GNUNET_MULTICAST_JoinCallback join_cb,
+                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
+                               GNUNET_MULITCAST_ReplayCallback replay_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
-                               GNUNET_MULTICAST_MessageCallback message_cb);
+                               GNUNET_MULTICAST_MessageCallback message_cb,
+                               void *cls);
 
 
 /** 
@@ -514,6 +536,9 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  * Send a message to the multicast group.
  *
  * @param origin Handle to the multicast group.
+ * @param message_id Application layer ID for the message.
+ * @param group_generation Group generation of the message.  See GNUNET_MULTICAST_MessageHeader.
+ * @param state_delta State delta of the message.  See GNUNET_MULTICAST_MessageHeader.
  * @param size Number of bytes to transmit.
  * @param cb Function to call to get the message.
  * @param cb_cls Closure for @a cb.
@@ -521,6 +546,9 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  */
 struct GNUNET_MULTICAST_OriginMessageHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
+                                uint64_t message_id,
+                                uint64_t group_generation,
+                                uint64_t state_delta,
                                 size_t size,
                                 GNUNET_CONNECTION_TransmitReadyNotify cb,
                                 void *cb_cls);
@@ -548,7 +576,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  * Join a multicast group.
  *
  * The entity joining is always the local peer.  Further information about the
- * candidate can be provided in the @a join_req message.  If the join fails, the
+ * candidate can be provided in the @a join_request message.  If the join fails, the
  * @a message_cb is invoked with a (failure) response and then with NULL.  If
  * the join succeeds, outstanding (state) messages and ongoing multicast
  * messages will be given to the @a message_cb until the member decides to part
@@ -558,16 +586,20 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  *
  * @param cfg Configuration to use.
  * @param pub_key ECC key that identifies the group.
- * @param origin Peer identity of the origin.
+ * @param origin Peer identity of the origin, to send unicast requests to.
+ * @param relay_count Number of peers in the @a relays array.
+ * @param relays Peer identities of members of the group, which serve as relays
+ *        and can be used to join the group at. and send the @a join_request to.
+ *        If empty, the @a join_request is sent directly to the @a origin.
+ * @param join_request  Application-dependent join request to be passed to the peer
+ *        @a relay (might, for example, contain a user, bind user
+ *        identity/pseudonym to peer identity, application-level message to
+ *        origin, etc.).
  * @param max_known_fragment_id Largest known message fragment ID to the replay
  *        service; all messages with IDs larger than this ID will be replayed if
  *        possible (lower IDs will be considered known and thus only
  *        be replayed upon explicit request).
- * @param max_known_state_fragment_id Largest known message fragment ID with a
- *        non-zero value for the @e state_delta; state messages with
- *        larger IDs than this value will be replayed with high priority
- *        (lower IDs will be considered known and thus only
- *        be replayed upon explicit request).
+ *        FIXME: needed? can be optional or moved to a separate function.
  * @param replay_cb Function that can be called to replay messages
  *        this peer already knows from this group; NULL if this
  *        client is unable to support replay.
@@ -576,23 +608,20 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  *        receive from the group, excluding those our @a replay_cb
  *        already has.
  * @param cls Closure for callbacks.
- * @param join_req Application-dependent join message to be passed to origin
- *        (might, for example, contain a user
- *        bind user identity/pseudonym to peer identity, application-level
- *        message to origin, etc.).
  * @return Handle for the member, NULL on error.
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                               const struct GNUNET_PeerIdentity *origin,
+                              size_t member_count,
+                              const struct GNUNET_PeerIdentity *members,
+                              const struct GNUNET_MessageHeader *join_request,
                               uint64_t max_known_fragment_id,
-                              uint64_t max_known_state_fragment_id,
                               GNUNET_MULTICAST_ReplayCallback replay_cb,
                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,
-                              void *cls,
-                              const struct GNUNET_MessageHeader *join_req);
+                              void *cls);
 
 
 /** 

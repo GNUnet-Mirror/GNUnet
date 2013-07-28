@@ -153,17 +153,17 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
 
 
 /** 
- * Create an ego.
+ * Create an ego using the given private key.
  *
- * Create an ego using the private key from the given file.  If the file does
- * not exist, a fresh key is created.
+ * The identity service is used to manage egos, the
+ * GNUNET_IDENTITY_ego_get_key() function returns an ego's private key that can
+ * be passed into this function.
  *
- * @param keyfile Name of the file with the private key for the ego,
- *                NULL for ephemeral egos.
+ * @param key Private key for the ego, NULL for ephemeral egos.
  * @return Handle to the ego, NULL on error.
  */
 struct GNUNET_SOCIAL_Ego *
-GNUNET_SOCIAL_ego_create (const char *keyfile);
+GNUNET_SOCIAL_ego_create (const struct GNUNET_CRYPTO_EccPrivateKey *key);
 
 
 /** 
@@ -226,9 +226,8 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  *
  * @param cfg Configuration to contact the social service.
  * @param home_keyfile File with the private key for the home,
- *              created if the file does not exist;
- *              pass NULL for ephemeral homes.
- * @param join_policy What is our policy for allowing people in?
+ *        created if the file does not exist; pass NULL for ephemeral homes.
+ * @param policy Policy specifying entry and history restrictions of the home.
  * @param ego Owner of the home (host).
  * @param slicer Slicer to handle guests talking.
  * @param listener_cb Function to handle new nyms that want to enter.
@@ -239,7 +238,7 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
 struct GNUNET_SOCIAL_Home *
 GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const char *home_keyfile,
-                          enum GNUNET_MULTICAST_JoinPolicy join_policy,
+                          enum GNUNET_MULTICAST_GroupPolicy policy,
                           struct GNUNET_SOCIAL_Ego *ego,
                           struct GNUNET_SOCIAL_Slicer *slicer,
                           GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
