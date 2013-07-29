@@ -157,8 +157,9 @@ struct GNUNET_MULTICAST_MessageHeader
   /** 
    * Number of hops this message fragment has taken since the origin.
    *
-   * Helpful to determine shortest paths to the origin for responses among
-   * honest peers; updated at each hop and thus not signed and not secure.
+   * Helpful to determine shortest paths to the origin among honest peers for
+   * unicast requests from members.  Updated at each hop and thus not signed and
+   * not secure.
    */
   uint32_t hop_counter GNUNET_PACKED;
 
@@ -180,11 +181,6 @@ struct GNUNET_MULTICAST_MessageHeader
   uint64_t fragment_id GNUNET_PACKED;
 
   /** 
-   * Number of the message this fragment belongs to.
-   */
-  uint64_t message_id GNUNET_PACKED;
-
-  /** 
    * Number of fragments before the current one that has the same @a message_id.
    *
    * 0 for the first fragment of a message.
@@ -198,7 +194,16 @@ struct GNUNET_MULTICAST_MessageHeader
   uint64_t fragment_offset GNUNET_PACKED;
 
   /** 
+   * Number of the message this fragment belongs to.
+   *
+   * Set in GNUNET_MULTICAST_origin_to_all().
+   */
+  uint64_t message_id GNUNET_PACKED;
+
+  /** 
    * Counter that monotonically increases whenever a member parts the group.
+   *
+   * Set in GNUNET_MULTICAST_origin_to_all().
    *
    * It has significance in case of replay requests: when a member has missed
    * messages and gets a replay request: in this case if the @a group_generation
@@ -206,29 +211,6 @@ struct GNUNET_MULTICAST_MessageHeader
    * @e join or @e part operations happened during the missed messages.
    */
   uint64_t group_generation GNUNET_PACKED;
-
-  /** 
-   * Difference between the current @a fragment_id and the @a fragment_id of the
-   * preceeding non-transient message.
-   * 
-   * Zero for transient messages, @c UINT64_MAX for the first message, or any
-   * other message creating a full state reset by the origin.  By subtracting
-   * @a state_delta from @a fragment_id, it is possible to calculate the message
-   * ID of the preceeding non-transient message and thus quickly traverse all
-   * state changes up to the last full state reset by the origin.  This is
-   * useful as it allows joining clients to quickly reassemble the state while
-   * skipping over transient messages (and doing so without having to trust
-   * intermediaries to do it right, as the indices in the chain are signed).  If
-   * the state chain is getting too long, the origin can choose to originate a
-   * state message with a state_delta of UINT64_MAX, thereby starting a new
-   * chain.  The origin will then have to re-create the full state with state
-   * update messages following the state reset message.
-   *
-   * Open question: needed in multicast, or just have this in PSYC; still might
-   * be useful for selective fetching of messages.  Still, that again should
-   * that not be done by PSYC?
-   */
-  uint64_t state_delta GNUNET_PACKED;
 
   /**
    * Flags for this message fragment.
@@ -242,6 +224,9 @@ struct GNUNET_MULTICAST_MessageHeader
    * join", "peer part", and "group terminated".  Multicast will use those
    * messages to update its list of candidates for content distribution.  All
    * other message types are application-specific.
+   *
+   * FIXME: Needed? There's no message type argument of origin_to_all(),
+   *        PSYC does not need it, but could be added.
    */
   struct GNUNET_MessageHeader body;
 
@@ -536,22 +521,22 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  * Send a message to the multicast group.
  *
  * @param origin Handle to the multicast group.
- * @param message_id Application layer ID for the message.
- * @param group_generation Group generation of the message.  See GNUNET_MULTICAST_MessageHeader.
- * @param state_delta State delta of the message.  See GNUNET_MULTICAST_MessageHeader.
+ * @param message_id Application layer ID for the message.  Opaque to multicast.
+ * @param group_generation Group generation of the message.  Documented in
+ *             GNUNET_MULTICAST_MessageHeader.
  * @param size Number of bytes to transmit.
- * @param cb Function to call to get the message.
- * @param cb_cls Closure for @a cb.
+ *        FIXME: Needed? The end of the message can be flagged with a last fragment flag.
+ * @param notify Function to call to get the message.
+ * @param notify_cls Closure for @a notify.
  * @return NULL on error (i.e. request already pending).
  */
 struct GNUNET_MULTICAST_OriginMessageHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 uint64_t message_id,
                                 uint64_t group_generation,
-                                uint64_t state_delta,
                                 size_t size,
-                                GNUNET_CONNECTION_TransmitReadyNotify cb,
-                                void *cb_cls);
+                                GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                void *notify_cls);
 
 
 /** 
@@ -586,7 +571,9 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  *
  * @param cfg Configuration to use.
  * @param pub_key ECC key that identifies the group.
- * @param origin Peer identity of the origin, to send unicast requests to.
+ * @param origin Peer ID of the origin to send unicast requsets to.  If NULL,
+ *        unicast requests are sent back via multiple hops on the reverse path
+ *        of multicast messages.
  * @param relay_count Number of peers in the @a relays array.
  * @param relays Peer identities of members of the group, which serve as relays
  *        and can be used to join the group at. and send the @a join_request to.
@@ -615,8 +602,8 @@ struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
                               const struct GNUNET_PeerIdentity *origin,
-                              size_t member_count,
-                              const struct GNUNET_PeerIdentity *members,
+                              size_t relay_count,
+                              const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_request,
                               uint64_t max_known_fragment_id,
                               GNUNET_MULTICAST_JoinCallback join_cb,
@@ -685,15 +672,15 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * 
  * @param member Membership handle.
  * @param size Number of bytes we want to send to origin.
- * @param cb Callback to call to get the message.
- * @param cb_cls Closure for @a cb.
+ * @param notify Callback to call to get the message.
+ * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
  */
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
                                    size_t size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify cb,
-                                   void *cb_cls);
+                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                   void *notify_cls);
 
 
 /** 
