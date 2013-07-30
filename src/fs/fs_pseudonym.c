@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet
-     (C) 2003, 2004, 2005, 2006, 2007, 2008, 2013 Christian Grothoff (and other contributing authors)
+     (C) 2003-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -1042,30 +1042,48 @@ GNUNET_FS_pseudonym_destroy (struct GNUNET_FS_PseudonymHandle *ph)
  * S-expression suitable for signature operations.
  *
  * @param purpose data to convert
+ * @param rfc6979 GNUNET_YES if we are to use deterministic ECDSA
  * @return converted s-expression
  */
 static gcry_sexp_t
-data_to_pkcs1 (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose)
+data_to_pkcs1 (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
+	       int rfc6979)
 {
   struct GNUNET_CRYPTO_ShortHashCode hc;
   size_t bufSize;
   gcry_sexp_t data;
+  const char *fmt;
+  int rc;
 
   GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
-#define FORMATSTRING "(4:data(5:flags3:raw)(5:value32:01234567890123456789012345678901))"
-  bufSize = strlen (FORMATSTRING) + 1;
+  if (rfc6979)
   {
-    char buff[bufSize];
-
-    memcpy (buff, FORMATSTRING, bufSize);
-    memcpy (&buff
-	    [bufSize -
-	     strlen
-	     ("01234567890123456789012345678901))")
-	     - 1], &hc, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
+    if (0 != (rc = gcry_sexp_build (&data, NULL,
+				    "(data(flags rfc6979)(hash %s %b))",
+				    "sha256",
+				    sizeof (hc),
+				    &hc)))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
+      return NULL;
+    }
   }
-#undef FORMATSTRING
+  else
+  {
+    fmt = "(data(flags raw)(5:value32:01234567890123456789012345678901))";
+    bufSize = strlen (fmt) + 1;
+    {
+      char buff[bufSize];
+      
+      memcpy (buff, fmt, bufSize);
+      memcpy (&buff
+	      [bufSize -
+	       strlen
+	       ("01234567890123456789012345678901))")
+	       - 1], &hc, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+      GNUNET_assert (0 == gcry_sexp_new (&data, buff, bufSize, 0));
+    }
+  }
   return data;
 }
 
@@ -1159,8 +1177,12 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
   }
   gcry_mpi_release (dh);
   /* prepare data for signing */
-  data = data_to_pkcs1 (purpose);
-  
+  data = data_to_pkcs1 (purpose, NULL != seed);
+  if (NULL == data)
+  {
+    gcry_sexp_release (spriv);
+    return GNUNET_SYSERR;
+  }
   /* get 'k' value from seed, if available */
   if (NULL != seed)
   {
@@ -1170,6 +1192,8 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
 				  size, &size)))
     {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      gcry_sexp_release (spriv);
+      gcry_sexp_release (data);
       return GNUNET_SYSERR;
     }
   }
@@ -1461,8 +1485,12 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
 
 
   /* build s-expression for data that was signed */
-  data = data_to_pkcs1 (purpose);
-
+  data = data_to_pkcs1 (purpose, GNUNET_NO);
+  if (NULL == data)
+  {
+    gcry_sexp_release (sig_sexpr);
+    return GNUNET_SYSERR;
+  }
   /* create context of public key and initialize Q */
   size = sizeof (verification_key->q_x);
   if (0 != (rc = gcry_mpi_scan (&q_x, GCRYMPI_FMT_USG,

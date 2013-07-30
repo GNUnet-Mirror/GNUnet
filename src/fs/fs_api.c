@@ -2725,7 +2725,6 @@ deserialize_download (struct GNUNET_FS_Handle *h,
   }
   if (NULL != parent)
   {
-    GNUNET_abort ();            // for debugging for now - FIXME
     GNUNET_CONTAINER_DLL_insert (parent->child_head, parent->child_tail, dc);
   }
   if (NULL != search)

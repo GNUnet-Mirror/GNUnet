@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001--2012 Christian Grothoff (and other contributing authors)
+     (C) 2001--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -587,7 +587,7 @@ GNUNET_DISK_directory_test (const char *fil, int is_readable)
   }
   if (!S_ISDIR (filestat.st_mode))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "A file already exits with the same name %s\n", fil);
     return GNUNET_NO;
   }

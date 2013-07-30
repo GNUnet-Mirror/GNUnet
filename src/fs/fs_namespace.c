@@ -723,10 +723,10 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 		      sizeof (ub_enc->verification_key),
 		      &query);
   GNUNET_FS_pseudonym_sign (ns->key,
-			 &ub_enc->purpose,
-			 NULL,
-			 &signing_key,
-			 &ub_enc->signature);
+			    &ub_enc->purpose,
+			    NULL,
+			    &signing_key,
+			    &ub_enc->signature);
   psc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishSksContext));
   psc->uri = sks_uri;
   psc->cont = cont;
