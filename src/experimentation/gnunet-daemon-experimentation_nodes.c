@@ -199,7 +199,7 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param buf the buffer to copy to
  * @return bytes passed
  */
-size_t send_request_cb (void *cls, size_t bufsize, void *buf)
+size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct Node *n = cls;
 	struct Experimentation_Request msg;
@@ -234,11 +234,11 @@ size_t send_request_cb (void *cls, size_t bufsize, void *buf)
 
 
 /**
- * Send request
+ * Send request to peer to start add him to to the set of experimentation nodes
  *
  * @param peer the peer to send to
  */
-static void send_request (const struct GNUNET_PeerIdentity *peer)
+static void send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 {
 	struct Node *n;
 	size_t size;
@@ -254,7 +254,7 @@ static void send_request (const struct GNUNET_PeerIdentity *peer)
 	n->capabilities = NONE;
 	n->cth = GNUNET_CORE_notify_transmit_ready(ch, GNUNET_NO, 0,
 								GNUNET_TIME_relative_get_forever_(),
-								peer, size, send_request_cb, n);
+								peer, size, send_experimentation_request_cb, n);
 
 	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (nodes_requested,
 			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
@@ -315,9 +315,8 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 			e->name,
 			GNUNET_i2s (&n->id));
 
-	/* Request experiment */
+	/* Tell the scheduler to add a node with an experiment */
 	GNUNET_EXPERIMENTATION_scheduler_add (n, e);
-
 	counter ++;
 }
 
@@ -571,7 +570,7 @@ void core_connect_handler (void *cls,
 	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_inactive, &peer->hashPubKey))
 		return; /* This peer is known as inactive  */
 
-	send_request (peer);
+	send_experimentation_request (peer);
 
 }
 

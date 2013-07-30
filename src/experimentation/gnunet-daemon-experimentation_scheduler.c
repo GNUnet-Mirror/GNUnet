@@ -74,7 +74,7 @@ request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	GNUNET_STATISTICS_set (GSE_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 }
 
-static void run (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
+static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
 	struct ScheduledExperiment *se = cls;
 	struct GNUNET_TIME_Relative end;
@@ -114,7 +114,7 @@ static void run (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 				se->state = STOPPED;
 				return;	/* End of experiment is reached */
 			}
-		se->task = GNUNET_SCHEDULER_add_delayed (se->e->frequency, &run, se);
+		se->task = GNUNET_SCHEDULER_add_delayed (se->e->frequency, &start_experiment, se);
 	}
 
 	else if (STOPPED == se->state)
@@ -145,9 +145,9 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
 	se->e = e;
 	se->n = n;
 	if (0 == start.rel_value)
-			se->task = GNUNET_SCHEDULER_add_now (&run, se);
+			se->task = GNUNET_SCHEDULER_add_now (&start_experiment, se);
 	else
-			se->task = GNUNET_SCHEDULER_add_delayed (start, &run, se);
+			se->task = GNUNET_SCHEDULER_add_delayed (start, &start_experiment, se);
 
 	GNUNET_CONTAINER_DLL_insert (list_head, list_tail, se);
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Added experiment `%s' for node to be scheduled\n",

@@ -56,6 +56,11 @@ static struct GNUNET_CONTAINER_MultiHashMap *experiments;
 
 uint32_t GSE_my_issuer_count;
 
+/**
+ * Valid experiment issuer for this daemon
+ *
+ * Array Experimentation_Issuer with GSE_my_issuer_count elements
+ */
 struct Experimentation_Issuer *GSE_my_issuer;
 
 

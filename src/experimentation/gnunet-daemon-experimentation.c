@@ -86,15 +86,19 @@ run (void *cls, char *const *args, const char *cfgfile,
 	}
 
 	GNUNET_EXPERIMENTATION_capabilities_start ();
+
 	GNUNET_EXPERIMENTATION_storage_start ();
+
 	if (GNUNET_SYSERR == GNUNET_EXPERIMENTATION_experiments_start ())
 	{
 	  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 	  return;
 	}
-	GNUNET_EXPERIMENTATION_nodes_start ();
-  GNUNET_EXPERIMENTATION_scheduler_start ();
 
+	GNUNET_EXPERIMENTATION_nodes_start ();
+	/*
+  GNUNET_EXPERIMENTATION_scheduler_start ();
+*/
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
 }
@@ -116,7 +120,7 @@ main (int argc, char *const *argv)
 
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "experimentation",
-          										_("GNUnet hostlist server and client"), options,
+          										_("GNUnet experimentation daemon"), options,
                               &run, NULL)) ? 0 : 1;
 }
 
