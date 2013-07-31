@@ -201,16 +201,6 @@ struct GNUNET_MESH_Poll
   struct GNUNET_MessageHeader header;
 
   /**
-   * TID of the tunnel
-   */
-  uint32_t tid GNUNET_PACKED;
-
-  /**
-   * OID of the tunnel
-   */
-  struct GNUNET_PeerIdentity oid;
-
-  /**
    * Last packet sent.
    */
   uint32_t pid GNUNET_PACKED;
