@@ -247,13 +247,7 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 			update_stats (nodes_inactive);
 	}
-
 	n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-	if (NULL != n->cth)
-	{
-		GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
-		n->cth = NULL;
-	}
 }
 
 
@@ -488,11 +482,6 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 				GNUNET_SCHEDULER_cancel (n->timeout_task);
 				n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 			}
-			if (NULL != n->cth)
-			{
-				GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
-				n->cth = NULL;
-			}
 			update_stats (nodes_requested);
 			make_active = GNUNET_YES;
 	}
@@ -597,11 +586,6 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 			{
 				GNUNET_SCHEDULER_cancel (n->timeout_task);
 				n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-			}
-			if (NULL != n->cth)
-			{
-				GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
-				n->cth = NULL;
 			}
 			update_stats (nodes_requested);
 			make_active = GNUNET_YES;
