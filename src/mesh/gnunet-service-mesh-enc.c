@@ -541,9 +541,14 @@ struct MeshConnection
 struct MeshTunnel2
 {
     /**
-     * Tunnel ID (owner, destination)
+     * Endpoint of the tunnel.
      */
   struct MeshPeer *peer;
+
+    /**
+     * ID of the tunnel.
+     */
+  struct GNUNET_HashCode id;
 
     /**
      * State of the tunnel.
@@ -1385,10 +1390,51 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 
 
 /**
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ * Encrypt data with the tunnel key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the encrypted data.
+ * @param src Source of the plaintext.
+ * @param size Size of the plaintext.
+ * @param iv Initialization Vector to use.
+ * @param fwd Is this a fwd message?
+ */
+static void
+tunnel_encrypt (struct MeshTunnel2 *t,
+                void *dst, const void *src,
+                size_t size, uint64_t iv, int fwd)
+{
+  memcpy (dst, src, size);
+}
+
+
+/**
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ * Decrypt data with the tunnel key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the encrypted data.
+ * @param size Size of the encrypted data.
+ * @param iv Initialization Vector to use.
+ * @param fwd Is this a fwd message?
+ */
+static void
+tunnel_decrypt (struct MeshTunnel2 *t,
+                void *dst, const void *src,
+                size_t size, uint64_t iv, int fwd)
+{
+  memcpy (dst, src, size);
+}
+
+
+/**
  * Sends an already built message on a tunnel, properly registering
  * all used resources.
  *
  * @param message Message to send. Function makes a copy of it.
+ *                If message is not hop-by-hop, decrements TTL of copy.
  * @param c Connection on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message?
@@ -1415,13 +1461,21 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs(message->type);
-  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type ||
-    GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == type)
-  {
-    struct GNUNET_MESH_Data *u;
 
-    u = (struct GNUNET_MESH_Data *) data;
-    u->ttl = htonl (ntohl (u->ttl) - 1);
+  if (GNUNET_MESSAGE_TYPE_MESH_FWD == type ||
+      GNUNET_MESSAGE_TYPE_MESH_BCK == type)
+  {
+    struct GNUNET_MESH_Encrypted *msg;
+    uint32_t ttl;
+
+    msg = (struct GNUNET_MESH_Encrypted *) data;
+    ttl = ntohl (msg->ttl);
+    if (0 == ttl)
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    msg->ttl = htonl (ttl - 1);
   }
 
   queue_add (data,
@@ -1434,21 +1488,21 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Sends an already built message on a tunnel, properly registering
- * all used resources.
+ * Sends an already built message on a tunnel, choosing the best connection.
  *
- * @param message Message to send. Function makes a copy of it.
+ * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message?
  */
 static void
-send_prebuilt_message_tunnel (const struct GNUNET_MessageHeader *message,
+send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
                               struct MeshTunnel2 *t,
                               struct MeshChannel *ch,
                               int fwd)
 {
   struct MeshConnection *c;
+  uint16_t type;
 
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
@@ -1456,14 +1510,26 @@ send_prebuilt_message_tunnel (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     return;
   }
+  type = ntohs (msg->header.size);
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      msg->cid = htonl (c->id);
+      msg->tid = t->id;
+      msg->ttl = default_ttl;
+      break;
+    default:
+      GNUNET_break (0);
+  }
 
-  send_prebuilt_message_connection (message, c, ch, fwd);
+  send_prebuilt_message_connection (&msg->header, c, ch, fwd);
 }
 
 
 /**
  * Sends an already built message on a channel, properly registering
- * all used resources.
+ * all used resources and encrypting the message with the tunnel's key.
  *
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.
@@ -1474,7 +1540,22 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
                               struct MeshChannel *ch,
                               int fwd)
 {
-  send_prebuilt_message_tunnel (message, ch->t, ch, fwd);
+  struct GNUNET_MESH_Encrypted *msg;
+  size_t size = ntohs (message->size);
+  char *cbuf[size + sizeof (struct GNUNET_MESH_Encrypted)];
+  uint16_t type;
+  uint64_t iv;
+
+  type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD : GNUNET_MESSAGE_TYPE_MESH_BCK;
+  iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+
+  msg = (struct GNUNET_MESH_Encrypted *) cbuf;
+  msg->header.type = htons (type);
+  msg->header.size = htons (size);
+  msg->iv = GNUNET_htonll (iv);
+  tunnel_encrypt (ch->t, &msg[1], message, size, iv, fwd);
+
+  send_prebuilt_message_tunnel (msg, ch->t, ch, fwd);
 }
 
 
@@ -1741,7 +1822,7 @@ send_core_connection_ack (void *cls, size_t size, void *buf)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
   GNUNET_CRYPTO_hash_xor (&GNUNET_PEER_resolve2 (t->peer->id)->hashPubKey,
                           &my_full_id.hashPubKey,
-                          &msg->tid.hashPubKey);
+                          &msg->tid);
   msg->cid = htonl (c->id);
 
   /* TODO add signature */
@@ -2629,7 +2710,7 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
   msg.header.type = htons (fwd ? GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK :
                                  GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.id = htonl (ch->id);
+  msg.chid = htonl (ch->id);
   msg.mid = htonl (rel->mid_recv - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
@@ -3125,14 +3206,23 @@ channel_retransmit_message (void *cls,
     return;
   }
 
-  /* Search the message to be retransmitted in the outgoing queue */
+  /* Search the message to be retransmitted in the outgoing queue.
+   * Check only the queue for the connection that is going to be used,
+   * if the message is stuck in some other connection's queue we shouldn't
+   * act upon it:
+   * - cancelling it and sending the new one doesn't guarantee it's delivery,
+   *   the old connection could be temporary stalled or the queue happened to
+   *   be long at time of insertion.
+   * - not sending the new one could cause terrible delays the old connection
+   *   is stalled.
+   */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   fwd = (rel == ch->fwd_rel);
   c = tunnel_get_connection(ch->t, fwd);
-  pi  = connection_get_next_hop (c);
+  pi = connection_get_next_hop (c);
   for (q = pi->fc->queue_head; NULL != q; q = q->next)
   {
-    if (ntohs (payload->header.type) == q->type)
+    if (ntohs (payload->header.type) == q->type && ch == q->ch)
     {
       struct GNUNET_MESH_Data *queued_data = q->cls;
 
@@ -3141,31 +3231,28 @@ channel_retransmit_message (void *cls,
     }
   }
 
-  /* Message not found in the queue */
+  /* Message not found in the queue that we are going to use. */
   if (NULL == q)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
-    fc->last_ack_sent++;
-    fc->last_pid_recv++;
-    payload->pid = htonl (fc->last_pid_recv);
-    send_prebuilt_message_channel (&payload->header, hop, t);
+    send_prebuilt_message_channel (&payload->header, ch, ch->fwd_rel == rel);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! STILL IN QUEUE %u\n", copy->mid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
   }
 
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
   rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                                  &tunnel_retransmit_message,
+                                                  &channel_retransmit_message,
                                                   cls);
 }
 
 
 /**
- * Send keepalive packets for a tunnel.
+ * Send keepalive packets for a connection.
  *
  * @param c Connection to keep alive..
  * @param fwd Is this a FWD keepalive? (owner -> dest).
@@ -3176,23 +3263,24 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
   char cbuf[size];
-  GNUNET_PEER_Id hop;
   uint16_t type;
 
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE :
                GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE;
-  hop  = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "sending %s keepalive for connection %d\n",
-              fwd ? "FWD" : "BCK", c->id);
+              "sending %s keepalive for connection %s[%d]\n",
+              fwd ? "FWD" : "BCK",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              c->id);
 
   msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
   msg->header.size = htons (size);
   msg->header.type = htons (type);
-  msg->oid = *(GNUNET_PEER_resolve2 (c->t->id.oid));
-  msg->tid = htonl (c->t->id.tid);
-  send_prebuilt_message (&msg->header, hop, c->t);
+  msg->cid = htonl (c->id);
+  msg->tid = c->t->id;
+
+  send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
 }
 
 

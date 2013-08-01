@@ -26,7 +26,12 @@
 #ifndef MESH_PROTOCOL_ENC_H_
 #define MESH_PROTOCOL_ENC_H_
 
+#include "platform.h"
+#include "gnunet_util_lib.h"
+
 #ifdef __cplusplus
+
+struct GNUNET_MESH_TunnelMessage;
 extern "C"
 {
 #if 0
@@ -61,6 +66,11 @@ struct GNUNET_MESH_ConnectionCreate
   uint32_t cid GNUNET_PACKED;
 
     /**
+     * ID of the tunnel
+     */
+  struct GNUNET_HashCode tid;
+
+    /**
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
@@ -78,18 +88,57 @@ struct GNUNET_MESH_ConnectionACK
   struct GNUNET_MessageHeader header;
 
     /**
-     * CID of the connection
+     * ID of the connection
      */
   uint32_t cid GNUNET_PACKED;
 
     /**
-     * TID of the tunnel
+     * ID of the tunnel
      */
-  struct GNUNET_PeerIdentity tid;
+  struct GNUNET_HashCode tid;
 
   /* TODO: signature */
 };
 
+/**
+ * Tunnel(ed) message.
+ */
+struct GNUNET_MESH_Encrypted
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_{FWD,BCK}
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the connection.
+   */
+  uint32_t cid GNUNET_PACKED;
+
+  /**
+   * ID of the tunnel.
+   */
+  struct GNUNET_HashCode tid;
+
+  /**
+   * ID of the packet (hop by hop).
+   */
+  uint32_t pid GNUNET_PACKED;
+
+  /**
+   * Number of hops to live.
+   */
+  uint32_t ttl GNUNET_PACKED;
+
+  /**
+   * Initialization Vector for payload encryption.
+   */
+  uint64_t iv;
+
+  /**
+   * Encrypted content follows.
+   */
+};
 
 /**
  * Message for mesh data traffic.
@@ -103,29 +152,14 @@ struct GNUNET_MESH_Data
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * Unique ID of the payload message
      */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * Number of hops to live
-     */
-  uint32_t ttl GNUNET_PACKED;
-
-    /**
-     * ID of the packet
-     */
-  uint32_t pid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-  /**
-   * Unique ID of the payload message
-   */
   uint32_t mid GNUNET_PACKED;
+
+    /**
+     * ID of the channel
+     */
+  uint32_t chid GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -146,7 +180,7 @@ struct GNUNET_MESH_DataACK
   /**
    * ID of the channel
    */
-  uint32_t id GNUNET_PACKED;
+  uint32_t chid GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages
@@ -176,12 +210,6 @@ struct GNUNET_MESH_ACK
      * Maximum packet ID authorized.
      */
   uint32_t ack GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
 };
 
 
@@ -213,14 +241,14 @@ struct GNUNET_MESH_ConnectionBroken
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * ID of the connection.
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t cid GNUNET_PACKED;
 
     /**
-     * OID of the tunnel
+     * ID of the tunnel
      */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode tid;
 
     /**
      * ID of the endpoint
@@ -237,7 +265,7 @@ struct GNUNET_MESH_ConnectionBroken
 
 
 /**
- * Message to destroy a tunnel
+ * Message to destroy a connection.
  */
 struct GNUNET_MESH_ConnectionDestroy
 {
@@ -247,21 +275,21 @@ struct GNUNET_MESH_ConnectionDestroy
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * ID of the connection.
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t cid GNUNET_PACKED;
 
     /**
-     * OID of the tunnel
+     * ID of the tunnel
      */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode tid;
 
   /* TODO: signature */
 };
 
 
 /**
- * Message to destroy a tunnel
+ * Message to keep a connection alive.
  */
 struct GNUNET_MESH_ConnectionKeepAlive
 {
@@ -269,12 +297,12 @@ struct GNUNET_MESH_ConnectionKeepAlive
    * Type: GNUNET_MESSAGE_TYPE_MESH_(FWD|BCK)_KEEPALIVE
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * ID of the connection
    */
   uint32_t cid GNUNET_PACKED;
-  
+
   /**
    * ID of the tunnel
    */
