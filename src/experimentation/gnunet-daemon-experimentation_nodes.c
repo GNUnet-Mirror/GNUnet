@@ -71,21 +71,21 @@ struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
 static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 {
 	GNUNET_assert (NULL != m);
-	GNUNET_assert (NULL != GSE_stats);
+	GNUNET_assert (NULL != GED_stats);
 
 	if (m == nodes_active)
 	{
-			GNUNET_STATISTICS_set (GSE_stats, "# nodes active",
+			GNUNET_STATISTICS_set (GED_stats, "# nodes active",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_inactive)
 	{
-			GNUNET_STATISTICS_set (GSE_stats, "# nodes inactive",
+			GNUNET_STATISTICS_set (GED_stats, "# nodes inactive",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_requested)
 	{
-			GNUNET_STATISTICS_set (GSE_stats, "# nodes requested",
+			GNUNET_STATISTICS_set (GED_stats, "# nodes requested",
 					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
 	}
 	else
@@ -763,7 +763,7 @@ void
 GED_nodes_start ()
 {
 	/* Connecting to core service to find partners */
-	ch = GNUNET_CORE_connect (GSE_cfg, NULL,
+	ch = GNUNET_CORE_connect (GED_cfg, NULL,
 														&core_startup_handler,
 														&core_connect_handler,
 													 	&core_disconnect_handler,

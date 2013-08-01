@@ -35,13 +35,13 @@
 /**
  * Statistics handle shared between components
  */
-struct GNUNET_STATISTICS_Handle *GSE_stats;
+struct GNUNET_STATISTICS_Handle *GED_stats;
 
 
 /**
  * Configuration handle shared between components
  */
-struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
+struct GNUNET_CONFIGURATION_Handle *GED_cfg;
 
 
 /**
@@ -77,9 +77,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Experimentation daemon starting ...\n"));
 
-	GSE_cfg = (struct GNUNET_CONFIGURATION_Handle *) cfg;
-	GSE_stats = GNUNET_STATISTICS_create ("experimentation", cfg);
-	if (NULL == GSE_stats)
+	GED_cfg = (struct GNUNET_CONFIGURATION_Handle *) cfg;
+	GED_stats = GNUNET_STATISTICS_create ("experimentation", cfg);
+	if (NULL == GED_stats)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to create statistics!\n"));
 		return;

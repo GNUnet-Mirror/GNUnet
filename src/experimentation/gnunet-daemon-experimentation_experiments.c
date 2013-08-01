@@ -228,7 +228,7 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 			(long long unsigned int) frequency.rel_value / 1000,
 			(long long unsigned int) duration.rel_value / 1000);
 	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  GNUNET_STATISTICS_set (GSE_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
+  GNUNET_STATISTICS_set (GED_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
 
 	return GNUNET_OK;
 }
@@ -367,7 +367,7 @@ GED_experiments_start ()
 	struct GNUNET_HashCode hash;
 
 	/* Load valid issuer */
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "ISSUERS", &issuers))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GED_cfg, "EXPERIMENTATION", "ISSUERS", &issuers))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No valid experiment issuers configured! Set value to peer id of issuer! Exit...\n"));
 			return GNUNET_SYSERR;
@@ -398,9 +398,9 @@ GED_experiments_start ()
 		GED_experiments_stop ();
 		return GNUNET_SYSERR;
   }
-  GNUNET_STATISTICS_set (GSE_stats, "# issuer", GNUNET_CONTAINER_multihashmap_size (valid_issuers), GNUNET_NO);
+  GNUNET_STATISTICS_set (GED_stats, "# issuer", GNUNET_CONTAINER_multihashmap_size (valid_issuers), GNUNET_NO);
 
-	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "PUBKEY", &pubkey))
+	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GED_cfg, "EXPERIMENTATION", "PUBKEY", &pubkey))
 	{
 			if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_key_from_string(pubkey, strlen (pubkey), &pub))
 	  		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid public key `%s'\n"), pubkey);
@@ -425,7 +425,7 @@ GED_experiments_start ()
 
   experiments = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   /* Load experiments from file */
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GSE_cfg, "EXPERIMENTATION", "EXPERIMENTS", &file))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (GED_cfg, "EXPERIMENTATION", "EXPERIMENTS", &file))
 		return GNUNET_OK;
 
 	if (GNUNET_YES != GNUNET_DISK_file_test (file))

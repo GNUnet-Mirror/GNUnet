@@ -49,13 +49,13 @@
 /**
  * Statistics handle shared between components
  */
-extern struct GNUNET_STATISTICS_Handle *GSE_stats;
+extern struct GNUNET_STATISTICS_Handle *GED_stats;
 
 
 /**
  * Configuration handle shared between components
  */
-extern struct GNUNET_CONFIGURATION_Handle *GSE_cfg;
+extern struct GNUNET_CONFIGURATION_Handle *GED_cfg;
 
 
 /**

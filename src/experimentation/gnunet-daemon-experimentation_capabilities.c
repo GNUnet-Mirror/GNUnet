@@ -112,7 +112,7 @@ GED_capabilities_start ()
 
 	/* Plugins configured */
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GSE_cfg,
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GED_cfg,
   			"TRANSPORT", "PLUGINS", &plugins))
   {
   	  for (pos = strtok (plugins, " "); pos != NULL; pos = strtok (NULL, " "))
@@ -139,12 +139,12 @@ GED_capabilities_start ()
 
 	/* IPv6 enabled
 	 * FIXE: just having it not enabled is not really sufficient */
-  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (GSE_cfg,
+  if (GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno (GED_cfg,
   			"NAT", "DISABLEV6"))
   	GSE_node_capabilities |= HAVE_IPV6;
 
   /* Behind NAT */
-  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (GSE_cfg,
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (GED_cfg,
   			"NAT", "BEHIND_NAT"))
   	GSE_node_capabilities |= BEHIND_NAT;
 

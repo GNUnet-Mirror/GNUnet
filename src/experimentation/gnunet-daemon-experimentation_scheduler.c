@@ -93,7 +93,7 @@ request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 
 	GNUNET_assert (experiments_requested > 0);
 	experiments_requested --;
-	GNUNET_STATISTICS_set (GSE_stats, "# experiments requested", experiments_requested, GNUNET_NO);
+	GNUNET_STATISTICS_set (GED_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 }
 
 static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
@@ -127,7 +127,7 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending start request to peer `%s' for `%s'\n",
 					GNUNET_i2s (&se->n->id), se->e->name);
 			experiments_requested ++;
-			GNUNET_STATISTICS_set (GSE_stats, "# experiments requested", experiments_requested, GNUNET_NO);
+			GNUNET_STATISTICS_set (GED_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 			return;
 	}
 	else if (REQUESTED == se->state)
@@ -230,7 +230,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Added experiment `%s' for node to be scheduled\n",
 			e->name, GNUNET_i2s(&se->n->id));
 	experiments_scheduled ++;
-	GNUNET_STATISTICS_set (GSE_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
+	GNUNET_STATISTICS_set (GED_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
 }
 
 /**
@@ -266,7 +266,7 @@ GED_scheduler_stop ()
 			GNUNET_free (cur);
 			GNUNET_assert (experiments_scheduled > 0);
 			experiments_scheduled --;
-			GNUNET_STATISTICS_set (GSE_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
+			GNUNET_STATISTICS_set (GED_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
 	}
 
 	next = running_head;
@@ -282,7 +282,7 @@ GED_scheduler_stop ()
 			GNUNET_free (cur);
 			GNUNET_assert (experiments_running > 0);
 			experiments_running --;
-			GNUNET_STATISTICS_set (GSE_stats, "# experiments running", experiments_running, GNUNET_NO);
+			GNUNET_STATISTICS_set (GED_stats, "# experiments running", experiments_running, GNUNET_NO);
 	}
 }
 
