@@ -364,7 +364,7 @@ struct MeshChannelReliability
     /**
      * Channel this is about.
      */
-  struct MeshChannel *t;
+  struct MeshChannel *ch;
 
     /**
      * DLL of messages sent and not yet ACK'd.
@@ -1183,14 +1183,19 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param c Connection.
  *
- * @return Short ID of the previous peer.
+ * @return Previous peer in the connection.
  */
-GNUNET_PEER_Id
+static struct MeshPeer *
 connection_get_prev_hop (struct MeshConnection *c)
 {
+  GNUNET_PEER_Id id;
+
   if (0 == c->own_pos || c->path->length < 2)
-    return c->path->peers[0];
-  return c->path->peers[c->own_pos - 1];
+    id = c->path->peers[0];
+  else
+    id = c->path->peers[c->own_pos - 1];
+
+  return peer_get_short (id);
 }
 
 
@@ -1199,14 +1204,19 @@ connection_get_prev_hop (struct MeshConnection *c)
  *
  * @param c Connection.
  *
- * @return Short ID of the next peer.
+ * @return Next peer in the connection. 
  */
-GNUNET_PEER_Id
+static struct MeshPeer *
 connection_get_next_hop (struct MeshConnection *c)
 {
+  GNUNET_PEER_Id id;
+
   if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
-    return c->path->peers[c->path->length - 1];
-  return c->path->peers[c->own_pos + 1];
+    id = c->path->peers[c->path->length - 1];
+  else
+    id = c->path->peers[c->own_pos + 1];
+
+  return peer_get_short (id);
 }
 
 
@@ -1346,29 +1356,27 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 {
   struct MeshConnection *c;
   struct MeshConnection *best;
-  struct MeshPeer *neighbor;
-  GNUNET_PEER_Id id;
+  struct MeshPeer *peer;
   unsigned int lowest_q;
 
 
-  neighbor = NULL;
+  peer = NULL;
   best = NULL;
   lowest_q = UINT_MAX;
   for (c = t->connection_head; NULL != c; c = c->next)
   {
     if (MESH_CONNECTION_READY == c->state)
     {
-      id = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-      neighbor = peer_get_short (id);
-      if (NULL == neighbor->fc)
+      peer = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
+      if (NULL == peer->fc)
       {
         GNUNET_break (0);
         continue;
       }
-      if (neighbor->fc->queue_n < lowest_q)
+      if (peer->fc->queue_n < lowest_q)
       {
         best = c;
-        lowest_q = neighbor->fc->queue_n;
+        lowest_q = peer->fc->queue_n;
       }
     }
   }
@@ -1392,13 +1400,11 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
                                   int fwd)
 {
   struct MeshPeer *neighbor;
-  GNUNET_PEER_Id id;
   void *data;
   size_t size;
   uint16_t type;
 
-  id = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-  neighbor = peer_get_short (id);
+  neighbor = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
   if (NULL == neighbor)
   {
     GNUNET_break (0);
@@ -1520,7 +1526,7 @@ send_connection_create (struct MeshConnection *connection)
 
   t = connection->t;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  neighbor = peer_get_short (connection_get_next_hop (connection));
+  neighbor = connection_get_next_hop (connection);
   queue_add (connection,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
              sizeof (struct GNUNET_MESH_ConnectionCreate) +
@@ -1550,7 +1556,7 @@ send_connection_ack (struct MeshConnection *connection)
 
   t = connection->t;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
-  neighbor = peer_get_short (connection_get_prev_hop (connection));
+  neighbor = connection_get_prev_hop (connection);
   queue_add (connection,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
              sizeof (struct GNUNET_MESH_ConnectionACK),
@@ -2660,14 +2666,11 @@ connection_send_ack (struct MeshConnection *c, int fwd)
   struct MeshFlowControl *prev_fc;
   struct MeshPeer *next;
   struct MeshPeer *prev;
-  GNUNET_PEER_Id id;
   uint32_t ack;
   int delta;
 
-  id     = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-  next    = peer_get_short (id);
-  id     = fwd ? connection_get_prev_hop (c) : connection_get_next_hop (c);
-  prev    = peer_get_short (id);
+  next    = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
+  prev    = fwd ? connection_get_prev_hop (c) : connection_get_next_hop (c);
   next_fc = next->fc;
   prev_fc = prev->fc;
 
@@ -2861,19 +2864,25 @@ channel_send_client_data (struct MeshChannel *ch,
 
 /**
  * Send up to 64 buffered messages to the client for in order delivery.
- * 
- * @param t Tunnel on which to empty the message buffer.
+ *
+ * @param ch Channel on which to empty the message buffer.
  * @param c Client to send to.
  * @param rel Reliability structure to corresponding peer.
- *            If rel == t->bck_rel, this is FWD data.
+ *            If rel == bck_rel, this is FWD data.
  */
 static void
-tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
-                                  struct MeshChannelReliability *rel)
+channel_send_client_buffered_data (struct MeshChannel *ch,
+                                   struct MeshClient *c,
+                                   struct MeshChannelReliability *rel)
 {
-  ;
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
+
+  if (GNUNET_NO == ch->reliable)
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
   for (copy = rel->head_recv; NULL != copy; copy = next)
@@ -2886,7 +2895,7 @@ tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " have %u! now expecting %u\n",
                   copy->mid, rel->mid_recv + 1);
-      tunnel_send_client_data (t, msg, (rel == t->bck_rel));
+      channel_send_client_data (ch, msg, (rel == ch->bck_rel));
       rel->mid_recv++;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
       GNUNET_free (copy);
@@ -2907,15 +2916,13 @@ tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
 /**
  * We have received a message out of order, buffer it until we receive
  * the missing one and we can feed the rest to the client.
- * 
- * @param t Tunnel to add to.
+ *
  * @param msg Message to buffer.
  * @param rel Reliability data to the corresponding direction.
  */
 static void
-tunnel_add_buffered_data (struct MeshTunnel *t,
-                           const struct GNUNET_MESH_Data *msg,
-                          struct MeshChannelReliability *rel)
+channel_rel_add_buffered_data (const struct GNUNET_MESH_Data *msg,
+                               struct MeshChannelReliability *rel)
 {
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *prev;
@@ -2958,7 +2965,7 @@ tunnel_add_buffered_data (struct MeshTunnel *t,
  * @param copy Message that is no longer needed: remote peer got it.
  */
 static void
-tunnel_free_reliable_message (struct MeshReliableMessage *copy)
+rel_message_free (struct MeshReliableMessage *copy)
 {
   struct MeshChannelReliability *rel;
   struct GNUNET_TIME_Relative time;
@@ -2990,7 +2997,7 @@ tunnel_free_reliable_message (struct MeshReliableMessage *copy)
  * @param rel Reliability data for a channel.
  */
 static void
-channel_free_reliable_all (struct MeshChannelReliability *rel)
+channel_rel_free_all (struct MeshChannelReliability *rel)
 {
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
@@ -3019,14 +3026,12 @@ channel_free_reliable_all (struct MeshChannelReliability *rel)
 /**
  * Mark future messages as ACK'd.
  *
- * @param t Tunnel whose sent buffer to clean.
- * @param msg DataACK message with a bitfield of future ACK'd messages.
  * @param rel Reliability data.
+ * @param msg DataACK message with a bitfield of future ACK'd messages.
  */
 static void
-tunnel_free_sent_reliable (struct MeshTunnel *t,
-                           const struct GNUNET_MESH_DataACK *msg,
-                           struct MeshChannelReliability *rel)
+channel_rel_free_sent (struct MeshChannelReliability *rel,
+                       const struct GNUNET_MESH_DataACK *msg)
 {
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
@@ -3082,7 +3087,7 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
 
     /* Now copy->mid == target, free it */
     next = copy->next;
-    tunnel_free_reliable_message (copy);
+    rel_message_free (copy);
     copy = next;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable END\n");
@@ -3096,23 +3101,23 @@ tunnel_free_sent_reliable (struct MeshTunnel *t,
  * @param tc TaskContext.
  */
 static void
-tunnel_retransmit_message (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+channel_retransmit_message (void *cls,
+                            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshChannelReliability *rel = cls;
   struct MeshReliableMessage *copy;
-  struct MeshFlowControl *fc;
   struct MeshPeerQueue *q;
   struct MeshPeer *pi;
-  struct MeshTunnel *t;
+  struct MeshChannel *ch;
+  struct MeshConnection *c;
   struct GNUNET_MESH_Data *payload;
-  GNUNET_PEER_Id hop;
+  int fwd;
 
   rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  t = rel->t;
+  ch = rel->ch;
   copy = rel->head_sent;
   if (NULL == copy)
   {
@@ -3122,10 +3127,10 @@ tunnel_retransmit_message (void *cls,
 
   /* Search the message to be retransmitted in the outgoing queue */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
-  hop = rel == t->fwd_rel ? t->next_hop : t->prev_hop;
-  fc  = rel == t->fwd_rel ? &t->prev_fc : &t->next_fc;
-  pi  = peer_get_short (hop);
-  for (q = pi->queue_head; NULL != q; q = q->next)
+  fwd = (rel == ch->fwd_rel);
+  c = tunnel_get_connection(ch->t, fwd);
+  pi  = connection_get_next_hop (c);
+  for (q = pi->fc->queue_head; NULL != q; q = q->next)
   {
     if (ntohs (payload->header.type) == q->type)
     {
@@ -3144,7 +3149,7 @@ tunnel_retransmit_message (void *cls,
     fc->last_ack_sent++;
     fc->last_pid_recv++;
     payload->pid = htonl (fc->last_pid_recv);
-    send_prebuilt_message (&payload->header, hop, t);
+    send_prebuilt_message_channel (&payload->header, hop, t);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   }
   else
@@ -3465,8 +3470,8 @@ channel_destroy (struct MeshChannel *ch)
 
   if (GNUNET_YES == ch->reliable)
   {
-    channel_free_reliable_all (ch->fwd_rel);
-    channel_free_reliable_all (ch->bck_rel);
+        channel_rel_free_all (ch->fwd_rel);
+        channel_rel_free_all (ch->bck_rel);
   }
 
   GNUNET_free (ch);
