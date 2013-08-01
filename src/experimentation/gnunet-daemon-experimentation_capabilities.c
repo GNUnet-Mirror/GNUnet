@@ -57,7 +57,7 @@ uint32_t GSE_node_capabilities;
  * @return the string to print
  */
 const char *
-GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
+GED_capability_to_str (uint32_t cap)
 {
 	char * capstr[] = GNUNET_EXPERIMENTATION_capabilities_string;
 	unsigned index = 0;
@@ -89,7 +89,7 @@ GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap)
  * @return GNUNET_YES or GNUNET_NO
  */
 int
-GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired)
+GED_capabilities_have (uint32_t have, uint32_t desired)
 {
 	if (desired == (desired & have))
 		return GNUNET_YES;
@@ -102,7 +102,7 @@ GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired)
  * Start the detecting capabilities
  */
 void
-GNUNET_EXPERIMENTATION_capabilities_start ()
+GED_capabilities_start ()
 {
 	char *plugins;
   char *pos;
@@ -152,10 +152,10 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
   {
   		index = 1;
   		index = index << c1;
-  		if (GNUNET_YES == GNUNET_EXPERIMENTATION_capabilities_have (GSE_node_capabilities, index))
+  		if (GNUNET_YES == GED_capabilities_have (GSE_node_capabilities, index))
   		{
   			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "We have `%s'\n",
-  					GNUNET_EXPERIMENTATION_capability_to_str(index));
+  					GED_capability_to_str(index));
   		}
   }
 }
@@ -165,7 +165,7 @@ GNUNET_EXPERIMENTATION_capabilities_start ()
  * Stop the detecting capabilities
  */
 void
-GNUNET_EXPERIMENTATION_capabilities_stop ()
+GED_capabilities_stop ()
 {
 
 }

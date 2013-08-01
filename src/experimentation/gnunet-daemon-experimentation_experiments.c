@@ -133,7 +133,7 @@ int create_issuer (void *cls,
  * @return GNUNET_YES or GNUNET_NO
  */
 int
-GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID)
+GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID)
 {
 	if (GNUNET_CONTAINER_multihashmap_contains (valid_issuers, &issuer_ID->hashPubKey))
 		return GNUNET_YES;
@@ -164,7 +164,7 @@ get_it (void *cls,
 
 
 void
-GNUNET_EXPERIMENTATION_experiments_get (struct Node *n,
+GED_experiments_get (struct Node *n,
 																				struct GNUNET_PeerIdentity *issuer,
 																				GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
 {
@@ -355,7 +355,7 @@ load_file (const char * file)
  * Start experiments management
  */
 int
-GNUNET_EXPERIMENTATION_experiments_start ()
+GED_experiments_start ()
 {
 	struct Issuer *i;
 	char *issuers;
@@ -395,7 +395,7 @@ GNUNET_EXPERIMENTATION_experiments_start ()
   if (0 == GNUNET_CONTAINER_multihashmap_size (valid_issuers))
   {
 		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No valid experiment issuers configured! Set value to peer id of issuer! Exit...\n"));
-		GNUNET_EXPERIMENTATION_experiments_stop ();
+		GED_experiments_stop ();
 		return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_set (GSE_stats, "# issuer", GNUNET_CONTAINER_multihashmap_size (valid_issuers), GNUNET_NO);
@@ -444,7 +444,7 @@ GNUNET_EXPERIMENTATION_experiments_start ()
  * Stop experiments management
  */
 void
-GNUNET_EXPERIMENTATION_experiments_stop ()
+GED_experiments_stop ()
 {
 	if (NULL != GSE_my_issuer)
 	{

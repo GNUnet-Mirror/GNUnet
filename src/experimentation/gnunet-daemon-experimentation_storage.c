@@ -36,7 +36,7 @@
  * Start the storage component
  */
 void
-GNUNET_EXPERIMENTATION_storage_start ()
+GED_storage_start ()
 {
 
 }
@@ -46,7 +46,7 @@ GNUNET_EXPERIMENTATION_storage_start ()
  * Stop the storage component
  */
 void
-GNUNET_EXPERIMENTATION_storage_stop ()
+GED_storage_stop ()
 {
 
 }

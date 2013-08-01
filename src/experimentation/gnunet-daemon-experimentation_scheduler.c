@@ -104,7 +104,7 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 
 	se->task = GNUNET_SCHEDULER_NO_TASK;
 
-	if (GNUNET_NO == GNUNET_EXPERIMENTATION_nodes_rts (se->n))
+	if (GNUNET_NO == GED_nodes_rts (se->n))
 	{
 		se->state = BUSY;
 		backoff = GNUNET_TIME_UNIT_SECONDS;
@@ -120,7 +120,7 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 	if (NOT_RUNNING == se->state)
 	{
 			/* Send start message */
-			GNUNET_EXPERIMENTATION_nodes_request_start (se->n, se->e);
+			GED_nodes_request_start (se->n, se->e);
 			se->state = REQUESTED;
 			se->task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &request_timeout, se);
 
@@ -161,29 +161,50 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 }
 
 /**
- * Start the scheduler component
+ * Handle a START message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_handle_start (struct Node *n, struct Experiment *e)
+GED_scheduler_handle_start (struct Node *n, struct Experiment *e)
+{
+
+}
+
+/**
+ * Handle a START_ACL message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
+ */
+void
+GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 {
 
 }
 
 
 /**
- * Start the scheduler component
+ * Handle a STOP message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_handle_stop (struct Node *n, struct Experiment *e)
+GED_scheduler_handle_stop (struct Node *n, struct Experiment *e)
 {
 
 }
 
 /**
- * Start the scheduler component
+ * Add a new experiment for a node
+ *
+ * @param n the node
+ * @param e the experiment
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
+GED_scheduler_add (struct Node *n, struct Experiment *e)
 {
 	struct ScheduledExperiment *se;
 	struct GNUNET_TIME_Relative start;
@@ -216,7 +237,7 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
  * Start the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_start ()
+GED_scheduler_start ()
 {
 	experiments_requested = 0;
 	experiments_scheduled = 0;
@@ -227,7 +248,7 @@ GNUNET_EXPERIMENTATION_scheduler_start ()
  * Stop the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_stop ()
+GED_scheduler_stop ()
 {
 	struct ScheduledExperiment *cur;
 	struct ScheduledExperiment *next;

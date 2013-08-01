@@ -316,7 +316,7 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 			GNUNET_i2s (&n->id));
 
 	/* Tell the scheduler to add a node with an experiment */
-	GNUNET_EXPERIMENTATION_scheduler_add (n, e);
+	GED_scheduler_add (n, e);
 	counter ++;
 }
 
@@ -338,7 +338,7 @@ static void node_make_active (struct Node *n)
 	for (c1 = 0; c1 < n->issuer_count; c1++)
 	{
 
-		GNUNET_EXPERIMENTATION_experiments_get (n, &n->issuer_id[c1], &get_experiments_cb);
+		GED_experiments_get (n, &n->issuer_id[c1], &get_experiments_cb);
 	}
 }
 
@@ -416,7 +416,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 	ic_accepted = 0;
 	for (c1 = 0; c1 < ic; c1++)
 	{
-		if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+		if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			ic_accepted ++;
 	}
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Request from peer `%s' with %u issuers, we accepted %u issuer \n"),
@@ -426,7 +426,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 	c2 = 0;
 	for (c1 = 0; c1 < ic; c1++)
 	{
-			if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+			if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			{
 				n->issuer_id[c2] = rmi[c1].issuer_id;
 				c2 ++;
@@ -524,7 +524,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	ic_accepted = 0;
 	for (c1 = 0; c1 < ic; c1++)
 	{
-		if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+		if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			ic_accepted ++;
 	}
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Response from peer `%s' with %u issuers, we accepted %u issuer \n"),
@@ -534,7 +534,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	c2 = 0;
 	for (c1 = 0; c1 < ic; c1++)
 	{
-			if (GNUNET_YES == GNUNET_EXPERIMENTATION_experiments_issuer_accepted(&rmi[c1].issuer_id))
+			if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			{
 				n->issuer_id[c2] = rmi[c1].issuer_id;
 				c2 ++;
@@ -555,9 +555,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 static void handle_start (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
-fprintf (stderr, "FIXME\n");
-	GNUNET_STATISTICS_update (GSE_stats, "# experiments running",
-			1, GNUNET_NO);
+	GED_scheduler_handle_start (NULL, NULL);
 }
 
 /**
@@ -569,7 +567,7 @@ fprintf (stderr, "FIXME\n");
 static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
-
+	GED_scheduler_handle_start_ack (NULL, NULL);
 }
 
 /**
@@ -581,7 +579,7 @@ static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
 static void handle_stop (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
-
+	GED_scheduler_handle_stop (NULL, NULL);
 }
 
 /**
@@ -712,7 +710,7 @@ size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
 }
 
 int
-GNUNET_EXPERIMENTATION_nodes_rts (struct Node *n)
+GED_nodes_rts (struct Node *n)
 {
 	if (NULL == n->cth)
 		return GNUNET_YES;
@@ -727,7 +725,7 @@ GNUNET_EXPERIMENTATION_nodes_rts (struct Node *n)
  * @return GNUNET_NO if core was busy with sending, GNUNET_OK otherwise
  */
 int
-GNUNET_EXPERIMENTATION_nodes_request_start (struct Node *n, struct Experiment *e)
+GED_nodes_request_start (struct Node *n, struct Experiment *e)
 {
 	struct ExperimentStartCtx *e_ctx;
 
@@ -762,7 +760,7 @@ GNUNET_EXPERIMENTATION_nodes_request_start (struct Node *n, struct Experiment *e
  * Start the nodes management
  */
 void
-GNUNET_EXPERIMENTATION_nodes_start ()
+GED_nodes_start ()
 {
 	/* Connecting to core service to find partners */
 	ch = GNUNET_CORE_connect (GSE_cfg, NULL,
@@ -787,7 +785,7 @@ GNUNET_EXPERIMENTATION_nodes_start ()
  * Stop the nodes management
  */
 void
-GNUNET_EXPERIMENTATION_nodes_stop ()
+GED_nodes_stop ()
 {
   if (NULL != ch)
   {

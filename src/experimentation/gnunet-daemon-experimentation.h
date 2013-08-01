@@ -209,24 +209,24 @@ struct Experimentation_Response
 };
 
 int
-GNUNET_EXPERIMENTATION_nodes_rts (struct Node *n);
+GED_nodes_rts (struct Node *n);
 
 int
-GNUNET_EXPERIMENTATION_nodes_request_start (struct Node *n, struct Experiment *e);
+GED_nodes_request_start (struct Node *n, struct Experiment *e);
 
 
 /**
  * Start the nodes management
  */
 void
-GNUNET_EXPERIMENTATION_nodes_start ();
+GED_nodes_start ();
 
 
 /**
  * Stop the nodes management
  */
 void
-GNUNET_EXPERIMENTATION_nodes_stop ();
+GED_nodes_stop ();
 
 
 /**
@@ -236,7 +236,7 @@ GNUNET_EXPERIMENTATION_nodes_stop ();
  * @return the string to print
  */
 const char *
-GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap);
+GED_capability_to_str (uint32_t cap);
 
 
 /**
@@ -247,21 +247,21 @@ GNUNET_EXPERIMENTATION_capability_to_str (uint32_t cap);
  * @return GNUNET_YES or GNUNET_NO
  */
 int
-GNUNET_EXPERIMENTATION_capabilities_have (uint32_t have, uint32_t desired);
+GED_capabilities_have (uint32_t have, uint32_t desired);
 
 
 /**
  * Start the detecting capabilities
  */
 void
-GNUNET_EXPERIMENTATION_capabilities_start ();
+GED_capabilities_start ();
 
 
 /**
  * Stop the detecting capabilities
  */
 void
-GNUNET_EXPERIMENTATION_capabilities_stop ();
+GED_capabilities_stop ();
 
 
 /**
@@ -270,13 +270,13 @@ GNUNET_EXPERIMENTATION_capabilities_stop ();
  * @return GNUNET_YES or GNUNET_NO
  */
 int
-GNUNET_EXPERIMENTATION_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID);
+GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID);
 
 
 typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n, struct Experiment *e);
 
 void
-GNUNET_EXPERIMENTATION_experiments_get (struct Node *n,
+GED_experiments_get (struct Node *n,
 																				struct GNUNET_PeerIdentity *issuer,
 																				GNUNET_EXPERIMENTATION_experiments_get_cb get_cb);
 
@@ -286,41 +286,69 @@ GNUNET_EXPERIMENTATION_experiments_get (struct Node *n,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_EXPERIMENTATION_experiments_start ();
+GED_experiments_start ();
 
 
 /**
  * Stop experiments management
  */
 void
-GNUNET_EXPERIMENTATION_experiments_stop ();
+GED_experiments_stop ();
+
+/**
+ * Handle a START message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
+ */
+void
+GED_scheduler_handle_start (struct Node *n, struct Experiment *e);
+
+
+/**
+ * Handle a START_ACL message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
+ */
+void
+GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e);
+
+/**
+ * Handle a STOP message from a remote node
+ *
+ * @param n the node
+ * @param e the experiment
+ */
+void
+GED_scheduler_handle_stop (struct Node *n, struct Experiment *e);
 
 
 /**
  * Start the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e);
+GED_scheduler_add (struct Node *n, struct Experiment *e);
 
 /**
  * Start the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_start ();
+GED_scheduler_start ();
 
 
 /**
  * Stop the scheduler component
  */
 void
-GNUNET_EXPERIMENTATION_scheduler_stop ();
+GED_scheduler_stop ();
 
 
 /**
  * Start the storage component
  */
 void
-GNUNET_EXPERIMENTATION_storage_start ();
+GED_storage_start ();
 
 
 
@@ -328,7 +356,7 @@ GNUNET_EXPERIMENTATION_storage_start ();
  * Stop the storage component
  */
 void
-GNUNET_EXPERIMENTATION_storage_stop ();
+GED_storage_stop ();
 
 
 /* end of gnunet-daemon-experimentation.h */
