@@ -399,10 +399,14 @@ GED_scheduler_handle_stop (struct Node *n, struct Experiment *e);
 
 
 /**
- * Start the scheduler component
+ * Add a new experiment for a node
+ *
+ * @param n the node
+ * @param e the experiment
+ * @param outbound are we initiator (GNUNET_YES) or client (GNUNET_NO)?
  */
 void
-GED_scheduler_add (struct Node *n, struct Experiment *e);
+GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound);
 
 /**
  * Start the scheduler component

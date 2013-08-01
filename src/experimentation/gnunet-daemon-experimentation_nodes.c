@@ -317,7 +317,7 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 			GNUNET_i2s (&n->id));
 
 	/* Tell the scheduler to add a node with an experiment */
-	GED_scheduler_add (n, e);
+	GED_scheduler_add (n, e, GNUNET_YES);
 	counter ++;
 }
 
@@ -786,9 +786,6 @@ static void handle_stop (const struct GNUNET_PeerIdentity *peer,
 		GNUNET_break (0);
 		return;
 	}
-
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
-			"STOP", GNUNET_i2s (peer), name);
 	GED_scheduler_handle_stop (n, e);
 }
 
