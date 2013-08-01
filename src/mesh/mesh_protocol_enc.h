@@ -144,14 +144,9 @@ struct GNUNET_MESH_DataACK
   struct GNUNET_MessageHeader header;
 
   /**
-   * TID of the tunnel
+   * ID of the channel
    */
-  uint32_t tid GNUNET_PACKED;
-
-  /**
-   * OID of the tunnel
-   */
-  struct GNUNET_PeerIdentity oid;
+  uint32_t id GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages

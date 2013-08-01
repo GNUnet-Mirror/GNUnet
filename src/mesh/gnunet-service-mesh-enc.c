@@ -1268,7 +1268,7 @@ send_local_channel_create (struct MeshChannel *ch)
     return;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
-  msg.channel_id = htonl (ch->local_tid_dest);
+  msg.channel_id = htonl (ch->id_dest);
   msg.port = htonl (ch->port);
   msg.opt = 0;
   msg.opt |= GNUNET_YES == ch->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
@@ -1452,6 +1452,23 @@ send_prebuilt_message_tunnel (const struct GNUNET_MessageHeader *message,
   }
 
   send_prebuilt_message_connection (message, c, ch, fwd);
+}
+
+
+/**
+ * Sends an already built message on a channel, properly registering
+ * all used resources.
+ *
+ * @param message Message to send. Function makes a copy of it.
+ * @param ch Channel on which this message is transmitted.
+ * @param fwd Is this a fwd message?
+ */
+static void
+send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
+                              struct MeshChannel *ch,
+                              int fwd)
+{
+  send_prebuilt_message_tunnel (message, ch->t, ch, fwd);
 }
 
 
@@ -2479,7 +2496,7 @@ connection_change_state (struct MeshConnection* c,
 
 
 /**
- * Add a client to a tunnel, initializing all needed data structures.
+ * Add a client to a channel, initializing all needed data structures.
  * 
  * @param ch Channel to which add the client.
  * @param c Client which to add to the channel.
@@ -2487,28 +2504,20 @@ connection_change_state (struct MeshConnection* c,
 static void
 channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
 {
-  if (NULL != t->client)
+  if (NULL != ch->client)
   {
     GNUNET_break(0);
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap32_put (c->incoming_tunnels,
-                                           t->local_tid_dest, t,
+      GNUNET_CONTAINER_multihashmap32_put (c->incoming_channels,
+                                           ch->id_dest, ch,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap32_put (incoming_tunnels,
-                                           t->local_tid_dest, t,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  t->client = c;
+  ch->client = c;
 }
 
 
@@ -2527,7 +2536,7 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   if (own_pos > p->length - 1)
   {
     GNUNET_break (0);
-    return;
+    return NULL;
   }
   c->own_pos = own_pos;
   c->path = p;
@@ -2559,7 +2568,7 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
  *         0 if the tunnel remained unaffected.
  */
 static GNUNET_PEER_Id
-tunnel_notify_connection_broken (MeshTunnel2* t,
+tunnel_notify_connection_broken (struct MeshTunnel2* t,
                                  GNUNET_PEER_Id p1, GNUNET_PEER_Id p2)
 {
 //   if (myid != p1 && myid != p2) FIXME
@@ -2601,21 +2610,20 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
   uint64_t mask;
   unsigned int delta;
 
+  if (GNUNET_NO == ch->reliable)
+  {
+    GNUNET_break (0);
+    return;
+  }
   rel = fwd ? ch->bck_rel  : ch->fwd_rel;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "send_data_ack for %u\n",
               rel->mid_recv - 1);
 
-  if (GNUNET_NO == ch->reliable)
-  {
-    GNUNET_break_op (0);
-    return;
-  }
   msg.header.type = htons (fwd ? GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK :
                                  GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.tid = htonl (t->id.tid);
-  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
+  msg.id = htonl (ch->id);
   msg.mid = htonl (rel->mid_recv - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
@@ -2631,7 +2639,7 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures %llX\n", msg.futures);
 
-  send_prebuilt_message_tunnel (&msg.header, t, ch, fwd);
+  send_prebuilt_message_channel (&msg.header, ch, fwd);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
 }
 
