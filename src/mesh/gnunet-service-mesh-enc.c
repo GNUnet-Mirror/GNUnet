@@ -2080,20 +2080,16 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
 /**
  * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
  *
- * @param neighbor Short ID of the neighbor to whom cancel the transmissions.
+ * @param peer Neighbor to whom cancel the transmissions.
  * @param t Tunnel which to cancel.
  */
 static void
-peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel2 *t)
+peer_cancel_queues (struct MeshPeer *peer, struct MeshTunnel2 *t)
 {
-  struct MeshPeer *peer;
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *next;
   struct MeshFlowControl *fc;
 
-  if (0 == neighbor)
-    return; /* Was local peer, 0'ed in tunnel_destroy_iterator */
-  peer = peer_get_short (neighbor);
   if (NULL == peer || NULL == peer->fc)
   {
     GNUNET_break (0);
@@ -2105,13 +2101,9 @@ peer_cancel_queues (GNUNET_PEER_Id neighbor, struct MeshTunnel2 *t)
     next = q->next;
     if (q->peer->tunnel == t)
     {
-      if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == q->type ||
-          GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == q->type)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "peer_cancel_queue %s\n",
-                    GNUNET_MESH_DEBUG_M2S (q->type));
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "peer_cancel_queue %s\n",
+                  GNUNET_MESH_DEBUG_M2S (q->type));
       queue_destroy (q, GNUNET_YES);
     }
   }
@@ -3261,7 +3253,7 @@ static void
 connection_keepalive (struct MeshConnection *c, int fwd)
 {
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
-  size_t size = sizeof (struct GNUNET_MESH_TunnelKeepAlive);
+  size_t size = sizeof (struct GNUNET_MESH_ConnectionKeepAlive);
   char cbuf[size];
   uint16_t type;
 
@@ -3274,7 +3266,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
               GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
               c->id);
 
-  msg = (struct GNUNET_MESH_TunnelKeepAlive *) cbuf;
+  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
   msg->header.size = htons (size);
   msg->header.type = htons (type);
   msg->cid = htonl (c->id);
@@ -3366,56 +3358,71 @@ connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 
 
 /**
- * Send a message to all peers and clients in this tunnel that the tunnel
- * is no longer valid. If some peer or client should not receive the message,
- * should be zero'ed out before calling this function.
+ * Send a message to all peers in this connection that the connection
+ * is no longer valid.
  *
- * @param t The tunnel whose peers and clients to notify.
+ * If some peer should not receive the message, it should be zero'ed out
+ * before calling this function.
+ *
+ * @param c The connection whose peers to notify.
  */
 static void
-tunnel_send_destroy (struct MeshTunnel *t)
+connection_send_destroy (struct MeshConnection *c)
 {
-  struct GNUNET_MESH_TunnelDestroy msg;
-  struct GNUNET_PeerIdentity id;
+  struct GNUNET_MESH_ConnectionDestroy msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);
-  GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-  msg.tid = htonl (t->id.tid);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
+  msg.cid = htonl (c->id);
+  msg.tid = c->t->id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending tunnel destroy for tunnel: %s [%X]\n",
-              GNUNET_i2s (&msg.oid), t->id.tid);
+              "  sending tunnel destroy for connection %s[%X]\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              c->id);
 
-  if (NULL == t->client && 0 != t->next_hop)
+  send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
+  send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_NO);
+}
+
+
+/**
+ * Send a message to all clients in this channel that the channel
+ * is no longer valid.
+ *
+ * If some peer or client should not receive the message,
+ * should be zero'ed out before calling this function.
+ *
+ * @param ch The channel whose clients to notify.
+ */
+static void
+channel_send_destroy (struct MeshChannel *ch)
+{
+  struct GNUNET_MESH_ChannelDestroy msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.chid = htonl (ch->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending tunnel destroy for channel %s:%X\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (ch->t->peer->id)),
+              ch->id);
+
+  send_prebuilt_message_channel (&msg.header, ch, GNUNET_YES);
+  send_prebuilt_message_channel (&msg.header, ch, GNUNET_NO);
+
+  if (NULL != ch->owner)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  child: %u\n", t->next_hop);
-    GNUNET_PEER_resolve (t->next_hop, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  sending forward to %s\n",
-                GNUNET_i2s (&id));
-    send_prebuilt_message (&msg.header, t->next_hop, t);
+    send_local_channel_destroy (t, GNUNET_NO);
   }
-  if (NULL == t->owner && 0 != t->prev_hop)
+  if (NULL != ch->client)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  parent: %u\n", t->prev_hop);
-    GNUNET_PEER_resolve (t->prev_hop, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  sending back to %s\n",
-                GNUNET_i2s (&id));
-    send_prebuilt_message (&msg.header, t->prev_hop, t);
-  }
-  if (NULL != t->owner)
-  {
-    send_local_tunnel_destroy (t, GNUNET_NO);
-  }
-  if (NULL != t->client)
-  {
-    send_local_tunnel_destroy (t, GNUNET_YES);
+    send_local_channel_destroy (t, GNUNET_YES);
   }
 }
 
+
 static int
-tunnel_destroy (struct MeshTunnel *t)
+tunnel_destroy (struct MeshTunnel2 *t)
 {
   struct MeshClient *c;
   struct GNUNET_HashCode hash;
@@ -3558,8 +3565,8 @@ channel_destroy (struct MeshChannel *ch)
 
   if (GNUNET_YES == ch->reliable)
   {
-        channel_rel_free_all (ch->fwd_rel);
-        channel_rel_free_all (ch->bck_rel);
+    channel_rel_free_all (ch->fwd_rel);
+    channel_rel_free_all (ch->bck_rel);
   }
 
   GNUNET_free (ch);
@@ -5848,7 +5855,7 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE,
    sizeof (struct GNUNET_MESH_ChannelMessage)},
   {&handle_local_channel_destroy, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY,
+   GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY,
    sizeof (struct GNUNET_MESH_ChannelMessage)},
   {&handle_local_data, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},

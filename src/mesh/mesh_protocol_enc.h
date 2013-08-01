@@ -140,6 +140,37 @@ struct GNUNET_MESH_Encrypted
    */
 };
 
+struct GNUNET_MESH_ChannelCreate
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the channel
+   */
+  uint32_t chid GNUNET_PACKED;
+
+  /**
+   * Channel options.
+   */
+  uint32_t opt GNUNET_PACKED;
+};
+
+struct GNUNET_MESH_ChannelDestroy
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the channel
+   */
+  uint32_t chid GNUNET_PACKED;
+};
+
 /**
  * Message for mesh data traffic.
  */
