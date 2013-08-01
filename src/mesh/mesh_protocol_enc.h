@@ -175,7 +175,7 @@ struct GNUNET_MESH_ACK
     /**
      * Maximum packet ID authorized.
      */
-  uint32_t pid GNUNET_PACKED;
+  uint32_t ack GNUNET_PACKED;
 
     /**
      * OID of the tunnel

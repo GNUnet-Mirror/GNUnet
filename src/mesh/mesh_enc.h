@@ -135,9 +135,9 @@ struct GNUNET_MESH_LocalData
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the channel
+     * ID of the channel
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
     /**
      * Payload follows
