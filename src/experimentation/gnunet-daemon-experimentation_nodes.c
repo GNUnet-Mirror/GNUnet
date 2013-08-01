@@ -63,6 +63,19 @@ struct GNUNET_CONTAINER_MultiHashMap *nodes_active;
  */
 struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
 
+struct NodeComCtx
+{
+	struct NodeComCtx *prev;
+	struct NodeComCtx *next;
+
+	struct Node *n;
+	struct Experiment *e;
+
+	size_t size;
+	GNUNET_CONNECTION_TransmitReadyNotify notify;
+	void *notify_cls;
+};
+
 
 /**
  * Update statistics
@@ -96,7 +109,7 @@ static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 
 
 /**
- * Clean up nodes
+ * Clean up node
  *
  * @param cls the hashmap to clean up
  * @param key key of the current node
@@ -104,11 +117,13 @@ static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
  * @return always GNUNET_OK
  */
 static int
-cleanup_nodes (void *cls,
+cleanup_node (void *cls,
 							 const struct GNUNET_HashCode * key,
 							 void *value)
 {
 	struct Node *n;
+	struct NodeComCtx *e_cur;
+	struct NodeComCtx *e_next;
 	struct GNUNET_CONTAINER_MultiHashMap *cur = cls;
 
 	n = value;
@@ -117,11 +132,20 @@ cleanup_nodes (void *cls,
 		GNUNET_SCHEDULER_cancel (n->timeout_task);
 		n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	}
+
 	if (NULL != n->cth)
 	{
 		GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
 		n->cth = NULL;
 	}
+	e_next = n->e_req_head;
+	while (NULL != (e_cur = e_next))
+	{
+		e_next = e_cur->next;
+		GNUNET_CONTAINER_DLL_remove (n->e_req_head, n->e_req_tail, e_cur);
+		GNUNET_free (e_cur);
+	}
+
 	GNUNET_free_non_null (n->issuer_id);
 
 	GNUNET_CONTAINER_multihashmap_remove (cur, key, value);
@@ -157,6 +181,47 @@ core_startup_handler (void *cls,
                       const struct GNUNET_PeerIdentity *my_identity)
 {
 	me = *my_identity;
+}
+
+void
+schedule_transmisson (struct NodeComCtx *e_ctx);
+
+size_t
+transmit_read_wrapper (void *cls, size_t bufsize, void *buf)
+{
+	struct NodeComCtx *e_ctx = cls;
+	struct NodeComCtx *next = NULL;
+
+	size_t res = e_ctx->notify (e_ctx->notify_cls, bufsize, buf);
+	e_ctx->n->cth = NULL;
+
+	GNUNET_CONTAINER_DLL_remove (e_ctx->n->e_req_head, e_ctx->n->e_req_tail, e_ctx);
+	next = e_ctx->n->e_req_head;
+	GNUNET_free (e_ctx);
+
+	if (NULL != next)
+	{
+		/* Schedule next message */
+		schedule_transmisson (next);
+	}
+	return res;
+}
+
+void
+schedule_transmisson (struct NodeComCtx *e_ctx)
+{
+	if (NULL != e_ctx->n->cth)
+		return;
+
+	e_ctx->n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT,
+			&e_ctx->n->id, e_ctx->size, transmit_read_wrapper, e_ctx);
+	if (NULL == e_ctx->n->cth)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Cannot send message to peer `%s' for experiment `%s'\n"),
+				GNUNET_i2s(&e_ctx->n->id), e_ctx->e->name);
+		GNUNET_free (e_ctx);
+	}
+
 }
 
 
@@ -242,6 +307,7 @@ size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 static void send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 {
 	struct Node *n;
+	struct NodeComCtx *e_ctx;
 	size_t size;
 	size_t c_issuers;
 
@@ -253,9 +319,15 @@ static void send_experimentation_request (const struct GNUNET_PeerIdentity *peer
 	n->id = *peer;
 	n->timeout_task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &remove_request, n);
 	n->capabilities = NONE;
-	n->cth = GNUNET_CORE_notify_transmit_ready(ch, GNUNET_NO, 0,
-								GNUNET_TIME_relative_get_forever_(),
-								peer, size, send_experimentation_request_cb, n);
+
+	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
+	e_ctx->n = n;
+	e_ctx->e = NULL;
+	e_ctx->size = size;
+	e_ctx->notify = &send_experimentation_request_cb;
+	e_ctx->notify_cls = n;
+	GNUNET_CONTAINER_DLL_insert_tail(n->e_req_head, n->e_req_tail, e_ctx);
+	schedule_transmisson (e_ctx);
 
 	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (nodes_requested,
 			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
@@ -362,7 +434,7 @@ static void node_make_active (struct Node *n)
 	update_stats (nodes_active);
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' as active node\n"),
 			GNUNET_i2s (&n->id));
-
+return;
 	/* Request experiments for this node to start them */
 	for (c1 = 0; c1 < n->issuer_count; c1++)
 	{
@@ -382,6 +454,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 														const struct GNUNET_MessageHeader *message)
 {
 	struct Node *n;
+	struct NodeComCtx *e_ctx;
 	struct Experimentation_Request *rm = (struct Experimentation_Request *) message;
 	struct Experimentation_Issuer *rmi = (struct Experimentation_Issuer *) &rm[1];
 	int c1;
@@ -467,12 +540,15 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 		node_make_active (n);
 
 	/* Send response */
-	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0,
-								GNUNET_TIME_relative_get_forever_(),
-								peer,
-								sizeof (struct Experimentation_Response) +
-								GSE_my_issuer_count * sizeof (struct Experimentation_Issuer),
-								send_response_cb, n);
+	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
+	e_ctx->n = n;
+	e_ctx->e = NULL;
+	e_ctx->size = sizeof (struct Experimentation_Response) + GSE_my_issuer_count * sizeof (struct Experimentation_Issuer);
+	e_ctx->notify = &send_response_cb;
+	e_ctx->notify_cls = n;
+
+	GNUNET_CONTAINER_DLL_insert_tail(n->e_req_head, n->e_req_tail, e_ctx);
+	schedule_transmisson (e_ctx);
 }
 
 
@@ -493,7 +569,6 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	int make_active;
 	unsigned int c1;
 	unsigned int c2;
-
 
 	if (ntohs (message->size) < sizeof (struct Experimentation_Response))
 	{
@@ -642,9 +717,6 @@ static void handle_start (const struct GNUNET_PeerIdentity *peer,
 		return;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
-			"START", GNUNET_i2s (peer), name);
-
 	GED_scheduler_handle_start (n, e);
 }
 
@@ -714,9 +786,6 @@ static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
 		GNUNET_break (0);
 		return;
 	}
-
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
-			"START_ACK", GNUNET_i2s (peer), name);
 	GED_scheduler_handle_start_ack (n, e);
 }
 
@@ -814,7 +883,6 @@ void core_connect_handler (void *cls,
 		return; /* This peer is known as inactive  */
 
 	send_experimentation_request (peer);
-
 }
 
 
@@ -827,12 +895,21 @@ void core_connect_handler (void *cls,
 void core_disconnect_handler (void *cls,
                            const struct GNUNET_PeerIdentity * peer)
 {
+	struct Node *n;
 	if (GNUNET_YES == is_me(peer))
 		return;
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Disconnected from peer %s\n"),
 			GNUNET_i2s (peer));
 
+	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
+		cleanup_node (nodes_requested, &peer->hashPubKey, n);
+
+	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
+		cleanup_node (nodes_active, &peer->hashPubKey, n);
+
+	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
+		cleanup_node (nodes_inactive, &peer->hashPubKey, n);
 }
 
 
@@ -878,29 +955,16 @@ core_receive_handler (void *cls,
 	return GNUNET_OK;
 }
 
-struct ExperimentStartCtx
-{
-	struct ExperimentStartCtx *prev;
-	struct ExperimentStartCtx *next;
-
-	struct Node *n;
-	struct Experiment *e;
-};
 
 size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
 {
-	struct ExperimentStartCtx *e_ctx = cls;
+	struct NodeComCtx *e_ctx = cls;
 	struct GED_start_message *msg;
 	size_t name_len;
 	size_t size;
 
-	GNUNET_CONTAINER_DLL_remove (e_ctx->n->e_req_head, e_ctx->n->e_req_tail, e_ctx);
-	e_ctx->n->cth = NULL;
 	if (NULL == buf)
-	{
-		GNUNET_free (e_ctx);
 		return 0;
-	}
 
 	name_len = strlen(e_ctx->e->name) + 1;
 	size = sizeof (struct GED_start_message) + name_len;
@@ -915,20 +979,62 @@ size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
 
 	memcpy (buf, msg, size);
 	GNUNET_free (msg);
-	GNUNET_free (e_ctx);
+	return size;
+}
+
+size_t node_experiment_start_ack_cb (void *cls, size_t bufsize, void *buf)
+{
+	struct NodeComCtx *e_ctx = cls;
+	struct GED_start_ack_message *msg;
+	size_t name_len;
+	size_t size;
+	if (NULL == buf)
+		return 0;
+
+	name_len = strlen(e_ctx->e->name) + 1;
+	size = sizeof (struct GED_start_ack_message) + name_len;
+
+	msg = GNUNET_malloc (size);
+	msg->header.size = htons (size);
+	msg->header.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START_ACK);
+	msg->issuer = e_ctx->e->issuer;
+	msg->version_nbo = GNUNET_TIME_absolute_hton(e_ctx->e->version);
+	msg->len_name = htonl (name_len);
+	memcpy (&msg[1], e_ctx->e->name, name_len);
+
+	memcpy (buf, msg, size);
+	GNUNET_free (msg);
 	return size;
 }
 
 
-int
-GED_nodes_rts (struct Node *n)
-{
-	if (NULL == n->cth)
-		return GNUNET_YES;
-	else
-		return GNUNET_NO;
 
+
+/**
+ * Confirm a experiment START with a node
+ *
+ * @return GNUNET_NO if core was busy with sending, GNUNET_OK otherwise
+ */
+int
+GED_nodes_send_start_ack (struct Node *n, struct Experiment *e)
+{
+	struct NodeComCtx *e_ctx;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending %s for experiment request to peer `%s' for experiment `%s'\n"),
+			"START_ACK" ,GNUNET_i2s(&n->id), e->name);
+
+	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
+	e_ctx->n = n;
+	e_ctx->e = e;
+	e_ctx->size = sizeof (struct GED_start_ack_message) + strlen (e->name) + 1;
+	e_ctx->notify = &node_experiment_start_ack_cb;
+	e_ctx->notify_cls = e_ctx;
+
+	GNUNET_CONTAINER_DLL_insert_tail (n->e_req_head, n->e_req_tail, e_ctx);
+	schedule_transmisson (e_ctx);
+	return GNUNET_OK;
 }
+
 
 /**
  * Request a experiment to start with a node
@@ -938,31 +1044,20 @@ GED_nodes_rts (struct Node *n)
 int
 GED_nodes_request_start (struct Node *n, struct Experiment *e)
 {
-	struct ExperimentStartCtx *e_ctx;
+	struct NodeComCtx *e_ctx;
 
-	if (NULL != n->cth)
-	{
-		GNUNET_break (0); /* should call rts before */
-		return GNUNET_NO;
-	}
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending %s for experiment request to peer `%s' for experiment `%s'\n"),
+			"START", GNUNET_i2s(&n->id), e->name);
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending experiment start request to peer `%s' for experiment `%s'\n"),
-			GNUNET_i2s(&n->id), e->name);
-
-	e_ctx = GNUNET_malloc (sizeof (struct ExperimentStartCtx));
+	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
 	e_ctx->n = n;
 	e_ctx->e = e;
-	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT, &n->id,
-			sizeof (struct GED_start_message) + strlen (e->name) + 1,
-			&node_experiment_start_cb, e_ctx);
-	if (NULL == n->cth)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Cannot send experiment start request to peer `%s' for experiment `%s'\n"),
-				GNUNET_i2s(&n->id), e->name);
-		GNUNET_free (e_ctx);
-	}
-	GNUNET_CONTAINER_DLL_insert (n->e_req_head, n->e_req_tail, e_ctx);
+	e_ctx->size = sizeof (struct GED_start_message) + strlen (e->name) + 1;
+	e_ctx->notify = &node_experiment_start_cb;
+	e_ctx->notify_cls = e_ctx;
 
+	GNUNET_CONTAINER_DLL_insert_tail (n->e_req_head, n->e_req_tail, e_ctx);
+	schedule_transmisson (e_ctx);
 	return GNUNET_OK;
 }
 
@@ -998,16 +1093,10 @@ GED_nodes_start ()
 void
 GED_nodes_stop ()
 {
-  if (NULL != ch)
-  {
-  		GNUNET_CORE_disconnect (ch);
-  		ch = NULL;
-  }
-
   if (NULL != nodes_requested)
   {
   		GNUNET_CONTAINER_multihashmap_iterate (nodes_requested,
-  																					 &cleanup_nodes,
+  																					 &cleanup_node,
   																					 nodes_requested);
   		update_stats (nodes_requested);
   		GNUNET_CONTAINER_multihashmap_destroy (nodes_requested);
@@ -1017,7 +1106,7 @@ GED_nodes_stop ()
   if (NULL != nodes_active)
   {
   		GNUNET_CONTAINER_multihashmap_iterate (nodes_active,
-  																					 &cleanup_nodes,
+  																					 &cleanup_node,
   																					 nodes_active);
   		update_stats (nodes_active);
   		GNUNET_CONTAINER_multihashmap_destroy (nodes_active);
@@ -1027,11 +1116,16 @@ GED_nodes_stop ()
   if (NULL != nodes_inactive)
   {
   		GNUNET_CONTAINER_multihashmap_iterate (nodes_inactive,
-  																					 &cleanup_nodes,
+  																					 &cleanup_node,
   																					 nodes_inactive);
   		update_stats (nodes_inactive);
   		GNUNET_CONTAINER_multihashmap_destroy (nodes_inactive);
   		nodes_inactive = NULL;
+  }
+  if (NULL != ch)
+  {
+  		GNUNET_CORE_disconnect (ch);
+  		ch = NULL;
   }
 }
 

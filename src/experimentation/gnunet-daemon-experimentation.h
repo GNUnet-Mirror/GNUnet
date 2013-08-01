@@ -166,8 +166,8 @@ struct Node
 	 */
 	struct GNUNET_PeerIdentity *issuer_id;
 
-	struct ExperimentStartCtx *e_req_head;
-	struct ExperimentStartCtx *e_req_tail;
+	struct NodeComCtx *e_req_head;
+	struct NodeComCtx *e_req_tail;
 };
 
 struct Experimentation_Issuer
@@ -273,6 +273,13 @@ GED_nodes_rts (struct Node *n);
 int
 GED_nodes_request_start (struct Node *n, struct Experiment *e);
 
+/**
+ * Confirm a experiment START with a node
+ *
+ * @return GNUNET_NO if core was busy with sending, GNUNET_OK otherwise
+ */
+int
+GED_nodes_send_start_ack (struct Node *n, struct Experiment *e);
 
 /**
  * Start the nodes management

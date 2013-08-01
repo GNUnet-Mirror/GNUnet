@@ -122,27 +122,13 @@ static void run_experiment_inbound (void *cls,const struct GNUNET_SCHEDULER_Task
 	struct ScheduledExperiment *se = cls;
 	struct GNUNET_TIME_Relative start;
 	struct GNUNET_TIME_Relative end;
-	struct GNUNET_TIME_Relative backoff;
 
 	se->task = GNUNET_SCHEDULER_NO_TASK;
-
-	if (GNUNET_NO == GED_nodes_rts (se->n))
-	{
-		se->state = BUSY;
-		backoff = GNUNET_TIME_UNIT_SECONDS;
-		backoff.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying start request to peer `%s' for `%s' for %llu ms\n",
-				GNUNET_i2s (&se->n->id), se->e->name, (unsigned long long) backoff.rel_value);
-		se->task = GNUNET_SCHEDULER_add_delayed (backoff, &run_experiment_inbound, se);
-		return;
-	}
-	else if (BUSY == se->state)
-		se->state = NOT_RUNNING;
 
 	switch (se->state) {
 		case NOT_RUNNING:
 			/* Send START_ACK message */
-			//GED_nodes_request_start (se->n, se->e);
+			GED_nodes_send_start_ack (se->n, se->e);
 			se->state = REQUESTED;
 			/* Schedule to run */
 			start = GNUNET_TIME_absolute_get_remaining(se->e->start);
@@ -152,12 +138,11 @@ static void run_experiment_inbound (void *cls,const struct GNUNET_SCHEDULER_Task
 					se->task = GNUNET_SCHEDULER_add_delayed (start, &run_experiment_inbound, se);
 			break;
 		case REQUESTED:
-			/* Already requested */
-			se->state = STARTED;
 		case STARTED:
+			se->state = STARTED;
 			/* Experiment is running */
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running experiment `%s' peer for `%s'\n",
-					GNUNET_i2s (&se->n->id), se->e->name);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running %s experiment `%s' peer for `%s'\n",
+					"inbound", GNUNET_i2s (&se->n->id), se->e->name);
 
 			/* do work here */
 
@@ -184,23 +169,8 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 {
 	struct ScheduledExperiment *se = cls;
 	struct GNUNET_TIME_Relative end;
-	struct GNUNET_TIME_Relative backoff;
 
 	se->task = GNUNET_SCHEDULER_NO_TASK;
-
-	if (GNUNET_NO == GED_nodes_rts (se->n))
-	{
-		/* Cannot send to peer, core is busy */
-		se->state = BUSY;
-		backoff = GNUNET_TIME_UNIT_SECONDS;
-		backoff.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying start request to peer `%s' for `%s' for %llu ms\n",
-				GNUNET_i2s (&se->n->id), se->e->name, (unsigned long long) backoff.rel_value);
-		se->task = GNUNET_SCHEDULER_add_delayed (backoff, &run_experiment_outbound, se);
-		return;
-	}
-	else if (BUSY == se->state)
-			se->state = NOT_RUNNING; /* Not busy anymore, can send */
 
 	switch (se->state) {
 		case NOT_RUNNING:
@@ -208,9 +178,6 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 			GED_nodes_request_start (se->n, se->e);
 			se->state = REQUESTED;
 			se->task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &request_timeout, se);
-
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending start request to peer `%s' for `%s'\n",
-					GNUNET_i2s (&se->n->id), se->e->name);
 			experiments_requested ++;
 			GNUNET_STATISTICS_set (GED_stats, "# experiments requested", experiments_requested, GNUNET_NO);
 			break;
@@ -220,8 +187,8 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 			break;
 		case STARTED:
 			/* Experiment is running */
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running experiment `%s' peer for `%s'\n",
-					GNUNET_i2s (&se->n->id), se->e->name);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running %s experiment `%s' peer for `%s'\n",
+					"outbound", GNUNET_i2s (&se->n->id), se->e->name);
 
 			/* do work here */
 
@@ -271,7 +238,7 @@ GED_scheduler_handle_start (struct Node *n, struct Experiment *e)
 }
 
 /**
- * Handle a START_ACL message from a remote node
+ * Handle a START_ACK message from a remote node
  *
  * @param n the node
  * @param e the experiment
@@ -281,7 +248,7 @@ GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 {
 	struct ScheduledExperiment *se;
 
-	if (NULL == (se = find_experiment (waiting_in_head, waiting_in_tail, n, e, GNUNET_NO)))
+	if (NULL == (se = find_experiment (waiting_out_head, waiting_out_tail, n, e, GNUNET_YES)))
 	{
 		GNUNET_break (0);
 		return;
@@ -291,7 +258,14 @@ GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 			"START_ACK", GNUNET_i2s (&n->id), e->name);
 
 	if (GNUNET_SCHEDULER_NO_TASK != se->task)
-		GNUNET_SCHEDULER_cancel (se->task);
+		GNUNET_SCHEDULER_cancel (se->task); /* *Canceling timeout task */
+
+	/* Remove from waiting list, add to running list */
+	GNUNET_CONTAINER_DLL_remove (waiting_out_head, waiting_out_tail, se);
+	GNUNET_CONTAINER_DLL_insert (running_out_head, waiting_out_tail, se);
+
+	/* Change state and schedule to run */
+	se->state = STARTED;
 	se->task = GNUNET_SCHEDULER_add_now (&run_experiment_outbound, se);
 }
 
@@ -417,6 +391,38 @@ GED_scheduler_stop ()
 	{
 			next = cur->next;
 			GNUNET_CONTAINER_DLL_remove (running_in_head, running_in_tail, cur);
+			if (GNUNET_SCHEDULER_NO_TASK != cur->task)
+			{
+					GNUNET_SCHEDULER_cancel (cur->task);
+					cur->task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			GNUNET_free (cur);
+			GNUNET_assert (experiments_running > 0);
+			experiments_running --;
+			GNUNET_STATISTICS_set (GED_stats, "# experiments running", experiments_running, GNUNET_NO);
+	}
+
+	next = waiting_out_head;
+	while (NULL != (cur = next))
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (waiting_out_head, waiting_out_tail, cur);
+			if (GNUNET_SCHEDULER_NO_TASK != cur->task)
+			{
+					GNUNET_SCHEDULER_cancel (cur->task);
+					cur->task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			GNUNET_free (cur);
+			GNUNET_assert (experiments_scheduled > 0);
+			experiments_scheduled --;
+			GNUNET_STATISTICS_set (GED_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
+	}
+
+	next = running_out_head;
+	while (NULL != (cur = next))
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (running_out_head, running_out_tail, cur);
 			if (GNUNET_SCHEDULER_NO_TASK != cur->task)
 			{
 					GNUNET_SCHEDULER_cancel (cur->task);
