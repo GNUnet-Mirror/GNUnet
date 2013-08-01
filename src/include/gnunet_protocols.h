@@ -810,12 +810,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
 
 /**
- * Transport data in the mesh (origin->end) unicast
+ * Payload data origin->end.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
 
 /**
- * Transport data back in the mesh (end->origin)
+ * Payload data end->origin.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
@@ -878,9 +878,19 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
+ * Encrypted data going forward.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_FWD                    280
+
+/**
+ * Encrypted data going backwards.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_BCK                    281
+
+/**
  * Payload client <-> service
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA             275
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA             285
 
 /**
  * Local ACK for data.
