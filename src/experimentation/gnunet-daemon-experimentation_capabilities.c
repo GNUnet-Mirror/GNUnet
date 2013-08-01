@@ -154,7 +154,7 @@ GED_capabilities_start ()
   		index = index << c1;
   		if (GNUNET_YES == GED_capabilities_have (GSE_node_capabilities, index))
   		{
-  			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "We have `%s'\n",
+  			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "We have `%s'\n",
   					GED_capability_to_str(index));
   		}
   }

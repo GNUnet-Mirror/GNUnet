@@ -271,7 +271,7 @@ int
 GED_nodes_rts (struct Node *n);
 
 int
-GED_nodes_request_start (struct Node *n, struct Experiment *e);
+GED_nodes_send_start (struct Node *n, struct Experiment *e);
 
 /**
  * Confirm a experiment START with a node

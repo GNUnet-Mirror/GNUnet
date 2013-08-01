@@ -306,7 +306,7 @@ void exp_file_iterator (void *cls,
 	struct GNUNET_TIME_Relative frequency;
 	struct GNUNET_TIME_Relative duration;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing section `%s'\n", name);
+	//GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Parsing section `%s'\n", name);
 
 	/* Mandatory fields */
 
@@ -430,7 +430,7 @@ GED_experiments_start ()
   		}
   		else
   		{
-  				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "`%s' is a valid issuer \n", GNUNET_i2s (&issuer_ID));
+  				GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' is a valid issuer \n", GNUNET_i2s (&issuer_ID));
   				i = GNUNET_malloc (sizeof (struct Issuer));
   				GNUNET_CONTAINER_multihashmap_put (valid_issuers, &issuer_ID.hashPubKey,
   						i, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
@@ -468,7 +468,7 @@ GED_experiments_start ()
 	GSE_my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
 	GSE_my_issuer = GNUNET_malloc (GSE_my_issuer_count * sizeof (struct Experimentation_Issuer));
 	GNUNET_CONTAINER_multihashmap_iterate (valid_issuers, &create_issuer, GSE_my_issuer);
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Daemon has %u issuers\n"), GSE_my_issuer_count);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Daemon has %u issuers\n", GSE_my_issuer_count);
 
   experiments = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   /* Load experiments from file */

@@ -217,7 +217,7 @@ schedule_transmisson (struct NodeComCtx *e_ctx)
 			&e_ctx->n->id, e_ctx->size, transmit_read_wrapper, e_ctx);
 	if (NULL == e_ctx->n->cth)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Cannot send message to peer `%s' for experiment `%s'\n"),
+		GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("Cannot send message to peer `%s' for experiment `%s'\n"),
 				GNUNET_i2s(&e_ctx->n->id), e_ctx->e->name);
 		GNUNET_free (e_ctx);
 	}
@@ -236,7 +236,7 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	struct Node *n = cls;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Removing request for peer %s due to timeout\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing request for peer %s due to timeout\n",
 			GNUNET_i2s (&n->id));
 
 	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &n->id.hashPubKey))
@@ -287,7 +287,7 @@ size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 	memcpy (buf, &msg, msg_size);
 	memcpy (&((char *) buf)[msg_size], GSE_my_issuer, ri_size);
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending request to peer %s\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending experimentation request to peer %s\n"),
 			GNUNET_i2s (&n->id));
 	return total_size;
 }
@@ -361,7 +361,7 @@ size_t send_response_cb (void *cls, size_t bufsize, void *buf)
 	memcpy (buf, &msg, msg_size);
 	memcpy (&((char *) buf)[msg_size], GSE_my_issuer, ri_size);
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending response to peer %s\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending response to peer %s\n",
 			GNUNET_i2s (&n->id));
 	return total_size;
 }
@@ -372,15 +372,7 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 {
 	static int counter = 0;
 	if (NULL == e)
-	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added %u experiments for peer %s\n"),
-					counter, GNUNET_i2s (&n->id));
-			return;
-	}
-
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting experiment `%s' with peer %s\n"),
-			e->name,
-			GNUNET_i2s (&n->id));
+			return; /* Done */
 
 	/* Tell the scheduler to add a node with an experiment */
 	GED_scheduler_add (n, e, GNUNET_YES);
@@ -509,7 +501,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 		if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			ic_accepted ++;
 	}
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Request from peer `%s' with %u issuers, we accepted %u issuer \n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request from peer `%s' with %u issuers, we accepted %u issuer \n",
 			GNUNET_i2s (peer), ic, ic_accepted);
 	GNUNET_free_non_null (n->issuer_id);
 	n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_PeerIdentity));
@@ -573,12 +565,12 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	make_active = GNUNET_NO;
 	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 					"RESPONSE", "active", GNUNET_i2s (peer));
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 					"RESPONSE", "requested", GNUNET_i2s (peer));
 			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
@@ -591,7 +583,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from peer `%s'\n",
 					"RESPONSE", "inactive", GNUNET_i2s (peer));
 			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
 			update_stats (nodes_inactive);
@@ -599,7 +591,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	}
 	else
 	{
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received %s from %s peer `%s'\n"),
+			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 					"RESPONSE", "unknown", GNUNET_i2s (peer));
 			return;
 	}
@@ -614,7 +606,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 		if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
 			ic_accepted ++;
 	}
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Response from peer `%s' with %u issuers, we accepted %u issuer \n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Response from peer `%s' with %u issuers, we accepted %u issuer \n",
 			GNUNET_i2s (peer), ic, ic_accepted);
 	GNUNET_free_non_null (n->issuer_id);
 	n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_PeerIdentity));
@@ -1003,7 +995,8 @@ GED_nodes_send_start_ack (struct Node *n, struct Experiment *e)
 {
 	struct NodeComCtx *e_ctx;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending %s for experiment request to peer `%s' for experiment `%s'\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			"Sending %s for experiment request to peer `%s' for experiment `%s'\n",
 			"START_ACK" ,GNUNET_i2s(&n->id), e->name);
 
 	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
@@ -1025,11 +1018,12 @@ GED_nodes_send_start_ack (struct Node *n, struct Experiment *e)
  * @return GNUNET_NO if core was busy with sending, GNUNET_OK otherwise
  */
 int
-GED_nodes_request_start (struct Node *n, struct Experiment *e)
+GED_nodes_send_start (struct Node *n, struct Experiment *e)
 {
 	struct NodeComCtx *e_ctx;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending %s for experiment request to peer `%s' for experiment `%s'\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+			"Sending %s for experiment request to peer `%s' for experiment `%s'\n",
 			"START", GNUNET_i2s(&n->id), e->name);
 
 	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));

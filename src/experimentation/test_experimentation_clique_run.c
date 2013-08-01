@@ -91,7 +91,8 @@ struct ExperimentationPeer
   unsigned int inactive_nodes;
   unsigned int issuer;
   unsigned int experiments_active;
-  unsigned int experiments_running;
+  unsigned int experiments_outbound_running;
+  unsigned int experiments_inbound_running;
 };
 
 
@@ -162,21 +163,31 @@ controller_event_cb (void *cls,
 static void
 check_end ()
 {
-
-	static int last_experiments_value = 0;
+	static int last_in_experiments_value = 0;
+	static int last_out_experiments_value = 0;
   unsigned int peer;
-  unsigned int t_running_experiments = 0;
+  unsigned int t_running_outbound_experiments = 0;
+  unsigned int t_running_inbound_experiments = 0;
 
 	for (peer = 0; peer < NUM_PEERS; peer++)
 	{
-		t_running_experiments += ph[peer].experiments_running;
+		t_running_outbound_experiments += ph[peer].experiments_outbound_running;
+		t_running_inbound_experiments += ph[peer].experiments_inbound_running;
+
 	}
 
-	if (last_experiments_value < t_running_experiments)
+	//fprintf (stderr, "%u %u \n", t_running_outbound_experiments, t_running_inbound_experiments);
+	if (last_in_experiments_value < t_running_inbound_experiments)
 		fprintf (stderr, ".");
-	last_experiments_value = t_running_experiments;
+	last_in_experiments_value = t_running_inbound_experiments;
+	if (last_out_experiments_value < t_running_outbound_experiments)
+		fprintf (stderr, ".");
+	last_out_experiments_value = t_running_outbound_experiments;
 
-	if (t_running_experiments == (NUM_PEERS * NUM_EXPERIMENTS))
+
+
+	if ((t_running_inbound_experiments == (NUM_PEERS * NUM_EXPERIMENTS)) &&
+			(t_running_outbound_experiments == (NUM_PEERS * NUM_EXPERIMENTS)))
 	{
 			fprintf (stderr, "\n");
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "All %u peers are running experiments\n", NUM_PEERS);
@@ -207,10 +218,16 @@ stat_iterator (void *cls, const char *subsystem, const char *name,
 			peer->experiments_active = value;
 	}
 
-	if (0 == strcmp (name, "# experiments running"))
+	if (0 == strcmp (name, "# experiments outbound running"))
 	{
-			peer->experiments_running = value;
+			peer->experiments_outbound_running = value;
 	}
+
+	if (0 == strcmp (name, "# experiments inbound running"))
+	{
+			peer->experiments_inbound_running = value;
+	}
+
 
 	check_end ();
 
@@ -244,7 +261,10 @@ stat_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                 (peer->sh, "experimentation", "# experiments active",
                  stat_iterator, peer));
   GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
-                (peer->sh, "experimentation", "# experiments running",
+                (peer->sh, "experimentation", "# experiments outbound running",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch
+                (peer->sh, "experimentation", "# experiments inbound running",
                  stat_iterator, peer));
 }
 
@@ -283,7 +303,10 @@ stat_disconnect_adapter (void *cls, void *op_result)
                 (peer->sh, "experimentation", "# experiments active",
                  stat_iterator, peer));
   GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
-                (peer->sh, "experimentation", "# experiments running",
+                (peer->sh, "experimentation", "# experiments outbound running",
+                 stat_iterator, peer));
+  GNUNET_break (GNUNET_OK == GNUNET_STATISTICS_watch_cancel
+                (peer->sh, "experimentation", "# experiments inbound running",
                  stat_iterator, peer));
   GNUNET_STATISTICS_destroy (op_result, GNUNET_NO);
   peer->sh = NULL;

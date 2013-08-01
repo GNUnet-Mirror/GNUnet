@@ -82,7 +82,8 @@ struct ScheduledExperiment *running_out_tail;
 
 
 static unsigned int experiments_scheduled;
-static unsigned int experiments_running;
+static unsigned int experiments_outbound_running;
+static unsigned int experiments_inbound_running;
 static unsigned int experiments_requested;
 
 
@@ -105,7 +106,7 @@ request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	struct ScheduledExperiment *se = cls;
 	se->task = GNUNET_SCHEDULER_NO_TASK;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer `%s' did not respond to request for experiment `%s'\n",
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Peer `%s' did not respond to request for experiment `%s'\n"),
 			GNUNET_i2s (&se->n->id), se->e->name);
 
 	GNUNET_CONTAINER_DLL_remove (waiting_out_head, waiting_out_tail, se);
@@ -138,8 +139,14 @@ static void run_experiment_inbound (void *cls,const struct GNUNET_SCHEDULER_Task
 					se->task = GNUNET_SCHEDULER_add_delayed (start, &run_experiment_inbound, se);
 			break;
 		case REQUESTED:
-		case STARTED:
+			experiments_inbound_running ++;
+			GNUNET_STATISTICS_set (GED_stats, "# experiments inbound running", experiments_inbound_running, GNUNET_NO);
+			GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting inbound experiment `%s' with peer `%s'\n"),
+					se->e->name, GNUNET_i2s (&se->n->id));
 			se->state = STARTED;
+			se->task = GNUNET_SCHEDULER_add_now (&run_experiment_inbound, se);
+			break;
+		case STARTED:
 			/* Experiment is running */
 			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running %s experiment `%s' peer for `%s'\n",
 					"inbound", GNUNET_i2s (&se->n->id), se->e->name);
@@ -175,7 +182,7 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 	switch (se->state) {
 		case NOT_RUNNING:
 			/* Send START message */
-			GED_nodes_request_start (se->n, se->e);
+			GED_nodes_send_start (se->n, se->e);
 			se->state = REQUESTED;
 			se->task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &request_timeout, se);
 			experiments_requested ++;
@@ -225,13 +232,11 @@ GED_scheduler_handle_start (struct Node *n, struct Experiment *e)
 	if ((NULL != (se = find_experiment (waiting_in_head, waiting_in_tail, n, e, GNUNET_NO))) ||
 		 (NULL != (se = find_experiment (running_in_head, running_in_tail, n, e, GNUNET_NO))))
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received duplicate %s message from peer %s for experiment `%s'\n"),
-				"START", GNUNET_i2s (&n->id), e->name);
 		GNUNET_break_op (0);
 		return;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s message from peer %s for experiment `%s'\n",
 			"START", GNUNET_i2s (&n->id), e->name);
 
 	GED_scheduler_add (n, e, GNUNET_NO);
@@ -254,7 +259,7 @@ GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 		return;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for requested experiment `%s'\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s message from peer %s for requested experiment `%s'\n",
 			"START_ACK", GNUNET_i2s (&n->id), e->name);
 
 	if (GNUNET_SCHEDULER_NO_TASK != se->task)
@@ -268,6 +273,10 @@ GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 	GNUNET_CONTAINER_DLL_insert (running_out_head, running_out_tail, se);
 
 	/* Change state and schedule to run */
+	experiments_outbound_running ++;
+	GNUNET_STATISTICS_set (GED_stats, "# experiments outbound running", experiments_outbound_running, GNUNET_NO);
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting outbound experiment `%s' with peer `%s'\n"),
+			e->name, GNUNET_i2s (&n->id));
 	se->state = STARTED;
 	se->task = GNUNET_SCHEDULER_add_now (&run_experiment_outbound, se);
 }
@@ -284,18 +293,18 @@ GED_scheduler_handle_stop (struct Node *n, struct Experiment *e)
 {
 	struct ScheduledExperiment *se;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Received %s message from peer %s for experiment `%s'\n"),
 			"STOP", GNUNET_i2s (&n->id), e->name);
 
 	if (NULL != (se = find_experiment (waiting_in_head, waiting_in_tail, n, e, GNUNET_NO)))
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for waiting experiment `%s'\n"),
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s message from peer %s for waiting experiment `%s'\n",
 				"STOP", GNUNET_i2s (&n->id), e->name);
 	}
 
 	if (NULL != (se = find_experiment (running_in_head, running_in_tail, n, e, GNUNET_NO)))
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for running experiment `%s'\n"),
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s message from peer %s for running experiment `%s'\n",
 				"STOP", GNUNET_i2s (&n->id), e->name);
 	}
 
@@ -346,7 +355,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound)
 		GNUNET_CONTAINER_DLL_insert (waiting_in_head, waiting_in_tail, se);
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Added %s experiment `%s' for node to be scheduled\n",
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Added %s experiment `%s' for node to be scheduled\n",
 			(GNUNET_YES == outbound) ? "outbound" : "inbound", e->name, GNUNET_i2s(&se->n->id));
 	experiments_scheduled ++;
 	GNUNET_STATISTICS_set (GED_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
@@ -400,9 +409,9 @@ GED_scheduler_stop ()
 					cur->task = GNUNET_SCHEDULER_NO_TASK;
 			}
 			GNUNET_free (cur);
-			GNUNET_assert (experiments_running > 0);
-			experiments_running --;
-			GNUNET_STATISTICS_set (GED_stats, "# experiments running", experiments_running, GNUNET_NO);
+			GNUNET_assert (experiments_outbound_running > 0);
+			experiments_inbound_running --;
+			GNUNET_STATISTICS_set (GED_stats, "# experiments inbound running", experiments_inbound_running, GNUNET_NO);
 	}
 
 	next = waiting_out_head;
@@ -432,9 +441,9 @@ GED_scheduler_stop ()
 					cur->task = GNUNET_SCHEDULER_NO_TASK;
 			}
 			GNUNET_free (cur);
-			GNUNET_assert (experiments_running > 0);
-			experiments_running --;
-			GNUNET_STATISTICS_set (GED_stats, "# experiments running", experiments_running, GNUNET_NO);
+			GNUNET_assert (experiments_outbound_running > 0);
+			experiments_outbound_running --;
+			GNUNET_STATISTICS_set (GED_stats, "# experiments outbound running", experiments_outbound_running, GNUNET_NO);
 	}
 }
 
