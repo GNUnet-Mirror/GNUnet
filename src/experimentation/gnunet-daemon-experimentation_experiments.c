@@ -141,11 +141,61 @@ GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID)
 		return GNUNET_NO;
 }
 
+struct FindCtx
+{
+	const char *name;
+	struct GNUNET_TIME_Absolute version;
+	struct Experiment *res;
+};
+
+static int
+find_it (void *cls,
+				const struct GNUNET_HashCode * key,
+				void *value)
+{
+	struct FindCtx *find_ctx = cls;
+	struct Experiment *e = (struct Experiment *) value;
+
+	if (0 != strcmp(e->name, find_ctx->name))
+		return GNUNET_OK;
+	if (e->version.abs_value != find_ctx->version.abs_value)
+		return GNUNET_OK;
+
+	find_ctx->res = e;
+	return GNUNET_NO;
+}
+
+
+/*
+ * Find an experiment based on issuer name and version
+ *
+ * @param issuer the issuer
+ * @param name experiment name
+ * @param version experiment version
+ * @return the experiment or NULL if not found
+ */
+struct Experiment *
+GED_experiments_find (const struct GNUNET_PeerIdentity *issuer,
+											const char *name,
+											const struct GNUNET_TIME_Absolute version)
+{
+	struct FindCtx find_ctx;
+
+	find_ctx.name = name;
+	find_ctx.version = version;
+	find_ctx.res = NULL;
+
+	GNUNET_CONTAINER_multihashmap_get_multiple (experiments,
+			&issuer->hashPubKey, &find_it, &find_ctx);
+	return find_ctx.res;
+}
+
 struct GetCtx
 {
 	struct Node *n;
 	GNUNET_EXPERIMENTATION_experiments_get_cb get_cb;
 };
+
 
 static int
 get_it (void *cls,
@@ -160,13 +210,10 @@ get_it (void *cls,
 	return GNUNET_OK;
 }
 
-
-
-
 void
 GED_experiments_get (struct Node *n,
-																				struct GNUNET_PeerIdentity *issuer,
-																				GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
+										 struct GNUNET_PeerIdentity *issuer,
+										 GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
 {
 	struct GetCtx get_ctx;
 

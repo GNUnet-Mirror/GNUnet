@@ -175,6 +175,8 @@ struct Experimentation_Issuer
 	struct GNUNET_PeerIdentity issuer_id;
 };
 
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Experimentation request message
  * Used to detect experimentation capability
@@ -207,6 +209,63 @@ struct Experimentation_Response
 
 	uint32_t issuer_count;
 };
+
+
+/**
+ * Experiment start message
+ *
+ * struct is followed by string with length len_name
+ */
+struct GED_start_message
+{
+	struct GNUNET_MessageHeader header;
+
+	/**
+	 * String length of experiment name following the struct
+	 */
+	uint32_t len_name;
+
+	/* Experiment issuer */
+	struct GNUNET_PeerIdentity issuer;
+
+	/* Experiment version as timestamp of creation */
+	struct GNUNET_TIME_AbsoluteNBO version_nbo;
+};
+
+struct GED_start_ack_message
+{
+	struct GNUNET_MessageHeader header;
+
+	/**
+	 * String length of experiment name following the struct
+	 */
+	uint32_t len_name;
+
+	/* Experiment issuer */
+	struct GNUNET_PeerIdentity issuer;
+
+	/* Experiment version as timestamp of creation */
+	struct GNUNET_TIME_AbsoluteNBO version_nbo;
+};
+
+struct GED_stop_message
+{
+	struct GNUNET_MessageHeader header;
+
+	/**
+	 * String length of experiment name following the struct
+	 */
+	uint32_t len_name;
+
+	/* Experiment issuer */
+	struct GNUNET_PeerIdentity issuer;
+
+	/* Experiment version as timestamp of creation */
+	struct GNUNET_TIME_AbsoluteNBO version_nbo;
+};
+
+GNUNET_NETWORK_STRUCT_END
+
 
 int
 GED_nodes_rts (struct Node *n);
@@ -273,7 +332,22 @@ int
 GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID);
 
 
+/*
+ * Find an experiment based on issuer name and version
+ *
+ * @param issuer the issuer
+ * @param name experiment name
+ * @param version experiment version
+ * @return the experiment or NULL if not found
+ */
+struct Experiment *
+GED_experiments_find (const struct GNUNET_PeerIdentity *issuer,
+											const char *name,
+											const struct GNUNET_TIME_Absolute version);
+
+
 typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n, struct Experiment *e);
+
 
 void
 GED_experiments_get (struct Node *n,

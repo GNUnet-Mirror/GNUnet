@@ -32,6 +32,7 @@
 #include "gnunet-daemon-experimentation.h"
 
 
+#define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 /**
  * Core handle
  */
@@ -320,6 +321,34 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
 	counter ++;
 }
 
+struct Node *
+get_node (const struct GNUNET_PeerIdentity *id)
+{
+	struct Node * res;
+	struct Node * tmp;
+
+	res = NULL;
+	tmp = NULL;
+	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_active, &id->hashPubKey);
+	if (res == NULL)
+		res = tmp;
+
+	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &id->hashPubKey);
+	if (res == NULL)
+		res = tmp;
+	else
+		GNUNET_break (0); /* Multiple instances */
+
+	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &id->hashPubKey);
+	if (res == NULL)
+		res = tmp;
+	else
+		GNUNET_break (0); /* Multiple instances */
+
+	return res;
+}
+
+
 /**
  * Set a specific node as active
  *
@@ -555,7 +584,68 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 static void handle_start (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
-	GED_scheduler_handle_start (NULL, NULL);
+	uint16_t size;
+	uint32_t name_len;
+	const struct GED_start_message *msg;
+	const char *name;
+	struct Node *n;
+	struct Experiment *e;
+
+	if (NULL == peer)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == message)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	size = ntohs (message->size);
+	if (size < sizeof (struct GED_start_message))
+	{
+		GNUNET_break (0);
+		return;
+	}
+	msg = (const struct GED_start_message *) message;
+	name_len = ntohl (msg->len_name);
+	if (size != sizeof (struct GED_start_message) + name_len)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	n = get_node (peer);
+	if (NULL == n)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	name = (const char *) &msg[1];
+	if (name[name_len-1] != '\0')
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	if (name_len != strlen (name) + 1)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	e = GED_experiments_find (&msg->issuer, name, GNUNET_TIME_absolute_ntoh(msg->version_nbo));
+	if (NULL == e)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
+			"START", GNUNET_i2s (peer), name);
+
+	GED_scheduler_handle_start (n, e);
 }
 
 /**
@@ -567,7 +657,67 @@ static void handle_start (const struct GNUNET_PeerIdentity *peer,
 static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
 														 const struct GNUNET_MessageHeader *message)
 {
-	GED_scheduler_handle_start_ack (NULL, NULL);
+	uint16_t size;
+	uint32_t name_len;
+	const struct GED_start_ack_message *msg;
+	const char *name;
+	struct Node *n;
+	struct Experiment *e;
+
+	if (NULL == peer)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == message)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	size = ntohs (message->size);
+	if (size < sizeof (struct GED_start_ack_message))
+	{
+		GNUNET_break (0);
+		return;
+	}
+	msg = (const struct GED_start_ack_message *) message;
+	name_len = ntohl (msg->len_name);
+	if (size != sizeof (struct GED_start_message) + name_len)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	n = get_node (peer);
+	if (NULL == n)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	name = (const char *) &msg[1];
+	if (name[name_len-1] != '\0')
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	if (name_len != strlen (name) + 1)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	e = GED_experiments_find (&msg->issuer, name, GNUNET_TIME_absolute_ntoh(msg->version_nbo));
+	if (NULL == e)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
+			"START_ACK", GNUNET_i2s (peer), name);
+	GED_scheduler_handle_start_ack (n, e);
 }
 
 /**
@@ -577,9 +727,69 @@ static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
  * @param message the message
  */
 static void handle_stop (const struct GNUNET_PeerIdentity *peer,
-														 const struct GNUNET_MessageHeader *message)
+												 const struct GNUNET_MessageHeader *message)
 {
-	GED_scheduler_handle_stop (NULL, NULL);
+	uint16_t size;
+	uint32_t name_len;
+	const struct GED_stop_message *msg;
+	const char *name;
+	struct Node *n;
+	struct Experiment *e;
+
+	if (NULL == peer)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	if (NULL == message)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	size = ntohs (message->size);
+	if (size < sizeof (struct GED_stop_message))
+	{
+		GNUNET_break (0);
+		return;
+	}
+	msg = (const struct GED_stop_message *) message;
+	name_len = ntohl (msg->len_name);
+	if (size != sizeof (struct GED_start_message) + name_len)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	n = get_node (peer);
+	if (NULL == n)
+	{
+		GNUNET_break (0);
+		return;
+	}
+	name = (const char *) &msg[1];
+	if (name[name_len-1] != '\0')
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	if (name_len != strlen (name) + 1)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	e = GED_experiments_find (&msg->issuer, name, GNUNET_TIME_absolute_ntoh(msg->version_nbo));
+	if (NULL == e)
+	{
+		GNUNET_break (0);
+		return;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Received %s message from peer %s for experiment `%s'\n"),
+			"STOP", GNUNET_i2s (peer), name);
+	GED_scheduler_handle_stop (n, e);
 }
 
 /**
@@ -671,13 +881,6 @@ core_receive_handler (void *cls,
 	return GNUNET_OK;
 }
 
-#define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-struct GNUNET_EXPERIMENTATION_start_message
-{
-	struct GNUNET_MessageHeader header;
-};
-
 struct ExperimentStartCtx
 {
 	struct ExperimentStartCtx *prev;
@@ -690,7 +893,9 @@ struct ExperimentStartCtx
 size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
 {
 	struct ExperimentStartCtx *e_ctx = cls;
-	struct GNUNET_EXPERIMENTATION_start_message msg;
+	struct GED_start_message *msg;
+	size_t name_len;
+	size_t size;
 
 	GNUNET_CONTAINER_DLL_remove (e_ctx->n->e_req_head, e_ctx->n->e_req_tail, e_ctx);
 	e_ctx->n->cth = NULL;
@@ -700,14 +905,23 @@ size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
 		return 0;
 	}
 
-	size_t size = sizeof (struct GNUNET_EXPERIMENTATION_start_message);
-	msg.header.size = htons (size);
-	msg.header.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START);
+	name_len = strlen(e_ctx->e->name) + 1;
+	size = sizeof (struct GED_start_message) + name_len;
 
-	memcpy (buf, &msg, size);
+	msg = GNUNET_malloc (size);
+	msg->header.size = htons (size);
+	msg->header.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START);
+	msg->issuer = e_ctx->e->issuer;
+	msg->version_nbo = GNUNET_TIME_absolute_hton(e_ctx->e->version);
+	msg->len_name = htonl (name_len);
+	memcpy (&msg[1], e_ctx->e->name, name_len);
+
+	memcpy (buf, msg, size);
+	GNUNET_free (msg);
 	GNUNET_free (e_ctx);
 	return size;
 }
+
 
 int
 GED_nodes_rts (struct Node *n)
@@ -742,7 +956,7 @@ GED_nodes_request_start (struct Node *n, struct Experiment *e)
 	e_ctx->n = n;
 	e_ctx->e = e;
 	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT, &n->id,
-			sizeof (struct GNUNET_EXPERIMENTATION_start_message),
+			sizeof (struct GED_start_message) + strlen (e->name) + 1,
 			&node_experiment_start_cb, e_ctx);
 	if (NULL == n->cth)
 	{
