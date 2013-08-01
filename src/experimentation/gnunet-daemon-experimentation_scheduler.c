@@ -31,12 +31,29 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
 
+/**
+ * An experiment is added during startup as not running NOT_RUNNING
+ *
+ * The scheduler then decides to schedule it and sends a request to the
+ * remote peer, if core cannot send since it is busy we wait for some time
+ * and change state to BUSY, if we can send we change to REQUESTED and wait
+ * for remote peers ACK.
+ *
+ * When we receive an ACK we change to STARTED and when scheduler decides that
+ * the experiment is finished we change to STOPPED.
+ */
+
 enum ExperimentState
 {
+	/* Experiment is added and waiting to be executed */
 	NOT_RUNNING,
+	/* Cannot send request to remote peer, core is busy*/
 	BUSY,
+	/* We requested experiment and wait for remote peer to ACK */
 	REQUESTED,
+	/* Experiment is running */
 	STARTED,
+	/* Experiment is done */
 	STOPPED
 };
 
@@ -50,10 +67,14 @@ struct ScheduledExperiment {
 	GNUNET_SCHEDULER_TaskIdentifier task;
 };
 
-struct ScheduledExperiment *list_head;
-struct ScheduledExperiment *list_tail;
+struct ScheduledExperiment *waiting_head;
+struct ScheduledExperiment *waiting_tail;
+
+struct ScheduledExperiment *running_head;
+struct ScheduledExperiment *running_tail;
 
 static unsigned int experiments_scheduled;
+static unsigned int experiments_running;
 static unsigned int experiments_requested;
 
 static void
@@ -65,7 +86,7 @@ request_timeout (void *cls,const struct GNUNET_SCHEDULER_TaskContext* tc)
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer `%s' did not respond to request for experiment `%s'\n",
 			GNUNET_i2s (&se->n->id), se->e->name);
 
-	GNUNET_CONTAINER_DLL_remove (list_head, list_tail, se);
+	GNUNET_CONTAINER_DLL_remove (waiting_head, waiting_tail, se);
 	GNUNET_free (se);
 
 	/* Remove experiment */
@@ -184,7 +205,7 @@ GNUNET_EXPERIMENTATION_scheduler_add (struct Node *n, struct Experiment *e)
 	else
 			se->task = GNUNET_SCHEDULER_add_delayed (start, &start_experiment, se);
 
-	GNUNET_CONTAINER_DLL_insert (list_head, list_tail, se);
+	GNUNET_CONTAINER_DLL_insert (waiting_head, waiting_tail, se);
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Added experiment `%s' for node to be scheduled\n",
 			e->name, GNUNET_i2s(&se->n->id));
 	experiments_scheduled ++;
@@ -211,11 +232,11 @@ GNUNET_EXPERIMENTATION_scheduler_stop ()
 	struct ScheduledExperiment *cur;
 	struct ScheduledExperiment *next;
 
-	next = list_head;
+	next = waiting_head;
 	while (NULL != (cur = next))
 	{
 			next = cur->next;
-			GNUNET_CONTAINER_DLL_remove (list_head, list_tail, cur);
+			GNUNET_CONTAINER_DLL_remove (waiting_head, waiting_tail, cur);
 			if (GNUNET_SCHEDULER_NO_TASK != cur->task)
 			{
 					GNUNET_SCHEDULER_cancel (cur->task);
@@ -225,6 +246,22 @@ GNUNET_EXPERIMENTATION_scheduler_stop ()
 			GNUNET_assert (experiments_scheduled > 0);
 			experiments_scheduled --;
 			GNUNET_STATISTICS_set (GSE_stats, "# experiments scheduled", experiments_scheduled, GNUNET_NO);
+	}
+
+	next = running_head;
+	while (NULL != (cur = next))
+	{
+			next = cur->next;
+			GNUNET_CONTAINER_DLL_remove (running_head, running_tail, cur);
+			if (GNUNET_SCHEDULER_NO_TASK != cur->task)
+			{
+					GNUNET_SCHEDULER_cancel (cur->task);
+					cur->task = GNUNET_SCHEDULER_NO_TASK;
+			}
+			GNUNET_free (cur);
+			GNUNET_assert (experiments_running > 0);
+			experiments_running --;
+			GNUNET_STATISTICS_set (GSE_stats, "# experiments running", experiments_running, GNUNET_NO);
 	}
 }
 
