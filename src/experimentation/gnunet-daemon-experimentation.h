@@ -165,6 +165,9 @@ struct Node
 	 * Array of fssuer ids
 	 */
 	struct GNUNET_PeerIdentity *issuer_id;
+
+	struct ExperimentStartCtx *e_req_head;
+	struct ExperimentStartCtx *e_req_tail;
 };
 
 struct Experimentation_Issuer
@@ -205,8 +208,11 @@ struct Experimentation_Response
 	uint32_t issuer_count;
 };
 
-void
-GNUNET_EXPERIMENT_nodes_request_start (struct Node *n, struct Experiment *e);
+int
+GNUNET_EXPERIMENTATION_nodes_rts (struct Node *n);
+
+int
+GNUNET_EXPERIMENTATION_nodes_request_start (struct Node *n, struct Experiment *e);
 
 
 /**

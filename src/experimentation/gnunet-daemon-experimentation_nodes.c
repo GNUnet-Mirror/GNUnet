@@ -547,6 +547,44 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 }
 
 /**
+ * Handle a response
+ *
+ * @param peer the source
+ * @param message the message
+ */
+static void handle_start (const struct GNUNET_PeerIdentity *peer,
+														 const struct GNUNET_MessageHeader *message)
+{
+fprintf (stderr, "FIXME\n");
+	GNUNET_STATISTICS_update (GSE_stats, "# experiments running",
+			1, GNUNET_NO);
+}
+
+/**
+ * Handle a response
+ *
+ * @param peer the source
+ * @param message the message
+ */
+static void handle_start_ack (const struct GNUNET_PeerIdentity *peer,
+														 const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+/**
+ * Handle a response
+ *
+ * @param peer the source
+ * @param message the message
+ */
+static void handle_stop (const struct GNUNET_PeerIdentity *peer,
+														 const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+/**
  * Method called whenever a given peer connects.
  *
  * @param cls closure
@@ -619,6 +657,15 @@ core_receive_handler (void *cls,
 		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE:
 			handle_response (other, message);
 			break;
+		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START:
+			handle_start (other, message);
+			break;
+		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START_ACK:
+			handle_start_ack (other, message);
+			break;
+		case GNUNET_MESSAGE_TYPE_EXPERIMENTATION_STOP:
+			handle_stop (other, message);
+			break;
 		default:
 			break;
 	}
@@ -626,12 +673,88 @@ core_receive_handler (void *cls,
 	return GNUNET_OK;
 }
 
+#define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-void
-GNUNET_EXPERIMENT_nodes_request_start (struct Node *n, struct Experiment *e)
+struct GNUNET_EXPERIMENTATION_start_message
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending start request to peer `%s' for experiment `%s'\n"),
+	struct GNUNET_MessageHeader header;
+};
+
+struct ExperimentStartCtx
+{
+	struct ExperimentStartCtx *prev;
+	struct ExperimentStartCtx *next;
+
+	struct Node *n;
+	struct Experiment *e;
+};
+
+size_t node_experiment_start_cb (void *cls, size_t bufsize, void *buf)
+{
+	struct ExperimentStartCtx *e_ctx = cls;
+	struct GNUNET_EXPERIMENTATION_start_message msg;
+
+	GNUNET_CONTAINER_DLL_remove (e_ctx->n->e_req_head, e_ctx->n->e_req_tail, e_ctx);
+	e_ctx->n->cth = NULL;
+	if (NULL == buf)
+	{
+		GNUNET_free (e_ctx);
+		return 0;
+	}
+
+	size_t size = sizeof (struct GNUNET_EXPERIMENTATION_start_message);
+	msg.header.size = htons (size);
+	msg.header.type = htons (GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START);
+
+	memcpy (buf, &msg, size);
+	GNUNET_free (e_ctx);
+	return size;
+}
+
+int
+GNUNET_EXPERIMENTATION_nodes_rts (struct Node *n)
+{
+	if (NULL == n->cth)
+		return GNUNET_YES;
+	else
+		return GNUNET_NO;
+
+}
+
+/**
+ * Request a experiment to start with a node
+ *
+ * @return GNUNET_NO if core was busy with sending, GNUNET_OK otherwise
+ */
+int
+GNUNET_EXPERIMENTATION_nodes_request_start (struct Node *n, struct Experiment *e)
+{
+	struct ExperimentStartCtx *e_ctx;
+
+	if (NULL != n->cth)
+	{
+		GNUNET_break (0); /* should call rts before */
+		return GNUNET_NO;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Sending experiment start request to peer `%s' for experiment `%s'\n"),
 			GNUNET_i2s(&n->id), e->name);
+
+	e_ctx = GNUNET_malloc (sizeof (struct ExperimentStartCtx));
+	e_ctx->n = n;
+	e_ctx->e = e;
+	n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT, &n->id,
+			sizeof (struct GNUNET_EXPERIMENTATION_start_message),
+			&node_experiment_start_cb, e_ctx);
+	if (NULL == n->cth)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Cannot send experiment start request to peer `%s' for experiment `%s'\n"),
+				GNUNET_i2s(&n->id), e->name);
+		GNUNET_free (e_ctx);
+	}
+	GNUNET_CONTAINER_DLL_insert (n->e_req_head, n->e_req_tail, e_ctx);
+
+	return GNUNET_OK;
 }
 
 

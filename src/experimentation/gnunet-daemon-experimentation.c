@@ -96,9 +96,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	}
 
 	GNUNET_EXPERIMENTATION_nodes_start ();
-	/*
   GNUNET_EXPERIMENTATION_scheduler_start ();
-*/
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
 }

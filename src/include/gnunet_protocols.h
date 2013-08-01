@@ -1806,6 +1806,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_RESPONSE 611
 
 /**
+ * Message for experimentation response
+ */
+#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START 612
+
+/**
+ * Message for experimentation response
+ */
+#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_START_ACK 613
+
+/**
+ * Message for experimentation response
+ */
+#define GNUNET_MESSAGE_TYPE_EXPERIMENTATION_STOP 614
+
+
+
+
+/**
  * Advertise regex capability.
  */
 #define GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE 620

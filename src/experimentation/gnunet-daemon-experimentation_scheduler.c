@@ -34,6 +34,7 @@
 enum ExperimentState
 {
 	NOT_RUNNING,
+	BUSY,
 	REQUESTED,
 	STARTED,
 	STOPPED
@@ -78,13 +79,27 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 {
 	struct ScheduledExperiment *se = cls;
 	struct GNUNET_TIME_Relative end;
+	struct GNUNET_TIME_Relative backoff;
+
 	se->task = GNUNET_SCHEDULER_NO_TASK;
 
+	if (GNUNET_NO == GNUNET_EXPERIMENTATION_nodes_rts (se->n))
+	{
+		se->state = BUSY;
+		backoff = GNUNET_TIME_UNIT_SECONDS;
+		backoff.rel_value += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying start request to peer `%s' for `%s' for %llu ms\n",
+				GNUNET_i2s (&se->n->id), se->e->name, (unsigned long long) backoff.rel_value);
+		se->task = GNUNET_SCHEDULER_add_delayed (backoff, &start_experiment, se);
+		return;
+	}
+	else if (BUSY == se->state)
+		se->state = NOT_RUNNING;
 
 	if (NOT_RUNNING == se->state)
 	{
 			/* Send start message */
-			GNUNET_EXPERIMENT_nodes_request_start (se->n, se->e);
+			GNUNET_EXPERIMENTATION_nodes_request_start (se->n, se->e);
 			se->state = REQUESTED;
 			se->task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &request_timeout, se);
 
@@ -114,6 +129,7 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 				se->state = STOPPED;
 				return;	/* End of experiment is reached */
 			}
+			/* Reschedule */
 		se->task = GNUNET_SCHEDULER_add_delayed (se->e->frequency, &start_experiment, se);
 	}
 
@@ -121,6 +137,25 @@ static void start_experiment (void *cls,const struct GNUNET_SCHEDULER_TaskContex
 	{
 			/* Experiment expired */
 	}
+}
+
+/**
+ * Start the scheduler component
+ */
+void
+GNUNET_EXPERIMENTATION_scheduler_handle_start (struct Node *n, struct Experiment *e)
+{
+
+}
+
+
+/**
+ * Start the scheduler component
+ */
+void
+GNUNET_EXPERIMENTATION_scheduler_handle_stop (struct Node *n, struct Experiment *e)
+{
+
 }
 
 /**

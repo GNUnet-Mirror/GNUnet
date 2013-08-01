@@ -18,8 +18,7 @@ endif
 
 
 if HAVE_EXPERIMENTAL
- TEXT_EXP_CLIQUE = test_experimentation_clique_connect 
-#test_experimentation_clique_run
+ TEXT_EXP_CLIQUE = test_experimentation_clique_connect test_experimentation_clique_run
 endif 
 
 check_PROGRAMS = \
@@ -48,6 +47,13 @@ gnunet_daemon_experimentation_LDADD = \
 test_experimentation_clique_connect_SOURCES = \
  test_experimentation_clique_connect.c
 test_experimentation_clique_connect_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+
+test_experimentation_clique_run_SOURCES = \
+ test_experimentation_clique_run.c
+test_experimentation_clique_run_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
