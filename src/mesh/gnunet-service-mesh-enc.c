@@ -2423,7 +2423,7 @@ channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
  *
  * @return tunnel handler, NULL if doesn't exist
  */
-static struct MeshTunnel *
+static struct MeshChannel *
 channel_get_by_pi (GNUNET_PEER_Id pi, MESH_ChannelNumber tid)
 {
 //   struct GNUNET_HashCode hash;
@@ -2441,7 +2441,7 @@ channel_get_by_pi (GNUNET_PEER_Id pi, MESH_ChannelNumber tid)
  *
  * @return tunnel handler, NULL if doesn't exist
  */
-static struct MeshTunnel *
+static struct MeshChannel *
 channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid)
 {
   return channel_get_by_pi (GNUNET_PEER_search (oid), tid);
@@ -2455,7 +2455,7 @@ channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid)
  * @param state New state.
  */
 static void
-tunnel_change_state (MeshTunnel2* t, MeshTunnelState state)
+tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s[%X] state was %s\n",
@@ -2488,11 +2488,11 @@ connection_change_state (struct MeshConnection* c,
 /**
  * Add a client to a tunnel, initializing all needed data structures.
  * 
- * @param t Tunnel to which add the client.
- * @param c Client which to add to the tunnel.
+ * @param ch Channel to which add the client.
+ * @param c Client which to add to the channel.
  */
 static void
-tunnel_add_client (struct MeshTunnel *t, struct MeshClient *c)
+channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
 {
   if (NULL != t->client)
   {
@@ -2540,12 +2540,10 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   c->path = p;
   c->id = t->next_cid++;
   c->t = t;
-  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, c);
+  GNUNET_CONTAINER_DLL_insert_tail (t->connection_head, t->connection_tail, c);
 
   if (0 == own_pos)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
-      GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
     c->fwd_maintenance_task =
         GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
                                       &connection_fwd_keepalive, c);
