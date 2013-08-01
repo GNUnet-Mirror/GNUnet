@@ -179,7 +179,7 @@ check_end ()
 	if (t_running_experiments == (NUM_PEERS * NUM_EXPERIMENTS))
 	{
 			fprintf (stderr, "\n");
-			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All %u peers are running experiments\n", NUM_PEERS);
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "All %u peers are running experiments\n", NUM_PEERS);
 			GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 	}
 }

@@ -428,7 +428,6 @@ static void node_make_active (struct Node *n)
 	update_stats (nodes_active);
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' as active node\n"),
 			GNUNET_i2s (&n->id));
-return;
 	/* Request experiments for this node to start them */
 	for (c1 = 0; c1 < n->issuer_count; c1++)
 	{
@@ -1077,6 +1076,12 @@ GED_nodes_start ()
 void
 GED_nodes_stop ()
 {
+  if (NULL != ch)
+  {
+  		GNUNET_CORE_disconnect (ch);
+  		ch = NULL;
+  }
+
   if (NULL != nodes_requested)
   {
   		GNUNET_CONTAINER_multihashmap_iterate (nodes_requested,
@@ -1105,11 +1110,6 @@ GED_nodes_stop ()
   		update_stats (nodes_inactive);
   		GNUNET_CONTAINER_multihashmap_destroy (nodes_inactive);
   		nodes_inactive = NULL;
-  }
-  if (NULL != ch)
-  {
-  		GNUNET_CORE_disconnect (ch);
-  		ch = NULL;
   }
 }
 

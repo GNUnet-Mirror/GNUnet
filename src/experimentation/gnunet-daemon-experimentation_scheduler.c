@@ -258,11 +258,14 @@ GED_scheduler_handle_start_ack (struct Node *n, struct Experiment *e)
 			"START_ACK", GNUNET_i2s (&n->id), e->name);
 
 	if (GNUNET_SCHEDULER_NO_TASK != se->task)
+	{
 		GNUNET_SCHEDULER_cancel (se->task); /* *Canceling timeout task */
+		se->task = GNUNET_SCHEDULER_NO_TASK;
+	}
 
 	/* Remove from waiting list, add to running list */
 	GNUNET_CONTAINER_DLL_remove (waiting_out_head, waiting_out_tail, se);
-	GNUNET_CONTAINER_DLL_insert (running_out_head, waiting_out_tail, se);
+	GNUNET_CONTAINER_DLL_insert (running_out_head, running_out_tail, se);
 
 	/* Change state and schedule to run */
 	se->state = STARTED;
