@@ -4074,43 +4074,43 @@ queue_add (void *cls, uint16_t type, size_t size,
 {
   struct MeshPeerQueue *queue;
   struct MeshFlowControl *fc;
-  struct MeshTunnel2 *t;
   int priority;
 
-  fc = NULL;
-  priority = GNUNET_NO;
-  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == type ||
-      GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == type)
+  fc = dst->fc;
+  if (NULL == fc)
   {
-    fc = dst->fc;
+    GNUNET_break (0);
+    return;
   }
-  if (NULL != fc)
+
+  priority = 0;
+
+  if (GNUNET_MESSAGE_TYPE_MESH_POLL == type ||
+      GNUNET_MESSAGE_TYPE_MESH_ACK == type)
+    priority = 100;
+
+  if (NULL != ch &&
+      ( (NULL != ch->owner && GNUNET_MESSAGE_TYPE_MESH_FWD == type) ||
+        (NULL != ch->client && GNUNET_MESSAGE_TYPE_MESH_BCK == type) ))
+    priority = 50;
+
+  if (fc->queue_n >= fc->queue_max && 0 == priority)
   {
-    if (fc->queue_n >= fc->queue_max)
-    {
-      /* If this isn't a retransmission, drop the message */
-      if (NULL != ch && 
-          (GNUNET_NO == ch->reliable ||
-           (NULL == ch->owner && GNUNET_MESSAGE_TYPE_MESH_UNICAST == type) ||
-           (NULL == ch->client && GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == type)))
-      {
-        GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
-                                  1, GNUNET_NO);
-        GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "queue full: %u/%u\n",
-                    fc->queue_n, fc->queue_max);
-        return; /* Drop this message */
-      }
-      priority = GNUNET_YES;
-    }
-    fc->queue_n++;
-    if (GMC_is_pid_bigger(fc->last_pid_sent + 1, fc->last_ack_recv) &&
-        GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
-      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                    &peer_poll,
-                                                    dst);
+    GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
+                              1, GNUNET_NO);
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "queue full: %u/%u\n",
+                fc->queue_n, fc->queue_max);
+    return; /* Drop this message */
   }
+
+  fc->queue_n++;
+  if (GMC_is_pid_bigger(fc->last_pid_sent + 1, fc->last_ack_recv) &&
+      GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+    fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                  &peer_poll,
+                                                  dst);
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
   queue->type = type;
@@ -4118,31 +4118,10 @@ queue_add (void *cls, uint16_t type, size_t size,
   queue->peer = dst;
   queue->c = c;
   queue->ch = ch;
-  if (GNUNET_YES == priority)
-  {
-    struct GNUNET_MESH_Data *d;
-    uint32_t prev;
-    uint32_t next;
-
-    GNUNET_CONTAINER_DLL_insert (dst->fc->queue_head,
-                                 dst->fc->queue_tail,
-                                 queue);
-    d = (struct GNUNET_MESH_Data *) queue->cls;
-    prev = d->pid;
-    for (queue = dst->fc->queue_tail; NULL != queue; queue = queue->prev)
-    {
-      if (queue->type != type)
-        continue;
-      d = (struct GNUNET_MESH_Data *) queue->cls;
-      next = d->pid;
-      d->pid = prev;
-      prev = next;
-    }
-  }
+  if (100 <= priority)
+    GNUNET_CONTAINER_DLL_insert (fc->queue_head, fc->queue_tail, queue);
   else
-    GNUNET_CONTAINER_DLL_insert_tail (dst->fc->queue_head,
-                                      dst->fc->queue_tail,
-                                      queue);
+    GNUNET_CONTAINER_DLL_insert_tail (fc->queue_head, fc->queue_tail, queue);
 
   if (NULL == dst->fc->core_transmit)
   {
