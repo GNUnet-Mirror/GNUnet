@@ -1760,60 +1760,6 @@ send_core_connection_create (void *cls, size_t size, void *buf)
 
 
 /**
- * Function to send a create path packet to a peer.
- *
- * @param cls closure
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-send_core_channel_create (void *cls, size_t size, void *buf)
-{
-//   struct MeshChannel *ch = cls;
-//   struct MeshTunnel2 *t = ch->t;
-//   struct GNUNET_MESH_ConnectionCreate *msg;
-//   struct GNUNET_PeerIdentity *peer_ptr;
-  size_t size_needed;
-//   uint32_t opt;
-//   int i;
-// 
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CHANNEL CREATE...\n");
-//   size_needed =
-//       sizeof (struct GNUNET_MESH_ConnectionCreate) +
-//       p->length * sizeof (struct GNUNET_PeerIdentity);
-// 
-//   if (size < size_needed || NULL == buf)
-//   {
-//     GNUNET_break (0);
-//     return 0;
-//   }
-//   msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
-//   msg->header.size = htons (size_needed);
-//   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
-//   msg->tid = ntohl (t->id.tid);
-// 
-//   opt = 0;
-//   if (GNUNET_YES == ch->nobuffer)
-//     opt |= GNUNET_MESH_OPTION_NOBUFFER;
-//   if (GNUNET_YES == ch->reliable)
-//     opt |= GNUNET_MESH_OPTION_RELIABLE;
-//   msg->opt = htonl (opt);
-//   msg->port = htonl (ch->port);
-// 
-//   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
-//   for (i = 0; i < p->length; i++)
-//   {
-//     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
-//   }
-// 
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               "CREATE PATH (%u bytes long) sent!\n", size_needed);
-  return size_needed;
-}
-
-
-/**
  * Creates a path ack message in buf and frees all unused resources.
  *
  * @param cls closure (MeshTransmissionDescriptor)
@@ -1912,20 +1858,6 @@ static struct MeshPeer *
 peer_get_short (const GNUNET_PEER_Id peer)
 {
   return peer_get (GNUNET_PEER_resolve2 (peer));
-}
-
-
-/**
- * Select which PID to POLL for, to compensate for lost messages.
- *
- * @param pi Peer we want to poll.
- *
- * @return PID to use, (last sent).
- */
-static uint32_t
-peer_get_first_pid (struct MeshPeer *p)
-{
-  return p->fc->last_pid_sent;
 }
 
 
