@@ -1032,20 +1032,13 @@ connection_change_state (struct MeshConnection* c,
 
 /**
  * @brief Queue and pass message to core when possible.
- * 
- * If type is payload (UNICAST, TO_ORIGIN) checks for queue status and
- * accounts for it. In case the queue is full, the message is dropped and
- * a break issued.
- * 
- * Otherwise, message is treated as internal and allowed to go regardless of 
- * queue status.
  *
  * @param cls Closure (@c type dependant). It will be used by queue_send to
  *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
  * @param dst Neighbor to send message to.
- * @param c Connection this message belongs to.
+ * @param c Connection this message belongs to, if any.
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  */
 static void
@@ -1584,6 +1577,7 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
 
 /**
  * Sends an already built message directly to a peer.
+ * Message does must not belong to a connection or channel.
  *
  * @param message Message to send. Function makes a copy of it.
  * @param peer Tunnel on which this message is transmitted.
@@ -2367,7 +2361,7 @@ peer_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshFlowControl *fc = cls;
   struct GNUNET_MESH_Poll msg;
-  GNUNET_PEER_Id peer;
+  struct MeshPeer *peer;
 
   fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -2376,16 +2370,16 @@ peer_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
-  peer = fc->peer->id;
+  peer = fc->peer;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** peer: %s!\n", 
-                GNUNET_i2s (GNUNET_PEER_resolve2 (peer)));
+                GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id)));
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.pid = htonl (fc->last_pid_sent);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
-  send_prebuilt_message_peer (&msg.header, peer_get_short (peer));
+  send_prebuilt_message_peer (&msg.header, peer);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &peer_poll, fc);
@@ -3943,7 +3937,7 @@ queue_send (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   size ok\n");
 
   c = queue->c;
-  t = c->t;
+  t = (NULL != c) ? c->t : NULL;
   type = 0;
 
   /* Fill buf */
@@ -4048,18 +4042,24 @@ queue_send (void *cls, size_t size, void *buf)
       fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
-  c->pending_messages--;
-  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+  if (NULL != c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
-    connection_destroy (c);
+    c->pending_messages--;
+    if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
+      connection_destroy (c);
+    }
   }
 
-  t->pending_messages--;
-  if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
+  if (NULL != t)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
-    tunnel_destroy (t);
+    t->pending_messages--;
+    if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
+      tunnel_destroy (t);
+    }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
   return data_size;
