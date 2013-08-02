@@ -532,6 +532,16 @@ struct MeshConnection
    * time tunnel out on all the other peers.
    */
   GNUNET_SCHEDULER_TaskIdentifier bck_maintenance_task;
+
+  /**
+   * Pending message count.
+   */
+  int pending_messages;
+
+  /**
+   * Destroy flag: if true, destroy on last message.
+   */
+  int destroy;
 };
 
 
@@ -606,6 +616,16 @@ struct MeshTunnel2
    * Channel ID for the next incoming tunnel.
    */
   MESH_ChannelNumber next_local_chid;
+
+  /**
+   * Pending message count.
+   */
+  int pending_messages;
+
+  /**
+   * Destroy flag: if true, destroy on last message.
+   */
+  int destroy;
 };
 
 
@@ -3482,32 +3502,43 @@ tunnel_destroy (struct MeshTunnel2 *t)
 
 /**
  * Tunnel is empty: destroy it.
- * 
- * Notifies all participants (peers, cleints) about the destruction.
- * 
+ *
+ * Notifies all connections about the destruction.
+ *
  * @param t Tunnel to destroy. 
  */
 static void
-tunnel_destroy_empty (struct MeshTunnel *t)
+tunnel_destroy_empty (struct MeshTunnel2 *t)
 {
-  #if MESH_DEBUG
+  struct MeshConnection *c;
+
+  for (c = t->connection_head; NULL != c; c = c->next)
   {
-    struct GNUNET_PeerIdentity id;
-
-    GNUNET_PEER_resolve (t->id.oid, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "executing destruction of empty tunnel %s [%X]\n",
-                GNUNET_i2s (&id), t->id.tid);
+    if (GNUNET_NO == c->destroy)
+      connection_send_destroy (c);
   }
-  #endif
 
-  if (GNUNET_NO == t->destroy)
-    tunnel_send_destroy (t);
   if (0 == t->pending_messages)
     tunnel_destroy (t);
   else
     t->destroy = GNUNET_YES;
 }
+
+
+/**
+ * Destroy tunnel if empty (no more channels).
+ *
+ * @param t Tunnel to destroy if empty.
+ */
+static void
+tunnel_destroy_if_empty (struct MeshTunnel2 *t)
+{
+  if (NULL != t->channel_head)
+    return;
+
+  tunnel_destroy_empty (t);
+}
+
 
 /**
  * Initialize a Flow Control structure to the initial state.
@@ -3598,7 +3629,7 @@ channel_new (struct MeshClient *owner,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
   {
     GNUNET_break (0);
-    channel_destroy (t);
+    channel_destroy (ch);
     if (NULL != client)
     {
       GNUNET_break (0);
@@ -3950,6 +3981,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct MeshTunnel2 *t;
   struct GNUNET_PeerIdentity *dst_id;
   struct MeshFlowControl *fc;
+  struct MeshConnection *c;
   size_t data_size;
   uint32_t pid;
   uint16_t type;
@@ -4004,7 +4036,8 @@ queue_send (void *cls, size_t size, void *buf)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   size ok\n");
 
-  t = queue->peer->tunnel;
+  c = queue->c;
+  t = c->t;
   type = 0;
 
   /* Fill buf */
@@ -4135,6 +4168,14 @@ queue_send (void *cls, size_t size, void *buf)
       fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
+  c->pending_messages--;
+  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
+    connection_destroy (c);
+  }
+
+  t->pending_messages--;
   if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
@@ -4235,6 +4276,8 @@ queue_add (void *cls, uint16_t type, size_t size,
                                            &queue_send,
                                            dst);
   }
+  c->pending_messages++;
+  c->t->pending_messages++;
 }
 
 
