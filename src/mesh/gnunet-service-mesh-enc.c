@@ -3598,6 +3598,8 @@ channel_destroy (struct MeshChannel *ch)
     channel_rel_free_all (ch->bck_rel);
   }
 
+  GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
+
   GNUNET_free (ch);
 }
 
@@ -3622,7 +3624,7 @@ channel_new (struct MeshClient *owner,
   ch->owner = owner;
   ch->id = id;
 
-  GNUNET_STATISTICS_update (stats, "# channel", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
 
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap32_put (owner->own_channels, id, ch,
@@ -3630,44 +3632,26 @@ channel_new (struct MeshClient *owner,
   {
     GNUNET_break (0);
     channel_destroy (ch);
-    if (NULL != client)
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client->handle, GNUNET_SYSERR);
-    }
+    GNUNET_SERVER_receive_done (owner->handle, GNUNET_SYSERR);
     return NULL;
   }
 
-  if (NULL != client)
-  {
-    if (GNUNET_OK !=
-        GNUNET_CONTAINER_multihashmap32_put (client->own_tunnels,
-                                             t->local_tid, t,
-                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-    {
-      tunnel_destroy (t);
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client->handle, GNUNET_SYSERR);
-      return NULL;
-    }
-  }
-
-  return t;
+  return ch;
 }
 
 
 /**
- * Set options in a tunnel, extracted from a bit flag field
+ * Set options in a channel, extracted from a bit flag field
  * 
- * @param t Tunnel to set options to.
+ * @param ch Channel to set options to.
  * @param options Bit array in host byte order.
  */
 static void
-tunnel_set_options (struct MeshTunnel *t, uint32_t options)
+channel_set_options (struct MeshChannel *ch, uint32_t options)
 {
-  t->nobuffer = (options & GNUNET_MESH_OPTION_NOBUFFER) != 0 ?
+  ch->nobuffer = (options & GNUNET_MESH_OPTION_NOBUFFER) != 0 ?
                  GNUNET_YES : GNUNET_NO;
-  t->reliable = (options & GNUNET_MESH_OPTION_RELIABLE) != 0 ?
+  ch->reliable = (options & GNUNET_MESH_OPTION_RELIABLE) != 0 ?
                  GNUNET_YES : GNUNET_NO;
 }
 
