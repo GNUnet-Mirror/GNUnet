@@ -684,10 +684,9 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
         GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	 "Next retry in %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Next retry in %s\n",
          GNUNET_STRINGS_relative_time_to_string (h->reconnect_time,
-						 GNUNET_NO));
+                                                 GNUNET_NO));
     GNUNET_break (0);
     return GNUNET_NO;
   }
@@ -710,8 +709,8 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
        */
       continue;
     }
-        ch->allow_send = GNUNET_NO;
-    tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE);
+    ch->allow_send = GNUNET_NO;
+    tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_ChannelMessage));
     tmsg.channel_id = htonl (ch->chid);
     tmsg.port = htonl (ch->port);
@@ -827,7 +826,7 @@ process_channel_created (struct GNUNET_MESH_Handle *h,
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No handler for incoming channels\n");
 
-    d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY);
+    d_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
     d_msg.header.size = htons (sizeof (struct GNUNET_MESH_ChannelMessage));
     d_msg.channel_id = msg->channel_id;
     memset (&d_msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
@@ -1075,11 +1074,11 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (type)
   {
     /* Notify of a new incoming channel */
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE:
+  case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     process_channel_created (h, (struct GNUNET_MESH_ChannelMessage *) msg);
     break;
     /* Notify of a channel disconnection */
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY:
+  case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
     process_channel_destroy (h, (struct GNUNET_MESH_ChannelMessage *) msg);
     break;
     /* Notify of a new data packet in the channel */
@@ -1370,7 +1369,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
     switch (ntohs(msg->type))
     {
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT:
-      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
         break;
@@ -1435,7 +1435,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", ch->chid);
   ch->ctx = channel_ctx;
   ch->peer = GNUNET_PEER_intern (peer);
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ChannelMessage));
   msg.channel_id = htonl (ch->chid);
   msg.port = htonl (port);
@@ -1462,7 +1462,7 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying channel\n");
   h = channel->mesh;
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ChannelMessage));
   msg.channel_id = htonl (channel->chid);
   memset (&msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
