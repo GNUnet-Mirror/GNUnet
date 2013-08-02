@@ -3412,11 +3412,11 @@ channel_send_destroy (struct MeshChannel *ch)
 
   if (NULL != ch->owner)
   {
-    send_local_channel_destroy (t, GNUNET_NO);
+    send_local_channel_destroy (ch, GNUNET_NO);
   }
   if (NULL != ch->client)
   {
-    send_local_channel_destroy (t, GNUNET_YES);
+    send_local_channel_destroy (ch, GNUNET_YES);
   }
 }
 
