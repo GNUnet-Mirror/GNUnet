@@ -3381,6 +3381,7 @@ tunnel_new (struct GNUNET_HashCode *tid)
 
   t = GNUNET_new (struct MeshTunnel2);
   t->id = *tid;
+  t->next_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
@@ -5605,19 +5606,17 @@ monitor_all_tunnels_iterator (void *cls,
                               void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct MeshTunnel *t = value;
+  struct MeshChannel *ch = value;
   struct GNUNET_MESH_LocalMonitor *msg;
 
   msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor));
-  GNUNET_PEER_resolve(t->id.oid, &msg->owner);
-  msg->channel_id = htonl (t->id.tid);
+  msg->channel_id = htonl (ch->id);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-  GNUNET_PEER_resolve (t->dest, &msg->destination);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "*  sending info about tunnel %s [%u]\n",
-              GNUNET_i2s (&msg->owner), t->id.tid);
+              "*  sending info about tunnel %s\n",
+              GNUNET_i2s (&msg->owner));
 
   GNUNET_SERVER_notification_context_unicast (nc, client,
                                               &msg->header, GNUNET_NO);
@@ -5673,7 +5672,7 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_MESH_LocalMonitor *msg;
   struct GNUNET_MESH_LocalMonitor *resp;
   struct MeshClient *c;
-  struct MeshTunnel *t;
+  struct MeshChannel *ch;
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -5689,10 +5688,10 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
               c->id,
               &msg->owner,
               ntohl (msg->channel_id));
-  t = channel_get (&msg->owner, ntohl (msg->channel_id));
-  if (NULL == t)
+  ch = channel_get (&msg->owner, ntohl (msg->channel_id));
+  if (NULL == ch)
   {
-    /* We don't know the tunnel FIXME */
+    /* We don't know the tunnel */
     struct GNUNET_MESH_LocalMonitor warn;
 
     warn = *msg;
@@ -5706,7 +5705,6 @@ handle_local_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   /* Initialize context */
   resp = GNUNET_malloc (sizeof (struct GNUNET_MESH_LocalMonitor));
   *resp = *msg;
-  GNUNET_PEER_resolve (t->dest, &resp->destination);
   resp->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &resp->header, GNUNET_NO);
@@ -5726,7 +5724,7 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_local_new_client, NULL,
    GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
   {&handle_local_channel_create, NULL,
-   GNUNET_MESSAGE_TYPE_MESH_LOCAL_CHANNEL_CREATE,
+   GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE,
    sizeof (struct GNUNET_MESH_ChannelMessage)},
   {&handle_local_channel_destroy, NULL,
    GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY,
@@ -5921,7 +5919,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 static int
 shutdown_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct MeshTunnel *t = value;
+  struct MeshTunnel2 *t = value;
 
   tunnel_destroy (t);
   return GNUNET_YES;
@@ -5943,7 +5941,7 @@ shutdown_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *n;
 
-  q = p->queue_head;
+  q = p->fc->queue_head;
   while (NULL != q)
   {
       n = q->next;
@@ -6132,7 +6130,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
-  incoming_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
   peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 
@@ -6174,8 +6171,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  next_tid = 0;
-  next_local_tid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
