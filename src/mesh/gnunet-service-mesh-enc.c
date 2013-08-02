@@ -421,6 +421,12 @@ struct MeshChannel
   struct MeshTunnel2 *t;
 
     /**
+     * Double linked list.
+     */
+  struct MeshChannel    *next;
+  struct MeshChannel    *prev;
+
+    /**
      * Destination port of the channel.
      */
   uint32_t port;
@@ -3700,11 +3706,11 @@ channel_destroy_iterator (void *cls,
 
 
 /**
- * remove client's ports from the global hashmap on diconnect.
+ * Remove client's ports from the global hashmap on disconnect.
  *
  * @param cls Closure (unused).
  * @param key Port.
- * @param value ThClient structure.
+ * @param value Client structure.
  *
  * @return GNUNET_OK, keep iterating.
  */
@@ -3726,91 +3732,101 @@ client_release_ports (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Timeout function due to lack of keepalive/traffic from the owner.
- * Destroys tunnel if called.
+ * Destroys connection if called.
  *
- * @param cls Closure (tunnel to destroy).
- * @param tc TaskContext
+ * @param cls Closure (connection to destroy).
+ * @param tc TaskContext.
  */
 static void
-tunnel_fwd_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_fwd_timeout (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel *t = cls;
+  struct MeshConnection *c = cls;
 
-  t->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s [%X] FWD timed out. Destroying.\n",
-              GNUNET_i2s(GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid);
-  if (NULL != t->client)
-    send_local_tunnel_destroy (t, GNUNET_YES);
-  tunnel_destroy (t); /* Do not notify other */
+              "Connection %s[%X] FWD timed out. Destroying.\n",
+              GNUNET_i2s(GNUNET_PEER_resolve2 (c->t->peer->id)),
+              c->id);
+
+  if (NULL != c->t->channel_head) /* If local, leave TODO review */
+    return;
+
+  connection_destroy (c);
 }
 
 
 /**
  * Timeout function due to lack of keepalive/traffic from the destination.
- * Destroys tunnel if called.
+ * Destroys connection if called.
  *
- * @param cls Closure (tunnel to destroy).
+ * @param cls Closure (connection to destroy).
  * @param tc TaskContext
  */
 static void
-tunnel_bck_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_bck_timeout (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel *t = cls;
+  struct MeshConnection *c = cls;
 
-  t->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s [%X] BCK timed out. Destroying.\n",
-              GNUNET_i2s(GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid);
-  if (NULL != t->owner)
-    send_local_tunnel_destroy (t, GNUNET_NO);
-  tunnel_destroy (t); /* Do not notify other */
+              "Connection %s[%X] FWD timed out. Destroying.\n",
+              GNUNET_i2s(GNUNET_PEER_resolve2 (c->t->peer->id)),
+              c->id);
+
+  if (NULL != c->t->channel_head) /* If local, leave TODO review */
+    return;
+
+  connection_destroy (c);
 }
 
 
 /**
- * Resets the tunnel timeout task, some other message has done the task's job.
+ * Resets the connection timeout task, some other message has done the
+ * task's job.
  * - For the first peer on the direction this means to send
  *   a keepalive or a path confirmation message (either create or ACK).
- * - For all other peers, this means to destroy the tunnel,
+ * - For all other peers, this means to destroy the connection,
  *   due to lack of activity.
- * Starts the tiemout if no timeout was running (tunnel just created).
+ * Starts the tiemout if no timeout was running (connection just created).
  *
- * @param t Tunnel whose timeout to reset.
+ * @param c Connection whose timeout to reset.
  * @param fwd Is this forward?
  *
  * TODO use heap to improve efficiency of scheduler.
  */
 static void
-tunnel_reset_timeout (struct MeshTunnel *t, int fwd)
+connection_reset_timeout (struct MeshConnection *c, int fwd)
 {
   GNUNET_SCHEDULER_TaskIdentifier *ti;
   GNUNET_SCHEDULER_Task f;
-  struct MeshClient *c;
 
-  ti = fwd ? &t->fwd_maintenance_task : &t->bck_maintenance_task;
-  c  = fwd ? t->owner                 : t->client;
+  ti = fwd ? &c->fwd_maintenance_task : &c->bck_maintenance_task;
 
   if (GNUNET_SCHEDULER_NO_TASK != *ti)
     GNUNET_SCHEDULER_cancel (*ti);
 
-  if (NULL != c)
+  if (NULL != c->t->channel_head) /* Endpoint */
   {
-    f  = fwd ? &tunnel_fwd_keepalive : &tunnel_bck_keepalive;
-    *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, t);
+    f  = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
+    *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, c);
   }
-  else
+  else /* Relay */
   {
-    f  = fwd ? &tunnel_fwd_timeout : &tunnel_bck_timeout;
-    *ti = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                            (refresh_connection_time, 4),
-                                        f, t);
+    struct GNUNET_TIME_Relative delay;
+
+    delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
+    f  = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
+    *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
   }
 }
 
