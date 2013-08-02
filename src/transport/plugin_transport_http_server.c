@@ -654,24 +654,23 @@ static int
 http_server_plugin_address_suggested (void *cls, const void *addr,
 		size_t addrlen)
 {
-  struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *next;
   struct HttpAddressWrapper *pos;
 	struct HttpAddress *h_addr;
 	h_addr = (struct HttpAddress *) addr;
 
-  if ((NULL != plugin->ext_addr) &&
+  if ((NULL != p->ext_addr) &&
 	   GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
-			   	   	   plugin->ext_addr, plugin->ext_addr_len)))
+			   	   	   p->ext_addr, p->ext_addr_len)))
   {
   	/* Checking HTTP_OPTIONS_VERIFY_CERTIFICATE option for external hostname */
   	if ((ntohl(h_addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) !=
-  			(plugin->options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+  			(p->options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
 			return GNUNET_NO; /* VERIFY option not set as required! */
   	return GNUNET_OK;
   }
 
-  next  = plugin->addr_head;
+  next  = p->addr_head;
   while (NULL != (pos = next))
   {
     next = pos->next;
