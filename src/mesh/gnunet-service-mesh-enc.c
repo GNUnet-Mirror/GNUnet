@@ -963,15 +963,12 @@ tunnel_destroy_empty (struct MeshTunnel2 *t);
  * This function does not generate any warning traffic to clients or peers.
  *
  * Tasks:
- * Remove the tunnel from peer_info's and clients' hashmaps.
  * Cancel messages belonging to this tunnel queued to neighbors.
  * Free any allocated resources linked to the tunnel.
  *
- * @param t the tunnel to destroy
- *
- * @return GNUNET_OK on success
+ * @param t The tunnel to destroy.
  */
-static int
+static void
 tunnel_destroy (struct MeshTunnel2 *t);
 
 /**
@@ -2078,13 +2075,14 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
 
 
 /**
- * Cancel all transmissions towards a neighbor that belong to a certain tunnel.
+ * Cancel all transmissions towards a neighbor that belong to
+ * a certain connection.
  *
  * @param peer Neighbor to whom cancel the transmissions.
- * @param t Tunnel which to cancel.
+ * @param c Connection which to cancel.
  */
 static void
-peer_cancel_queues (struct MeshPeer *peer, struct MeshTunnel2 *t)
+peer_cancel_queues (struct MeshPeer *peer, struct MeshConnection *c)
 {
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *next;
@@ -2099,7 +2097,7 @@ peer_cancel_queues (struct MeshPeer *peer, struct MeshTunnel2 *t)
   for (q = fc->queue_head; NULL != q; q = next)
   {
     next = q->next;
-    if (q->peer->tunnel == t)
+    if (q->c == c)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "peer_cancel_queue %s\n",
@@ -3419,66 +3417,68 @@ channel_send_destroy (struct MeshChannel *ch)
 }
 
 
-static int
+/**
+ * Connection is no longer needed: destroy it and remove from tunnel.
+ *
+ * @param c Connection to destroy.
+ */
+static void
+connection_destroy (struct MeshConnection *c)
+{
+  struct MeshPeer *peer;
+
+  if (NULL == c)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s[%X]\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              c->id);
+
+  peer = connection_get_next_hop (c);
+  if (NULL != peer)
+    peer_cancel_queues (peer, c);
+  peer = connection_get_prev_hop (c);
+  if (NULL != peer)
+    peer_cancel_queues (peer, c);
+
+  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
+    GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
+  if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
+    GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
+
+  GNUNET_CONTAINER_DLL_remove (c->t->connection_head, c->t->connection_tail, c);
+
+  GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
+  GNUNET_free (c);
+}
+
+
+static void
 tunnel_destroy (struct MeshTunnel2 *t)
 {
-  struct MeshClient *c;
-  struct GNUNET_HashCode hash;
-  int r;
+  struct MeshConnection *c;
+  struct MeshConnection *next;
 
   if (NULL == t)
-    return GNUNET_OK;
+    return;
 
-  r = GNUNET_OK;
-  c = t->owner;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s [%x]\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (t->id.oid)), t->id.tid);
-  if (NULL != c)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
-
-  GNUNET_CRYPTO_hash (&t->id, sizeof (struct MESH_TunnelID), &hash);
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &hash, t))
-  {
+  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
     GNUNET_break (0);
-    r = GNUNET_SYSERR;
+
+  for (c = t->connection_head; NULL != c; c = next)
+  {
+    next = c->next;
+    connection_destroy (c);
   }
 
-  if (0 != t->prev_hop)
-  {
-    peer_cancel_queues (t->prev_hop, t);
-    GNUNET_PEER_change_rc (t->prev_hop, -1);
-  }
-  if (0 != t->next_hop)
-  {
-    peer_cancel_queues (t->next_hop, t);
-    GNUNET_PEER_change_rc (t->next_hop, -1);
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != t->next_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (t->next_fc.poll_task);
-    t->next_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != t->prev_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (t->prev_fc.poll_task);
-    t->prev_fc.poll_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (0 != t->dest) {
-    peer_remove_tunnel (peer_get_short (t->dest), t);
-  }
-
-  if (GNUNET_SCHEDULER_NO_TASK != t->fwd_maintenance_task)
-    GNUNET_SCHEDULER_cancel (t->fwd_maintenance_task);
-  if (GNUNET_SCHEDULER_NO_TASK != t->bck_maintenance_task)
-    GNUNET_SCHEDULER_cancel (t->bck_maintenance_task);
-
-  n_tunnels--;
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
-  path_destroy (t->path);
+
   GNUNET_free (t);
-  return r;
 }
+
 
 /**
  * Tunnel is empty: destroy it.
