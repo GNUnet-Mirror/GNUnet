@@ -3404,8 +3404,8 @@ connection_send_destroy (struct MeshConnection *c)
 
 
 /**
- * Send a message to all clients in this channel that the channel
- * is no longer valid.
+ * Send a message to all clients (local and remote) of this channel
+ * notifying that the channel is no longer valid.
  *
  * If some peer or client should not receive the message,
  * should be zero'ed out before calling this function.
@@ -3598,6 +3598,7 @@ channel_destroy (struct MeshChannel *ch)
     channel_rel_free_all (ch->bck_rel);
   }
 
+  GNUNET_CONTAINER_DLL_remove (ch->t->channel_head, ch->t->channel_tail, ch);
   GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
 
   GNUNET_free (ch);
@@ -3657,47 +3658,42 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
 
 
 /**
- * Iterator for deleting each tunnel whose client endpoint disconnected.
+ * Iterator for deleting each channel whose client endpoint disconnected.
  *
  * @param cls Closure (client that has disconnected).
- * @param key The local tunnel id (used to access the hashmap).
- * @param value The value stored at the key (tunnel to destroy).
+ * @param key The local channel id (used to access the hashmap).
+ * @param value The value stored at the key (channel to destroy).
  *
  * @return GNUNET_OK, keep iterating.
  */
 static int
-tunnel_destroy_iterator (void *cls,
-                         uint32_t key,
-                         void *value)
+channel_destroy_iterator (void *cls,
+                          uint32_t key,
+                          void *value)
 {
-  struct MeshTunnel *t = value;
+  struct MeshChannel *ch = value;
   struct MeshClient *c = cls;
+  struct MeshTunnel2 *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Tunnel %X / %X destroy, due to client %u shutdown.\n",
-              t->local_tid, t->local_tid_dest, c->id);
-  client_delete_tunnel (c, t);
-  if (c == t->client)
+              " Channel %X / %X destroy, due to client %u shutdown.\n",
+              ch->id, ch->id_dest, c->id);
+
+  if (c == ch->client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
-    t->client = NULL;
-    if (0 != t->next_hop) /* destroy could come before a path is used */
-    {
-      GNUNET_PEER_change_rc (t->next_hop, -1);
-      t->next_hop = 0;
-    }
+    ch->client = NULL;
   }
-  if (c == t->owner)
+  if (c == ch->owner)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
-    t->owner = NULL;
-    if (0 != t->prev_hop) { /* destroy could come before a path is used */
-        GNUNET_PEER_change_rc (t->prev_hop, -1);
-        t->prev_hop = 0;
-    }
+    ch->owner = NULL;
   }
 
-  tunnel_destroy_empty (t);
+  t = ch->t;
+  channel_send_destroy (ch);
+  channel_destroy (ch);
+  tunnel_destroy_if_empty (t);
 
   return GNUNET_OK;
 }
