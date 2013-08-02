@@ -3847,140 +3847,57 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshFlowControl *fc;
 
+  fc = queue->peer->fc;
   if (GNUNET_YES == clear_cls)
   {
     switch (queue->type)
     {
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "   cancelling TUNNEL_DESTROY\n");
-        GNUNET_break (GNUNET_YES == queue->tunnel->destroy);
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying CONNECTION_DESTROY\n");
+        GNUNET_break (GNUNET_YES == queue->c->destroy);
         /* fall through */
-      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+      case GNUNET_MESSAGE_TYPE_MESH_FWD:
+      case GNUNET_MESSAGE_TYPE_MESH_BCK:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      case GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE:
-      case GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "   prebuilt message\n");
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "   type %s\n",
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type %s\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
         break;
+
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
         break;
+
       default:
         GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "   type %s unknown!\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   type %s unknown!\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
     }
     GNUNET_free_non_null (queue->cls);
   }
-  GNUNET_CONTAINER_DLL_remove (queue->peer->queue_head,
-                               queue->peer->queue_tail,
-                               queue);
+  GNUNET_CONTAINER_DLL_remove (fc->queue_head, fc->queue_tail, queue);
 
-  /* Delete from appropriate fc in the tunnel */
-  if (GNUNET_MESSAGE_TYPE_MESH_UNICAST == queue->type ||
-      GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN == queue->type )
-  {
-    if (queue->peer->id == queue->tunnel->prev_hop)
-      fc = &queue->tunnel->prev_fc;
-    else if (queue->peer->id == queue->tunnel->next_hop)
-      fc = &queue->tunnel->next_fc;
-    else
-    {
-      GNUNET_break (0);
-      GNUNET_free (queue);
-      return;
-    }
-    fc->queue_n--;
-  }
+  fc->queue_n--;
+
   GNUNET_free (queue);
 }
-
-
-/**
- * @brief Get the next transmittable message from the queue.
- *
- * This will be the head, except in the case of being a data packet
- * not allowed by the destination peer.
- *
- * @param peer Destination peer.
- *
- * @return The next viable MeshPeerQueue element to send to that peer.
- *         NULL when there are no transmittable messages.
- */
-struct MeshPeerQueue *
-queue_get_next (const struct MeshPeer *peer)
-{
-  struct MeshPeerQueue *q;
-
-  struct GNUNET_MESH_Data *dmsg;
-  struct MeshTunnel2 *t;
-  uint32_t pid;
-  uint32_t ack;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   selecting message\n");
-  for (q = peer->fc->queue_head; NULL != q; q = q->next)
-  {
-    t = q->tunnel;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*     %s\n",
-                GNUNET_MESH_DEBUG_M2S (q->type));
-    dmsg = (struct GNUNET_MESH_Data *) q->cls;
-    pid = ntohl (dmsg->pid);
-    switch (q->type)
-    {
-      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-        ack = t->next_fc.last_ack_recv;
-        break;
-      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-        ack = t->prev_fc.last_ack_recv;
-        break;
-      default:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "*   OK!\n");
-        return q;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*     ACK: %u, PID: %u, MID: %u\n",
-                ack, pid, ntohl (dmsg->mid));
-    if (GNUNET_NO == GMC_is_pid_bigger (pid, ack))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "*   OK!\n");
-      return q;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "*     NEXT!\n");
-    }
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "*   nothing found\n");
-  return NULL;
-}
-
 
 static size_t
 queue_send (void *cls, size_t size, void *buf)
 {
   struct MeshPeer *peer = cls;
+  const struct GNUNET_PeerIdentity *dst_id;
   struct GNUNET_MessageHeader *msg;
   struct MeshPeerQueue *queue;
   struct MeshTunnel2 *t;
-  struct GNUNET_PeerIdentity *dst_id;
   struct MeshFlowControl *fc;
   struct MeshConnection *c;
   size_t data_size;
   uint32_t pid;
   uint16_t type;
+  int fwd;
 
   fc = peer->fc;
   if (NULL == fc)
@@ -3997,28 +3914,21 @@ queue_send (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
     return 0;
   }
-  queue = queue_get_next (peer);
+  queue = fc->queue_head;
 
-  /* Queue has no internal mesh traffic nor sendable payload */
+  /* Queue has no traffic */
   if (NULL == queue)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   not ready, return\n");
-    if (NULL == fc->queue_head)
-      GNUNET_break (0); /* Core tmt_rdy should've been canceled */
+    GNUNET_break (0); /* Core tmt_rdy should've been canceled */
     return 0;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   not empty\n");
-
-  dst_id = GNUNET_PEER_resolve (peer->id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "*   towards %s\n",
-              GNUNET_i2s (dst_id));
+  dst_id = GNUNET_PEER_resolve2 (peer->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "*   not enough room, reissue\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   not enough room, reissue\n");
       fc->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
                                              GNUNET_NO,
@@ -4039,16 +3949,12 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
-    case 0:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-    case GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN:
-    case GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "*   raw: %s\n",
                   GNUNET_MESH_DEBUG_M2S (queue->type));
@@ -4065,95 +3971,73 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
-      if (NULL != t->client)
+      if (NULL != c->t->channel_head)
         data_size = send_core_connection_ack (queue->cls, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     default:
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "*   type unknown: %u\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n",
                   queue->type);
       data_size = 0;
   }
+
+  fc->queue_n--;
 
   if (0 < drop_percent &&
       GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Dropping message of type %s\n",
-                GNUNET_MESH_DEBUG_M2S(queue->type));
+                GNUNET_MESH_DEBUG_M2S (queue->type));
     data_size = 0;
   }
   /* Free queue, but cls was freed by send_core_* */
   queue_destroy (queue, GNUNET_NO);
 
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
-  pid = ((struct GNUNET_MESH_Data *) buf)->pid;
-  pid = ntohl (pid);
+  fwd = GNUNET_NO;
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-      t->next_fc.last_pid_sent = pid;
-      tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_UNICAST, GNUNET_YES);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "!!! FWD  %u\n",
-                  ntohl ( ((struct GNUNET_MESH_Data *) buf)->mid ) );
-      break;
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-      t->prev_fc.last_pid_sent = pid;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "!!! BCK  %u\n",
-                  ntohl ( ((struct GNUNET_MESH_Data *) buf)->mid ) );
-      tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, GNUNET_NO);
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+      fwd = GNUNET_YES;
+      /* fall through */
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      pid = ntohl ( ((struct GNUNET_MESH_Encrypted *) buf)->pid );
+      fc->last_pid_sent = pid;
+      connection_send_ack (c, fwd);
       break;
     default:
       break;
   }
 
   /* If more data in queue, send next */
-  queue = queue_get_next (peer);
+  queue = fc->queue_head;
   if (NULL != queue)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
-      if (NULL == peer->core_transmit) {
-        peer->core_transmit =
-            GNUNET_CORE_notify_transmit_ready(core_handle,
-                                              0,
-                                              0,
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                              &dst_id,
-                                              queue->size,
-                                              &queue_send,
-                                              peer);
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "*   tmt rdy called somewhere else\n");
-      }
-  }
-  if (peer->id == t->next_hop)
-    fc = &t->next_fc;
-  else if (peer->id == t->prev_hop)
-    fc = &t->prev_fc;
-  else
-  {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id: %u, next: %u, prev: %u\n",
-                peer->id, t->next_hop, t->prev_hop);
-    return data_size;
-  }
-  if (NULL != peer->queue_head)
-  {
-    if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task && fc->queue_n > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
+    if (NULL == fc->core_transmit) {
+      peer->fc->core_transmit =
+          GNUNET_CORE_notify_transmit_ready(core_handle,
+                                            0,
+                                            0,
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            dst_id,
+                                            queue->size,
+                                            &queue_send,
+                                            peer);
+    }
+    else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "*   %s starting poll timeout\n",
-                  GNUNET_i2s (&my_full_id));
-      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                    &tunnel_poll, fc);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "*   tmt rdy called somewhere else\n");
+    }
+    if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "*   %s starting poll timeout\n");
+      fc->poll_task =
+          GNUNET_SCHEDULER_add_delayed (fc->poll_time, &peer_poll, fc);
     }
   }
   else
