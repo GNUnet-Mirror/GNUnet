@@ -1365,6 +1365,25 @@ send_local_ack (struct MeshChannel *ch,
 
 
 /**
+ * Count established (ready) connections of a tunnel.
+ *
+ * @param t Tunnel on which to send the message.
+ *
+ * @return Number of connections.
+ */
+static unsigned int
+tunnel_count_connections (struct MeshTunnel2 *t)
+{
+  struct MeshConnection *c;
+  unsigned int i;
+
+  for (c = t->connection_head, i = 0; NULL != c; c = c->next, i++);
+
+  return i;
+}
+
+
+/**
  * Pick a connection on which send the next data message.
  *
  * @param t Tunnel on which to send the message.
@@ -4259,7 +4278,7 @@ handle_mesh_connection_create (void *cls,
 
   /* Remember peers */
   dest_peer = peer_get (&id[size - 1]);
-  orig_peer = peer_get (&id[0]7);
+  orig_peer = peer_get (&id[0]);
 
   /* Create path */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
@@ -4320,37 +4339,33 @@ handle_mesh_connection_create (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message)
+handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_PathACK *msg;
-  struct MeshPeer *peer_info;
+  struct GNUNET_MESH_ConnectionACK *msg;
   struct MeshPeerPath *p;
-  struct MeshTunnel *t;
+  struct MeshConnection *c;
+  uint32_t cid;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a path ACK msg [%s]\n",
-              GNUNET_i2s (&my_full_id));
-  msg = (struct GNUNET_MESH_PathACK *) message;
-  t = channel_get (&msg->oid, ntohl(msg->tid));
-  if (NULL == t)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
+  msg = (struct GNUNET_MESH_ConnectionACK *) message;
+  cid = ntohl(msg->cid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s[%X]\n",
+              GNUNET_h2s (&msg->tid), cid);
+  c = connection_get (&msg->tid, cid);
+  if (NULL == c)
   {
-    /* TODO notify that we don't know the tunnel */
-    GNUNET_STATISTICS_update (stats, "# control on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the tunnel %s [%X]!\n",
-                GNUNET_i2s (&msg->oid), ntohl(msg->tid));
+    GNUNET_STATISTICS_update (stats, "# control on unknown connection",
+                              1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %s [%X]\n",
-              GNUNET_i2s (&msg->oid), ntohl(msg->tid));
 
-  peer_info = peer_get (&msg->peer_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by peer %s\n",
-              GNUNET_i2s (&msg->peer_id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
               GNUNET_i2s (peer));
 
   /* Add path to peers? */
-  p = t->path;
+  p = c->path;
   if (NULL != p)
   {
     path_add_to_peers (p, GNUNET_YES);
@@ -4359,33 +4374,24 @@ handle_mesh_path_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
   }
-  tunnel_change_state (t, MESH_TUNNEL_READY);
-  tunnel_reset_timeout (t, GNUNET_NO);
-  t->next_fc.last_ack_recv = (NULL == t->client) ? ntohl (msg->ack) : 0;
-  t->prev_fc.last_ack_sent = ntohl (msg->ack);
+  connection_change_state (c, MESH_CONNECTION_READY);
+  connection_reset_timeout (c, GNUNET_NO);
 
   /* Message for us? */
-  if (0 == memcmp (&msg->oid, &my_full_id, sizeof (struct GNUNET_PeerIdentity)))
+  if (NULL != c->t->channel_head)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
-    if (NULL == t->owner)
+    if (3 <= tunnel_count_connections(c->t) && NULL != c->t->peer->dhtget)
     {
-      GNUNET_break_op (0);
-      return GNUNET_OK;
+      GNUNET_DHT_get_stop (c->t->peer->dhtget);
+      c->t->peer->dhtget = NULL;
     }
-    if (NULL != peer_info->dhtget)
-    {
-      GNUNET_DHT_get_stop (peer_info->dhtget);
-      peer_info->dhtget = NULL;
-    }
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK, GNUNET_YES);
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK, GNUNET_NO);
+    connection_send_ack (c, GNUNET_NO); /* FIXME */
     return GNUNET_OK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  not for us, retransmitting...\n");
-  send_prebuilt_message (message, t->prev_hop, t);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
+  send_prebuilt_message_connection (message, c, NULL, GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -4998,7 +5004,10 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_mesh_connection_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE, 0},
+  {&handle_mesh_connection_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+    0},
+  {&handle_mesh_connection_ack, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
+    sizeof (struct GNUNET_MESH_ConnectionACK)},
   {&handle_mesh_path_broken, GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN,
    sizeof (struct GNUNET_MESH_PathBroken)},
   {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY,
@@ -5017,8 +5026,6 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     sizeof (struct GNUNET_MESH_ACK)},
   {&handle_mesh_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
     sizeof (struct GNUNET_MESH_Poll)},
-  {&handle_mesh_path_ack, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
-   sizeof (struct GNUNET_MESH_PathACK)},
   {NULL, 0, 0}
 };
 
