@@ -1537,8 +1537,8 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
  */
 static void
 send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
-                              struct MeshChannel *ch,
-                              int fwd)
+                               struct MeshChannel *ch,
+                               int fwd)
 {
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
@@ -3407,17 +3407,15 @@ channel_send_destroy (struct MeshChannel *ch)
               GNUNET_i2s (GNUNET_PEER_resolve2 (ch->t->peer->id)),
               ch->id);
 
-  send_prebuilt_message_channel (&msg.header, ch, GNUNET_YES);
-  send_prebuilt_message_channel (&msg.header, ch, GNUNET_NO);
-
   if (NULL != ch->owner)
-  {
     send_local_channel_destroy (ch, GNUNET_NO);
-  }
+  else
+    send_prebuilt_message_channel (&msg.header, ch, GNUNET_NO);
+
   if (NULL != ch->client)
-  {
     send_local_channel_destroy (ch, GNUNET_YES);
-  }
+  else
+    send_prebuilt_message_channel (&msg.header, ch, GNUNET_YES);
 }
 
 
