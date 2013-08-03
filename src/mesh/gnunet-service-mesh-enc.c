@@ -2607,6 +2607,8 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
  * some of its peers. Sends a notification towards the root of the tree.
  * In case the peer is the owner of the tree, notifies the client that owns
  * the tunnel and tries to reconnect.
+ * 
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
  *
  * @param t Tunnel affected.
  * @param p1 Peer that got disconnected from p2.
@@ -4386,7 +4388,7 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_DHT_get_stop (c->t->peer->dhtget);
       c->t->peer->dhtget = NULL;
     }
-    connection_send_ack (c, GNUNET_NO); /* FIXME */
+    //connection_send_ack (c, GNUNET_NO); /* FIXME */
     return GNUNET_OK;
   }
 
@@ -4399,34 +4401,34 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 /**
  * Core handler for notifications of broken paths
  *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
+ * @param cls Closure (unused).
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_mesh_path_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-                         const struct GNUNET_MessageHeader *message)
+handle_mesh_connection_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
+                               const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_PathBroken *msg;
-  struct MeshTunnel *t;
+  struct GNUNET_MESH_ConnectionBroken *msg;
+  struct MeshConnection *c;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a PATH BROKEN msg from %s\n", GNUNET_i2s (peer));
-  msg = (struct GNUNET_MESH_PathBroken *) message;
+              "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (peer));
+  msg = (struct GNUNET_MESH_ConnectionBroken *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer2));
-  t = channel_get (&msg->oid, ntohl (msg->tid));
-  if (NULL == t)
+  c = connection_get (&msg->tid, ntohl (msg->cid));
+  if (NULL == c)
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  tunnel_notify_connection_broken (t, GNUNET_PEER_search (&msg->peer1),
+  tunnel_notify_connection_broken (c->t, GNUNET_PEER_search (&msg->peer1),
                                    GNUNET_PEER_search (&msg->peer2));
   return GNUNET_OK;
 
@@ -5008,8 +5010,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     0},
   {&handle_mesh_connection_ack, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
     sizeof (struct GNUNET_MESH_ConnectionACK)},
-  {&handle_mesh_path_broken, GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN,
-   sizeof (struct GNUNET_MESH_PathBroken)},
+  {&handle_mesh_connection_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
+   sizeof (struct GNUNET_MESH_ConnectionBroken)},
   {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY,
    sizeof (struct GNUNET_MESH_TunnelDestroy)},
   {&handle_mesh_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
