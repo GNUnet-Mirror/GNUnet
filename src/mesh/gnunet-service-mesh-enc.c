@@ -4438,29 +4438,32 @@ handle_mesh_connection_broken (void *cls, const struct GNUNET_PeerIdentity *peer
 /**
  * Core handler for tunnel destruction
  *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
+ * @param cls Closure (unused).
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message)
+handle_mesh_connection_destroy (void *cls,
+                                const struct GNUNET_PeerIdentity *peer,
+                                const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_TunnelDestroy *msg;
-  struct MeshTunnel *t;
+  struct GNUNET_MESH_ConnectionDestroy *msg;
+  struct MeshConnection *c;
+  struct MeshTunnel2 *t;
+  struct MeshPeer *neighbor;
 
-  msg = (struct GNUNET_MESH_TunnelDestroy *) message;
+  msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got a TUNNEL DESTROY packet from %s\n",
+              "Got a CONNECTION DESTROY message from %s\n",
               GNUNET_i2s (peer));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  for tunnel %s [%u]\n",
-              GNUNET_i2s (&msg->oid), ntohl (msg->tid));
-  t = channel_get (&msg->oid, ntohl (msg->tid));
-  if (NULL == t)
+              "  for connection %s[%X]\n",
+              GNUNET_h2s (&msg->tid), ntohl (msg->cid));
+  c = connection_get (&msg->tid, ntohl (msg->cid));
+  if (NULL == c)
   {
     /* Probably already got the message from another path,
      * destroyed the tunnel and retransmitted to children.
@@ -4470,37 +4473,21 @@ handle_mesh_tunnel_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  if (t->local_tid_dest >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "INCOMING TUNNEL %X %X\n",
-                t->local_tid, t->local_tid_dest);
-  }
-  if (GNUNET_PEER_search (peer) == t->prev_hop)
-  {
-    // TODO check owner's signature
-    // TODO add owner's signatue to tunnel for retransmission
-    peer_cancel_queues (t->prev_hop, t);
-    GNUNET_PEER_change_rc (t->prev_hop, -1);
-    t->prev_hop = 0;
-  }
-  else if (GNUNET_PEER_search (peer) == t->next_hop)
-  {
-    // TODO check dest's signature
-    // TODO add dest's signatue to tunnel for retransmission
-    peer_cancel_queues (t->next_hop, t);
-    GNUNET_PEER_change_rc (t->next_hop, -1);
-    t->next_hop = 0;
-  }
+  neighbor = peer_get (peer);
+  if (neighbor == connection_get_prev_hop (c))
+    neighbor = connection_get_next_hop (c);
+  else if (neighbor == connection_get_next_hop (c))
+    neighbor = connection_get_prev_hop (c);
   else
   {
     GNUNET_break_op (0);
-    // TODO check both owner AND destination's signature to see which matches
-    // TODO restransmit in appropriate direction
     return GNUNET_OK;
   }
-  tunnel_destroy_empty (t);
+  send_prebuilt_message_peer (message, neighbor);
+  t = c->t;
+  connection_destroy (c);
+  tunnel_destroy_if_empty (t);
 
-  // TODO: add timeout to destroy the tunnel anyway
   return GNUNET_OK;
 }
 
@@ -5012,8 +4999,8 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     sizeof (struct GNUNET_MESH_ConnectionACK)},
   {&handle_mesh_connection_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
    sizeof (struct GNUNET_MESH_ConnectionBroken)},
-  {&handle_mesh_tunnel_destroy, GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY,
-   sizeof (struct GNUNET_MESH_TunnelDestroy)},
+  {&handle_mesh_connection_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
+   sizeof (struct GNUNET_MESH_ConnectionDestroy)},
   {&handle_mesh_unicast, GNUNET_MESSAGE_TYPE_MESH_UNICAST, 0},
   {&handle_mesh_to_orig, GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN, 0},
   {&handle_mesh_data_ack, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK,
