@@ -924,15 +924,15 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed);
 
 
 /**
- * Search for a channel by global ID using full PeerIdentities.
+ * Search for a tunnel by global ID using full PeerIdentities.
  *
- * @param oid owner of the tunnel.
- * @param tid global tunnel number.
+ * @param t Tunnel containing the channel.
+ * @param chid Public channel number.
  *
- * @return tunnel handler, NULL if doesn't exist.
+ * @return channel handler, NULL if doesn't exist
  */
 static struct MeshChannel *
-channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid);
+channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid);
 
 
 /**
@@ -2472,37 +2472,29 @@ channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
   return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
 }
 
-
 /**
- * Search for a tunnel by global ID using PEER_ID
+ * Search for a tunnel by global ID using full PeerIdentities.
  *
- * @param pi owner of the tunnel
- * @param tid global tunnel number
+ * @param t Tunnel containing the channel.
+ * @param chid Public channel number.
  *
- * @return tunnel handler, NULL if doesn't exist
+ * @return channel handler, NULL if doesn't exist
  */
 static struct MeshChannel *
-channel_get_by_pi (GNUNET_PEER_Id pi, MESH_ChannelNumber tid)
+channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid)
 {
-//   struct GNUNET_HashCode hash;
+  struct MeshChannel *ch;
 
-//   return GNUNET_CONTAINER_multihashmap_get (tunnels, &hash); FIXME
-  return NULL;
-}
+  if (NULL == t)
+    return NULL;
 
+  for (ch = t->channel_head; NULL != ch; ch = ch->next)
+  {
+    if (ch->id == chid)
+      break;
+  }
 
-/**
- * Search for a tunnel by global ID using full PeerIdentities
- *
- * @param oid owner of the tunnel
- * @param tid global tunnel number
- *
- * @return tunnel handler, NULL if doesn't exist
- */
-static struct MeshChannel *
-channel_get (const struct GNUNET_PeerIdentity *oid, MESH_ChannelNumber tid)
-{
-  return channel_get_by_pi (GNUNET_PEER_search (oid), tid);
+  return ch;
 }
 
 
@@ -4205,6 +4197,137 @@ queue_add (void *cls, uint16_t type, size_t size,
 /******************************************************************************/
 
 
+
+/**
+ * Generic handler for mesh network payload traffic.
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Data message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
+{
+  struct MeshChannelReliability *rel;
+  struct MeshChannel *ch;
+  struct MeshClient *c;
+  uint32_t mid;
+  uint16_t type;
+  size_t size;
+
+  /* Check size */
+  size = ntohs (msg->header.size);
+  if (size <
+      sizeof (struct GNUNET_MESH_Data) +
+      sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  type = ntohs (msg->header.type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message\n",
+              GNUNET_MESH_DEBUG_M2S (type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
+              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
+
+  /* Check channel */
+  ch = channel_get (t, ntohl (msg->chid));
+  if (NULL == ch)
+  {
+    GNUNET_STATISTICS_update (stats, "# data on unknown channel", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel unknown\n");
+    return GNUNET_OK;
+  }
+
+  /*  Initialize FWD/BCK data */
+  c =   fwd ? ch->client  : ch->owner;
+  rel = fwd ? ch->bck_rel : ch->fwd_rel;
+
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
+  tunnel_change_state (t, MESH_TUNNEL_READY);
+
+  GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
+
+  mid = ntohl (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " mid %u\n", mid);
+
+  if (GNUNET_NO == ch->reliable ||
+      ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
+        GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
+    if (GNUNET_YES == ch->reliable)
+    {
+      /* Is this the exact next expected messasge? */
+      if (mid == rel->mid_recv)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
+        rel->mid_recv++;
+        channel_send_client_data (ch, msg, fwd);
+        channel_send_client_buffered_data (ch, c, rel);
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
+        channel_rel_add_buffered_data (msg, rel);
+      }
+    }
+    else /* Tunnel unreliable, send to clients directly */
+    {
+      channel_send_client_data (ch, msg, fwd);
+    }
+  }
+  else
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " MID %u not expected (%u - %u), dropping!\n",
+                mid, rel->mid_recv, rel->mid_recv + 64);
+  }
+
+  channel_send_data_ack (ch, fwd);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for mesh network traffic going from the origin to a peer
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Data message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_unicast (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
+{
+  return handle_data (t, message, GNUNET_YES);
+}
+
+/**
+ * Handler for mesh network traffic towards the owner of a tunnel.
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Data message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_to_orig (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
+{
+  return handle_data (t, message, GNUNET_NO);
+}
+
 /**
  * Core handler for connection creation.
  *
@@ -4489,197 +4612,6 @@ handle_mesh_connection_destroy (void *cls,
   tunnel_destroy_if_empty (t);
 
   return GNUNET_OK;
-}
-
-
-/**
- * Generic handler for mesh network payload traffic.
- *
- * @param peer Peer identity this notification is about.
- * @param message Data message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_MessageHeader *message,
-                  int fwd)
-{
-  struct GNUNET_MESH_Data *msg;
-  struct MeshFlowControl *fc;
-  struct MeshChannelReliability *rel;
-  struct MeshChannel *ch;
-  struct MeshTunnel2 *t;
-  struct MeshClient *c;
-  GNUNET_PEER_Id hop;
-  uint32_t pid;
-  uint32_t ttl;
-  uint16_t type;
-  size_t size;
-
-  /* Check size */
-  size = ntohs (message->size);
-  if (size <
-      sizeof (struct GNUNET_MESH_Data) +
-      sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
-  type =ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
-  msg = (struct GNUNET_MESH_Data *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
-              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
-
-  /* Check channel */
-  ch = channel_get (&msg->oid, ntohl (msg->tid));
-  if (NULL == t)
-  {
-    /* TODO notify back: we don't know this tunnel */
-    GNUNET_STATISTICS_update (stats, "# data on unknown tunnel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING tunnel unknown\n");
-    return GNUNET_OK;
-  }
-
-  /*  Initialize FWD/BCK data */
-  pid = ntohl (msg->pid);
-  fc =  fwd ? &t->prev_fc : &t->next_fc;
-  c =   fwd ? t->client   : t->owner;
-  rel = fwd ? t->bck_rel  : t->fwd_rel;
-  hop = fwd ? t->next_hop : t->prev_hop;
-  if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
-  {
-    GNUNET_STATISTICS_update (stats, "# unsolicited data", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "WARNING Received PID %u, (prev %u), ACK %u\n",
-                pid, fc->last_pid_recv, fc->last_ack_sent);
-    return GNUNET_OK;
-  }
-  if (NULL != c)
-    tunnel_change_state (t, MESH_TUNNEL_READY);
-  tunnel_reset_timeout (t, fwd);
-  if (NULL != c)
-  {
-    /* TODO signature verification */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  it's for us! sending to client\n");
-    GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
-    if (GMC_is_pid_bigger (pid, fc->last_pid_recv))
-    {
-      uint32_t mid;
-
-      mid = ntohl (msg->mid);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " pid %u (mid %u) not seen yet\n", pid, mid);
-      fc->last_pid_recv = pid;
-
-      if (GNUNET_NO == t->reliable ||
-          ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
-            GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "!!! RECV %u\n", ntohl (msg->mid));
-        if (GNUNET_YES == t->reliable)
-        {
-          /* Is this the exact next expected messasge? */
-          if (mid == rel->mid_recv)
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
-            rel->mid_recv++;
-            tunnel_send_client_data (t, msg, fwd);
-            tunnel_send_client_buffered_data (t, c, rel);
-          }
-          else
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
-            tunnel_add_buffered_data (t, msg, rel);
-          }
-        }
-        else /* Tunnel unreliable, send to clients directly */
-        {
-          tunnel_send_client_data (t, msg, fwd);
-        }
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    " MID %u not expected (%u - %u), dropping!\n",
-                    ntohl (msg->mid), rel->mid_recv, rel->mid_recv + 64);
-      }
-    }
-    else
-    {
-//       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " Pid %u not expected (%u+), dropping!\n",
-                  pid, fc->last_pid_recv + 1);
-    }
-    tunnel_send_ack (t, type, fwd);
-    return GNUNET_OK;
-  }
-  fc->last_pid_recv = pid;
-  if (0 == hop)
-  {
-    GNUNET_STATISTICS_update (stats, "# data on dying tunnel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "data on dying tunnel %s[%X]\n",
-                GNUNET_PEER_resolve2 (t->id.oid), ntohl (msg->tid));
-    return GNUNET_OK; /* Next hop has destoyed the tunnel, drop */
-  }
-  ttl = ntohl (msg->ttl);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
-  if (ttl == 0)
-  {
-    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK, fwd);
-    return GNUNET_OK;
-  }
-
-  if (myid != hop)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-    send_prebuilt_message (message, hop, t);
-    GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh network traffic going from the origin to a peer
- *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_MessageHeader *message)
-{
-  return handle_mesh_data (peer, message, GNUNET_YES);
-}
-
-/**
- * Core handler for mesh network traffic towards the owner of a tunnel.
- *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_to_orig (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_MessageHeader *message)
-{
-  return handle_mesh_data (peer, message, GNUNET_NO);
 }
 
 

@@ -28,6 +28,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "mesh_enc.h"
 
 #ifdef __cplusplus
 
@@ -150,7 +151,7 @@ struct GNUNET_MESH_ChannelCreate
   /**
    * ID of the channel
    */
-  uint32_t chid GNUNET_PACKED;
+  MESH_ChannelNumber chid GNUNET_PACKED;
 
   /**
    * Channel options.
@@ -168,7 +169,7 @@ struct GNUNET_MESH_ChannelDestroy
   /**
    * ID of the channel
    */
-  uint32_t chid GNUNET_PACKED;
+  MESH_ChannelNumber chid GNUNET_PACKED;
 };
 
 /**
@@ -190,7 +191,7 @@ struct GNUNET_MESH_Data
     /**
      * ID of the channel
      */
-  uint32_t chid GNUNET_PACKED;
+  MESH_ChannelNumber chid GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -211,7 +212,7 @@ struct GNUNET_MESH_DataACK
   /**
    * ID of the channel
    */
-  uint32_t chid GNUNET_PACKED;
+  MESH_ChannelNumber chid GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages
