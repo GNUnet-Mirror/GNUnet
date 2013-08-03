@@ -4510,7 +4510,8 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_Data *msg;
   struct MeshFlowControl *fc;
   struct MeshChannelReliability *rel;
-  struct MeshTunnel *t;
+  struct MeshChannel *ch;
+  struct MeshTunnel2 *t;
   struct MeshClient *c;
   GNUNET_PEER_Id hop;
   uint32_t pid;
@@ -4533,8 +4534,9 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
   msg = (struct GNUNET_MESH_Data *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
-  /* Check tunnel */
-  t = channel_get (&msg->oid, ntohl (msg->tid));
+
+  /* Check channel */
+  ch = channel_get (&msg->oid, ntohl (msg->tid));
   if (NULL == t)
   {
     /* TODO notify back: we don't know this tunnel */
@@ -4650,8 +4652,8 @@ handle_mesh_data (const struct GNUNET_PeerIdentity *peer,
  * Core handler for mesh network traffic going from the origin to a peer
  *
  * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -4667,8 +4669,8 @@ handle_mesh_unicast (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Core handler for mesh network traffic towards the owner of a tunnel.
  *
  * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
