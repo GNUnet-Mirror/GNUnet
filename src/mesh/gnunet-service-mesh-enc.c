@@ -4197,7 +4197,6 @@ queue_add (void *cls, uint16_t type, size_t size,
 /******************************************************************************/
 
 
-
 /**
  * Generic handler for mesh network payload traffic.
  *
@@ -4313,6 +4312,7 @@ handle_unicast (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
   return handle_data (t, message, GNUNET_YES);
 }
 
+
 /**
  * Handler for mesh network traffic towards the owner of a tunnel.
  *
@@ -4327,6 +4327,104 @@ handle_to_orig (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
 {
   return handle_data (t, message, GNUNET_NO);
 }
+
+
+/**
+ * Handler for mesh network traffic end-to-end ACKs.
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Data message.
+ * @param fwd Is this a fwd ACK? (dest->orig)
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_data_ack (struct MeshTunnel2 *t,
+                 const struct GNUNET_MESH_DataACK *msg, int fwd)
+{
+  struct MeshChannelReliability *rel;
+  struct MeshReliableMessage *copy;
+  struct MeshReliableMessage *next;
+  struct MeshChannel *ch;
+  uint32_t ack;
+  uint16_t type;
+  int work;
+
+  type = ntohs (msg->header.type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a %s message!\n",
+              GNUNET_MESH_DEBUG_M2S (type));
+  ch = channel_get (t, ntohl (msg->chid));
+  if (NULL == ch)
+  {
+    GNUNET_STATISTICS_update (stats, "# ack on unknown channel", 1, GNUNET_NO);
+    return GNUNET_OK;
+  }
+  ack = ntohl (msg->mid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
+              (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
+
+  if (GNUNET_YES == fwd && GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type)
+  {
+    rel = ch->fwd_rel;
+  }
+  else if (GNUNET_NO == fwd && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
+  {
+    rel = ch->bck_rel;
+  }
+  if (NULL == rel)
+  {
+    return GNUNET_OK;
+  }
+
+  for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
+  {
+    if (GMC_is_pid_bigger (copy->mid, ack))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
+      channel_rel_free_sent (rel, msg);
+      break;
+    }
+    work = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
+    next = copy->next;
+    rel_message_free (copy);
+  }
+  /* ACK client if needed */
+//   channel_send_ack (t, type, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type);
+
+  /* If some message was free'd, update the retransmission delay*/
+  if (GNUNET_YES == work)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+    {
+      GNUNET_SCHEDULER_cancel (rel->retry_task);
+      if (NULL == rel->head_sent)
+      {
+        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      else
+      {
+        struct GNUNET_TIME_Absolute new_target;
+        struct GNUNET_TIME_Relative delay;
+
+        delay = GNUNET_TIME_relative_multiply (rel->retry_timer,
+                                               MESH_RETRANSMIT_MARGIN);
+        new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
+                                               delay);
+        delay = GNUNET_TIME_absolute_get_remaining (new_target);
+        rel->retry_task =
+            GNUNET_SCHEDULER_add_delayed (delay,
+                                          &channel_retransmit_message,
+                                          rel);
+      }
+    }
+    else
+      GNUNET_break (0);
+  }
+  return GNUNET_OK;
+}
+
 
 /**
  * Core handler for connection creation.
@@ -4611,123 +4709,6 @@ handle_mesh_connection_destroy (void *cls,
   connection_destroy (c);
   tunnel_destroy_if_empty (t);
 
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh network traffic end-to-end ACKs.
- *
- * @param cls Closure.
- * @param message Message.
- * @param peer Peer identity this notification is about.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_data_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_DataACK *msg;
-  struct MeshChannelReliability *rel;
-  struct MeshReliableMessage *copy;
-  struct MeshReliableMessage *next;
-  struct MeshTunnel *t;
-  GNUNET_PEER_Id id;
-  uint32_t ack;
-  uint16_t type;
-  int work;
-
-  type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a %s message from %s!\n",
-              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
-  msg = (struct GNUNET_MESH_DataACK *) message;
-
-  t = channel_get (&msg->oid, ntohl (msg->tid));
-  if (NULL == t)
-  {
-    /* TODO notify that we dont know this tunnel (whom)? */
-    GNUNET_STATISTICS_update (stats, "# ack on unknown tunnel", 1, GNUNET_NO);
-    return GNUNET_OK;
-  }
-  ack = ntohl (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
-
-  /* Is this a forward or backward ACK? */
-  id = GNUNET_PEER_search (peer);
-  if (t->next_hop == id && GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    if (NULL == t->owner)
-    {
-      send_prebuilt_message (message, t->prev_hop, t);
-      return GNUNET_OK;
-    }
-    rel = t->fwd_rel;
-  }
-  else if (t->prev_hop == id && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    if (NULL == t->client)
-    {
-      send_prebuilt_message (message, t->next_hop, t);
-      return GNUNET_OK;
-    }
-    rel = t->bck_rel;
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ACK %u\n", ack);
-  for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
-  {
-   if (GMC_is_pid_bigger (copy->mid, ack))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
-      tunnel_free_sent_reliable (t, msg, rel);
-      break;
-    }
-    work = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
-    next = copy->next;
-    tunnel_free_reliable_message (copy);
-  }
-  /* Once buffers have been free'd, send ACK */
-  tunnel_send_ack (t, type, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type);
-
-  /* If some message was free'd, update the retransmission delay*/
-  if (GNUNET_YES == work)
-  {
-    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
-    {
-      GNUNET_SCHEDULER_cancel (rel->retry_task);
-      if (NULL == rel->head_sent)
-      {
-        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
-      }
-      else
-      {
-        struct GNUNET_TIME_Absolute new_target;
-        struct GNUNET_TIME_Relative delay;
-
-        delay = GNUNET_TIME_relative_multiply (rel->retry_timer,
-                                               MESH_RETRANSMIT_MARGIN);
-        new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
-                                               delay);
-        delay = GNUNET_TIME_absolute_get_remaining (new_target);
-        rel->retry_task =
-            GNUNET_SCHEDULER_add_delayed (delay,
-                                          &tunnel_retransmit_message,
-                                          rel);
-      }
-    }
-    else
-      GNUNET_break (0);
-  }
   return GNUNET_OK;
 }
 
