@@ -1211,7 +1211,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 	 bluetooth_plugin_address_to_string (NULL, &mas->endpoint->addr, sizeof (struct WlanAddress)));
 
     GNUNET_STATISTICS_update (plugin->env->stats,
-			      _("# HELLO messages received via WLAN"), 1,
+			      _("# HELLO messages received via Bluetooth"), 1,
 			      GNUNET_NO);
     plugin->env->receive (plugin->env->cls, 
 			  &tmpsource,
@@ -1304,7 +1304,7 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 	GNUNET_CRYPTO_crc32_n (&wlanheader[1], msize - sizeof (struct WlanHeader)))
     {
       GNUNET_STATISTICS_update (plugin->env->stats,
-				_("# BluetoothDATA messages discarded due to CRC32 error"), 1,
+				_("# Bluetooth DATA messages discarded due to CRC32 error"), 1,
 				GNUNET_NO);
       break;
     }
