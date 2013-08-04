@@ -71,6 +71,12 @@ if HAVE_LIBBLUETOOTH
  AM_LDFLAGS = -lbluetooth
  BT_BIN = gnunet-helper-transport-bluetooth
  BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
+ BT_PLUGIN_TEST = test_plugin_bluetooth
+ BT_API_TEST = test_transport_api_bluetooth
+ BT_REL_TEST = test_transport_api_reliability_bluetooth
+ BT_UREL_TEST = test_transport_api_unreliability_bluetooth
+ BT_QUOTA_TEST = test_quota_compliance_bluetooth \
+    test_quota_compliance_bluetooth_asymmetric
 endif
 endif
 
@@ -355,6 +361,7 @@ check_PROGRAMS = \
  test_plugin_udp \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
+ $(BT_PLUGIN_TEST) \
  test_http_common \
  $(HTTP_CLIENT_PLUGIN_TEST) \
  $(HTTPS_CLIENT_PLUGIN_TEST) \
@@ -380,6 +387,7 @@ check_PROGRAMS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
+ $(BT_API_TEST) \
  test_transport_api_multi \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
@@ -399,13 +407,16 @@ check_PROGRAMS = \
  $(HTTPS_REL_TEST) \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST) \
+ $(BT_REL_TEST) \
+ $(BT_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
- $(WLAN_QUOTA_TEST)
+ $(WLAN_QUOTA_TEST) \
+ $(BT_QUOTA_TEST)
 endif
 
 if ENABLE_TEST_RUN
@@ -418,6 +429,7 @@ TESTS = \
  test_plugin_udp \
  $(UNIX_TEST) \
  $(WLAN_PLUGIN_TEST) \
+ $(BT_PLUGIN_TEST) \
  test_transport_api_blacklisting \
  test_transport_api_disconnect_tcp \
  test_transport_api_bidirectional_connect \
@@ -437,6 +449,7 @@ TESTS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
+ $(BT_API_TEST) \
  test_transport_api_multi \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
@@ -456,6 +469,8 @@ TESTS = \
  $(HTTPS_REL_TEST) \
  $(WLAN_REL_TEST) \
  $(WLAN_UREL_TEST) \
+ $(BT_REL_TEST) \
+ $(BT_UREL_TEST) \
  test_quota_compliance_tcp \
  test_quota_compliance_tcp_asymmetric \
  test_quota_compliance_udp \
@@ -606,6 +621,14 @@ test_plugin_wlan_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
+test_plugin_bluetooth_SOURCES = \
+ test_plugin_transport.c
+test_plugin_bluetooth_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_http_common_SOURCES = \
  test_http_common.c plugin_transport_http_common.c
@@ -766,11 +789,27 @@ test_transport_api_reliability_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_transport_api_reliability_bluetooth_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_bluetooth_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la 
 
 test_transport_api_unreliability_wlan_SOURCES = \
  test_transport_api_unreliability.c
 test_transport_api_unreliability_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la 
+
+test_transport_api_unreliability_bluetooth_SOURCES = \
+ test_transport_api_unreliability.c
+test_transport_api_unreliability_bluetooth_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -933,6 +972,18 @@ test_transport_api_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransporttesting.la  
 endif
 
+if LINUX
+if HAVE_LIBBLUETOOTH
+test_transport_api_bluetooth_SOURCES = \
+ test_transport_api.c
+test_transport_api_bluetooth_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la  
+endif
+endif
+
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_LDADD = \
@@ -989,6 +1040,22 @@ test_quota_compliance_wlan_asymmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
+test_quota_compliance_bluetooth_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_bluetooth_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_quota_compliance_bluetooth_asymmetric_SOURCES = \
+ test_quota_compliance.c
+test_quota_compliance_bluetooth_asymmetric_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
 test_transport_api_multi_SOURCES = \
  test_transport_api.c
 test_transport_api_multi_LDADD = \
@@ -1018,6 +1085,8 @@ test_quota_compliance_unix_peer1.conf\
 test_quota_compliance_unix_peer2.conf\
 test_quota_compliance_wlan_peer1.conf\
 test_quota_compliance_wlan_peer2.conf\
+test_quota_compliance_bluetooth_peer1.conf\
+test_quota_compliance_bluetooth_peer2.conf\
 test_quota_compliance_http_asymmetric_peer1.conf\
 test_quota_compliance_http_asymmetric_peer2.conf\
 test_quota_compliance_https_asymmetric_peer1.conf\
@@ -1028,6 +1097,8 @@ test_quota_compliance_unix_asymmetric_peer1.conf\
 test_quota_compliance_unix_asymmetric_peer2.conf\
 test_quota_compliance_wlan_asymmetric_peer1.conf\
 test_quota_compliance_wlan_asymmetric_peer2.conf\
+test_quota_compliance_bluetooth_asymmetric_peer1.conf\
+test_quota_compliance_bluetooth_asymmetric_peer2.conf\
 test_transport_api_data.conf\
 test_transport_api_http_peer1.conf\
 test_transport_api_http_peer2.conf\
@@ -1049,6 +1120,8 @@ test_transport_api_reliability_tcp_peer1.conf\
 test_transport_api_reliability_tcp_peer2.conf\
 test_transport_api_reliability_wlan_peer1.conf\
 test_transport_api_reliability_wlan_peer2.conf\
+test_transport_api_reliability_bluetooth_peer1.conf\
+test_transport_api_reliability_bluetooth_peer2.conf\
 test_transport_api_bidirectional_connect_peer1.conf\
 test_transport_api_bidirectional_connect_peer2.conf\
 test_transport_api_manipulation_send_tcp_peer1.conf\
@@ -1077,8 +1150,12 @@ test_transport_api_unreliability_unix_peer1.conf\
 test_transport_api_unreliability_unix_peer2.conf\
 test_transport_api_unreliability_wlan_peer1.conf\
 test_transport_api_unreliability_wlan_peer2.conf\
+test_transport_api_unreliability_bluetooth_peer1.conf\
+test_transport_api_unreliability_bluetooth_peer2.conf\
 test_transport_api_wlan_peer1.conf\
 test_transport_api_wlan_peer2.conf\
+test_transport_api_bluetooth_peer1.conf\
+test_transport_api_bluetooth_peer2.conf\
 test_transport_defaults.conf\
 test_transport_startonly.conf\
 test_transport_api_disconnect_tcp_peer1.conf\

@@ -1859,6 +1859,28 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
 					       NULL,
 					       plugin);
     break;
+  case 1: /* testmode, peer 1 */
+    plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
+    plugin->helper_argv[1] = (char *) "1";
+    plugin->helper_argv[2] = NULL;
+    plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+                 "gnunet-helper-transport-wlan-dummy",
+                 plugin->helper_argv,
+                 &handle_helper_message,
+                 NULL,
+                 plugin);
+    break;
+  case 2: /* testmode, peer 2 */
+    plugin->helper_argv[0] = (char *) "gnunet-helper-transport-wlan-dummy";
+    plugin->helper_argv[1] = (char *) "2";
+    plugin->helper_argv[2] = NULL;
+    plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
+                 "gnunet-helper-transport-wlan-dummy",
+                 plugin->helper_argv,
+                 &handle_helper_message,
+                 NULL,
+                 plugin);
+    break;
   default:
     GNUNET_assert (0);
   }

@@ -54,9 +54,9 @@
 
 
 /**
- * Maximum number of loops without inquiring for a new devices.
+ * Maximum number of loops without inquiring for new devices.
  */
-#define MAX_LOOPS 3
+#define MAX_LOOPS 5
 
 /**
  * struct for storing the information of the hardware.  There is only
@@ -285,7 +285,7 @@ mst_receive (struct MessageStreamTokenizer *mst,
 do_align:
     if (mst->pos < mst->off)
     {
-      fprintf (stderr, "We processed too many bytes!\n");
+      //fprintf (stderr, "We processed too many bytes!\n");
       return GNUNET_SYSERR;
     }
     if ((mst->curr_buf - mst->off < sizeof (struct GNUNET_MessageHeader)) ||
@@ -696,7 +696,7 @@ static int
 get_channel(struct HardwareInfos *dev, bdaddr_t dest) 
 {
   /**
-   * 1. detect all nearby devices //FIXME : Connect directly to the device with the service
+   * 1. detect all nearby devices
    * 2. for each device:
    * 2.1. connect to the SDP server running
    * 2.2. get a list of service records with the specific UUID
@@ -803,7 +803,7 @@ read_from_the_socket (int sock,
   memset (ri, 0, sizeof (*ri));
   ri->ri_channel = rc_addr.rc_channel;
   
-  /* detect CRC32 at the end */
+  /* Detect CRC32 at the end */
   if (0 == check_crc_buf_osdep (tmpbuf, count - sizeof (uint32_t)))
   {
     count -= sizeof(uint32_t);
@@ -822,25 +822,13 @@ read_from_the_socket (int sock,
  */
 static int
 open_device (struct HardwareInfos *dev)
-{
-  /**
-   * 1. Open a HCI socket (if RFCOMM protocol is used. If not, the HCI socket is 
-   * saved in dev->rfcomm).
-   * 2. Find the device id (request a list with all the devices and find the one
-   * with the dev->iface name)
-   * 3. If the interface is down try to get it up
-   * 4. Bind the RFCOMM socket to the interface using the bind_socket() method and register
-   * a SDP service
-   * 5. For now use a hard coded port number(channel) value
-   * FIXME : if I use HCI sockets , should I enable RAW_SOCKET MODE?!?!?!
-   */
-   
+{   
   int i, dev_id = -1, fd_hci;
   struct 
   {
     struct hci_dev_list_req list;
     struct hci_dev_req dev[HCI_MAX_DEV];
-  } request;                      //used for detecting the local devices
+  } request;                        //used for detecting the local devices
   struct sockaddr_rc rc_addr = { 0 };    //used for binding
   
   /* Initialize the neighbour structure */
@@ -848,6 +836,7 @@ open_device (struct HardwareInfos *dev)
   for (i = 0; i < MAX_PORTS; i++)
     neighbours.fds[i] = -1;
   
+  /* Open a HCI socket */
   fd_hci = socket (AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 
   if (fd_hci < 0) 
@@ -888,14 +877,13 @@ open_device (struct HardwareInfos *dev)
       dev_id = dev_info.dev_id; //the device was found
       /**
        * Copy the MAC address to the device structure
-       * FIXME: probably this is not the best solution
        */
       memcpy (&dev->pl_mac, &dev_info.bdaddr, sizeof (bdaddr_t));
       
       /* Check if the interface is UP */
       if (hci_test_bit (HCI_UP, (void *) &dev_info.flags) == 0)
       {
-        /* Bring interface up */ //FIXME should I check if is HCI_RUNNING ?!?!??!
+        /* Bring interface up */
         if (ioctl (fd_hci, HCIDEVUP, dev_info.dev_id))
         {
           fprintf (stderr, "ioctl(HCIDEVUP) on interface `%.*s' failed: %s\n",
@@ -923,10 +911,6 @@ open_device (struct HardwareInfos *dev)
         }
         
       }
-      
-      //FIXME : Sniff mode!?!
-      //FIXME : RAW MODE?!?
-      
       break;
     }
     
@@ -969,7 +953,7 @@ open_device (struct HardwareInfos *dev)
   {
     fprintf (stderr, "Failed to listen on socket for interface `%.*s': %s\n", IFNAMSIZ,
              dev->iface, strerror (errno));
-    return 3;
+    return 1;
   }
   
   
@@ -1112,8 +1096,8 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
  inquiry_devices:   //skip the conditions and force a inquiry for new devices
     {
     /** 
-     * It means that I sent HELLO message to all the devices from the list so I should search 
-     * for another devices or that this is the first time when I do a search for devices.
+     * It means that I sent HELLO messages to all the devices from the list and I should search 
+     * for another ones or that this is the first time when I do a search.
      */
     inquiry_info *devices = NULL;
     int i, responses, max_responses = MAX_PORTS;
@@ -1121,7 +1105,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
     /* sanity checks */
     if (neighbours.size >= MAX_PORTS)
     {
-      fprintf (stderr, "%s reached the top limit for the discovarable devices\n", dev->iface);
+      fprintf (stderr, "%.*s reached the top limit for the discovarable devices\n", IFNAMSIZ, dev->iface);
       return 2;
     }
 
@@ -1134,7 +1118,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
       neighbours.dev_id = hci_devid (addr);
       if (neighbours.dev_id < 0)
       { 
-        fprintf (stderr, "Failed to get the device id for interface %s : %s\n",
+        fprintf (stderr, "Failed to get the device id for interface %.*s : %s\n", IFNAMSIZ,
                 dev->iface, strerror (errno));
         return 1;
       }
@@ -1143,7 +1127,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
     devices = malloc (max_responses * sizeof (inquiry_info));
     if (devices == NULL)
     {
-      fprintf (stderr, "Failed to allocate memory for inquiry info list on interface %s\n",
+      fprintf (stderr, "Failed to allocate memory for inquiry info list on interface %.*s\n", IFNAMSIZ,
               dev->iface);
       return 1;
     }
@@ -1151,15 +1135,15 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
     responses = hci_inquiry (neighbours.dev_id, 8, max_responses, NULL, &devices, IREQ_CACHE_FLUSH);
     if (responses < 0)
     {
-      fprintf (stderr, "Failed to inquiry on interface %s\n", dev->iface);
+      fprintf (stderr, "Failed to inquiry on interface %.*s\n", IFNAMSIZ, dev->iface);
       return 1;
     }
    
-    fprintf (stderr, "Found %d devices\n", responses); //FIXME delete it after debugging stage
+    fprintf (stderr, "LOG : Found %d devices\n", responses); //FIXME delete it after debugging stage
     
     if (responses == 0)
     {
-      fprintf (stderr, "No devices discoverable\n");
+      fprintf (stderr, "LOG : No devices discoverable\n");
       return 1;
     }
     
@@ -1171,7 +1155,8 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
       /* sanity check */
       if (i >= MAX_PORTS)
       {
-        fprintf (stderr, "%s reached the top limit for the discoverable devices (after inquiry)\n", dev->iface);
+        fprintf (stderr, "%.*s reached the top limit for the discoverable devices (after inquiry)\n", IFNAMSIZ,
+                dev->iface);
         return 2;
       }
       
@@ -1181,7 +1166,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
         if (memcmp (&(devices + i)->bdaddr, &(neighbours.devices[j]), sizeof (bdaddr_t)) == 0) 
         {
           found = 1;
-          fprintf (stderr, "the device already exists on the list\n"); //FIXME debugging message
+          fprintf (stderr, "LOG : the device already exists on the list\n"); //FIXME debugging message
           break;
         }
       }
@@ -1191,7 +1176,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
         char addr[19] = { 0 };
 
         ba2str (&(devices +i)->bdaddr, addr);
-        fprintf (stderr, "%s was added to the list\n", addr); //FIXME debugging message
+        fprintf (stderr, "LOG : %s was added to the list\n", addr); //FIXME debugging message
         memcpy (&(neighbours.devices[neighbours.size++]), &(devices + i)->bdaddr, sizeof (bdaddr_t));
       }
     }   
@@ -1218,14 +1203,14 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
       addr_rc.rc_channel = get_channel (dev, addr_rc.rc_bdaddr);
     
       *sendsocket = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-    
+      //TODO adauga un label aici si intoarcete de cateva ori daca nu reuseste
       if (connect (*sendsocket, (struct sockaddr *)&addr_rc, sizeof (addr_rc)) == 0)
       {
         neighbours.fds[neighbours.pos++] = *sendsocket;
         connection_successful = 1;
         char addr[19] = { 0 };
         ba2str (&(neighbours.devices[neighbours.pos - 1]), addr);
-        fprintf (stderr, "Connected to %s\n", addr);
+        fprintf (stderr, "LOG : Connected to %s\n", addr);
 
         break;
       }
@@ -1234,10 +1219,10 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
         char addr[19] = { 0 };
         errno_copy = errno;  //Save a copy for later
         ba2str (&(neighbours.devices[neighbours.pos]), addr);
-        fprintf (stderr, "Couldn't connect on device %s, error : %s\n", addr, strerror(errno));
+        fprintf (stderr, "LOG : Couldn't connect on device %s, error : %s\n", addr, strerror(errno));
         if (errno != ECONNREFUSED) //FIXME nu merge!
         {
-          fprintf (stderr, "Removes %d device from the list\n", neighbours.pos);
+          fprintf (stderr, "LOG : Removes %d device from the list\n", neighbours.pos);
           /* Remove the device from the list */
           memcpy (&neighbours.devices[neighbours.pos], &neighbours.devices[neighbours.size - 1], sizeof (bdaddr_t));
           memset (&neighbours.devices[neighbours.size - 1], 0, sizeof (bdaddr_t));
@@ -1259,7 +1244,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
     }
     else
     {
-      fprintf (stderr, "Search for a new device\n"); //FIXME debugging message
+      fprintf (stderr, "LOG : Search for a new device\n"); //FIXME debugging message
       neighbours.pos += 1;
     }
   }
@@ -1272,7 +1257,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
 
     if (searching_devices_count == MAX_LOOPS)
     {
-      fprintf (stderr, "Force to inquiry for new devices\n");
+      fprintf (stderr, "LOG : Force to inquiry for new devices\n");
       searching_devices_count = 0;
       goto inquiry_devices;
     }
@@ -1290,7 +1275,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
       {
         if (errno_copy == ECONNREFUSED)
         {
-          fprintf (stderr, "No device found. Go back and search again\n"); //FIXME debugging message
+          fprintf (stderr, "LOG : No device found. Go back and search again\n"); //FIXME debugging message
           new_device = 1;
           loops += 1;
           goto search_for_devices;
@@ -1443,27 +1428,23 @@ main (int argc, char *argv[])
     FD_ZERO (&rfds);
     if ((0 == write_pout.size) && (1 == stdin_open))
     {
-    //  fprintf (stderr, "LOG : %s adds STDIN to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDIN_FILENO, &rfds);
       maxfd = MAX (maxfd, STDIN_FILENO);
     }
     if (0 == write_std.size)
     {
-    //  fprintf (stderr, "LOG : %s adds fd_rfcomm to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (dev.fd_rfcomm, &rfds);
       maxfd = MAX (maxfd, dev.fd_rfcomm);
     }
 
     for (i = 0; i < crt_rfds; i++)  // it can receive messages from multiple devices 
     {
-    //  fprintf (stderr, "LOG : %s adds extra fds to rfds\n", dev.iface); //FIXME: debugging message
       FD_SET (rfds_list[i], &rfds);
       maxfd = MAX (maxfd, rfds_list[i]);
     }
     FD_ZERO (&wfds);
     if (0 < write_std.size)
     {
-    //  fprintf (stderr, "LOG : %s adds STDOUT to wfds\n", dev.iface); //FIXME: debugging message
       FD_SET (STDOUT_FILENO, &wfds);
       maxfd = MAX (maxfd, STDOUT_FILENO);
     }
@@ -1471,14 +1452,13 @@ main (int argc, char *argv[])
     {    
       struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *frame;
       /* Get the destination address */
-      //FIXME : not sure if this is correct
       frame = (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *) write_pout.buf;
       
       if (memcmp (&frame->addr1, &dev.pl_mac, 
                   sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
       {
-        fprintf (stderr, "LOG : %s has a message for him:)\n", dev.iface); //FIXME: debugging message
-        memset (&write_pout, 0, sizeof (write_pout)); // clear the buffer
+        broadcast = 1;
+        memset (&write_pout, 0, sizeof (write_pout)); //clear the buffer 
       } 
       else if (memcmp (&frame->addr1, &broadcast_address, 
                 sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
@@ -1491,7 +1471,7 @@ main (int argc, char *argv[])
         {
           broadcast = 1;
           memset (&write_pout, 0, sizeof (write_pout)); //remove the message
-          fprintf (stderr, "Skip the broadcast message (pos %d, size %d)\n", neighbours.pos, neighbours.size);
+          fprintf (stderr, "LOG : Skip the broadcast message (pos %d, size %d)\n", neighbours.pos, neighbours.size);
         }
         else
         {
@@ -1502,17 +1482,22 @@ main (int argc, char *argv[])
       else 
       {
         int found = 0;
+        int pos = 0;
         /* Search if the address already exists on the list */
         for (i = 0; i < neighbours.size; i++)
         {
-          if (memcmp (&frame->addr1, &(neighbours.devices[i]), sizeof (bdaddr_t)) == 0 && neighbours.fds[i] != -1) 
+          if (memcmp (&frame->addr1, &(neighbours.devices[i]), sizeof (bdaddr_t)) == 0) 
           {
-            found = 1;
-            FD_SET (neighbours.fds[i], &wfds);
-            maxfd = MAX (maxfd, neighbours.fds[i]);
-            sendsocket = neighbours.fds[i];
-            fprintf (stderr, "LOG: the address was found in the list\n");
-            break;
+            pos = i;
+            if (neighbours.fds[i] != -1)
+            {
+              found = 1;  //save the position where it was found
+              FD_SET (neighbours.fds[i], &wfds);
+              maxfd = MAX (maxfd, neighbours.fds[i]);
+              sendsocket = neighbours.fds[i];
+              fprintf (stderr, "LOG: the address was found in the list\n");
+              break;
+            }
           }
         }
         if (found == 0)
@@ -1537,11 +1522,6 @@ main (int argc, char *argv[])
           addr.rc_family = AF_BLUETOOTH;
           addr.rc_channel = get_channel (&dev, addr.rc_bdaddr);
           
-          /***
-           *TODO: use a NON-BLOCKING socket
-           *    sock_flags = fcntl (sendsocket, F_GETFL, 0);
-           *    fcntl( sendsocket, F_SETFL, sock_flags | O_NONBLOCK);
-           */
           int tries = 0;
           connect_retry:
           status = connect (sendsocket, (struct sockaddr *) &addr, sizeof (addr));
@@ -1549,19 +1529,19 @@ main (int argc, char *argv[])
 	        {
             if (errno == ECONNREFUSED && tries < 2)
             {
-              fprintf (stderr, "%s failed to connect. Trying again!\n", dev.iface);
+              fprintf (stderr, "LOG : %.*s failed to connect. Trying again!\n", IFNAMSIZ, dev.iface);
               tries++;
               goto connect_retry;
             }
             else if (errno == EBADF)
             {
-              fprintf (stderr, "%s failed to connect : %s. Skip it!\n", dev.iface, strerror (errno));
+              fprintf (stderr, "LOG : %s failed to connect : %s. Skip it!\n", dev.iface, strerror (errno));
               memset (&write_pout, 0, sizeof (write_pout));
               broadcast = 1;
             }
             else
             {
-  	          fprintf (stderr, "%s failed to connect : %s. Try again later!\n", dev.iface, strerror (errno));
+  	          fprintf (stderr, "LOG : %s failed to connect : %s. Try again later!\n", dev.iface, strerror (errno));
 	            memset (&write_pout, 0, sizeof (write_pout));
               broadcast = 1;
             }
@@ -1571,16 +1551,23 @@ main (int argc, char *argv[])
           {
             FD_SET (sendsocket, &wfds);
             maxfd = MAX (maxfd, sendsocket);
-            fprintf (stderr, "Connection successful\n");
-            /* Add the new device to the discovered devices list */
-            if (neighbours.size < MAX_PORTS)
+            fprintf (stderr, "LOG : Connection successful\n");
+            if (pos != 0) // save the socket
             {
-              neighbours.fds[neighbours.size] = sendsocket;
-              memcpy (&(neighbours.devices[neighbours.size++]), &addr.rc_bdaddr, sizeof (bdaddr_t));
+              neighbours.fds[pos] = sendsocket;
             }
             else
             {
-              fprintf (stderr, "The top limit for the discovarable devices' list was reached\n");
+              /* Add the new device to the discovered devices list */
+              if (neighbours.size < MAX_PORTS)
+              {
+                neighbours.fds[neighbours.size] = sendsocket;
+                memcpy (&(neighbours.devices[neighbours.size++]), &addr.rc_bdaddr, sizeof (bdaddr_t));
+              }
+              else
+              {
+                fprintf (stderr, "The top limit for the discovarable devices' list was reached\n");
+              }
             }
           }
         }
@@ -1591,7 +1578,7 @@ main (int argc, char *argv[])
     {
       /* Select a fd which is ready for action :) */
       {
-        int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);  //FIXME : when a device close the connection remove the socket from the list
+        int retval = select (maxfd + 1, &rfds, &wfds, NULL, NULL);
         if ((-1 == retval) && (EINTR == errno))
 	  continue;
         if (0 > retval && errno != EBADF)   // we handle BADF errors later
@@ -1629,8 +1616,7 @@ main (int argc, char *argv[])
           if (0 > ret) //FIXME should I check first the error type?
           {
             fprintf (stderr, "Failed to write to bluetooth device: %s. Closing the socket!\n",
-                     strerror (errno));
-            
+                     strerror (errno));         
             for (i = 0; i < neighbours.size; i++)
             {
               if (neighbours.fds[i] == sendsocket)
@@ -1640,15 +1626,17 @@ main (int argc, char *argv[])
                 break;
               }
             }
-            //memset (&(write_pout.buf + write_std.pos), 0, (write_pout.size - write_pout.pos)) // FIXME should I remove the message? or try to resend it 
-            //write_pour.pos = 0 ; write_pout.size = 0;
+            /* Remove the message */
+            memset (&write_pout.buf + write_std.pos, 0, (write_pout.size - write_pout.pos)); 
+            write_pout.pos = 0 ;
+            write_pout.size = 0;
           }
           else
           {
             write_pout.pos += ret;
             if ((write_pout.pos != write_pout.size) && (0 != ret))
             {
-              /* we should not get partial sends with packet-oriented devices... */
+              /* We should not get partial sends with packet-oriented devices... */
               fprintf (stderr, "Write error, partial send: %u/%u\n",
                       (unsigned int) write_pout.pos,
                       (unsigned int) write_pout.size);
@@ -1664,7 +1652,7 @@ main (int argc, char *argv[])
           }
         }
       }
-      for (i = 0; i <= maxfd; i++) //FIXME it should be incremented
+      for (i = 0; i <= maxfd; i++)
       {
         if (FD_ISSET (i, &rfds))
         {
@@ -1675,7 +1663,7 @@ main (int argc, char *argv[])
             if (0 > ret)
             {
               fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
-              break;
+              break; break;
             }
             if (0 == ret)
             {
@@ -1698,9 +1686,9 @@ main (int argc, char *argv[])
             fprintf(stderr, "LOG : %s accepts a message\n", dev.iface); //FIXME: debugging message
             if (readsocket == -1)
             {
-              fprintf (stderr, "Failed to accept a connection on interface: %s\n", 
+              fprintf (stderr, "Failed to accept a connection on interface: %.*s\n", IFNAMSIZ, 
                   strerror (errno));
-              return -1;    //FIXME probably I should ignore the error and keep the process alive
+              break;
             }
             else
             {
@@ -1758,20 +1746,6 @@ main (int argc, char *argv[])
 	        - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
               rrm->header.size = htons (write_std.size);
               rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);
-              
-              /* Remove the socket from the list */
-              int j;
-              for (j = 0; j < crt_rfds; j++)
-              {
-                if (i == rfds_list[crt_rfds])
-                {
-                  rfds_list[j] ^= rfds_list[crt_rfds];
-                  rfds_list[crt_rfds] ^= rfds_list[j];
-                  rfds_list[j] ^= rfds_list[crt_rfds];
-                  crt_rfds -= 1;
-                  break;
-                }
-              }
             }
           }
         }
