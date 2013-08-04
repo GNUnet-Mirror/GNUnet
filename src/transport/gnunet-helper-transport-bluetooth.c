@@ -571,6 +571,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
 /**
  * Function for assigning a port number
+ * 
  * @param socket the socket used to bind
  * @param addr pointer to the rfcomm address
  * @return 0 on success 
@@ -580,7 +581,7 @@ bind_socket (int socket, struct sockaddr_rc *addr)
 {
   int port, status;
   
-  /* Bind every possible port (from 0 to 30) and stop when bind doesn't fail */
+  /* Bind every possible port (from 0 to 30) and stop when binding doesn't fail */
   //FIXME : it should start from port 1, but on my computer it doesn't work :)
   for (port = 3; port <= 30; port++)
   {
@@ -596,6 +597,7 @@ bind_socket (int socket, struct sockaddr_rc *addr)
 
 /**
  * Function used for creating the service record and registering it.
+ *
  * @param dev pointer to the device struct
  * @param rc_channel the rfcomm channel
  * @return 0 on success
@@ -612,12 +614,9 @@ register_service (struct HardwareInfos *dev, int rc_channel)
    * 6. register the service record to the local SDP server
    * 7. cleanup
    */
-
-  //FIXME: probably this is not the best idea. I should find a different uuid
   uint8_t svc_uuid_int[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                             dev->pl_mac.mac[5], dev->pl_mac.mac[4], dev->pl_mac.mac[3],
                             dev->pl_mac.mac[2], dev->pl_mac.mac[1], dev->pl_mac.mac[0]};
-//  const char *service_name = "GNUnet";
   const char *service_dsc = "Bluetooth plugin services";
   const char *service_prov = "GNUnet provider";                       
   uuid_t root_uuid, rfcomm_uuid, svc_uuid;  
@@ -688,6 +687,7 @@ register_service (struct HardwareInfos *dev, int rc_channel)
 /**
  * Function for searching and browsing for a service. This will return the 
  * port number on which the service is running.
+ *
  * @param dev pointer to the device struct
  * @param dest target address
  * @return channel
@@ -758,6 +758,7 @@ get_channel(struct HardwareInfos *dev, bdaddr_t dest)
 
 /**
  * Read from the socket and put the result into the buffer for transmission to 'stdout'.
+ * 
  * @param sock file descriptor for reading
  * @param buf buffer to read to; first bytes will be the 'struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame',
  *            followed by the actual payload
@@ -770,11 +771,6 @@ read_from_the_socket (int sock,
 	    unsigned char *buf, size_t buf_size,
             struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *ri)
 {
- /**
-  * 1. Read from the socket in a temporary buffer (check for errors)
-  * 2. Detect if the crc exists
-  * 3. Write the result to the buffer
-  */
   unsigned char tmpbuf[buf_size];
   ssize_t count;
   int len;
@@ -791,7 +787,7 @@ read_from_the_socket (int sock,
     return -1;
   }
   
-  /* Get the channel used */
+  /* Get the channel used */ //FIXME probably not needed anymore
   memset (&rc_addr, 0, sizeof (rc_addr));
   len = sizeof (rc_addr);
   if (0 > getsockname (sock, (struct sockaddr *) &rc_addr, (socklen_t *) &len))
@@ -828,7 +824,7 @@ open_device (struct HardwareInfos *dev)
   {
     struct hci_dev_list_req list;
     struct hci_dev_req dev[HCI_MAX_DEV];
-  } request;                        //used for detecting the local devices
+  } request;                              //used for detecting the local devices
   struct sockaddr_rc rc_addr = { 0 };    //used for binding
   
   /* Initialize the neighbour structure */
@@ -880,10 +876,10 @@ open_device (struct HardwareInfos *dev)
        */
       memcpy (&dev->pl_mac, &dev_info.bdaddr, sizeof (bdaddr_t));
       
-      /* Check if the interface is UP */
+      /* Check if the interface is up */
       if (hci_test_bit (HCI_UP, (void *) &dev_info.flags) == 0)
       {
-        /* Bring interface up */
+        /* Bring the interface up */
         if (ioctl (fd_hci, HCIDEVUP, dev_info.dev_id))
         {
           fprintf (stderr, "ioctl(HCIDEVUP) on interface `%.*s' failed: %s\n",
@@ -1035,8 +1031,8 @@ mac_test (const struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *taIeeeHeader,
 
 
 /**
- * Process data from the stdin.  Takes the message forces the sender MAC to be correct
- * and puts it into our buffer for transmission to the kernel. (the other device).
+ * Process data from the stdin. Takes the message, forces the sender MAC to be correct
+ * and puts it into our buffer for transmission to the receiver.
  *
  * @param cls pointer to the device struct ('struct HardwareInfos*')
  * @param hdr pointer to the start of the packet
@@ -1074,12 +1070,13 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   * overwrite it with OUR MAC address to prevent mischief */
   mac_set (blueheader, dev);
   memcpy (&blueheader->addr1, &header->frame.addr1, 
-          sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)); //FIXME is this correct?
+          sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   write_pout.size = sendsize;
 }
 
 /**
  * Broadcast a HELLO message for peer discovery
+ *
  * @param dev pointer to the device struct
  * @param dev pointer to the socket which was added to the set
  * @return 0 on success
@@ -1097,7 +1094,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
     {
     /** 
      * It means that I sent HELLO messages to all the devices from the list and I should search 
-     * for another ones or that this is the first time when I do a search.
+     * for new ones or that this is the first time when I do a search.
      */
     inquiry_info *devices = NULL;
     int i, responses, max_responses = MAX_PORTS;
@@ -1193,7 +1190,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
   /* Try to connect to a new device from the list */
   while (neighbours.pos < neighbours.size)
   {
-    /* Check if we are connected to this device */
+    /* Check if we are already connected to this device */
     if (neighbours.fds[neighbours.pos] == -1)
     {
 
@@ -1203,7 +1200,6 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
       addr_rc.rc_channel = get_channel (dev, addr_rc.rc_bdaddr);
     
       *sendsocket = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-      //TODO adauga un label aici si intoarcete de cateva ori daca nu reuseste
       if (connect (*sendsocket, (struct sockaddr *)&addr_rc, sizeof (addr_rc)) == 0)
       {
         neighbours.fds[neighbours.pos++] = *sendsocket;
@@ -1220,7 +1216,7 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
         errno_copy = errno;  //Save a copy for later
         ba2str (&(neighbours.devices[neighbours.pos]), addr);
         fprintf (stderr, "LOG : Couldn't connect on device %s, error : %s\n", addr, strerror(errno));
-        if (errno != ECONNREFUSED) //FIXME nu merge!
+        if (errno != ECONNREFUSED) //FIXME be sure that this works
         {
           fprintf (stderr, "LOG : Removes %d device from the list\n", neighbours.pos);
           /* Remove the device from the list */
@@ -1298,13 +1294,13 @@ send_broadcast (struct HardwareInfos *dev, int *sendsocket)
 /**
  * Main function of the helper.  This code accesses a bluetooth interface
  * forwards traffic in both directions between the bluetooth interface and 
- * stdin/stdout of this process.  Error messages are written to stdout.
+ * stdin/stdout of this process.  Error messages are written to stderr.
  *
  * @param argc number of arguments, must be 2
  * @param argv arguments only argument is the name of the interface (i.e. 'hci0')
  * @return 0 on success (never happens, as we don't return unless aborted), 1 on error
  *
- **** same as the one from gnunet-helper-transport-wlan.c ****
+ **** similar to gnunet-helper-transport-wlan.c ****
  */
 int
 main (int argc, char *argv[])
@@ -1613,7 +1609,7 @@ main (int argc, char *argv[])
           ssize_t ret =
       write (sendsocket, write_pout.buf + write_std.pos, 
              write_pout.size - write_pout.pos);
-          if (0 > ret) //FIXME should I check first the error type?
+          if (0 > ret) //FIXME should I first check the error type?
           {
             fprintf (stderr, "Failed to write to bluetooth device: %s. Closing the socket!\n",
                      strerror (errno));         
