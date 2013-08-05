@@ -78,10 +78,9 @@ TESTING_TESTS = \
  test_ats_simplistic_switch_networks \
  test_ats_simplistic_change_preference \
  test_ats_api_performance_list_addresses \
- test_ats_api_performance_address_info
-# test_ats_api_scheduling_get_type
-# test_ats_api_bandwidth_consumption
-# test_ats_simplistic_pref_aging
+ test_ats_api_performance_address_info \
+ perf_ats_simplistic_bandwidth \
+ perf_ats_simplistic_delay
 endif
 
 check_PROGRAMS = \
@@ -229,7 +228,6 @@ test_ats_mlp_update_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/ats/libgnunetats.la  
   
-  
 perf_ats_mlp_SOURCES = \
   $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
 perf_ats_mlp_LDADD = \
@@ -248,20 +246,20 @@ test_ats_normalization_update_quality_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
-#test_ats_mlp_averaging_SOURCES = \
-# $(GN_MLP_SRC) test_ats_mlp_averaging.c test_ats_api_common.c
-#test_ats_mlp_averaging_LDADD = \
-#  $(GN_LIBGLPK) \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/statistics/libgnunetstatistics.la
+# performance tests
 
-#test_ats_api_bandwidth_consumption_SOURCES = \
-# test_ats_api_bandwidth_consumption.c
-#test_ats_api_bandwidth_consumption_LDADD = \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  $(top_builddir)/src/testing/libgnunettesting.la \
-#  $(top_builddir)/src/ats/libgnunetats.la  
+perf_ats_simplistic_bandwidth_SOURCES = \
+  perf_ats.c  
+perf_ats_simplistic_bandwidth_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la   
 
+perf_ats_simplistic_delay_SOURCES = \
+  perf_ats.c  
+perf_ats_simplistic_delay_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la   
+    
 
 EXTRA_DIST = \
   ats.h \
