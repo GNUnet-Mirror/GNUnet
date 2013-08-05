@@ -4849,6 +4849,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                               GNUNET_NO);
     return GNUNET_OK;
   }
+
   ack = ntohl (msg->ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
@@ -4964,40 +4965,45 @@ static int
 handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_TunnelKeepAlive *msg;
-  struct MeshTunnel *t;
-  struct MeshClient *c;
-  GNUNET_PEER_Id hop;
+  struct GNUNET_MESH_ConnectionKeepAlive *msg;
+  struct MeshConnection *c;
+  struct MeshPeer *neighbor;
   int fwd;
 
-  msg = (struct GNUNET_MESH_TunnelKeepAlive *) message;
+  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
               GNUNET_i2s (peer));
 
-  t = channel_get (&msg->oid, ntohl (msg->tid));
-  if (NULL == t)
+  c = connection_get (&msg->tid, ntohl (msg->cid));
+  if (NULL == c)
   {
-    /* TODO notify that we dont know that tunnel */
-    GNUNET_STATISTICS_update (stats, "# keepalive on unknown tunnel", 1,
+    GNUNET_STATISTICS_update (stats, "# keepalive on unknown connection", 1,
                               GNUNET_NO);
     return GNUNET_OK;
   }
 
   fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ? 
         GNUNET_YES : GNUNET_NO;
-  c   = fwd ? t->client   : t->owner;
-  hop = fwd ? t->next_hop : t->prev_hop;
 
-  if (NULL != c)
-    tunnel_change_state (t, MESH_TUNNEL_READY);
-  tunnel_reset_timeout (t, fwd);
-  if (NULL != c || 0 == hop || myid == hop)
+  /* Check if origin is as expected */
+  neighbor = fwd ? connection_get_prev_hop (c) : connection_get_next_hop (c);
+  if (peer_get (peer)->id != neighbor->id)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  connection_change_state (c, MESH_CONNECTION_READY);
+  connection_reset_timeout (c, fwd);
+
+  if (NULL != c->t->channel_head)
     return GNUNET_OK;
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  send_prebuilt_message (message, hop, t);
+  send_prebuilt_message_connection (message, c, NULL, fwd);
+
   return GNUNET_OK;
-  }
+}
 
 
 
@@ -5013,16 +5019,16 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     sizeof (struct GNUNET_MESH_ConnectionBroken)},
   {&handle_mesh_connection_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
     sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&handle_mesh_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
-  {&handle_mesh_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
   {&handle_mesh_keepalive, GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_TunnelKeepAlive)},
+    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
   {&handle_mesh_keepalive, GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_TunnelKeepAlive)},
+    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
   {&handle_mesh_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
     sizeof (struct GNUNET_MESH_ACK)},
   {&handle_mesh_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
     sizeof (struct GNUNET_MESH_Poll)},
+  {&handle_mesh_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
+  {&handle_mesh_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
   {NULL, 0, 0}
 };
 
