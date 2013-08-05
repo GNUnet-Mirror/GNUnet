@@ -220,9 +220,9 @@ struct MeshPeerQueue
 struct MeshFlowControl
 {
   /**
-   * Peer
+   * Connection this controls.
    */
-  struct MeshPeer *peer;
+  struct MeshConnection *c;
 
   /**
    * Transmission queue to core DLL head
@@ -297,11 +297,6 @@ struct MeshPeer
   struct GNUNET_TIME_Absolute last_contact;
 
     /**
-     * Number of attempts to reconnect so far
-     */
-  int n_reconnect_attempts;
-
-    /**
      * Paths to reach the peer, ordered by ascending hop count
      */
   struct MeshPeerPath *path_head;
@@ -320,11 +315,6 @@ struct MeshPeer
      * Tunnel to this peer, if any.
      */
   struct MeshTunnel2 *tunnel;
-
-    /**
-     * Flow control information for direct traffic.
-     */
-  struct MeshFlowControl *fc;
 
 };
 
@@ -506,6 +496,16 @@ struct MeshConnection
    * Tunnel this connection is part of.
    */
   struct MeshTunnel2 *t;
+
+  /**
+   * Flow control information for traffic fwd.
+   */
+  struct MeshFlowControl *fwd_fc;
+
+  /**
+   * Flow control information for traffic bck.
+   */
+  struct MeshFlowControl *bck_fc;
 
   /**
    * Connection number.
@@ -1060,21 +1060,6 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
 
 
 /**
- * @brief Get the next transmittable message from the queue.
- *
- * This will be the head, except in the case of being a data packet
- * not allowed by the destination peer.
- *
- * @param peer Destination peer.
- *
- * @return The next viable MeshPeerQueue element to send to that peer.
- *         NULL when there are no transmittable messages.
- */
-struct MeshPeerQueue *
-queue_get_next (const struct MeshPeer *peer);
-
-
-/**
  * Core callback to write a queued packet to core buffer
  *
  * @param cls Closure (peer info).
@@ -1396,27 +1381,25 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 {
   struct MeshConnection *c;
   struct MeshConnection *best;
-  struct MeshPeer *peer;
+  struct MeshFlowControl *fc;
   unsigned int lowest_q;
 
-
-  peer = NULL;
   best = NULL;
   lowest_q = UINT_MAX;
   for (c = t->connection_head; NULL != c; c = c->next)
   {
     if (MESH_CONNECTION_READY == c->state)
     {
-      peer = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-      if (NULL == peer->fc)
+      fc = fwd ? c->fwd_fc : c->bck_fc;
+      if (NULL == fc)
       {
         GNUNET_break (0);
         continue;
       }
-      if (peer->fc->queue_n < lowest_q)
+      if (fc->queue_n < lowest_q)
       {
         best = c;
-        lowest_q = peer->fc->queue_n;
+        lowest_q = fc->queue_n;
       }
     }
   }
@@ -1595,41 +1578,6 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Sends an already built message directly to a peer.
- * Message does must not belong to a connection or channel.
- *
- * @param message Message to send. Function makes a copy of it.
- * @param peer Tunnel on which this message is transmitted.
- */
-static void
-send_prebuilt_message_peer (const struct GNUNET_MessageHeader *message,
-                            struct MeshPeer *peer)
-{
-  void *data;
-  size_t size;
-  uint16_t type;
-
-  if (NULL == peer)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  size = ntohs (message->size);
-  data = GNUNET_malloc (size);
-  memcpy (data, message, size);
-  type = ntohs(message->type);
-
-  queue_add (data,
-             type,
-             size,
-             peer,
-             NULL,
-             NULL);
-}
-
-
-/**
  * Sends a CREATE CONNECTION message for a path to a peer.
  * Changes the connection and tunnel states if necessary.
  *
@@ -1686,21 +1634,24 @@ send_connection_ack (struct MeshConnection *connection)
 
 
 /**
- * Build an ACK message and queue it to send to the given peer.
+ * Build a hop-by-hop ACK message and queue it to send for the given connection.
  * 
- * @param peer Peer to whom send the ACK.
+ * @param c Which connection to send the hop-by-hop ACK.
  * @param ack Value of the ACK.
+ * @param fwd Is this fwd?
  */
 static void
-send_ack (struct MeshPeer *peer, uint32_t ack)
+send_ack (struct MeshConnection *c, uint32_t ack, int fwd)
 {
   struct GNUNET_MESH_ACK msg;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
   msg.ack = htonl (ack);
+  msg.tid = c->t->id;
+  msg.cid = htonl (c->id);
 
-  send_prebuilt_message_peer (&msg.header, peer);
+  send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
 }
 
 
@@ -2009,31 +1960,35 @@ peer_connect (struct MeshPeer *peer)
 
 
 /**
- * @brief Re-initiate traffic to this peer if necessary.
+ * @brief Re-initiate traffic on this connection if necessary.
  *
  * Check if there is traffic queued towards this peer
  * and the core transmit handle is NULL (traffic was stalled).
  * If so, call core tmt rdy.
  *
- * @param peer_id Short ID of peer to which initiate traffic.
+ * @param c Connection on which initiate traffic.
+ * @param fwd Is this about fwd traffic?
  */
 static void
-peer_unlock_queue (GNUNET_PEER_Id peer_id)
+connection_unlock_queue (struct MeshConnection *c, int fwd)
 {
+  struct MeshFlowControl *fc;
   struct MeshPeer *peer;
   struct MeshPeerQueue *q;
   size_t size;
 
-  peer = peer_get_short (peer_id);
-  if (NULL != peer->fc->core_transmit)
+  peer = fwd ? connection_get_next_hop(c) : connection_get_prev_hop(c);
+  fc   = fwd ? c->fwd_fc                  : c->bck_fc;
+
+  if (NULL != fc->core_transmit)
     return; /* Already unlocked */
 
-  q = queue_get_next (peer);
+  q = fc->queue_head;
   if (NULL == q)
     return; /* Nothing to transmit */
 
   size = q->size;
-  peer->fc->core_transmit =
+  fc->core_transmit =
       GNUNET_CORE_notify_transmit_ready (core_handle,
                                          GNUNET_NO,
                                          0,
@@ -2046,32 +2001,31 @@ peer_unlock_queue (GNUNET_PEER_Id peer_id)
 
 
 /**
- * Cancel all transmissions towards a neighbor that belong to
- * a certain connection.
+ * Cancel all transmissions that belong to a certain connection.
  *
- * @param peer Neighbor to whom cancel the transmissions.
  * @param c Connection which to cancel.
+ * @param fwd Cancel fwd traffic?
  */
 static void
-peer_cancel_queues (struct MeshPeer *peer, struct MeshConnection *c)
+connection_cancel_queues (struct MeshConnection *c, int fwd)
 {
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *next;
   struct MeshFlowControl *fc;
 
-  if (NULL == peer || NULL == peer->fc)
+  if (NULL == c)
   {
     GNUNET_break (0);
     return;
   }
-  fc = peer->fc;
+  fc = fwd ? c->fwd_fc : c->bck_fc;
   for (q = fc->queue_head; NULL != q; q = next)
   {
     next = q->next;
     if (q->c == c)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "peer_cancel_queue %s\n",
+                  "connection_cancel_queue %s\n",
                   GNUNET_MESH_DEBUG_M2S (q->type));
       queue_destroy (q, GNUNET_YES);
     }
@@ -2301,18 +2255,18 @@ peer_add_path_to_origin (struct MeshPeer *peer_info,
 
 
 /**
- * Function called if the connection to the peer has been stalled for a while,
- * possibly due to a missed ACK. Poll the peer about its ACK status.
+ * Function called if a connection has been stalled for a while,
+ * possibly due to a missed ACK. Poll the neighbor about its ACK status.
  *
  * @param cls Closure (poll ctx).
  * @param tc TaskContext.
  */
 static void
-peer_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshFlowControl *fc = cls;
   struct GNUNET_MESH_Poll msg;
-  struct MeshPeer *peer;
+  struct MeshConnection *c;
 
   fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -2320,20 +2274,19 @@ peer_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
+  c = fc->c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
-  peer = fc->peer;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** peer: %s!\n", 
-                GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id)));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection %s[%X]\n", 
+              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.pid = htonl (fc->last_pid_sent);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
-  send_prebuilt_message_peer (&msg.header, peer);
+  send_prebuilt_message_connection (&msg.header, c, NULL, fc == c->fwd_fc);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                &peer_poll, fc);
+                                                &connection_poll, fc);
 }
 
 
@@ -2689,10 +2642,8 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
 /**
  * Send an ACK informing the predecessor about the available buffer space.
  *
- * Note that although the name is fwd_ack, the FWD mean forward *traffic*,
- * the ACK itself goes "back" (towards root).
- * 
- * FIXME: use per connection ACKs istead of per-hop.
+ * Note that for fwd ack, the FWD mean forward *traffic* (root->dest),
+ * the ACK itself goes "back" (dest->root).
  *
  * @param c Connection on which to send the ACK.
  * @param fwd Is this FWD ACK? (Going dest->owner)
@@ -2702,15 +2653,11 @@ connection_send_ack (struct MeshConnection *c, int fwd)
 {
   struct MeshFlowControl *next_fc;
   struct MeshFlowControl *prev_fc;
-  struct MeshPeer *next;
-  struct MeshPeer *prev;
   uint32_t ack;
   int delta;
 
-  next    = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-  prev    = fwd ? connection_get_prev_hop (c) : connection_get_next_hop (c);
-  next_fc = next->fc;
-  prev_fc = prev->fc;
+  next_fc = fwd ? c->fwd_fc : c->bck_fc;
+  prev_fc = fwd ? c->bck_fc : c->fwd_fc;
 
   /* Check if we need to transmit the ACK */
   if (prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3)
@@ -2737,7 +2684,7 @@ connection_send_ack (struct MeshConnection *c, int fwd)
   }
 
   prev_fc->last_ack_sent = ack;
-  send_ack (prev, ack);
+  send_ack (c, ack, fwd);
 }
 
 
@@ -3145,7 +3092,7 @@ channel_retransmit_message (void *cls,
   struct MeshChannelReliability *rel = cls;
   struct MeshReliableMessage *copy;
   struct MeshPeerQueue *q;
-  struct MeshPeer *pi;
+  struct MeshFlowControl *fc;
   struct MeshChannel *ch;
   struct MeshConnection *c;
   struct GNUNET_MESH_Data *payload;
@@ -3175,9 +3122,9 @@ channel_retransmit_message (void *cls,
    */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   fwd = (rel == ch->fwd_rel);
-  c = tunnel_get_connection(ch->t, fwd);
-  pi = connection_get_next_hop (c);
-  for (q = pi->fc->queue_head; NULL != q; q = q->next)
+  c = tunnel_get_connection (ch->t, fwd);
+  fc = fwd ? c->fwd_fc : c->bck_fc;
+  for (q = fc->queue_head; NULL != q; q = q->next)
   {
     if (ntohs (payload->header.type) == q->type && ch == q->ch)
     {
@@ -3347,6 +3294,7 @@ connection_send_destroy (struct MeshConnection *c)
 
   send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
   send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_NO);
+  c->destroy = GNUNET_YES;
 }
 
 
@@ -3496,8 +3444,6 @@ connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
 static void
 connection_destroy (struct MeshConnection *c)
 {
-  struct MeshPeer *peer;
-
   if (NULL == c)
     return;
 
@@ -3505,12 +3451,8 @@ connection_destroy (struct MeshConnection *c)
               GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
               c->id);
 
-  peer = connection_get_next_hop (c);
-  if (NULL != peer)
-    peer_cancel_queues (peer, c);
-  peer = connection_get_prev_hop (c);
-  if (NULL != peer)
-    peer_cancel_queues (peer, c);
+  connection_cancel_queues (c, GNUNET_YES);
+  connection_cancel_queues (c, GNUNET_NO);
 
   if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
@@ -3891,8 +3833,11 @@ static void
 queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshFlowControl *fc;
+  int fwd;
 
-  fc = queue->peer->fc;
+  fwd = (queue->peer == connection_get_next_hop (queue->c));
+  fc = fwd ? queue->c->fwd_fc : queue->c->bck_fc;
+
   if (GNUNET_YES == clear_cls)
   {
     switch (queue->type)
@@ -3929,6 +3874,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   GNUNET_free (queue);
 }
 
+
 static size_t
 queue_send (void *cls, size_t size, void *buf)
 {
@@ -3944,7 +3890,10 @@ queue_send (void *cls, size_t size, void *buf)
   uint16_t type;
   int fwd;
 
-  fc = peer->fc;
+  c = queue->c;
+  fwd = (queue->peer == connection_get_next_hop (c));
+  fc = fwd ? c->fwd_fc : c->bck_fc;
+
   if (NULL == fc)
   {
     GNUNET_break (0);
@@ -3987,7 +3936,6 @@ queue_send (void *cls, size_t size, void *buf)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   size ok\n");
 
-  c = queue->c;
   t = (NULL != c) ? c->t : NULL;
   type = 0;
 
@@ -4045,12 +3993,9 @@ queue_send (void *cls, size_t size, void *buf)
   queue_destroy (queue, GNUNET_NO);
 
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
-  fwd = GNUNET_NO;
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
-      fwd = GNUNET_YES;
-      /* fall through */
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
       pid = ntohl ( ((struct GNUNET_MESH_Encrypted *) buf)->pid );
       fc->last_pid_sent = pid;
@@ -4066,7 +4011,7 @@ queue_send (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
     if (NULL == fc->core_transmit) {
-      peer->fc->core_transmit =
+      fc->core_transmit =
           GNUNET_CORE_notify_transmit_ready(core_handle,
                                             0,
                                             0,
@@ -4085,7 +4030,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "*   %s starting poll timeout\n");
       fc->poll_task =
-          GNUNET_SCHEDULER_add_delayed (fc->poll_time, &peer_poll, fc);
+          GNUNET_SCHEDULER_add_delayed (fc->poll_time, &connection_poll, fc);
     }
   }
   else
@@ -4129,8 +4074,11 @@ queue_add (void *cls, uint16_t type, size_t size,
   struct MeshPeerQueue *queue;
   struct MeshFlowControl *fc;
   int priority;
+  int fwd;
 
-  fc = dst->fc;
+  fwd = (dst == connection_get_next_hop (c));
+  fc = fwd ? c->fwd_fc : c->bck_fc;
+
   if (NULL == fc)
   {
     GNUNET_break (0);
@@ -4163,7 +4111,7 @@ queue_add (void *cls, uint16_t type, size_t size,
   if (GMC_is_pid_bigger(fc->last_pid_sent + 1, fc->last_ack_recv) &&
       GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
     fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                  &peer_poll,
+                                                  &connection_poll,
                                                   dst);
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
@@ -4675,8 +4623,8 @@ handle_mesh_connection_destroy (void *cls,
 {
   struct GNUNET_MESH_ConnectionDestroy *msg;
   struct MeshConnection *c;
-  struct MeshTunnel2 *t;
-  struct MeshPeer *neighbor;
+  GNUNET_PEER_Id id;
+  int fwd;
 
   msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -4696,20 +4644,18 @@ handle_mesh_connection_destroy (void *cls,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  neighbor = peer_get (peer);
-  if (neighbor == connection_get_prev_hop (c))
-    neighbor = connection_get_next_hop (c);
-  else if (neighbor == connection_get_next_hop (c))
-    neighbor = connection_get_prev_hop (c);
+  id = GNUNET_PEER_search (peer);
+  if (id == connection_get_prev_hop (c)->id)
+    fwd = GNUNET_YES;
+  else if (id == connection_get_next_hop (c)->id)
+    fwd = GNUNET_NO;
   else
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  send_prebuilt_message_peer (message, neighbor);
-  t = c->t;
-  connection_destroy (c);
-  tunnel_destroy_if_empty (t);
+  send_prebuilt_message_connection (message, c, NULL, fwd);
+  c->destroy = GNUNET_YES;
 
   return GNUNET_OK;
 }
@@ -4734,6 +4680,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel2 *t;
   struct MeshPeer *neighbor;
   struct MeshFlowControl *fc;
+  GNUNET_PEER_Id id;
   uint32_t pid;
   uint32_t ttl;
   uint16_t type;
@@ -4761,13 +4708,13 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   t = c->t;
+  fc = fwd ? c->fwd_fc : c->bck_fc;
 
-  /* Check neighbor status */
-  neighbor = peer_get (peer);
-  fc = neighbor->fc;
-  if (NULL == fc)
+  /* Check if origin is as expected */
+  neighbor = fwd ? connection_get_prev_hop (c) : connection_get_next_hop (c);
+  if (peer_get (peer)->id != neighbor->id)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
@@ -5841,12 +5788,6 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   peer_add_path (peer_info, path, GNUNET_YES);
-  if (NULL == peer_info->fc)
-  {
-    peer_info->fc = GNUNET_new (struct MeshFlowControl);
-    fc_init (peer_info->fc);
-    peer_info->fc->peer = peer_info;
-  }
   return;
 }
 

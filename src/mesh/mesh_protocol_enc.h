@@ -242,6 +242,16 @@ struct GNUNET_MESH_ACK
      * Maximum packet ID authorized.
      */
   uint32_t ack GNUNET_PACKED;
+
+    /**
+     * ID of the tunnel
+     */
+  struct GNUNET_HashCode tid;
+
+    /**
+     * ID of the connection
+     */
+  uint32_t cid GNUNET_PACKED;
 };
 
 
@@ -259,6 +269,16 @@ struct GNUNET_MESH_Poll
    * Last packet sent.
    */
   uint32_t pid GNUNET_PACKED;
+
+    /**
+     * ID of the tunnel
+     */
+  struct GNUNET_HashCode tid;
+
+    /**
+     * ID of the connection
+     */
+  uint32_t cid GNUNET_PACKED;
 };
 
 
