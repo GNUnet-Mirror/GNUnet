@@ -264,4 +264,6 @@ perf_ats_simplistic_delay_LDADD = \
 EXTRA_DIST = \
   ats.h \
   test_ats_api.conf \
-  test_ats_mlp.conf
+  test_ats_mlp.conf \
+  perf_ats_simplistic_bandwidth.conf \
+  perf_ats_simplistic_delay.conf
