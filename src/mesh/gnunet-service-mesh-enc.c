@@ -5109,6 +5109,7 @@ handle_local_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   c = GNUNET_malloc (sizeof (struct MeshClient));
   c->handle = client;
+  c->id = next_client_id++; /* overflow not important: just for debug */
   GNUNET_SERVER_client_keep (client);
   GNUNET_SERVER_client_set_user_context (client, c);
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
@@ -5142,18 +5143,18 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                 c->id, c);
     GNUNET_SERVER_client_drop (c->handle);
     c->shutting_down = GNUNET_YES;
-    if (NULL != c->own_tunnels)
+    if (NULL != c->own_channels)
     {
-      GNUNET_CONTAINER_multihashmap32_iterate (c->own_tunnels,
-                                               &tunnel_destroy_iterator, c);
-      GNUNET_CONTAINER_multihashmap32_destroy (c->own_tunnels);
+      GNUNET_CONTAINER_multihashmap32_iterate (c->own_channels,
+                                               &channel_destroy_iterator, c);
+      GNUNET_CONTAINER_multihashmap32_destroy (c->own_channels);
     }
 
-    if (NULL != c->incoming_tunnels)
+    if (NULL != c->incoming_channels)
     {
-      GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_tunnels,
-                                               &tunnel_destroy_iterator, c);
-      GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_tunnels);
+      GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_channels,
+                                               &channel_destroy_iterator, c);
+      GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_channels);
     }
 
     if (NULL != c->ports)
@@ -5164,9 +5165,9 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
+    GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
     GNUNET_free (c);
-    GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
     c = next;
   }
   else
@@ -5210,7 +5211,6 @@ handle_local_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize new client structure */
   c = GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
-  c->id = next_client_id++; /* overflow not important: just for debug */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   if (size > 0)
