@@ -4728,9 +4728,10 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MESH_Encrypted *msg,
                        int fwd)
 {
-  struct MeshTunnel2 *t;
   struct MeshConnection *c;
-  GNUNET_PEER_Id hop;
+  struct MeshTunnel2 *t;
+  struct MeshPeer *neighbor;
+  strcut MeshFlowControl *fc;
   uint32_t pid;
   uint32_t ttl;
   uint16_t type;
@@ -4759,7 +4760,16 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
   t = c->t;
 
-  /*  Initialize FWD/BCK data */
+  /* Check neighbor status */
+  neighbor = peer_get (peer);
+  fc = neighbor->fc;
+  if (NULL == fc)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
+  /* Check PID */
   pid = ntohl (msg->pid);
   if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
   {
@@ -4769,10 +4779,12 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                 pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
-  if (NULL != c)
-    tunnel_change_state (t, MESH_TUNNEL_READY);
-  tunnel_reset_timeout (t, fwd);
-  if (NULL != c)
+  if (MESH_CONNECTION_SENT == c->state)
+    connection_change_state (c, MESH_CONNECTION_READY);
+  connection_reset_timeout (c, fwd);
+
+  /* Is this message for us? */
+  if (NULL != c->t->channel_head)
   {
     /* TODO signature verification */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  it's for us! sending to client\n");
