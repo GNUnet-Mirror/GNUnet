@@ -252,14 +252,15 @@ perf_ats_simplistic_bandwidth_SOURCES = \
   perf_ats.c  
 perf_ats_simplistic_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la   
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la 
 
 perf_ats_simplistic_delay_SOURCES = \
   perf_ats.c  
 perf_ats_simplistic_delay_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/ats/libgnunetats.la   
-    
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la 
 
 EXTRA_DIST = \
   ats.h \

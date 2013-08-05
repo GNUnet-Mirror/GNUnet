@@ -25,19 +25,71 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_testbed_service.h"
 
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TESTNAME_PREFIX "perf_ats_"
 
-static int ret;
+
+/**
+ * Shutdown task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+static int result;
 static char *solver;
 static char *preference;
 
+/**
+ * Shutdown nicely
+ *
+ * @param cls NULL
+ * @param tc the task context
+ */
 static void
-check (void *cls, char *const *args, const char *cfgfile,
-       const struct GNUNET_CONFIGURATION_Handle *cfg)
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
+
+
+	GNUNET_SCHEDULER_shutdown();
+}
+
+/**
+ * Controller event callback
+ *
+ * @param cls NULL
+ * @param event the controller event
+ */
+static void
+controller_event_cb (void *cls,
+                     const struct GNUNET_TESTBED_EventInformation *event)
+{
+
+}
+
+/**
+ * Signature of a main function for a testcase.
+ *
+ * @param cls closure
+ * @param num_peers number of peers in 'peers'
+ * @param peers_ handle to peers run in the testbed
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
+ */
+static void
+test_master (void *cls, unsigned int num_peers,
+             struct GNUNET_TESTBED_Peer **peers_,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Benchmarking solver `%s' on preference `%s'\n"), solver, preference);
-	ret = 0;
+
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
 }
 
 
@@ -46,13 +98,10 @@ main (int argc, char *argv[])
 {
 	char *tmp;
 	char *tmp_sep;
+	char *test_name;
 	char *conf_name;
 
-  ret = 1;
-
-  static struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
+  result = 1;
 
   /* figure out testname */
   tmp = strstr (argv[0], TESTNAME_PREFIX);
@@ -74,22 +123,25 @@ main (int argc, char *argv[])
   preference = GNUNET_strdup(tmp_sep + 1);
 
   GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, preference);
+  GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, preference);
 
-  char *argv2[] = { "perf_ats",
-    "-c",
-    conf_name,
-    "-L", "WARNING",
-    NULL
-  };
-  GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "perf_ats", "nohelp", options,
-                      &check, NULL);
+  /* Start topology */
+  uint64_t event_mask;
+  result = GNUNET_SYSERR;
+  event_mask = 0;
+  event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
+  event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
+  (void) GNUNET_TESTBED_test_run (test_name,
+                                  conf_name, 5,
+                                  event_mask, &controller_event_cb, NULL,
+                                  &test_master, NULL);
 
   GNUNET_free (solver);
   GNUNET_free (preference);
   GNUNET_free (conf_name);
+  GNUNET_free (test_name);
 
-  return ret;
+  return result;
 }
 
 /* end of file perf_ats.c */
