@@ -4717,7 +4717,7 @@ handle_mesh_connection_destroy (void *cls,
  * Generic handler for mesh network encrypted traffic.
  *
  * @param peer Peer identity this notification is about.
- * @param message Data message.
+ * @param message Encrypted message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  *
  * @return GNUNET_OK to keep the connection open,
@@ -4728,7 +4728,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MESH_Encrypted *msg,
                        int fwd)
 {
-  struct MeshTunnel *t;
+  struct MeshTunnel2 *t;
   struct MeshConnection *c;
   GNUNET_PEER_Id hop;
   uint32_t pid;
