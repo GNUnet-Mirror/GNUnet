@@ -422,16 +422,21 @@ struct MeshChannel
   uint32_t port;
 
     /**
-     * Local tunnel number ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI or 0 )
+     * Global channel number ( < GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
      */
-  MESH_ChannelNumber id;
+  MESH_ChannelNumber gid;
+
+    /**
+     * Local tunnel number for root (owner) client.
+     * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI or 0 )
+     */
+  MESH_ChannelNumber lid_root;
 
     /**
      * Local tunnel number for local destination clients (incoming number)
-     * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV or 0). All clients share the same
-     * number.
+     * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV or 0).
      */
-  MESH_ChannelNumber id_dest;
+  MESH_ChannelNumber lid_dest;
 
     /**
      * Is the tunnel bufferless (minimum latency)?
@@ -451,12 +456,12 @@ struct MeshChannel
     /**
      * Client owner of the tunnel, if any
      */
-  struct MeshClient *owner;
+  struct MeshClient *root;
 
     /**
      * Client destination of the tunnel, if any.
      */
-  struct MeshClient *client;
+  struct MeshClient *dest;
 
     /**
      * Flag to signal the destruction of the channel.
@@ -1252,17 +1257,17 @@ client_delete_channel (struct MeshClient *c, struct MeshChannel *ch)
 {
   int res;
 
-  if (c == ch->owner)
+  if (c == ch->root)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
-                                                  ch->id, ch);
+                                                  ch->lid_root, ch);
     if (GNUNET_YES != res)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel owner KO\n");
   }
-  if (c == ch->client)
+  if (c == ch->dest)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
-                                                  ch->id_dest, ch);
+                                                  ch->lid_dest, ch);
     if (GNUNET_YES != res)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel client KO\n");
   }
@@ -1280,18 +1285,18 @@ send_local_channel_create (struct MeshChannel *ch)
   struct GNUNET_MESH_ChannelMessage msg;
   struct MeshTunnel2 *t = ch->t;
 
-  if (NULL == ch->client)
+  if (NULL == ch->dest)
     return;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
-  msg.channel_id = htonl (ch->id_dest);
+  msg.channel_id = htonl (ch->lid_dest);
   msg.port = htonl (ch->port);
   msg.opt = 0;
   msg.opt |= GNUNET_YES == ch->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
   msg.opt |= GNUNET_YES == ch->nobuffer ? GNUNET_MESH_OPTION_NOBUFFER : 0;
   msg.opt = htonl (msg.opt);
   GNUNET_PEER_resolve (t->peer->id, &msg.peer);
-  GNUNET_SERVER_notification_context_unicast (nc, ch->client->handle,
+  GNUNET_SERVER_notification_context_unicast (nc, ch->dest->handle,
                                               &msg.header, GNUNET_NO);
 }
 
@@ -1308,7 +1313,7 @@ send_local_channel_destroy (struct MeshChannel *ch, int fwd)
   struct GNUNET_MESH_ChannelMessage msg;
   struct MeshClient *c;
 
-  c = fwd ? ch->client : ch->owner;
+  c = fwd ? ch->dest : ch->root;
   if (NULL == c)
   {
     GNUNET_break (0);
@@ -1316,7 +1321,7 @@ send_local_channel_destroy (struct MeshChannel *ch, int fwd)
   }
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
-  msg.channel_id = htonl (fwd ? ch->id_dest : ch->id);
+  msg.channel_id = htonl (fwd ? ch->lid_dest : ch->lid_root);
   msg.port = htonl (0);
   memset (&msg.peer, 0, sizeof (msg.peer));
   msg.opt = htonl (0);
@@ -1341,7 +1346,7 @@ send_local_ack (struct MeshChannel *ch,
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.channel_id = htonl (is_fwd ? ch->id : ch->id_dest);
+  msg.channel_id = htonl (is_fwd ? ch->lid_root : ch->lid_dest);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
                                               &msg.header,
@@ -2443,7 +2448,7 @@ channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid)
 
   for (ch = t->channel_head; NULL != ch; ch = ch->next)
   {
-    if (ch->id == chid)
+    if (ch->gid == chid)
       break;
   }
 
@@ -2497,20 +2502,20 @@ connection_change_state (struct MeshConnection* c,
 static void
 channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
 {
-  if (NULL != ch->client)
+  if (NULL != ch->dest)
   {
     GNUNET_break(0);
     return;
   }
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap32_put (c->incoming_channels,
-                                           ch->id_dest, ch,
+                                           ch->lid_dest, ch,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return;
   }
-  ch->client = c;
+  ch->dest = c;
 }
 
 
@@ -2592,7 +2597,7 @@ tunnel_notify_connection_broken (struct MeshTunnel2* t,
 
 /**
  * Send an end-to-end FWD ACK message for the most recent in-sequence payload.
- * 
+ *
  * @param ch Channel this is about.
  * @param fwd Is for FWD traffic? (ACK dest->owner)
  */
@@ -2618,7 +2623,7 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
   msg.header.type = htons (fwd ? GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK :
                                  GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
   msg.header.size = htons (sizeof (msg));
-  msg.chid = htonl (ch->id);
+  msg.chid = htonl (ch->gid);
   msg.mid = htonl (rel->mid_recv - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
@@ -2841,9 +2846,9 @@ channel_send_client_data (struct MeshChannel *ch,
                           int fwd)
 {
   if (fwd)
-    channel_send_client_to_tid (ch, msg, ch->client, ch->id_dest);
+    channel_send_client_to_tid (ch, msg, ch->dest, ch->lid_dest);
   else
-    channel_send_client_to_tid (ch, msg, ch->owner, ch->id);
+    channel_send_client_to_tid (ch, msg, ch->root, ch->lid_root);
 }
 
 
@@ -3314,21 +3319,32 @@ channel_send_destroy (struct MeshChannel *ch)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
-  msg.chid = htonl (ch->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  sending tunnel destroy for channel %s:%X\n",
               GNUNET_i2s (GNUNET_PEER_resolve2 (ch->t->peer->id)),
-              ch->id);
+              ch->gid);
 
-  if (NULL != ch->owner)
+  if (NULL != ch->root)
+  {
+    msg.chid = htonl (ch->lid_root);
     send_local_channel_destroy (ch, GNUNET_NO);
+  }
   else
+  {
+    msg.chid = htonl (ch->gid);
     send_prebuilt_message_channel (&msg.header, ch, GNUNET_NO);
+  }
 
-  if (NULL != ch->client)
+  if (NULL != ch->dest)
+  {
+    msg.chid = htonl (ch->lid_dest);
     send_local_channel_destroy (ch, GNUNET_YES);
+  }
   else
+  {
+    msg.chid = htonl (ch->gid);
     send_prebuilt_message_channel (&msg.header, ch, GNUNET_YES);
+  }
 }
 
 
@@ -3338,7 +3354,7 @@ channel_send_destroy (struct MeshChannel *ch)
  * @param tid Tunnel ID.
  */
 static struct MeshTunnel2 *
-tunnel_new (struct GNUNET_HashCode *tid)
+tunnel_new (const struct GNUNET_HashCode *tid)
 {
   struct MeshTunnel2 *t;
 
@@ -3564,22 +3580,22 @@ channel_destroy (struct MeshChannel *ch)
   if (NULL == ch)
     return;
 
-  c = ch->owner;
+  c = ch->root;
   if (NULL != c)
   {
     if (GNUNET_YES != GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
-                                                              c->id, ch))
+                                                              ch->lid_root, ch))
     {
       GNUNET_break (0);
     }
   }
 
-  c = ch->client;
+  c = ch->dest;
   if (NULL != c)
   {
     if (GNUNET_YES !=
         GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
-                                                ch->id_dest, ch))
+                                                ch->lid_dest, ch))
     {
       GNUNET_break (0);
     }
@@ -3599,35 +3615,42 @@ channel_destroy (struct MeshChannel *ch)
 
 /**
  * Create a new channel.
- * 
- * @param owner Clients that owns the channel, NULL for foreign channels.
- * @param id Channel Number for the channel, for the owner point of view.
- * 
+ *
+ * @param t Tunnel this channel is in.
+ * @param owner Client that owns the channel, NULL for foreign channels.
+ * @param lid_root Local ID for root client.
+ *
  * @return A new initialized channel. NULL on error.
  */
 static struct MeshChannel *
-channel_new (struct MeshClient *owner,
-             MESH_ChannelNumber id)
+channel_new (struct MeshTunnel2 *t,
+             struct MeshClient *owner, MESH_ChannelNumber lid_root)
 {
   struct MeshChannel *ch;
 
-  if (NULL == owner)
-    return NULL;
-
   ch = GNUNET_new (struct MeshChannel);
-  ch->owner = owner;
-  ch->id = id;
+  ch->root = owner;
+  ch->lid_root = lid_root;
+  ch->t = t;
 
   GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
 
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap32_put (owner->own_channels, id, ch,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  if (NULL != owner)
   {
-    GNUNET_break (0);
-    channel_destroy (ch);
-    GNUNET_SERVER_receive_done (owner->handle, GNUNET_SYSERR);
-    return NULL;
+    while (NULL != channel_get_by_local_id (owner, t->next_chid))
+      t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+    ch->gid = t->next_chid;
+    t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+
+    if(GNUNET_OK !=
+       GNUNET_CONTAINER_multihashmap32_put (owner->own_channels, lid_root, ch,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_break (0);
+      channel_destroy (ch);
+      GNUNET_SERVER_receive_done (owner->handle, GNUNET_SYSERR);
+      return NULL;
+    }
   }
 
   return ch;
@@ -3669,18 +3692,18 @@ channel_destroy_iterator (void *cls,
   struct MeshTunnel2 *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Channel %X / %X destroy, due to client %u shutdown.\n",
-              ch->id, ch->id_dest, c->id);
+              " Channel %X (%X / %X) destroy, due to client %u shutdown.\n",
+              ch->gid, ch->lid_root, ch->lid_dest, c->id);
 
-  if (c == ch->client)
+  if (c == ch->dest)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
-    ch->client = NULL;
+    ch->dest = NULL;
   }
-  if (c == ch->owner)
+  if (c == ch->root)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
-    ch->owner = NULL;
+    ch->root = NULL;
   }
 
   t = ch->t;
@@ -4092,8 +4115,8 @@ queue_add (void *cls, uint16_t type, size_t size,
     priority = 100;
 
   if (NULL != ch &&
-      ( (NULL != ch->owner && GNUNET_MESSAGE_TYPE_MESH_FWD == type) ||
-        (NULL != ch->client && GNUNET_MESSAGE_TYPE_MESH_BCK == type) ))
+      ( (NULL != ch->root && GNUNET_MESSAGE_TYPE_MESH_FWD == type) ||
+        (NULL != ch->dest && GNUNET_MESSAGE_TYPE_MESH_BCK == type) ))
     priority = 50;
 
   if (fc->queue_n >= fc->queue_max && 0 == priority)
@@ -4192,7 +4215,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   }
 
   /*  Initialize FWD/BCK data */
-  c =   fwd ? ch->client  : ch->owner;
+  c =   fwd ? ch->dest  : ch->root;
   rel = fwd ? ch->bck_rel : ch->fwd_rel;
 
   if (NULL == c)
@@ -5287,7 +5310,7 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
               GNUNET_i2s (&msg->peer), ntohl (msg->port));
   chid = ntohl (msg->channel_id);
 
-  /* Sanity check for duplicate tunnel IDs */
+  /* Sanity check for duplicate channel IDs */
   if (NULL != channel_get_by_local_id (c, chid))
   {
     GNUNET_break (0);
@@ -5297,37 +5320,37 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   peer = peer_get (&msg->peer);
   if (NULL == peer->tunnel)
-    peer->tunnel = tunnel_new ();
+  {
+    struct GNUNET_HashCode tid;
+
+    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &tid);
+    peer->tunnel = tunnel_new (&tid);
+  }
   t = peer->tunnel;
 
   /* Create channel */
-  while (NULL != channel_get_by_pi (myid, next_tid))
-    next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
-  t = tunnel_new (myid, next_tid, c, chid);
-  next_tid = (next_tid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
-  if (NULL == t)
+  ch = channel_new (t, c, chid);
+  if (NULL == ch)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  t->port = ntohl (msg->port);
-  tunnel_set_options (t, ntohl (msg->opt));
-  if (GNUNET_YES == t->reliable)
+  ch->port = ntohl (msg->port);
+  channel_set_options (ch, ntohl (msg->opt));
+  if (GNUNET_YES == ch->reliable)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
-    t->fwd_rel = GNUNET_malloc (sizeof (struct MeshChannelReliability));
-    t->fwd_rel->t = t;
-    t->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
+    ch->fwd_rel = GNUNET_malloc (sizeof (struct MeshChannelReliability));
+    ch->fwd_rel->ch = ch;
+    ch->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED TUNNEL %s[%x]:%u (%x)\n",
-              GNUNET_i2s (&my_full_id), t->id.tid, t->port, t->local_tid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
+              GNUNET_h2s (&t->id), ch->gid, ch->port, ch->lid_root);
+  peer_connect (peer);
+  /* FIXME send create channel */
 
-  peer_info = peer_get (&msg->peer);
-  peer_add_tunnel (peer_info, t);
-  peer_connect (peer_info, t);
-  tunnel_reset_timeout (t, GNUNET_YES);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
 }
