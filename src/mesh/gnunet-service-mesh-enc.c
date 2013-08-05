@@ -2691,6 +2691,8 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
  *
  * Note that although the name is fwd_ack, the FWD mean forward *traffic*,
  * the ACK itself goes "back" (towards root).
+ * 
+ * FIXME: use per connection ACKs istead of per-hop.
  *
  * @param c Connection on which to send the ACK.
  * @param fwd Is this FWD ACK? (Going dest->owner)
@@ -4201,7 +4203,7 @@ queue_add (void *cls, uint16_t type, size_t size,
  * Generic handler for mesh network payload traffic.
  *
  * @param t Tunnel on which we got this message.
- * @param message Data message.
+ * @param message Unencryted data message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  *
  * @return GNUNET_OK to keep the connection open,
@@ -4773,99 +4775,59 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   pid = ntohl (msg->pid);
   if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
   {
-    GNUNET_STATISTICS_update (stats, "# unsolicited data", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "WARNING Received PID %u, (prev %u), ACK %u\n",
                 pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
+  if (GNUNET_NO == GMC_is_pid_bigger (pid, fc->last_pid_recv))
+  {
+    GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                " Pid %u not expected (%u+), dropping!\n",
+                pid, fc->last_pid_recv + 1);
+    return GNUNET_OK;
+  }
   if (MESH_CONNECTION_SENT == c->state)
     connection_change_state (c, MESH_CONNECTION_READY);
   connection_reset_timeout (c, fwd);
+  fc->last_pid_recv = pid;
 
   /* Is this message for us? */
   if (NULL != c->t->channel_head)
   {
+    size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
+    char cbuf[dsize];
+    struct GNUNET_MESH_Data *dmsg;
+
     /* TODO signature verification */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  it's for us! sending to client\n");
-    GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
-    if (GMC_is_pid_bigger (pid, fc->last_pid_recv))
-    {
-      uint32_t mid;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  it's for us!\n");
+    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
 
-      mid = ntohl (msg->mid);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " pid %u (mid %u) not seen yet\n", pid, mid);
-      fc->last_pid_recv = pid;
-
-      if (GNUNET_NO == t->reliable ||
-          ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
-            GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "!!! RECV %u\n", ntohl (msg->mid));
-        if (GNUNET_YES == t->reliable)
-        {
-          /* Is this the exact next expected messasge? */
-          if (mid == rel->mid_recv)
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
-            rel->mid_recv++;
-            tunnel_send_client_data (t, msg, fwd);
-            tunnel_send_client_buffered_data (t, c, rel);
-          }
-          else
-          {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
-            tunnel_add_buffered_data (t, msg, rel);
-          }
-        }
-        else /* Tunnel unreliable, send to clients directly */
-        {
-          tunnel_send_client_data (t, msg, fwd);
-        }
-      }
-      else
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    " MID %u not expected (%u - %u), dropping!\n",
-                    ntohl (msg->mid), rel->mid_recv, rel->mid_recv + 64);
-      }
-    }
-    else
-    {
-//       GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  " Pid %u not expected (%u+), dropping!\n",
-                  pid, fc->last_pid_recv + 1);
-    }
-    tunnel_send_ack (t, type, fwd);
+    fc->last_pid_recv = pid;
+    tunnel_decrypt (t, cbuf, &msg[1], dsize, msg->iv, fwd);
+    dmsg = (struct GNUNET_MESH_Data *) cbuf;
+    handle_data (t, dmsg, fwd);
+    connection_send_ack (c, fwd);
     return GNUNET_OK;
   }
-  fc->last_pid_recv = pid;
-  if (0 == hop)
-  {
-    GNUNET_STATISTICS_update (stats, "# data on dying tunnel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "data on dying tunnel %s[%X]\n",
-                GNUNET_PEER_resolve2 (t->id.oid), ntohl (msg->tid));
-    return GNUNET_OK; /* Next hop has destoyed the tunnel, drop */
-  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   ttl = ntohl (msg->ttl);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
   if (ttl == 0)
   {
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK, fwd);
+    connection_send_ack (c, fwd);
     return GNUNET_OK;
   }
+  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
 
-  if (myid != hop)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-    send_prebuilt_message (message, hop, t);
-    GNUNET_STATISTICS_update (stats, "# unicast forwarded", 1, GNUNET_NO);
-  }
+  send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
+  connection_send_ack (c, fwd);
+
   return GNUNET_OK;
 }
 
