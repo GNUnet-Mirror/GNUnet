@@ -4680,7 +4680,6 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   struct MeshTunnel2 *t;
   struct MeshPeer *neighbor;
   struct MeshFlowControl *fc;
-  GNUNET_PEER_Id id;
   uint32_t pid;
   uint32_t ttl;
   uint16_t type;
@@ -4833,7 +4832,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ACK *msg;
-  struct MeshTunnel *t;
+  struct MeshConnection *c;
   struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
   uint32_t ack;
@@ -4842,28 +4841,28 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
 
-  t = channel_get (&msg->oid, ntohl (msg->tid));
+  c = connection_get (&msg->tid, ntohl (msg->cid));
 
-  if (NULL == t)
+  if (NULL == c)
   {
-    /* TODO notify that we dont know this tunnel (whom)? */
-    GNUNET_STATISTICS_update (stats, "# ack on unknown tunnel", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# ack on unknown connection", 1,
+                              GNUNET_NO);
     return GNUNET_OK;
   }
-  ack = ntohl (msg->pid);
+  ack = ntohl (msg->ack);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
-  if (t->next_hop == id)
+  if (connection_get_next_hop (c)->id == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    fc = &t->next_fc;
+    fc = c->fwd_fc;
   }
-  else if (t->prev_hop == id)
+  else if (connection_get_prev_hop (c)->id == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    fc = &t->prev_fc;
+    fc = c->bck_fc;
   }
   else
   {
@@ -4871,6 +4870,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
+  /* Cancel polling if the ACK is bigger than before. */
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
       GMC_is_pid_bigger (ack, fc->last_ack_recv))
   {
@@ -4880,10 +4880,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   fc->last_ack_recv = ack;
-  peer_unlock_queue (id);
-  tunnel_change_state (t, MESH_TUNNEL_READY);
-
-  tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_ACK, t->next_hop == id);
+  connection_unlock_queue (c, fc == c->fwd_fc);
 
   return GNUNET_OK;
 }
@@ -4904,55 +4901,49 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Poll *msg;
-  struct MeshTunnel *t;
+  struct MeshConnection *c;
   struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
   uint32_t pid;
-  uint32_t old;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
               GNUNET_i2s (peer));
 
   msg = (struct GNUNET_MESH_Poll *) message;
 
-  t = channel_get (&msg->oid, ntohl (msg->tid));
+  c = connection_get (&msg->tid, ntohl (msg->cid));
 
-  if (NULL == t)
+  if (NULL == c)
   {
-    /* TODO notify that we dont know this tunnel (whom)? */
-    GNUNET_STATISTICS_update (stats, "# poll on unknown tunnel", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
+                              GNUNET_NO);
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
-  pid = ntohl (msg->pid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  PID %u\n", pid);
-  if (t->next_hop == id)
+  if (connection_get_next_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from FWD\n");
-    fc = &t->next_fc;
-    old = fc->last_pid_recv;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
+    fc = c->fwd_fc;
   }
-  else if (t->prev_hop == id)
+  else if (connection_get_prev_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  from BCK\n");
-    fc = &t->prev_fc;
-    old = fc->last_pid_recv;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
+    fc = c->bck_fc;
   }
   else
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  was %u\n", fc->last_pid_recv);
+  pid = ntohl (msg->pid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n",
+              pid, fc->last_pid_recv);
   fc->last_pid_recv = pid;
-  tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_POLL, t->prev_hop == id);
-
-  if (GNUNET_YES == t->reliable)
-    fc->last_pid_recv = old;
+  connection_send_ack (c, fc == c->fwd_fc);
 
   return GNUNET_OK;
 }
