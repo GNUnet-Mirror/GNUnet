@@ -3414,7 +3414,7 @@ tunnel_new (struct GNUNET_HashCode *tid)
  * @param tid Tunnel ID.
  */
 static struct MeshTunnel2 *
-tunnel_get (struct GNUNET_HashCode *tid)
+tunnel_get (const struct GNUNET_HashCode *tid)
 {
   return GNUNET_CONTAINER_multihashmap_get (tunnels, tid);
 }
@@ -3472,7 +3472,7 @@ connection_new (struct GNUNET_HashCode *tid, uint32_t cid)
  * @param cid Connection ID.
  */
 static struct MeshConnection *
-connection_get (struct GNUNET_HashCode *tid, uint32_t cid)
+connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
 {
   struct MeshConnection *c;
   struct MeshTunnel2 *t;
@@ -4731,7 +4731,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   struct MeshTunnel2 *t;
   struct MeshPeer *neighbor;
-  strcut MeshFlowControl *fc;
+  struct MeshFlowControl *fc;
   uint32_t pid;
   uint32_t ttl;
   uint16_t type;
