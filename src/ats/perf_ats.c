@@ -286,11 +286,12 @@ void ats_connect_completion_cb (void *cls,
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Initialization done, connecting peers\n"));
-		/*
+
 		for (c_p = 1; c_p < peers; c_p ++)
 		{
 			ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
 					&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
+			/*
 			if (NULL == ph[c_p].connect_op)
 			{
 				GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -305,8 +306,8 @@ void ats_connect_completion_cb (void *cls,
 			{
 				GNUNET_break (0);
 			}
+			*/
 		}
-		*/
 
 	}
 }
@@ -423,14 +424,13 @@ test_main (void *cls, unsigned int num_peers,
                                     &ats_perf_connect_adapter,
                                     &ats_perf_disconnect_adapter,
                                     &ph[c_p]);
-    /*
+
     ph[c_p].ats_sched_op = GNUNET_TESTBED_service_connect (NULL,
     																peers_[c_p], "ats",
     																ats_connect_completion_cb, NULL,
                                     &ats_sched_connect_adapter,
                                     &ats_sched_disconnect_adapter,
                                     &ph[c_p]);
-                                    */
   }
 }
 
