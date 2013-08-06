@@ -28,7 +28,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_NUM 5
 
@@ -253,6 +253,26 @@ void connect_completion_callback (void *cls,
 	p->connect_op = NULL;
 
 }
+static void
+do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	int c_p;
+	for (c_p = 1; c_p < peers; c_p ++)
+	{
+		ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
+				&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
+		if (NULL == ph[c_p].connect_op)
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					_("Could not connect peer 0 and peer %u\n"), c_p);
+			GNUNET_break (0);
+			if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+				GNUNET_SCHEDULER_cancel(shutdown_task);
+			shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+			return;
+		}
+	}
+}
 
 /**
  * Callback to be called when a service connect operation is completed
@@ -287,28 +307,7 @@ void ats_connect_completion_cb (void *cls,
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Initialization done, connecting peers\n"));
 
-		for (c_p = 1; c_p < peers; c_p ++)
-		{
-			ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
-					&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
-			/*
-			if (NULL == ph[c_p].connect_op)
-			{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-						_("Could not connect peer 0 and peer %u\n"), c_p);
-				GNUNET_break (0);
-				if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-					GNUNET_SCHEDULER_cancel(shutdown_task);
-				shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
-				return;
-			}
-			else
-			{
-				GNUNET_break (0);
-			}
-			*/
-		}
-
+		 GNUNET_SCHEDULER_add_now (&do_connect, NULL);
 	}
 }
 
