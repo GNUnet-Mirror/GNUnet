@@ -79,9 +79,10 @@ struct BenchmarkPeer *ph;
 
 struct BenchmarkState
 {
-	int connected_ATS;
-	int connected_CORE;
+	int connected_ATS_SRV;
+	int connected_CORE_SRV;
 	int connected_PEERS;
+	int connected_CORE;
 
 	int *core_connections;
 };
@@ -98,6 +99,12 @@ static char *solver;
 static char *preference;
 
 static int peers;
+
+static void
+core_connect_completion_cb (void *cls,
+												 struct GNUNET_TESTBED_Operation *op,
+												 void *ca_result,
+												 const char *emsg );
 
 /**
  * Shutdown nicely
@@ -171,6 +178,81 @@ ats_performance_info_cb (void *cls,
 	GNUNET_free (peer_id);
 }
 
+
+static void do_benchmark ()
+{
+	if ((state.connected_ATS_SRV == GNUNET_NO) ||
+			(state.connected_CORE_SRV == GNUNET_NO) ||
+			(state.connected_PEERS == GNUNET_NO) ||
+			(state.connected_CORE == GNUNET_NO))
+		return;
+
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			_("BENCHMARKING\n"));
+}
+
+
+static void connect_completion_callback (void *cls,
+    															struct GNUNET_TESTBED_Operation *op,
+    															const char *emsg)
+{
+	static int connections = 0;
+	struct BenchmarkPeer *p = cls;
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+			_("Connected peer 0 with peer %p\n"), p->peer);
+	if (NULL == emsg)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				_("Connected peer 0 with peer %p\n"), p->peer);
+	}
+	else
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+				_("Failed to connect peer 0 with peer %p\n"), p->peer);
+		GNUNET_break (0);
+		if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+			GNUNET_SCHEDULER_cancel(shutdown_task);
+		shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+	}
+	GNUNET_TESTBED_operation_done(op);
+	p->connect_op = NULL;
+	connections++;
+	if (connections == peers -1)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				"All peers connected, start benchmarking \n");
+		 GNUNET_SCHEDULER_add_now (&do_benchmark, NULL);
+		 state.connected_PEERS = GNUNET_YES;
+	}
+}
+
+static void
+do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	int c_p;
+
+	if ((state.connected_ATS_SRV == GNUNET_NO) ||
+			(state.connected_CORE_SRV == GNUNET_NO))
+		return;
+
+	for (c_p = 1; c_p < peers; c_p ++)
+	{
+		ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
+				&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
+		if (NULL == ph[c_p].connect_op)
+		{
+			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					_("Could not connect peer 0 and peer %u\n"), c_p);
+			GNUNET_break (0);
+			if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+				GNUNET_SCHEDULER_cancel(shutdown_task);
+			shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+			return;
+		}
+	}
+}
+
+
 /**
  * Controller event callback
  *
@@ -232,6 +314,44 @@ ats_perf_disconnect_adapter (void *cls, void *op_result)
   peer->p_handle = NULL;
 }
 
+
+/**
+ * Callback to be called when a service connect operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+void ats_connect_completion_cb (void *cls,
+														 struct GNUNET_TESTBED_Operation *op,
+														 void *ca_result,
+														 const char *emsg )
+{
+	static int op_done = 0;
+	if ((NULL != emsg) || (NULL == ca_result))
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				_("Initialization failed, shutdown\n"));
+		GNUNET_break (0);
+		if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+			GNUNET_SCHEDULER_cancel(shutdown_task);
+		shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
+		return;
+	}
+
+	op_done ++;
+	if (op_done ==  peers)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				_("Initialization done, connecting peers\n"));
+		state.connected_ATS_SRV = GNUNET_YES;
+		GNUNET_SCHEDULER_add_now (&do_connect, NULL);
+	}
+}
+
+
 /**
  * Method called whenever a given peer connects.
  *
@@ -243,8 +363,20 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
 {
 	struct BenchmarkPeer *p = cls;
 	char *id;
+
+	p->core_connections ++;
 	id = GNUNET_strdup (GNUNET_i2s (&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%s connected to %s \n", id, GNUNET_i2s (peer));
+  if (p->core_connections == peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%s connected all peers \n", id, GNUNET_i2s (peer));
+  }
+  if ((p->core_connections == peers) && (p == &ph[0]))
+  {
+  	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Master peer %s connected all peers on CORE level\n", id, GNUNET_i2s (peer));
+  	state.connected_CORE = GNUNET_YES;
+		GNUNET_SCHEDULER_add_now (&do_benchmark, NULL);
+  }
   GNUNET_free (id);
 }
 
@@ -322,7 +454,8 @@ core_connect_completion_cb (void *cls,
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				"Connected to all CORE services\n");
-		state.connected_CORE = GNUNET_YES;
+		state.connected_CORE_SRV = GNUNET_YES;
+		GNUNET_SCHEDULER_add_now (&do_connect, NULL);
 	}
 }
 
@@ -343,101 +476,7 @@ core_disconnect_adapter (void *cls, void *op_result)
 }
 
 
-static void do_benchmark ()
-{
 
-}
-
-static void connect_completion_callback (void *cls,
-    															struct GNUNET_TESTBED_Operation *op,
-    															const char *emsg)
-{
-	static int connections = 0;
-	struct BenchmarkPeer *p = cls;
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			_("Connected peer 0 with peer %p\n"), p->peer);
-	if (NULL == emsg)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-				_("Connected peer 0 with peer %p\n"), p->peer);
-	}
-	else
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-				_("Failed to connect peer 0 with peer %p\n"), p->peer);
-		GNUNET_break (0);
-		if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-			GNUNET_SCHEDULER_cancel(shutdown_task);
-		shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
-	}
-	GNUNET_TESTBED_operation_done(op);
-	p->connect_op = NULL;
-	connections++;
-	if (connections == peers -1)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-				"All peers connected, start benchmarking \n");
-		 GNUNET_SCHEDULER_add_now (&do_benchmark, NULL);
-		 state.connected_PEERS = GNUNET_YES;
-	}
-
-}
-static void
-do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-	int c_p;
-	for (c_p = 1; c_p < peers; c_p ++)
-	{
-		ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
-				&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
-		if (NULL == ph[c_p].connect_op)
-		{
-			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-					_("Could not connect peer 0 and peer %u\n"), c_p);
-			GNUNET_break (0);
-			if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-				GNUNET_SCHEDULER_cancel(shutdown_task);
-			shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
-			return;
-		}
-	}
-}
-
-/**
- * Callback to be called when a service connect operation is completed
- *
- * @param cls the callback closure from functions generating an operation
- * @param op the operation that has been finished
- * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-void ats_connect_completion_cb (void *cls,
-														 struct GNUNET_TESTBED_Operation *op,
-														 void *ca_result,
-														 const char *emsg )
-{
-	static int op_done = 0;
-	if ((NULL != emsg) || (NULL == ca_result))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-				_("Initialization failed, shutdown\n"));
-		GNUNET_break (0);
-		if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-			GNUNET_SCHEDULER_cancel(shutdown_task);
-		shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
-		return;
-	}
-
-	op_done ++;
-	if (op_done ==  peers)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-				_("Initialization done, connecting peers\n"));
-		state.connected_ATS = GNUNET_YES;
-		GNUNET_SCHEDULER_add_now (&do_connect, NULL);
-	}
-}
 
 /**
  * Callback to be called when the requested peer information is available
@@ -449,7 +488,7 @@ void ats_connect_completion_cb (void *cls,
  *          operation is successfull
  */
 static void
-pid_cb (void *cb_cls,
+peerinformation_cb (void *cb_cls,
 			 struct GNUNET_TESTBED_Operation *op,
 			 const struct GNUNET_TESTBED_PeerInformation*pinfo,
 			 const char *emsg)
@@ -508,7 +547,7 @@ test_main (void *cls, unsigned int num_peers,
     ph[c_p].peer = peers_[c_p];
 
     ph[c_p].info_op = GNUNET_TESTBED_peer_get_information (ph[c_p].peer,
-    		GNUNET_TESTBED_PIT_IDENTITY, &pid_cb, &ph[c_p]);
+    		GNUNET_TESTBED_PIT_IDENTITY, &peerinformation_cb, &ph[c_p]);
 
     ph[c_p].core_op = GNUNET_TESTBED_service_connect (NULL,
     																peers_[c_p], "ats",
@@ -577,8 +616,8 @@ main (int argc, char *argv[])
   	peers = DEFAULT_NUM;
 
   ph = GNUNET_malloc (peers * sizeof (struct BenchmarkPeer));
-  state.connected_ATS = GNUNET_NO;
-  state.connected_CORE = GNUNET_NO;
+  state.connected_ATS_SRV = GNUNET_NO;
+  state.connected_CORE_SRV = GNUNET_NO;
   state.connected_PEERS = GNUNET_NO;
   /* Start topology */
   uint64_t event_mask;
