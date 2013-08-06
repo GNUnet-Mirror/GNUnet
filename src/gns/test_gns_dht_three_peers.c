@@ -309,7 +309,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct in_addr *web;
   struct GNUNET_NAMESTORE_RecordData rd;
 
@@ -380,7 +380,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");

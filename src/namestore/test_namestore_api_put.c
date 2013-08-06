@@ -44,7 +44,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 

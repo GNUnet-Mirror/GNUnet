@@ -192,7 +192,7 @@ static struct GNUNET_PeerIdentity my_peer_identity;
 /**
  * My public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * Head of list of print contexts.

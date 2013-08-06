@@ -39,13 +39,13 @@ static GNUNET_SCHEDULER_TaskIdentifier stopiteration_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_HashCode zone;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey2;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey2;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey2;
 
 static struct GNUNET_HashCode zone2;
 
@@ -179,7 +179,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_proc (void *cls,
-	   const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+	   const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 	   struct GNUNET_TIME_Absolute expire,
 	   const char *name,
 	   unsigned int rd_count,
@@ -204,7 +204,7 @@ zone_proc (void *cls,
     if (GNUNET_OK != GNUNET_NAMESTORE_verify_signature (zone_key, expire, name, rd_count, rd, signature))
     {
       struct GNUNET_HashCode zone_key_hash;
-      GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &zone_key_hash);
+      GNUNET_CRYPTO_hash (zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &zone_key_hash);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Verifying signature for `%s' in zone `%s' with %u records  and expiration %llu failed\n", name, GNUNET_h2s(&zone_key_hash), rd_count, expire.abs_value);
 
       failed = GNUNET_YES;
@@ -354,7 +354,7 @@ create_record (unsigned int count)
  */
 static void
 empty_zone_proc (void *cls,
-		 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		 struct GNUNET_TIME_Absolute expire,
 		 const char *name,
 		 unsigned int rd_count,

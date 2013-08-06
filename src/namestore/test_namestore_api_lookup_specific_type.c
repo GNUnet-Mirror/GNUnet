@@ -50,7 +50,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_CRYPTO_EccSignature *s_signature;
 
@@ -110,7 +110,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void 
 name_lookup_existing_record_type (void *cls,
-				  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+				  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 				  struct GNUNET_TIME_Absolute expire,
 				  const char *n,
 				  unsigned int rd_count,
@@ -121,7 +121,7 @@ name_lookup_existing_record_type (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Namestore returned %u records\n", rd_count);
 
-  if ((NULL == n) || (0 != memcmp(zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded))))
+  if ((NULL == n) || (0 != memcmp(zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey))))
   {
     GNUNET_break(0);
     failed = GNUNET_YES;
@@ -156,7 +156,7 @@ name_lookup_existing_record_type (void *cls,
 
 static void
 name_lookup_non_existing_record_type (void *cls,
-				      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+				      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 				      struct GNUNET_TIME_Absolute expire,
 				      const char *n,
 				      unsigned int rd_count,
@@ -300,7 +300,7 @@ run (void *cls,
     s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
     /* create random zone hash */
-    GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
+    GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &s_zone);
     nsh = GNUNET_NAMESTORE_connect (cfg);
     GNUNET_break (NULL != nsh);
     GNUNET_break (s_rd != NULL);

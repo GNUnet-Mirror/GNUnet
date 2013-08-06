@@ -77,7 +77,9 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 check_PROGRAMS = \
  test_gnunet_prefix
 
+if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
+endif
 
 test_gnunet_prefix_SOURCES = \
  test_gnunet_prefix.c

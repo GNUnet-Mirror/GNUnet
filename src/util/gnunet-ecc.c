@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -49,15 +49,6 @@ static int print_short_identity;
  */
 static unsigned int make_keys;
 
-/**
- * The private information of an ECC key pair.
- * NOTE: this must match the definition in crypto_ksk.c and crypto_ecc.c!
- */
-struct GNUNET_CRYPTO_EccPrivateKey
-{
-  gcry_sexp_t sexp;
-};
-
 
 /**
  * Create a flat file with a large number of key pairs for testing.
@@ -65,10 +56,8 @@ struct GNUNET_CRYPTO_EccPrivateKey
 static void
 create_keys (const char *fn)
 {
-  static char pad[GNUNET_TESTING_HOSTKEYFILESIZE];
   FILE *f;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
 
   if (NULL == (f = fopen (fn, "w+")))
   {
@@ -90,22 +79,18 @@ create_keys (const char *fn)
        GNUNET_break (0);
        break;
     }
-    enc = GNUNET_CRYPTO_ecc_encode_key (pk);
-    GNUNET_assert (ntohs (enc->size) <= GNUNET_TESTING_HOSTKEYFILESIZE);
-    if ( (ntohs (enc->size) != fwrite (enc, 1, ntohs (enc->size), f)) ||
-	 (GNUNET_TESTING_HOSTKEYFILESIZE - ntohs (enc->size)
-	  != fwrite (pad, 1, GNUNET_TESTING_HOSTKEYFILESIZE - ntohs (enc->size), f)) )
+    if (GNUNET_TESTING_HOSTKEYFILESIZE != 
+	fwrite (pk, 1,
+		GNUNET_TESTING_HOSTKEYFILESIZE, f))
     {
       fprintf (stderr,
 	       _("\nFailed to write to `%s': %s\n"),
 	       fn,
 	       STRERROR (errno));
       GNUNET_CRYPTO_ecc_key_free (pk);
-      GNUNET_free (enc);
       break;
     }
     GNUNET_CRYPTO_ecc_key_free (pk);
-    GNUNET_free (enc);
   }
   if (UINT_MAX == make_keys)
     fprintf (stderr,
@@ -130,7 +115,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
   struct GNUNET_PeerIdentity pid;
 
   if (NULL == args[0])

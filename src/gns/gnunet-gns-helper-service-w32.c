@@ -663,7 +663,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key = NULL;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
@@ -680,7 +680,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
       GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
       GNUNET_CRYPTO_short_hash(&pkey,
-                         sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                         sizeof(struct GNUNET_CRYPTO_EccPublicKey),
                          &user_zone);
       zone = &user_zone;
       GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);

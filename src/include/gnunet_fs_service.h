@@ -81,13 +81,9 @@ struct GNUNET_FS_Uri;
 
 
 /**
- * Identifier for a GNUnet pseudonym (the public key).  Q-point, Q=dp.
- * Note that we (ab)use an identifier of 'all zeros' to mean the
- * 'anonymous' pseudonym, where the value is actually the point at
- * infinity; however, that value cannot be represented here.  We do
- * not handle the case where the actual q-Value of some pseudonym
- * happens to be all zeros as well (as the chance of that is
- * negligible).
+ * Identifier for a GNUnet pseudonym (the public key).  Q-point, Q=dP.
+ * Note that we (ab)use an identifier of 'Q=G=1P' to mean the
+ * 'anonymous' pseudonym.
  */
 struct GNUNET_FS_PseudonymIdentifier
 {
@@ -274,7 +270,7 @@ GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *pu
  */
 void
 GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
-				 struct GNUNET_FS_PseudonymIdentifier *pseudonym);
+				    struct GNUNET_FS_PseudonymIdentifier *pseudonym);
 
 
 
@@ -530,6 +526,7 @@ GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
  */
 struct GNUNET_FS_Uri *
 GNUNET_FS_uri_parse (const char *uri, char **emsg);
+
 
 /**
  * Free URI.
@@ -2604,8 +2601,9 @@ GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
  */
 int
-GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, const char *old_name,
-    const char *new_name);
+GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, 
+			    const char *old_name,
+			    const char *new_name);
 
 
 /**

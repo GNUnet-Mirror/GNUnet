@@ -180,8 +180,8 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded alice_pkey;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded bob_pkey;
+  struct GNUNET_CRYPTO_EccPublicKey alice_pkey;
+  struct GNUNET_CRYPTO_EccPublicKey bob_pkey;
   struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
   struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;

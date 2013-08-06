@@ -68,7 +68,7 @@ struct GNUNET_PeerIdentity pid;
 static void
 add_peer ()
 {
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 

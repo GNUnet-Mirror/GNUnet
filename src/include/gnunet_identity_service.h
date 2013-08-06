@@ -74,7 +74,18 @@ struct GNUNET_IDENTITY_Operation;
  * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego);
+GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego);
+
+
+/**
+ * Get the identifier (public key) of an ego.
+ *
+ * @param ego identity handle with the private key
+ * @param pk set to ego's public key
+ */
+void
+GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
+				    struct GNUNET_CRYPTO_EccPublicKey *pk);
 
 
 /** 
@@ -83,7 +94,7 @@ GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego);
  *
  * When used with 'GNUNET_IDENTITY_connect', this function is
  * initially called for all egos and then again whenever a
- * ego's identifier changes or if it is deleted.  At the end of
+ * ego's name changes or if it is deleted.  At the end of
  * the initial pass over all egos, the function is once called
  * with 'NULL' for 'ego'. That does NOT mean that the callback won't
  * be invoked in the future or that there was an error.
@@ -97,10 +108,10 @@ GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego);
  * that one was not NULL).
  *
  * When an identity is renamed, this function is called with the
- * (known) ego but the NEW identifier.  
+ * (known) ego but the NEW name.  
  *
  * When an identity is deleted, this function is called with the
- * (known) ego and "NULL" for the 'identifier'.  In this case,
+ * (known) ego and "NULL" for the 'name'.  In this case,
  * the 'ego' is henceforth invalid (and the 'ctx' should also be
  * cleaned up).
  *
@@ -108,14 +119,14 @@ GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego);
  * @param ego ego handle
  * @param ego_ctx context for application to store data for this ego
  *                 (during the lifetime of this process, initially NULL)
- * @param identifier identifier assigned by the user for this ego,
+ * @param name name assigned by the user for this ego,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
 typedef void (*GNUNET_IDENTITY_Callback)(void *cls,
 					 struct GNUNET_IDENTITY_Ego *ego,
 					 void **ctx,
-					 const char *identifier);
+					 const char *name);
 
 
 /** 
@@ -188,17 +199,17 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 
 
 /** 
- * Create a new identity with the given identifier.
+ * Create a new identity with the given name.
  *
  * @param id identity service to use
- * @param identifier desired identifier
+ * @param name desired name
  * @param cont function to call with the result (will only be called once)
  * @param cont_cls closure for cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
-			const char *identifier,
+			const char *name,
 			GNUNET_IDENTITY_Continuation cont,
 			void *cont_cls);
 
@@ -207,16 +218,16 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
  * Renames an existing identity.
  *
  * @param id identity service to use
- * @param old_identifier old identifier
- * @param new_identifier desired new identifier
+ * @param old_name old name
+ * @param new_name desired new name
  * @param cb function to call with the result (will only be called once)
  * @param cb_cls closure for cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
-			const char *old_identifier,
-			const char *new_identifier,
+			const char *old_name,
+			const char *new_name,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls);
 
@@ -225,14 +236,14 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
  * Delete an existing identity.
  *
  * @param id identity service to use
- * @param identifier identifier of the identity to delete
+ * @param name name of the identity to delete
  * @param cb function to call with the result (will only be called once)
  * @param cb_cls closure for cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
-			const char *identifier,
+			const char *name,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls);
 

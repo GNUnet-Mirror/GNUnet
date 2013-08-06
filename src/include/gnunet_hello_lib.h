@@ -199,8 +199,7 @@ typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                     *publicKey,
+GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKey *publicKey,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
                      void *addrgen_cls,
                      int friend_only);
@@ -327,8 +326,7 @@ GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
  */
 int
 GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                      struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                      *publicKey);
+                      struct GNUNET_CRYPTO_EccPublicKey *publicKey);
 
 
 /**
@@ -381,7 +379,7 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
  */
 int
 GNUNET_HELLO_parse_uri (const char *uri,
-                        struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pubkey,
+                        struct GNUNET_CRYPTO_EccPublicKey *pubkey,
                         struct GNUNET_HELLO_Message **hello,
                         GNUNET_HELLO_TransportPluginsFind plugins_find);
 

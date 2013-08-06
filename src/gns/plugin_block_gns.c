@@ -237,7 +237,7 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
     return GNUNET_SYSERR; 
   }
   GNUNET_CRYPTO_short_hash (&nrb->public_key,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 			    &pkey_hash);
   GNUNET_GNS_get_key_for_record (name, &pkey_hash, key);
   return GNUNET_OK;

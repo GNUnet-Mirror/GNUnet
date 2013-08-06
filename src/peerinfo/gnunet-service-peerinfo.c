@@ -655,7 +655,7 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
 {
   struct GNUNET_HELLO_Message * res;
   struct GNUNET_HELLO_Message * tmp;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
+  struct GNUNET_CRYPTO_EccPublicKey pk;
   
   if (NULL != friend_hello)
   {

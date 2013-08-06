@@ -1,6 +1,6 @@
  /*
   * This file is part of GNUnet
-  * (C) 2009, 2011, 2012 Christian Grothoff (and other contributing authors)
+  * (C) 2009-2013 Christian Grothoff (and other contributing authors)
   *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
@@ -450,7 +450,7 @@ namestore_sqlite_remove_records (void *cls,
  */
 static int 
 namestore_sqlite_put_records (void *cls, 
-			      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+			      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 			      struct GNUNET_TIME_Absolute expire,
 			      const char *name,
 			      unsigned int rd_count,
@@ -467,7 +467,7 @@ namestore_sqlite_put_records (void *cls,
   size_t data_size;
   unsigned int i;
 
-  GNUNET_CRYPTO_short_hash (zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &zone);
+  GNUNET_CRYPTO_short_hash (zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &zone);
   (void) namestore_sqlite_remove_records (plugin, &zone, name);
   name_len = strlen (name);
   GNUNET_CRYPTO_short_hash (name, name_len, &nh);
@@ -497,7 +497,7 @@ namestore_sqlite_put_records (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 1, zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), SQLITE_STATIC)) ||
+    if ((SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 1, zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKey), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_text (plugin->put_records, 2, name, -1, SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_int (plugin->put_records, 3, rd_count)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 4, data, data_size, SQLITE_STATIC)) ||
@@ -560,7 +560,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   int sret;
   unsigned int record_count;
   size_t data_size;
-  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key;
+  const struct GNUNET_CRYPTO_EccPublicKey *zone_key;
   const struct GNUNET_CRYPTO_EccSignature *sig;
   struct GNUNET_TIME_Absolute expiration;
   const char *data;
@@ -578,7 +578,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
     sig = sqlite3_column_blob (stmt, 5);
 
-    if ( (sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) != sqlite3_column_bytes (stmt, 0)) ||
+    if ( (sizeof (struct GNUNET_CRYPTO_EccPublicKey) != sqlite3_column_bytes (stmt, 0)) ||
 	 (sizeof (struct GNUNET_CRYPTO_EccSignature) != sqlite3_column_bytes (stmt, 5)) )
     {
       GNUNET_break (0);

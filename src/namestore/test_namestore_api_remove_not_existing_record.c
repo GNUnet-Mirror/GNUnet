@@ -51,7 +51,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_CRYPTO_EccSignature *s_signature;
 
@@ -202,7 +202,7 @@ run (void *cls,
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
   /* create random zone hash */
-  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &s_zone);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_h2s_full(&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);

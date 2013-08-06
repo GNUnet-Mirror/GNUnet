@@ -48,9 +48,9 @@ struct GNUNET_IDENTITY_Ego
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   /**
-   * Current identifier (name) associated with this ego.
+   * Current name associated with this ego.
    */
-  char *identifier;
+  char *name;
 
   /**
    * Client context associated with this ego.
@@ -234,12 +234,10 @@ message_handler (void *cls,
   const struct GNUNET_IDENTITY_ResultCodeMessage *rcm;
   const struct GNUNET_IDENTITY_UpdateMessage *um;
   const struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
-  struct GNUNET_CRYPTO_EccPrivateKey *priv;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
   struct GNUNET_HashCode id;
   const char *str;
   uint16_t size;
-  uint16_t pk_len;
   uint16_t name_len;
 
   if (NULL == msg)
@@ -291,39 +289,31 @@ message_handler (void *cls,
       return;
     }
     um = (const struct GNUNET_IDENTITY_UpdateMessage *) msg;
-    pk_len = ntohs (um->pk_len);
-    name_len = ntohs (um->name_len);    
+    name_len = ntohs (um->name_len);
+    
     str = (const char *) &um[1];
-    if ( (size != pk_len + name_len + sizeof (struct GNUNET_IDENTITY_UpdateMessage)) ||
+    if ( (size != name_len + sizeof (struct GNUNET_IDENTITY_UpdateMessage)) ||
 	 ( (0 != name_len) &&
-	   ('\0' != str[pk_len + name_len - 1])) )
+	   ('\0' != str[name_len - 1])) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if ( (0 == pk_len) &&
-	 (0 == name_len) )
+    if (GNUNET_YES == ntohs (um->end_of_list))
     {
       /* end of initial list of data */
       if (NULL != h->cb)
 	h->cb (h->cb_cls, NULL, NULL, NULL);
       break;
     }
-    priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
-    if (NULL == priv)
-    {
-      GNUNET_break (0);
-      reschedule_connect (h);
-      return;
-    }
-    GNUNET_CRYPTO_ecc_key_get_public (priv,
+    GNUNET_CRYPTO_ecc_key_get_public (&um->private_key,
 				      &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
     if (0 == name_len)
       str = NULL;
     else
-      str = &str[pk_len];
+      str = (const char *) &um[1];
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
 					     &id);
     if (NULL == ego)
@@ -333,23 +323,19 @@ message_handler (void *cls,
       {
 	/* deletion of unknown ego? not allowed */
 	GNUNET_break (0);
-	GNUNET_CRYPTO_ecc_key_free (priv);
 	reschedule_connect (h);
 	return;
       }
       ego = GNUNET_new (struct GNUNET_IDENTITY_Ego);
-      ego->pk = priv;
-      ego->identifier = GNUNET_strdup (str);
+      ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+      *ego->pk = um->private_key;
+      ego->name = GNUNET_strdup (str);
       ego->id = id;
       GNUNET_assert (GNUNET_YES ==
 		     GNUNET_CONTAINER_multihashmap_put (h->egos,
 							&ego->id,
 							ego,
 							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-    }
-    else
-    {
-      GNUNET_CRYPTO_ecc_key_free (priv);
     }
     /* inform application about change */
     if (NULL != h->cb)
@@ -365,14 +351,14 @@ message_handler (void *cls,
 							   &ego->id,
 							   ego));
       GNUNET_CRYPTO_ecc_key_free (ego->pk);
-      GNUNET_free (ego->identifier);
+      GNUNET_free (ego->name);
       GNUNET_free (ego);
     }
     else
       {
       /* ego changed name */
-      GNUNET_free (ego->identifier);
-      ego->identifier = GNUNET_strdup (str);
+      GNUNET_free (ego->name);
+      ego->name = GNUNET_strdup (str);
     }    
     break;
   case GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT:
@@ -383,32 +369,24 @@ message_handler (void *cls,
       return;
     }
     sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) msg;
-    pk_len = ntohs (sdm->pk_len);
+    GNUNET_break (0 == ntohs (sdm->reserved));
     name_len = ntohs (sdm->name_len);
     str = (const char *) &sdm[1];
-    if ( (size != pk_len + name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) ||
+    if ( (size != name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage)) ||
 	 ( (0 != name_len) &&
-	   ('\0' != str[pk_len + name_len - 1]) ) )
+	   ('\0' != str[name_len - 1]) ) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    priv = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES); 
-    if (NULL == priv)
-    {
-      GNUNET_break (0);
-      reschedule_connect (h);
-      return;
-    }
-    GNUNET_CRYPTO_ecc_key_get_public (priv,
+    GNUNET_CRYPTO_ecc_key_get_public (&sdm->private_key,
 				      &pub);
-    GNUNET_CRYPTO_ecc_key_free (priv);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
     if (0 == name_len)
       str = NULL;
     else
-      str = &str[pk_len];
+      str = (const char *) &sdm[1];
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
 					     &id);
     if (NULL == ego)
@@ -425,7 +403,7 @@ message_handler (void *cls,
       op->cb (op->cls,
 	      ego,
 	      &ego->ctx,
-	      ego->identifier);
+	      ego->name);
     GNUNET_free (op);
     break;
   default:
@@ -588,9 +566,23 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_ego_get_key (struct GNUNET_IDENTITY_Ego *ego)
+GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego)
 {
   return ego->pk;
+}
+
+
+/**
+ * Get the identifier (public key) of an ego.
+ *
+ * @param ego identity handle with the private key
+ * @param pk set to ego's public key
+ */
+void
+GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
+				    struct GNUNET_CRYPTO_EccPublicKey *pk)
+{
+  GNUNET_assert (0);
 }
 
 
@@ -660,38 +652,30 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 		     GNUNET_IDENTITY_Continuation cont,
 		     void *cont_cls)
 {
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
   struct GNUNET_IDENTITY_Operation *op;
   struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
-  char *str;
-  uint16_t enc_len;
   size_t slen;
 
   slen = strlen (service_name) + 1;
-  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
-  enc_len = ntohs (enc->size);
-
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) - enc_len)
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
   {
     GNUNET_break (0);
-    GNUNET_free (enc);
     return NULL;
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
-		      enc_len + slen);  
+		      slen);  
   op->h = id;
   op->cont = cont;
   op->cls = cont_cls;
   sdm = (struct GNUNET_IDENTITY_SetDefaultMessage *) &op[1];
   sdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
   sdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
-			    slen + enc_len);
+			    slen);
   sdm->name_len = htons (slen);
-  sdm->pk_len = htons (enc_len);
-  str = (char *) &sdm[1];
-  memcpy (str, enc, enc_len);
-  memcpy (&str[enc_len], service_name, slen);
+  sdm->reserved = htons (0);
+  sdm->private_key = *ego->pk;
+  memcpy (&sdm[1], service_name, slen);
   op->msg = &sdm->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
 				    id->op_tail,
@@ -703,61 +687,55 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 
 
 /** 
- * Create a new identity with the given identifier.
+ * Create a new identity with the given name.
  *
  * @param id identity service to use
- * @param identifier desired identifier
+ * @param name desired name
  * @param cont function to call with the result (will only be called once)
  * @param cont_cls closure for cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
-			const char *identifier,
+			const char *name,
 			GNUNET_IDENTITY_Continuation cont,
 			void *cont_cls)
 {
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
   struct GNUNET_IDENTITY_Operation *op;
   struct GNUNET_IDENTITY_CreateRequestMessage *crm;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  char *str;
-  uint16_t enc_len;
   size_t slen;
 
-  slen = strlen (identifier) + 1;
+  slen = strlen (name) + 1;
   pk = GNUNET_CRYPTO_ecc_key_create ();
-  enc = GNUNET_CRYPTO_ecc_encode_key (pk);
-  GNUNET_CRYPTO_ecc_key_free (pk);
-  enc_len = ntohs (enc->size);
 
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) - enc_len)
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_CreateRequestMessage))
   {
     GNUNET_break (0);
-    GNUNET_free (enc);
+    GNUNET_CRYPTO_ecc_key_free (pk);
     return NULL;
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
-		      enc_len + slen);  
+		      slen);  
   op->h = id;
   op->cont = cont;
   op->cls = cont_cls;
   crm = (struct GNUNET_IDENTITY_CreateRequestMessage *) &op[1];
   crm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_CREATE);
   crm->header.size = htons (sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
-			    slen + enc_len);
+			    slen);
   crm->name_len = htons (slen);
-  crm->pk_len = htons (enc_len);
-  str = (char *) &crm[1];
-  memcpy (str, enc, enc_len);
-  memcpy (&str[enc_len], identifier, slen);
+  crm->reserved = htons (0);
+  crm->private_key = *pk;
+  memcpy (&crm[1], name, slen);
   op->msg = &crm->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
 				    id->op_tail,
 				    op);
   if (NULL == id->th)
     transmit_next (id);
+  GNUNET_CRYPTO_ecc_key_free (pk);
   return op;
 }
 
@@ -766,16 +744,16 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
  * Renames an existing identity.
  *
  * @param id identity service to use
- * @param old_identifier old identifier
- * @param new_identifier desired new identifier
+ * @param old_name old name
+ * @param new_name desired new name
  * @param cb function to call with the result (will only be called once)
  * @param cb_cls closure for cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
-			const char *old_identifier,
-			const char *new_identifier,
+			const char *old_name,
+			const char *new_name,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
@@ -785,8 +763,8 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
   size_t slen_new;
   char *dst;
 
-  slen_old = strlen (old_identifier) + 1;
-  slen_new = strlen (new_identifier) + 1;
+  slen_old = strlen (old_name) + 1;
+  slen_new = strlen (new_name) + 1;
   if ( (slen_old >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
        (slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
        (slen_old + slen_new >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_RenameMessage)) )
@@ -807,8 +785,8 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
   grm->old_name_len = htons (slen_old);
   grm->new_name_len = htons (slen_new);
   dst = (char *) &grm[1];
-  memcpy (dst, old_identifier, slen_old);
-  memcpy (&dst[slen_old], new_identifier, slen_new);
+  memcpy (dst, old_name, slen_old);
+  memcpy (&dst[slen_old], new_name, slen_new);
   op->msg = &grm->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
 				    id->op_tail,
@@ -823,14 +801,14 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
  * Delete an existing identity.
  *
  * @param id identity service to use
- * @param identifier identifier of the identity to delete
+ * @param name name of the identity to delete
  * @param cb function to call with the result (will only be called once)
  * @param cb_cls closure for cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
 GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
-			const char *identifier,
+			const char *name,
 			GNUNET_IDENTITY_Continuation cb,
 			void *cb_cls)
 {
@@ -838,7 +816,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
   struct GNUNET_IDENTITY_DeleteMessage *gdm;
   size_t slen;
 
-  slen = strlen (identifier) + 1;
+  slen = strlen (name) + 1;
   if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_DeleteMessage))
   {
     GNUNET_break (0);
@@ -856,7 +834,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
 			    slen);
   gdm->name_len = htons (slen);
   gdm->reserved = htons (0);
-  memcpy (&gdm[1], identifier, slen);
+  memcpy (&gdm[1], name, slen);
   op->msg = &gdm->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
 				    id->op_tail,
@@ -929,7 +907,7 @@ free_ego (void *cls,
 	 &ego->ctx,
 	 NULL);
   GNUNET_CRYPTO_ecc_key_free (ego->pk);
-  GNUNET_free (ego->identifier);
+  GNUNET_free (ego->name);
   GNUNET_free (ego);
   return GNUNET_OK;
 }

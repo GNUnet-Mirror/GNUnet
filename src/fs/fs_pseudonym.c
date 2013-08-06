@@ -104,9 +104,8 @@ static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_head;
 static struct GNUNET_FS_pseudonym_DiscoveryHandle *disco_tail;
 
 /**
- * Pointer to indiate 'anonymous' pseudonym (global static, all
- * zeros).  We actually use pointer comparisson to detect the
- * "anonymous" pseudonym handle.
+ * Pointer to indiate 'anonymous' pseudonym (global static, 
+ * d=1, public key = G (generator).
  */
 static struct GNUNET_FS_PseudonymHandle anonymous;
 
@@ -1019,6 +1018,68 @@ GNUNET_FS_pseudonym_create_from_existing_file (const char *filename)
 struct GNUNET_FS_PseudonymHandle *
 GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ()
 {
+  static int once;
+  gcry_mpi_t d;
+  size_t size;
+  gcry_ctx_t ctx;
+  int rc;
+  gcry_mpi_t g_x;
+  gcry_mpi_t g_y;
+  gcry_mpi_point_t g;
+
+  if (once)
+    return &anonymous;
+  d = gcry_mpi_new (1);
+  gcry_mpi_set_ui (d, 1);
+  size = sizeof (anonymous.d);
+  GNUNET_assert (0 ==
+		 gcry_mpi_print (GCRYMPI_FMT_USG, anonymous.d, size, &size,
+				 d));
+  gcry_mpi_release (d);
+  adjust (anonymous.d, size, sizeof (anonymous.d));
+  
+  /* create basic ECC context */
+  if (0 != (rc = gcry_mpi_ec_new (&ctx, NULL, "NIST P-256")))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, 
+	      "gcry_mpi_ec_new", rc);
+    return NULL;
+  }  
+
+  g = gcry_mpi_ec_get_point ("g", ctx, 0);
+  g_x = gcry_mpi_new (256);
+  g_y = gcry_mpi_new (256);
+  gcry_mpi_ec_get_affine (g_x, g_y, g, ctx);
+  gcry_mpi_point_release (g);
+  gcry_ctx_release (ctx);
+
+  /* store g_x/g_y in public key */
+  size = sizeof (anonymous.public_key.q_x);  
+  if (0 !=
+      gcry_mpi_print (GCRYMPI_FMT_USG, anonymous.public_key.q_x, size, &size,
+		      g_x))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (g_x);
+    gcry_mpi_release (g_y);
+    return NULL;
+  }
+  adjust (anonymous.public_key.q_x, size, sizeof (anonymous.public_key.q_x));
+  gcry_mpi_release (g_x);
+
+  size = sizeof (anonymous.public_key.q_y);  
+  if (0 !=
+      gcry_mpi_print (GCRYMPI_FMT_USG, anonymous.public_key.q_y, size, &size,
+		      g_y))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_print", rc);
+    gcry_mpi_release (g_y);
+    return NULL;
+  }
+  adjust (anonymous.public_key.q_y, size, sizeof (anonymous.public_key.q_y));
+  gcry_mpi_release (g_y);
+
+  once = 1;
   return &anonymous;
 }
 
@@ -1122,21 +1183,13 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
   int rc;
 
   /* get private key 'd' from pseudonym */
-  if (&anonymous == ph)
+  size = sizeof (ph->d);
+  if (0 != (rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
+				&ph->d,
+				size, &size)))
   {
-    d = gcry_mpi_new (0);
-    gcry_mpi_set_ui (d, 0);
-  }
-  else
-  {
-    size = sizeof (ph->d);
-    if (0 != (rc = gcry_mpi_scan (&d, GCRYMPI_FMT_USG,
-				  &ph->d,
-				  size, &size)))
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-      return GNUNET_SYSERR;
-    }
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    return GNUNET_SYSERR;
   }
   /* get 'x' value from signing key */
   size = sizeof (struct GNUNET_HashCode);
@@ -1159,9 +1212,9 @@ GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
     return GNUNET_SYSERR;
   }
 
-  /* calculate dx = d + h mod n */
+  /* calculate dh = d * h mod n */
   dh = gcry_mpi_new (256);
-  gcry_mpi_addm (dh, d, h, n);  
+  gcry_mpi_mulm (dh, d, h, n);
   gcry_mpi_release (d);
   gcry_mpi_release (h);
   gcry_mpi_release (n);
@@ -1297,7 +1350,7 @@ get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_new", rc);  /* erroff gives more info */
       return NULL;
     }  
-    /* initialize 'ctx' with 'q' = 0 */
+    /* FIXME: initialize 'ctx' with 'q' = G */
     zero = gcry_mpi_new (0);
     gcry_mpi_set_ui (zero, 0);
     q = gcry_mpi_point_new (0);
@@ -1346,7 +1399,7 @@ get_context_from_pseudonym (struct GNUNET_FS_PseudonymIdentifier *pseudonym)
  * @param pseudonym the public key (dQ in ECDSA)
  * @param signing_key input to derive 'h' (see section 2.4 of #2564)
  * @param verification_key resulting public key to verify the signature
- *        created from the '(d+h)' of 'pseudonym' and the 'signing_key';
+ *        created from the '(d*h)' of 'pseudonym' and the 'signing_key';
  *        the value stored here can then be given to GNUNET_FS_pseudonym_verify.
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
@@ -1359,12 +1412,12 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
   size_t size;
   int rc;
   gcry_ctx_t ctx;
-  gcry_mpi_point_t g;
   gcry_mpi_point_t q;
-  gcry_mpi_point_t hg;
   gcry_mpi_point_t v;
   gcry_mpi_t v_x;
   gcry_mpi_t v_y;
+  gcry_mpi_t h_mod_n;
+  gcry_mpi_t n; /* n from P-256 */
 
   /* get 'h' value from signing key */
   size = sizeof (struct GNUNET_HashCode);
@@ -1381,22 +1434,26 @@ GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifie
     gcry_mpi_release (h);
     return GNUNET_SYSERR;
   }
-  /* get G */  
-  g = gcry_mpi_ec_get_point ("g", ctx, 0);
-
-  /* then call the 'multiply' function, to compute the product hG */
-  hg = gcry_mpi_point_new (0);
-  gcry_mpi_ec_mul (hg, h, g, ctx);
-  gcry_mpi_point_release (g);
+  /* initialize 'n' from P-256; hex copied from libgcrypt code */
+  if (0 != (rc = gcry_mpi_scan (&n, GCRYMPI_FMT_HEX,
+				"0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551", 0, NULL)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+  gcry_mpi_release (h);
+    return GNUNET_SYSERR;
+  }
+  h_mod_n = gcry_mpi_new (0);
+  gcry_mpi_mod (h_mod_n, h, n);
   gcry_mpi_release (h);
 
   /* get Q = dG from 'pseudonym' */
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  /* calculate V = Q + hG = dG + hG = (d + h)G*/
+  /* calculate V = hQ = hdG */
   v = gcry_mpi_point_new (0);
-  gcry_mpi_ec_add (v, q, hg, ctx);
-  gcry_mpi_point_release (hg);
   
+  gcry_mpi_ec_mul (v, h_mod_n, q, ctx);
+  gcry_mpi_release (h_mod_n);
+
   /* store 'v' point in "verification_key" */
   v_x = gcry_mpi_new (256);
   v_y = gcry_mpi_new (256);
@@ -1566,11 +1623,8 @@ void
 GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
 				    struct GNUNET_FS_PseudonymIdentifier *pseudonym)
 {
-  if (&anonymous == ph)
-    memset (pseudonym, 0, sizeof (struct GNUNET_FS_PseudonymIdentifier));
-  else
-    memcpy (pseudonym, &ph->public_key,
-	    sizeof (struct GNUNET_FS_PseudonymIdentifier));
+  memcpy (pseudonym, &ph->public_key,
+	  sizeof (struct GNUNET_FS_PseudonymIdentifier));
 }
 
 

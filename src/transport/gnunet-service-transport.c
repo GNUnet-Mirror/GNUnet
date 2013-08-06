@@ -70,7 +70,7 @@ static struct GNUNET_SERVER_Handle *GST_server;
 /**
  * Our public key.
  */
-struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded GST_my_public_key;
+struct GNUNET_CRYPTO_EccPublicKey GST_my_public_key;
 
 /**
  * Our private key.

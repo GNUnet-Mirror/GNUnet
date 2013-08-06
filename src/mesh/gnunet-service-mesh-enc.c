@@ -584,12 +584,12 @@ struct MeshTunnel2
   /**
    * Local peer ephemeral public key
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *my_eph;
+  struct GNUNET_CRYPTO_EccPublicKey *my_eph;
 
   /**
    * Remote peer's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *peers_eph;
+  struct GNUNET_CRYPTO_EccPublicKey *peers_eph;
 
   /**
    * Encryption ("our") key.
@@ -837,7 +837,7 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 /**
  * Own public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * All ports clients of this peer have opened.

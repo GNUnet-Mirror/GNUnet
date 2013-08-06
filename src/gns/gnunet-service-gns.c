@@ -382,7 +382,7 @@ publish_zone_dht_start (void *cls,
  */
 static void
 put_gns_record (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+                const struct GNUNET_CRYPTO_EccPublicKey *key,
                 struct GNUNET_TIME_Absolute expiration,
                 const char *name,
                 unsigned int rd_count,
@@ -486,7 +486,7 @@ put_gns_record (void *cls,
   nrb_data += namelen;
   rd_payload_length += sizeof(struct GNSNameRecordBlock) + namelen;
   GNUNET_CRYPTO_short_hash (key,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 			    &zhash);
   if (-1 == GNUNET_NAMESTORE_records_serialize (rd_count,
                                                 rd,
@@ -637,7 +637,7 @@ send_shorten_response (void* cls, const char* name)
  */
 static void
 process_shorten_in_private_zone_lookup (void *cls,
-					const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+					const struct GNUNET_CRYPTO_EccPublicKey *key,
 					struct GNUNET_TIME_Absolute expiration,
 					const char *name,
 					unsigned int rd_count,
@@ -693,7 +693,7 @@ process_shorten_in_private_zone_lookup (void *cls,
  */
 static void
 process_shorten_in_root_zone_lookup (void *cls,
-				     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+				     const struct GNUNET_CRYPTO_EccPublicKey *key,
 				     struct GNUNET_TIME_Absolute expiration,
 				     const char *name,
 				     unsigned int rd_count,
@@ -749,7 +749,7 @@ process_shorten_in_root_zone_lookup (void *cls,
  */
 static void
 process_private_in_root_zone_lookup (void *cls,
-				     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+				     const struct GNUNET_CRYPTO_EccPublicKey *key,
 				     struct GNUNET_TIME_Absolute expiration,
 				     const char *name,
 				     unsigned int rd_count,
@@ -1075,9 +1075,7 @@ handle_lookup (void *cls,
   char* nameptr = name;
   const char *utf_in;
   int only_cached;
-  struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkey;
-  char* tmp_pkey;
+  const struct GNUNET_CRYPTO_EccPrivateKey *key;
   uint16_t msg_size;
   const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
   
@@ -1094,24 +1092,20 @@ handle_lookup (void *cls,
   GNUNET_SERVER_notification_context_add (nc, client);
   if (GNUNET_YES == ntohl (sh_msg->have_key))
   {
-    pkey = (struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *) &sh_msg[1];
-    tmp_pkey = (char*) &sh_msg[1];
-    key = GNUNET_CRYPTO_ecc_decode_key (tmp_pkey, ntohs (pkey->size),
-					GNUNET_NO);
-    GNUNET_STRINGS_utf8_tolower (&tmp_pkey[ntohs (pkey->size)], &nameptr);
+    key = &sh_msg->shorten_key;
   }
   else
   {
     key = NULL;
-    utf_in = (const char *) &sh_msg[1];
-    if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientLookupMessage) - 1])
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }  
-    GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
   }
+  utf_in = (const char *) &sh_msg[1];
+  if ('\0' != utf_in[msg_size - sizeof (struct GNUNET_GNS_ClientLookupMessage) - 1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }  
+  GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
   
   namelen = strlen (name) + 1;
   clh = GNUNET_malloc (sizeof (struct ClientLookupHandle));
@@ -1121,8 +1115,11 @@ handle_lookup (void *cls,
   strcpy (clh->name, name);
   clh->request_id = sh_msg->id;
   clh->type = ntohl (sh_msg->type);
-  clh->shorten_key = key;
-
+  if (NULL != key)
+  {
+    clh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    *clh->shorten_key = *key;
+  }
   only_cached = ntohl (sh_msg->only_cached);
   
   if (strlen (name) > GNUNET_DNSPARSER_MAX_NAME_LENGTH) {
@@ -1153,7 +1150,7 @@ handle_lookup (void *cls,
     return;
   }
   
-  if (1 == ntohl (sh_msg->use_default_zone))
+  if (GNUNET_NO == ntohl (sh_msg->have_zone))
     clh->zone = zone_hash;  /* Default zone */
   else
     clh->zone = sh_msg->zone;
@@ -1196,7 +1193,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {&handle_get_authority, NULL, GNUNET_MESSAGE_TYPE_GNS_GET_AUTH, 0}
   };
   char* keyfile;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   unsigned long long max_parallel_bg_queries = 0;
   int ignore_pending = GNUNET_NO;
 
@@ -1217,9 +1214,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   zone_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_CRYPTO_ecc_key_get_public (zone_key, &pkey);
-  GNUNET_CRYPTO_short_hash(&pkey,
-                     sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-                     &zone_hash);
+  GNUNET_CRYPTO_short_hash (&pkey,
+			    sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+			    &zone_hash);
   GNUNET_free(keyfile);
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)

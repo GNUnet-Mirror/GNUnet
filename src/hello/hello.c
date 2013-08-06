@@ -59,7 +59,7 @@ struct GNUNET_HELLO_Message
   /**
    * The public key of the peer.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded publicKey;
+  struct GNUNET_CRYPTO_EccPublicKey publicKey;
 
 };
 GNUNET_NETWORK_STRUCT_END
@@ -216,8 +216,7 @@ get_hello_address_size (const char *buf, size_t max, uint16_t * ralen)
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                     *publicKey,
+GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKey *publicKey,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
                      void *addrgen_cls,
                      int friend_only)
@@ -248,7 +247,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
   hello->friend_only = htonl (friend_only);
 
   memcpy (&hello->publicKey, publicKey,
-          sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+          sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   memcpy (&hello[1], buffer, used);
   return hello;
 }
@@ -296,7 +295,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   wpos = 0;
   woff = (ret != NULL) ? (char *) &ret[1] : NULL;
   GNUNET_CRYPTO_hash (&msg->publicKey,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                       &address.peer.hashPubKey);
   while (insize > 0)
   {
@@ -531,7 +530,7 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
  */
 int
 GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                      struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *publicKey)
+                      struct GNUNET_CRYPTO_EccPublicKey *publicKey)
 {
   uint16_t ret = ntohs (hello->header.size);
 
@@ -560,7 +559,7 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&hello->publicKey,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                       &peer->hashPubKey);
   return GNUNET_OK;
 }
@@ -672,7 +671,7 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
 
   if (0 !=
       memcmp (&h1->publicKey, &h2->publicKey,
-              sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+              sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
     return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -1047,7 +1046,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
  */
 int
 GNUNET_HELLO_parse_uri (const char *uri,
-                        struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pubkey,
+                        struct GNUNET_CRYPTO_EccPublicKey *pubkey,
                         struct GNUNET_HELLO_Message **hello,
                         GNUNET_HELLO_TransportPluginsFind plugins_find)
 {

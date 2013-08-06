@@ -177,23 +177,35 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct UBlock *ub_dst;
 
   pkc->ksk_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((pkc->i == pkc->ksk_uri->data.ksk.keywordCount) || (NULL == pkc->dsh))
+  if ( (pkc->i == pkc->ksk_uri->data.ksk.keywordCount) ||
+       (NULL == pkc->dsh) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "KSK PUT operation complete\n");
     pkc->cont (pkc->cont_cls, pkc->ksk_uri, NULL);
     GNUNET_FS_publish_ksk_cancel (pkc);
     return;
   }
+  keyword = pkc->ksk_uri->data.ksk.keywords[pkc->i++];
+  pkc->sks_task = GNUNET_FS_publish_sks (pkc->h,
+					 anonymous,
+					 keyword, NULL,
+					 pkc->meta,
+					 pkc->uri,
+					 &pkc->bo,
+					 pkc->options,
+					 &publish_ksk_cont, pkc);
+					 
+
   /* derive signing seed from plaintext */
   GNUNET_CRYPTO_hash (&pkc->ub[1],
 		      1 + pkc->slen + pkc->mdsize,
 		      &seed);
-  keyword = pkc->ksk_uri->data.ksk.keywords[pkc->i++];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing under keyword `%s'\n",
               &keyword[1]);  
   /* first character of keyword indicates if it is
    * mandatory or not -- ignore for hashing */
   GNUNET_CRYPTO_hash (&keyword[1], strlen (&keyword[1]), &key);
+
   GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
   ub_dst = pkc->cpy;
   GNUNET_CRYPTO_aes_encrypt (&pkc->ub[1], 
@@ -202,8 +214,9 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                              &ub_dst[1]);
   ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
   GNUNET_CRYPTO_hash (&key, sizeof (key), &signing_key);
-  ub_dst->purpose.size = htonl (1 + pkc->slen + pkc->mdsize + sizeof (struct UBlock)
-				  - sizeof (struct GNUNET_FS_PseudonymSignature));
+  ub_dst->purpose.size = htonl (1 + pkc->slen + pkc->mdsize + 
+				sizeof (struct UBlock)
+				- sizeof (struct GNUNET_FS_PseudonymSignature));
   ub_dst->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
   
   GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);

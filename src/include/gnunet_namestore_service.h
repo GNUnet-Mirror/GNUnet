@@ -247,7 +247,7 @@ struct GNUNET_NAMESTORE_RecordData
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+			     const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 			     const char *name,
 			     struct GNUNET_TIME_Absolute freshness,
 			     unsigned int rd_count,
@@ -270,7 +270,7 @@ GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
  * @return GNUNET_OK if the signature is valid
  */
 int
-GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *public_key,
+GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *public_key,
                                    const struct GNUNET_TIME_Absolute freshness,
                                    const char *name,
                                    unsigned int rd_count,
@@ -319,7 +319,7 @@ GNUNET_NAMESTORE_record_put_by_authority (struct GNUNET_NAMESTORE_Handle *h,
  *        because the user queried for a particular record type only)
  */
 typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
-						  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+						  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 						  struct GNUNET_TIME_Absolute freshness,			    
 						  const char *name,
 						  unsigned int rd_count,
@@ -480,7 +480,7 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  * @param signature signature of the record block
  */
 typedef void (*GNUNET_NAMESTORE_RecordMonitor)(void *cls,
-					       const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+					       const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 					       struct GNUNET_TIME_Absolute freshness,			    
 					       const char *name,
 					       unsigned int rd_len,

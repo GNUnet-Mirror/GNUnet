@@ -381,7 +381,7 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 			    "# regex accepting block bytes found",
                             size, GNUNET_NO);
   GNUNET_CRYPTO_hash (&block->public_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+		      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 		      &pid.hashPubKey);
   info->callback (info->callback_cls,
                   &pid,

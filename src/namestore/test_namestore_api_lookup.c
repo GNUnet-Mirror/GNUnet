@@ -45,7 +45,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_CRYPTO_EccSignature *s_signature;
 
@@ -105,7 +105,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 name_lookup_proc (void *cls,
-		  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		  struct GNUNET_TIME_Absolute expire,
 		  const char *n,
 		  unsigned int rd_count,
@@ -119,7 +119,7 @@ name_lookup_proc (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
     if (0 != memcmp (zone_key, &pubkey, 
-		     sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+		     sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
     {
       GNUNET_break (0);
     }
@@ -243,7 +243,7 @@ run (void *cls,
     
     /* create random zone hash */
     GNUNET_CRYPTO_short_hash (&pubkey, 
-			      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), 
+			      sizeof (struct GNUNET_CRYPTO_EccPublicKey), 
 			      &s_zone);
     nsh = GNUNET_NAMESTORE_connect (cfg);
     GNUNET_break (NULL != nsh);

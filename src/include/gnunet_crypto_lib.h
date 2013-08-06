@@ -43,6 +43,14 @@ extern "C"
 #include "gnunet_common.h"
 #include "gnunet_scheduler_lib.h"
 
+
+/**
+ * Maximum length of an ECC signature.
+ * Note: round up to multiple of 8 minus 2 for alignment.
+ */
+#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 126
+
+
 /**
  * Desired quality level for cryptographic operations.
  */
@@ -77,24 +85,6 @@ enum GNUNET_CRYPTO_Quality
 #define GNUNET_CRYPTO_HASH_LENGTH (512/8)
 
 /**
- * Maximum length of an ECC signature.
- * Note: round up to multiple of 8 minus 2 for alignment.
- */
-#define GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH 126
-
-/**
- * Maximum length of the public key (q-point, Q = dP) when encoded.
- */
-#define GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH 76 
-
-
-/**
- * The private information of an ECC private key.
- */
-struct GNUNET_CRYPTO_EccPrivateKey;
-
-
-/**
  * @brief 0-terminated ASCII encoding of a struct GNUNET_HashCode.
  */
 struct GNUNET_CRYPTO_HashAsciiEncoded
@@ -110,7 +100,6 @@ struct GNUNET_CRYPTO_ShortHashAsciiEncoded
 {
   unsigned char short_encoding[53];
 };
-
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -146,54 +135,50 @@ struct GNUNET_CRYPTO_EccSignaturePurpose
  */
 struct GNUNET_CRYPTO_EccSignature
 {
-  /**
-   * Overall size of the signature data.
-   */
-  uint16_t size GNUNET_PACKED;
 
   /**
-   * S-expression, padded with zeros.
+   * R value.
    */
-  char sexpr[GNUNET_CRYPTO_ECC_SIGNATURE_DATA_ENCODING_LENGTH];
+  unsigned char r[256 / 8];
+
+  /**
+   * S value.
+   */
+  unsigned char s[256 / 8];
+
 };
 
 
 /**
  * Public ECC key (always for NIST P-521) encoded in a format suitable
- * for network transmission as created using 'gcry_sexp_sprint'.
+ * for network transmission.
  */
-struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded 
+struct GNUNET_CRYPTO_EccPublicKey 
 {
   /**
-   * Size of the encoding, in network byte order.
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
    */
-  uint16_t size GNUNET_PACKED;
+  unsigned char q_x[256 / 8];
 
   /**
-   * Actual length of the q-point binary encoding.
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
    */
-  uint16_t len GNUNET_PACKED;
+  unsigned char q_y[256 / 8];
 
-  /**
-   * 0-padded q-point in binary encoding (GCRYPT_MPI_FMT_USG).
-   */
-  unsigned char key[GNUNET_CRYPTO_ECC_MAX_PUBLIC_KEY_LENGTH];
 };
 
 
 /**
- * Private ECC key encoded for transmission (with length prefix).
+ * Private ECC key encoded for transmission.
  */
-struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded
+struct GNUNET_CRYPTO_EccPrivateKey
 {
   /**
-   * Overall size of the private key in network byte order.
+   * d is a value mod n, where n has at most 256 bits.
    */
-  uint16_t size;
-
-  /* followd by S-expression, opaque to applications */
-
-  /* FIXME: consider defining padding to make this a fixed-size struct */
+  unsigned char d[256 / 8];
 
 };
 
@@ -828,10 +813,10 @@ typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
 /**
  * Free memory occupied by ECC key
  *
- * @param privatekey pointer to the memory to free
+ * @param priv pointer to the memory to free
  */
 void
-GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *privatekey);
+GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *priv);
 
 
 /**
@@ -842,7 +827,7 @@ GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *privatekey);
  */
 void
 GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-                                  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+                                  struct GNUNET_CRYPTO_EccPublicKey *pub);
 
 
 /**
@@ -852,7 +837,7 @@ GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv
  * @return string representing  'pub'
  */
 char *
-GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
+GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKey *pub);
 
 
 /**
@@ -866,36 +851,7 @@ GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKeyB
 int
 GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc, 
 					  size_t enclen,
-					  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub);
-
-
-/**
- * Encode the private key in a format suitable for
- * storing it into a file.
- *
- * @param key key to encode
- * @return encoding of the private key.
- *    The first 4 bytes give the size of the array, as usual.
- */
-struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *
-GNUNET_CRYPTO_ecc_encode_key (const struct GNUNET_CRYPTO_EccPrivateKey *key);
-
-
-/**
- * Decode the private key from the file-format back
- * to the "normal", internal format.
- *
- * @param buf the buffer where the private key data is stored
- * @param len the length of the data in 'buffer'
- * @param validate GNUNET_YES to validate that the key is well-formed,
- *                 GNUNET_NO if the key comes from a totally trusted source 
- *                 and validation is considered too expensive
- * @return NULL on error
- */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_decode_key (const char *buf, 
-			      size_t len,
-			      int validate);
+					  struct GNUNET_CRYPTO_EccPublicKey *pub);
 
 
 /**
@@ -972,20 +928,20 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-                        const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pub,
+                        const struct GNUNET_CRYPTO_EccPublicKey *pub,
                         struct GNUNET_HashCode *key_material);
 
 
 /**
  * Sign a given block.
  *
- * @param key private key to use for the signing
+ * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
  * @param sig where to write the signature
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
                         const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
                         struct GNUNET_CRYPTO_EccSignature *sig);
 
@@ -996,7 +952,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *key,
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
  * @param sig signature that is being validated
- * @param publicKey public key of the signer
+ * @param pub public key of the signer
  * @returns GNUNET_OK if ok, GNUNET_SYSERR if invalid
  */
 int
@@ -1004,8 +960,36 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
                           const struct GNUNET_CRYPTO_EccSignaturePurpose
                           *validate,
                           const struct GNUNET_CRYPTO_EccSignature *sig,
-                          const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded
-                          *publicKey);
+                          const struct GNUNET_CRYPTO_EccPublicKey *pub);
+
+
+/**
+ * Derive a private key from a given private key and a label.
+ * Essentially calculates a private key 'h = H(l,P) * d mod n'
+ * where n is the size of the ECC group and P is the public
+ * key associated with the private key 'd'.
+ *
+ * @param priv original private key
+ * @param label label to use for key deriviation
+ * @return derived private key
+ */
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+			      const char *label);
+
+
+/**
+ * Derive a public key from a given public key and a label.
+ * Essentially calculates a public key 'V = H(l,P) * P'.
+ *
+ * @param pub original public key
+ * @param label label to use for key deriviation
+ * @param result where to write the derived public key
+ */
+void
+GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pub,
+				     const char *label,
+				     struct GNUNET_CRYPTO_EccPublicKey *result);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

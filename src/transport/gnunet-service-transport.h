@@ -55,7 +55,7 @@ extern struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 /**
  * Our public key.
  */
-extern struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded GST_my_public_key;
+extern struct GNUNET_CRYPTO_EccPublicKey GST_my_public_key;
 
 /**
  * Our private key.

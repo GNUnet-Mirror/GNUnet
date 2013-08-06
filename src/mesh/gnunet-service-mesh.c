@@ -722,7 +722,7 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 /**
  * Own public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * Tunnel ID for the next created tunnel (global tunnel number).

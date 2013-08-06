@@ -205,7 +205,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key = NULL;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
   struct GNUNET_CRYPTO_ShortHashCode user_zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
@@ -233,7 +233,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
     GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
     GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
 			      &user_zone);
     zone = &user_zone;
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
@@ -257,7 +257,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_ecc_key_get_public (shorten_key, &pkey);
     shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_CRYPTO_short_hash(&pkey,
-			     sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			     sizeof(struct GNUNET_CRYPTO_EccPublicKey),
 			     shorten_zone);
     GNUNET_CRYPTO_short_hash_to_enc (shorten_zone, &zonename);
     if (! raw)
@@ -277,10 +277,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
     GNUNET_CRYPTO_ecc_key_get_public (private_key, &pkey);
-    private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash(&pkey,
-			     sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-			     private_zone);
+    private_zone = GNUNET_new (struct GNUNET_CRYPTO_ShortHashCode);
+    GNUNET_CRYPTO_short_hash (&pkey,
+			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+			      private_zone);
     GNUNET_CRYPTO_short_hash_to_enc (private_zone, &zonename);
     if (! raw)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

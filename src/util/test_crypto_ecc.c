@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2002, 2003, 2004, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -44,7 +44,7 @@ testSignVerify ()
 {
   struct GNUNET_CRYPTO_EccSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
@@ -93,7 +93,7 @@ testSignPerformance ()
 {
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EccSignature sig;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
@@ -124,8 +124,8 @@ testSignPerformance ()
 static int
 testCreateFromFile ()
 {
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p1;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p2;
+  struct GNUNET_CRYPTO_EccPublicKey p1;
+  struct GNUNET_CRYPTO_EccPublicKey p2;
 
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
@@ -150,8 +150,8 @@ test_ecdh ()
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv1;
   struct GNUNET_CRYPTO_EccPrivateKey *priv2;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub1;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub2;
+  struct GNUNET_CRYPTO_EccPublicKey pub1;
+  struct GNUNET_CRYPTO_EccPublicKey pub2;
   struct GNUNET_HashCode ecdh1;
   struct GNUNET_HashCode ecdh2;
 

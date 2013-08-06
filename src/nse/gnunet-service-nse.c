@@ -190,7 +190,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Public key of the originator.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
 
   /**
    * Proof of work, causing leading zeros when hashed with pkey.
@@ -289,7 +289,7 @@ static struct GNUNET_TIME_Absolute current_timestamp;
 /**
  * The public key of this peer.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * The private key of this peer.
@@ -844,16 +844,16 @@ count_leading_zeroes (const struct GNUNET_HashCode * hash)
  * @return GNUNET_YES if valid, GNUNET_NO if not
  */
 static int
-check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *pkey,
+check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicKey *pkey,
                      uint64_t val)
 {
-  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
            sizeof (val)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
   memcpy (&buf[sizeof (val)], pkey,
-          sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+          sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           nse_work_required) ? GNUNET_YES : GNUNET_NO;
@@ -892,14 +892,14 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #define ROUND_SIZE 10
   uint64_t counter;
-  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
            sizeof (uint64_t)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
   unsigned int i;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
   memcpy (&buf[sizeof (uint64_t)], &my_public_key,
-          sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+          sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   i = 0;
   counter = my_proof;
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
@@ -1052,7 +1052,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
     struct GNUNET_PeerIdentity os;
 
     GNUNET_CRYPTO_hash (&incoming_flood->pkey,
-                        sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                         &os.hashPubKey);
     GNUNET_snprintf (origin, sizeof (origin), "%s", GNUNET_i2s (&os));
     GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));

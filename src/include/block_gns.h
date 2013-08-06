@@ -39,14 +39,16 @@ struct GNSNameRecordBlock
   /**
    * The public key of the authority
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKey public_key;
 
   /**
    * GNUNET_RSA_Signature using RSA-key generated from the records.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
 
-  /* number of records that follow */
+  /**
+   * number of records that follow 
+   */
   uint32_t rd_count GNUNET_PACKED;
 
   /* 0-terminated name here */

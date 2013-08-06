@@ -832,35 +832,20 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   struct GNUNET_GNS_LookupRequest *lr;
   size_t msize;
   struct PendingMessage *pending;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkey_enc;
-  size_t key_len;
-  char* pkey_tmp;
 
   if (NULL == name)
   {
     GNUNET_break (0);
     return NULL;
   } 
-  if (NULL != shorten_key)
-  {
-    pkey_enc = GNUNET_CRYPTO_ecc_encode_key (shorten_key);
-    GNUNET_assert (pkey_enc != NULL);
-    key_len = ntohs (pkey_enc->size);
-  }
-  else
-  {
-    pkey_enc = NULL;
-    key_len = 0;
-  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Trying to lookup `%s' in GNS\n", 
 	      name);
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)
-    + key_len + strlen (name) + 1;
+    + strlen (name) + 1;
   if (msize > UINT16_MAX)
   {
     GNUNET_break (0);
-    GNUNET_free (pkey_enc);
     return NULL;
   }
   lr = GNUNET_malloc (sizeof (struct GNUNET_GNS_LookupRequest) +
@@ -882,26 +867,16 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   lookup_msg->only_cached = htonl (only_cached);
   if (NULL != zone)
   {
-    lookup_msg->use_default_zone = htonl (GNUNET_NO);
-    memcpy (&lookup_msg->zone, zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    lookup_msg->have_zone = htonl (GNUNET_YES);
+    lookup_msg->zone = *zone;
   }
-  else
-  {
-    lookup_msg->use_default_zone = htonl (GNUNET_YES);
-    memset (&lookup_msg->zone, 0, sizeof(struct GNUNET_CRYPTO_ShortHashCode));
-  }  
   lookup_msg->type = htonl (type);
-  pkey_tmp = (char *) &lookup_msg[1];  
-  if (pkey_enc != NULL)
+  if (NULL != shorten_key)
   {
     lookup_msg->have_key = htonl (GNUNET_YES);
-    memcpy (pkey_tmp, pkey_enc, key_len);
+    lookup_msg->shorten_key = *shorten_key;
   }
-  else
-    lookup_msg->have_key = htonl (GNUNET_NO);
-  GNUNET_free_non_null (pkey_enc);
-  memcpy (&pkey_tmp[key_len], name, strlen (name) + 1);
-
+  memcpy (&lookup_msg[1], name, strlen (name) + 1);
   GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head,
 				    handle->pending_tail,
 				    pending);

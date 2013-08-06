@@ -135,7 +135,7 @@ typedef int (*GNUNET_CHAT_MemberListCallback) (void *cls,
                                                GNUNET_CONTAINER_MetaData *
                                                member_info,
                                                const struct
-                                               GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                                               GNUNET_CRYPTO_RsaPublicKey
                                                * member_id,
                                                enum GNUNET_CHAT_MsgOptions
                                                options);
@@ -209,7 +209,7 @@ GNUNET_CHAT_join_room (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_CHAT_send_message (struct GNUNET_CHAT_Room *room, const char *message,
                           enum GNUNET_CHAT_MsgOptions options,
-                          const struct GNUNET_CRYPTO_RsaPublicKeyBinaryEncoded
+                          const struct GNUNET_CRYPTO_RsaPublicKey
                           *receiver, uint32_t * sequence_number);
 
 

@@ -38,7 +38,7 @@
  */
 struct Issuer
 {
-	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+	struct GNUNET_CRYPTO_EccPublicKey pubkey;
 };
 
 
@@ -410,7 +410,7 @@ GED_experiments_start ()
 	char *pubkey;
 	char *pos;
 	struct GNUNET_PeerIdentity issuer_ID;
-	struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+	struct GNUNET_CRYPTO_EccPublicKey pub;
 	struct GNUNET_HashCode hash;
 
 	/* Load valid issuer */

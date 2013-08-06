@@ -4,7 +4,7 @@
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -53,7 +53,7 @@ extern "C"
  *        because the user queried for a particular record type only)
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-						 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+						 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 						 struct GNUNET_TIME_Absolute expire,
 						 const char *name,
 						 unsigned int rd_len,
@@ -88,7 +88,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return GNUNET_OK on success, else GNUNET_SYSERR
    */
   int (*put_records) (void *cls, 
-		      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		      struct GNUNET_TIME_Absolute expire,
 		      const char *name,
 		      unsigned int rd_len,

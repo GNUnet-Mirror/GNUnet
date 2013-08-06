@@ -229,7 +229,7 @@ run_httpd_now ()
 
 static void
 iterate_cb (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+                const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
                 struct GNUNET_TIME_Absolute expire,
                 const char *name,
                 unsigned int rd_len,
@@ -506,7 +506,7 @@ put_continuation (void *cls,
  */
 static void 
 zone_to_name_cb (void *cls,
-		 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		 struct GNUNET_TIME_Absolute expire,			    
 		 const char *name,
 		 unsigned int rd_count,
@@ -566,7 +566,7 @@ zone_to_name_cb (void *cls,
  */
 static void 
 lookup_result_processor (void *cls,
-			 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+			 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 			 struct GNUNET_TIME_Absolute expire,			    
 			 const char *name,
 			 unsigned int rd_count,
@@ -883,7 +883,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char *keyfile;
   unsigned long long port;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,

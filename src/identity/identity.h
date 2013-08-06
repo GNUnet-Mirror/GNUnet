@@ -74,11 +74,14 @@ struct GNUNET_IDENTITY_UpdateMessage
   uint16_t name_len GNUNET_PACKED;
 
   /**
-   * Number of bytes of private key data that follow, in NBO.
+   * Usually GNUNET_NO, GNUNET_YES to signal end of list.
    */
-  uint16_t pk_len GNUNET_PACKED;
+  uint16_t end_of_list GNUNET_PACKED;
 
-  /* followed by private key */
+  /**
+   * The private key
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey private_key;
 
   /* followed by 0-terminated identity name */
 
@@ -130,11 +133,14 @@ struct GNUNET_IDENTITY_SetDefaultMessage
   uint16_t name_len GNUNET_PACKED;
 
   /**
-   * Number of bytes of private key data that follow, in NBO.
+   * Always zero.
    */
-  uint16_t pk_len GNUNET_PACKED;
+  uint16_t reserved GNUNET_PACKED;
 
-  /* followed by private key */
+  /**
+   * The private key 
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey private_key;
 
   /* followed by 0-terminated service name */
 
@@ -158,11 +164,14 @@ struct GNUNET_IDENTITY_CreateRequestMessage
   uint16_t name_len GNUNET_PACKED;
 
   /**
-   * Number of bytes of private key data that follow, in NBO.
+   * Always zero.
    */
-  uint16_t pk_len GNUNET_PACKED;
+  uint16_t reserved GNUNET_PACKED;
 
-  /* followed by private key */
+  /**
+   * The private key 
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey private_key;
 
   /* followed by 0-terminated identity name */
 

@@ -270,7 +270,7 @@ create_pkey_cont (void* cls, int32_t success, const char* emsg)
  */
 static void
 process_pseu_lookup_ns (void* cls,
-			const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+			const struct GNUNET_CRYPTO_EccPublicKey *key,
 			struct GNUNET_TIME_Absolute expiration,
 			const char *name, unsigned int rd_count,
 			const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -464,12 +464,12 @@ process_auth_discovery_dht_result (void* cls,
  */
 static void
 process_auth_discovery_ns_result (void* cls,
-                      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
-                      struct GNUNET_TIME_Absolute expiration,
-                      const char *name,
-                      unsigned int rd_count,
-                      const struct GNUNET_NAMESTORE_RecordData *rd,
-                      const struct GNUNET_CRYPTO_EccSignature *signature)
+				  const struct GNUNET_CRYPTO_EccPublicKey *key,
+				  struct GNUNET_TIME_Absolute expiration,
+				  const char *name,
+				  unsigned int rd_count,
+				  const struct GNUNET_NAMESTORE_RecordData *rd,
+				  const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct GetPseuAuthorityHandle* gph = cls;
   struct GNUNET_HashCode lookup_key;
@@ -537,7 +537,7 @@ process_auth_discovery_ns_result (void* cls,
  */
 static void
 process_zone_to_name_discover (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+                 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
                  struct GNUNET_TIME_Absolute expire,
                  const char *name,
                  unsigned int rd_len,
@@ -575,12 +575,11 @@ shorten_authority_chain (struct GetPseuAuthorityHandle *gph)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS_AUTO_PSEU: New authority %s discovered\n",
               gph->auth->name);
-
   gph->namestore_task = GNUNET_NAMESTORE_zone_to_name (namestore_handle,
-                                 &gph->our_zone,
-                                 &gph->auth->zone,
-                                 &process_zone_to_name_discover,
-                                 gph);
+						       &gph->our_zone,
+						       &gph->auth->zone,
+						       &process_zone_to_name_discover,
+						       gph);
 }
 
 
@@ -596,21 +595,12 @@ start_shorten (struct AuthorityChain *auth,
                const struct GNUNET_CRYPTO_EccPrivateKey *key)
 {
   struct GetPseuAuthorityHandle *gph;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pb_key;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   
   GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  if (NULL == (pb_key = GNUNET_CRYPTO_ecc_encode_key (key)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to encode ECC key on shorten\n");
-    return;
-  }
   gph = GNUNET_new (struct GetPseuAuthorityHandle);
-  gph->key = GNUNET_CRYPTO_ecc_decode_key ((const char*) pb_key, 
-					   ntohs (pb_key->size),
-					   GNUNET_YES);
-  GNUNET_free (pb_key);
+  gph->key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+  *gph->key = *key;
   if (NULL == gph->key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -619,7 +609,7 @@ start_shorten (struct AuthorityChain *auth,
     return;
   }
   GNUNET_CRYPTO_short_hash (&pkey,
-                        sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                         &gph->our_zone);
   gph->auth = GNUNET_malloc (sizeof (struct AuthorityChain));
   memcpy (gph->auth, auth, sizeof (struct AuthorityChain));
@@ -1157,7 +1147,7 @@ resolve_record_dht (struct ResolverHandle *rh)
  */
 static void
 process_record_result_ns (void* cls,
-                          const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+                          const struct GNUNET_CRYPTO_EccPublicKey *key,
                           struct GNUNET_TIME_Absolute expiration,
                           const char *name, unsigned int rd_count,
                           const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -1172,7 +1162,7 @@ process_record_result_ns (void* cls,
 
   rh->namestore_task = NULL;
   GNUNET_CRYPTO_short_hash (key,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 			    &zone);
   remaining_time = GNUNET_TIME_absolute_get_remaining (expiration);
   rh->status = 0;
@@ -2040,7 +2030,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
  */
 static void
 process_pkey_revocation_result_ns (void *cls,
-				   const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+				   const struct GNUNET_CRYPTO_EccPublicKey *key,
 				   struct GNUNET_TIME_Absolute expiration,
 				   const char *name,
 				   unsigned int rd_count,
@@ -3069,7 +3059,7 @@ handle_delegation_ns (void* cls, struct ResolverHandle *rh,
  */
 static void
 process_delegation_result_ns (void* cls,
-			      const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *key,
+			      const struct GNUNET_CRYPTO_EccPublicKey *key,
 			      struct GNUNET_TIME_Absolute expiration,
 			      const char *name,
 			      unsigned int rd_count,
@@ -3086,7 +3076,7 @@ process_delegation_result_ns (void* cls,
  
   rh->namestore_task = NULL;
   GNUNET_CRYPTO_short_hash (key,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 			    &zone);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "GNS_PHASE_DELEGATE_NS-%llu: Got %d records from authority lookup for `%s' in zone %s\n",
@@ -3515,7 +3505,7 @@ finish_shorten (struct ResolverHandle *rh,
  */
 static void
 process_zone_to_name_shorten_root (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+                 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
                  struct GNUNET_TIME_Absolute expire,
                  const char *name,
                  unsigned int rd_len,
@@ -3537,12 +3527,12 @@ process_zone_to_name_shorten_root (void *cls,
  */
 static void
 process_zone_to_name_shorten_shorten (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
-                 struct GNUNET_TIME_Absolute expire,
-                 const char *name,
-                 unsigned int rd_len,
-                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                 const struct GNUNET_CRYPTO_EccSignature *signature)
+				      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				      struct GNUNET_TIME_Absolute expire,
+				      const char *name,
+				      unsigned int rd_len,
+				      const struct GNUNET_NAMESTORE_RecordData *rd,
+				      const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = rh->proc_cls;
@@ -3653,12 +3643,12 @@ process_zone_to_name_shorten_shorten (void *cls,
  */
 static void
 process_zone_to_name_shorten_private (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
-                 struct GNUNET_TIME_Absolute expire,
-                 const char *name,
-                 unsigned int rd_len,
-                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                 const struct GNUNET_CRYPTO_EccSignature *signature)
+				      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				      struct GNUNET_TIME_Absolute expire,
+				      const char *name,
+				      unsigned int rd_len,
+				      const struct GNUNET_NAMESTORE_RecordData *rd,
+				      const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = rh->proc_cls;
@@ -3768,12 +3758,12 @@ process_zone_to_name_shorten_private (void *cls,
  */
 static void
 process_zone_to_name_shorten_root (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
-                 struct GNUNET_TIME_Absolute expire,
-                 const char *name,
-                 unsigned int rd_len,
-                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                 const struct GNUNET_CRYPTO_EccSignature *signature)
+				   const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				   struct GNUNET_TIME_Absolute expire,
+				   const char *name,
+				   unsigned int rd_len,
+				   const struct GNUNET_NAMESTORE_RecordData *rd,
+				   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ResolverHandle *rh = cls;
   struct NameShortenHandle* nsh = rh->proc_cls;
@@ -3990,13 +3980,13 @@ handle_delegation_ns_shorten (void* cls,
  * @param signature the signature for the record data
  */
 static void
-process_zone_to_name_zkey(void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
-                 struct GNUNET_TIME_Absolute expire,
-                 const char *name,
-                 unsigned int rd_len,
-                 const struct GNUNET_NAMESTORE_RecordData *rd,
-                 const struct GNUNET_CRYPTO_EccSignature *signature)
+process_zone_to_name_zkey (void *cls,
+			   const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+			   struct GNUNET_TIME_Absolute expire,
+			   const char *name,
+			   unsigned int rd_len,
+			   const struct GNUNET_NAMESTORE_RecordData *rd,
+			   const struct GNUNET_CRYPTO_EccSignature *signature)
 {
   struct ResolverHandle *rh = cls;
   struct NameShortenHandle *nsh = rh->proc_cls;

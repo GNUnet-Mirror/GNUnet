@@ -118,13 +118,10 @@ create_unique_cfgs (const char * template, const unsigned int no)
 static int
 create_hostkeys (const unsigned int no)
 {
-  static char pad[GNUNET_TESTING_HOSTKEYFILESIZE];
   struct GNUNET_TESTING_System *system;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_DISK_FileHandle *fd;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *pkb;
-  ssize_t ret;
 
   system = GNUNET_TESTING_system_create ("testing", NULL, NULL, NULL);
   pk = GNUNET_TESTING_hostkey_get (system, create_no, &id);
@@ -141,19 +138,11 @@ create_hostkeys (const unsigned int no)
 			      GNUNET_DISK_PERM_USER_READ |
 			      GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (fd != NULL);
-  pkb = GNUNET_CRYPTO_ecc_encode_key (pk);
-  ret = GNUNET_DISK_file_write (fd, pkb, 
-				ntohs (pkb->size));
-  GNUNET_assert (ntohs (pkb->size) == ret);
-  GNUNET_assert (ntohs (pkb->size) < GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_assert (GNUNET_TESTING_HOSTKEYFILESIZE - ret ==
-		 GNUNET_DISK_file_write (fd, pad, 
-					 GNUNET_TESTING_HOSTKEYFILESIZE - ret));
-  
+  ret = GNUNET_DISK_file_write (fd, pk,
+				sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);
-  GNUNET_free (pkb);
   GNUNET_CRYPTO_ecc_key_free (pk);
   GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;

@@ -166,7 +166,7 @@ struct LookupNameResponseMessage
   /**
    * The public key for the name
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKey public_key;
 
   /* 0-terminated name and serialized record data */
   /* rd_len bytes serialized record data */
@@ -216,7 +216,7 @@ struct RecordPutMessage
   /**
    * The public key
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKey public_key;
 
   /* name (0-terminated) followed by "rd_count" serialized records */
 
@@ -271,15 +271,16 @@ struct RecordCreateMessage
   uint16_t rd_count;
 
   /**
-   * private key length 
+   * always zero
    */
-  uint16_t pkey_len;
+  uint16_t reserved;
+
+  struct GNUNET_CRYPTO_EccPrivateKey private_key;
 
   /* followed by:
-   * GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded private key with length pkey_len
    * name with length name_len
    * serialized record data with length rd_len
-   * */
+   */
 };
 
 
@@ -366,7 +367,7 @@ struct ZoneToNameResponseMessage
   /**
    * Publik key
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded zone_key;
+  struct GNUNET_CRYPTO_EccPublicKey zone_key;
 
 };
 

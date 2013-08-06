@@ -48,7 +48,7 @@
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * Our identity.

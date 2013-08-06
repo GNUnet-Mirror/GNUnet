@@ -71,9 +71,9 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t only_cached GNUNET_PACKED;
 
   /**
-   * Should we look up in the default zone?
+   * Should we look up in the given zone, instead of the default zone?
    */
-  uint32_t use_default_zone GNUNET_PACKED;
+  uint32_t have_zone GNUNET_PACKED;
 
   /**
    * Is a shorten key attached?
@@ -84,8 +84,11 @@ struct GNUNET_GNS_ClientLookupMessage
    * the type of record to look up
    */
   /* enum GNUNET_GNS_RecordType */ uint32_t type;
-
-  /* Followed by the key for shorten (optional) see have_key */
+  
+  /**
+   * The key for shorten, if 'have_key' is set 
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey shorten_key;
 
   /* Followed by the name to look up */
 };

@@ -117,7 +117,7 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, struct GNUNET_HashCode * 
   case GNUNET_FS_URI_LOC:
     GNUNET_CRYPTO_hash (&uri->data.loc.fi,
                         sizeof (struct FileIdentifier) +
-                        sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                        sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                         key);
     break;
   default:
@@ -520,7 +520,7 @@ struct LocUriAssembly
 
   struct FileIdentifier fi;
 
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded peer;
+  struct GNUNET_CRYPTO_EccPublicKey peer;
 
 };
 
@@ -591,7 +591,7 @@ uri_loc_parse (const char *s, char **emsg)
   npos++;
   ret =
       enc2bin (&s[npos], &ass.peer,
-               sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+               sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   if (ret == -1)
   {
     *emsg =
@@ -828,7 +828,7 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
   if (uri->type != GNUNET_FS_URI_LOC)
     return GNUNET_SYSERR;
   GNUNET_CRYPTO_hash (&uri->data.loc.peer,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                       &peer->hashPubKey);
   return GNUNET_OK;
 }
@@ -884,7 +884,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
 {
   struct GNUNET_FS_Uri *uri;
   struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+  struct GNUNET_CRYPTO_EccPublicKey my_public_key;
   char *keyfile;
   struct LocUriAssembly ass;
 
@@ -1307,7 +1307,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
     if (memcmp
         (&u1->data.loc, &u2->data.loc,
          sizeof (struct FileIdentifier) +
-         sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
+         sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
          sizeof (struct GNUNET_TIME_Absolute) + sizeof (unsigned short) +
          sizeof (unsigned short)) != 0)
       return GNUNET_NO;
@@ -2049,7 +2049,7 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.query, &queryhash);
   peerId =
       bin2enc (&uri->data.loc.peer,
-               sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+               sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   peerSig =
       bin2enc (&uri->data.loc.contentSignature,
                sizeof (struct GNUNET_CRYPTO_EccSignature));

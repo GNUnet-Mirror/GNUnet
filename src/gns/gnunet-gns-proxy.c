@@ -3189,7 +3189,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
@@ -3212,9 +3212,9 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
   local_gns_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-  GNUNET_CRYPTO_short_hash(&pkey,
-                           sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-                           local_gns_zone);
+  GNUNET_CRYPTO_short_hash (&pkey,
+			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+			    local_gns_zone);
   zone = local_gns_zone;
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3241,9 +3241,9 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
     key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
     GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
     local_private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash(&pkey,
-                             sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-                             local_private_zone);
+    GNUNET_CRYPTO_short_hash (&pkey,
+			      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+			      local_private_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using private zone: %s!\n", &zonename);
@@ -3270,9 +3270,9 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
     key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
     GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
     local_shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash(&pkey,
-                             sizeof(struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
-                             local_shorten_zone);
+    GNUNET_CRYPTO_short_hash (&pkey,
+			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+			      local_shorten_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using shorten zone: %s!\n", &zonename);

@@ -67,7 +67,7 @@ struct RegexAcceptBlock
   /**
    * Public key of the peer signing.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKey public_key;
 
   /**
    * The signature.

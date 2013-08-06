@@ -49,9 +49,6 @@
 #include <fenv.h>
 #include "dht.h"
 
-#include "../regex/regex_block_lib.h"
-
-
 #define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)
 
 /**

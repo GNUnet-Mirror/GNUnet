@@ -111,12 +111,12 @@ struct EphemeralKeyMessage
    * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
    * for network transmission as created using 'gcry_sexp_sprint'.
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded ephemeral_key;  
+  struct GNUNET_CRYPTO_EccPublicKey ephemeral_key;  
 
   /**
    * Public key of the signing peer (persistent version, not the ephemeral public key).
    */
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded origin_public_key;
+  struct GNUNET_CRYPTO_EccPublicKey origin_public_key;
 
 };
 
@@ -392,7 +392,7 @@ static struct EphemeralKeyMessage current_ekm;
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded my_public_key;
+static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
 
 /**
  * Our message stream tokenizer (for encrypted payload).
@@ -771,7 +771,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
               "Core service receives `%s' request from `%4s'.\n", "EPHEMERAL_KEY",
               GNUNET_i2s (&kx->peer));
   GNUNET_CRYPTO_hash (&m->origin_public_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+		      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
 		      &signer_id.hashPubKey);
   if (0 !=
       memcmp (&signer_id, &kx->peer,
@@ -784,8 +784,8 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-       sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
-       sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)) ||
+       sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
+       sizeof (struct GNUNET_CRYPTO_EccPublicKey)) ||
       (GNUNET_OK !=
        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
 				 &m->purpose,
@@ -1476,8 +1476,8 @@ sign_ephemeral_key ()
   current_ekm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-				    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded) +
-				    sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+				    sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
+				    sizeof (struct GNUNET_CRYPTO_EccPublicKey));
   current_ekm.creation_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,

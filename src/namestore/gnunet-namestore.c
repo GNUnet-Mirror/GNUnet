@@ -305,7 +305,7 @@ del_continuation (void *cls,
  */
 static void
 display_record (void *cls,
-		const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		struct GNUNET_TIME_Absolute expire,			    
 		const char *name,
 		unsigned int rd_len,
@@ -396,7 +396,7 @@ sync_cb (void *cls)
  */
 static void
 get_existing_record (void *cls,
-		     const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+		     const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 		     struct GNUNET_TIME_Absolute freshness,			    
 		     const char *rec_name,
 		     unsigned int rd_count,
@@ -453,7 +453,7 @@ testservice_task (void *cls,
                   int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   if (GNUNET_YES != result)

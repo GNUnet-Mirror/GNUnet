@@ -108,7 +108,7 @@ main (int argc, char *argv[])
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_HELLO_Message *orig;
   struct GNUNET_HELLO_Message *result;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pk;
+  struct GNUNET_CRYPTO_EccPublicKey pk;
   uint64_t fsize;
 
   GNUNET_log_setup ("gnunet-hello", "INFO", NULL);

@@ -209,23 +209,16 @@ static struct GNUNET_IDENTITY_UpdateMessage *
 create_update_message (struct Ego *ego)
 {
   struct GNUNET_IDENTITY_UpdateMessage *um;
-  char *str;
-  uint16_t pk_len;
   size_t name_len;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
-
+ 
   name_len = (NULL == ego->identifier) ? 0 : (strlen (ego->identifier) + 1);
-  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
-  pk_len = ntohs (enc->size);
-  um = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + pk_len + name_len);
+  um = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + name_len);
   um->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
-  um->header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + pk_len + name_len);
+  um->header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + name_len);
   um->name_len = htons (name_len);
-  um->pk_len = htons (pk_len);
-  str = (char *) &um[1];
-  memcpy (str, enc, pk_len);
-  memcpy (&str[pk_len], ego->identifier, name_len);
-  GNUNET_free (enc);
+  um->end_of_list = htons (GNUNET_NO);
+  um->private_key = *ego->pk;
+  memcpy (&um[1], ego->identifier, name_len);
   return um;
 }
 
@@ -242,23 +235,16 @@ create_set_default_message (struct Ego *ego,
 			    const char *servicename)
 {
   struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
-  char *str;
-  uint16_t pk_len;
   size_t name_len;
-  struct GNUNET_CRYPTO_EccPrivateKeyBinaryEncoded *enc;
 
   name_len = (NULL == servicename) ? 0 : (strlen (servicename) + 1);
-  enc = GNUNET_CRYPTO_ecc_encode_key (ego->pk);
-  pk_len = ntohs (enc->size);
-  sdm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + pk_len + name_len);
+  sdm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + name_len);
   sdm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT);
-  sdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + pk_len + name_len);
+  sdm->header.size = htons (sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) + name_len);
   sdm->name_len = htons (name_len);
-  sdm->pk_len = htons (pk_len);
-  str = (char *) &sdm[1];
-  memcpy (str, enc, pk_len);
-  memcpy (&str[pk_len], servicename, name_len);
-  GNUNET_free (enc);
+  sdm->reserved = htons (0);
+  sdm->private_key = *ego->pk;
+  memcpy (&sdm[1], servicename, name_len);
   return sdm;
 }
 
@@ -290,9 +276,10 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_notification_context_unicast (nc, client, &um->header, GNUNET_NO);
     GNUNET_free (um);
   }
+  memset (&ume, 0, sizeof (ume));
   ume.header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
   ume.header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage));
-  ume.pk_len = htons (0);
+  ume.end_of_list = htons (GNUNET_YES);
   ume.name_len = htons (0);
   GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_NO);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -383,12 +370,7 @@ static int
 key_cmp (const struct GNUNET_CRYPTO_EccPrivateKey *pk1,
 	 const struct GNUNET_CRYPTO_EccPrivateKey *pk2)
 {
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p1;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded p2;
-  
-  GNUNET_CRYPTO_ecc_key_get_public (pk1, &p1);
-  GNUNET_CRYPTO_ecc_key_get_public (pk2, &p2);
-  return memcmp (&p1, &p2, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded));
+  return memcmp (pk1, pk2, sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
 }
 
 
@@ -407,10 +389,8 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
   uint16_t size;
   uint16_t name_len;
-  uint16_t pk_len;
   struct Ego *ego;
   const char *str;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
@@ -421,16 +401,14 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   }
   sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) message;
   name_len = ntohs (sdm->name_len);
-  pk_len = ntohs (sdm->pk_len);
-  str = (const char *) &sdm[1];
-  if ( (name_len + pk_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) != size) ||
-       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (str, pk_len, GNUNET_YES))) )
+  GNUNET_break (0 == ntohs (sdm->reserved));
+  if (name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) != size) 
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  str = &str[pk_len];
+  str = (const char *) &sdm[1];
   if ('\0' != str[name_len - 1])
   {
     GNUNET_break (0);
@@ -443,7 +421,7 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   for (ego = ego_head; NULL != ego; ego = ego->next)
   {
     if (0 == key_cmp (ego->pk,
-		      pk))
+		      &sdm->private_key))
     {
       GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
 					     str,
@@ -457,13 +435,11 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 		    subsystem_cfg_file);
       send_result_code (client, 0, NULL);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      GNUNET_CRYPTO_ecc_key_free (pk);
       return;
     }
   }  
   send_result_code (client, 1, _("Unknown ego specified for service (internal error)"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_CRYPTO_ecc_key_free (pk);
 }
 
 
@@ -498,11 +474,8 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_IDENTITY_CreateRequestMessage *crm;
   uint16_t size;
   uint16_t name_len;
-  uint16_t pk_len;
   struct Ego *ego;
-  const char *pks;
   const char *str;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
   char *fn;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
@@ -516,16 +489,14 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   }
   crm = (const struct GNUNET_IDENTITY_CreateRequestMessage *) message;
   name_len = ntohs (crm->name_len);
-  pk_len = ntohs (crm->pk_len);
-  pks = (const char *) &crm[1];
-  if ( (name_len + pk_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size) ||
-       (NULL == (pk = GNUNET_CRYPTO_ecc_decode_key (pks, pk_len, GNUNET_YES))) )
+  GNUNET_break (0 == ntohs (crm->reserved));
+  if (name_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size) 
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  str = &pks[pk_len];
+  str = (const char *) &crm[1];
   if ('\0' != str[name_len - 1])
   {
     GNUNET_break (0);
@@ -539,12 +510,12 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
     {
       send_result_code (client, 1, gettext_noop ("identifier already in use for another ego"));
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      GNUNET_CRYPTO_ecc_key_free (pk);
       return;
     }
   }
   ego = GNUNET_new (struct Ego);
-  ego->pk = pk;
+  ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+  *ego->pk = crm->private_key;
   ego->identifier = GNUNET_strdup (str);
   GNUNET_CONTAINER_DLL_insert (ego_head,
 			       ego_tail,
@@ -552,8 +523,10 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   send_result_code (client, 0, NULL);
   fn = get_ego_filename (ego);
   (void) GNUNET_DISK_directory_create_for_file (fn);
-  if (pk_len !=
-      GNUNET_DISK_fn_write (fn, pks, pk_len,
+  if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) !=
+      GNUNET_DISK_fn_write (fn,
+			    &crm->private_key, 
+			    sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
 			    GNUNET_DISK_PERM_USER_READ |
 			    GNUNET_DISK_PERM_USER_WRITE))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,

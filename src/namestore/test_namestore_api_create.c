@@ -52,7 +52,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded pubkey;
+static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_CRYPTO_ShortHashCode s_zone;
 
@@ -108,7 +108,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void 
 name_lookup_second_proc (void *cls,
-			 const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+			 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 			 struct GNUNET_TIME_Absolute expire,
 			 const char *n,
 			 unsigned int rd_count,
@@ -122,7 +122,7 @@ name_lookup_second_proc (void *cls,
   if (n != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -203,7 +203,7 @@ create_second_cont (void *cls, int32_t success, const char *emsg)
 
 static void 
 name_lookup_initial_proc (void *cls,
-			  const struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded *zone_key,
+			  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 			  struct GNUNET_TIME_Absolute expire,
 			  const char *n,
 			  unsigned int rd_count,
@@ -219,7 +219,7 @@ name_lookup_initial_proc (void *cls,
   if (n != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Checking returned results\n");
-    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded)))
+    if (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
     {
       GNUNET_break (0);
       failed = GNUNET_YES;
@@ -353,7 +353,7 @@ run (void *cls,
   GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
 
   /* create random zone hash */
-  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded), &s_zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &s_zone);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Name: `%s' Zone: `%s' \n", s_name, GNUNET_NAMESTORE_short_h2s (&s_zone));
   nsh = GNUNET_NAMESTORE_connect (cfg);

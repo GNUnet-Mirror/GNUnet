@@ -712,7 +712,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    struct GNUNET_PeerIdentity *id)
 {  
   struct GNUNET_CRYPTO_EccPrivateKey *private_key;
-  struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded public_key;
+  struct GNUNET_CRYPTO_EccPublicKey public_key;
   
   if ((NULL == id) || (NULL == system->hostkeys_data))
     return NULL;
@@ -722,11 +722,11 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
          _("Key number %u does not exist\n"), key_number);
     return NULL;
   }   
-  private_key = GNUNET_CRYPTO_ecc_decode_key (system->hostkeys_data +
-                                              (key_number *
-                                               GNUNET_TESTING_HOSTKEYFILESIZE),
-                                              GNUNET_TESTING_HOSTKEYFILESIZE,
-					      GNUNET_NO);
+  private_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+  memcpy (private_key,
+	  system->hostkeys_data +
+	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
+	  GNUNET_TESTING_HOSTKEYFILESIZE);
   if (NULL == private_key)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -735,7 +735,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   }
   GNUNET_CRYPTO_ecc_key_get_public (private_key, &public_key);
   GNUNET_CRYPTO_hash (&public_key,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicKeyBinaryEncoded),
+                      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
                       &(id->hashPubKey));
   return private_key;
 }
