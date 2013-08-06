@@ -182,16 +182,13 @@ struct GNUNET_FS_Uri
     struct
     {
       /**
-       * Keywords start with a '+' if they are
-       * mandatory (in which case the '+' is NOT
-       * part of the keyword) and with a
-       * simple space if they are optional
-       * (in which case the space is ALSO not
-       * part of the actual keyword).
+       * Keywords start with a '+' if they are mandatory (in which
+       * case the '+' is NOT part of the keyword) and with a simple
+       * space if they are optional (in which case the space is ALSO
+       * not part of the actual keyword).
        *
-       * Double-quotes to protect spaces and
-       * %-encoding are NOT used internally
-       * (only in URI-strings).
+       * Double-quotes to protect spaces and %-encoding are NOT used
+       * internally (only in URI-strings).
        */
       char **keywords;
 
@@ -206,7 +203,7 @@ struct GNUNET_FS_Uri
       /**
        * Identifier of the namespace.
        */
-      struct GNUNET_FS_PseudonymIdentifier ns;
+      struct GNUNET_CRYPTO_EccPublicKey ns;
 
       /**
        * Human-readable identifier chosen for this
@@ -1178,7 +1175,7 @@ struct GNUNET_FS_PublishContext
   /**
    * Namespace that we are publishing in, NULL if we have no namespace.
    */
-  struct GNUNET_FS_Namespace *ns;
+  struct GNUNET_CRYPTO_EccPrivateKey *ns;
 
   /**
    * ID of the content in the namespace, NULL if we have no namespace.
@@ -1459,16 +1456,22 @@ struct GNUNET_FS_UnindexContext
  */
 struct SearchRequestEntry
 {
-  /**
-   * Hash of the original keyword, used to derive the
-   * key (for decrypting the KBlock).
-   */
-  struct GNUNET_HashCode ukey;
 
   /**
    * Hash of the public key, also known as the query.
    */
   struct GNUNET_HashCode uquery;
+
+  /**
+   * Derived public key, hashes to 'uquery'.
+   */ 
+  struct GNUNET_CRYPTO_EccPublicKey dpub;
+
+  /**
+   * The original keyword, used to derive the
+   * key (for decrypting the UBlock).
+   */
+  char *keyword;
 
   /**
    * Map that contains a "struct GNUNET_FS_SearchResult" for each result that
@@ -1962,99 +1965,6 @@ struct GNUNET_FS_DownloadContext
 
 };
 
-
-/**
- * Information about an (updateable) node in the
- * namespace.
- */
-struct NamespaceUpdateNode
-{
-  /**
-   * Identifier for this node.
-   */
-  char *id;
-
-  /**
-   * Identifier of children of this node.
-   */
-  char *update;
-
-  /**
-   * Metadata for this entry.
-   */
-  struct GNUNET_CONTAINER_MetaData *md;
-
-  /**
-   * URI of this entry in the namespace.
-   */
-  struct GNUNET_FS_Uri *uri;
-
-  /**
-   * Namespace update generation ID.  Used to ensure
-   * freshness of the tree_id.
-   */
-  unsigned int nug;
-
-  /**
-   * TREE this entry belongs to (if nug is current).
-   */
-  unsigned int tree_id;
-
-};
-
-
-/**
- * Handle to one of our namespaces.
- */
-struct GNUNET_FS_Namespace
-{
-
-  /**
-   * Handle to the FS service context.
-   */
-  struct GNUNET_FS_Handle *h;
-
-  /**
-   * Array with information about nodes in the namespace.
-   */
-  struct NamespaceUpdateNode **update_nodes;
-
-  /**
-   * Private key for the namespace.
-   */
-  struct GNUNET_FS_PseudonymHandle *key;
-
-  /**
-   * Hash map mapping identifiers of update nodes
-   * to the update nodes (initialized on-demand).
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *update_map;
-
-  /**
-   * Name of the file with the private key.
-   */
-  char *filename;
-
-  /**
-   * Name of the namespace.
-   */
-  char *name;
-
-  /**
-   * Size of the update nodes array.
-   */
-  unsigned int update_node_count;
-
-  /**
-   * Reference counter.
-   */
-  unsigned int rc;
-
-  /**
-   * Generator for unique nug numbers.
-   */
-  unsigned int nug_gen;
-};
 
 #endif
 

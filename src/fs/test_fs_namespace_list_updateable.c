@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2005, 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2005-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,7 +33,7 @@ static struct GNUNET_FS_Handle *fs;
 
 static int err;
 
-static struct GNUNET_FS_Namespace *ns;
+static struct GNUNET_CRYPTO_EccPrivateKey *ns;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -59,7 +59,7 @@ do_shutdown ()
   if (uri_next != NULL)
     GNUNET_FS_uri_destroy (uri_next);
   if (ns != NULL)
-    GNUNET_FS_namespace_delete (ns, GNUNET_NO);
+    GNUNET_CRYPTO_ecc_key_free (ns);
   if (meta != NULL)
     GNUNET_CONTAINER_meta_data_destroy (meta);
 }
@@ -87,7 +87,7 @@ check_this_next (void *cls, const char *last_id,
   GNUNET_break (0 == strcmp (next_id, "next"));
   err -= 2;
   err += 4;
-  GNUNET_FS_namespace_list_updateable (ns, next_id, &check_next, NULL);
+  GNUNET_FS_namespace_list_updateable (fs, ns, next_id, &check_next, NULL);
 }
 
 
@@ -96,7 +96,7 @@ sks_cont_next (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   err += 2;
-  GNUNET_FS_namespace_list_updateable (ns, NULL, &check_this_next, NULL);
+  GNUNET_FS_namespace_list_updateable (fs, ns, NULL, &check_this_next, NULL);
 }
 
 
@@ -117,7 +117,7 @@ sks_cont_this (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   err = 1;
-  GNUNET_FS_namespace_list_updateable (ns, NULL, &check_this, NULL);
+  GNUNET_FS_namespace_list_updateable (fs, ns, NULL, &check_this, NULL);
   GNUNET_FS_publish_sks (fs, ns, "next", "future", meta, uri_next, &bo,
                          GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont_next, NULL);
 
@@ -127,7 +127,7 @@ sks_cont_this (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 static void
 testNamespace ()
 {
-  ns = GNUNET_FS_namespace_create (fs, "testNamespace");
+  ns = GNUNET_CRYPTO_ecc_key_create ();
   GNUNET_assert (NULL != ns);
   bo.content_priority = 1;
   bo.anonymity_level = 1;

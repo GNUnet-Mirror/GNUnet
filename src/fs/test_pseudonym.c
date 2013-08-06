@@ -33,17 +33,18 @@
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
-static struct GNUNET_FS_PseudonymIdentifier id1;
+static struct GNUNET_CRYPTO_EccPublicKey id1;
 
 
 static int
-iter (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseudonym,
+iter (void *cls,
+      const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
       const char *name, const char *unique_name,
       const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
   int *ok = cls;
 
-  if ((0 == memcmp (pseudonym, &id1, sizeof (struct GNUNET_FS_PseudonymIdentifier))) &&
+  if ((0 == memcmp (pseudonym, &id1, sizeof (struct GNUNET_CRYPTO_EccPublicKey))) &&
       (!GNUNET_CONTAINER_meta_data_test_equal (md, meta)))
   {
     *ok = GNUNET_NO;
@@ -54,7 +55,7 @@ iter (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseudonym,
 
 
 static int
-noti_callback (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseudonym,
+noti_callback (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
                const char *name, const char *unique_name,
                const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
@@ -66,7 +67,8 @@ noti_callback (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseudonym
 
 
 static int
-fake_noti_callback (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseudonym,
+fake_noti_callback (void *cls,
+		    const struct GNUNET_CRYPTO_EccPublicKey * pseudonym,
                     const char *name, const char *unique_name,
                     const struct GNUNET_CONTAINER_MetaData *md, int32_t rating)
 {
@@ -78,13 +80,13 @@ fake_noti_callback (void *cls, const struct GNUNET_FS_PseudonymIdentifier * pseu
 
 
 static void
-create_pseu (struct GNUNET_FS_PseudonymIdentifier *pseu)
+create_pseu (struct GNUNET_CRYPTO_EccPublicKey *pseu)
 {
-  struct GNUNET_FS_PseudonymHandle *ph;
+  struct GNUNET_CRYPTO_EccPrivateKey *ph;
 
-  ph = GNUNET_FS_pseudonym_create (NULL);
-  GNUNET_FS_pseudonym_get_identifier (ph, pseu);
-  GNUNET_FS_pseudonym_destroy (ph);
+  ph = GNUNET_CRYPTO_ecc_key_create ();
+  GNUNET_CRYPTO_ecc_key_get_public (ph, pseu);
+  GNUNET_CRYPTO_ecc_key_free (ph);
 }
 
 
@@ -95,11 +97,11 @@ static int
 test_io ()
 {
   int ok;
-  struct GNUNET_FS_PseudonymIdentifier rid1;
-  struct GNUNET_FS_PseudonymIdentifier id2;
-  struct GNUNET_FS_PseudonymIdentifier rid2;
-  struct GNUNET_FS_PseudonymIdentifier fid;
-  struct GNUNET_FS_PseudonymIdentifier id3;
+  struct GNUNET_CRYPTO_EccPublicKey rid1;
+  struct GNUNET_CRYPTO_EccPublicKey id2;
+  struct GNUNET_CRYPTO_EccPublicKey rid2;
+  struct GNUNET_CRYPTO_EccPublicKey fid;
+  struct GNUNET_CRYPTO_EccPublicKey id3;
   int old;
   int newVal;
   struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -112,12 +114,11 @@ test_io ()
   int noname_is_a_dup;
   int notiCount, fakenotiCount;
   static char m[1024 * 1024 * 10];
-  struct GNUNET_FS_pseudonym_DiscoveryHandle *dh1;
-  struct GNUNET_FS_pseudonym_DiscoveryHandle *dh2;
+  struct GNUNET_FS_Pseudonym_DiscoveryHandle *dh1;
+  struct GNUNET_FS_Pseudonym_DiscoveryHandle *dh2;
 
   memset (m, 'b', sizeof (m));
   m[sizeof (m) - 1] = '\0';
-
   GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   ok = GNUNET_YES;
   (void) GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test");
@@ -178,8 +179,8 @@ test_io ()
   CHECK (GNUNET_SYSERR == GNUNET_FS_pseudonym_name_to_id (cfg, name1, &rid1));
   CHECK (GNUNET_OK == GNUNET_FS_pseudonym_name_to_id (cfg, name2_unique, &rid2));
   CHECK (GNUNET_OK == GNUNET_FS_pseudonym_name_to_id (cfg, name1_unique, &rid1));
-  CHECK (0 == memcmp (&id1, &rid1, sizeof (struct GNUNET_FS_PseudonymIdentifier)));
-  CHECK (0 == memcmp (&id2, &rid2, sizeof (struct GNUNET_FS_PseudonymIdentifier)));
+  CHECK (0 == memcmp (&id1, &rid1, sizeof (struct GNUNET_CRYPTO_EccPublicKey)));
+  CHECK (0 == memcmp (&id2, &rid2, sizeof (struct GNUNET_CRYPTO_EccPublicKey)));
 
   create_pseu (&fid);
   GNUNET_log_skip (1, GNUNET_NO);
@@ -207,118 +208,11 @@ FAILURE:
 }
 
 
-/**
- * Use the given input to sign and check the resulting signature.
- */
-static void
-test_signature (struct GNUNET_FS_PseudonymHandle *ph,
-		struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
-		struct GNUNET_HashCode *seed,
-		struct GNUNET_HashCode *signing_key,
-		char *bit)
-{
-  struct GNUNET_FS_PseudonymSignature signature;
-  struct GNUNET_FS_PseudonymSignature signature2;
-  struct GNUNET_FS_PseudonymIdentifier pseudonym;
-  struct GNUNET_FS_PseudonymIdentifier verification_key;
-
-  GNUNET_FS_pseudonym_sign (ph, purpose, seed, signing_key, &signature);
-  GNUNET_FS_pseudonym_sign (ph, purpose, seed, signing_key, &signature2);
-  /* with seed, two sigs must be identical, without, they must be different! */
-  if (NULL != seed)
-    GNUNET_break (0 == memcmp (&signature, &signature2, sizeof (signature)));
-  else /* crypto not implemented, thus for now 'break' */
-    GNUNET_break (0 != memcmp (&signature, &signature2, sizeof (signature)));
-  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);
-  GNUNET_FS_pseudonym_derive_verification_key (&pseudonym,
-					    signing_key,
-					    &verification_key);
-  GNUNET_break (GNUNET_OK ==
-		GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
-  /* also check that if the data is changed, the signature no longer matches */
-  (*bit)++;
-  GNUNET_log_skip (1, GNUNET_NO);
-  /* crypto not implemented, thus for now 'break' */
-  GNUNET_break (GNUNET_OK !=
-		GNUNET_FS_pseudonym_verify (purpose, &signature, &verification_key));
-  (*bit)--;
-}
-
-
-/**
- * Test cryptographic operations for a given private key.
- *
- * @param ph private key to test
- */
-static void
-test_crypto_ops (struct GNUNET_FS_PseudonymHandle *ph)
-{
-  char data[16];
-  struct GNUNET_FS_PseudonymSignaturePurpose *purpose;
-  struct GNUNET_HashCode seed;
-  struct GNUNET_HashCode signing_key;
-
-  memset (data, 42, sizeof (data));
-  purpose = (struct GNUNET_FS_PseudonymSignaturePurpose *) data;
-  purpose->size = htonl (sizeof (data));
-  purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
-  memset (&seed, 41, sizeof (seed));
-  memset (&signing_key, 40, sizeof (signing_key));
-  test_signature (ph, purpose, &seed,
-		  &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
-  test_signature (ph, purpose, NULL, 
-		  &signing_key, &data[sizeof (struct GNUNET_FS_PseudonymSignaturePurpose)]);
-}
-
-
-/**
- * Test cryptographic operations.
- */
-static int
-test_crypto ()
-{
-  struct GNUNET_FS_PseudonymHandle *ph;
-  struct GNUNET_FS_PseudonymIdentifier pseudonym;
-  struct GNUNET_FS_PseudonymIdentifier pseudonym2;
-
-  /* check writing to and reading from disk */
-  ph = GNUNET_FS_pseudonym_create ("/tmp/gnunet-pseudonym-test/pseu.dsa");
-  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym);
-  GNUNET_FS_pseudonym_destroy (ph);
-  ph = GNUNET_FS_pseudonym_create ("/tmp/gnunet-pseudonym-test/pseu.dsa");
-  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym2);
-  test_crypto_ops (ph);
-  GNUNET_FS_pseudonym_destroy (ph);
-  if (0 != memcmp (&pseudonym, &pseudonym2, sizeof (pseudonym)))
-    return 1;
-  
-  /* check in-memory generation */
-  ph = GNUNET_FS_pseudonym_create (NULL);
-  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym2);
-  if (0 == memcmp (&pseudonym, &pseudonym2, sizeof (pseudonym)))
-    return 1;
-  test_crypto_ops (ph);
-  GNUNET_FS_pseudonym_destroy (ph);  
-
-  /* check anonymous pseudonym operations generation */
-  fprintf (stderr, "Checking anonymous ops\n");
-  ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
-  GNUNET_FS_pseudonym_get_identifier (ph, &pseudonym2);
-  if (0 == memcmp (&pseudonym, &pseudonym2, sizeof (pseudonym)))
-    return 1;
-  test_crypto_ops (ph);
-  GNUNET_FS_pseudonym_destroy (ph);  
-  return 0;
-}
-
-
 int
 main (int argc, char *argv[])
 {
   GNUNET_log_setup ("test-pseudonym", "WARNING", NULL);
   if (0 != test_io ())
-    return 1;
-  if (0 != test_crypto ())
     return 1;
   GNUNET_break (GNUNET_OK ==
                 GNUNET_DISK_directory_remove ("/tmp/gnunet-pseudonym-test"));  

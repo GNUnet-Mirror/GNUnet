@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2006, 2007, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,26 +24,18 @@
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
+#include "gnunet_identity_service.h"
+
 
 /**
- * -C option
+ * -A option
  */
-static char *create_ns;
-
-/**
- * -D option
- */
-static char *delete_ns;
+static char *advertise_ns;
 
 /**
  * -k option
  */
 static struct GNUNET_FS_Uri *ksk_uri;
-
-/**
- * -l option.
- */
-static int print_local_only;
 
 /**
  * -m option.
@@ -76,35 +68,41 @@ static char *rating_change;
 static struct GNUNET_FS_Handle *h;
 
 /**
- * Namespace we are looking at.
- */
-static struct GNUNET_FS_Namespace *ns;
-
-/**
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Handle to identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Target namespace.
+ */
+static struct GNUNET_IDENTITY_Ego *namespace;
+
+/**
+ * URI to advertise.
+ */
+static struct GNUNET_FS_Uri *sks_uri;
+
+/**
+ * Global return value.
+ */ 
 static int ret;
 
+
+/**
+ * Progress callback given to FS.
+ * 
+ * @param cls unused
+ * @param info progress information, unused
+ */ 
 static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
   return NULL;
-}
-
-
-static void
-ns_printer (void *cls, const char *name, const struct GNUNET_FS_PseudonymIdentifier *pseudonym)
-{
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
-  struct GNUNET_HashCode hc;
-
-  GNUNET_CRYPTO_hash (pseudonym,
-		      sizeof (struct GNUNET_FS_PseudonymIdentifier),
-		      &hc);
-  GNUNET_CRYPTO_hash_to_enc (&hc, &enc);
-  FPRINTF (stdout, "%s (%s)\n", name, (const char *) &enc);
 }
 
 
@@ -121,7 +119,7 @@ ns_printer (void *cls, const char *name, const struct GNUNET_FS_PseudonymIdentif
  */
 static int
 pseudo_printer (void *cls, 
-		const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
+		const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
                 const char *name, 
 		const char *unique_name,
                 const struct GNUNET_CONTAINER_MetaData *md, 
@@ -135,39 +133,127 @@ pseudo_printer (void *cls,
    * GNUNET_FS_pseudonym_get_info () never returns NULL.
    */
   getinfo_result = GNUNET_FS_pseudonym_get_info (cfg, pseudonym,
-      NULL, NULL, &id, NULL);
-  if (getinfo_result != GNUNET_OK)
+						 NULL, NULL, &id, NULL);
+  if (GNUNET_OK != getinfo_result)
   {
     GNUNET_break (0);
     return GNUNET_OK;
   }
   unique_id = GNUNET_FS_pseudonym_name_uniquify (cfg, pseudonym, id, NULL);
   GNUNET_free (id);
-  FPRINTF (stdout, "%s (%d):\n", unique_id, rating);
+  FPRINTF (stdout, 
+	   "%s (%d):\n", 
+	   unique_id, rating);
   GNUNET_CONTAINER_meta_data_iterate (md, &EXTRACTOR_meta_data_print, stdout);
-  FPRINTF (stdout, "%s",  "\n");
+  FPRINTF (stdout, 
+	   "%s",
+	   "\n");
   GNUNET_free (unique_id);
   return GNUNET_OK;
 }
 
 
+/**
+ * Function called once advertising is finished.
+ * 
+ * @param cls closure (NULL)
+ * @param uri the advertised URI
+ * @param emsg error message, NULL on success
+ */
 static void
-post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
+post_advertising (void *cls,
+		  const struct GNUNET_FS_Uri *uri, 
+		  const char *emsg)
 {
-  struct GNUNET_FS_PseudonymIdentifier nsid;
-  char *set;
-  int delta;
-
   if (emsg != NULL)
   {
     FPRINTF (stderr, "%s", emsg);
     ret = 1;
   }
-  if (ns != NULL)
+  GNUNET_FS_stop (h);
+  GNUNET_IDENTITY_disconnect (identity);
+}
+
+
+/**
+ * Function called by identity service with known pseudonyms.
+ *
+ * @param cls closure, NULL
+ * @param ego ego handle
+ * @param ego_ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls, 
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  char *emsg;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  if (NULL == ego) 
   {
-    if (GNUNET_OK != GNUNET_FS_namespace_delete (ns, GNUNET_NO))
+    if (NULL == namespace)
+    {
       ret = 1;
+      return;
+    }
+    if (NULL != root_identifier)
+    {
+      if (NULL == ksk_uri)
+      {
+	emsg = NULL;
+	ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
+	GNUNET_assert (NULL == emsg);
+      }
+      GNUNET_IDENTITY_ego_get_public_key (namespace,
+					  &pub);
+      sks_uri = GNUNET_FS_uri_sks_create (&pub,
+					  root_identifier);
+      GNUNET_FS_publish_ksk (h, ksk_uri, adv_metadata, sks_uri,
+			     &bo,
+			     GNUNET_FS_PUBLISH_OPTION_NONE,
+			     &post_advertising, NULL);
+      GNUNET_FS_uri_destroy (sks_uri);
+      return;
+    }
+    else
+    {
+      if (NULL != ksk_uri)
+	FPRINTF (stderr, _("Option `%s' ignored\n"), "-k");
+      if (NULL != advertise_ns)
+	FPRINTF (stderr, _("Option `%s' ignored\n"), "-A");
+    }
+    return;
   }
+  if (0 == strcmp (name, advertise_ns))
+    namespace = ego;
+}
+
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  struct GNUNET_CRYPTO_EccPublicKey nsid;
+  char *set;
+  int delta;
+
+  cfg = c;
+  h = GNUNET_FS_start (cfg, "gnunet-pseudonym", &progress_cb, NULL,
+                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL != rating_change)
   {
     set = rating_change;
@@ -175,7 +261,8 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
       set++;
     if (*set != ':')
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid argument `%s'\n"),
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  _("Invalid argument `%s'\n"),
                   rating_change);
     }
     else
@@ -197,92 +284,13 @@ post_advertising (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
     GNUNET_free (rating_change);
     rating_change = NULL;
   }
-  if (0 != print_local_only)
-  {
-    GNUNET_FS_namespace_list (h, &ns_printer, NULL);
-  }
-  else if (0 == no_remote_printing)
-  {
+  if (0 == no_remote_printing)
     GNUNET_FS_pseudonym_list_all (cfg, &pseudo_printer, NULL);
-  }
-  GNUNET_FS_stop (h);
-}
 
-
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param c configuration
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  struct GNUNET_FS_Uri *sks_uri;
-  char *emsg;
-
-  cfg = c;
-  h = GNUNET_FS_start (cfg, "gnunet-pseudonym", &progress_cb, NULL,
-                       GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
-  if (NULL != delete_ns)
-  {
-    ns = GNUNET_FS_namespace_create (h, delete_ns);
-    if (ns == NULL)
-    {
-      ret = 1;
-    }
-    else
-    {
-      if (GNUNET_OK != GNUNET_FS_namespace_delete (ns, GNUNET_YES))
-        ret = 1;
-      ns = NULL;
-    }
-  }
-  if (NULL != create_ns)
-  {
-    ns = GNUNET_FS_namespace_create (h, create_ns);
-    if (ns == NULL)
-    {
-      ret = 1;
-    }
-    else
-    {
-      if (NULL != root_identifier)
-      {
-        if (ksk_uri == NULL)
-        {
-          emsg = NULL;
-          ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/namespace", &emsg);
-          GNUNET_assert (NULL == emsg);
-        }
-	sks_uri = GNUNET_FS_uri_sks_create (ns, root_identifier, &emsg);
-	GNUNET_assert (NULL == emsg);
-        GNUNET_FS_publish_ksk (h, ksk_uri, adv_metadata, sks_uri,
-			       &bo,
-			       GNUNET_FS_PUBLISH_OPTION_NONE,
-			       &post_advertising, NULL);
-	GNUNET_FS_uri_destroy (sks_uri);
-        return;
-      }
-      else
-      {
-        if (ksk_uri != NULL)
-          FPRINTF (stderr, _("Option `%s' ignored\n"), "-k");
-      }
-    }
-  }
-  else
-  {
-    if (root_identifier != NULL)
-      FPRINTF (stderr, _("Option `%s' ignored\n"), "-r");
-    if (ksk_uri != NULL)
-      FPRINTF (stderr, _("Option `%s' ignored\n"), "-k");
-  }
-
-  post_advertising (NULL, NULL, NULL);
+  if (NULL != advertise_ns)
+    identity = GNUNET_IDENTITY_connect (cfg, 
+					&identity_cb, 
+					NULL);
 }
 
 
@@ -301,12 +309,9 @@ main (int argc, char *const *argv)
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),
      1, &GNUNET_GETOPT_set_uint, &bo.anonymity_level},
-    {'C', "create", "NAME",
-     gettext_noop ("create or advertise namespace NAME"),
-     1, &GNUNET_GETOPT_set_string, &create_ns},
-    {'D', "delete", "NAME",
-     gettext_noop ("delete namespace NAME "),
-     1, &GNUNET_GETOPT_set_string, &delete_ns},
+    {'A', "advertise", "NAME",
+     gettext_noop ("advertise namespace NAME"),
+     1, &GNUNET_GETOPT_set_string, &advertise_ns},
     {'k', "keyword", "VALUE",
      gettext_noop ("add an additional keyword for the advertisment"
                    " (this option can be specified multiple times)"),
@@ -314,9 +319,6 @@ main (int argc, char *const *argv)
     {'m', "meta", "TYPE:VALUE",
      gettext_noop ("set the meta-data for the given TYPE to the given VALUE"),
      1, &GNUNET_FS_getopt_set_metadata, &adv_metadata},
-    {'o', "only-local", NULL,
-     gettext_noop ("print names of local namespaces"),
-     0, &GNUNET_GETOPT_set_one, &print_local_only},
     {'p', "priority", "PRIORITY",
      gettext_noop ("use the given PRIORITY for the advertisments"),
      1, &GNUNET_GETOPT_set_uint, &bo.content_priority},

@@ -27,6 +27,7 @@
  */
 #include "platform.h"
 #include "gnunet_fs_service.h"
+#include "gnunet_identity_service.h"
 
 /**
  * Global return value from 'main'.
@@ -137,7 +138,12 @@ static struct GNUNET_FS_DirScanner *ds;
  * Which namespace do we publish to? NULL if we do not publish to
  * a namespace.
  */
-static struct GNUNET_FS_Namespace *namespace;
+static struct GNUNET_IDENTITY_Ego *namespace;
+
+/**
+ * Handle to identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
 
 
 /**
@@ -153,7 +159,7 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_PublishContext *p;
 
   kill_task = GNUNET_SCHEDULER_NO_TASK;
-  if (pc != NULL)
+  if (NULL != pc)
   {
     p = pc;
     pc = NULL;
@@ -182,10 +188,10 @@ stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_FS_directory_scan_abort (ds);
     ds = NULL;
   } 
-  if (NULL != namespace)
+  if (NULL != identity)
   {
-    GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    namespace = NULL;
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
   }
   GNUNET_FS_stop (ctx);
   ctx = NULL;
@@ -432,29 +438,20 @@ static void
 uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
                       const char *emsg)
 {
-  struct GNUNET_FS_Namespace *ns;
+  const struct GNUNET_CRYPTO_EccPrivateKey *priv;
 
   if (NULL != emsg)
   {
     FPRINTF (stderr, "%s\n", emsg);
     ret = 1;
   }
-  if (NULL != pseudonym)
+  if (NULL != namespace)
   {
-    ns = GNUNET_FS_namespace_create (ctx, pseudonym);
-    if (NULL == ns)
-    {
-      FPRINTF (stderr, _("Failed to create namespace `%s' (illegal filename?)\n"), pseudonym);
-      ret = 1;
-    }
-    else
-    {
-      GNUNET_FS_publish_sks (ctx, ns, this_id, next_id, meta, uri, &bo,
-                             GNUNET_FS_PUBLISH_OPTION_NONE,
-                             &uri_sks_continuation, NULL);
-      GNUNET_assert (GNUNET_OK == GNUNET_FS_namespace_delete (ns, GNUNET_NO));
-      return;
-    }
+    priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
+    GNUNET_FS_publish_sks (ctx, priv, this_id, next_id, meta, uri, &bo,
+			   GNUNET_FS_PUBLISH_OPTION_NONE,
+			   &uri_sks_continuation, NULL);
+    return;
   }
   GNUNET_FS_uri_destroy (uri);
   uri = NULL;
@@ -523,40 +520,37 @@ static void
 directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
 {
   struct GNUNET_FS_FileInformation *fi;
+  const struct GNUNET_CRYPTO_EccPrivateKey *priv;
 
   fi = get_file_information (directory_scan_result);
   GNUNET_FS_share_tree_free (directory_scan_result);
   if (NULL == fi)
   {
     FPRINTF (stderr, "%s", _("Could not publish\n"));
-    if (NULL != namespace)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    GNUNET_FS_stop (ctx);
+    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
   }
   GNUNET_FS_file_information_inspect (fi, &publish_inspector, NULL);
   if (extract_only)
   {
-    if (NULL != namespace)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
     GNUNET_FS_file_information_destroy (fi, NULL, NULL);
-    GNUNET_FS_stop (ctx);
-    if (GNUNET_SCHEDULER_NO_TASK != kill_task)
-    {
-      GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  pc = GNUNET_FS_publish_start (ctx, fi, namespace, this_id, next_id,
+  if (NULL == namespace)
+    priv = NULL;
+  else
+    priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
+  pc = GNUNET_FS_publish_start (ctx, fi, 
+				priv, this_id, next_id,
                                 (do_simulate) ?
                                 GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY :
                                 GNUNET_FS_PUBLISH_OPTION_NONE);
   if (NULL == pc)
   {
     FPRINTF (stderr, "%s",  _("Could not start publishing.\n"));
-    GNUNET_FS_stop (ctx);
+    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
   }
@@ -632,6 +626,94 @@ directory_scan_cb (void *cls,
 
 
 /**
+ * Continuation proceeding with initialization after identity subsystem
+ * has been initialized.
+ *
+ * @param args0 filename to publish
+ */ 
+static void
+identity_continuation (const char *args0)
+{
+  char *ex;
+  char *emsg;
+
+  if ( (NULL != pseudonym) &&
+       (NULL == namespace) )
+  {
+    FPRINTF (stderr, _("Selected pseudonym `%s' unknown\n"), pseudonym);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (NULL != uri_string)
+  {
+    emsg = NULL;
+    if (NULL == (uri = GNUNET_FS_uri_parse (uri_string, &emsg)))
+    {
+      FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
+      GNUNET_free (emsg);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    GNUNET_FS_publish_ksk (ctx, topKeywords, meta, uri, &bo,
+                           GNUNET_FS_PUBLISH_OPTION_NONE, &uri_ksk_continuation,
+                           NULL);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS", &ex))
+    ex = NULL;
+  if (0 != ACCESS (args0, R_OK))
+  {
+    FPRINTF (stderr,
+	     _("Failed to access `%s': %s\n"),
+	     args0,
+	     STRERROR (errno));
+    return;
+  }
+  ds = GNUNET_FS_directory_scan_start (args0,
+				       disable_extractor, 
+				       ex, 
+				       &directory_scan_cb, NULL);
+  if (NULL == ds)
+  {
+    FPRINTF (stderr,
+	     "%s", _("Failed to start meta directory scanner.  Is gnunet-helper-publish-fs installed?\n"));
+    return;
+  }
+}
+
+
+/**
+ * Function called by identity service with known pseudonyms.
+ *
+ * @param cls closure with 'const char *' of filename to publish
+ * @param ego ego handle
+ * @param ego_ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  const char *args0 = cls;
+
+  if (NULL == ego) 
+  {
+    identity_continuation (args0);
+    return;
+  }
+  if (0 == strcmp (name, pseudonym))
+    namespace = ego;
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -643,9 +725,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  char *ex;
-  char *emsg;
-
   /* check arguments */
   if ((NULL != uri_string) && (extract_only))
   {
@@ -703,62 +782,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     return;
   }
-  namespace = NULL;
-  if (NULL != pseudonym)
-  {
-    namespace = GNUNET_FS_namespace_create (ctx, pseudonym);
-    if (NULL == namespace)
-    {
-      FPRINTF (stderr, _("Failed to create namespace `%s' (illegal filename?)\n"), pseudonym);
-      GNUNET_FS_stop (ctx);
-      ret = 1;
-      return;
-    }
-  }
-  if (NULL != uri_string)
-  {
-    emsg = NULL;
-    if (NULL == (uri = GNUNET_FS_uri_parse (uri_string, &emsg)))
-    {
-      FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
-      GNUNET_free (emsg);
-      if (namespace != NULL)
-        GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-      GNUNET_FS_stop (ctx);
-      ret = 1;
-      return;
-    }
-    GNUNET_FS_publish_ksk (ctx, topKeywords, meta, uri, &bo,
-                           GNUNET_FS_PUBLISH_OPTION_NONE, &uri_ksk_continuation,
-                           NULL);
-    if (NULL != namespace)
-      GNUNET_FS_namespace_delete (namespace, GNUNET_NO);
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "FS", "EXTRACTORS", &ex))
-    ex = NULL;
-  if (0 != ACCESS (args[0], R_OK))
-  {
-    FPRINTF (stderr,
-	     _("Failed to access `%s': %s\n"),
-	     args[0],
-	     STRERROR (errno));
-    return;
-  }
-  ds = GNUNET_FS_directory_scan_start (args[0],
-				       disable_extractor, 
-				       ex, 
-				       &directory_scan_cb, NULL);
-  if (NULL == ds)
-  {
-    FPRINTF (stderr,
-	     "%s", _("Failed to start meta directory scanner.  Is gnunet-helper-publish-fs installed?\n"));
-    return;
-  }
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);
+  if (NULL != pseudonym)
+    identity = GNUNET_IDENTITY_connect (cfg,
+					&identity_cb, args[0]);
+  else
+    identity_continuation (args[0]);
 }
 
 

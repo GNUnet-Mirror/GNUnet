@@ -74,7 +74,16 @@ struct GNUNET_IDENTITY_Operation;
  * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego);
+GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego);
+
+
+/**
+ * Obtain the ego representing 'anonymous' users.
+ *
+ * @returns handle for the anonymous user, must not be freed
+ */
+const struct GNUNET_IDENTITY_Ego *
+GNUNET_IDENTITY_ego_get_anonymous (void);
 
 
 /**
@@ -84,7 +93,7 @@ GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego);
  * @param pk set to ego's public key
  */
 void
-GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
+GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
 				    struct GNUNET_CRYPTO_EccPublicKey *pk);
 
 

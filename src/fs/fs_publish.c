@@ -84,11 +84,6 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
     pc->fhc = NULL;
   }
   GNUNET_FS_file_information_destroy (pc->fi, NULL, NULL);
-  if (pc->ns != NULL)
-  {
-    GNUNET_FS_namespace_delete (pc->ns, GNUNET_NO);
-    pc->ns = NULL;
-  }
   GNUNET_free_non_null (pc->nid);
   GNUNET_free_non_null (pc->nuid);
   GNUNET_free_non_null (pc->serialization);
@@ -271,9 +266,15 @@ static void
 publish_sblock (struct GNUNET_FS_PublishContext *pc)
 {
   if (NULL != pc->ns)
-    pc->sks_pc = GNUNET_FS_publish_sks (pc->h, pc->ns, pc->nid, pc->nuid,
-					pc->fi->meta, pc->fi->chk_uri, &pc->fi->bo,
-					pc->options, &publish_sblocks_cont, pc);
+    pc->sks_pc = GNUNET_FS_publish_sks (pc->h,
+					pc->ns, 
+					pc->nid, 
+					pc->nuid,
+					pc->fi->meta,
+					pc->fi->chk_uri,
+					&pc->fi->bo,
+					pc->options,
+					&publish_sblocks_cont, pc);
   else
     publish_sblocks_cont (pc, NULL, NULL);
 }
@@ -1117,7 +1118,8 @@ finish_reserve (void *cls, int success,
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
                          struct GNUNET_FS_FileInformation *fi,
-                         struct GNUNET_FS_Namespace *ns, const char *nid,
+                         const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+			 const char *nid,
                          const char *nuid,
                          enum GNUNET_FS_PublishOptions options)
 {
@@ -1135,20 +1137,20 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   {
     dsh = NULL;
   }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+  ret = GNUNET_new (struct GNUNET_FS_PublishContext);
   ret->dsh = dsh;
   ret->h = h;
   ret->fi = fi;
-  ret->ns = ns;
-  ret->options = options;
-  if (ns != NULL)
+  if (NULL != ns)
   {
-    ns->rc++;
+    ret->ns = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    *ret->ns = *ns;
     GNUNET_assert (NULL != nid);
     ret->nid = GNUNET_strdup (nid);
     if (NULL != nuid)
       ret->nuid = GNUNET_strdup (nuid);
   }
+  ret->options = options;
   /* signal start */
   GNUNET_FS_file_information_inspect (ret->fi, &fip_signal_start, ret);
   ret->fi_pos = ret->fi;

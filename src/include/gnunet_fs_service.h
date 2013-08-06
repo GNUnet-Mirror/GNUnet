@@ -26,7 +26,6 @@
 #define GNUNET_FS_LIB_H
 
 #include "gnunet_util_lib.h"
-#include "gnunet_scheduler_lib.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -81,78 +80,6 @@ struct GNUNET_FS_Uri;
 
 
 /**
- * Identifier for a GNUnet pseudonym (the public key).  Q-point, Q=dP.
- * Note that we (ab)use an identifier of 'Q=G=1P' to mean the
- * 'anonymous' pseudonym.
- */
-struct GNUNET_FS_PseudonymIdentifier
-{
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   */
-  unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   */
-  unsigned char q_y[256 / 8];
-
-};
-
-
-/**
- * Handle for a pseudonym (private key).
- */
-struct GNUNET_FS_PseudonymHandle;
-
-
-/**
- * Signature made with a pseudonym (includes the full public key).
- * The ECDSA signature is a pair (r,s) with r = x1 mod n where
- * (x1,y1) = kG for "random" k and s = k^{-1}(z + rd) mod n,
- * where z is derived from the hash of the message that is being
- * signed.
- */
-struct GNUNET_FS_PseudonymSignature
-{
-  
-  /**
-   * Who created the signature? (public key of the signer), 'd' value in NIST P-256.
-   */
-  struct GNUNET_FS_PseudonymIdentifier signer;
-
-  /**
-   * Binary ECDSA signature data, r-value.  Value is mod n, and n is 256 bits.
-   */
-  unsigned char sig_r[256 / 8];
-
-  /**
-   * Binary ECDSA signature data, s-value.  Value is mod n, and n is 256 bits.
-   */
-  unsigned char sig_s[256 / 8];
-};
-
-
-/**
- * Purpose for signature made with a pseudonym.
- */
-struct GNUNET_FS_PseudonymSignaturePurpose
-{
-  /**
-   * How many bytes are being signed (including this header)?
-   */
-  uint32_t size;
-
-  /**
-   * What is the context/purpose of the signature?
-   */
-  uint32_t purpose;
-};
-
-
-/**
  * Iterator over keywords
  *
  * @param cls closure
@@ -165,120 +92,11 @@ typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
 
 
 
-
-/**
- * Create a pseudonym.
- *
- * @param filename name of the file to use for storage, NULL for in-memory only
- * @return handle to the private key of the pseudonym
- */
-struct GNUNET_FS_PseudonymHandle *
-GNUNET_FS_pseudonym_create (const char *filename);
-
-
-/**
- * Create a pseudonym, from a file that must already exist.
- *
- * @param filename name of the file to use for storage, NULL for in-memory only
- * @return handle to the private key of the pseudonym
- */
-struct GNUNET_FS_PseudonymHandle *
-GNUNET_FS_pseudonym_create_from_existing_file (const char *filename);
-
-
-/**
- * Get the handle for the 'anonymous' pseudonym shared by all users.
- * That pseudonym uses a fixed 'secret' for the private key; this
- * construction is useful to make anonymous and pseudonymous APIs
- * (and packets) indistinguishable on the network.  See #2564.
- *
- * @return handle to the (non-secret) private key of the 'anonymous' pseudonym
- */
-struct GNUNET_FS_PseudonymHandle *
-GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle (void);
-
-
-/**
- * Destroy a pseudonym handle.  Does NOT remove the private key from
- * the disk.
- *
- * @param ph pseudonym handle to destroy
- */
-void
-GNUNET_FS_pseudonym_destroy (struct GNUNET_FS_PseudonymHandle *ph);
-
-
-/**
- * Cryptographically sign some data with the pseudonym.
- *
- * @param ph private key used for signing (corresponds to 'x' in #2564)
- * @param purpose data to sign
- * @param seed hash of the plaintext of the data that we are signing, 
- *             used for deterministic PRNG for anonymous signing;
- *             corresponds to 'k' in section 2.7 of #2564
- * @param signing_key modifier to apply to the private key for signing;
- *                    corresponds to 'h' in section 2.3 of #2564.
- * @param signature where to store the signature
- * @return GNUNET_SYSERR on failure
- */
-int
-GNUNET_FS_pseudonym_sign (struct GNUNET_FS_PseudonymHandle *ph,
-			  const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
-			  const struct GNUNET_HashCode *seed,
-			  const struct GNUNET_HashCode *signing_key,
-			  struct GNUNET_FS_PseudonymSignature *signature);
-
-
-/**
- * Given a pseudonym and a signing key, derive the corresponding public
- * key that would be used to verify the resulting signature.
- *
- * @param pseudonym the public key (g^x in DSA, dQ in ECDSA)
- * @param signing_key input to derive 'h' (see section 2.4 of #2564)
- * @param verification_key resulting public key to verify the signature
- *        created from the 'ph' of 'pseudonym' and the 'signing_key';
- *        the value stored here can then be given to GNUNET_FS_pseudonym_verify.
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_FS_pseudonym_derive_verification_key (struct GNUNET_FS_PseudonymIdentifier *pseudonym,
-					     const struct GNUNET_HashCode *signing_key,
-					     struct GNUNET_FS_PseudonymIdentifier *verification_key);
-
-
-/**
- * Verify a signature made with a pseudonym.
- *
- * @param purpose data that was signed
- * @param signature signature to verify
- * @param verification_key public key to use for checking the signature;
- *                    corresponds to 'g^(x+h)' in section 2.4 of #2564.
- * @return GNUNET_OK on success (signature valid, 'pseudonym' set),
- *         GNUNET_SYSERR if the signature is invalid
- */
-int
-GNUNET_FS_pseudonym_verify (const struct GNUNET_FS_PseudonymSignaturePurpose *purpose,
-			 const struct GNUNET_FS_PseudonymSignature *signature,
-			 const struct GNUNET_FS_PseudonymIdentifier *verification_key);
-
-
-/**
- * Get the identifier (public key) of a pseudonym.
- *
- * @param ph pseudonym handle with the private key
- * @param pseudonym pseudonym identifier (set based on 'ph')
- */
-void
-GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
-				    struct GNUNET_FS_PseudonymIdentifier *pseudonym);
-
-
-
 /**
  * Iterator over all known pseudonyms.
  *
  * @param cls closure
- * @param pseudonym hash code of public key of pseudonym
+ * @param pseudonym public key of pseudonym
  * @param name name of the pseudonym (might be NULL)
  * @param unique_name unique name of the pseudonym (might be NULL)
  * @param md meta data known about the pseudonym
@@ -286,11 +104,11 @@ GNUNET_FS_pseudonym_get_identifier (struct GNUNET_FS_PseudonymHandle *ph,
  * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_PseudonymIterator) (void *cls,
-					    const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
+					    const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
 					    const char *name,
 					    const char *unique_name,
 					    const struct GNUNET_CONTAINER_MetaData *md, 
-					     int32_t rating);
+					    int32_t rating);
 
 
 /**
@@ -303,7 +121,7 @@ typedef int (*GNUNET_FS_PseudonymIterator) (void *cls,
  */
 int
 GNUNET_FS_pseudonym_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			  const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
+			  const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
 			  int32_t delta);
 
 
@@ -319,7 +137,7 @@ GNUNET_FS_pseudonym_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_FS_pseudonym_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const struct GNUNET_FS_PseudonymIdentifier *pseudonym,
+			 const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
 			 const struct GNUNET_CONTAINER_MetaData *meta);
 
 
@@ -340,7 +158,7 @@ GNUNET_FS_pseudonym_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Handle for a discovery callback registration.
  */
-struct GNUNET_FS_pseudonym_DiscoveryHandle;
+struct GNUNET_FS_Pseudonym_DiscoveryHandle;
 
 
 /**
@@ -352,7 +170,7 @@ struct GNUNET_FS_pseudonym_DiscoveryHandle;
  * @param iterator_cls closure for iterator
  * @return registration handle
  */
-struct GNUNET_FS_pseudonym_DiscoveryHandle *
+struct GNUNET_FS_Pseudonym_DiscoveryHandle *
 GNUNET_FS_pseudonym_discovery_callback_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 						 GNUNET_FS_PseudonymIterator iterator, 
 						 void *iterator_cls);
@@ -364,7 +182,7 @@ GNUNET_FS_pseudonym_discovery_callback_register (const struct GNUNET_CONFIGURATI
  * @param dh registration to unregister
  */
 void
-GNUNET_FS_pseudonym_discovery_callback_unregister (struct GNUNET_FS_pseudonym_DiscoveryHandle *dh);
+GNUNET_FS_pseudonym_discovery_callback_unregister (struct GNUNET_FS_Pseudonym_DiscoveryHandle *dh);
 
 
 /**
@@ -380,7 +198,7 @@ GNUNET_FS_pseudonym_discovery_callback_unregister (struct GNUNET_FS_pseudonym_Di
  */
 char *
 GNUNET_FS_pseudonym_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				   const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
+				   const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
 				   const char *name, 
 				   unsigned int *suffix);
 
@@ -407,7 +225,7 @@ GNUNET_FS_pseudonym_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg
  */
 int
 GNUNET_FS_pseudonym_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
+			      const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
 			      struct GNUNET_CONTAINER_MetaData **ret_meta,
 			      int32_t *ret_rank, 
 			      char **ret_name, 
@@ -425,7 +243,7 @@ GNUNET_FS_pseudonym_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				const char *ns_uname,
-				struct GNUNET_FS_PseudonymIdentifier *pseudonym);
+				struct GNUNET_CRYPTO_EccPublicKey *pseudonym);
 
 
 /**
@@ -442,22 +260,10 @@ GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_FS_pseudonym_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			      const struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
+			      const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
 			      const char *name,
 			      const struct GNUNET_CONTAINER_MetaData *md, 
 			      int32_t rank);
-
-
-/**
- * Remove pseudonym from the set of known pseudonyms.
- *
- * @param cfg overall configuration
- * @param id the pseudonym identifier
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
- */
-int
-GNUNET_FS_pseudonym_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			    const struct GNUNET_FS_PseudonymIdentifier *id);
 
 
 /**
@@ -468,7 +274,8 @@ GNUNET_FS_pseudonym_remove (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param key wherer to store the unique key
  */
 void
-GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, struct GNUNET_HashCode * key);
+GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
+		      struct GNUNET_HashCode *key);
 
 
 /**
@@ -501,7 +308,8 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
  * @param is_mandatory is this keyword mandatory?
  */
 void
-GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri, const char *keyword,
+GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri, 
+			       const char *keyword,
                                int is_mandatory);
 
 
@@ -695,34 +503,15 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
 
 
 /**
- * Handle to one of our namespaces.
- */
-struct GNUNET_FS_Namespace;
-
-
-/**
- * Create an SKS URI from a namespace and an identifier.
- *
- * @param ns namespace
- * @param id identifier
- * @param emsg where to store an error message
- * @return an FS URI for the given namespace and identifier
- */
-struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (struct GNUNET_FS_Namespace *ns, const char *id,
-                          char **emsg);
-
-
-/**
  * Create an SKS URI from a namespace ID and an identifier.
  *
- * @param pseudonym pseudonym to use
+ * @param ns pseudonym to use
  * @param id identifier
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_FS_PseudonymIdentifier *pseudonym, 
-				    const char *id);
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicKey *ns, 
+			  const char *id);
 
 
 /**
@@ -735,7 +524,7 @@ GNUNET_FS_uri_sks_create_from_nsid (struct GNUNET_FS_PseudonymIdentifier *pseudo
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_FS_PseudonymIdentifier *pseudonym);
+                                 struct GNUNET_CRYPTO_EccPublicKey *pseudonym);
 
 
 /**
@@ -1757,12 +1546,6 @@ struct GNUNET_FS_ProgressInfo
         {
 
           /**
-	   * Handle to the namespace (NULL if it is not a local
-	   * namespace).
-	   */
-          struct GNUNET_FS_Namespace *ns;
-
-          /**
 	   * Short, human-readable name of the namespace.
 	   */
           const char *name;
@@ -1780,7 +1563,7 @@ struct GNUNET_FS_ProgressInfo
           /**
 	   * Public key of the namespace.
 	   */
-          struct GNUNET_FS_PseudonymIdentifier pseudonym;
+          struct GNUNET_CRYPTO_EccPublicKey pseudonym;
 
         } ns;
 
@@ -2379,6 +2162,7 @@ enum GNUNET_FS_PublishOptions
   GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY = 1
 };
 
+
 /**
  * Publish a file or directory.
  *
@@ -2395,7 +2179,8 @@ enum GNUNET_FS_PublishOptions
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
                          struct GNUNET_FS_FileInformation *fi,
-                         struct GNUNET_FS_Namespace *ns, const char *nid,
+                         const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+			 const char *nid,
                          const char *nuid,
                          enum GNUNET_FS_PublishOptions options);
 
@@ -2421,7 +2206,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc);
  * @param emsg error message, NULL on success
  */
 typedef void (*GNUNET_FS_PublishContinuation) (void *cls,
-                                               const struct GNUNET_FS_Uri * uri,
+                                               const struct GNUNET_FS_Uri *uri,
                                                const char *emsg);
 
 
@@ -2486,7 +2271,7 @@ struct GNUNET_FS_PublishSksContext;
  */
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
-                       struct GNUNET_FS_Namespace *ns,
+                       const struct GNUNET_CRYPTO_EccPrivateKey *ns,
                        const char *identifier, const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
@@ -2568,110 +2353,6 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
 
 
 /**
- * Create a namespace with the given name; if one already
- * exists, return a handle to the existing namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param name name to use for the namespace
- * @return handle to the namespace, NULL on error (i.e. invalid filename)
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name);
-
-
-/**
- * Open the namespace with the given name; if it does not exist,
- * or the key file is corrupted, the function fails.
- *
- * @param h handle to the file sharing subsystem
- * @param name name of the namespace
- * @return handle to the namespace,
- *         NULL on error (i.e. invalid filename, non-existent filename)
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name);
-
-
-/**
- * Rename a local namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param old_name old name of the namespace
- * @param new_name new name of the namespace
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
- */
-int
-GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, 
-			    const char *old_name,
-			    const char *new_name);
-
-
-/**
- * Duplicate a namespace handle.
- *
- * @param ns namespace handle
- * @return duplicated handle to the namespace
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_dup (struct GNUNET_FS_Namespace *ns);
-
-
-/**
- * Get hash of the public key of a namespace.
- *
- * @param ns namespace
- * @param id buffer to store the key in
- * @return GNUNET_OK on success
- *         GNUNET_SYSERR on failure (contents of id remain intact)
- */
-int
-GNUNET_FS_namespace_get_public_identifier (struct GNUNET_FS_Namespace *ns,
-					   struct GNUNET_FS_PseudonymIdentifier *id);
-
-
-/**
- * Delete a namespace handle.  Can be used for a clean shutdown (free
- * memory) or also to freeze the namespace to prevent further
- * insertions by anyone.
- *
- * @param ns handle to the namespace that should be deleted / freed
- * @param freeze prevents future insertions; creating a namespace
- *        with the same name again will create a fresh namespace instead
- *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *ns, int freeze);
-
-
-/**
- * Callback with information about local (!) namespaces.
- * Contains the names of the local namespace and the global
- * ID.
- *
- * @param cls closure
- * @param name human-readable identifier of the namespace
- * @param id identifier for the namespace
- */
-typedef void (*GNUNET_FS_NamespaceInfoProcessor) (void *cls, const char *name,
-                                                  const struct GNUNET_FS_PseudonymIdentifier *id);
-
-
-/**
- * Build a list of all available local (!) namespaces The returned
- * names are only the nicknames since we only iterate over the local
- * namespaces.
- *
- * @param h handle to the file sharing subsystem
- * @param cb function to call on each known namespace
- * @param cb_cls closure for cb
- */
-void
-GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
-                          GNUNET_FS_NamespaceInfoProcessor cb, void *cb_cls);
-
-
-/**
  * Function called on updateable identifiers.
  *
  * @param cls closure
@@ -2703,13 +2384,15 @@ typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, const char *last_id,
  * cause the library to call "ip" with all children of the node.  Note
  * that cycles within an SCC are possible (including self-loops).
  *
+* @param h fs handle to use
  * @param ns namespace to inspect for updateable content
  * @param next_id ID to look for; use NULL to look for SCC roots
  * @param ip function to call on each updateable identifier
  * @param ip_cls closure for ip
  */
 void
-GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
+GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
+				     const struct GNUNET_CRYPTO_EccPrivateKey *ns,
                                      const char *next_id,
                                      GNUNET_FS_IdentifierProcessor ip,
                                      void *ip_cls);

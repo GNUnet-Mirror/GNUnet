@@ -162,8 +162,8 @@ testNamespace (int i)
   char *uri;
   struct GNUNET_FS_Uri *ret;
   char *emsg;
-  struct GNUNET_FS_PseudonymHandle *ph;
-  struct GNUNET_FS_PseudonymIdentifier id;
+  struct GNUNET_CRYPTO_EccPrivateKey *ph;
+  struct GNUNET_CRYPTO_EccPublicKey id;
   char buf[1024];
   char ubuf[1024];
   char *sret;
@@ -192,8 +192,8 @@ testNamespace (int i)
     GNUNET_assert (0);
   }
   GNUNET_free (emsg);
-  ph = GNUNET_FS_pseudonym_create (NULL);
-  GNUNET_FS_pseudonym_get_identifier (ph, &id);
+  ph = GNUNET_CRYPTO_ecc_key_create ();
+  GNUNET_CRYPTO_ecc_key_get_public (ph, &id);
   sret = GNUNET_STRINGS_data_to_string (&id, sizeof (id),
 					ubuf, sizeof (ubuf) - 1);
   GNUNET_assert (NULL != sret);
@@ -231,6 +231,7 @@ testNamespace (int i)
   GNUNET_FS_uri_destroy (ret);
   return 0;
 }
+
 
 static int
 testFile (int i)

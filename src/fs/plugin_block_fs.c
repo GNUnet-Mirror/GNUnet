@@ -105,15 +105,16 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-    if (reply_block_size != ntohl (ub->purpose.size) + sizeof (struct GNUNET_FS_PseudonymSignature))
+    if (reply_block_size != ntohl (ub->purpose.size) + sizeof (struct GNUNET_CRYPTO_EccSignature))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
     if (GNUNET_OK !=
-	GNUNET_FS_pseudonym_verify (&ub->purpose,
-				    &ub->signature,
-				    &ub->verification_key))
+	GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
+				  &ub->purpose,
+				  &ub->signature,
+				  &ub->verification_key))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

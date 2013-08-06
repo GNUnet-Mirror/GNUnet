@@ -39,6 +39,7 @@ libgnunetfs_la_SOURCES = \
   fs_pseudonym.c \
   fs_publish.c \
   fs_publish_ksk.c \
+  fs_publish_ublock.c fs_publish_ublock.h \
   fs_misc.c \
   fs_namespace.c \
   fs_search.c \
@@ -126,6 +127,7 @@ gnunet_download_DEPENDENCIES = \
 gnunet_publish_SOURCES =  \
  gnunet-publish.c         
 gnunet_publish_LDADD =  \
+ $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/fs/libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  -lextractor \
@@ -154,6 +156,7 @@ gnunet_helper_fs_publish_DEPENDENCIES = \
 gnunet_pseudonym_SOURCES = \
  gnunet-pseudonym.c
 gnunet_pseudonym_LDADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/fs/libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lextractor \

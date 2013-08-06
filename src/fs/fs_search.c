@@ -27,6 +27,7 @@
 #include "gnunet_fs_service.h"
 #include "gnunet_protocols.h"
 #include "fs_api.h"
+#include "fs_publish_ublock.h"
 
 
 /**
@@ -669,7 +670,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  * given ciphertext block.
  *
  * @param sc search context with the keywords
- * @param verification_key public key to use to lookup the keyword
+ * @param dpub derived public key used for the search
  * @param edata encrypted data
  * @param edata_size number of bytes in 'edata' (and 'data')
  * @param data where to store the plaintext
@@ -678,22 +679,20 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  */
 static int
 decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
-			    const struct GNUNET_FS_PseudonymIdentifier *verification_key,
+			    const struct GNUNET_CRYPTO_EccPublicKey *dpub,
 			    const void *edata,
 			    size_t edata_size,
 			    char *data)
 { 
-  struct GNUNET_HashCode q;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  int i;
+  const struct GNUNET_CRYPTO_EccPrivateKey *anon;
+  struct GNUNET_CRYPTO_EccPublicKey anon_pub;
+  unsigned int i;
 
-  GNUNET_CRYPTO_hash (verification_key,
-                      sizeof (struct GNUNET_FS_PseudonymIdentifier),
-                      &q);
   /* find key */
   for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
-    if (0 == memcmp (&q, &sc->requests[i].uquery, sizeof (struct GNUNET_HashCode)))
+    if (0 == memcmp (dpub,
+		     &sc->requests[i].dpub,
+		     sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
       break;
   if (i == sc->uri->data.ksk.keywordCount)
   {
@@ -702,14 +701,12 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
     return GNUNET_SYSERR;
   }
   /* decrypt */
-  GNUNET_CRYPTO_hash_to_aes_key (&sc->requests[i].ukey, &skey, &iv);
-  if (-1 ==
-      GNUNET_CRYPTO_aes_decrypt (edata, edata_size, &skey,
-                                 &iv, data))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
+  anon = GNUNET_CRYPTO_ecc_key_get_anonymous ();
+  GNUNET_CRYPTO_ecc_key_get_public (anon, &anon_pub);
+  GNUNET_FS_ublock_decrypt_ (edata, edata_size,
+			     &anon_pub,
+			     sc->requests[i].keyword,
+			     data);
   return i;
 }
 
@@ -789,31 +786,18 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
 {
   size_t len = size - sizeof (struct UBlock);
   char pt[len];
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_FS_Uri *uri;
   struct GNUNET_CONTAINER_MetaData *meta;
   const char *id;
   const char *uris;
   size_t off;
   char *emsg;
-  struct GNUNET_HashCode key;
-  struct GNUNET_HashCode id_hash;
-  struct GNUNET_HashCode ns_hash;
-  char *identifier;
 
   /* decrypt */
-  identifier = sc->uri->data.sks.identifier;
-  GNUNET_CRYPTO_hash (identifier, strlen (identifier), &id_hash);
-  GNUNET_CRYPTO_hash (&sc->uri->data.sks.ns, 
-		      sizeof (sc->uri->data.sks.ns), &ns_hash);
-  GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
-  GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_decrypt (&ub[1], len, &skey, &iv, pt))
-  {
-    GNUNET_break (0);
-    return;
-  }
+  GNUNET_FS_ublock_decrypt_ (&ub[1], len,
+			     &sc->uri->data.sks.ns,
+			     sc->uri->data.sks.identifier,
+			     pt);
   /* parse */
   if (0 == (off = GNUNET_STRINGS_buffer_tokenize (pt, len, 2, &id, &uris)))
   {
@@ -1050,12 +1034,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   struct MessageBuilderContext mbc;
   size_t msize;
   struct SearchMessage *sm;
-  const char *identifier;
-  struct GNUNET_HashCode key;
-  struct GNUNET_HashCode signing_key;
-  struct GNUNET_HashCode ns_hash;
-  struct GNUNET_HashCode id_hash;
-  struct GNUNET_FS_PseudonymIdentifier verification_key;
+  struct GNUNET_CRYPTO_EccPublicKey dpub;
   unsigned int sqms;
   uint32_t options;
 
@@ -1122,18 +1101,11 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_UBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
     memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
-
-    identifier = sc->uri->data.sks.identifier;
-    GNUNET_CRYPTO_hash (identifier, strlen (identifier), &id_hash);
-    GNUNET_CRYPTO_hash (&sc->uri->data.sks.ns,
-			sizeof (sc->uri->data.sks.ns), &ns_hash);
-    GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
-    GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
-    GNUNET_FS_pseudonym_derive_verification_key (&sc->uri->data.sks.ns,
-						 &signing_key,
-						 &verification_key);
-    GNUNET_CRYPTO_hash (&verification_key,
-			sizeof (verification_key),
+    GNUNET_CRYPTO_ecc_public_key_derive (&sc->uri->data.sks.ns,
+					 sc->uri->data.sks.identifier,
+					 &dpub);
+    GNUNET_CRYPTO_hash (&dpub,
+			sizeof (dpub),
 			&sm->query);
     mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
@@ -1297,35 +1269,34 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 {
   unsigned int i;
   const char *keyword;
-  struct GNUNET_HashCode signing_key;
-  struct GNUNET_FS_PseudonymHandle *ph;
-  struct GNUNET_FS_PseudonymIdentifier anon;
-  struct GNUNET_FS_PseudonymIdentifier verification_key;
+  const struct GNUNET_CRYPTO_EccPrivateKey *anon;
+  struct GNUNET_CRYPTO_EccPublicKey anon_pub;
+  struct SearchRequestEntry *sre;
 
   GNUNET_assert (NULL == sc->client);
   if (GNUNET_FS_uri_test_ksk (sc->uri))
   {
     GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
-    ph = GNUNET_FS_pseudonym_get_anonymous_pseudonym_handle ();
-    GNUNET_FS_pseudonym_get_identifier (ph, &anon);
-    GNUNET_FS_pseudonym_destroy (ph);
+    anon = GNUNET_CRYPTO_ecc_key_get_anonymous ();
+    GNUNET_CRYPTO_ecc_key_get_public (anon, &anon_pub);
     sc->requests =
         GNUNET_malloc (sizeof (struct SearchRequestEntry) *
                        sc->uri->data.ksk.keywordCount);
     for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
     {
       keyword = &sc->uri->data.ksk.keywords[i][1];
-      GNUNET_CRYPTO_hash (keyword, strlen (keyword), &sc->requests[i].ukey);
-      GNUNET_CRYPTO_hash (&sc->requests[i].ukey, sizeof (struct GNUNET_HashCode), &signing_key);
-      GNUNET_FS_pseudonym_derive_verification_key (&anon, 
-						   &signing_key,
-						   &verification_key);
-      GNUNET_CRYPTO_hash (&verification_key, sizeof (struct GNUNET_FS_PseudonymIdentifier),
-			  &sc->requests[i].uquery);
-      sc->requests[i].mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
-      if (sc->requests[i].mandatory)
+      sre = &sc->requests[i];
+      sre->keyword = GNUNET_strdup (keyword);
+      GNUNET_CRYPTO_ecc_public_key_derive (&anon_pub,
+					   keyword,
+					   &sre->dpub);
+      GNUNET_CRYPTO_hash (&sre->dpub, 
+			  sizeof (struct GNUNET_CRYPTO_EccPublicKey), 
+			  &sre->uquery);
+      sre->mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
+      if (sre->mandatory)
         sc->mandatory_count++;
-      sc->requests[i].results = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
+      sre->results = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
     }
   }
   sc->client = GNUNET_CLIENT_connect ("fs", sc->h->cfg);
@@ -1475,7 +1446,10 @@ GNUNET_FS_search_signal_suspend_ (void *cls)
   {
     GNUNET_assert (GNUNET_FS_uri_test_ksk (sc->uri));
     for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
+    {
       GNUNET_CONTAINER_multihashmap_destroy (sc->requests[i].results);
+      GNUNET_free (sc->requests[i].keyword);
+    }
   }
   GNUNET_free_non_null (sc->requests);
   GNUNET_free_non_null (sc->emsg);

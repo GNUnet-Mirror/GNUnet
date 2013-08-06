@@ -884,13 +884,21 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
 
 
 /**
- * Create a new private key. Caller must free return value.  Blocking version
- * (blocks to gather entropy).
+ * Create a new private key. Caller must free return value.
  *
  * @return fresh private key
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create (void);
+
+
+/**
+ * Get the shared private key we use for anonymous users.
+ *
+ * @return "anonymous" private key
+ */
+const struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_get_anonymous (void);
 
 
 /**

@@ -64,6 +64,7 @@ SUBDIRS = \
   dns \
   identity \
   set \
+  fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
   gns \

@@ -1467,17 +1467,17 @@ deserialize_publish_file (void *cls, const char *filename)
   struct GNUNET_FS_PublishContext *pc;
   int32_t options;
   int32_t all_done;
+  int32_t have_ns;
   char *fi_root;
-  char *ns;
+  struct GNUNET_CRYPTO_EccPrivateKey ns;
   char *fi_pos;
   char *emsg;
 
-  pc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishContext));
+  pc = GNUNET_new (struct GNUNET_FS_PublishContext);
   pc->h = h;
   pc->serialization = get_serialization_short_name (filename);
   fi_root = NULL;
   fi_pos = NULL;
-  ns = NULL;
   rh = GNUNET_BIO_read_open (filename);
   if (NULL == rh)
   {
@@ -1489,10 +1489,12 @@ deserialize_publish_file (void *cls, const char *filename)
           GNUNET_BIO_read_string (rh, "publish-nuid", &pc->nuid, 1024)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &options)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &all_done)) ||
+      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &have_ns)) ||
       (GNUNET_OK !=
        GNUNET_BIO_read_string (rh, "publish-firoot", &fi_root, 128)) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "publish-fipos", &fi_pos, 128))
-      || (GNUNET_OK != GNUNET_BIO_read_string (rh, "publish-ns", &ns, 1024)))
+      || ( (GNUNET_YES == have_ns) &&
+	   (GNUNET_OK != GNUNET_BIO_read (rh, "publish-ns", &ns, sizeof (ns)))) )
   {
     GNUNET_break (0);
     goto cleanup;
@@ -1510,17 +1512,10 @@ deserialize_publish_file (void *cls, const char *filename)
     GNUNET_break (0);
     goto cleanup;
   }
-  if (NULL != ns)
+  if (GNUNET_YES == have_ns)
   {
-    pc->ns = GNUNET_FS_namespace_create (h, ns);
-    if (NULL == pc->ns)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _
-                  ("Failed to recover namespace `%s', cannot resume publishing operation.\n"),
-                  ns);
-      goto cleanup;
-    }
+    pc->ns = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    *pc->ns = ns;
   }
   if ((0 == (pc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY)) &&
       (GNUNET_YES != pc->all_done))
@@ -1563,7 +1558,6 @@ deserialize_publish_file (void *cls, const char *filename)
                 filename, emsg);
     GNUNET_free (emsg);
   }
-  GNUNET_free_non_null (ns);
   pc->top = GNUNET_FS_make_top (h, &GNUNET_FS_publish_signal_suspend_, pc);
   return GNUNET_OK;
 cleanup:
@@ -1571,7 +1565,6 @@ cleanup:
   GNUNET_free_non_null (pc->nuid);
   GNUNET_free_non_null (fi_root);
   GNUNET_free_non_null (fi_pos);
-  GNUNET_free_non_null (ns);
   if ((NULL != rh) && (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1601,6 +1594,7 @@ void
 GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
 {
   struct GNUNET_BIO_WriteHandle *wh;
+  int32_t have_ns;
 
   if (NULL == pc->serialization)
     pc->serialization =
@@ -1622,17 +1616,20 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
     GNUNET_break (0);
     goto cleanup;
   }
+  have_ns = (NULL != pc->ns) ? GNUNET_YES : GNUNET_NO;
   if ((GNUNET_OK != GNUNET_BIO_write_string (wh, pc->nid)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, pc->nuid)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pc->options)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pc->all_done)) ||
+      (GNUNET_OK != GNUNET_BIO_write_int32 (wh, have_ns)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, pc->fi->serialization)) ||
       (GNUNET_OK !=
        GNUNET_BIO_write_string (wh,
                                 (NULL == pc->fi_pos) ? NULL : pc->fi_pos->serialization)) ||
-      (GNUNET_OK !=
-       GNUNET_BIO_write_string (wh,
-                                (NULL == pc->ns) ? NULL : pc->ns->name)))
+      ( (NULL != pc->ns) &&
+	GNUNET_BIO_write (wh,
+			  pc->ns,
+			  sizeof (struct GNUNET_CRYPTO_EccPrivateKey)) ) )
   {
     GNUNET_break (0);
     goto cleanup;

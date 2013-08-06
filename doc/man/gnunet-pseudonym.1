@@ -1,18 +1,18 @@
-.TH GNUNET-PSEUDONYM "1" "25 Feb 2012" "GNUnet"
+.TH GNUNET-PSEUDONYM "1" "6 Aug 2013" "GNUnet"
 .SH NAME
-gnunet\-pseudonym \- create, delete or list pseudonyms
+gnunet\-pseudonym \- advertise or list pseudonyms
 .SH SYNOPSIS
 .B gnunet\-pseudonym
 [options]
 .SH DESCRIPTION
 .PP
-gnunet\-pseudonym is a tool for managing pseudonyms and namespaces.  A pseudonym is the persona that controls a namespace.  As such, it is identical to a public\-private RSA key pair.  A namespace is a collection of files that have been signed by the corresponding private RSA key.  A namespace is typically associated with a nickname and other metadata.
+gnunet\-pseudonym is a tool for advertising pseudonyms.  A pseudonym is the persona that controls a namespace.  As such, it is identical to a public\-private ECC key pair.  A namespace is a collection of files that have been signed by the corresponding private ECC key.  A namespace is typically associated with a nickname and other metadata.
 
 Namespaces are an important tool for providing assurances about content integrity and authenticity in GNUnet.  Since all of the content in the namespace must have been provided by the same entity, users can form an opinion about that entity and learn to search (or avoid) certain namespaces.
 
-gnunet\-pseudonym can be used to list all of the pseudonyms that were created locally, to create new pseudonyms, to delete existing pseudonyms (the namespace will continue to exist, but it will be impossible to add additional data to it) and to list all of the namespaces (with their meta-data) known to the local user.  By default, gnunet\-pseudonym lists all pseudonyms that were discovered so far.
+gnunet\-pseudonym can be used to list all of the pseudonyms that were created locally, to advertise namespaces to other users, and to list all of the namespaces (with their meta\-data) known to the local user.  By default, gnunet\-pseudonym lists all pseudonyms that were discovered so far.
 
-Creating a new pseudonym requires using the \-C option together with a nickname that is to be used for the namespace.  Nicknames must be unique for each user, global uniqueness is desirable but not necessary.  If two namespaces in GNUnet use the same nickname all GNUnet tools will display the nickname together with a number which ensures that the name becomes locally unique to avoid ambiguity.  Additional options can be passed together with the \-C option to provide additional meta\-data that describes the namespace.  Possible meta\-data includes the 'realname' of the person controlling the namespace, a description, the mime\-type for content in the namespace (useful if the namespace is dedicated to some specific type of content) and contact information.  One important piece of meta\-data that can be specified is the identifier of a document root, that is the name of a file in the namespace that is a portal to the rest of the content.  This is useful to help users find this root in the absence of conventions.  Note that all of this meta\-data is optional and should never be trusted blindly.
+Advertising a pseudonym requires using the \-A option together with the name of the pseudonym.  Names for pseudonyms controlled by the user must be unique.  However, names for namespaces of other users may not be globally unique.  If two foreign namespaces in GNUnet use the same nickname, all GNUnet tools will display the nickname together with a number which ensures that the name becomes locally unique to avoid ambiguity.  Additional options can be passed together with the \-A option to provide additional meta\-data that describes the namespace.  Possible meta\-data includes the 'realname' of the person controlling the namespace, a description, the mime\-type for content in the namespace (useful if the namespace is dedicated to some specific type of content) and contact information.  One important piece of meta\-data that can be specified is the identifier of a document root, that is the name of a file in the namespace that is a portal to the rest of the content.  This is useful to help users find this root in the absence of conventions.  Note that all of this meta\-data is optional and should never be trusted blindly.
 
 As mentioned before, by default, gnunet\-pseudonym simply lists the meta\-data available for other namespaces.  Namespaces can be discovered whenever the peer obtains the namespace advertisement.  Namespace advertisements can be found using ordinary keyword\-based searches (by default gnunet\-pseudonym publishes the namespace advertisement under the keyword 'namespace', but the \-k option can be used to specify other keywords) and under the 'empty' identifier of the respective namespace (using a namespace\-search if the namespace ID is already known).
 
@@ -23,12 +23,8 @@ For more details about GNUnet namespaces and content encoding please read the 'E
 set desired level of sender anonymity.  Default is 1.
 
 .TP
-\fB\-C NAME\fR, \fB\-\-create=NAME\fR
-Creates a new pseudonym with the given NAME or creates a new advertisement for the pseudonym with the given NAME (if the pseudonym already exists).
-
-.TP
-\fB\-D NAME\fR, \fB\-\-delete=NAME\fR
-Delete the pseudonym with the given NAME.
+\fB\-A NAME\fR, \fB\-\-advertise=NAME\fR
+Advertise namespace of the pseudonym with the given NAME.
 
 .TP
 \fB\-h\fR, \fB\-\-help\fR
@@ -41,10 +37,6 @@ Publish a namespace advertisement under the keyword 'KEYWORD'.  Default is 'name
 .TP
 \fB\-m \fITYPE:VALUE\fR, \fB\-\-meta=\fITYPE:VALUE\fR
 For the main file (or directory), set the metadata of the given TYPE to the given VALUE.  Note that this will not add the respective VALUE to the set of keywords under which the file can be found.
-
-.TP
-\fB\-o\fR, \fB\-\-only\-local\fR
-display names of local namespaces (those that we can extend with content because we created them)
 
 .TP
 \fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
@@ -68,10 +60,13 @@ Change the rating for the namespace identified by ID by VALUE.  For example, "\-
 
 .SH FILES
 .TP
-~/.gnunet/data/pseudonyms/
-Directory where the pseudonyms are stored
+~/.gnunet/data/pseudonym/
+Directory where information about non-local pseudonyms is stored
+.TP
+~/.gnunet/fs/updates/
+Directory where information about possible updates to local pseudonyms is stored
 
 .SH "REPORTING BUGS"
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1)
+\fBgnunet\-identity\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-search\fP(1)

@@ -175,6 +175,24 @@ struct GNUNET_IDENTITY_Handle
 };
 
 
+/**
+ * Obtain the ego representing 'anonymous' users.
+ */
+const struct GNUNET_IDENTITY_Ego *
+GNUNET_IDENTITY_ego_get_anonymous ()
+{
+  static struct GNUNET_IDENTITY_Ego anon;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  if (NULL != anon.pk)
+    return &anon;
+  anon.pk = GNUNET_CRYPTO_ecc_key_get_anonymous ();
+  GNUNET_CRYPTO_ecc_key_get_public (anon.pk,
+				    &pub);
+  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &anon.id);
+  return &anon;
+}
+
 
 /**
  * Try again to connect to network size estimation service.
@@ -566,7 +584,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return associated ECC key, valid as long as the ego is valid
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego)
+GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego)
 {
   return ego->pk;
 }
@@ -579,10 +597,11 @@ GNUNET_IDENTITY_ego_get_private_key (struct GNUNET_IDENTITY_Ego *ego)
  * @param pk set to ego's public key
  */
 void
-GNUNET_IDENTITY_ego_get_public_key (struct GNUNET_IDENTITY_Ego *ego,
+GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
 				    struct GNUNET_CRYPTO_EccPublicKey *pk)
 {
-  GNUNET_assert (0);
+  GNUNET_CRYPTO_ecc_key_get_public (ego->pk,
+				    pk);
 }
 
 

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2003-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 
 /**
  * @file fs/fs_namespace.c
- * @brief create and destroy namespaces
+ * @brief publishing to namespaces, and tracking updateable entries
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -29,30 +29,91 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
+#include "fs_publish_ublock.h"
 
 
 /**
- * Return the name of the directory in which we store
- * our local namespaces (or rather, their public keys).
- *
- * @param h global fs handle
- * @return NULL on error, otherwise the name of the directory
+ * Information about an (updateable) node in the
+ * namespace.
  */
-static char *
-get_namespace_directory (struct GNUNET_FS_Handle *h)
+struct NamespaceUpdateNode
 {
-  char *dn;
+  /**
+   * Identifier for this node.
+   */
+  char *id;
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (h->cfg, "FS", "IDENTITY_DIR",
-                                               &dn))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "fs", "IDENTITY_DIR");
-    return NULL;
-  }
-  return dn;
-}
+  /**
+   * Identifier of children of this node.
+   */
+  char *update;
+
+  /**
+   * Metadata for this entry.
+   */
+  struct GNUNET_CONTAINER_MetaData *md;
+
+  /**
+   * URI of this entry in the namespace.
+   */
+  struct GNUNET_FS_Uri *uri;
+
+  /**
+   * Namespace update generation ID.  Used to ensure
+   * freshness of the tree_id.
+   */
+  unsigned int nug;
+
+  /**
+   * TREE this entry belongs to (if nug is current).
+   */
+  unsigned int tree_id;
+
+};
+
+
+/**
+ * Handle to update information for a namespace.
+ */
+struct GNUNET_FS_UpdateInformationGraph
+{
+
+  /**
+   * Handle to the FS service context.
+   */
+  struct GNUNET_FS_Handle *h;
+
+  /**
+   * Array with information about nodes in the namespace.
+   */
+  struct NamespaceUpdateNode **update_nodes;
+
+  /**
+   * Private key for the namespace.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey ns;
+
+  /**
+   * Hash map mapping identifiers of update nodes
+   * to the update nodes (initialized on-demand).
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *update_map;
+
+  /**
+   * Size of the update nodes array.
+   */
+  unsigned int update_node_count;
+
+  /**
+   * Reference counter.
+   */
+  unsigned int rc;
+
+  /**
+   * Generator for unique nug numbers.
+   */
+  unsigned int nug_gen;
+};
 
 
 /**
@@ -63,22 +124,61 @@ get_namespace_directory (struct GNUNET_FS_Handle *h)
  * @return NULL on error, otherwise the name of the directory
  */
 static char *
-get_update_information_directory (struct GNUNET_FS_Namespace *ns)
+get_update_information_directory (struct GNUNET_FS_Handle *h,
+				  const struct GNUNET_CRYPTO_EccPrivateKey *ns)
 {
   char *dn;
   char *ret;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_ShortHashCode hc;
+  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (ns->h->cfg, "FS", "UPDATE_DIR",
+      GNUNET_CONFIGURATION_get_value_filename (h->cfg, "FS", "UPDATE_DIR",
                                                &dn))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       "fs", "UPDATE_DIR");
     return NULL;
   }
-  GNUNET_asprintf (&ret, "%s%s%s", dn, DIR_SEPARATOR_STR, ns->name);
+  GNUNET_CRYPTO_ecc_key_get_public (ns, &pub);
+  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &hc);
+  GNUNET_CRYPTO_short_hash_to_enc (&hc,
+				   &enc);
+  GNUNET_asprintf (&ret, "%s%s%s", 
+		   dn, 
+		   DIR_SEPARATOR_STR, 
+		   (const char *) enc.short_encoding);
   GNUNET_free (dn);
   return ret;
+}
+
+
+/**
+ * Release memory occupied by UIG datastructure.
+ * 
+ * @param uig data structure to free
+ */
+static void
+free_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
+{
+  unsigned int i;
+  struct NamespaceUpdateNode *nsn;
+
+  for (i = 0; i < uig->update_node_count; i++)
+  {
+    nsn = uig->update_nodes[i];
+    GNUNET_CONTAINER_meta_data_destroy (nsn->md);
+    GNUNET_FS_uri_destroy (nsn->uri);
+    GNUNET_free (nsn->id);
+    GNUNET_free (nsn->update);
+    GNUNET_free (nsn);
+  }
+  GNUNET_array_grow (uig->update_nodes, uig->update_node_count,
+		     0);
+  if (NULL != uig->update_map)
+    GNUNET_CONTAINER_multihashmap_destroy (uig->update_map);
+  GNUNET_free (uig);
 }
 
 
@@ -88,7 +188,7 @@ get_update_information_directory (struct GNUNET_FS_Namespace *ns)
  * @param ns namespace to dump
  */
 static void
-write_update_information_graph (struct GNUNET_FS_Namespace *ns)
+write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
 {
   char *fn;
   struct GNUNET_BIO_WriteHandle *wh;
@@ -96,7 +196,8 @@ write_update_information_graph (struct GNUNET_FS_Namespace *ns)
   struct NamespaceUpdateNode *n;
   char *uris;
 
-  fn = get_update_information_directory (ns);
+  fn = get_update_information_directory (uig->h,
+					 &uig->ns);
   wh = GNUNET_BIO_write_open (fn);
   if (NULL == wh)
   {
@@ -105,11 +206,11 @@ write_update_information_graph (struct GNUNET_FS_Namespace *ns)
     GNUNET_free (fn);
     return;
   }
-  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh, ns->update_node_count))
+  if (GNUNET_OK != GNUNET_BIO_write_int32 (wh, uig->update_node_count))
     goto END;
-  for (i = 0; i < ns->update_node_count; i++)
+  for (i = 0; i < uig->update_node_count; i++)
   {
-    n = ns->update_nodes[i];
+    n = uig->update_nodes[i];
     uris = GNUNET_FS_uri_to_string (n->uri);
     if ((GNUNET_OK != GNUNET_BIO_write_string (wh, n->id)) ||
         (GNUNET_OK != GNUNET_BIO_write_meta_data (wh, n->md)) ||
@@ -132,11 +233,15 @@ END:
 /**
  * Read the namespace update node graph from a file.
  *
+ * @param h FS handle to use
  * @param ns namespace to read
+ * @return update graph, never NULL
  */
-static void
-read_update_information_graph (struct GNUNET_FS_Namespace *ns)
+static struct GNUNET_FS_UpdateInformationGraph *
+read_update_information_graph (struct GNUNET_FS_Handle *h,
+			       const struct GNUNET_CRYPTO_EccPrivateKey *ns)
 {
+  struct GNUNET_FS_UpdateInformationGraph *uig;
   char *fn;
   struct GNUNET_BIO_ReadHandle *rh;
   unsigned int i;
@@ -145,40 +250,43 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
   uint32_t count;
   char *emsg;
 
-  fn = get_update_information_directory (ns);
+  uig = GNUNET_new (struct GNUNET_FS_UpdateInformationGraph);
+  uig->h = h;
+  uig->ns = *ns;
+  fn = get_update_information_directory (h, ns);
   if (GNUNET_YES != GNUNET_DISK_file_test (fn))
   {
     GNUNET_free (fn);
-    return;
+    return uig;
   }
   rh = GNUNET_BIO_read_open (fn);
   if (NULL == rh)
   {
     GNUNET_free (fn);
-    return;
+    return uig;
   }
   if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &count))
   {
     GNUNET_break (0);
-    goto END;
+    goto ERROR;
   }
   if (count > 1024 * 1024)
   {
     GNUNET_break (0);
-    goto END;
+    goto ERROR;
   }
   if (0 == count)
   {
     GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, NULL));
     GNUNET_free (fn);
-    return;
+    return uig;
   }
-  ns->update_nodes =
-      GNUNET_malloc (count * sizeof (struct NamespaceUpdateNode *));
+  uig->update_nodes =
+    GNUNET_malloc (count * sizeof (struct NamespaceUpdateNode *));
 
   for (i = 0; i < count; i++)
   {
-    n = GNUNET_malloc (sizeof (struct NamespaceUpdateNode));
+    n = GNUNET_new (struct NamespaceUpdateNode);
     if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "identifier", &n->id, 1024))
         || (GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "meta", &n->md)) ||
         (GNUNET_OK !=
@@ -205,304 +313,25 @@ read_update_information_graph (struct GNUNET_FS_Namespace *ns)
       GNUNET_free (n);
       break;
     }
-    ns->update_nodes[i] = n;
+    uig->update_nodes[i] = n;
   }
-  ns->update_node_count = i;
-END:
+  uig->update_node_count = i;
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to write `%s': %s\n"), emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"), 
+		fn, emsg);
+    GNUNET_free (emsg);
+  }
+  return uig;
+ERROR:
+  if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"), 
+		fn, emsg);
     GNUNET_free (emsg);
   }
   GNUNET_free (fn);
-}
-
-
-/**
- * Create a namespace with the given name; if one already
- * exists, return a handle to the existing namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param name name to use for the namespace
- * @return handle to the namespace, NULL on error (i.e. invalid filename)
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_create (struct GNUNET_FS_Handle *h, const char *name)
-{
-  char *dn;
-  char *fn;
-  struct GNUNET_FS_Namespace *ret;
-
-  dn = get_namespace_directory (h);
-  if (NULL == dn)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Can't determine where namespace directory is\n"));
-    return NULL;
-  }
-  GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
-  GNUNET_free (dn);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
-  ret->h = h;
-  ret->rc = 1;
-  ret->key = GNUNET_FS_pseudonym_create (fn);
-  if (NULL == ret->key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to create or read private key for namespace `%s'\n"),
-                name);
-    GNUNET_free (ret);
-    GNUNET_free (fn);
-    return NULL;
-  }
-  ret->name = GNUNET_strdup (name);
-  ret->filename = fn;
-  return ret;
-}
-
-
-/**
- * Open the namespace with the given name; if it does not exist,
- * or the key file is corrupted, the function fails.
- *
- * @param h handle to the file sharing subsystem
- * @param name name of the namespace
- * @return handle to the namespace,
- *         NULL on error (i.e. invalid filename, non-existent filename)
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_open_existing (struct GNUNET_FS_Handle *h, const char *name)
-{
-  char *dn;
-  char *fn;
-  struct GNUNET_FS_Namespace *ret;
-
-  dn = get_namespace_directory (h);
-  if (NULL == dn)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Can't determine where namespace directory is\n"));
-    return NULL;
-  }
-  GNUNET_asprintf (&fn, "%s%s%s", dn, DIR_SEPARATOR_STR, name);
-  GNUNET_free (dn);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Namespace));
-  ret->h = h;
-  ret->rc = 1;
-  ret->key = GNUNET_FS_pseudonym_create_from_existing_file (fn);
-  if (NULL == ret->key)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to read private key for namespace `%s'\n"), name);
-    GNUNET_free (ret);
-    GNUNET_free (fn);
-    return NULL;
-  }
-  ret->name = GNUNET_strdup (name);
-  ret->filename = fn;
-  return ret;
-}
-
-
-/**
- * Rename a local namespace.
- *
- * @param h handle to the file sharing subsystem
- * @param old_name old name of the namespace
- * @param new_name new name of the namespace
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (see errno for details)
- */
-int
-GNUNET_FS_namespace_rename (struct GNUNET_FS_Handle *h, 
-			    const char *old_name, 
-			    const char *new_name)
-{
-  char *dn;
-  char *fn_old;
-  char *fn_new;
-  int result;
-  int save_errno;
-
-  dn = get_namespace_directory (h);
-  if (NULL == dn)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Can't determine where namespace directory is\n"));
-    return GNUNET_SYSERR;
-  }
-  GNUNET_asprintf (&fn_old, "%s%s%s", dn, DIR_SEPARATOR_STR, old_name);
-  GNUNET_asprintf (&fn_new, "%s%s%s", dn, DIR_SEPARATOR_STR, new_name);
-  GNUNET_free (dn);
-  result = RENAME (fn_old, fn_new);
-  save_errno = errno;
-  GNUNET_free (fn_old);
-  GNUNET_free (fn_new);
-  errno = save_errno;
-  if (result == 0)
-    return GNUNET_OK;
-  return GNUNET_SYSERR;
-}
-
-
-/**
- * Duplicate a namespace handle.
- *
- * @param ns namespace handle
- * @return duplicated handle to the namespace
- */
-struct GNUNET_FS_Namespace *
-GNUNET_FS_namespace_dup (struct GNUNET_FS_Namespace *ns)
-{
-  ns->rc++;
-  return ns;
-}
-
-
-/**
- * Delete a namespace handle.  Can be used for a clean shutdown (free
- * memory) or also to freeze the namespace to prevent further
- * insertions by anyone.
- *
- * @param ns handle to the namespace that should be deleted / freed
- * @param freeze prevents future insertions; creating a namespace
- *        with the same name again will create a fresh namespace instead
- *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
- */
-int
-GNUNET_FS_namespace_delete (struct GNUNET_FS_Namespace *ns, int freeze)
-{
-  unsigned int i;
-  struct NamespaceUpdateNode *nsn;
-
-  ns->rc--;
-  if (freeze)
-  {
-    if (0 != UNLINK (ns->filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "unlink",
-                                ns->filename);
-  }
-  if (0 != ns->rc)
-    return GNUNET_OK;
-  GNUNET_FS_pseudonym_destroy (ns->key);
-  GNUNET_free (ns->filename);
-  GNUNET_free (ns->name);
-  for (i = 0; i < ns->update_node_count; i++)
-  {
-    nsn = ns->update_nodes[i];
-    GNUNET_CONTAINER_meta_data_destroy (nsn->md);
-    GNUNET_FS_uri_destroy (nsn->uri);
-    GNUNET_free (nsn->id);
-    GNUNET_free (nsn->update);
-    GNUNET_free (nsn);
-  }
-  GNUNET_array_grow (ns->update_nodes, ns->update_node_count,
-		     0);
-  if (ns->update_map != NULL)
-    GNUNET_CONTAINER_multihashmap_destroy (ns->update_map);
-  GNUNET_free (ns);
-  return GNUNET_OK;
-}
-
-
-/**
- * Context for the 'process_namespace' callback.
- * Specifies a function to call on each namespace.
- */
-struct ProcessNamespaceContext
-{
-  /**
-   * Function to call.
-   */
-  GNUNET_FS_NamespaceInfoProcessor cb;
-
-  /**
-   * Closure for 'cb'.
-   */
-  void *cb_cls;
-};
-
-
-/**
- * Get hash of the public key of a namespace.
- *
- * @param ns namespace
- * @param id buffer to store the key in
- * @return GNUNET_OK on success
- *         GNUNET_SYSERR on failure (contents of id remain intact)
- */
-int
-GNUNET_FS_namespace_get_public_identifier (struct GNUNET_FS_Namespace *ns,
-					   struct GNUNET_FS_PseudonymIdentifier *id)
-{
-  if ((NULL == ns) || (NULL == id))
-    return GNUNET_SYSERR;
-  GNUNET_FS_pseudonym_get_identifier (ns->key, id);
-  return GNUNET_OK;
-}
-
-
-/**
- * Function called with a filename of a namespace. Reads the key and
- * calls the callback.
- *
- * @param cls closure (struct ProcessNamespaceContext)
- * @param filename complete filename (absolute path)
- * @return GNUNET_OK to continue to iterate,
- *  GNUNET_SYSERR to abort iteration with error!
- */
-static int
-process_namespace (void *cls, const char *filename)
-{
-  struct ProcessNamespaceContext *pnc = cls;
-  struct GNUNET_FS_PseudonymHandle *ph;
-  struct GNUNET_FS_PseudonymIdentifier id;
-  const char *name;
-  const char *t;
-
-  if (NULL == (ph = GNUNET_FS_pseudonym_create (filename)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Failed to read namespace private key file `%s', deleting it!\n"),
-                filename);
-    if (0 != UNLINK (filename))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
-    return GNUNET_OK;
-  }
-  GNUNET_FS_pseudonym_get_identifier (ph, &id);
-  GNUNET_FS_pseudonym_destroy (ph);
-  name = filename;
-  while (NULL != (t = strstr (name, DIR_SEPARATOR_STR)))
-    name = t + 1;
-  pnc->cb (pnc->cb_cls, name, &id);
-  return GNUNET_OK;
-}
-
-
-/**
- * Build a list of all available local (!) namespaces The returned
- * names are only the nicknames since we only iterate over the local
- * namespaces.
- *
- * @param h handle to the file sharing subsystem
- * @param cb function to call on each known namespace
- * @param cb_cls closure for cb
- */
-void
-GNUNET_FS_namespace_list (struct GNUNET_FS_Handle *h,
-                          GNUNET_FS_NamespaceInfoProcessor cb, void *cb_cls)
-{
-  char *dn;
-  struct ProcessNamespaceContext ctx;
-
-  dn = get_namespace_directory (h);
-  if (NULL == dn)
-    return;
-  ctx.cb = cb;
-  ctx.cb_cls = cb_cls;
-  GNUNET_DISK_directory_scan (dn, &process_namespace, &ctx);
-  GNUNET_free (dn);
+  return uig;
 }
 
 
@@ -526,12 +355,17 @@ struct GNUNET_FS_PublishSksContext
   /**
    * Namespace we're publishing to.
    */
-  struct GNUNET_FS_Namespace *ns;
+  struct GNUNET_CRYPTO_EccPrivateKey ns;
 
   /**
    * Handle to the datastore.
    */
   struct GNUNET_DATASTORE_Handle *dsh;
+
+  /**
+   * Handle to FS.
+   */
+  struct GNUNET_FS_Handle *h;
 
   /**
    * Function to call once we're done.
@@ -544,31 +378,28 @@ struct GNUNET_FS_PublishSksContext
   void *cont_cls;
 
   /**
-   * Handle for our datastore request.
+   * Handle for our UBlock operation request.
    */
-  struct GNUNET_DATASTORE_QueueEntry *dqe;
+  struct GNUNET_FS_PublishUblockContext *uc;
 };
 
 
 /**
- * Function called by the datastore API with
+ * Function called by the UBlock construction with
  * the result from the PUT (UBlock) request.
  *
  * @param cls closure of type "struct GNUNET_FS_PublishSksContext*"
- * @param success GNUNET_OK on success
- * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
  */
 static void
-sb_put_cont (void *cls, int success, 
-	     struct GNUNET_TIME_Absolute min_expiration,
-	     const char *msg)
+sks_publish_cont (void *cls, 
+		  const char *msg)
 {
   struct GNUNET_FS_PublishSksContext *psc = cls;
-  struct GNUNET_HashCode hc;
+  struct GNUNET_FS_UpdateInformationGraph *uig;
 
-  psc->dqe = NULL;
-  if (GNUNET_OK != success)
+  psc->uc = NULL;
+  if (NULL != msg)
   {
     if (NULL != psc->cont)
       psc->cont (psc->cont_cls, NULL, msg);
@@ -580,19 +411,14 @@ sb_put_cont (void *cls, int success,
     /* FIXME: this can be done much more
      * efficiently by simply appending to the
      * file and overwriting the 4-byte header */
-    if (psc->ns->update_nodes == NULL)
-      read_update_information_graph (psc->ns);
-    GNUNET_array_append (psc->ns->update_nodes,
-			 psc->ns->update_node_count, psc->nsn);
-    if (NULL != psc->ns->update_map)
-    {
-      GNUNET_CRYPTO_hash (psc->nsn->id, strlen (psc->nsn->id), &hc);
-      GNUNET_CONTAINER_multihashmap_put (psc->ns->update_map, &hc,
-					 psc->nsn,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    }
+    uig = read_update_information_graph (psc->h,
+					 &psc->ns);
+    GNUNET_array_append (uig->update_nodes,
+			 uig->update_node_count, 
+			 psc->nsn);
     psc->nsn = NULL;
-    write_update_information_graph (psc->ns);
+    write_update_information_graph (uig);
+    free_update_information_graph (uig);
   }
   if (NULL != psc->cont)
     psc->cont (psc->cont_cls, psc->uri, NULL);
@@ -617,7 +443,7 @@ sb_put_cont (void *cls, int success,
  */
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
-                       struct GNUNET_FS_Namespace *ns,
+                       const struct GNUNET_CRYPTO_EccPrivateKey *ns,
                        const char *identifier, const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
@@ -626,144 +452,49 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        GNUNET_FS_PublishContinuation cont, void *cont_cls)
 {
   struct GNUNET_FS_PublishSksContext *psc;
-  struct GNUNET_CRYPTO_AesSessionKey sk;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_FS_Uri *sks_uri;
-  char *uris;
-  size_t size;
-  size_t slen;
-  size_t nidlen;
-  size_t idlen;
-  ssize_t mdsize;
-  struct UBlock *ub;
-  struct UBlock *ub_enc;
-  char *dest;
-  struct GNUNET_CONTAINER_MetaData *mmeta;
-  struct GNUNET_HashCode id_hash;          /* hash of thisId */
-  struct GNUNET_HashCode ns_hash;          /* hash of namespace public key */
-  struct GNUNET_HashCode key;              /* id_hash ^ ns_hash, for AES key */
-  struct GNUNET_HashCode signing_key;      /* H(key) = input for public key */
-  struct GNUNET_HashCode query;            /* H(verification_key) = query */
 
-  idlen = strlen (identifier);
-  if (NULL != update)
-    nidlen = strlen (update) + 1;
-  else
-    nidlen = 1;
-  uris = GNUNET_FS_uri_to_string (uri);
-  slen = strlen (uris) + 1;
-  if ( (slen >= MAX_UBLOCK_SIZE - sizeof (struct UBlock)) ||
-       (nidlen >= MAX_UBLOCK_SIZE - sizeof (struct UBlock) - slen) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Identifiers or URI too long to create UBlock"));
-    GNUNET_free (uris);
-    return NULL;
-  }
-  if (NULL == meta)
-    mmeta = GNUNET_CONTAINER_meta_data_create ();
-  else
-    mmeta = GNUNET_CONTAINER_meta_data_duplicate (meta);
-  mdsize = GNUNET_CONTAINER_meta_data_get_serialized_size (mmeta);
-  size = sizeof (struct UBlock) + slen + nidlen + mdsize;
-  if ( (size > MAX_UBLOCK_SIZE) ||
-       (size < sizeof (struct UBlock) + slen + nidlen) )
-  {
-    size = MAX_UBLOCK_SIZE;
-    mdsize = MAX_UBLOCK_SIZE - (sizeof (struct UBlock) + slen + nidlen);
-  }
-  ub = GNUNET_malloc (sizeof (struct UBlock) + size);
-  dest = (char *) &ub[1];
-  if (NULL != update)
-    memcpy (dest, update, nidlen);
-  else
-    memset (dest, 0, 1);
-  dest += nidlen;
-  memcpy (dest, uris, slen);
-  GNUNET_free (uris);
-  dest += slen;
-  mdsize =
-      GNUNET_CONTAINER_meta_data_serialize (mmeta, &dest, mdsize,
-                                            GNUNET_CONTAINER_META_DATA_SERIALIZE_PART);
-  GNUNET_CONTAINER_meta_data_destroy (mmeta);
-  if (-1 == mdsize)
-  {
-    GNUNET_break (0);
-    GNUNET_free (ub);
-    if (NULL != cont)
-      cont (cont_cls, NULL, _("Internal error."));
-    return NULL;
-  }
-  sks_uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+  sks_uri = GNUNET_new (struct GNUNET_FS_Uri);
   sks_uri->type = GNUNET_FS_URI_SKS;
   sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
-  GNUNET_FS_namespace_get_public_identifier (ns,
-					     &sks_uri->data.sks.ns);
+  GNUNET_CRYPTO_ecc_key_get_public (ns,
+				    &sks_uri->data.sks.ns);
 
-  size = sizeof (struct UBlock) + mdsize + slen + nidlen;
-  ub_enc = GNUNET_malloc (size);
-  GNUNET_CRYPTO_hash (identifier, idlen, &id_hash);
-  GNUNET_CRYPTO_hash (&sks_uri->data.sks.ns, 
-		      sizeof (sks_uri->data.sks.ns), &ns_hash);
-  GNUNET_CRYPTO_hash_xor (&id_hash, &ns_hash, &key);
-  GNUNET_CRYPTO_hash_to_aes_key (&key, &sk, &iv);
-  GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &signing_key);
-
-  GNUNET_CRYPTO_aes_encrypt (&ub[1], 
-			     size - sizeof (struct UBlock),
-			     &sk, &iv,
-                             &ub_enc[1]);
-  ub_enc->purpose.size = htonl (nidlen + slen + mdsize + sizeof (struct UBlock)
-				- sizeof (struct GNUNET_FS_PseudonymSignature));
-  ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
-  GNUNET_FS_pseudonym_derive_verification_key (&sks_uri->data.sks.ns, 
-					       &signing_key,
-					       &ub_enc->verification_key);
-  GNUNET_CRYPTO_hash (&ub_enc->verification_key,
-		      sizeof (ub_enc->verification_key),
-		      &query);
-  GNUNET_FS_pseudonym_sign (ns->key,
-			    &ub_enc->purpose,
-			    NULL,
-			    &signing_key,
-			    &ub_enc->signature);
-  psc = GNUNET_malloc (sizeof (struct GNUNET_FS_PublishSksContext));
+  psc = GNUNET_new (struct GNUNET_FS_PublishSksContext);
+  psc->h = h;
   psc->uri = sks_uri;
   psc->cont = cont;
-  psc->ns = GNUNET_FS_namespace_dup (ns);
   psc->cont_cls = cont_cls;
-  if (0 != (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
+  psc->ns = *ns;
+  if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
   {
-    GNUNET_free (ub_enc);
-    GNUNET_free (ub);
-    sb_put_cont (psc, GNUNET_OK, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
-    return NULL;
+    psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
+    if (NULL == psc->dsh)
+    {
+      sks_publish_cont (psc,
+			_("Failed to connect to datastore."));
+      return NULL;
+    }
   }
-  psc->dsh = GNUNET_DATASTORE_connect (h->cfg);
-  if (NULL == psc->dsh)
-  {
-    GNUNET_free (ub_enc);
-    GNUNET_free (ub);
-    sb_put_cont (psc, GNUNET_NO, GNUNET_TIME_UNIT_ZERO_ABS, _("Failed to connect to datastore."));
-    return NULL;
-  }
-
   if (NULL != update)
   {
-    psc->nsn = GNUNET_malloc (sizeof (struct NamespaceUpdateNode));
+    psc->nsn = GNUNET_new (struct NamespaceUpdateNode);
     psc->nsn->id = GNUNET_strdup (identifier);
     psc->nsn->update = GNUNET_strdup (update);
     psc->nsn->md = GNUNET_CONTAINER_meta_data_duplicate (meta);
     psc->nsn->uri = GNUNET_FS_uri_dup (uri);
   }
-  
-  psc->dqe = GNUNET_DATASTORE_put (psc->dsh, 0, &query, size, ub_enc,
-				   GNUNET_BLOCK_TYPE_FS_UBLOCK, bo->content_priority,
-				   bo->anonymity_level, bo->replication_level,
-				   bo->expiration_time, -2, 1,
-				   GNUNET_CONSTANTS_SERVICE_TIMEOUT, &sb_put_cont, psc);
-  GNUNET_free (ub);
-  GNUNET_free (ub_enc);
+  psc->uc = GNUNET_FS_publish_ublock_ (h,
+				       psc->dsh,
+				       identifier,
+				       update,
+				       ns,
+				       meta,
+				       uri,
+				       bo,
+				       options,
+				       &sks_publish_cont,
+				       psc);
   return psc;
 }
 
@@ -776,17 +507,16 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc)
 {
-  if (NULL != psc->dqe)
+  if (NULL != psc->uc)
   {
-    GNUNET_DATASTORE_cancel (psc->dqe);
-    psc->dqe = NULL;
+    GNUNET_FS_publish_ublock_cancel_ (psc->uc);
+    psc->uc = NULL;
   }
   if (NULL != psc->dsh)
   {
     GNUNET_DATASTORE_disconnect (psc->dsh, GNUNET_NO);
     psc->dsh = NULL;
   }
-  GNUNET_FS_namespace_delete (psc->ns, GNUNET_NO);
   GNUNET_FS_uri_destroy (psc->uri);
   if (NULL != psc->nsn)
   {
@@ -828,12 +558,18 @@ struct ProcessUpdateClosure
  *         GNUNET_NO if not.
  */
 static int
-process_update_node (void *cls, const struct GNUNET_HashCode * key, void *value)
+process_update_node (void *cls, 
+		     const struct GNUNET_HashCode *key, 
+		     void *value)
 {
   struct ProcessUpdateClosure *pc = cls;
   struct NamespaceUpdateNode *nsn = value;
 
-  pc->ip (pc->ip_cls, nsn->id, nsn->uri, nsn->md, nsn->update);
+  pc->ip (pc->ip_cls,
+	  nsn->id, 
+	  nsn->uri, 
+	  nsn->md,
+	  nsn->update);
   return GNUNET_YES;
 }
 
@@ -844,9 +580,9 @@ process_update_node (void *cls, const struct GNUNET_HashCode * key, void *value)
 struct FindTreeClosure
 {
   /**
-   * Namespace we are operating on.
+   * UIG we are operating on.
    */
-  struct GNUNET_FS_Namespace *ns;
+  struct GNUNET_FS_UpdateInformationGraph *uig;
 
   /**
    * Array with 'head's of TREEs.
@@ -891,7 +627,9 @@ struct FindTreeClosure
  *         GNUNET_NO if not.
  */
 static int
-find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
+find_trees (void *cls,
+	    const struct GNUNET_HashCode *key, 
+	    void *value)
 {
   struct FindTreeClosure *fc = cls;
   struct NamespaceUpdateNode *nsn = value;
@@ -918,7 +656,7 @@ find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
     nsn->tree_id = UINT_MAX;    /* mark as undef */
     /* trace */
     GNUNET_CRYPTO_hash (nsn->update, strlen (nsn->update), &hc);
-    GNUNET_CONTAINER_multihashmap_get_multiple (fc->ns->update_map, &hc,
+    GNUNET_CONTAINER_multihashmap_get_multiple (fc->uig->update_map, &hc,
                                                 &find_trees, fc);
   }
   return GNUNET_YES;
@@ -942,13 +680,15 @@ find_trees (void *cls, const struct GNUNET_HashCode * key, void *value)
  * I know, odd definition of a tree, but the GUI will display an actual
  * tree (GtkTreeView), so that's what counts for the term here.
  *
+ * @param h fs handle to use
  * @param ns namespace to inspect for updateable content
  * @param next_id ID to look for; use NULL to look for tree roots
  * @param ip function to call on each updateable identifier
  * @param ip_cls closure for ip
  */
 void
-GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
+GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
+				     const struct GNUNET_CRYPTO_EccPrivateKey *ns,
                                      const char *next_id,
                                      GNUNET_FS_IdentifierProcessor ip,
                                      void *ip_cls)
@@ -959,50 +699,48 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
   struct NamespaceUpdateNode *nsn;
   struct ProcessUpdateClosure pc;
   struct FindTreeClosure fc;
+  struct GNUNET_FS_UpdateInformationGraph *uig;
 
-  if (NULL == ns->update_nodes)
-    read_update_information_graph (ns);
-  if (NULL == ns->update_nodes)
+  uig = read_update_information_graph (h, ns);
+  if (NULL == uig->update_nodes)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No updateable nodes found for ID `%s'\n", next_id);
+    free_update_information_graph (uig);
     return;                     /* no nodes */
   }
-  if (NULL == ns->update_map)
+  uig->update_map =
+    GNUNET_CONTAINER_multihashmap_create (2 +
+					  3 * uig->update_node_count /
+					  4,
+					  GNUNET_NO);
+  for (i = 0; i < uig->update_node_count; i++)
   {
-    /* need to construct */
-    ns->update_map =
-        GNUNET_CONTAINER_multihashmap_create (2 +
-                                              3 * ns->update_node_count /
-                                              4,
-					      GNUNET_NO);
-    for (i = 0; i < ns->update_node_count; i++)
-    {
-      nsn = ns->update_nodes[i];
-      GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
-      GNUNET_CONTAINER_multihashmap_put (ns->update_map, &hc, nsn,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    }
+    nsn = uig->update_nodes[i];
+    GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
+    GNUNET_CONTAINER_multihashmap_put (uig->update_map, &hc, nsn,
+				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
   if (NULL != next_id)
   {
     GNUNET_CRYPTO_hash (next_id, strlen (next_id), &hc);
     pc.ip = ip;
     pc.ip_cls = ip_cls;
-    GNUNET_CONTAINER_multihashmap_get_multiple (ns->update_map, &hc,
+    GNUNET_CONTAINER_multihashmap_get_multiple (uig->update_map, &hc,
                                                 &process_update_node, &pc);
+    free_update_information_graph (uig);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Calculating TREEs to find roots of update trees\n");
   /* Find heads of TREEs in update graph */
-  nug = ++ns->nug_gen;
+  nug = ++uig->nug_gen;
   fc.tree_array = NULL;
   fc.tree_array_size = 0;
 
-  for (i = 0; i < ns->update_node_count; i++)
+  for (i = 0; i < uig->update_node_count; i++)
   {
-    nsn = ns->update_nodes[i];
+    nsn = uig->update_nodes[i];
     if (nsn->nug == nug)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
@@ -1014,15 +752,15 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
     nsn->tree_id = UINT_MAX;
     fc.id = UINT_MAX;
     fc.nug = nug;
-    fc.ns = ns;
-    GNUNET_CONTAINER_multihashmap_get_multiple (ns->update_map, &hc,
+    fc.uig = uig;
+    GNUNET_CONTAINER_multihashmap_get_multiple (uig->update_map, &hc,
                                                 &find_trees, &fc);
     if (UINT_MAX == fc.id)
     {
       /* start new TREE */
       for (fc.id = 0; fc.id < fc.tree_array_size; fc.id++)
       {
-        if (fc.tree_array[fc.id] == NULL)
+        if (NULL == fc.tree_array[fc.id])
         {
           fc.tree_array[fc.id] = nsn;
           nsn->tree_id = fc.id;
@@ -1041,8 +779,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
       GNUNET_CRYPTO_hash (nsn->id, strlen (nsn->id), &hc);
       fc.id = nsn->tree_id;
       fc.nug = nug;
-      fc.ns = ns;
-      GNUNET_CONTAINER_multihashmap_get_multiple (ns->update_map, &hc,
+      fc.uig = uig;
+      GNUNET_CONTAINER_multihashmap_get_multiple (uig->update_map, &hc,
                                                   &find_trees, &fc);
     }
     else
@@ -1051,7 +789,8 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
       fc.tree_array[fc.id] = nsn;
       nsn->tree_id = fc.id;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TREE of node `%s' is %u\n", nsn->id,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"TREE of node `%s' is %u\n", nsn->id,
                 fc.id);
   }
   for (i = 0; i < fc.tree_array_size; i++)
@@ -1066,6 +805,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Namespace *ns,
   }
   GNUNET_array_grow (fc.tree_array, fc.tree_array_size, 0);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done processing TREEs\n");
+  free_update_information_graph (uig);
 }
 
 
