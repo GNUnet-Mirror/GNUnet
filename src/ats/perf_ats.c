@@ -30,7 +30,7 @@
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TESTNAME_PREFIX "perf_ats_"
-#define NUM_PEERS 4 /* At least 2 */
+#define DEFAULT_NUM 5
 
 /**
  * Information we track for a peer in the testbed.
@@ -52,7 +52,7 @@ struct BenchmarkPeer
 
 };
 
-struct BenchmarkPeer ph[NUM_PEERS];
+struct BenchmarkPeer *ph;
 
 
 
@@ -64,6 +64,8 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 static int result;
 static char *solver;
 static char *preference;
+
+static int peers;
 
 /**
  * Shutdown nicely
@@ -166,7 +168,7 @@ test_master (void *cls, unsigned int num_peers,
   shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
 
   GNUNET_assert (NULL == cls);
-  GNUNET_assert (NUM_PEERS == num_peers);
+  GNUNET_assert (peers == num_peers);
   GNUNET_assert (NULL != peers_);
 
   for (c_p = 0; c_p < num_peers; c_p++)
@@ -194,7 +196,9 @@ main (int argc, char *argv[])
 	char *tmp_sep;
 	char *test_name;
 	char *conf_name;
+	int c;
 
+	peers = 0;
   result = 1;
 
   /* figure out testname */
@@ -219,6 +223,23 @@ main (int argc, char *argv[])
   GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, preference);
   GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, preference);
 
+  for (c = 0; c < argc; c++)
+  {
+  	if (0 == strcmp(argv[c], "-c"))
+  		break;
+  }
+  if (c <= argc-1)
+  {
+  	if (0L != (peers = strtol (argv[c + 1], NULL, 10)))
+  	{
+  		peers = strtol (argv[c + 1], NULL, 10);
+  		fprintf (stderr, "Starting %u peers\n", peers);
+  	}
+  }
+  else
+  	peers = DEFAULT_NUM;
+
+
   /* Start topology */
   uint64_t event_mask;
   result = GNUNET_SYSERR;
@@ -226,7 +247,7 @@ main (int argc, char *argv[])
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run (test_name,
-                                  conf_name, NUM_PEERS,
+                                  conf_name, peers,
                                   event_mask, &controller_event_cb, NULL,
                                   &test_master, NULL);
 
