@@ -50,24 +50,19 @@ struct BenchmarkPeer
   struct GNUNET_TESTBED_Operation *ats_perf_op;
 
   /**
-   * Testbed operation to connect to ATS scheduling service
-   */
-  struct GNUNET_TESTBED_Operation *ats_sched_op;
-
-  /**
    * Testbed operation to get peer information
    */
   struct GNUNET_TESTBED_Operation *info_op;
-
 
   /**
    * Testbed operation to connect peers
    */
   struct GNUNET_TESTBED_Operation *connect_op;
 
+  /**
+   * ATS performance handle
+   */
   struct GNUNET_ATS_PerformanceHandle *p_handle;
-  struct GNUNET_ATS_SchedulingHandle *s_handle;
-
 };
 
 struct BenchmarkPeer *ph;
@@ -104,27 +99,24 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   	if (NULL != ph[c_p].ats_perf_op)
   	{
   		GNUNET_TESTBED_operation_done (ph[c_p].ats_perf_op);
+  		ph[c_p].ats_perf_op = NULL;
   	}
-  	ph[c_p].ats_perf_op = NULL;
-  	if (NULL != ph[c_p].ats_sched_op)
-  	{
-  		GNUNET_TESTBED_operation_done (ph[c_p].ats_sched_op);
-  	}
-  	ph[c_p].ats_sched_op = NULL;
+
 
   	if (NULL != ph[c_p].info_op)
   	{
   		GNUNET_break (0);
   		GNUNET_TESTBED_operation_done (ph[c_p].info_op);
+  		ph[c_p].info_op = NULL;
   	}
   	if (NULL != ph[c_p].connect_op)
   	{
   		GNUNET_break (0);
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to connect peer 0 and %u\n"), c_p);
   		GNUNET_TESTBED_operation_done (ph[c_p].connect_op);
+    	ph[c_p].connect_op = NULL;
+    	result = 1;
   	}
-  	ph[c_p].connect_op = NULL;
-
-
   }
 
 	GNUNET_SCHEDULER_shutdown();
@@ -140,31 +132,7 @@ ats_performance_info_cb (void *cls,
 												const struct GNUNET_ATS_Information *ats,
 												uint32_t ats_count)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("[P] %s\n"), GNUNET_i2s (&address->peer));
-}
-
-/**
- * Signature of a function called by ATS with the current bandwidth
- * and address preferences as determined by ATS.
- *
- * @param cls closure
- * @param address suggested address (including peer identity of the peer)
- * @param session session to use
- * @param bandwidth_out assigned outbound bandwidth for the connection
- * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
- */
-static void
-ats_scheduling_cb (void *cls,
-									const struct GNUNET_HELLO_Address *address,
-									struct Session * session,
-									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-									struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-									const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
-{
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("[S] %s\n"), GNUNET_i2s (&address->peer));
-
+	//GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("[P] %s\n"), GNUNET_i2s (&address->peer));
 }
 
 /**
@@ -232,6 +200,7 @@ void connect_completion_callback (void *cls,
     															struct GNUNET_TESTBED_Operation *op,
     															const char *emsg)
 {
+	static int connections = 0;
 	struct BenchmarkPeer *p = cls;
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 			_("Connected peer 0 with peer %p\n"), p->peer);
@@ -251,6 +220,12 @@ void connect_completion_callback (void *cls,
 	}
 	GNUNET_TESTBED_operation_done(op);
 	p->connect_op = NULL;
+	connections++;
+	if (connections == peers -1)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				"All peers connected\n");
+	}
 
 }
 static void
@@ -289,7 +264,6 @@ void ats_connect_completion_cb (void *cls,
 														 const char *emsg )
 {
 	static int op_done = 0;
-	int c_p;
 	if ((NULL != emsg) || (NULL == ca_result))
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -302,48 +276,13 @@ void ats_connect_completion_cb (void *cls,
 	}
 
 	op_done ++;
-	if (op_done == 2 * peers)
+	if (op_done ==  peers)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Initialization done, connecting peers\n"));
 
 		 GNUNET_SCHEDULER_add_now (&do_connect, NULL);
 	}
-}
-
-/**
- * Called to open a connection to the peer's ATS scheduling API
- *
- * @param cls peer context
- * @param cfg configuration of the peer to connect to; will be available until
- *          GNUNET_TESTBED_operation_done() is called on the operation returned
- *          from GNUNET_TESTBED_service_connect()
- * @return service handle to return in 'op_result', NULL on error
- */
-static void *
-ats_sched_connect_adapter (void *cls,
-                      const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct BenchmarkPeer *peer = cls;
-  peer->s_handle = GNUNET_ATS_scheduling_init(cfg, &ats_scheduling_cb, peer);
-  if (NULL == peer->s_handle)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create ATS performance handle \n");
-  return peer->s_handle;
-}
-
-/**
- * Called to disconnect from peer's statistics service
- *
- * @param cls peer context
- * @param op_result service handle returned from the connect adapter
- */
-static void
-ats_sched_disconnect_adapter (void *cls, void *op_result)
-{
-  struct BenchmarkPeer *peer = cls;
-
-  GNUNET_ATS_scheduling_done (peer->s_handle);
-  peer->p_handle = NULL;
 }
 
 /**
@@ -423,13 +362,6 @@ test_main (void *cls, unsigned int num_peers,
                                     &ats_perf_connect_adapter,
                                     &ats_perf_disconnect_adapter,
                                     &ph[c_p]);
-
-    ph[c_p].ats_sched_op = GNUNET_TESTBED_service_connect (NULL,
-    																peers_[c_p], "ats",
-    																ats_connect_completion_cb, NULL,
-                                    &ats_sched_connect_adapter,
-                                    &ats_sched_disconnect_adapter,
-                                    &ph[c_p]);
   }
 }
 
@@ -468,14 +400,14 @@ main (int argc, char *argv[])
   GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, preference);
   GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, preference);
 
-  for (c = 0; c < argc; c++)
+  for (c = 0; c < (argc -1); c++)
   {
   	if (0 == strcmp(argv[c], "-c"))
   		break;
   }
-  if (c <= argc-1)
+  if (c < argc-1)
   {
-  	if ((0L != (peers = strtol (argv[c + 1], NULL, 10))) && (peers >= 3))
+  	if ((0L != (peers = strtol (argv[c + 1], NULL, 10))) && (peers >= 2))
   		fprintf (stderr, "Starting %u peers\n", peers);
     else
     	peers = DEFAULT_NUM;
@@ -484,7 +416,6 @@ main (int argc, char *argv[])
   	peers = DEFAULT_NUM;
 
   ph = GNUNET_malloc (peers * sizeof (struct BenchmarkPeer));
-
   /* Start topology */
   uint64_t event_mask;
   result = GNUNET_SYSERR;
