@@ -26,7 +26,6 @@ bin_SCRIPTS = \
 
 dist_pkgdata_DATA = \
  gnunet-logo-color.png \
- testing_hostkeys.dat \
  testing_hostkeys.ecc
 
 if MINGW
