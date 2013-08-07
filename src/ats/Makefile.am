@@ -261,7 +261,8 @@ perf_ats_simplistic_delay_SOURCES = \
 perf_ats_simplistic_delay_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/ats/libgnunetats.la 
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/core/libgnunetcore.la  
 
 EXTRA_DIST = \
   ats.h \
