@@ -4269,39 +4269,6 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   return GNUNET_OK;
 }
 
-
-/**
- * Handler for mesh network traffic going from the origin to a peer
- *
- * @param t Tunnel on which we got this message.
- * @param message Data message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_unicast (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
-{
-  return handle_data (t, message, GNUNET_YES);
-}
-
-
-/**
- * Handler for mesh network traffic towards the owner of a tunnel.
- *
- * @param t Tunnel on which we got this message.
- * @param message Data message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_to_orig (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *message)
-{
-  return handle_data (t, message, GNUNET_NO);
-}
-
-
 /**
  * Handler for mesh network traffic end-to-end ACKs.
  *
@@ -4337,11 +4304,11 @@ handle_data_ack (struct MeshTunnel2 *t,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
               (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
 
-  if (GNUNET_YES == fwd && GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type)
+  if (GNUNET_YES == fwd)
   {
     rel = ch->fwd_rel;
   }
-  else if (GNUNET_NO == fwd && GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK == type)
+  else
   {
     rel = ch->bck_rel;
   }
@@ -4768,7 +4735,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   {
     size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
     char cbuf[dsize];
-    struct GNUNET_MESH_Data *dmsg;
+    struct GNUNET_MessageHeader *msgh;
 
     /* TODO signature verification */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  it's for us!\n");
@@ -4776,8 +4743,40 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
 
     fc->last_pid_recv = pid;
     tunnel_decrypt (t, cbuf, &msg[1], dsize, msg->iv, fwd);
-    dmsg = (struct GNUNET_MESH_Data *) cbuf;
-    handle_data (t, dmsg, fwd);
+    msgh = (struct GNUNET_MessageHeader *) cbuf;
+    switch (htons(msgh->type))
+    {
+      case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
+        if (GNUNET_YES == fwd)
+          return handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh,
+                                  GNUNET_YES);
+        GNUNET_break_op (0);
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
+        if (GNUNET_NO == fwd)
+          return handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh,
+                                  GNUNET_YES);
+        GNUNET_break_op (0);
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+        if (GNUNET_YES == fwd)
+          handle_data (t, (struct GNUNET_MESH_Data *) msgh, GNUNET_YES);
+        GNUNET_break_op (0);
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+        if (GNUNET_NO == fwd)
+          handle_data (t, (struct GNUNET_MESH_Data *) msgh, GNUNET_NO);
+        GNUNET_break_op (0);
+        break;
+      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+        handle_channel (t, NULL, fwd);
+        break;
+      default:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "end-to-end message not known\n");
+    }
+
     connection_send_ack (c, fwd);
     return GNUNET_OK;
   }
