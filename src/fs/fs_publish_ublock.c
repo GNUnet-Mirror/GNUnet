@@ -157,7 +157,10 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   GNUNET_assert (mdsize >= 0);
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
-  ulen = strlen (ulabel) + 1;
+  if (NULL == ulabel)
+    ulen = 0;
+  else
+    ulen = strlen (ulabel) + 1;
   size = mdsize + sizeof (struct UBlock) + slen + ulen;
   if (size > MAX_UBLOCK_SIZE)
   {
