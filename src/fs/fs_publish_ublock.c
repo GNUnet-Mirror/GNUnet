@@ -34,6 +34,34 @@
 
 
 /**
+ * Derive the key for symmetric encryption/decryption from
+ * the public key and the label.
+ *
+ * @param skey where to store symmetric key
+ * @param iv where to store the IV
+ * @param label label to use for key derivation
+ * @param pub public key to use for key derivation
+ */ 
+static void
+derive_ublock_encryption_key (struct GNUNET_CRYPTO_AesSessionKey *skey,
+			      struct GNUNET_CRYPTO_AesInitializationVector *iv,
+			      const char *label,
+			      const struct GNUNET_CRYPTO_EccPublicKey *pub)
+{
+  struct GNUNET_HashCode key;
+
+  /* derive key from 'label' and public key of the namespace */
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CRYPTO_kdf (&key, sizeof (key),
+				    "UBLOCK-ENC", strlen ("UBLOCK-ENC"),
+				    label, strlen (label),
+				    pub, sizeof (*pub),
+				    NULL, 0));
+  GNUNET_CRYPTO_hash_to_aes_key (&key, skey, iv);
+}
+
+
+/**
  * Decrypt the given UBlock, storing the result in output.
  *
  * @param input input data
@@ -49,7 +77,14 @@ GNUNET_FS_ublock_decrypt_ (const void *input,
 			   const char *label,
 			   void *output)
 {
-  GNUNET_break (0);
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AesSessionKey skey;
+
+  derive_ublock_encryption_key (&skey, &iv,
+				label, ns);
+  GNUNET_CRYPTO_aes_decrypt (input, input_len,
+			     &skey, &iv,
+                             output);
 }
 
 
@@ -131,12 +166,9 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 			   GNUNET_FS_UBlockContinuation cont, void *cont_cls)
 {
   struct GNUNET_FS_PublishUblockContext *uc;
-  struct GNUNET_HashCode key;
-  struct GNUNET_HashCode seed;
-  struct GNUNET_HashCode signing_key;
   struct GNUNET_HashCode query;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_EccPrivateKey *nsd;
   struct GNUNET_CRYPTO_EccPublicKey pub;
   char *uris;
@@ -188,24 +220,14 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   }
   size = sizeof (struct UBlock) + slen + mdsize + ulen;
 
-  /* derive signing seed from plaintext */
-  GNUNET_CRYPTO_hash (&ub_plain[1],
-		      ulen + slen + mdsize,
-		      &seed);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Publishing under identifier `%s'\n",
               label);
   /* get public key of the namespace */
   GNUNET_CRYPTO_ecc_key_get_public (ns,
 				    &pub);
-  /* derive key from 'label' and public key of the namespace */
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (&key, sizeof (key),
-				    "UBLOCK-ENC", strlen ("UBLOCK-ENC"),
-				    label, strlen (label),
-				    &pub, sizeof (pub),
-				    NULL, 0));
-  GNUNET_CRYPTO_hash_to_aes_key (&key, &skey, &iv);
+  derive_ublock_encryption_key (&skey, &iv,
+				label, &pub);
 
   /* encrypt ublock */
   ub_enc = GNUNET_malloc (size);
@@ -219,12 +241,6 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
 
   /* derive signing-key from 'label' and public key of the namespace */
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CRYPTO_kdf (&signing_key, sizeof (signing_key),
-				    "UBLOCK-SIGN", strlen ("UBLOCK-SIGN"),
-				    label, strlen (label),
-				    &pub, sizeof (pub),
-				    NULL, 0));
   nsd = GNUNET_CRYPTO_ecc_key_derive (ns, label);
   GNUNET_CRYPTO_ecc_key_get_public (nsd,
 				    &ub_enc->verification_key);
