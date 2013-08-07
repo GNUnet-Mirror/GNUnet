@@ -268,19 +268,15 @@ read_update_information_graph (struct GNUNET_FS_Handle *h,
   if (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &count))
   {
     GNUNET_break (0);
-    goto ERROR;
+    goto END;
   }
   if (count > 1024 * 1024)
   {
     GNUNET_break (0);
-    goto ERROR;
+    goto END;
   }
   if (0 == count)
-  {
-    GNUNET_break (GNUNET_OK == GNUNET_BIO_read_close (rh, NULL));
-    GNUNET_free (fn);
-    return uig;
-  }
+    goto END;
   uig->update_nodes =
     GNUNET_malloc (count * sizeof (struct NamespaceUpdateNode *));
 
@@ -316,14 +312,7 @@ read_update_information_graph (struct GNUNET_FS_Handle *h,
     uig->update_nodes[i] = n;
   }
   uig->update_node_count = i;
-  if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"), 
-		fn, emsg);
-    GNUNET_free (emsg);
-  }
-  return uig;
-ERROR:
+ END:
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"), 
