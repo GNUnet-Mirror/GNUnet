@@ -1148,8 +1148,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 {
   struct GNUNET_TESTING_Peer *peer;
   struct GNUNET_DISK_FileHandle *fd;
-  char *service_home;  
-  char hostkey_filename[128];
+  char *hostkey_filename;
   char *config_filename;
   char *libexec_binary;
   char *emsg_;
@@ -1198,13 +1197,9 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   if (NULL != pk)
     GNUNET_CRYPTO_ecc_key_free (pk);
   GNUNET_assert (GNUNET_OK == 
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
-                                                        "SERVICEHOME",
-                                                        &service_home));
-  /* FIXME: might be better to evaluate actual configuration option here... */
-  GNUNET_snprintf (hostkey_filename, sizeof (hostkey_filename), "%s/private.ecc",
-                   service_home);
-  GNUNET_free (service_home);
+                 GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER",
+							  "PRIVATE_KEY",
+							  &hostkey_filename));
   fd = GNUNET_DISK_file_open (hostkey_filename,
                               GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_WRITE,
                               GNUNET_DISK_PERM_USER_READ 
