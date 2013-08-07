@@ -1064,9 +1064,13 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 		"Creating PONG signature to indicate ownership.\n");
     *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
-    GNUNET_assert (GNUNET_OK ==
+    if (GNUNET_OK !=
 		   GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
-					   sig_cache));
+					   sig_cache))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    		_("Failed to create PONG signature for peer `%s'\n"), GNUNET_i2s (sender));
+    }
   }
   else
   {
