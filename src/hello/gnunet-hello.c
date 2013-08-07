@@ -47,6 +47,8 @@ struct AddContext
   size_t ret;
 };
 
+static int address_count;
+
 
 /**
  * Add the given address with infinit expiration to the buffer.
@@ -69,7 +71,8 @@ add_to_buf (void *cls, const struct GNUNET_HELLO_Address *address,
 				  ac->max);
   ac->buf += ret;
   ac->max -= ret;
-  ac->ret += ret;  
+  ac->ret += ret;
+  address_count ++;
   return GNUNET_OK;
 }
 
@@ -110,6 +113,7 @@ main (int argc, char *argv[])
   struct GNUNET_HELLO_Message *result;
   struct GNUNET_CRYPTO_EccPublicKey pk;
   uint64_t fsize;
+  address_count = 0;
 
   GNUNET_log_setup ("gnunet-hello", "INFO", NULL);
   if (argc != 2)
@@ -196,6 +200,7 @@ main (int argc, char *argv[])
      }
     GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
   }
+  FPRINTF (stderr, _("Modified %u addresses \n"), address_count);
   return 0;
 }
 
