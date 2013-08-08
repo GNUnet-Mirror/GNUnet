@@ -21,6 +21,7 @@
 /**
  * @file fs/fs_namespace.c
  * @brief publishing to namespaces, and tracking updateable entries
+ *        for our namespaces
  * @author Christian Grothoff
  */
 #include "platform.h"

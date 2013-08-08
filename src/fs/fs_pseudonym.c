@@ -19,7 +19,9 @@
 */
 /**
  * @file fs/fs_pseudonym.c
- * @brief pseudonym functions
+ * @brief pseudonym functions; these functions are about namespaces
+ *        managed by other users; we might want to eliminate this
+ *        entire API and instead manage pseudonyms only via GNS
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -124,9 +126,9 @@ internal_notify (const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
  */
 struct GNUNET_FS_Pseudonym_DiscoveryHandle *
 GNUNET_FS_pseudonym_discovery_callback_register (const struct
-					      GNUNET_CONFIGURATION_Handle *cfg,
-                                              GNUNET_FS_PseudonymIterator iterator, 
-					      void *iterator_cls)
+						 GNUNET_CONFIGURATION_Handle *cfg,
+						 GNUNET_FS_PseudonymIterator iterator, 
+						 void *iterator_cls)
 {
   struct GNUNET_FS_Pseudonym_DiscoveryHandle *dh;
 
@@ -393,7 +395,8 @@ GNUNET_FS_pseudonym_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg
   {
     idx = i;
     if (sizeof (struct GNUNET_CRYPTO_EccPublicKey) !=
-        GNUNET_DISK_file_write (fh, pseudonym, sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
+        GNUNET_DISK_file_write (fh, pseudonym, 
+				sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "write", fn);
   }
   GNUNET_DISK_file_close (fh);
@@ -504,8 +507,8 @@ GNUNET_FS_pseudonym_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			     const char *ns_uname, 
-			     struct GNUNET_CRYPTO_EccPublicKey *pseudonym)
+				const char *ns_uname, 
+				struct GNUNET_CRYPTO_EccPublicKey *pseudonym)
 {
   size_t slen;
   uint64_t len;
@@ -549,7 +552,8 @@ GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   if (sizeof (struct GNUNET_CRYPTO_EccPublicKey) !=
-      GNUNET_DISK_file_read (fh, pseudonym, sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
+      GNUNET_DISK_file_read (fh, pseudonym, 
+			     sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
   {
     GNUNET_DISK_file_close (fh);
     return GNUNET_SYSERR;
@@ -557,7 +561,6 @@ GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_DISK_file_close (fh);
   return GNUNET_OK;
 }
-
 
 
 /**
@@ -654,8 +657,8 @@ list_pseudonym_helper (void *cls, const char *fullname)
  */
 int
 GNUNET_FS_pseudonym_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_FS_PseudonymIterator iterator, 
-			   void *iterator_cls)
+			      GNUNET_FS_PseudonymIterator iterator, 
+			      void *iterator_cls)
 {
   struct ListPseudonymClosure cls;
   char *fn;
@@ -683,8 +686,8 @@ GNUNET_FS_pseudonym_list_all (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_FS_pseudonym_rank (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
-		       int32_t delta)
+			  const struct GNUNET_CRYPTO_EccPublicKey *pseudonym, 
+			  int32_t delta)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
   int ret;
@@ -750,5 +753,4 @@ GNUNET_FS_pseudonym_add (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-
-/* end of pseudonym.c */
+/* end of fs_pseudonym.c */
