@@ -1246,8 +1246,7 @@ client_get (struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Deletes a tunnel from a client (either owner or destination). To be used on
- * tunnel destroy.
+ * Deletes a tunnel from a client (either owner or destination).
  *
  * @param c Client whose tunnel to delete.
  * @param ch Channel which should be deleted.
@@ -5487,10 +5486,11 @@ static void
 handle_local_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ChannelMessage *tunnel_msg;
+  struct GNUNET_MESH_ChannelMessage *msg;
   struct MeshClient *c;
   struct MeshChannel *ch;
-  MESH_ChannelNumber tid;
+  struct MeshTunnel2 *t;
+  MESH_ChannelNumber chid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got a DESTROY CHANNEL from client!\n");
@@ -5512,40 +5512,40 @@ handle_local_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  tunnel_msg = (struct GNUNET_MESH_ChannelMessage *) message;
+  msg = (struct GNUNET_MESH_ChannelMessage *) message;
 
   /* Retrieve tunnel */
-  tid = ntohl (tunnel_msg->channel_id);
-  t = channel_get_by_local_id (c, tid);
-  if (NULL == t)
+  chid = ntohl (msg->channel_id);
+  ch = channel_get_by_local_id (c, chid);
+  if (NULL == ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  tunnel %X not found\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  channel %X not found\n", chid);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
   /* Cleanup after the tunnel */
-  client_delete_tunnel (c, t);
-  if (c == t->client && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= tid)
+  client_delete_channel (c, ch);
+  if (c == ch->dest && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
   {
-    t->client = NULL;
+    ch->dest = NULL;
   }
-  else if (c == t->owner && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV > tid)
+  else if (c == ch->root && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV > chid)
   {
-    peer_remove_tunnel (peer_get_short (t->dest), t);
-    t->owner = NULL;
+    ch->root = NULL;
   }
   else 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "  tunnel %X client %p (%p, %p)\n",
-                tid, c, t->owner, t->client);
+                "  channel %X client %p (%p, %p)\n",
+                chid, c, ch->root, ch->dest);
     GNUNET_break (0);
   }
 
-  /* The tunnel will be destroyed when the last message is transmitted. */
-  tunnel_destroy_empty (t);
+  t = ch->t;
+  channel_destroy (ch);
+  tunnel_destroy_if_empty (t);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -5563,11 +5563,11 @@ static void
 handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                    const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_LocalData *data_msg;
+  struct GNUNET_MESH_LocalData *msg;
   struct MeshClient *c;
-  struct MeshTunnel *t;
+  struct MeshChannel *ch;
   struct MeshFlowControl *fc;
-  MESH_ChannelNumber tid;
+  MESH_ChannelNumber chid;
   size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -5582,7 +5582,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  data_msg = (struct GNUNET_MESH_LocalData *) message;
+  msg = (struct GNUNET_MESH_LocalData *) message;
 
   /* Sanity check for message size */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_LocalData);
@@ -5593,24 +5593,24 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  /* Tunnel exists? */
-  tid = ntohl (data_msg->tid);
-  t = channel_get_by_local_id (c, tid);
-  if (NULL == t)
+  /* Channel exists? */
+  chid = ntohl (msg->chid);
+  ch = channel_get_by_local_id (c, chid);
+  if (NULL == ch)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
-  /* Is the client in the tunnel? */
-  if ( !( (tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
-           t->owner &&
-           t->owner->handle == client)
+  /* Is the client in the channel? */
+  if ( !( (chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
+           ch->root &&
+           ch->root->handle == client)
          ||
-          (tid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
-           t->client && 
-           t->client->handle == client) ) )
+          (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
+           ch->dest && 
+           ch->dest->handle == client) ) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
