@@ -357,10 +357,10 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
       {
         /* no reverse lookup was successful, return ip as string */
         if (rh->received_response == GNUNET_NO)
-          rh->name_callback (rh->cls,
-                             no_resolve (rh->af,
-					 &rh[1],
-                                         rh->data_len));
+        {
+          rh->name_callback (rh->cls, no_resolve (rh->af, &rh[1], rh->data_len));
+          rh->name_callback (rh->cls, NULL);
+        }
         /* at least one reverse lookup was successful */
         else
           rh->name_callback (rh->cls, NULL);
