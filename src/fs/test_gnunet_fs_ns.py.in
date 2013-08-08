@@ -37,12 +37,14 @@ if os.name == 'posix':
   publish = 'gnunet-publish'
   unindex = 'gnunet-unindex'
   search = 'gnunet-search'
+  identity = 'gnunet-identity'
 elif os.name == 'nt':
   pseudonym = 'gnunet-pseudonym.exe'
   gnunetarm = 'gnunet-arm.exe'
   publish = 'gnunet-publish.exe'
   unindex = 'gnunet-unindex.exe'
   search = 'gnunet-search.exe'
+  identity = 'gnunet-identity.exe'
 
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
@@ -54,12 +56,8 @@ arm.communicate ()
 
 try:
   pseu = pexpect ()
-  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-C', 'licenses', '-k', 'gplad', '-m', 'description:Free Software Licenses', '-R', 'myroot'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-o'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pseu.expect ("stdout", re.compile (r"licenses (.*)\r?\n"))
-
-  pub = pexpect ()
-  pub.spawn (None, [publish, '-c', 'test_gnunet_fs_ns_data.conf', '-k', 'licenses', '-P', 'licenses', '-u', 'gnunet://fs/chk/PC0M19QMQC0BPSHR6BGA228PP6INER1D610MGEMOMEM87222FN8HVUO7PQGO0O9HD2GVLHF2N5IDHEQUNK6LKE428FPO96SKQEA486O.PG7K85JGQ6N599MD5HEP3CHEVFPKQD9JB6NPSLVA3T1SKDS66CFI499VS6MGQ88B0QUAVT1282TCRD4GGFVUKDLGI8F0SPIANA3J2LG.35147', '-t', 'gpl', '-N', 'gpl3'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pseu.spawn (None, [identity, '-c', 'test_gnunet_fs_ns_data.conf', '-C', 'licenses'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-A', 'licenses', '-k', 'gplad', '-m', 'description:Free Software Licenses', '-R', 'myroot'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
   s = pexpect ()
   s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_ns_data.conf', 'gplad'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
