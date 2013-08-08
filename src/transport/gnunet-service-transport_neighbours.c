@@ -3163,6 +3163,10 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
       sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%s message from peer `%s' has invalid size \n",
+                "DISCONNECT",
+                GNUNET_i2s (peer));
     GNUNET_break_op (0);
     return;
   }
@@ -3171,6 +3175,10 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
       (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT, &sdm->purpose,
        &sdm->signature, &sdm->public_key))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%s message from peer `%s' cannot be verified \n",
+                "DISCONNECT",
+                GNUNET_i2s (peer));
     GNUNET_break_op (0);
     return;
   }
