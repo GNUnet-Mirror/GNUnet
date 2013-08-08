@@ -1626,11 +1626,20 @@ struct PrettyPrinterContext
 };
 
 
+
 void
 ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	struct PrettyPrinterContext *ppc = cls;
-	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was not removed!\n", ppc); */
+	int count = 0;
+  struct PrettyPrinterContext *ppc = cls;
+  struct PrettyPrinterContext *cur;
+	for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
+	{
+		if (cur != ppc)
+			count++;
+	}
+
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cancel request %p, %u pending\n", ppc, count);
 	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	if (NULL != ppc->resolver_handle)
 	{
@@ -1655,7 +1664,14 @@ append_port (void *cls, const char *hostname)
   struct PrettyPrinterContext *ppc = cls;
   struct PrettyPrinterContext *cur;
   char *ret;
-	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC callback: %p `%s'\n",ppc, hostname); */
+  int count = 0;
+
+	for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
+	{
+		if (cur != ppc)
+			count++;
+	}
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback request %p == %s, %u pending\n", ppc, hostname, count);
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -1663,7 +1679,7 @@ append_port (void *cls, const char *hostname)
     GNUNET_SCHEDULER_cancel (ppc->timeout_task);
     ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     ppc->resolver_handle = NULL;
-  	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was removed!\n", ppc); */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Done request %p, %u pending\n", ppc, count);
     GNUNET_free (ppc);
     return;
   }
@@ -1769,10 +1785,18 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->options = options;
   ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(timeout, 2),
   		&ppc_cancel_task, ppc);
-  GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
-	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was created!\n", ppc); */
 	ppc->resolver_handle =  GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric,
 			timeout, &append_port, ppc);
+	if (NULL != ppc->resolver_handle)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
+		GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
+	}
+	else
+	{
+		GNUNET_break (0);
+		GNUNET_free (ppc);
+	}
 }
 
 
@@ -2696,7 +2720,8 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   {
   	next = cur->next;
   	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
-  	GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+  	if (NULL != cur->resolver_handle)
+  		GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
   	GNUNET_SCHEDULER_cancel (cur->timeout_task);
   	GNUNET_free (cur);
   	GNUNET_break (0);
