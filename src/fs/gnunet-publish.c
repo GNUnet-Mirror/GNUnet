@@ -689,7 +689,7 @@ identity_continuation (const char *args0)
  *
  * @param cls closure with 'const char *' of filename to publish
  * @param ego ego handle
- * @param ego_ctx context for application to store data for this ego
+ * @param ctx context for application to store data for this ego
  *                 (during the lifetime of this process, initially NULL)
  * @param name name assigned by the user for this ego,
  *                   NULL if the user just deleted the ego and it

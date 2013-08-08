@@ -120,6 +120,7 @@ struct GNUNET_FS_UpdateInformationGraph
  * Return the name of the directory in which we store
  * the update information graph for the given local namespace.
  *
+ * @param h file-sharing handle
  * @param ns namespace handle
  * @return NULL on error, otherwise the name of the directory
  */
@@ -183,9 +184,9 @@ free_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)
 
 
 /**
- * Write the namespace update node graph to a file.
+ * Write a namespace's update node graph to a file.
  *
- * @param ns namespace to dump
+ * @param uig update information graph to dump
  */
 static void
 write_update_information_graph (struct GNUNET_FS_UpdateInformationGraph *uig)

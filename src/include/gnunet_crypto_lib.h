@@ -929,13 +929,13 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Derive key material from a public and a private ECC key.
  *
- * @param key private key to use for the ECDH (x)
+ * @param priv private key to use for the ECDH (x)
  * @param pub public key to use for the ECDY (yG)
  * @param key_material where to write the key material (xyG)
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
                         const struct GNUNET_CRYPTO_EccPublicKey *pub,
                         struct GNUNET_HashCode *key_material);
 
