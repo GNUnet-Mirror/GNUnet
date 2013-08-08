@@ -251,6 +251,7 @@ point_to_public_key (gcry_mpi_point_t q,
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
     return;
   }
+
   mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
   mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
   gcry_mpi_release (q_x);
@@ -937,7 +938,7 @@ derive_h (const struct GNUNET_CRYPTO_EccPublicKey *pub,
   GNUNET_CRYPTO_kdf (&hc, sizeof (hc),
 		     "key-derivation", strlen ("key-derivation"),
 		     pub, sizeof (*pub),
-		     label, sizeof (label),
+		     label, strlen (label),
 		     NULL, 0);
   mpi_scan (&h, (unsigned char *) &hc, sizeof (hc));
   return h;
