@@ -1639,7 +1639,7 @@ ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 			count++;
 	}
 
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cancel request %p, %u pending\n", ppc, count);
+	// GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cancel request %p, %u pending\n", ppc, count);
 	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 	if (NULL != ppc->resolver_handle)
 	{
@@ -1671,7 +1671,7 @@ append_port (void *cls, const char *hostname)
 		if (cur != ppc)
 			count++;
 	}
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback request %p == %s, %u pending\n", ppc, hostname, count);
+	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback request %p == %s, %u pending\n", ppc, hostname, count);
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -1679,7 +1679,7 @@ append_port (void *cls, const char *hostname)
     GNUNET_SCHEDULER_cancel (ppc->timeout_task);
     ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     ppc->resolver_handle = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Done request %p, %u pending\n", ppc, count);
+    //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Done request %p, %u pending\n", ppc, count);
     GNUNET_free (ppc);
     return;
   }
@@ -1789,7 +1789,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
 			timeout, &append_port, ppc);
 	if (NULL != ppc->resolver_handle)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
+		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
 		GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
 	}
 	else
