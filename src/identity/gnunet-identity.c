@@ -176,8 +176,7 @@ print_ego (void *cls,
 	   struct GNUNET_IDENTITY_Ego *ego,
 	   void **ctx,
 	   const char *identifier)
-{  
-
+{
   if (! (list | monitor))
     return;
   if ( (NULL == ego) && (! monitor) )
@@ -185,7 +184,10 @@ print_ego (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  fprintf (stderr, "%s\n", identifier);
+  if (monitor)
+    fprintf (stderr, "%s - %p\n", identifier, ego);
+  else if (NULL != identifier)
+    fprintf (stderr, "%s\n", identifier);
 }
 
 
@@ -237,8 +239,8 @@ main (int argc, char *const *argv)
     {'D', "delete", "NAME",
      gettext_noop ("delete ego NAME "),
      1, &GNUNET_GETOPT_set_string, &delete_ego},
-    {'L', "list", NULL,
-     gettext_noop ("list all egos"),
+    {'d', "display", NULL,
+     gettext_noop ("display all egos"),
      0, &GNUNET_GETOPT_set_one, &list},
     {'m', "monitor", NULL,
      gettext_noop ("run in monitor mode egos"),
