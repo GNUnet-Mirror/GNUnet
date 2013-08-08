@@ -154,6 +154,11 @@ struct GNUNET_MESH_ChannelCreate
   MESH_ChannelNumber chid GNUNET_PACKED;
 
   /**
+   * Destination port.
+   */
+  uint32_t port GNUNET_PACKED;
+
+  /**
    * Channel options.
    */
   uint32_t opt GNUNET_PACKED;
