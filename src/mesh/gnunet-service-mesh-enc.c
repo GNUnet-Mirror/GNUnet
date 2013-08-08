@@ -5711,9 +5711,9 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalAck *msg;
-  struct MeshTunnel *t;
+  struct MeshChannel *ch;
   struct MeshClient *c;
-  MESH_ChannelNumber tid;
+  MESH_ChannelNumber chid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
   /* Sanity check for client registration */
@@ -5728,28 +5728,28 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (struct GNUNET_MESH_LocalAck *) message;
 
   /* Tunnel exists? */
-  tid = ntohl (msg->channel_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on tunnel %X\n", tid);
-  t = channel_get_by_local_id (c, tid);
-  if (NULL == t)
+  chid = ntohl (msg->channel_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
+  ch = channel_get_by_local_id (c, chid);
+  if (NULL == ch)
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Tunnel %X unknown.\n", tid);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Channel %X unknown.\n", chid);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
   /* Does client own tunnel? I.E: Is this an ACK for BCK traffic? */
-  if (tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+  if (chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
   {
-    /* The client owns the tunnel, ACK is for data to_origin, send BCK ACK. */
-    t->prev_fc.last_ack_recv++;
+    /* The client owns the channel, ACK is for data to_origin, send BCK ACK. */
+    ch->prev_fc.last_ack_recv++;
     tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK, GNUNET_NO);
   }
   else
   {
-    /* The client doesn't own the tunnel, this ACK is for FWD traffic. */
+    /* The client doesn't own the channel, this ACK is for FWD traffic. */
     t->next_fc.last_ack_recv++;
     tunnel_send_ack (t, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK, GNUNET_YES);
   }
@@ -5758,7 +5758,6 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
 
   return;
 }
-
 
 
 /**
@@ -6089,36 +6088,6 @@ shutdown_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
   return GNUNET_YES;
 }
 
-/**
- * Iterator over peer hash map entries to destroy the tunnel during shutdown.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
- */
-static int
-shutdown_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct MeshPeer *p = value;
-  struct MeshPeerQueue *q;
-  struct MeshPeerQueue *n;
-
-  q = p->fc->queue_head;
-  while (NULL != q)
-  {
-      n = q->next;
-      if (q->peer == p)
-      {
-        queue_destroy(q, GNUNET_YES);
-      }
-      q = n;
-  }
-  peer_destroy (p);
-  return GNUNET_YES;
-}
-
 
 /**
  * Task run during shutdown.
@@ -6137,7 +6106,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     core_handle = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &shutdown_peer, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
