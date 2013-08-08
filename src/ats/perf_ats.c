@@ -43,6 +43,8 @@ struct BenchmarkPeer
    */
   struct GNUNET_TESTBED_Peer *peer;
 
+  int no;
+
   struct GNUNET_PeerIdentity id;
 
   struct GNUNET_CORE_Handle *ch;
@@ -171,7 +173,7 @@ ats_performance_info_cb (void *cls,
 	peer_id = GNUNET_strdup (GNUNET_i2s (&p->id));
 	for (c_a = 0; c_a < ats_count; c_a++)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("%s: %s %s %u\n"), peer_id, GNUNET_i2s (&address->peer),
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("%s: %s %s %u\n"), peer_id, GNUNET_i2s (&address->peer),
 				GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
 				ntohl(ats[c_a].value));
 	}
@@ -198,8 +200,6 @@ static void connect_completion_callback (void *cls,
 {
 	static int connections = 0;
 	struct BenchmarkPeer *p = cls;
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			_("Connected peer 0 with peer %p\n"), p->peer);
 	if (NULL == emsg)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -498,7 +498,7 @@ peerinformation_cb (void *cb_cls,
   {
     p->id = *pinfo->result.id;
   	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-  			_("Peers %s\n"), GNUNET_i2s (&p->id));
+  			_("[%3u] Peers %s\n"), p->no, GNUNET_i2s (&p->id));
   }
   else
   {
@@ -543,6 +543,7 @@ test_main (void *cls, unsigned int num_peers,
   for (c_p = 0; c_p < num_peers; c_p++)
   {
     GNUNET_assert (NULL != peers_[c_p]);
+    ph[c_p].no = c_p;
     /* Connect to ATS performance service */
     ph[c_p].peer = peers_[c_p];
 
