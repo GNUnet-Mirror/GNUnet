@@ -732,11 +732,24 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
                             gettext_noop
                             ("# REQUEST CONNECT messages received"), 1,
                             GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a request connect message for peer `%s'\n",
-              GNUNET_i2s (&trcm->peer));
-  (void) GST_blacklist_test_allowed (&trcm->peer, NULL, &try_connect_if_allowed,
+
+  if (0 == memcmp (&trcm->peer, &GST_my_identity,
+  		sizeof (struct GNUNET_PeerIdentity)))
+  {
+  	GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received a request connect message myself `%s'\n",
+                GNUNET_i2s (&trcm->peer));
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received a request connect message for peer `%s'\n",
+                GNUNET_i2s (&trcm->peer));
+
+    (void) GST_blacklist_test_allowed (&trcm->peer, NULL, &try_connect_if_allowed,
                                      NULL);
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
