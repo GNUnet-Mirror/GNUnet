@@ -255,7 +255,7 @@ main (int argc, char *argv[])
              "1.5.0");
     return 0;
   }
-  GNUNET_log_setup ("test-crypto-ecc", "WARNING", NULL);
+  GNUNET_log_setup ("test-crypto-ecc", "ERROR", NULL);
   key = GNUNET_CRYPTO_ecc_key_create ();
   if (GNUNET_OK != testDeriveSignVerify ())
   {
