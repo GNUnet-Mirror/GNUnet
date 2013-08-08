@@ -2022,7 +2022,14 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   {
     /* refuse connections from ourselves */
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    GNUNET_break (0);
+    if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+    {
+    	LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Received %s message from my own identity `%4s' on address `%s'\n",
+         "WELCOME", GNUNET_i2s (&wm->clientIdentity), GNUNET_a2s (vaddr, alen));
+    	GNUNET_free (vaddr);
+    }
+    GNUNET_break_op (0);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
