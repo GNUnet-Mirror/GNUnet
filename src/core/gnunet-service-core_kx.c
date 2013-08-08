@@ -800,7 +800,8 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
        (start_t.abs_value > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Ephemeral key message rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
+		_("Ephemeral key message from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
+		GNUNET_i2s (&kx->peer),
 		now.abs_value,
 		start_t.abs_value,
 		end_t.abs_value);
