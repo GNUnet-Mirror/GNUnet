@@ -368,20 +368,10 @@ struct MeshChannelReliability
   unsigned int                      n_sent;
 
     /**
-     * Next MID to use.
-     */
-  uint32_t                          mid_sent;
-
-    /**
      * DLL of messages received out of order.
      */
   struct MeshReliableMessage        *head_recv;
   struct MeshReliableMessage        *tail_recv;
-
-    /**
-     * Next MID expected.
-     */
-  uint32_t                          mid_recv;
 
     /**
      * Task to resend/poll in case no ACK is received.
@@ -439,6 +429,26 @@ struct MeshChannel
   MESH_ChannelNumber lid_dest;
 
     /**
+     * Next MID to use for fwd traffic.
+     */
+  uint32_t mid_send_fwd;
+
+    /**
+     * Next MID expected for fwd traffic.
+     */
+  uint32_t mid_recv_fwd;
+
+    /**
+     * Next MID to use for bck traffic.
+     */
+  uint32_t mid_send_bck;
+
+    /**
+     * Next MID expected for bck traffic.
+     */
+  uint32_t mid_recv_bck;
+
+  /**
      * Is the tunnel bufferless (minimum latency)?
      */
   int nobuffer;
@@ -2617,6 +2627,7 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
   struct MeshChannelReliability *rel;
   struct MeshReliableMessage *copy;
   uint64_t mask;
+  uint32_t *mid;
   unsigned int delta;
 
   if (GNUNET_NO == ch->reliable)
@@ -2624,20 +2635,21 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
     GNUNET_break (0);
     return;
   }
-  rel = fwd ? ch->bck_rel  : ch->fwd_rel;
+  rel = fwd ? ch->bck_rel       : ch->fwd_rel;
+  mid = fwd ? &ch->mid_recv_fwd : &ch->mid_recv_bck;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "send_data_ack for %u\n",
-              rel->mid_recv - 1);
+              *mid - 1);
 
   msg.header.type = htons (fwd ? GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK :
                                  GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
-  msg.mid = htonl (rel->mid_recv - 1);
+  msg.mid = htonl (*mid - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
-    delta = copy->mid - rel->mid_recv;
+    delta = copy->mid - *mid;
     if (63 < delta)
       break;
     mask = 0x1LL << delta;
@@ -2876,6 +2888,7 @@ channel_send_client_buffered_data (struct MeshChannel *ch,
 {
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
+  uint32_t *mid;
 
   if (GNUNET_NO == ch->reliable)
   {
@@ -2883,19 +2896,21 @@ channel_send_client_buffered_data (struct MeshChannel *ch,
     return;
   }
 
+  mid = rel == ch->bck_rel ? &ch->mid_recv_fwd : &ch->mid_recv_bck;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
   for (copy = rel->head_recv; NULL != copy; copy = next)
   {
     next = copy->next;
-    if (copy->mid == rel->mid_recv)
+    if (copy->mid == *mid)
     {
       struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " have %u! now expecting %u\n",
-                  copy->mid, rel->mid_recv + 1);
+                  copy->mid, *mid + 1);
       channel_send_client_data (ch, msg, (rel == ch->bck_rel));
-      rel->mid_recv++;
+      *mid = *mid + 1;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
       GNUNET_free (copy);
     }
@@ -2903,7 +2918,7 @@ channel_send_client_buffered_data (struct MeshChannel *ch,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   " don't have %u, next is %u\n",
-                  rel->mid_recv,
+                  *mid,
                   copy->mid);
       return;
     }
@@ -4198,6 +4213,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   struct MeshChannel *ch;
   struct MeshClient *c;
   uint32_t mid;
+  uint32_t *mid_recv;
   uint16_t type;
   size_t size;
 
@@ -4226,8 +4242,9 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   }
 
   /*  Initialize FWD/BCK data */
-  c =   fwd ? ch->dest  : ch->root;
-  rel = fwd ? ch->bck_rel : ch->fwd_rel;
+  c        = fwd ? ch->dest          : ch->root;
+  rel      = fwd ? ch->bck_rel       : ch->fwd_rel;
+  mid_recv = fwd ? &ch->mid_recv_fwd : &ch->mid_recv_bck;
 
   if (NULL == c)
   {
@@ -4243,17 +4260,17 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " mid %u\n", mid);
 
   if (GNUNET_NO == ch->reliable ||
-      ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
-        GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
+      ( !GMC_is_pid_bigger (*mid_recv, mid) &&
+        GMC_is_pid_bigger (*mid_recv + 64, mid) ) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
     if (GNUNET_YES == ch->reliable)
     {
       /* Is this the exact next expected messasge? */
-      if (mid == rel->mid_recv)
+      if (mid == *mid_recv)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
-        rel->mid_recv++;
+        *mid_recv = *mid_recv + 1;
         channel_send_client_data (ch, msg, fwd);
         channel_send_client_buffered_data (ch, c, rel);
       }
@@ -4273,7 +4290,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 " MID %u not expected (%u - %u), dropping!\n",
-                mid, rel->mid_recv, rel->mid_recv + 64);
+                mid, *mid_recv, *mid_recv + 64);
   }
 
   channel_send_data_ack (ch, fwd);
@@ -5566,9 +5583,9 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MESH_LocalData *msg;
   struct MeshClient *c;
   struct MeshChannel *ch;
-  struct MeshFlowControl *fc;
   MESH_ChannelNumber chid;
   size_t size;
+  int fwd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got data from a client!\n");
@@ -5594,7 +5611,8 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Channel exists? */
-  chid = ntohl (msg->chid);
+  chid = ntohl (msg->id);
+  fwd = chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   ch = channel_get_by_local_id (c, chid);
   if (NULL == ch)
   {
@@ -5604,11 +5622,11 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Is the client in the channel? */
-  if ( !( (chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
+  if ( !( (fwd &&
            ch->root &&
            ch->root->handle == client)
          ||
-          (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV &&
+          (!fwd &&
            ch->dest && 
            ch->dest->handle == client) ) )
   {
@@ -5623,18 +5641,20 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
   {
     struct GNUNET_MESH_Data *payload;
     char cbuf[sizeof(struct GNUNET_MESH_Data) + size];
+    uint32_t *mid;
 
-    fc = tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? &t->prev_fc : &t->next_fc;
-    if (GNUNET_YES == t->reliable)
+    mid = fwd ? &ch->mid_send_fwd : &ch->mid_send_bck;
+    if (GNUNET_YES == ch->reliable)
     {
       struct MeshChannelReliability *rel;
       struct MeshReliableMessage *copy;
 
-      rel = (tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV) ? t->fwd_rel : t->bck_rel;
+      rel = fwd ? ch->fwd_rel       : ch->bck_rel;
       copy = GNUNET_malloc (sizeof (struct MeshReliableMessage)
                             + sizeof(struct GNUNET_MESH_Data)
                             + size);
-      copy->mid = rel->mid_sent++;
+
+      copy->mid = *mid;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! DATA %u\n", copy->mid);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       copy->rel = rel;
@@ -5648,32 +5668,29 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
                                            MESH_RETRANSMIT_MARGIN);
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                          &tunnel_retransmit_message,
+                                          &channel_retransmit_message,
                                           rel);
       }
       payload = (struct GNUNET_MESH_Data *) &copy[1];
-      payload->mid = htonl (copy->mid);
     }
     else
     {
       payload = (struct GNUNET_MESH_Data *) cbuf;
-      payload->mid = htonl (fc->last_pid_recv + 1);
     }
-    memcpy (&payload[1], &data_msg[1], size);
+    payload->mid = htonl (*mid);
+    *mid = *mid + 1;
+    memcpy (&payload[1], &msg[1], size);
     payload->header.size = htons (sizeof (struct GNUNET_MESH_Data) + size);
-    payload->header.type = htons (tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ?
+    payload->header.type = htons (chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ?
                                   GNUNET_MESSAGE_TYPE_MESH_UNICAST :
                                   GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN);
-    GNUNET_PEER_resolve(t->id.oid, &payload->oid);;
-    payload->tid = htonl (t->id.tid);
-    payload->ttl = htonl (default_ttl);
-    payload->pid = htonl (fc->last_pid_recv + 1);
+    payload->chid = htonl (ch->gid);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  calling generic handler...\n");
-    if (tid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-      handle_mesh_unicast (NULL, &my_full_id, &payload->header);
+    if (chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+      handle_data (ch->t, payload, GNUNET_YES);
     else
-      handle_mesh_to_orig (NULL, &my_full_id, &payload->header);
+      handle_data (ch->t, payload, GNUNET_NO);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
