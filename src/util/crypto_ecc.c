@@ -831,7 +831,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
   gcry_sexp_release (sig_sexpr);
   if (0 != rc)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_INFO,
          _("ECC signature verification failed at %s:%d: %s\n"), __FILE__,
          __LINE__, gcry_strerror (rc));
     return GNUNET_SYSERR;
