@@ -558,7 +558,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   is_new = (NULL == sr) || (sr->mandatory_missing > 0);
   if (NULL == sr)
   {
-    sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
+    sr = GNUNET_new (struct GNUNET_FS_SearchResult);
     sr->h = sc->h;
     sr->sc = sc;
     sr->anonymity = sc->anonymity;
@@ -639,7 +639,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
                                                   &test_result_present,
                                                   (void *) uri))
     return;                     /* duplicate result */
-  sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
+  sr = GNUNET_new (struct GNUNET_FS_SearchResult);
   sr->h = sc->h;
   sr->sc = sc;
   sr->anonymity = sc->anonymity;
@@ -721,7 +721,8 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
  * @param size size of nb
  */
 static void
-process_kblock (struct GNUNET_FS_SearchContext *sc, const struct UBlock *ub,
+process_kblock (struct GNUNET_FS_SearchContext *sc, 
+		const struct UBlock *ub,
                 size_t size)
 {
   size_t j;
@@ -793,7 +794,6 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
   size_t off;
   char *emsg;
 
-  /* decrypt */
   GNUNET_FS_ublock_decrypt_ (&ub[1], len,
 			     &sc->uri->data.sks.ns,
 			     sc->uri->data.sks.identifier,
@@ -837,7 +837,8 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
  * @param size size of data
  */
 static void
-process_result (struct GNUNET_FS_SearchContext *sc, enum GNUNET_BLOCK_Type type,
+process_result (struct GNUNET_FS_SearchContext *sc, 
+		enum GNUNET_BLOCK_Type type,
                 struct GNUNET_TIME_Absolute expiration, 
 		const void *data,
                 size_t size)
@@ -1106,7 +1107,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
 					 &dpub);
     GNUNET_CRYPTO_hash (&dpub,
 			sizeof (dpub),
-			&sm->query);
+			&sm->query); 
     mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);

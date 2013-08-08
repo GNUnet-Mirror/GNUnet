@@ -168,7 +168,8 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   keyword = pkc->ksk_uri->data.ksk.keywords[pkc->i++];
   pkc->uc = GNUNET_FS_publish_ublock_ (pkc->h,
 				       pkc->dsh,
-				       keyword, NULL,
+				       keyword + 1 /* skip '+' */,
+				       NULL,
 				       GNUNET_CRYPTO_ecc_key_get_anonymous (),
 				       pkc->meta,
 				       pkc->uri,

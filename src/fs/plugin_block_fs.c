@@ -198,7 +198,7 @@ libgnunet_plugin_block_fs_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_fs_evaluate;
   api->get_key = &block_plugin_fs_get_key;
   api->types = types;

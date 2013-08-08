@@ -190,7 +190,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   uris = GNUNET_FS_uri_to_string (uri);
   slen = strlen (uris) + 1;
   if (NULL == ulabel)
-    ulen = 0;
+    ulen = 1;
   else
     ulen = strlen (ulabel) + 1;
   size = mdsize + sizeof (struct UBlock) + slen + ulen;
@@ -201,7 +201,8 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   }
   ub_plain = GNUNET_malloc (size);
   kbe = (char *) &ub_plain[1];
-  memcpy (kbe, ulabel, ulen);
+  if (NULL != ulabel)
+    memcpy (kbe, ulabel, ulen);
   kbe += ulen;
   memcpy (kbe, uris, slen);
   kbe += slen;
