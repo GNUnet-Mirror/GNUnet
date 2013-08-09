@@ -5474,13 +5474,11 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
   ch->port = ntohl (msg->port);
   channel_set_options (ch, ntohl (msg->opt));
-  if (GNUNET_YES == ch->reliable)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
-    ch->fwd_rel = GNUNET_malloc (sizeof (struct MeshChannelReliability));
-    ch->fwd_rel->ch = ch;
-    ch->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
-  }
+
+  /* In unreliable channels, we'll use the DLL to buffer data for the root */
+  ch->fwd_rel = GNUNET_malloc (sizeof (struct MeshChannelReliability));
+  ch->fwd_rel->ch = ch;
+  ch->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
               GNUNET_h2s (&t->id), ch->gid, ch->port, ch->lid_root);
