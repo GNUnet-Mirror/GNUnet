@@ -1104,6 +1104,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
     GNUNET_CRYPTO_ecc_public_key_derive (&sc->uri->data.sks.ns,
 					 sc->uri->data.sks.identifier,
+					 "fs-ublock",
 					 &dpub);
     GNUNET_CRYPTO_hash (&dpub,
 			sizeof (dpub),
@@ -1290,6 +1291,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       sre->keyword = GNUNET_strdup (keyword);
       GNUNET_CRYPTO_ecc_public_key_derive (&anon_pub,
 					   keyword,
+					   "fs-ublock",
 					   &sre->dpub);
       GNUNET_CRYPTO_hash (&sre->dpub, 
 			  sizeof (struct GNUNET_CRYPTO_EccPublicKey), 

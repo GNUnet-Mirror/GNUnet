@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -979,11 +979,14 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
  *
  * @param priv original private key
  * @param label label to use for key deriviation
+ * @param context additional context to use for HKDF of 'h';
+ *        typically the name of the subsystem/application
  * @return derived private key
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-			      const char *label);
+			      const char *label,
+			      const char *context);
 
 
 /**
@@ -992,11 +995,14 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  *
  * @param pub original public key
  * @param label label to use for key deriviation
+ * @param context additional context to use for HKDF of 'h'.
+ *        typically the name of the subsystem/application
  * @param result where to write the derived public key
  */
 void
 GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pub,
 				     const char *label,
+				     const char *context,
 				     struct GNUNET_CRYPTO_EccPublicKey *result);
 
 

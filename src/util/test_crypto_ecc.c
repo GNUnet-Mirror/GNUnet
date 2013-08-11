@@ -95,9 +95,9 @@ testDeriveSignVerify ()
   struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_CRYPTO_EccPublicKey dpub;
 
-  dpriv = GNUNET_CRYPTO_ecc_key_derive (key, "test-derive");
+  dpriv = GNUNET_CRYPTO_ecc_key_derive (key, "test-derive", "test-CTX");
   GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  GNUNET_CRYPTO_ecc_public_key_derive (&pkey, "test-derive", &dpub);
+  GNUNET_CRYPTO_ecc_public_key_derive (&pkey, "test-derive", "test-CTX", &dpub);
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
 

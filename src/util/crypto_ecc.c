@@ -926,11 +926,14 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  *
  * @param pub public key for deriviation
  * @param label label for deriviation
+ * @param context additional context to use for HKDF of 'h';
+ *        typically the name of the subsystem/application
  * @return h value
  */ 
 static gcry_mpi_t 
 derive_h (const struct GNUNET_CRYPTO_EccPublicKey *pub,
-	  const char *label)
+	  const char *label,
+	  const char *context)
 {
   gcry_mpi_t h;
   struct GNUNET_HashCode hc;
@@ -939,6 +942,7 @@ derive_h (const struct GNUNET_CRYPTO_EccPublicKey *pub,
 		     "key-derivation", strlen ("key-derivation"),
 		     pub, sizeof (*pub),
 		     label, strlen (label),
+		     context, strlen (context),
 		     NULL, 0);
   mpi_scan (&h, (unsigned char *) &hc, sizeof (hc));
   return h;
@@ -953,11 +957,14 @@ derive_h (const struct GNUNET_CRYPTO_EccPublicKey *pub,
  *
  * @param priv original private key
  * @param label label to use for key deriviation
+ * @param context additional context to use for HKDF of 'h';
+ *        typically the name of the subsystem/application
  * @return derived private key
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-			      const char *label)
+			      const char *label,
+			      const char *context)
 {
   struct GNUNET_CRYPTO_EccPublicKey pub;
   struct GNUNET_CRYPTO_EccPrivateKey *ret;
@@ -970,7 +977,7 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
   n = gcry_mpi_ec_get_mpi ("n", ctx, 0 /* no copy */);
   GNUNET_CRYPTO_ecc_key_get_public (priv, &pub);
-  h = derive_h (&pub, label);
+  h = derive_h (&pub, label, context);
   mpi_scan (&x, priv->d, sizeof (priv->d));
   d = gcry_mpi_new (256);
   gcry_mpi_mulm (d, h, x, n);
@@ -989,11 +996,14 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  *
  * @param pub original public key
  * @param label label to use for key deriviation
+ * @param context additional context to use for HKDF of 'h';
+ *        typically the name of the subsystem/application
  * @param result where to write the derived public key
  */
 void
 GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pub,
 				     const char *label,
+				     const char *context,
 				     struct GNUNET_CRYPTO_EccPublicKey *result)
 {
   gcry_ctx_t ctx;
@@ -1017,7 +1027,7 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pu
   gcry_mpi_release (q_y);
 
   /* calulcate h_mod_n = h % n */
-  h = derive_h (pub, label);
+  h = derive_h (pub, label, context);
   n = gcry_mpi_ec_get_mpi ("n", ctx, 0 /* no copy */);
   h_mod_n = gcry_mpi_new (256);
   gcry_mpi_mod (h_mod_n, h, n);

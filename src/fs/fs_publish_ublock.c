@@ -242,7 +242,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
 
   /* derive signing-key from 'label' and public key of the namespace */
-  nsd = GNUNET_CRYPTO_ecc_key_derive (ns, label);
+  nsd = GNUNET_CRYPTO_ecc_key_derive (ns, label, "fs-ublock");
   GNUNET_CRYPTO_ecc_key_get_public (nsd,
 				    &ub_enc->verification_key);
   GNUNET_assert (GNUNET_OK ==
