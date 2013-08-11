@@ -113,7 +113,7 @@ print ("PASS")
 time.sleep (1)
 
 print ("TEST: Testing get...", end='')
-rc, stdo, stde = r_get (['-k', 'testkey', '-T', '5', '-t', '8'], want_stdo = True, failer = end_arm_failer)
+rc, stdo, stde = r_get (['-k', 'testkey', '-T', '5 ms', '-t', '8'], want_stdo = True, failer = end_arm_failer)
 stdo = stdo.replace ('\r', '').splitlines ()
 expect = "Result 0, type 8:\ntestdata".splitlines()
 if len (stdo) != 2 or len (expect) != 2 or stdo[0] != expect[0] or stdo[1] != expect[1]:
