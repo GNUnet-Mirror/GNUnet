@@ -794,6 +794,7 @@ struct GNUNET_TESTBED_PeerInformation
 
 /**
  * Callback to be called when the requested peer information is available
+ * The peer information in the callback is valid until the operation 'op' is canceled.
  *
  * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
  * @param op the operation this callback corresponds to
@@ -815,6 +816,7 @@ typedef void (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
  * with event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
  * operation is available. Instead, the GNUNET_TESTBED_PeerInfoCallback() will
  * be called.
+ * The peer information in the callback is valid until the operation is canceled.
  *
  * @param peer peer to request information about
  * @param pit desired information
