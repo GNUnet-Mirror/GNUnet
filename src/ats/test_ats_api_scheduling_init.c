@@ -123,7 +123,9 @@ run (void *cls,
     end_badly_now ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %llu sec\n", (long long unsigned int) DELAY.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %s\n", 
+	      GNUNET_STRINGS_relative_time_to_string (DELAY,
+						      GNUNET_YES));
   wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
 }
 

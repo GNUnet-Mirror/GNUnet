@@ -158,7 +158,7 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value;
+    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
@@ -198,7 +198,7 @@ run (void *cls,
   GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
   /* sign */
-  et.abs_value = s_rd[0].expiration_time;
+  et.abs_value_us = s_rd[0].expiration_time;
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
   /* create random zone hash */

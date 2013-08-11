@@ -888,8 +888,10 @@ dht_lookup_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char new_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_REC-%llu: dht lookup for query %s (%llus) timed out.\n",
-              rh->id, rh->name, rh->timeout.rel_value);
+              "GNS_PHASE_REC-%llu: dht lookup for query %s (%s) timed out.\n",
+              rh->id, rh->name, 
+	      GNUNET_STRINGS_relative_time_to_string (rh->timeout,
+						      GNUNET_YES));
   /**
    * Start resolution in bg
    */
@@ -1042,7 +1044,7 @@ process_record_result_dht (void* cls,
 
     namestore_bg_task->node = GNUNET_CONTAINER_heap_insert (ns_task_heap,
                                   namestore_bg_task,
-                                  GNUNET_TIME_absolute_get().abs_value);
+                                  GNUNET_TIME_absolute_get().abs_value_us);
     if (0 < rh->answered)
       rh->proc (rh->proc_cls, rh, num_records, rd);
     else
@@ -1072,7 +1074,7 @@ resolve_record_dht (struct ResolverHandle *rh)
 
   rh->dht_heap_node = NULL;
 
-  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != rh->timeout.rel_value)
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != rh->timeout.rel_value_us)
   {
     /**
      * Update timeout if necessary
@@ -1114,7 +1116,7 @@ resolve_record_dht (struct ResolverHandle *rh)
     }
     rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
                                          rh,
-                                         GNUNET_TIME_absolute_get ().abs_value);
+                                         GNUNET_TIME_absolute_get ().abs_value_us);
   }
 
   xquery = htonl (rlh->record_type);
@@ -1169,7 +1171,7 @@ process_record_result_ns (void* cls,
   if (NULL != name)
   {
     rh->status |= RSL_RECORD_EXISTS;
-    if (remaining_time.rel_value == 0)
+    if (remaining_time.rel_value_us == 0)
       rh->status |= RSL_RECORD_EXPIRED;
   }
   if (0 == rd_count)
@@ -1210,8 +1212,8 @@ process_record_result_ns (void* cls,
     
     //FIXME: eh? do I have to handle this here?
     GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-    et.abs_value = rd[i].expiration_time;
-    if (0 == (GNUNET_TIME_absolute_get_remaining (et)).rel_value)
+    et.abs_value_us = rd[i].expiration_time;
+    if (0 == (GNUNET_TIME_absolute_get_remaining (et)).rel_value_us)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                  "GNS_PHASE_REC-%llu: This record is expired. Skipping\n",
@@ -1554,7 +1556,7 @@ read_dns_response (void *cls,
       rd.data_size = packet->answers[i].data.raw.data_len;
       rd.record_type = packet->answers[i].type;
       rd.flags = 0;
-      rd.expiration_time = packet->answers[i].expiration_time.abs_value;
+      rd.expiration_time = packet->answers[i].expiration_time.abs_value_us;
       finish_lookup (rh, rlh, 1, &rd);
       GNUNET_DNSPARSER_free_packet (packet);
       return;
@@ -1931,9 +1933,10 @@ dht_authority_lookup_timeout (void *cls,
   char new_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%llus) timed out.\n",
+	      "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%s) timed out.\n",
 	      rh->id, rh->authority_name, 
-	      rh->timeout.rel_value);
+	      GNUNET_STRINGS_relative_time_to_string (rh->timeout,
+						      GNUNET_YES));
 
   rh->status |= RSL_TIMED_OUT;
   rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -2058,13 +2061,13 @@ process_pkey_revocation_result_ns (void *cls,
   }
   
   if ((NULL == name) ||
-      (0 == remaining_time.rel_value))
+      (0 == remaining_time.rel_value_us))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "GNS_PHASE_DELEGATE_REV-%llu: + Records don't exist or are expired.\n",
           rh->id, name);
 
-    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != rh->timeout.rel_value)
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != rh->timeout.rel_value_us)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "GNS_PHASE_DELEGATE_REV-%llu: Starting background lookup for %s type %d\n",
@@ -2291,7 +2294,7 @@ process_delegation_result_dht (void* cls,
 
       namestore_bg_task->node = GNUNET_CONTAINER_heap_insert (ns_task_heap,
                                     namestore_bg_task,
-                                    GNUNET_TIME_absolute_get().abs_value);
+                                    GNUNET_TIME_absolute_get().abs_value_us);
       namestore_bg_task->qe = GNUNET_NAMESTORE_record_put (namestore_handle,
                                  &nrb->public_key,
                                  name,
@@ -2762,7 +2765,7 @@ resolve_delegation_dht (struct ResolverHandle *rh)
 				 &rh->authority, 
 				 &lookup_key);
   rh->dht_heap_node = NULL;
-  if (rh->timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (rh->timeout.rel_value_us != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
   {
     rh->timeout_cont = &dht_authority_lookup_timeout;
     rh->timeout_cont_cls = rh;
@@ -2788,7 +2791,7 @@ resolve_delegation_dht (struct ResolverHandle *rh)
     }
     rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
 						      rh,
-						      GNUNET_TIME_absolute_get().abs_value);
+						      GNUNET_TIME_absolute_get().abs_value_us);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Beginning DHT lookup for %s in zone %s for request %llu\n",
@@ -3096,7 +3099,7 @@ process_delegation_result_ns (void* cls,
 		GNUNET_short_h2s (&zone));
     rh->status |= RSL_RECORD_EXISTS;
   
-    if (0 == remaining_time.rel_value)
+    if (0 == remaining_time.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "GNS_PHASE_DELEGATE_NS-%llu: Record set %s expired.\n",
@@ -3194,13 +3197,13 @@ process_delegation_result_ns (void* cls,
 	continue;
       }    
       GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-      et.abs_value = rd[i].expiration_time;
-      if (0 == (GNUNET_TIME_absolute_get_remaining (et)).rel_value)
+      et.abs_value_us = rd[i].expiration_time;
+      if (0 == (GNUNET_TIME_absolute_get_remaining (et)).rel_value_us)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "GNS_PHASE_DELEGATE_NS-%llu: This pkey is expired.\n",
 		    rh->id);
-	if (remaining_time.rel_value == 0)
+	if (remaining_time.rel_value_us == 0)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "GNS_PHASE_DELEGATE_NS-%llu: This dht entry is expired.\n",
@@ -3364,7 +3367,7 @@ gns_resolver_lookup_record (struct GNUNET_CRYPTO_ShortHashCode zone,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No shorten key for resolution\n");
 
-  if (timeout.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (timeout.rel_value_us != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
   {
     /*
      * Set timeout for authority lookup phase to 1/2

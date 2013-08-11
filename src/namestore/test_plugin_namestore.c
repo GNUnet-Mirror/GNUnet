@@ -154,7 +154,7 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
   {
     rd[i].data = "Hello World";
     rd[i].data_size = id % 10;
-    rd[i].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES).abs_value;
+    rd[i].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES).abs_value_us;
     rd[i].record_type = 1 + (id % 13);
     rd[i].flags = (id  % 7);    
   }

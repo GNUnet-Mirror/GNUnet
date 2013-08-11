@@ -111,8 +111,10 @@ end ()
   {
     ok = disconnects;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Fail! Had %u disconnects while waiting %llu seconds \n",
-                disconnects, WAIT.rel_value);
+                "Fail! Had %u disconnects while waiting %s\n",
+                disconnects, 
+		GNUNET_STRINGS_relative_time_to_string (WAIT,
+							GNUNET_YES));
   }
 
   GNUNET_TRANSPORT_TESTING_done (tth);
@@ -193,8 +195,8 @@ timer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TIME_relative_add (time_running,
                                 GNUNET_TIME_relative_divide (WAIT, 10));
 
-  if (time_running.rel_value ==
-      GNUNET_TIME_relative_max (time_running, WAIT).rel_value)
+  if (time_running.rel_value_us ==
+      GNUNET_TIME_relative_max (time_running, WAIT).rel_value_us)
   {
     FPRINTF (stderr, "%s",  "100%%\n");
     shutdown_flag = GNUNET_YES;
@@ -221,7 +223,10 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 
   shutdown_flag = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %llu seconds\n", (WAIT.rel_value) / 1000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Waiting for %s\n",
+	      GNUNET_STRINGS_relative_time_to_string (WAIT,
+						      GNUNET_YES));
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (die_task);

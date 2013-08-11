@@ -209,7 +209,7 @@ discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   const struct GNUNET_TIME_Absolute *now = cls;
 
-  if (now->abs_value > expiration.abs_value)
+  if (now->abs_value_us > expiration.abs_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Removing expired address of transport `%s'\n"),
@@ -728,7 +728,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   {
     mrg = GNUNET_HELLO_merge ((*dest), hello);
     delta = GNUNET_HELLO_equals (mrg, (*dest), GNUNET_TIME_absolute_get ());
-    if (delta.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+    if (delta.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     {
       /* no differences, just ignore the update */
     	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No change in %s HELLO for `%s'\n",

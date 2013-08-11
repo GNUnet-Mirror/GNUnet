@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2006, 2008, 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -409,7 +409,7 @@ GNUNET_CLIENT_connect (const char *service_name,
 				  cfg))
     return NULL;
   connection = do_connect (service_name, cfg, 0);
-  client = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_Connection));
+  client = GNUNET_new (struct GNUNET_CLIENT_Connection);
   client->first_message = GNUNET_YES;
   client->attempts = 1;
   client->connection = connection;
@@ -536,7 +536,7 @@ receive_helper (void *cls, const void *buf, size_t available,
   check_complete (client);
   /* check for timeout */
   remaining = GNUNET_TIME_absolute_get_remaining (client->receive_timeout);
-  if (0 == remaining.rel_value)
+  if (0 == remaining.rel_value_us)
   {
     /* signal timeout! */
     if (NULL != client->receiver_handler)
@@ -1094,9 +1094,9 @@ client_notify (void *cls, size_t size, void *buf)
   if (NULL == buf)
   {
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
-    delay.rel_value /= 2;
+    delay.rel_value_us /= 2;
     if ((GNUNET_YES != th->auto_retry) || (0 == --th->attempts_left) ||
-        (delay.rel_value < 1)||
+        (delay.rel_value_us < 1)||
 	(0 != (GNUNET_SCHEDULER_get_reason() & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -142,8 +142,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     {
       s = GNUNET_strdup (GNUNET_STRINGS_relative_time_to_string (info->value.download.eta,
 								 GNUNET_YES));
-      if (info->value.download.specifics.progress.block_download_duration.rel_value 
-          == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+      if (info->value.download.specifics.progress.block_download_duration.rel_value_us 
+          == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
         s2 = _("<unknown time>");
       else
         s2 = GNUNET_STRINGS_relative_time_to_string (
@@ -152,7 +152,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
       t = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed *
                                           1000LL /
                                           (info->value.download.
-                                           duration.rel_value + 1));
+                                           duration.rel_value_us + 1));
       FPRINTF (stdout,
                _("Downloading `%s' at %llu/%llu (%s remaining, %s/s). Block took %s to download\n"),
                info->value.download.filename,
@@ -183,7 +183,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     s = GNUNET_STRINGS_byte_size_fancy (info->value.download.completed * 1000 /
                                         (info->value.download.
-                                         duration.rel_value + 1));
+                                         duration.rel_value_us + 1));
 #if !WINDOWS
     if (0 != isatty (1))
       fprintf (stdout, "\n");

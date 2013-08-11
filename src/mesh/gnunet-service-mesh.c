@@ -2709,9 +2709,9 @@ tunnel_free_reliable_message (struct MeshReliableMessage *copy)
 
   rel = copy->rel;
   time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-  rel->expected_delay.rel_value *= 7;
-  rel->expected_delay.rel_value += time.rel_value;
-  rel->expected_delay.rel_value /= 8;
+  rel->expected_delay.rel_value_us *= 7;
+  rel->expected_delay.rel_value_us += time.rel_value_us;
+  rel->expected_delay.rel_value_us /= 8;
   rel->n_sent--;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);

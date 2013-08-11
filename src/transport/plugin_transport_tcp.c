@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002--2012 Christian Grothoff (and other contributing authors)
+     (C) 2002--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -897,7 +897,7 @@ do_transmit (void *cls, size_t size, void *buf)
     ret = 0;
     now = GNUNET_TIME_absolute_get ();
     while ((NULL != (pos = session->pending_messages_head)) &&
-           (pos->timeout.abs_value <= now.abs_value))
+           (pos->timeout.abs_value_us <= now.abs_value_us))
     {
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                    session->pending_messages_tail, pos);
@@ -2269,16 +2269,16 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
 
   reschedule_session_timeout (session);
 
-  if (delay.rel_value == 0)
+  if (0 == delay.rel_value_us)
   {
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	 "Throttling receiving from `%s' for %llu ms\n",
+	 "Throttling receiving from `%s' for %s\n",
 	 GNUNET_i2s (&session->target),
-	 (unsigned long long) delay.rel_value);
+	 GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     GNUNET_SERVER_disable_receive_done_warning (client);
     session->receive_delay_task =
         GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
@@ -2426,8 +2426,10 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Session %p was idle for %llu ms, disconnecting\n",
-	      s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+	      "Session %p was idle for %s, disconnecting\n",
+	      s,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
   /* call session destroy function */
   disconnect_session(s);
 }
@@ -2445,8 +2447,10 @@ start_session_timeout (struct Session *s)
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Timeout for session %p set to %llu ms\n",
-	      s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+	      "Timeout for session %p set to %s\n",
+	      s,  
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
 }
 
 
@@ -2464,8 +2468,10 @@ reschedule_session_timeout (struct Session *s)
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout rescheduled for session %p set to %llu ms\n",
-	      s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+              "Timeout rescheduled for session %p set to %s\n",
+	      s, 
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
 }
 
 
@@ -2483,7 +2489,7 @@ stop_session_timeout (struct Session *s)
     s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Timeout stopped for session %p canceled\n",
-                s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                s);
   }
 }
 

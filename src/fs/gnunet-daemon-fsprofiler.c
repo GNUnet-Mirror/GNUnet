@@ -189,7 +189,7 @@ parse_pattern (struct Pattern **head,
     p = GNUNET_malloc (sizeof (struct Pattern));
     p->x = x;
     p->y = y;
-    p->delay.rel_value = (uint64_t) t;
+    p->delay.rel_value_us = (uint64_t) t;
     GNUNET_CONTAINER_DLL_insert (*head, *tail, p);
     pattern = strstr (pattern, ")");
     GNUNET_assert (NULL != pattern);
@@ -397,7 +397,7 @@ progress_cb (void *cls,
     p = info->value.publish.cctx;
     GNUNET_STATISTICS_update (stats_handle,
 			      "# publishing time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
 			      GNUNET_NO);
     p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
     return p;
@@ -425,8 +425,9 @@ progress_cb (void *cls,
     p = info->value.download.cctx;
     GNUNET_STATISTICS_update (stats_handle,
 			      "# download time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
-			      GNUNET_NO);    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
+			      GNUNET_NO); 
+    p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
     p = info->value.download.cctx;
@@ -450,7 +451,7 @@ progress_cb (void *cls,
       return NULL; /* not what we want */
     GNUNET_STATISTICS_update (stats_handle,
 			      "# search time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value, 
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
 			      GNUNET_NO);
     p->start_time = GNUNET_TIME_absolute_get ();
     p->ctx = GNUNET_FS_download_start (fs_handle, uri,

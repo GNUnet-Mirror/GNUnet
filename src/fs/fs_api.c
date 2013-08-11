@@ -164,7 +164,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       run_time = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2);
       end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
       rst = GNUNET_TIME_absolute_get_remaining (end_time);
-      if (0 == rst.rel_value)
+      if (0 == rst.rel_value_us)
       {
 	num_probes_expired++;
 	stop_job (qe);
@@ -181,7 +181,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                        qe->blocks * qe->start_times);
       end_time = GNUNET_TIME_absolute_add (qe->start_time, run_time);
       rst = GNUNET_TIME_absolute_get_remaining (end_time);
-      if (0 == rst.rel_value)
+      if (0 == rst.rel_value_us)
       {
 	num_downloads_expired++;
 	stop_job (qe);
@@ -781,7 +781,7 @@ write_start_time (struct GNUNET_BIO_WriteHandle *wh,
   struct GNUNET_TIME_Relative dur;
 
   dur = GNUNET_TIME_absolute_get_duration (timestamp);
-  return GNUNET_BIO_write_int64 (wh, dur.rel_value);
+  return GNUNET_BIO_write_int64 (wh, dur.rel_value_us);
 }
 
 
@@ -805,7 +805,7 @@ read_start_time (struct GNUNET_BIO_ReadHandle *rh,
 {
   struct GNUNET_TIME_Relative dur;
 
-  if (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &dur.rel_value))
+  if (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &dur.rel_value_us))
     return GNUNET_SYSERR;
   *timestamp = GNUNET_TIME_absolute_subtract (GNUNET_TIME_absolute_get (), dur);
   return GNUNET_OK;
@@ -871,7 +871,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
       || (GNUNET_OK !=
           GNUNET_BIO_read_string (rh, "fn", &ret->filename, 16 * 1024)) ||
       (GNUNET_OK !=
-       GNUNET_BIO_read_int64 (rh, &ret->bo.expiration_time.abs_value)) ||
+       GNUNET_BIO_read_int64 (rh, &ret->bo.expiration_time.abs_value_us)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &ret->bo.anonymity_level)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &ret->bo.content_priority)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &ret->bo.replication_level)))
@@ -1273,7 +1273,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
       (GNUNET_OK != GNUNET_BIO_write_string (wh, fi->emsg)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, fi->filename)) ||
       (GNUNET_OK !=
-       GNUNET_BIO_write_int64 (wh, fi->bo.expiration_time.abs_value)) ||
+       GNUNET_BIO_write_int64 (wh, fi->bo.expiration_time.abs_value_us)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, fi->bo.anonymity_level)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, fi->bo.content_priority)) ||
       (GNUNET_OK != GNUNET_BIO_write_int32 (wh, fi->bo.replication_level)))

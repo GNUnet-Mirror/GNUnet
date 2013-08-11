@@ -440,8 +440,8 @@ get_matching_bits_delay (uint32_t matching_bits)
   // f is frequency (gnunet_nse_interval)
   // x is matching_bits
   // p' is current_size_estimate
-  return ((double) gnunet_nse_interval.rel_value / (double) 2.0) -
-      ((gnunet_nse_interval.rel_value / M_PI) *
+  return ((double) gnunet_nse_interval.rel_value_us / (double) 2.0) -
+      ((gnunet_nse_interval.rel_value_us / M_PI) *
        atan (matching_bits - current_size_estimate));
 }
 
@@ -462,10 +462,12 @@ get_delay_randomization (uint32_t matching_bits)
 
   d = get_matching_bits_delay (matching_bits);
   i = (uint32_t) (d / (double) (hop_count_max + 1));
+  ret.rel_value_us = i;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Randomizing flood using latencies up to %u ms\n",
-	      (unsigned int) i);
-  ret.rel_value = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, i + 1);
+	      "Randomizing flood using latencies up to %s\n",
+	      GNUNET_STRINGS_relative_time_to_string (ret,
+						      GNUNET_YES));
+  ret.rel_value_us = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, i + 1);
   return ret;
 #else
   return GNUNET_TIME_UNIT_ZERO;
@@ -508,7 +510,7 @@ get_matching_bits (struct GNUNET_TIME_Absolute timestamp,
 {
   struct GNUNET_HashCode timestamp_hash;
 
-  GNUNET_CRYPTO_hash (&timestamp.abs_value, sizeof (timestamp.abs_value),
+  GNUNET_CRYPTO_hash (&timestamp.abs_value_us, sizeof (timestamp.abs_value_us),
                       &timestamp_hash);
   return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash, &id->hashPubKey);
 }
@@ -535,26 +537,27 @@ get_transmit_delay (int round_offset)
   case -1:
     /* previous round is randomized between 0 and 50 ms */
 #if USE_RANDOM_DELAYS
-    ret.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, 50);
+    ret.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, 50);
 #else
     ret = GNUNET_TIME_UNIT_ZERO;
 #endif
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Transmitting previous round behind schedule in %llu ms\n",
-                (unsigned long long) ret.rel_value);
+                "Transmitting previous round behind schedule in %s\n",
+                GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
     return ret;
   case 0:
     /* current round is based on best-known matching_bits */
     matching_bits =
         ntohl (size_estimate_messages[estimate_index].matching_bits);
     dist_delay = get_matching_bits_delay (matching_bits);
-    dist_delay += get_delay_randomization (matching_bits).rel_value;
-    ret.rel_value = (uint64_t) dist_delay;
+    dist_delay += get_delay_randomization (matching_bits).rel_value_us;
+    ret.rel_value_us = (uint64_t) dist_delay;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "For round %llu, delay for %u matching bits is %llu ms\n",
-                (unsigned long long) current_timestamp.abs_value,
+                "For round %s, delay for %u matching bits is %s\n",
+                GNUNET_STRINGS_absolute_time_to_string (current_timestamp),
                 (unsigned int) matching_bits,
-                (unsigned long long) ret.rel_value);
+                GNUNET_STRINGS_relative_time_to_string (ret,
+							GNUNET_YES));
     /* now consider round start time and add delay to it */
     tgt = GNUNET_TIME_absolute_add (current_timestamp, ret);
     return GNUNET_TIME_absolute_get_remaining (tgt);
@@ -621,10 +624,8 @@ transmit_ready (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "In round %llu, sending to `%s' estimate with %u bits\n",
-              (unsigned long long)
-              GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].
-                                         timestamp).abs_value,
+              "In round s, sending to `%s' estimate with %u bits\n",
+              GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (size_estimate_messages[idx].timestamp)),
               GNUNET_i2s (&peer_entry->id),
               (unsigned int) ntohl (size_estimate_messages[idx].matching_bits));
   if (ntohl (size_estimate_messages[idx].hop_count) == 0)
@@ -778,7 +779,7 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
-  if (0 != offset.rel_value)
+  if (0 != offset.rel_value_us)
   {
     /* somehow run early, delay more */
     flood_task =
@@ -791,8 +792,8 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   current_timestamp = next_timestamp;
   next_timestamp =
       GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
-  if ((current_timestamp.abs_value ==
-      GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value) &&
+  if ((current_timestamp.abs_value_us ==
+      GNUNET_TIME_absolute_ntoh (next_message.timestamp).abs_value_us) &&
       (get_matching_bits (current_timestamp, &my_identity) <
       ntohl(next_message.matching_bits)))
   {
@@ -1038,7 +1039,7 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     uint64_t t;
 
-    t = GNUNET_TIME_absolute_get().abs_value;
+    t = GNUNET_TIME_absolute_get().abs_value_us;
     GNUNET_TESTBED_LOGGER_write (lh, &t, sizeof (uint64_t));
   }
 #endif
@@ -1078,12 +1079,12 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
 
   ts = GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp);
-  if (ts.abs_value == current_timestamp.abs_value)
+  if (ts.abs_value_us == current_timestamp.abs_value_us)
     idx = estimate_index;
-  else if (ts.abs_value ==
-           current_timestamp.abs_value - gnunet_nse_interval.rel_value)
+  else if (ts.abs_value_us ==
+           current_timestamp.abs_value_us - gnunet_nse_interval.rel_value_us)
     idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
-  else if (ts.abs_value == next_timestamp.abs_value)
+  else if (ts.abs_value_us == next_timestamp.abs_value_us)
   {
     if (matching_bits <= ntohl (next_message.matching_bits))
       return GNUNET_OK;         /* ignore, simply too early/late */
@@ -1359,9 +1360,9 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
                  memcmp (&my_identity, identity,
                          sizeof (struct GNUNET_PeerIdentity)));
   now = GNUNET_TIME_absolute_get ();
-  current_timestamp.abs_value =
-      (now.abs_value / gnunet_nse_interval.rel_value) *
-      gnunet_nse_interval.rel_value;
+  current_timestamp.abs_value_us =
+      (now.abs_value_us / gnunet_nse_interval.rel_value_us) *
+      gnunet_nse_interval.rel_value_us;
   next_timestamp =
       GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   estimate_index = HISTORY_SIZE - 1;
@@ -1369,8 +1370,8 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
   if (GNUNET_YES == check_proof_of_work (&my_public_key, my_proof))
   {
     int idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
-    prev_time.abs_value =
-        current_timestamp.abs_value - gnunet_nse_interval.rel_value;
+    prev_time.abs_value_us =
+        current_timestamp.abs_value_us - gnunet_nse_interval.rel_value_us;
     setup_flood_message (idx, prev_time);
     setup_flood_message (estimate_index, current_timestamp);
     estimate_count++;

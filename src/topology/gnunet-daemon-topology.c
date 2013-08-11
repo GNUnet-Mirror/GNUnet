@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2007-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -362,7 +362,7 @@ attempt_connect (struct Peer *pos)
     return;
   if (GNUNET_OK != is_connection_allowed (pos))
     return;
-  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value_us > 0)
     return;
   if (GNUNET_YES == pos->is_friend)
     rem = GREYLIST_AFTER_ATTEMPT_FRIEND;
@@ -407,7 +407,7 @@ do_attempt_connect (void *cls,
   if (GNUNET_YES == pos->is_connected)
     return;
   delay = GNUNET_TIME_absolute_get_remaining (next_connect_attempt);
-  if (delay.rel_value > 0)
+  if (delay.rel_value_us > 0)
   {
     pos->attempt_connect_task = GNUNET_SCHEDULER_add_delayed (delay,
 							      &do_attempt_connect,
@@ -450,7 +450,7 @@ remove_from_greylist (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   pos->greylist_clean_task = GNUNET_SCHEDULER_NO_TASK;
   rem = GNUNET_TIME_absolute_get_remaining (pos->greylisted_until);
-  if (rem.rel_value == 0)
+  if (0 == rem.rel_value_us)
   {
     schedule_attempt_connect (pos);
   }
@@ -580,7 +580,7 @@ find_advertisable_hello (void *cls, const struct GNUNET_HashCode * pid, void *va
   if (pos->hello == NULL)
     return GNUNET_YES;
   rst_time = GNUNET_TIME_absolute_get_remaining (pos->filter_expiration);
-  if (0 == rst_time.rel_value)
+  if (0 == rst_time.rel_value_us)
   {
     /* time to discard... */
     GNUNET_CONTAINER_bloomfilter_free (pos->filter);
@@ -631,7 +631,7 @@ schedule_next_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   next_want = GNUNET_HELLO_size (fah.result->hello);
   delay = GNUNET_TIME_absolute_get_remaining (pl->next_hello_allowed);
-  if (delay.rel_value == 0)
+  if (0 == delay.rel_value_us)
   {
     /* now! */
     pl->hello_req =
@@ -708,7 +708,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   else
   {
     GNUNET_assert (GNUNET_NO == pos->is_connected);
-    pos->greylisted_until.abs_value = 0;        /* remove greylisting */
+    pos->greylisted_until.abs_value_us = 0;        /* remove greylisting */
   }
   pos->is_connected = GNUNET_YES;
   pos->connect_attempts = 0;    /* re-set back-off factor */
@@ -870,7 +870,7 @@ consider_for_advertising (const struct GNUNET_HELLO_Message *hello)
   else if (peer->hello != NULL)
   {
     dt = GNUNET_HELLO_equals (peer->hello, hello, GNUNET_TIME_absolute_get ());
-    if (dt.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+    if (dt.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
       return;                   /* nothing new here */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -940,7 +940,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
       if ((GNUNET_NO == pos->is_connected) && (GNUNET_NO == pos->is_friend) &&
           (0 ==
            GNUNET_TIME_absolute_get_remaining (pos->
-                                               greylisted_until).rel_value))
+                                               greylisted_until).rel_value_us))
         free_peer (NULL, &pos->pid.hashPubKey, pos);
     }
     return;
@@ -956,7 +956,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
                 GNUNET_i2s (peer));
     return;
   }
-  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (pos->greylisted_until).rel_value_us > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Already tried peer `%s' recently\n",
                 GNUNET_i2s (peer));

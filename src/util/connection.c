@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -33,11 +33,8 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_server_lib.h"
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -304,7 +301,7 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_NETWORK_Handle *osSocket)
 {
   struct GNUNET_CONNECTION_Handle *connection;
 
-  connection = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
+  connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->sock = osSocket;
@@ -362,7 +359,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
   if ((AF_INET6 == sa->sa_family) && (IN6_IS_ADDR_V4MAPPED (&v6->sin6_addr)))
   {
     /* convert to V4 address */
-    v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
+    v4 = GNUNET_new (struct sockaddr_in);
     memset (v4, 0, sizeof (struct sockaddr_in));
     v4->sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -432,7 +429,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
     GNUNET_free (uaddr);
     return NULL;
   }
-  connection = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
+  connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
   connection->addr = uaddr;
@@ -800,7 +797,7 @@ GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle
   struct GNUNET_CONNECTION_Handle *connection;
 
   GNUNET_assert (0 < strlen (hostname));        /* sanity check */
-  connection = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
+  connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->cfg = cfg;
   connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
@@ -834,7 +831,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
   size_t slen;
 
   GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
-  un = GNUNET_malloc (sizeof (struct sockaddr_un));
+  un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   slen = strlen (unixpath);
   if (slen >= sizeof (un->sun_path))
@@ -848,7 +845,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 #if LINUX
   un->sun_path[0] = '\0';
 #endif
-  connection = GNUNET_malloc (sizeof (struct GNUNET_CONNECTION_Handle));
+  connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->cfg = cfg;
   connection->write_buffer_size = GNUNET_SERVER_MIN_BUFFER_SIZE;
   connection->write_buffer = GNUNET_malloc (connection->write_buffer_size);
@@ -1042,9 +1039,9 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Receive from `%s' encounters error: timeout (%p)\n",
+	 "Receive from `%s' encounters error: timeout (%s, %p)\n",
 	 GNUNET_a2s (connection->addr, connection->addrlen),
-	 GNUNET_TIME_absolute_get_duration (connection->receive_timeout).rel_value,
+	 GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (connection->receive_timeout), GNUNET_YES),
 	 connection);
     signal_receive_timeout (connection);
     return;

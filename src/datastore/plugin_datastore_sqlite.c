@@ -488,11 +488,12 @@ sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   if (size > MAX_ITEM_SIZE)
     return GNUNET_SYSERR;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                   "Storing in database block with type %u/key `%s'/priority %u/expiration in %llu ms (%lld).\n",
+                   "Storing in database block with type %u/key `%s'/priority %u/expiration in %s (%s).\n",
                    type, GNUNET_h2s (key), priority,
                    (unsigned long long)
-                   GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
-                   (long long) expiration.abs_value);
+                   GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
+							   GNUNET_YES),
+                   GNUNET_STRINGS_absolute_time_to_string (expiration));
   GNUNET_CRYPTO_hash (data, size, &vhash);
   stmt = plugin->insertContent;
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
@@ -500,7 +501,7 @@ sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 3, priority)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 4, anonymity)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 5, expiration.abs_value_us)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 6, rvalue)) ||
       (SQLITE_OK !=
        sqlite3_bind_blob (stmt, 7, key, sizeof (struct GNUNET_HashCode),
@@ -583,7 +584,7 @@ sqlite_plugin_update (void *cls, uint64_t uid, int delta,
   int n;
 
   if ((SQLITE_OK != sqlite3_bind_int (plugin->updPrio, 1, delta)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (plugin->updPrio, 2, expire.abs_value))
+      (SQLITE_OK != sqlite3_bind_int64 (plugin->updPrio, 2, expire.abs_value_us))
       || (SQLITE_OK != sqlite3_bind_int64 (plugin->updPrio, 3, uid)))
   {
     LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -655,10 +656,10 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
                           -(size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
       break;
     }
-    expiration.abs_value = sqlite3_column_int64 (stmt, 3);
+    expiration.abs_value_us = sqlite3_column_int64 (stmt, 3);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
-                     "Found reply in database with expiration %llu\n",
-                     (unsigned long long) expiration.abs_value);
+                     "Found reply in database with expiration %s\n",
+                     GNUNET_STRINGS_absolute_time_to_string (expiration));
     ret = proc (proc_cls, sqlite3_column_blob (stmt, 4) /* key */ ,
                 size, sqlite3_column_blob (stmt, 5) /* data */ ,
                 sqlite3_column_int (stmt, 0) /* type */ ,
@@ -1040,7 +1041,7 @@ sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
                    "Getting random block based on expiration and priority order.\n");
   now = GNUNET_TIME_absolute_get ();
   stmt = plugin->selExpi;
-  if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, now.abs_value))
+  if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, now.abs_value_us))
   {
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");

@@ -226,7 +226,7 @@ heap_plugin_put (void *cls,
   value->data = &value[1];
   value->expire_heap = GNUNET_CONTAINER_heap_insert (plugin->by_expiration,
 						     value,
-						     expiration.abs_value);
+						     expiration.abs_value_us);
   value->replication_heap = GNUNET_CONTAINER_heap_insert (plugin->by_replication,
 							  value,
 							  replication);
@@ -628,12 +628,12 @@ heap_plugin_update (void *cls,
 
   value = (struct Value*) (long) uid;
   GNUNET_assert (NULL != value);
-  if (value->expiration.abs_value != expire.abs_value)
+  if (value->expiration.abs_value_us != expire.abs_value_us)
   {
     value->expiration = expire;
     GNUNET_CONTAINER_heap_update_cost (plugin->by_expiration,
 				       value->expire_heap,
-				       expire.abs_value);
+				       expire.abs_value_us);
   }
   if ( (delta < 0) && (value->priority < - delta) )
     value->priority = 0;

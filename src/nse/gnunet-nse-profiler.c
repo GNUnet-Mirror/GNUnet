@@ -366,7 +366,7 @@ handle_estimate (void *cls,
 			  sizeof (output_buffer),
 			  "%p %llu %llu %f %f %f\n",
 			  peer, peers_running,
-			  timestamp.abs_value,
+			  (unsigned long long) timestamp.abs_value_us,
 			  GNUNET_NSE_log_estimate_to_n (estimate), estimate,
 			  std_dev);
   if (size != GNUNET_DISK_file_write (output_file, output_buffer, size))
@@ -435,7 +435,8 @@ stat_iterator (void *cls, const char *subsystem, const char *name,
   if (0 != flag)
     flag = 1;
   size = GNUNET_asprintf (&output_buffer, "%llu %llu %u\n",
-                          now.abs_value/1000, value, flag);
+                          now.abs_value_us / 1000LL / 1000LL, 
+			  value, flag);
   if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");

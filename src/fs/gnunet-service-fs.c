@@ -202,7 +202,7 @@ GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start)
   struct GNUNET_TIME_Relative delay;
 
   delay = GNUNET_TIME_absolute_get_duration (start);
-  GNUNET_LOAD_update (datastore_get_load, delay.rel_value);
+  GNUNET_LOAD_update (datastore_get_load, delay.rel_value_us);
 }
 
 
@@ -260,16 +260,16 @@ update_latencies (void *cls,
   {
     if (GNUNET_ATS_QUALITY_NET_DELAY != ntohl (ats[i].type))
       continue;
-    latency.rel_value = ntohl (ats[i].value);
+    latency.rel_value_us = ntohl (ats[i].value);
     GSF_update_peer_latency_ (&address->peer,
 			      latency);
-    GSF_avg_latency.rel_value =
-      (GSF_avg_latency.rel_value * 31 +
+    GSF_avg_latency.rel_value_us =
+      (GSF_avg_latency.rel_value_us * 31 +
        GNUNET_MIN (5000, ntohl (ats[i].value))) / 32;
     GNUNET_STATISTICS_set (GSF_stats,
 			   gettext_noop
 			   ("# running average P2P latency (ms)"),
-			   GSF_avg_latency.rel_value, GNUNET_NO);
+			   GSF_avg_latency.rel_value_us / 1000LL, GNUNET_NO);
     break;    
   }
 }

@@ -176,7 +176,7 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   struct Plugin *plugin = cls;
   PGresult *ret;
   uint32_t btype = htonl (type);
-  uint64_t bexpi = GNUNET_TIME_absolute_hton (discard_time).abs_value__;
+  uint64_t bexpi = GNUNET_TIME_absolute_hton (discard_time).abs_value_us__;
 
   const char *paramValues[] = {
     (const char *) &btype,
@@ -277,7 +277,7 @@ postgres_plugin_get (void *cls, const struct GNUNET_HashCode * key,
   }
   for (i = 0; i < cnt; i++)
   {
-    expiration_time.abs_value =
+    expiration_time.abs_value_us =
         GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
     type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
     size = PQgetlength (res, i, 2);

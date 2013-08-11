@@ -290,7 +290,7 @@ mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   unsigned int irepl = replication;
   unsigned int ipriority = priority;
   unsigned int ianonymity = anonymity;
-  unsigned long long lexpiration = expiration.abs_value;
+  unsigned long long lexpiration = expiration.abs_value_us;
   unsigned long long lrvalue =
       (unsigned long long) GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                      UINT64_MAX);
@@ -358,12 +358,13 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
 {
   struct Plugin *plugin = cls;
   unsigned long long vkey = uid;
-  unsigned long long lexpire = expire.abs_value;
+  unsigned long long lexpire = expire.abs_value_us;
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating value %llu adding %d to priority and maxing exp at %llu\n",
-              vkey, delta, lexpire);
+              "Updating value %llu adding %d to priority and maxing exp at %s\n",
+              vkey, delta, 
+	      GNUNET_STRINGS_absolute_time_to_string (expire));
   ret =
     GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->update_entry, NULL,
 					 MYSQL_TYPE_LONG, &delta, GNUNET_NO,
@@ -449,11 +450,13 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
+  expiration.abs_value_us = exp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Found %u-byte value under key `%s' with prio %u, anon %u, expire %llu selecting from gn090 table\n",
-              (unsigned int) size, GNUNET_h2s (&key), priority, anonymity, exp);
+              "Found %u-byte value under key `%s' with prio %u, anon %u, expire %s selecting from gn090 table\n",
+              (unsigned int) size, GNUNET_h2s (&key),
+	      priority, anonymity, 
+	      GNUNET_STRINGS_absolute_time_to_string (expiration));
   GNUNET_assert (size < MAX_DATUM_SIZE);
-  expiration.abs_value = exp;
   ret =
       proc (proc_cls, &key, size, value, type, priority, anonymity, expiration,
             uid);
@@ -907,7 +910,7 @@ mysql_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   rc.plugin = plugin;
   rc.proc = proc;
   rc.proc_cls = proc_cls;
-  nt = (long long) GNUNET_TIME_absolute_get ().abs_value;
+  nt = (long long) GNUNET_TIME_absolute_get ().abs_value_us;
   execute_select (plugin, plugin->select_expiration, expi_proc, &rc,
                   MYSQL_TYPE_LONGLONG, &nt, GNUNET_YES, -1);
 

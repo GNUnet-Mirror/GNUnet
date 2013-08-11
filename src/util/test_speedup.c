@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2011-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,10 +22,7 @@
  * @brief testcase for speedup.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_time_lib.h"
-#include "gnunet_strings_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * Start time of the testcase
@@ -100,19 +97,23 @@ main (int argc, char *argv[])
                       "nohelp", options, &check, NULL);
 
   end_real = time (NULL);
-  delta = GNUNET_TIME_absolute_get_difference(start, end);
+  delta = GNUNET_TIME_absolute_get_difference (start, end);
 
-  if (delta.rel_value >  ((end_real - start_real) * 1500LL))
+  if (delta.rel_value_us >  ((end_real - start_real) * 1500LL * 1000LL))
   {
-    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in GNUnet time: %llu ms\n", 
-		 (unsigned long long) delta.rel_value);
-    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, "Execution time in system time: %llu ms\n", 
+    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, 
+		 "Execution time in GNUnet time: %s\n", 
+		 GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
+    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
+		 "Execution time in system time: %llu ms\n", 
 		 (unsigned long long) ((end_real - start_real) * 1000LL));
     return 0;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Execution time in GNUnet time: %llu ms\n", 
-	      (unsigned long long) delta.rel_value);
-  GNUNET_log  (GNUNET_ERROR_TYPE_ERROR, "Execution time in system time: %llu ms\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+	      "Execution time in GNUnet time: %s\n", 
+	      GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
+  GNUNET_log  (GNUNET_ERROR_TYPE_ERROR, 
+	       "Execution time in system time: %llu ms\n", 
 	       (unsigned long long) ((end_real - start_real) * 1000LL));
   return 1;
 }

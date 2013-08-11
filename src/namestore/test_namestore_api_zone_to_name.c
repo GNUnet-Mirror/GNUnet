@@ -187,7 +187,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_NAMESTORE_short_h2s (&s_zone_value));
 
   struct GNUNET_NAMESTORE_RecordData rd;
-  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value;
+  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
@@ -196,7 +196,7 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
 
   expire = GNUNET_TIME_absolute_get ();
-  et.abs_value = rd.expiration_time;
+  et.abs_value_us = rd.expiration_time;
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, &rd, 1);
   GNUNET_NAMESTORE_record_put(nsh, &pubkey, s_name, expire, 1, &rd, s_signature, put_cont, NULL);
 

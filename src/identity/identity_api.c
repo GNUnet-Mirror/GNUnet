@@ -186,7 +186,7 @@ GNUNET_IDENTITY_ego_get_anonymous ()
 
   if (NULL != anon.pk)
     return &anon;
-  anon.pk = GNUNET_CRYPTO_ecc_key_get_anonymous ();
+  anon.pk = (struct GNUNET_CRYPTO_EccPrivateKey *) GNUNET_CRYPTO_ecc_key_get_anonymous ();
   GNUNET_CRYPTO_ecc_key_get_public (anon.pk,
 				    &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &anon.id);

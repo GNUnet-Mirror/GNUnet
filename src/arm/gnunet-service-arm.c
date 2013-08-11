@@ -1012,8 +1012,7 @@ delayed_restart_task (void *cls,
     if (NULL != sl->proc)
       continue;
     /* service is currently not running */
-    if (GNUNET_TIME_absolute_get_remaining (sl->restart_at).rel_value ==
-	0)
+    if (0 == GNUNET_TIME_absolute_get_remaining (sl->restart_at).rel_value_us)
     {
       /* restart is now allowed */
       if (sl->is_default)
@@ -1046,7 +1045,7 @@ delayed_restart_task (void *cls,
 				  (sl->restart_at));
     }
   }
-  if (lowestRestartDelay.rel_value != GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (lowestRestartDelay.rel_value_us != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		"Will restart process in %s\n",
@@ -1126,7 +1125,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	statstr = _( /* process termination method */ "unknown");
 	statcode = 0;
       }
-      if (0 != pos->killed_at.abs_value)
+      if (0 != pos->killed_at.abs_value_us)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Service `%s' took %s to terminate\n"),
@@ -1149,7 +1148,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         if ((statusType == GNUNET_OS_PROCESS_EXITED) && (statcode == 0))
         {
           /* process terminated normally, allow restart at any time */
-          pos->restart_at.abs_value = 0;
+          pos->restart_at.abs_value_us = 0;
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Service `%s' terminated normally, will restart at any time\n"),
               pos->name);

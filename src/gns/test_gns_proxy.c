@@ -422,7 +422,7 @@ run (void *cls,
   }
 
   host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
-  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_A,
                                                                "127.0.0.1",
                                                                (void**)&rd.data,

@@ -202,7 +202,7 @@ GNUNET_FS_year_to_time (unsigned int year)
   t.tm_yday = 1;
   tp = mktime (&t);
   GNUNET_break (tp != (time_t) - 1);
-  ret.abs_value = tp * 1000LL;  /* seconds to ms */
+  ret.abs_value_us = tp * 1000LL * 1000LL;  /* seconds to microseconds */
   return ret;
 }
 
@@ -219,7 +219,7 @@ GNUNET_FS_time_to_year (struct GNUNET_TIME_Absolute at)
   struct tm *t;
   time_t tp;
 
-  tp = at.abs_value / 1000;    /* ms to seconds */
+  tp = at.abs_value_us / 1000LL / 1000LL;    /* microseconds to seconds */
   t = gmtime (&tp);
   if (t == NULL)
     return 0;

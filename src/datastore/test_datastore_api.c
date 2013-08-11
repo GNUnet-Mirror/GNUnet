@@ -94,7 +94,7 @@ get_expiration (int i)
 {
   struct GNUNET_TIME_Absolute av;
 
-  av.abs_value = now.abs_value + 20000000 - i * 1000;
+  av.abs_value_us = now.abs_value_us + 20000000000LL - i * 1000 * 1000LL;
   return av;
 }
 
@@ -191,20 +191,21 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
     return;
   }
 #if 0
-  FPRINTF (stderr, "Check value got `%s' of size %u, type %d, expire %llu\n",
+  FPRINTF (stderr, 
+	   "Check value got `%s' of size %u, type %d, expire %s\n",
            GNUNET_h2s (key), (unsigned int) size, type,
-           (unsigned long long) expiration.abs_value);
+           GNUNET_STRINGS_absolute_time_to_string (expiration));
   FPRINTF (stderr,
-           "Check value iteration %d wants size %u, type %d, expire %llu\n", i,
+           "Check value iteration %d wants size %u, type %d, expire %s\n", i,
            (unsigned int) get_size (i), get_type (i),
-           (unsigned long long) get_expiration (i).abs_value);
+           GNUNET_STRINGS_absolute_time_to_string (get_expiration(i)));
 #endif
   GNUNET_assert (size == get_size (i));
   GNUNET_assert (0 == memcmp (data, get_data (i), size));
   GNUNET_assert (type == get_type (i));
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity (i));
-  GNUNET_assert (expiration.abs_value == get_expiration (i).abs_value);
+  GNUNET_assert (expiration.abs_value_us == get_expiration (i).abs_value_us);
   crc->offset++;
   if (crc->i == 0)
   {

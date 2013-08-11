@@ -482,8 +482,8 @@ process_migration_content (void *cls, const struct GNUNET_HashCode * key, size_t
     consider_gathering ();
     return;
   }
-  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value <
-      MIN_MIGRATION_CONTENT_LIFETIME.rel_value)
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us <
+      MIN_MIGRATION_CONTENT_LIFETIME.rel_value_us)
   {
     /* content will expire soon, don't bother */
     consider_gathering ();

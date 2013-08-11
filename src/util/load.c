@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_load_lib.h"
+#include "gnunet_util_lib.h"
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -87,18 +87,18 @@ internal_update (struct GNUNET_LOAD_Value *load)
   struct GNUNET_TIME_Relative delta;
   unsigned int n;
 
-  if (load->autodecline.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (load->autodecline.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     return;
   delta = GNUNET_TIME_absolute_get_duration (load->last_update);
-  if (delta.rel_value < load->autodecline.rel_value)
+  if (delta.rel_value_us < load->autodecline.rel_value_us)
     return;
-  if (load->autodecline.rel_value == 0)
+  if (0 == load->autodecline.rel_value_us)
   {
     load->runavg_delay = 0.0;
     load->load = 0;
     return;
   }
-  n = delta.rel_value / load->autodecline.rel_value;
+  n = delta.rel_value_us / load->autodecline.rel_value_us;
   if (n > 16)
   {
     load->runavg_delay = 0.0;
@@ -126,7 +126,7 @@ GNUNET_LOAD_value_init (struct GNUNET_TIME_Relative autodecline)
 {
   struct GNUNET_LOAD_Value *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_LOAD_Value));
+  ret = GNUNET_new (struct GNUNET_LOAD_Value);
   ret->autodecline = autodecline;
   ret->last_update = GNUNET_TIME_absolute_get ();
   return ret;

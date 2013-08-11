@@ -277,7 +277,7 @@ update_uptime (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	if (GNUNET_YES == first_run)
 			first_run = GNUNET_NO;
 	else
-			sp->num_val += sp->interval.rel_value / 1000;
+			sp->num_val += sp->interval.rel_value_us / 1000LL / 1000LL;
 
   put_property (sp);
 }
@@ -548,11 +548,13 @@ load_property (void *cls,
     }
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded property `%s': %s, %s, interval %llu\n",
-      (NULL != sp->desc) ? sp->desc: "<undefined>",
-      (t_continous == sp->type) ? "continious" : "static",
-      (v_numeric == sp->value_type) ? "numeric" : "string",
-      sp->interval.rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Loaded property `%s': %s, %s, interval %s\n",
+	      (NULL != sp->desc) ? sp->desc: "<undefined>",
+	      (t_continous == sp->type) ? "continious" : "static",
+	      (v_numeric == sp->value_type) ? "numeric" : "string",
+	      GNUNET_STRINGS_relative_time_to_string (sp->interval,
+						      GNUNET_YES));
 
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 
@@ -615,7 +617,7 @@ load_default_properties (void)
   sp->desc = GNUNET_strdup ("GNUnet startup time");
   sp->type = t_static;
   sp->value_type = v_numeric;
-  sp->num_val = (uint64_t) GNUNET_TIME_absolute_get().abs_value;
+  sp->num_val = (uint64_t) GNUNET_TIME_absolute_get().abs_value_us;
   GNUNET_CONTAINER_DLL_insert (sp_head, sp_tail, sp);
 
 

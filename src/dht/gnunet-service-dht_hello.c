@@ -76,7 +76,7 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (hello == NULL)
     return;
   ex = GNUNET_HELLO_get_last_expiration (hello);
-  if (GNUNET_TIME_absolute_get_remaining (ex).rel_value == 0)
+  if (0 == GNUNET_TIME_absolute_get_remaining (ex).rel_value_us)
     return;
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# HELLOs obtained from peerinfo"), 1,

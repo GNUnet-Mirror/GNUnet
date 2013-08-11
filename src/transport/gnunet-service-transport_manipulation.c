@@ -419,7 +419,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 			if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
 			{
 					/* We have a delay */
-					delay.rel_value = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
+					delay.rel_value_us = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 					dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
 					dqe->id = *target;
 					dqe->tmp = tmp;
@@ -434,8 +434,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 					if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
 						tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
 					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-							"Delaying %u byte message to peer `%s' with generic delay for %llu ms\n",
-							msg_size, GNUNET_i2s (target), (long long unsigned int) delay.rel_value);
+							"Delaying %u byte message to peer `%s' with generic delay for %ms\n",
+							msg_size, GNUNET_i2s (target),
+						    GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
 					return;
 			}
 	}
@@ -443,7 +444,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 	{
 			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
 			/* We have a delay */
-			delay.rel_value = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
+			delay.rel_value_us = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
 			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
 			dqe->id = *target;
 			dqe->tmp = NULL;
@@ -460,8 +461,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
 				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
 			}
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-					"Delaying %u byte message to peer `%s' with peer specific delay for %llu ms\n",
-					msg_size, GNUNET_i2s (target), (long long unsigned int) delay.rel_value);
+				    "Delaying %u byte message to peer `%s' with peer specific delay for %s\n",
+				    msg_size, GNUNET_i2s (target),
+				    GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
 			return;
 	}
 
@@ -540,28 +542,29 @@ GST_manipulation_recv (void *cls,
 	struct GNUNET_TIME_Relative m_delay;
 
 	g_recv_delay = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
-	if ((g_recv_delay >= GNUNET_TIME_UNIT_ZERO.rel_value) && (UINT32_MAX != g_recv_delay))
-		m_delay.rel_value = g_recv_delay; /* Global delay */
+	if ((g_recv_delay >= GNUNET_TIME_UNIT_ZERO.rel_value_us) && (UINT32_MAX != g_recv_delay))
+	  m_delay.rel_value_us = g_recv_delay; /* Global delay */
 	else
-		m_delay = GNUNET_TIME_UNIT_ZERO;
+	  m_delay = GNUNET_TIME_UNIT_ZERO;
 
 	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
 	{
-			/* Manipulate receive delay */
-			p_recv_delay = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
-			if (UINT32_MAX != p_recv_delay)
-					m_delay.rel_value = p_recv_delay; /* Peer specific delay */
+	  /* Manipulate receive delay */
+	  p_recv_delay = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
+	  if (UINT32_MAX != p_recv_delay)
+	    m_delay.rel_value_us = p_recv_delay; /* Peer specific delay */
 	}
 
 	quota_delay = GST_receive_callback (cls, peer, message,
 			session, sender_address, sender_address_len);
 
-	if (quota_delay.rel_value > m_delay.rel_value)
+	if (quota_delay.rel_value_us > m_delay.rel_value_us)
 		m_delay = quota_delay;
 
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			"Delaying next receive for peer `%s' for %llu ms\n",
-			GNUNET_i2s (peer), (long long unsigned int) m_delay.rel_value);
+		    "Delaying next receive for peer `%s' for %s\n",
+		    GNUNET_i2s (peer),
+		    GNUNET_STRINGS_relative_time_to_string (m_delay, GNUNET_YES));
 	return m_delay;
 
 }

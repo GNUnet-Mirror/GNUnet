@@ -1926,8 +1926,8 @@ peer_get_oldest (void *cls,
   if (GNUNET_YES == peer_is_used (p))
     return GNUNET_YES;
 
-  if (abs->abs_value < p->last_contact.abs_value)
-    abs->abs_value = p->last_contact.abs_value;
+  if (abs->abs_value_us < p->last_contact.abs_value_us)
+    abs->abs_value_us = p->last_contact.abs_value_us;
 
   return GNUNET_YES;
 }
@@ -1948,7 +1948,7 @@ peer_timeout (void *cls,
   struct MeshPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
 
-  if (p->last_contact.abs_value == abs->abs_value &&
+  if (p->last_contact.abs_value_us == abs->abs_value_us &&
       GNUNET_NO == peer_is_used (p))
   {
     peer_destroy (p);
@@ -3199,9 +3199,9 @@ rel_message_free (struct MeshReliableMessage *copy)
 
   rel = copy->rel;
   time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-  rel->expected_delay.rel_value *= 7;
-  rel->expected_delay.rel_value += time.rel_value;
-  rel->expected_delay.rel_value /= 8;
+  rel->expected_delay.rel_value_us *= 7;
+  rel->expected_delay.rel_value_us += time.rel_value_us;
+  rel->expected_delay.rel_value_us /= 8;
   rel->n_sent--;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);

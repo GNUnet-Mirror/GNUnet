@@ -116,7 +116,7 @@ sqlite_plugin_put (void *cls,
        "Processing `%s' of %u bytes with key `%4s' and expiration %s\n",
        "PUT", (unsigned int) size, GNUNET_h2s (key),
        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (discard_time), GNUNET_YES));
-  dval = (int64_t) discard_time.abs_value;
+  dval = (int64_t) discard_time.abs_value_us;
   if (dval < 0)
     dval = INT64_MAX;
   if (sq_prepare
@@ -203,13 +203,13 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                 "sq_prepare");
     return 0;
   }
-  ntime = (int64_t) now.abs_value;
+  ntime = (int64_t) now.abs_value_us;
   GNUNET_assert (ntime >= 0);
   if ((SQLITE_OK !=
        sqlite3_bind_blob (stmt, 1, key, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
-      (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value)))
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value_us)))
   {
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_xxx");
@@ -256,7 +256,7 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
          sqlite3_bind_blob (stmt, 1, key, sizeof (struct GNUNET_HashCode),
                             SQLITE_TRANSIENT)) ||
         (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
-        (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value)))
+        (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value_us)))
     {
       LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_bind_xxx");
@@ -267,7 +267,7 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
       break;
     size = sqlite3_column_bytes (stmt, 0);
     dat = sqlite3_column_blob (stmt, 0);
-    exp.abs_value = sqlite3_column_int64 (stmt, 1);
+    exp.abs_value_us = sqlite3_column_int64 (stmt, 1);
     psize = sqlite3_column_bytes (stmt, 2);
     if (0 != psize % sizeof (struct GNUNET_PeerIdentity))
     {
@@ -279,7 +279,7 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
       path = sqlite3_column_blob (stmt, 2);
     else
       path = NULL;
-    ntime = (int64_t) exp.abs_value;
+    ntime = (int64_t) exp.abs_value_us;
     if (ntime == INT64_MAX)
       exp = GNUNET_TIME_UNIT_FOREVER_ABS;
     cnt++;

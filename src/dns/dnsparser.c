@@ -891,7 +891,7 @@ add_record (char *dst,
   }
   rl.type = htons (record->type);
   rl.class = htons (record->class);
-  rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value / 1000); /* in seconds */
+  rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL); /* in seconds */
   rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct record_line))));
   memcpy (&dst[*off], &rl, sizeof (struct record_line));
   *off = pos;

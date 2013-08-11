@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,13 +20,11 @@
 /**
  * @file util/test_scheduler_delay.c
  * @brief testcase for delay of scheduler, measures how
- *  precise the timers are.  Expect values between 10 and 20 ms on
+ *  precise the timers are.  Expect values between 0.2 and 2 ms on
  *  modern machines.
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 static struct GNUNET_TIME_Absolute target;
 
@@ -36,7 +34,8 @@ static unsigned long long cumDelta;
 
 #define INCR 47
 
-#define MAXV 1500
+#define MAXV 5000
+
 
 /**
  * Signature of the main function of a task.
@@ -45,18 +44,19 @@ static unsigned long long cumDelta;
  * @param tc context
  */
 static void
-test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_task (void *cls,
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Absolute now;
 
   now = GNUNET_TIME_absolute_get ();
-  if (now.abs_value > target.abs_value)
-    cumDelta += (now.abs_value - target.abs_value);
+  if (now.abs_value_us > target.abs_value_us)
+    cumDelta += (now.abs_value_us - target.abs_value_us);
   else
-    cumDelta += (target.abs_value - now.abs_value);
+    cumDelta += (target.abs_value_us - now.abs_value_us);
   target =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply
-                                        (GNUNET_TIME_UNIT_MILLISECONDS, i));
+                                        (GNUNET_TIME_UNIT_MICROSECONDS, i));
   FPRINTF (stderr, "%s",  ".");
   if (i > MAXV)
   {
@@ -64,7 +64,7 @@ test_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MILLISECONDS, i), &test_task,
+                                (GNUNET_TIME_UNIT_MICROSECONDS, i), &test_task,
                                 NULL);
   i += INCR;
 }
@@ -76,13 +76,14 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-scheduler-delay", "WARNING", NULL);
   target = GNUNET_TIME_absolute_get ();
   GNUNET_SCHEDULER_run (&test_task, NULL);
-  FPRINTF (stdout, "Sleep precision: %llu ms. ",
-           cumDelta / 1000 / (MAXV / INCR));
-  if (cumDelta <= 10 * MAXV / INCR)
+  FPRINTF (stdout, 
+	   "Sleep precision: %llu microseconds (average delta). ",
+           cumDelta / (MAXV / INCR));
+  if (cumDelta <= 500 * MAXV / INCR)
     FPRINTF (stdout, "%s",  "Timer precision is excellent.\n");
-  else if (cumDelta <= 50 * MAXV / INCR)        /* 50 ms average deviation */
+  else if (cumDelta <= 5000 * MAXV / INCR)        /* 5 ms average deviation */
     FPRINTF (stdout, "%s",  "Timer precision is good.\n");
-  else if (cumDelta > 250 * MAXV / INCR)
+  else if (cumDelta > 25000 * MAXV / INCR)
     FPRINTF (stdout, "%s",  "Timer precision is awful.\n");
   else
     FPRINTF (stdout, "%s",  "Timer precision is acceptable.\n");

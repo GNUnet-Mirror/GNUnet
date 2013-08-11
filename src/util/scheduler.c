@@ -1,10 +1,10 @@
 /*
       This file is part of GNUnet
-      (C) 2009, 2011 Christian Grothoff (and other contributing authors)
+      (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
-      by the Free Software Foundation; either version 2, or (at your
+      by the Free Software Foundation; either version 3, or (at your
       option) any later version.
 
       GNUnet is distributed in the hope that it will be useful, but
@@ -300,7 +300,7 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
   if (pos != NULL)
   {
     to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
-    if (timeout->rel_value > to.rel_value)
+    if (timeout->rel_value_us > to.rel_value_us)
       *timeout = to;
     if (pos->reason != 0)
       *timeout = GNUNET_TIME_UNIT_ZERO;
@@ -308,10 +308,10 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
   pos = pending;
   while (pos != NULL)
   {
-    if (pos->timeout.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+    if (pos->timeout.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     {
       to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
-      if (timeout->rel_value > to.rel_value)
+      if (timeout->rel_value_us > to.rel_value_us)
         *timeout = to;
     }
     if (pos->read_fd != -1)
@@ -373,7 +373,7 @@ is_ready (struct Task *task, struct GNUNET_TIME_Absolute now,
   enum GNUNET_SCHEDULER_Reason reason;
 
   reason = task->reason;
-  if (now.abs_value >= task->timeout.abs_value)
+  if (now.abs_value_us >= task->timeout.abs_value_us)
     reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
   if ((0 == (reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
       (((task->read_fd != -1) &&
@@ -433,7 +433,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
   while (pos != NULL)
   {
     next = pos->next;
-    if (now.abs_value >= pos->timeout.abs_value)
+    if (now.abs_value_us >= pos->timeout.abs_value_us)
       pos->reason |= GNUNET_SCHEDULER_REASON_TIMEOUT;
     if (0 == pos->reason)
       break;
@@ -569,8 +569,8 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     current_lifeness = pos->lifeness;
     active_task = pos;
 #if PROFILE_DELAYS
-    if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value >
-        DELAY_THRESHOLD.rel_value)
+    if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value_us >
+        DELAY_THRESHOLD.rel_value_us)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	   "Task %llu took %s to be scheduled\n",
@@ -777,7 +777,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
       GNUNET_abort ();
       break;
     }
-    if ((ret == 0) && (timeout.rel_value == 0) && (busy_wait_warning > 16))
+    if ((0 == ret) && (0 == timeout.rel_value_us) && (busy_wait_warning > 16))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, _("Looks like we're busy waiting...\n"));
       sleep (1);                /* mitigate */
@@ -1091,7 +1091,7 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
   prev = pending_timeout_last;
   if (prev != NULL)
   {
-    if (prev->timeout.abs_value > t->timeout.abs_value)
+    if (prev->timeout.abs_value_us > t->timeout.abs_value_us)
       prev = NULL;
     else
       pos = prev->next;         /* heuristic success! */
@@ -1102,8 +1102,8 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
     pos = pending_timeout;
   }
   while ((pos != NULL) &&
-         ((pos->timeout.abs_value <= t->timeout.abs_value) ||
-          (pos->reason != 0)))
+         ((pos->timeout.abs_value_us <= t->timeout.abs_value_us) ||
+          (0 != pos->reason)))
   {
     prev = pos;
     pos = pos->next;

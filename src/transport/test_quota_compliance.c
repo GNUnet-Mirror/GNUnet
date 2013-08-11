@@ -129,8 +129,8 @@ end ()
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
-  datarate = (total_bytes_sent * 1000) / delta;
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
+  datarate = (total_bytes_sent * 1000 * 1000) / delta;
 
   FPRINTF (stderr, "Throughput was %llu b/s\n", datarate);
 
@@ -398,7 +398,7 @@ measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   measure_task = GNUNET_SCHEDULER_NO_TASK;
 
   counter++;
-  if ((DURATION.rel_value / 1000) < counter)
+  if ((DURATION.rel_value_us / 1000 / 1000LL) < counter)
   {
     FPRINTF (stderr, "%s",  ".\n");
     GNUNET_SCHEDULER_add_now (&end, NULL);

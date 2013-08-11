@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -1332,7 +1332,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
 
   if ((nfds == 0) &&
-      (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+      (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
 #ifdef MINGW
       && handles == 0
 #endif
@@ -1345,25 +1345,26 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
          "select");
   }
 #ifndef MINGW
-  tv.tv_sec = timeout.rel_value / GNUNET_TIME_UNIT_SECONDS.rel_value;
+  tv.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
   tv.tv_usec =
-      1000 * (timeout.rel_value -
-              (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value));
-  return select (nfds, (rfds != NULL) ? &rfds->sds : NULL,
-                 (wfds != NULL) ? &wfds->sds : NULL,
-                 (efds != NULL) ? &efds->sds : NULL,
-                 (timeout.rel_value ==
-                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value) ? NULL : &tv);
+    (timeout.rel_value_us -
+     (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
+  return select (nfds, 
+		 (NULL != rfds) ? &rfds->sds : NULL,
+                 (NULL != wfds) ? &wfds->sds : NULL,
+                 (NULL != efds) ? &efds->sds : NULL,
+                 (timeout.rel_value_us ==
+                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us) ? NULL : &tv);
 
 #else
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
   /* calculate how long we need to wait in milliseconds */
-  if (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+  if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     ms_total = INFINITE;
   else
   {
-    ms_total = timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value;
-    if (timeout.rel_value / GNUNET_TIME_UNIT_MILLISECONDS.rel_value > 0xFFFFFFFFLL - 1)
+    ms_total = timeout.rel_value_us / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us;
+    if (timeout.rel_value_us / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us > 0xFFFFFFFFLL - 1)
     {
       GNUNET_break (0);
       ms_total = 0xFFFFFFFF - 1;
@@ -1376,7 +1377,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     return 0;
   }
 
-  if (select_thread == NULL)
+  if (NULL == select_thread)
   {
     SOCKET select_listening_socket = -1;
     struct sockaddr_in s_in;
@@ -1742,15 +1743,16 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   if (nfds > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Adding the socket event to the array as %d\n", nhandles);
+         "Adding the socket event to the array as %d\n",
+	 nhandles);
     handle_array[nhandles++] = select_finished_event;
-    if (timeout.rel_value == GNUNET_TIME_UNIT_FOREVER_REL.rel_value)
+    if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
       sp.tv = NULL;
     else
     {
-      select_timeout.tv_sec = timeout.rel_value / GNUNET_TIME_UNIT_SECONDS.rel_value;
-      select_timeout.tv_usec = 1000 * (timeout.rel_value -
-          (select_timeout.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value));
+      select_timeout.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
+      select_timeout.tv_usec =(timeout.rel_value_us -
+          (select_timeout.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
       sp.tv = &select_timeout;
     }
     FD_SET (select_wakeup_socket, &aread);

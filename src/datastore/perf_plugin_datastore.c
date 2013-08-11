@@ -115,7 +115,7 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   size = size - (size & 7);     /* always multiple of 8 */
 
   /* generate random key */
-  key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().abs_value;
+  key.bits[0] = (unsigned int) GNUNET_TIME_absolute_get ().abs_value_us;
   GNUNET_CRYPTO_hash (&key, sizeof (struct GNUNET_HashCode), &key);
   memset (value, i, size);
   if (i > 255)
@@ -164,9 +164,10 @@ iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   hits[i / 8] |= (1 << (i % 8));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Found result %d type=%u, priority=%u, size=%u, expire=%llu\n",
+	      "Found result %d type=%u, priority=%u, size=%u, expire=%s\n",
 	      i,
-	      type, priority, size, (unsigned long long) expiration.abs_value);
+	      type, priority, size, 
+	      GNUNET_STRINGS_absolute_time_to_string (expiration));
   crc->cnt++;
   if (crc->cnt == PUT_10 / 4 - 1)
   {
@@ -178,13 +179,15 @@ iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
         bc++;
 
     crc->end = GNUNET_TIME_absolute_get ();
-    printf ("%s took %llu ms yielding %u/%u items\n",
+    printf ("%s took %s yielding %u/%u items\n",
             "Select random zero-anonymity item",
-            (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
+											 crc->end),
+						    GNUNET_YES),
             bc, crc->cnt);
     if (crc->cnt > 0)
       GAUGER (category, "Select random zero-anonymity item",
-              (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
+              (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
     crc->phase++;
@@ -220,13 +223,15 @@ expiration_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
         bc++;
 
     crc->end = GNUNET_TIME_absolute_get ();
-    printf ("%s took %llu ms yielding %u/%u items\n",
+    printf ("%s took %s yielding %u/%u items\n",
             "Selecting and deleting by expiration",
-            (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
+											 crc->end),
+						    GNUNET_YES),
             bc, (unsigned int) PUT_10);
     if (crc->cnt > 0)
       GAUGER (category, "Selecting and deleting by expiration",
-              (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
+              (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
     if (++crc->iter == ITERATIONS)
@@ -266,13 +271,15 @@ replication_get (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
         bc++;
 
     crc->end = GNUNET_TIME_absolute_get ();
-    printf ("%s took %llu ms yielding %u/%u items\n",
+    printf ("%s took %s yielding %u/%u items\n",
             "Selecting random item for replication",
-            (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
+											 crc->end),
+						    GNUNET_YES),
             bc, (unsigned int) PUT_10);
     if (crc->cnt > 0)
       GAUGER (category, "Selecting random item for replication",
-              (crc->end.abs_value - crc->start.abs_value) / crc->cnt,
+              (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / crc->cnt,
               "ms/item");
     memset (hits, 0, sizeof (hits));
     crc->phase++;
@@ -359,12 +366,14 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       putValue (crc->api, j, crc->i);
     crc->end = GNUNET_TIME_absolute_get ();
     {
-      printf ("%s took %llu ms for %llu items\n", "Storing an item",
-              (unsigned long long) (crc->end.abs_value - crc->start.abs_value),
+      printf ("%s took %s for %llu items\n", "Storing an item",
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
+											   crc->end),
+						      GNUNET_YES),
               PUT_10);
       if (PUT_10 > 0)
         GAUGER (category, "Storing an item",
-                (crc->end.abs_value - crc->start.abs_value) / PUT_10,
+                (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / PUT_10,
                 "ms/item");
     }
     crc->i++;

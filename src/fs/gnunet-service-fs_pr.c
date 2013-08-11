@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -373,7 +373,7 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   {
     pr->hnode =
         GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap, pr,
-                                      pr->public_data.ttl.abs_value);
+                                      pr->public_data.ttl.abs_value_us);
     /* make sure we don't track too many requests */
     while (GNUNET_CONTAINER_heap_get_size (requests_by_expiration_heap) >
            max_pending_requests)
@@ -555,8 +555,8 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   pr->public_data.respect_offered += prio;
   gm->priority = htonl (prio);
   now = GNUNET_TIME_absolute_get ();
-  ttl = (int64_t) (pr->public_data.ttl.abs_value - now.abs_value);
-  gm->ttl = htonl (ttl / 1000);
+  ttl = (int64_t) (pr->public_data.ttl.abs_value_us - now.abs_value_us);
+  gm->ttl = htonl (ttl / 1000LL / 1000LL);
   gm->filter_mutator = htonl (pr->mingle);
   gm->hash_bitmap = htonl (bm);
   gm->query = pr->public_data.query;
@@ -825,12 +825,12 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
     update_request_performance_data (prq, pr);
     GNUNET_LOAD_update (GSF_rt_entry_lifetime,
                         GNUNET_TIME_absolute_get_duration (pr->
-                                                           public_data.start_time).rel_value);
+                                                           public_data.start_time).rel_value_us);
     if (GNUNET_YES !=
 	GSF_request_plan_reference_get_last_transmission_ (pr->public_data.pr_head, 
 							   prq->sender, 
 							   &last_transmission))
-      last_transmission.abs_value = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
+      last_transmission.abs_value_us = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
     /* pass on to other peers / local clients */
     pr->rh (pr->rh_cls, prq->eval, pr, prq->anonymity_level, prq->expiration,
             last_transmission, prq->type, prq->data, prq->size);
@@ -891,7 +891,7 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   if (! GSF_request_plan_reference_get_last_transmission_ (pr->public_data.pr_head,
 							   prq->sender, 
 							   &last_transmission))
-    last_transmission.abs_value = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
+    last_transmission.abs_value_us = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   pr->rh (pr->rh_cls, prq->eval, pr, 
 	  prq->anonymity_level, prq->expiration,
           last_transmission, prq->type, prq->data, prq->size);
@@ -947,13 +947,13 @@ put_migration_continuation (void *cls, int success,
     if (GNUNET_SYSERR != success)
     {
       GNUNET_LOAD_update (datastore_put_load, 
-			  GNUNET_TIME_absolute_get_duration (pmc->start).rel_value);
+			  GNUNET_TIME_absolute_get_duration (pmc->start).rel_value_us);
     }
     else
     {
       /* on queue failure / timeout, increase the put load dramatically */
       GNUNET_LOAD_update (datastore_put_load, 
-			  GNUNET_TIME_UNIT_MINUTES.rel_value);
+			  GNUNET_TIME_UNIT_MINUTES.rel_value_us);
     }
   }
   cp = GSF_peer_get_ (&pmc->origin);
@@ -962,7 +962,7 @@ put_migration_continuation (void *cls, int success,
     if (NULL != cp)
     {
       ppd = GSF_get_peer_performance_data_ (cp);
-      ppd->migration_delay.rel_value /= 2;
+      ppd->migration_delay.rel_value_us /= 2;
     }
     GNUNET_free (pmc);
     return;
@@ -972,7 +972,7 @@ put_migration_continuation (void *cls, int success,
        (NULL != cp) )
   {
     ppd = GSF_get_peer_performance_data_ (cp);
-    if (min_expiration.abs_value > 0)
+    if (min_expiration.abs_value_us > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Asking to stop migration for %s because datastore is full\n",
@@ -985,8 +985,8 @@ put_migration_continuation (void *cls, int success,
 						       ppd->migration_delay);
       ppd->migration_delay = GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_HOURS,
 						       ppd->migration_delay);
-      mig_pause.rel_value = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-						      ppd->migration_delay.rel_value);
+      mig_pause.rel_value_us = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+							 ppd->migration_delay.rel_value_us);
       ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 		  "Replicated content already exists locally, asking to stop migration for %s\n",
@@ -1711,8 +1711,9 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                                        (GNUNET_CRYPTO_QUALITY_WEAK,
                                         (unsigned int) (60000 * putl * putl)));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Asking to stop migration for %llu ms because of load %f and events %d/%d\n",
-		(unsigned long long) block_time.rel_value,
+		"Asking to stop migration for %s because of load %f and events %d/%d\n",
+		GNUNET_STRINGS_relative_time_to_string (block_time,
+							GNUNET_YES),
 		putl,
 		active_to_migration,
 		(GNUNET_NO == prq.request_found));

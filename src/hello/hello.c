@@ -382,8 +382,8 @@ copy_latest (void *cls, const struct GNUNET_HELLO_Address *address,
   ec.found = GNUNET_NO;
   GNUNET_HELLO_iterate_addresses (mc->other, GNUNET_NO, &get_match_exp, &ec);
   if ((ec.found == GNUNET_NO) ||
-      (ec.expiration.abs_value < expiration.abs_value) ||
-      ((ec.expiration.abs_value == expiration.abs_value) &&
+      (ec.expiration.abs_value_us < expiration.abs_value_us) ||
+      ((ec.expiration.abs_value_us == expiration.abs_value_us) &&
        (mc->take_equal == GNUNET_YES)))
   {
     mc->ret +=
@@ -465,8 +465,8 @@ delta_match (void *cls, const struct GNUNET_HELLO_Address *address,
   GNUNET_HELLO_iterate_addresses (dc->old_hello, GNUNET_NO, &get_match_exp,
                                   &ec);
   if ((ec.found == GNUNET_YES) &&
-      ((ec.expiration.abs_value > expiration.abs_value) ||
-       (ec.expiration.abs_value >= dc->expiration_limit.abs_value)))
+      ((ec.expiration.abs_value_us > expiration.abs_value_us) ||
+       (ec.expiration.abs_value_us >= dc->expiration_limit.abs_value_us)))
     return GNUNET_YES;          /* skip */
   ret = dc->it (dc->it_cls, address, expiration);
   return ret;
@@ -609,12 +609,12 @@ find_other_matching (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct EqualsContext *ec = cls;
 
-  if (expiration.abs_value < ec->expiration_limit.abs_value)
+  if (expiration.abs_value_us < ec->expiration_limit.abs_value_us)
     return GNUNET_YES;
   if (0 == GNUNET_HELLO_address_cmp (address, ec->address))
   {
     ec->found = GNUNET_YES;
-    if (expiration.abs_value < ec->expiration.abs_value)
+    if (expiration.abs_value_us < ec->expiration.abs_value_us)
       ec->result = GNUNET_TIME_absolute_min (expiration, ec->result);
     return GNUNET_SYSERR;
   }
@@ -628,7 +628,7 @@ find_matching (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct EqualsContext *ec = cls;
 
-  if (expiration.abs_value < ec->expiration_limit.abs_value)
+  if (expiration.abs_value_us < ec->expiration_limit.abs_value_us)
     return GNUNET_YES;
   ec->address = address;
   ec->expiration = expiration;
@@ -677,7 +677,7 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
   ec.h2 = h2;
   GNUNET_HELLO_iterate_addresses (h1, GNUNET_NO, &find_matching, &ec);
-  if (ec.result.abs_value == GNUNET_TIME_UNIT_ZERO.rel_value)
+  if (ec.result.abs_value_us == GNUNET_TIME_UNIT_ZERO.rel_value_us)
     return ec.result;
   ec.h2 = h1;
   GNUNET_HELLO_iterate_addresses (h2, GNUNET_NO, &find_matching, &ec);
@@ -707,7 +707,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
 {
   struct GNUNET_TIME_Absolute ret;
 
-  ret.abs_value = 0;
+  ret.abs_value_us = 0;
   GNUNET_HELLO_iterate_addresses (msg, GNUNET_NO, &find_min_expire, &ret);
   return ret;
 }
@@ -843,7 +843,7 @@ add_address_to_uri (void *cls, const struct GNUNET_HELLO_Address *address,
       characters in URIs */
   uri_addr = map_characters (addr_dup, "[]", "()");
   GNUNET_free (addr_dup);
-  seconds = expiration.abs_value / 1000;
+  seconds = expiration.abs_value_us / 1000LL / 1000LL;
   t = gmtime (&seconds);
 
   GNUNET_asprintf (&ret,
@@ -956,7 +956,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
       GNUNET_break (0);
       return 0;
     }
-    expire.abs_value = expiration_seconds * 1000;
+    expire.abs_value_us = expiration_seconds * 1000LL * 1000LL;
   }
   if ('!' != tname[0])
   {

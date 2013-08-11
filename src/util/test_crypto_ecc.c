@@ -166,9 +166,9 @@ testSignPerformance ()
       continue;
     }
   }
-  printf ("%d ECC sign operations %llu ms\n", ITER,
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+  printf ("%d ECC sign operations %s\n", ITER,
+          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
+						  GNUNET_YES));
   return ok;
 }
 #endif

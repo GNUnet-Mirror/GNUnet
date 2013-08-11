@@ -1080,7 +1080,7 @@ unix_plugin_select_write (struct Plugin *plugin)
 
   while (NULL != (msgw = plugin->msg_tail))
   {
-    if (GNUNET_TIME_absolute_get_remaining (msgw->timeout).rel_value > 0)
+    if (GNUNET_TIME_absolute_get_remaining (msgw->timeout).rel_value_us > 0)
       break; /* Message is ready for sending */
     /* Message has a timeout */
     LOG (GNUNET_ERROR_TYPE_DEBUG,

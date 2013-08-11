@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -876,29 +876,42 @@ server_disconnect (struct Session *s)
   return GNUNET_OK;
 }
 
+
+
+/**
+ * Tell MHD that the connection should timeout after #to seconds.
+ *
+ * @param plugin our plugin
+ * @param s session for which the timeout changes
+ * @param to timeout in seconds
+ */
 static void
-server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, struct Session *s, int to)
+server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, 
+			       struct Session *s,
+			       unsigned int to)
 {
 #if MHD_VERSION >= 0x00090E00
     /* Setting timeouts for other connections */
-    if (s->server_recv != NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Setting timeout for %p to %u sec.\n", s->server_recv, to);
-      MHD_set_connection_option (s->server_recv->mhd_conn,
-                                 MHD_CONNECTION_OPTION_TIMEOUT,
-                                 to);
-      server_reschedule (plugin, s->server_recv->mhd_daemon, GNUNET_NO);
-    }
-    if (s->server_send != NULL)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Setting timeout for %p to %u sec.\n", s->server_send, to);
-      MHD_set_connection_option (s->server_send->mhd_conn,
-                                 MHD_CONNECTION_OPTION_TIMEOUT,
-                                 to);
-      server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_NO);
-    }
+  if (NULL != s->server_recv)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+		     "Setting timeout for %p to %u sec.\n",
+		     s->server_recv, to);
+    MHD_set_connection_option (s->server_recv->mhd_conn,
+			       MHD_CONNECTION_OPTION_TIMEOUT,
+			       to);
+    server_reschedule (plugin, s->server_recv->mhd_daemon, GNUNET_NO);
+  }
+  if (NULL != s->server_send)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+		     "Setting timeout for %p to %u sec.\n",
+		     s->server_send, to);
+    MHD_set_connection_option (s->server_send->mhd_conn,
+			       MHD_CONNECTION_OPTION_TIMEOUT,
+			       to);
+    server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_NO);
+  }
 #endif
 }
 
@@ -1034,14 +1047,12 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   struct ServerConnection *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
   struct GNUNET_ATS_Information ats;
-
   struct HttpAddress *addr;
   size_t addr_len;
-
   struct GNUNET_PeerIdentity target;
   uint32_t tag = 0;
   int direction = GNUNET_SYSERR;
-  int to;
+  unsigned int to;
 
   conn_info = MHD_get_connection_info (mhd_connection,
                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
@@ -1169,8 +1180,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 #if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
-    to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value / 1000);
-    MHD_set_connection_option (mhd_connection, MHD_CONNECTION_OPTION_TIMEOUT, to);
+    to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL);
+    MHD_set_connection_option (mhd_connection, 
+			       MHD_CONNECTION_OPTION_TIMEOUT, to);
     server_reschedule (plugin, sc->mhd_daemon, GNUNET_NO);
   }
   else
@@ -1178,7 +1190,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Session %p for peer `%s' fully connected\n",
                      s, GNUNET_i2s (&target));
-    to = (SERVER_SESSION_TIMEOUT.rel_value / 1000);
+    to = (SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
     server_mhd_connection_timeout (plugin, s, to);
   }
 
@@ -1325,13 +1337,14 @@ server_receive_mst_cb (void *cls, void *client,
 
   s->session_passed = GNUNET_YES;
   s->next_receive = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
-  if (delay.rel_value > 0)
+  if (delay.rel_value_us > 0)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Peer `%s' address `%s' next read delayed for %llu ms\n",
+                     "Peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL,  p->protocol, s->addr, s->addrlen),
-                     delay);
+                     GNUNET_STRINGS_relative_time_to_string (delay,
+							     GNUNET_YES));
   }
   server_reschedule_session_timeout (s);
   return GNUNET_OK;
@@ -1477,7 +1490,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        *upload_data_size);
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
 
-      if ((s->next_receive.abs_value <= now.abs_value))
+      if ((s->next_receive.abs_value_us <= now.abs_value_us))
       {
         GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                          "PUT with %u bytes forwarded to MST\n",
@@ -1488,16 +1501,17 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
         }
             GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data,
                                        *upload_data_size, GNUNET_NO, GNUNET_NO);
-#if MHD_VERSION >= 0x00090E00
-        server_mhd_connection_timeout (plugin, s, GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value / 1000);
-#endif
+        server_mhd_connection_timeout (plugin, s,
+				       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
         (*upload_data_size) = 0;
       }
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %llu ms\n",
-                    s, sc, now.abs_value - s->next_receive.abs_value);
+                    "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %s\n",
+                    s, sc,
+		    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (s->next_receive),
+							    GNUNET_YES));
       }
       return MHD_YES;
     }
@@ -1753,12 +1767,12 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
     {
 
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "SELECT Timeout changed from %llu to %llu\n",
+                       "SELECT Timeout changed from %llu to %llu (ms)\n",
                        last_timeout, timeout);
       last_timeout = timeout;
     }
-    if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value)
-      tv.rel_value = (uint64_t) timeout;
+    if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value_us / 1000LL)
+      tv.rel_value_us = (uint64_t) timeout * 1000LL;
     else
       tv = GNUNET_TIME_UNIT_SECONDS;
   }
@@ -2007,12 +2021,12 @@ server_start (struct HTTP_Server_Plugin *plugin)
 
 
 #if MHD_VERSION >= 0x00090E00
-  timeout = HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value / 1000;
+  timeout = HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "MHD can set timeout per connection! Default time out %u sec.\n",
                    timeout);
 #else
-  timeout = SERVER_SESSION_TIMEOUT.rel_value / 1000;
+  timeout = SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL;
   GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
                    "MHD cannot set timeout per connection! Default time out %u sec.\n",
                    timeout);
@@ -2870,8 +2884,10 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
-              "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
+              "Session %p was idle for %s, disconnecting\n",
+              s, 
+	      GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+						      GNUNET_YES));
 
   /* call session destroy function */
  GNUNET_assert (GNUNET_OK == server_disconnect (s));
@@ -2892,8 +2908,10 @@ server_start_session_timeout (struct Session *s)
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
+             "Timeout for session %p set to %s\n",
+             s,
+	     GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+						     GNUNET_YES));
 }
 
 
@@ -2913,8 +2931,10 @@ server_reschedule_session_timeout (struct Session *s)
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) SERVER_SESSION_TIMEOUT.rel_value);
+             "Timeout rescheduled for session %p set to %s\n",
+             s,
+	     GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+						     GNUNET_YES));
 }
 
 

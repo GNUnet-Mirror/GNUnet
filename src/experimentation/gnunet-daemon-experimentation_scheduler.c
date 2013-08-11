@@ -133,7 +133,7 @@ static void run_experiment_inbound (void *cls,const struct GNUNET_SCHEDULER_Task
 			se->state = REQUESTED;
 			/* Schedule to run */
 			start = GNUNET_TIME_absolute_get_remaining(se->e->start);
-			if (0 == start.rel_value)
+			if (0 == start.rel_value_us)
 					se->task = GNUNET_SCHEDULER_add_now (&run_experiment_inbound, se);
 			else
 					se->task = GNUNET_SCHEDULER_add_delayed (start, &run_experiment_inbound, se);
@@ -155,7 +155,7 @@ static void run_experiment_inbound (void *cls,const struct GNUNET_SCHEDULER_Task
 
 			/* Reschedule */
 			end = GNUNET_TIME_absolute_get_remaining(GNUNET_TIME_absolute_add (se->e->stop, se->e->frequency));
-			if (0 == end.rel_value)
+			if (0 == end.rel_value_us)
 			{
 				se->state = STOPPED;
 				return;	/* End of experiment is reached */
@@ -201,7 +201,7 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 
 			/* Reschedule */
 			end = GNUNET_TIME_absolute_get_remaining(GNUNET_TIME_absolute_add (se->e->stop, se->e->frequency));
-			if (0 == end.rel_value)
+			if (0 == end.rel_value_us)
 			{
 				se->state = STOPPED;
 				return;	/* End of experiment is reached */
@@ -328,7 +328,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound)
 
 	start = GNUNET_TIME_absolute_get_remaining(e->start);
 	end = GNUNET_TIME_absolute_get_remaining(e->stop);
-	if (0 == end.rel_value)
+	if (0 == end.rel_value_us)
 			return;	/* End of experiment is reached */
 
 	/* Add additional checks here if required */
@@ -340,7 +340,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound)
 
 	if (GNUNET_YES == outbound)
 	{
-		if (0 == start.rel_value)
+	  if (0 == start.rel_value_us)
 				se->task = GNUNET_SCHEDULER_add_now (&run_experiment_outbound, se);
 		else
 				se->task = GNUNET_SCHEDULER_add_delayed (start, &run_experiment_outbound, se);
@@ -348,7 +348,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound)
 	}
 	else
 	{
-		if (0 == start.rel_value)
+		if (0 == start.rel_value_us)
 				se->task = GNUNET_SCHEDULER_add_now (&run_experiment_inbound, se);
 		else
 				se->task = GNUNET_SCHEDULER_add_delayed (start, &run_experiment_inbound, se);

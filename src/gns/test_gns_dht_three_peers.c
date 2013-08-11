@@ -250,12 +250,14 @@ on_lookup_result(void *cls, uint32_t rd_count,
   end_now ();
 }
 
+
 static void
 commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int wait = 0;
+
   wait++;
-  if ((ZONE_PUT_WAIT_TIME.rel_value / 1000) == wait)
+  if ((ZONE_PUT_WAIT_TIME.rel_value_us / 1000LL / 1000LL) == wait)
   {
     fprintf (stderr, "\n");
     wait_task = GNUNET_SCHEDULER_NO_TASK;
@@ -273,6 +275,7 @@ commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &commence_testing, NULL);
   }
 }
+
 
 void
 all_connected ()

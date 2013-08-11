@@ -283,11 +283,11 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
     delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
                                        8 + (1LL << 24));
-  delay.rel_value =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                delay.rel_value + 1);
+  delay.rel_value_us =
+    GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+			      delay.rel_value_us + 1);
   /* Add 0.01 to avg_delay to avoid division-by-zero later */
-  avg_delay = (((avg_delay * (N - 1.0)) + delay.rel_value) / N) + 0.01;
+  avg_delay = (((avg_delay * (N - 1.0)) + delay.rel_value_us) / N) + 0.01;
 
   /*
    * For the priority, we need to consider a few basic rules:
@@ -312,27 +312,27 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
    */
   rp->priority =
       round ((GSF_current_priorities +
-              1.0) * atan (delay.rel_value / avg_delay)) / M_PI_4;
+              1.0) * atan (delay.rel_value_us / avg_delay)) / M_PI_4;
   /* Note: usage of 'round' and 'atan' requires -lm */
 
   if (rp->transmission_counter != 0)
-    delay.rel_value += TTL_DECREMENT;
+    delay.rel_value_us += TTL_DECREMENT * 1000;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Considering (re)transmission number %u in %llu ms\n",
+              "Considering (re)transmission number %u in %s\n",
               (unsigned int) rp->transmission_counter,
-              (unsigned long long) delay.rel_value);
+              GNUNET_STRINGS_relative_time_to_string (delay,
+						      GNUNET_YES));
   rp->earliest_transmission = GNUNET_TIME_relative_to_absolute (delay);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Earliest (re)transmission for `%s' in %us\n",
               GNUNET_h2s (&prd->query), rp->transmission_counter);
   GNUNET_assert (rp->hn == NULL);
-  if (GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value
-      == 0)
+  if (0 == GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission).rel_value_us)
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
   else
     rp->hn =
         GNUNET_CONTAINER_heap_insert (pp->delay_heap, rp,
-                                      rp->earliest_transmission.abs_value);
+                                      rp->earliest_transmission.abs_value_us);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_contains_value (pp->plan_map,
                                                                get_rp_key (rp),
@@ -363,8 +363,8 @@ get_latest (const struct GSF_RequestPlan *rp)
   bi = bi->next_PE; 
   while (NULL != bi)
   {
-    if (GSF_pending_request_get_data_ (bi->pr)->ttl.abs_value >
-        GSF_pending_request_get_data_ (ret)->ttl.abs_value)
+    if (GSF_pending_request_get_data_ (bi->pr)->ttl.abs_value_us >
+        GSF_pending_request_get_data_ (ret)->ttl.abs_value_us)
       ret = bi->pr;
     bi = bi->next_PE;
   }
@@ -459,8 +459,8 @@ schedule_peer_transmission (void *cls,
   }
   /* move ready requests to priority queue */
   while ((NULL != (rp = GNUNET_CONTAINER_heap_peek (pp->delay_heap))) &&
-         (GNUNET_TIME_absolute_get_remaining
-          (rp->earliest_transmission).rel_value == 0))
+         (0 == GNUNET_TIME_absolute_get_remaining
+          (rp->earliest_transmission).rel_value_us))
   {
     GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->delay_heap));
     rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
@@ -477,10 +477,12 @@ schedule_peer_transmission (void *cls,
     }
     delay = GNUNET_TIME_absolute_get_remaining (rp->earliest_transmission);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sleeping for %llu ms before retrying requests on plan %p.\n",
-                (unsigned long long) delay.rel_value, pp);
-    GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# delay heap timeout"),
-                           delay.rel_value, GNUNET_NO);
+                "Sleeping for %s before retrying requests on plan %p.\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+							GNUNET_YES),
+		pp);
+    GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# delay heap timeout (ms)"),
+                           delay.rel_value_us / 1000LL, GNUNET_NO);
 
     pp->task =
         GNUNET_SCHEDULER_add_delayed (delay, &schedule_peer_transmission, pp);
@@ -551,8 +553,8 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
                             GNUNET_NO);
 #endif
   latest = get_latest (rp);
-  if (GSF_pending_request_get_data_ (latest)->ttl.abs_value <
-      prd->ttl.abs_value)
+  if (GSF_pending_request_get_data_ (latest)->ttl.abs_value_us <
+      prd->ttl.abs_value_us)
   {
 #if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests refreshed"),
@@ -721,7 +723,7 @@ GSF_request_plan_reference_get_last_transmission_ (
   {
     if (bi->rp->pp->cp == sender)
     {
-      if (0 == bi->rp->last_transmission.abs_value)
+      if (0 == bi->rp->last_transmission.abs_value_us)
 	*result = GNUNET_TIME_UNIT_FOREVER_ABS;
       else
 	*result = bi->rp->last_transmission;

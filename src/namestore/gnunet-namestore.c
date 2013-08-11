@@ -345,12 +345,12 @@ display_record (void *cls,
     }
     if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
     {
-      rex.rel_value = rd[i].expiration_time;
+      rex.rel_value_us = rd[i].expiration_time;
       etime = GNUNET_STRINGS_relative_time_to_string (rex, GNUNET_YES);
     }
     else
     {
-      aex.abs_value = rd[i].expiration_time;
+      aex.abs_value_us = rd[i].expiration_time;
       etime = GNUNET_STRINGS_absolute_time_to_string (aex);
     }
     FPRINTF (stdout, "\t%s: %s (%s %s)\n", typestring, s, 
@@ -418,12 +418,12 @@ get_existing_record (void *cls,
   rde->record_type = type;
   if (GNUNET_YES == etime_is_rel)
   {
-    rde->expiration_time = etime_rel.rel_value;
+    rde->expiration_time = etime_rel.rel_value_us;
     rde->flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
   }
   else if (GNUNET_NO == etime_is_rel)
   {
-    rde->expiration_time = etime_abs.abs_value;
+    rde->expiration_time = etime_abs.abs_value_us;
   }
   if (1 != nonauthority)
     rde->flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
@@ -658,13 +658,13 @@ testservice_task (void *cls,
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
     if (GNUNET_YES == etime_is_rel)
     {
-      rd.expiration_time = etime_rel.rel_value;
+      rd.expiration_time = etime_rel.rel_value_us;
       rd.flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
     }
     else if (GNUNET_NO == etime_is_rel)
-      rd.expiration_time = etime_abs.abs_value;
+      rd.expiration_time = etime_abs.abs_value_us;
     else    
-      rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value;
+      rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
     add_qe_uri = GNUNET_NAMESTORE_record_put_by_authority (ns,

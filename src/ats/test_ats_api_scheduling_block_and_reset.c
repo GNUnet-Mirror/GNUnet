@@ -150,44 +150,48 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   if (3 == stage)
   {
       /* Suggestion after resetting block interval */
-      reset_block_duration = GNUNET_TIME_absolute_get_difference(reset_block_start, GNUNET_TIME_absolute_get());
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address suggestion after resetting blocking took about %llu ms!\n",
-                  (long long unsigned int) reset_block_duration.rel_value);
-      if ((block_duration.rel_value <= (initial_duration.rel_value * 3)) ||
-          (initial_duration.rel_value <= (block_duration.rel_value * 3)))
+      reset_block_duration = GNUNET_TIME_absolute_get_difference (reset_block_start, 
+								  GNUNET_TIME_absolute_get());
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Address suggestion after resetting blocking took about %s!\n",
+                  GNUNET_STRINGS_relative_time_to_string (reset_block_duration,
+							  GNUNET_YES));
+      if ((block_duration.rel_value_us <= (initial_duration.rel_value_us * 3)) ||
+          (initial_duration.rel_value_us <= (block_duration.rel_value_us * 3)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Address suggestion after resetting blocking (%llu ms) took about the same as initial suggestion (%llu ms)\n",
-                    (long long unsigned int) reset_block_duration.rel_value,
-                    (long long unsigned int) initial_duration.rel_value);
+                    "Address suggestion after resetting blocking took about the same as initial suggestion (%s)\n",
+                    GNUNET_STRINGS_relative_time_to_string (initial_duration,
+							    GNUNET_YES));
         ret = 0;
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address suggestion after resetting blocking (%llu ms) has too big difference to initial suggestion (%llu ms)\n",
-                    (long long unsigned int) reset_block_duration.rel_value,
-                    (long long unsigned int) initial_duration.rel_value);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Address suggestion after resetting blocking has too big difference to initial suggestion (%s)\n",
+                    GNUNET_STRINGS_relative_time_to_string (initial_duration,
+							    GNUNET_YES));
         ret = 1;
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         return;
       }
 
-      if (((initial_duration.rel_value * 3) <= block_duration.rel_value ) &&
-          ((reset_block_duration.rel_value * 3) <= block_duration.rel_value))
+      if (((initial_duration.rel_value_us * 3) <= block_duration.rel_value_us) &&
+          ((reset_block_duration.rel_value_us * 3) <= block_duration.rel_value_us))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address suggestion after resetting blocking (%llu ms) and initial suggestion (%llu ms) much faster than with blocking (%llu ms)\n",
-                    (long long unsigned int) reset_block_duration.rel_value,
-                    (long long unsigned int) initial_duration.rel_value,
-                    (long long unsigned int) block_duration.rel_value);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		    "Address suggestion after resetting blocking and initial suggestion (%llu us) much faster than with blocking (%llu us)\n",
+                    (unsigned long long) initial_duration.rel_value_us,
+                    (unsigned long long) block_duration.rel_value_us);
         ret = 0;
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Address suggestion after resetting blocking (%llu ms) and initial suggestion (%llu ms) not faster than with blocking (%llu ms)\n",
-                    (long long unsigned int) reset_block_duration.rel_value,
-                    (long long unsigned int) initial_duration.rel_value,
-                    (long long unsigned int) block_duration.rel_value);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "Address suggestion after resetting blocking and initial suggestion (%llu us) not faster than with blocking (%llu us)\n",
+                    (unsigned long long) initial_duration.rel_value_us,
+                    (unsigned long long) block_duration.rel_value_us);
         ret = 1;
       }
 
@@ -200,18 +204,22 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   {
       /* Suggestion after block*/
       block_duration = GNUNET_TIME_absolute_get_difference(block_start, GNUNET_TIME_absolute_get());
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address suggestion was blocked for about %llu ms!\n",
-                  (long long unsigned int) block_duration.rel_value);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Address suggestion was blocked for about %s!\n",
+                  GNUNET_STRINGS_relative_time_to_string (block_duration,
+							  GNUNET_YES));
 
       if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		      "Stage %u: Callback with correct address `%s'\n", stage,
                       GNUNET_i2s (&address->peer));
           ret = 0;
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "Stage %u: Callback with invalid address `%s'\n", stage,
                       GNUNET_i2s (&address->peer));
           GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
           GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -220,7 +228,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		    "Stage %u: Callback with incorrect ats info \n");
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         ret = 1;
@@ -237,13 +246,17 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Initial suggestion */
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		    "Stage %u: Callback with correct address `%s'\n", 
+		    stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		    "Stage %u: Callback with invalid address `%s'\n", 
+		    stage,
                     GNUNET_i2s (&address->peer));
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -252,15 +265,20 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Stage %u: Callback with incorrect ats info\n",
+		  stage);
       GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       ret = 1;
     }
-    stage ++;
+    stage++;
     initial_duration = GNUNET_TIME_absolute_get_difference(initial_start, GNUNET_TIME_absolute_get());
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Initial suggestion took about %llu ms\n", stage,
-                (long long unsigned int) block_duration.rel_value);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Stage %u: Initial suggestion took about %s\n", 
+		stage,
+                GNUNET_STRINGS_relative_time_to_string (block_duration,
+							GNUNET_YES));
 
     block_start = GNUNET_TIME_absolute_get();
     wait_task = GNUNET_SCHEDULER_add_delayed (WAIT, &request_task, NULL);
@@ -270,22 +288,28 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Startup suggestion */
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with correct address `%s'\n", stage,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		    "Stage %u: Callback with correct address `%s'\n", 
+		    stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage %u: Callback with invalid address `%s'\n", stage,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Stage %u: Callback with invalid address `%s'\n", 
+		    stage,
                     GNUNET_i2s (&address->peer));
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
         ret = 1;
     }
 
-    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
+    if (GNUNET_OK != compare_ats (atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage %u: Callback with incorrect ats info \n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Stage %u: Callback with incorrect ats info\n",
+		  stage);
       GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
       GNUNET_SCHEDULER_add_now (&end, NULL);
       ret = 1;
@@ -312,7 +336,8 @@ run (void *cls,
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		"Could not connect to ATS scheduling!\n");
     ret = 1;
     end ();
     return;
@@ -321,14 +346,16 @@ run (void *cls,
   /* Set up peer */
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Could not setup peer!\n");
       ret = GNUNET_SYSERR;
       end ();
       return;
   }
   GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
   /* Prepare ATS Information */

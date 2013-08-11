@@ -71,7 +71,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash (&k, sizeof (struct GNUNET_HashCode), &n);
     for (j = i; j < sizeof (buf); j += 10)
     {
-      exp.abs_value++;
+      exp.abs_value_us++;
       buf[j] = i;
       ASSERT (GNUNET_OK == GNUNET_DATACACHE_put (h, &k, j, buf, 1 + i, exp, 0, NULL));
       ASSERT (0 < GNUNET_DATACACHE_get (h, &k, 1 + i, NULL, NULL));

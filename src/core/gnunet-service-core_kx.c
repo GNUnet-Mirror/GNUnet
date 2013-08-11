@@ -756,7 +756,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   if ( ( (KX_STATE_KEY_RECEIVED == kx->status) ||
 	 (KX_STATE_UP == kx->status) ||
 	 (KX_STATE_REKEY_SENT == kx->status) ) &&       
-       (end_t.abs_value <= kx->foreign_key_expires.abs_value) )
+       (end_t.abs_value_us <= kx->foreign_key_expires.abs_value_us) )
   {
     GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# old ephemeral keys ignored"),
 			      1, GNUNET_NO);
@@ -796,15 +796,15 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   now = GNUNET_TIME_absolute_get ();
-  if ( (end_t.abs_value < GNUNET_TIME_absolute_subtract (now, REKEY_TOLERANCE).abs_value) ||
-       (start_t.abs_value > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value) )
+  if ( (end_t.abs_value_us < GNUNET_TIME_absolute_subtract (now, REKEY_TOLERANCE).abs_value_us) ||
+       (start_t.abs_value_us > GNUNET_TIME_absolute_add (now, REKEY_TOLERANCE).abs_value_us) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Ephemeral key message from peer `%s' rejected as its validity range does not match our system time (%llu not in [%llu,%llu]).\n"),
 		GNUNET_i2s (&kx->peer),
-		now.abs_value,
-		start_t.abs_value,
-		end_t.abs_value);
+		now.abs_value_us,
+		start_t.abs_value_us,
+		end_t.abs_value_us);
     return;
   }
   if (GNUNET_OK !=
@@ -994,7 +994,7 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
   left = GNUNET_TIME_absolute_get_remaining (kx->timeout);
-  if (0 == left.rel_value)
+  if (0 == left.rel_value_us)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# sessions terminated by timeout"),
@@ -1300,7 +1300,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
                               1, GNUNET_NO);
     return;
   }
-  if (0 == GNUNET_TIME_absolute_get_remaining (kx->foreign_key_expires).rel_value)
+  if (0 == GNUNET_TIME_absolute_get_remaining (kx->foreign_key_expires).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Session to peer `%s' went down due to key expiration (should not happen)\n"),
@@ -1394,8 +1394,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 
   /* check timestamp */
   t = GNUNET_TIME_absolute_ntoh (pt->timestamp);
-  if (GNUNET_TIME_absolute_get_duration (t).rel_value >
-      MAX_MESSAGE_AGE.rel_value)
+  if (GNUNET_TIME_absolute_get_duration (t).rel_value_us >
+      MAX_MESSAGE_AGE.rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Message received far too old (%s). Content ignored.\n",

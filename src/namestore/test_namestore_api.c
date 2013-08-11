@@ -153,7 +153,7 @@ run (void *cls,
   GNUNET_CRYPTO_ecc_key_get_public (privkey, &pubkey);
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (pubkey), &zone);
   memset (&signature, '\0', sizeof (signature));
-  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value;
+  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);

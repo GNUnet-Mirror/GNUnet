@@ -551,7 +551,7 @@ add_to_queue (struct GNUNET_MESH_Handle *h,
               struct GNUNET_MESH_TransmitHandle *th)
 {
   GNUNET_CONTAINER_DLL_insert_tail (h->th_head, h->th_tail, th);
-  if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value == th->timeout.abs_value)
+  if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us == th->timeout.abs_value_us)
     return;
   th->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining

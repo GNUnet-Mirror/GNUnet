@@ -342,7 +342,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     {
       /* should only happen if the cancel task was already
 	 created on 'DOWNLOAD_INACTIVE' as we were out of time */
-      GNUNET_break (0 == sr->remaining_probe_time.rel_value);
+      GNUNET_break (0 == sr->remaining_probe_time.rel_value_us);
     }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
@@ -354,7 +354,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     dur = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
     sr->remaining_probe_time =
         GNUNET_TIME_relative_subtract (sr->remaining_probe_time, dur);
-    if (0 == sr->remaining_probe_time.rel_value)
+    if (0 == sr->remaining_probe_time.rel_value_us)
       sr->probe_cancel_task =
         GNUNET_SCHEDULER_add_now (&probe_failure_handler, sr);
     GNUNET_FS_search_result_sync_ (sr);
@@ -843,7 +843,7 @@ process_result (struct GNUNET_FS_SearchContext *sc,
 		const void *data,
                 size_t size)
 {
-  if (GNUNET_TIME_absolute_get_duration (expiration).rel_value > 0)
+  if (GNUNET_TIME_absolute_get_duration (expiration).rel_value_us > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Result received has already expired.\n");

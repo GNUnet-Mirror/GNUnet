@@ -582,7 +582,7 @@ GAS_handle_reservation_request (void *cls, struct GNUNET_SERVER_Client *client,
               "RESERVATION_REQUEST");
   amount = (int32_t) ntohl (msg->amount);
   res_delay = GAS_reservations_reserve (&msg->peer, amount);
-  if (res_delay.rel_value > 0)
+  if (res_delay.rel_value_us > 0)
     amount = 0;
   result.header.size = htons (sizeof (struct ReservationResultMessage));
   result.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT);

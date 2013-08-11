@@ -25,8 +25,8 @@
  * Peer 1 has inbound and outbound delay of 100ms
  * Peer 2 has no inbound and outbound delay
  *
- * We send a request from P1 to P2 and expect delay of >= TEST_DELAY ms
- * Then we send response from P2 to P1 and expect delay of >= TEST_DELAY ms
+ * We send a request from P1 to P2 and expect delay of >= TEST_DELAY us
+ * Then we send response from P2 to P1 and expect delay of >= TEST_DELAY us
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -48,7 +48,10 @@
 
 #define TEST_RESPONSE_MESSAGE_TYPE 12346
 
-#define TEST_DELAY 100
+/**
+ * Test delay, in microseconds.
+ */
+#define TEST_DELAY 100 * 1000LL
 
 static char *test_source;
 
@@ -304,16 +307,18 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 		case TEST_REQUEST_MESSAGE_TYPE:
 			duration = GNUNET_TIME_absolute_get_difference(start_request,
 					GNUNET_TIME_absolute_get());
-			if (duration.rel_value >= TEST_DELAY)
+			if (duration.rel_value_us >= TEST_DELAY)
 				GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		              "Request message was delayed for %llu ms\n",
-		  						duration.rel_value);
+					    "Request message was delayed for %s\n",
+					    GNUNET_STRINGS_relative_time_to_string (duration,
+										    GNUNET_YES));
 			else
-			{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		              "Request message was delayed for %llu ms, should be %u ms\n",
-		  						duration.rel_value, TEST_DELAY);
-				ok = 1;
+			  {
+			    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					"Request message was delayed for unexpected duration %s\n",
+					GNUNET_STRINGS_relative_time_to_string (duration,
+										GNUNET_YES));
+			    ok = 1;
 			}
 
 		  /* Send response */
@@ -323,15 +328,18 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 		case TEST_RESPONSE_MESSAGE_TYPE:
 			duration = GNUNET_TIME_absolute_get_difference(start_response,
 					GNUNET_TIME_absolute_get());
-			if (duration.rel_value >= TEST_DELAY)
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		              "Response message was delayed for %llu ms\n", duration);
+			if (duration.rel_value_us >= TEST_DELAY)
+			  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+				      "Response message was delayed for %s\n",
+				      GNUNET_STRINGS_relative_time_to_string (duration,
+									      GNUNET_YES));
 			else
-			{
-				GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		              "Response message was delayed for %llu ms, should be %u ms\n",
-		  						duration.rel_value, TEST_DELAY);
-				ok = 1;
+			  {
+			    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					"Response message was delayed for unexpected duration %s\n",
+					GNUNET_STRINGS_relative_time_to_string (duration,
+										GNUNET_YES));
+			    ok = 1;
 			}
 		  /* Done */
 			ok = 0;

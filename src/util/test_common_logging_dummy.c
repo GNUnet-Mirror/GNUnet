@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2008 Christian Grothoff (and other contributing authors)
+     (C) 2008-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -59,7 +59,7 @@ expensive_func ()
   GNUNET_log (kind, "L%s %d\n", lvl, expensive_func());\
   t2 = GNUNET_TIME_absolute_get ();\
   printf ("1%s %llu\n", lvl,\
-          (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2).rel_value); \
+          (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2).rel_value_us); \
 }
 
 #define pr2(kind,lvl) {\
@@ -68,7 +68,7 @@ expensive_func ()
   GNUNET_log (kind, "L%s %d\n", lvl, expensive_func());\
   t2 = GNUNET_TIME_absolute_get ();\
   printf ("2%s %llu\n", lvl,\
-          (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2).rel_value); \
+          (unsigned long long) GNUNET_TIME_absolute_get_difference (t1, t2).rel_value_us); \
 }
 
 int

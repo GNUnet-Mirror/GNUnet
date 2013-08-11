@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2007-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -217,8 +217,8 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
 	    (0 != memcmp (pos->ip, ip, ip_len))) )
   {
     next = pos->next;
-    if (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value <
-        60 * 60 * 1000)
+    if (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value_us <
+        60 * 60 * 1000 * 1000LL)
     {
       GNUNET_CONTAINER_DLL_remove (cache_head,
 				   cache_tail,
@@ -231,8 +231,8 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   if (pos != NULL)
   {
     pos->last_request = now;
-    if (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value <
-        60 * 60 * 1000)
+    if (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value_us <
+        60 * 60 * 1000 * 1000LL)
     {
       GNUNET_free_non_null (pos->addr);
       pos->addr = NULL;

@@ -133,7 +133,7 @@ enum GNUNET_ATS_Property
    * Delay
    * Time between when the time packet is sent and the packet arrives
    *
-   * Unit: [ms]
+   * Unit: [microseconds]
    *
    * Examples:
    *
@@ -905,8 +905,8 @@ enum GNUNET_ATS_PreferenceKind
    * Change the peer's latency value to the given amount.  The
    * argument is followed by a double value giving the desired value
    * (can be negative).  The absolute score in the goal function is
-   * the inverse of the latency in ms (minimum: 1 ms) multiplied by
-   * the latency preferences.
+   * the inverse of the latency in microseconds (minimum: 1
+   * microsecond) multiplied by the latency preferences.
    */
   GNUNET_ATS_PREFERENCE_LATENCY
 };

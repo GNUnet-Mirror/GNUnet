@@ -501,7 +501,7 @@ namestore_sqlite_put_records (void *cls,
 	(SQLITE_OK != sqlite3_bind_text (plugin->put_records, 2, name, -1, SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_int (plugin->put_records, 3, rd_count)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 4, data, data_size, SQLITE_STATIC)) ||
-	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 5, expire.abs_value)) ||
+	(SQLITE_OK != sqlite3_bind_int64 (plugin->put_records, 5, expire.abs_value_us)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 6, signature, sizeof (struct GNUNET_CRYPTO_EccSignature), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 7, &zone_delegation, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_blob (plugin->put_records, 8, &zone, sizeof (struct GNUNET_CRYPTO_ShortHashCode), SQLITE_STATIC)) ||
@@ -575,7 +575,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     record_count = sqlite3_column_int (stmt, 2);
     data_size = sqlite3_column_bytes (stmt, 3);
     data = sqlite3_column_blob (stmt, 3);
-    expiration.abs_value = (uint64_t) sqlite3_column_int64 (stmt, 4);
+    expiration.abs_value_us = (uint64_t) sqlite3_column_int64 (stmt, 4);
     sig = sqlite3_column_blob (stmt, 5);
 
     if ( (sizeof (struct GNUNET_CRYPTO_EccPublicKey) != sqlite3_column_bytes (stmt, 0)) ||

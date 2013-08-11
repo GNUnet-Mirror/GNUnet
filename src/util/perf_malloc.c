@@ -53,13 +53,13 @@ main (int argc, char *argv[])
 
   start = GNUNET_TIME_absolute_get ();
   kb = perfMalloc ();
-  printf ("Malloc perf took %llu ms\n",
-          (unsigned long long)
-          GNUNET_TIME_absolute_get_duration (start).rel_value);
+  printf ("Malloc perf took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
+						  GNUNET_YES));
   GAUGER ("UTIL", "Allocation",
           kb / 1024 / (1 +
-                              GNUNET_TIME_absolute_get_duration
-                              (start).rel_value), "kb/s");
+		       GNUNET_TIME_absolute_get_duration
+		       (start).rel_value_us / 1000LL), "kb/ms");
   return 0;
 }
 

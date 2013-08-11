@@ -80,7 +80,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   exp = GNUNET_TIME_absolute_get ();
-  exp.abs_value += 5 * 60 * 1000;
+  exp.abs_value_us += 5 * 60 * 1000 * 1000LL;
   memset (&k, 0, sizeof (struct GNUNET_HashCode));
   for (i = 0; i < 100; i++)
   {

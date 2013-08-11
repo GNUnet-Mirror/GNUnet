@@ -1695,12 +1695,12 @@ decide_npoc (struct GNUNET_TESTBED_Host *h)
   }
   GNUNET_assert (nvals >= h->num_parallel_connects);
   avg = GNUNET_TIME_relative_divide (avg, nvals);
-  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value != avg.rel_value);
-  sd = GNUNET_TESTBED_SD_deviation_factor_ (h->poc_sd, (unsigned int) avg.rel_value);
+  GNUNET_assert (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != avg.rel_value_us);
+  sd = GNUNET_TESTBED_SD_deviation_factor_ (h->poc_sd, (unsigned int) avg.rel_value_us);
   if ( (sd <= 5) ||
        (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 				       h->num_parallel_connects)) )
-    GNUNET_TESTBED_SD_add_data_ (h->poc_sd, (unsigned int) avg.rel_value);
+    GNUNET_TESTBED_SD_add_data_ (h->poc_sd, (unsigned int) avg.rel_value_us);
   if (GNUNET_SYSERR == sd)
   {
     GNUNET_TESTBED_set_num_parallel_overlay_connects_ (h,
@@ -1798,7 +1798,7 @@ GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Host *h,
     return;
   slot = &h->tslots[index];
   slot->nvals++;
-  if (GNUNET_TIME_UNIT_ZERO.rel_value == slot->time.rel_value)
+  if (GNUNET_TIME_UNIT_ZERO.rel_value_us == slot->time.rel_value_us)
   {
     slot->time = time;
     h->tslots_filled++;

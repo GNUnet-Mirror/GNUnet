@@ -1261,8 +1261,10 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
-              "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) TIMEOUT.rel_value);
+              "Session %p was idle for %s, disconnecting\n",
+              s,
+	      GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+						      GNUNET_YES));
 
   /* call session destroy function */
   if (s->inbound == GNUNET_NO)
@@ -1284,8 +1286,10 @@ start_session_timeout (struct Session *s)
                                                   &session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) TIMEOUT.rel_value);
+             "Timeout for session %p set to %s\n",
+             s,
+	     GNUNET_STRINGS_relative_time_to_string (TIMEOUT,
+						     GNUNET_YES));
 }
 
 
@@ -1303,8 +1307,10 @@ reschedule_session_timeout (struct Session *s)
                                                   &session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) TIMEOUT.rel_value);
+             "Timeout rescheduled for session %p set to %s\n",
+             s,
+	     GNUNET_STRINGS_relative_time_to_String (TIMEOUT,
+						     GNUNET_YES));
 }
 
 

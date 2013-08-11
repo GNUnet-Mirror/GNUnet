@@ -259,7 +259,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     return;
   }
-  if (0 != timeout.rel_value)
+  if (0 != timeout.rel_value_us)
     GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
   else
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,

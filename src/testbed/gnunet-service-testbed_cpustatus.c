@@ -527,7 +527,7 @@ updateAgedLoad ()
 
   age = GNUNET_TIME_absolute_get_duration (lastCall);
   if ( (agedCPULoad == -1)
-       || (age.rel_value > 500) )
+       || (age.rel_value_us > 500000) )
     {
       /* use smoothing, but do NOT update lastRet at frequencies higher
          than 500ms; this makes the smoothing (mostly) independent from
@@ -667,7 +667,7 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   nproc = 0;
 #endif
   now = GNUNET_TIME_absolute_get ();
-  nbs = GNUNET_asprintf (&str, "%llu %d %d %u %u\n", now.abs_value / 1000,
+  nbs = GNUNET_asprintf (&str, "%llu %d %d %u %u\n", now.abs_value_us / 1000LL / 1000LL,
                          ld_cpu, ld_disk, mem_usage, nproc);
   if (0 < nbs) 
   {

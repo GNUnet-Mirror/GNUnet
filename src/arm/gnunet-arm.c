@@ -547,7 +547,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Termination action\n");
         GNUNET_ARM_request_service_stop (h, term, 
-					 (0 == timeout.rel_value) ? STOP_TIMEOUT : timeout,
+					 (0 == timeout.rel_value_us) ? STOP_TIMEOUT : timeout,
 					 &term_callback, NULL);
 	return;
       }
@@ -557,7 +557,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "End action\n");
         GNUNET_ARM_request_service_stop (h, "arm", 
-					 (0 == timeout.rel_value) ? STOP_TIMEOUT_ARM : timeout,
+					 (0 == timeout.rel_value_us) ? STOP_TIMEOUT_ARM : timeout,
 					 &stop_callback, NULL);
         return;
       }
@@ -569,7 +569,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_ARM_request_service_start (h, "arm",
             (no_stdout ? 0 : GNUNET_OS_INHERIT_STD_OUT) |
             (no_stderr ? 0 : GNUNET_OS_INHERIT_STD_ERR),
-            (0 == timeout.rel_value) ? START_TIMEOUT: timeout,
+            (0 == timeout.rel_value_us) ? START_TIMEOUT: timeout,
             start_callback, NULL);
         return;
       }
@@ -579,7 +579,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initialization action\n");
         GNUNET_ARM_request_service_start (h, init, GNUNET_OS_INHERIT_STD_NONE,
-					  (0 == timeout.rel_value) ? STOP_TIMEOUT : timeout,
+					  (0 == timeout.rel_value_us) ? STOP_TIMEOUT : timeout,
 					  &init_callback, NULL);
         return;
       }
@@ -590,7 +590,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Going to list all running services controlled by ARM.\n");	
         GNUNET_ARM_request_service_list (h,
-					 (0 == timeout.rel_value) ? LIST_TIMEOUT : timeout,
+					 (0 == timeout.rel_value_us) ? LIST_TIMEOUT : timeout,
 					 &list_callback, &list);
 	return;
       }    

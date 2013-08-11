@@ -250,7 +250,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    waitedFor.rel_value = 0;
+    waitedFor.rel_value_us = 0;
   }
   /* Connect to the doNothing task */
   doNothingConnection = GNUNET_CLIENT_connect ("do-nothing", cfg);
@@ -261,7 +261,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_CLIENT_disconnect (doNothingConnection);
     GNUNET_ARM_request_service_stop (arm, "do-nothing", TIMEOUT, NULL, NULL);
-    if (waitedFor_prev.rel_value >= waitedFor.rel_value)
+    if (waitedFor_prev.rel_value_us >= waitedFor.rel_value_us)
       ok = 9;
     else
       ok = 0;

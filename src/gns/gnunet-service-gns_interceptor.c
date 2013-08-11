@@ -141,7 +141,7 @@ reply_to_dns (void* cls, uint32_t rd_count,
         answer_records[i].data.raw.data = (char*)rd[i].data;
       }
       GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-      answer_records[i].expiration_time.abs_value = rd[i].expiration_time;
+      answer_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
       answer_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     }
     else
@@ -168,7 +168,7 @@ reply_to_dns (void* cls, uint32_t rd_count,
         additional_records[i].data.raw.data = (char*)rd[i].data;
       }
       GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-      additional_records[i].expiration_time.abs_value = rd[i].expiration_time;
+      additional_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
       additional_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;//hmmn
     }
   }

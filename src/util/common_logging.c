@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2006, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2006-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -26,17 +26,15 @@
  */
 #include "platform.h"
 #include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_strings_lib.h"
-#include "gnunet_time_lib.h"
-
+#include "gnunet_util_lib.h"
 #include <regex.h>
+
 
 /**
  * After how many milliseconds do we always print
  * that "message X was repeated N times"?  Use 12h.
  */
-#define BULK_DELAY_THRESHOLD (12 * 60 * 60 * 1000)
+#define BULK_DELAY_THRESHOLD (12 * 60 * 60 * 1000LL * 1000LL)
 
 /**
  * After how many repetitions do we always print
@@ -800,7 +798,7 @@ flush_bulk (const char *datestr)
   char *last;
   const char *ft;
 
-  if ((last_bulk_time.abs_value == 0) || (last_bulk_repeat == 0))
+  if ((0 == last_bulk_time.abs_value_us) || (0 == last_bulk_repeat))
     return;
   rev = 0;
   last = memchr (last_bulk, '\0', BULK_TRACK_SIZE);
@@ -951,12 +949,13 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
     if ((0 != (kind & GNUNET_ERROR_TYPE_BULK)) &&
-        (last_bulk_time.abs_value != 0) &&
+        (0 != last_bulk_time.abs_value_us) &&
         (0 == strncmp (buf, last_bulk, sizeof (last_bulk))))
     {
       last_bulk_repeat++;
-      if ((GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value >
-           BULK_DELAY_THRESHOLD) || (last_bulk_repeat > BULK_REPEAT_THRESHOLD))
+      if ( (GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value_us >
+	    BULK_DELAY_THRESHOLD) || 
+	   (last_bulk_repeat > BULK_REPEAT_THRESHOLD) )
         flush_bulk (date);
       return;
     }

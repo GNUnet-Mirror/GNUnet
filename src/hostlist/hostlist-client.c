@@ -793,7 +793,7 @@ task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     clean_up ();
     return;
   }
-  if (GNUNET_TIME_absolute_get_remaining (end_time).rel_value == 0)
+  if (0 == GNUNET_TIME_absolute_get_remaining (end_time).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Timeout trying to download hostlist from `%s'\n"),
@@ -1023,19 +1023,20 @@ task_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
 
   delay = hostlist_delay;
-  if (hostlist_delay.rel_value == 0)
+  if (0 == hostlist_delay.rel_value_us)
     hostlist_delay = GNUNET_TIME_UNIT_SECONDS;
   else
     hostlist_delay = GNUNET_TIME_relative_multiply (hostlist_delay, 2);
-  if (hostlist_delay.rel_value >
-      GNUNET_TIME_UNIT_HOURS.rel_value * (1 + stat_connection_count))
+  if (hostlist_delay.rel_value_us >
+      GNUNET_TIME_UNIT_HOURS.rel_value_us * (1 + stat_connection_count))
     hostlist_delay =
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS,
                                        (1 + stat_connection_count));
   GNUNET_STATISTICS_set (stats,
                          gettext_noop
                          ("# milliseconds between hostlist downloads"),
-                         hostlist_delay.rel_value, GNUNET_YES);
+                         hostlist_delay.rel_value_us / 1000LL, 
+			 GNUNET_YES);
   if (0 == once)
   {
     delay = GNUNET_TIME_UNIT_ZERO;
@@ -1194,8 +1195,9 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
                                     &task_testing_intervall_reset, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Testing new hostlist advertisements is locked for the next %u ms\n",
-              TESTING_INTERVAL.rel_value);
+              "Testing new hostlist advertisements is locked for the next %s\n",
+              GNUNET_STRINGS_relative_time_to_string (TESTING_INTERVAL,
+						      GNUNET_YES));
 
   ti_download_dispatcher_task =
       GNUNET_SCHEDULER_add_now (&task_download_dispatcher, NULL);
@@ -1223,11 +1225,14 @@ primary_task (void *cls, int success)
 }
 
 
+/**
+ * @param value previous delay value, in milliseconds (!)
+ */
 static int
 process_stat (void *cls, const char *subsystem, const char *name,
               uint64_t value, int is_persistent)
 {
-  hostlist_delay.rel_value = value;
+  hostlist_delay.rel_value_us = value * 1000LL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Initial time between hostlist downloads is %s\n",
               GNUNET_STRINGS_relative_time_to_string (hostlist_delay, GNUNET_YES));
@@ -1298,8 +1303,8 @@ load_hostlist_file ()
     hostlist->hostlist_uri = (const char *) &hostlist[1];
     memcpy (&hostlist[1], uri, strlen (uri) + 1);
     hostlist->quality = quality;
-    hostlist->time_creation.abs_value = created;
-    hostlist->time_last_usage.abs_value = last_used;
+    hostlist->time_creation.abs_value_us = created;
+    hostlist->time_last_usage.abs_value_us = last_used;
     GNUNET_CONTAINER_DLL_insert (linked_list_head, linked_list_tail, hostlist);
     linked_list_size++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1382,9 +1387,9 @@ save_hostlist_file (int shutdown)
           (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pos->times_used)) ||
           (GNUNET_OK != GNUNET_BIO_write_int64 (wh, pos->quality)) ||
           (GNUNET_OK !=
-           GNUNET_BIO_write_int64 (wh, pos->time_last_usage.abs_value)) ||
+           GNUNET_BIO_write_int64 (wh, pos->time_last_usage.abs_value_us)) ||
           (GNUNET_OK !=
-           GNUNET_BIO_write_int64 (wh, pos->time_creation.abs_value)) ||
+           GNUNET_BIO_write_int64 (wh, pos->time_creation.abs_value_us)) ||
           (GNUNET_OK != GNUNET_BIO_write_int32 (wh, pos->hello_count)))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,

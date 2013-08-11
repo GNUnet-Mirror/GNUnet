@@ -427,7 +427,7 @@ put_gns_record (void *cls,
 		GNUNET_STRINGS_relative_time_to_string (put_interval, GNUNET_YES));
     GNUNET_STATISTICS_set (statistics,
                            "Current zone iteration interval (in ms)",
-                           put_interval.rel_value,
+                           put_interval.rel_value_us / 1000LL,
                            GNUNET_NO);
     GNUNET_STATISTICS_update (statistics,
                               "Number of zone iterations", 1, GNUNET_NO);
@@ -545,7 +545,7 @@ put_gns_record (void *cls,
 
   GNUNET_STATISTICS_set (statistics,
 			 "Current zone iteration interval (ms)",
-			 next_put_interval.rel_value,
+			 next_put_interval.rel_value_us / 1000LL,
 			 GNUNET_NO); 
   zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
 						    &publish_zone_dht_next,

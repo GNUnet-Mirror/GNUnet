@@ -254,11 +254,11 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   del = GNUNET_TIME_absolute_get_duration (start_time);
-  if (del.rel_value == 0)
-    del.rel_value = 1;
+  if (del.rel_value_us == 0)
+    del.rel_value_us = 1;
   fancy =
     GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
-				    1000LL / del.rel_value);
+				    1000000LL / del.rel_value_us);
   FPRINTF (stdout, "Download speed was %s/s\n", fancy);
   GNUNET_free (fancy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",

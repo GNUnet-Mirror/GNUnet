@@ -145,7 +145,7 @@ test_master (void *cls, unsigned int num_peers,
   // FIXME: enable clients to signal 'completion' before timeout;
   // in that case, run the 'terminate_task' "immediately"
 
-  if (0 != timeout.rel_value)
+  if (0 != timeout.rel_value_us)
     terminate_taskid = GNUNET_SCHEDULER_add_delayed (timeout,
 						     &terminate_task, NULL);
   else

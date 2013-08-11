@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -744,7 +744,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
     if (th->notify_size + sizeof (struct OutboundMessage) > size)
       break;                    /* does not fit */
     if (GNUNET_BANDWIDTH_tracker_get_delay
-        (&n->out_tracker, th->notify_size).rel_value > 0)
+        (&n->out_tracker, th->notify_size).rel_value_us > 0)
       break;                    /* too early */
     GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
     n->hn = NULL;
@@ -801,7 +801,7 @@ schedule_transmission_task (void *cls,
   GNUNET_assert (NULL != h->client);
   /* destroy all requests that have timed out */
   while ((NULL != (n = GNUNET_CONTAINER_heap_peek (h->ready_heap))) &&
-         (GNUNET_TIME_absolute_get_remaining (n->th->timeout).rel_value == 0))
+         (0 == GNUNET_TIME_absolute_get_remaining (n->th->timeout).rel_value_us))
   {
     /* notify client that the request could not be satisfied within
      * the given time constraints */
@@ -868,8 +868,8 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
   else
     return;                     /* no work to be done */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Scheduling next transmission to service in %llu ms\n",
-       (unsigned long long) delay.rel_value);
+       "Scheduling next transmission to service in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
   h->quota_task =
       GNUNET_SCHEDULER_add_delayed (delay, &schedule_transmission_task, h);
 }
@@ -1007,8 +1007,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
     GNUNET_free (th);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Scheduling task to reconnect to transport service in %llu ms.\n",
-       h->reconnect_delay.rel_value);
+       "Scheduling task to reconnect to transport service in %s.\n",
+       GNUNET_STRINGS_relative_time_to_string(h->reconnect_delay, GNUNET_YES));
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
@@ -1564,12 +1564,13 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   /* calculate when our transmission should be ready */
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size + n->traffic_overhead);
   n->traffic_overhead = 0;
-  if (delay.rel_value > timeout.rel_value)
-    delay.rel_value = 0;        /* notify immediately (with failure) */
+  if (delay.rel_value_us > timeout.rel_value_us)
+    delay.rel_value_us = 0;        /* notify immediately (with failure) */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Bandwidth tracker allows next transmission to peer %s in %llu ms\n",
-       GNUNET_i2s (target), (unsigned long long) delay.rel_value);
-  n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap, n, delay.rel_value);
+       "Bandwidth tracker allows next transmission to peer %s in %s\n",
+       GNUNET_i2s (target), 
+       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+  n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap, n, delay.rel_value_us);
   schedule_transmission (handle);
   return th;
 }

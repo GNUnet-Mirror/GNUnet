@@ -488,7 +488,7 @@ peer_transmit_ready_cb (void *cls, size_t size, void *buf)
   }
   GNUNET_LOAD_update (cp->ppd.transmission_delay,
                       GNUNET_TIME_absolute_get_duration
-                      (pth->transmission_request_start_time).rel_value);
+                      (pth->transmission_request_start_time).rel_value_us);
   ret = pth->gmc (pth->gmc_cls, size, buf);
   if (NULL != (pos = cp->pth_head))
   {
@@ -621,7 +621,7 @@ revive_migration (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   cp->mig_revive_task = GNUNET_SCHEDULER_NO_TASK;
   bt = GNUNET_TIME_absolute_get_remaining (cp->ppd.migration_blocked_until);
-  if (0 != bt.rel_value)
+  if (0 != bt.rel_value_us)
   {
     /* still time left... */
     cp->mig_revive_task =
@@ -833,12 +833,12 @@ get_randomized_delay ()
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
                                      GNUNET_CRYPTO_random_u32
                                      (GNUNET_CRYPTO_QUALITY_WEAK,
-                                      2 * GSF_avg_latency.rel_value + 1));
+                                      2 * GSF_avg_latency.rel_value_us + 1));
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
                             ("# artificial delays introduced (ms)"),
-                            ret.rel_value, GNUNET_NO);
+                            ret.rel_value_us / 1000LL, GNUNET_NO);
 #endif
   return ret;
 }
@@ -1216,7 +1216,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   spid = 0;
   if ((GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority))
       || (GNUNET_LOAD_get_average (cp->ppd.transmission_delay) >
-          GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value * 2 +
+          GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value_us * 2 +
           GNUNET_LOAD_get_average (GSF_rt_entry_lifetime)))
   {
     /* don't have BW to send to peer, or would likely take longer than we have for it,
@@ -1253,7 +1253,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     prd = GSF_pending_request_get_data_ (pr);
     if (prd->type == type) 
     {
-      if (prd->ttl.abs_value >= GNUNET_TIME_absolute_get ().abs_value + ttl)
+      if (prd->ttl.abs_value_us >= GNUNET_TIME_absolute_get ().abs_value_us + ttl * 1000LL)
       {
         /* existing request has higher TTL, drop new one! */
         prd->priority += priority;
@@ -1425,9 +1425,9 @@ GSF_peer_update_performance_ (struct GSF_ConnectedPeer *cp,
   struct GNUNET_TIME_Relative delay;
 
   delay = GNUNET_TIME_absolute_get_duration (request_time);
-  cp->ppd.avg_reply_delay.rel_value =
-      (cp->ppd.avg_reply_delay.rel_value * (RUNAVG_DELAY_N - 1) +
-       delay.rel_value) / RUNAVG_DELAY_N;
+  cp->ppd.avg_reply_delay.rel_value_us =
+      (cp->ppd.avg_reply_delay.rel_value_us * (RUNAVG_DELAY_N - 1) +
+       delay.rel_value_us) / RUNAVG_DELAY_N;
   cp->ppd.avg_priority =
       (cp->ppd.avg_priority * (RUNAVG_DELAY_N - 1) +
        request_priority) / RUNAVG_DELAY_N;
@@ -1678,7 +1678,7 @@ void
 GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
                            struct GNUNET_TIME_Absolute block_time)
 {
-  if (cp->last_migration_block.abs_value > block_time.abs_value)
+  if (cp->last_migration_block.abs_value_us > block_time.abs_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Migration already blocked for another %s\n",
@@ -1686,8 +1686,9 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
 							(cp->last_migration_block), GNUNET_YES));
     return;                     /* already blocked */
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %llu ms\n",
-              (unsigned long long) GNUNET_TIME_absolute_get_remaining (block_time).rel_value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Asking to stop migration for %s\n",
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (block_time),
+						      GNUNET_YES));
   cp->last_migration_block = block_time;
   if (NULL != cp->migration_pth)
     GSF_peer_transmit_cancel_ (cp->migration_pth);

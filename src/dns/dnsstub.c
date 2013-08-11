@@ -447,7 +447,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 	 (0 != memcmp (&rs->addr,
 		       &addr,
 		       addrlen)) ||	 
-       (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value) )
+       (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value_us) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Request timeout or invalid sender address; ignoring reply\n"); 

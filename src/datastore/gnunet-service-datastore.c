@@ -332,7 +332,7 @@ expired_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     return GNUNET_SYSERR;
   }
   now = GNUNET_TIME_absolute_get ();
-  if (expiration.abs_value > now.abs_value)
+  if (expiration.abs_value_us > now.abs_value_us)
   {
     /* finished processing */
     expired_kill_task =
@@ -342,9 +342,11 @@ expired_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting content `%s' of type %u that expired %llu ms ago\n",
+              "Deleting content `%s' of type %u that expired %s ago\n",
               GNUNET_h2s (key), type,
-              (unsigned long long) (now.abs_value - expiration.abs_value));
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (expiration,
+											   now),
+						      GNUNET_YES));
   min_expiration = now;
   GNUNET_STATISTICS_update (stats, gettext_noop ("# bytes expired"), size,
                             GNUNET_YES);
@@ -404,11 +406,12 @@ quota_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   if (NULL == key)
     return GNUNET_SYSERR;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %llu ms prior to expiration (still trying to free another %llu bytes)\n",
+              "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %s prior to expiration (still trying to free another %llu bytes)\n",
               (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
 	      (unsigned int) priority,
               GNUNET_h2s (key), type, 
-	      (unsigned long long) GNUNET_TIME_absolute_get_remaining (expiration).rel_value,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
+						      GNUNET_YES),
 	      *need);
   if (size + GNUNET_DATASTORE_ENTRY_OVERHEAD > *need)
     *need = 0;
@@ -619,10 +622,11 @@ transmit_item (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   dm->key = *key;
   memcpy (&dm[1], data, size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting `%s' message for `%s' of type %u with expiration %llu (now: %llu)\n",
+              "Transmitting `%s' message for `%s' of type %u with expiration %s (in: %s)\n",
               "DATA", GNUNET_h2s (key), type,
-              (unsigned long long) expiration.abs_value,
-              (unsigned long long) GNUNET_TIME_absolute_get ().abs_value);
+              GNUNET_STRINGS_absolute_time_to_string (expiration),
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
+						      GNUNET_YES));
   GNUNET_STATISTICS_update (stats, gettext_noop ("# results found"), 1,
                             GNUNET_NO);
   transmit (client, &dm->header);
@@ -896,8 +900,8 @@ check_present (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                 "Result already present in datastore\n");
     /* FIXME: change API to allow increasing 'replication' counter */
     if ((ntohl (dm->priority) > 0) ||
-        (GNUNET_TIME_absolute_ntoh (dm->expiration).abs_value >
-         expiration.abs_value))
+        (GNUNET_TIME_absolute_ntoh (dm->expiration).abs_value_us >
+         expiration.abs_value_us))
       plugin->api->update (plugin->api->cls, uid,
                            (int32_t) ntohl (dm->priority),
                            GNUNET_TIME_absolute_ntoh (dm->expiration), NULL);

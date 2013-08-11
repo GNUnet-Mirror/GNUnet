@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2011-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -24,8 +24,7 @@
  * @brief functions to speedup peer execution by manipulation system time
  */
 #include "platform.h"
-#include "gnunet_time_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -45,10 +44,11 @@ do_speedup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   speedup_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-  current_offset += delta.rel_value;
+  current_offset += delta.rel_value_us;
   GNUNET_TIME_set_offset (current_offset);
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Speeding up execution time by %llu ms\n", delta.rel_value);
+       "Speeding up execution time by %s\n", 
+       GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
   speedup_task = GNUNET_SCHEDULER_add_delayed (interval, &do_speedup, NULL);
 }
 
@@ -67,15 +67,18 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SPEEDUP_DELTA", &delta))
     return GNUNET_SYSERR;
 
-  if ((0 == interval.rel_value) || (0 == delta.rel_value))
+  if ((0 == interval.rel_value_us) || (0 == delta.rel_value_us))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Speed up disabled\n");
     return GNUNET_OK;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Speed up execution time %llu ms every %llu ms\n",
-       delta.rel_value, interval.rel_value);
+       "Speed up execution by %s\n",
+       GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Speed up executed every %s\n",
+       GNUNET_STRINGS_relative_time_to_string (interval, GNUNET_NO));
   speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO, &do_speedup, NULL);
   return GNUNET_OK;
 }
@@ -92,7 +95,8 @@ GNUNET_SPEEDUP_stop_ ( )
     GNUNET_SCHEDULER_cancel (speedup_task);
     speedup_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if ((0 != interval.rel_value) && (0 != delta.rel_value))
+  if ( (0 != interval.rel_value_us) && 
+       (0 != delta.rel_value_us) )
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Stopped execution speed up\n");
 }

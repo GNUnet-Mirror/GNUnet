@@ -421,7 +421,7 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
   }
   recent_req->heap_node =
       GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
-                                    GNUNET_TIME_absolute_get ().abs_value);
+                                    GNUNET_TIME_absolute_get ().abs_value_us);
   GNUNET_CONTAINER_multihashmap_put (recent_map, key, recent_req,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 

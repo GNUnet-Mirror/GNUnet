@@ -166,11 +166,12 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         record_match++;
       }
     }
-    et.abs_value = exp;
+    et.abs_value_us = exp;
     
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Verifying signature of %d records for name %s with expiration of %u\n",
-		rd_count, name, et.abs_value);
+		"Verifying signature of %d records for name %s with expiration of %s\n",
+		rd_count, name, 
+		GNUNET_STRINGS_absolute_time_to_string (et));
 
     if (GNUNET_OK != 
 	GNUNET_NAMESTORE_verify_signature (&nrb->public_key,

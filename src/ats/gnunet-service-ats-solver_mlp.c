@@ -1078,7 +1078,7 @@ GAS_mlp_solve_problem (void *solver)
 	else
 	{
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
-			duration_build.rel_value = 0;
+			duration_build.rel_value_us = 0;
 	}
 
 	/* Run LP solver */
@@ -1107,10 +1107,15 @@ GAS_mlp_solve_problem (void *solver)
 	mlp->ps.p_rows = glp_get_num_rows (mlp->p.prob);
 	mlp->ps.p_elements = mlp->p.num_elements;
 
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Execution time: Build %llu ms, LP %llu ms,  MLP %llu ms\n",
-			(unsigned long long) duration_build.rel_value,
-			(unsigned long long) duration_lp.rel_value,
-			(unsigned long long) duration_mlp.rel_value);
+	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	     "Execution time: Build %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (duration_build, GNUNET_NO));
+	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	     "Execution time: LP %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (duration_lp, GNUNET_NO));
+	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	     "Execution time: MLP %s\n",
+	     GNUNET_STRINGS_relative_time_to_string (duration_mlp, GNUNET_NO));
 
 	/* Propagate result*/
 	if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
@@ -1120,7 +1125,7 @@ GAS_mlp_solve_problem (void *solver)
 	if (GNUNET_YES == mlp->write_mip_mps)
 	{
 		/* Write problem to disk */
-		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
+		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value_us);
 		LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
 		glp_write_lp(mlp->p.prob, NULL, filename);
 		GNUNET_free (filename);
@@ -1128,7 +1133,7 @@ GAS_mlp_solve_problem (void *solver)
 	if (GNUNET_YES == mlp->write_mip_sol)
 	{
 		/* Write solution to disk */
-		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value);
+		GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value_us);
 		glp_print_mip (mlp->p.prob, filename );
 		LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
 		GNUNET_free (filename);
@@ -1965,7 +1970,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
 #endif
   mlp->control_param_lp.it_lim = max_iterations;
-  mlp->control_param_lp.tm_lim = max_duration.rel_value;
+  mlp->control_param_lp.tm_lim = max_duration.rel_value_us / 1000LL;
 
   /* Init MLP solving parameters */
   glp_init_iocp(&mlp->control_param_mlp);
@@ -1973,7 +1978,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 #if VERBOSE_GLPK
   mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
 #endif
-  mlp->control_param_mlp.tm_lim = max_duration.rel_value;
+  mlp->control_param_mlp.tm_lim = max_duration.rel_value_us / 1000LL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "solver ready\n");
 

@@ -912,6 +912,7 @@ client_receive_mst_cb (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Information atsi;
   char *stat_txt;
+
   if (GNUNET_YES != client_exist_session(p, s))
   {
     GNUNET_break (0);
@@ -940,14 +941,16 @@ client_receive_mst_cb (void *cls, void *client,
   s->next_receive =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
 
-  if (GNUNET_TIME_absolute_get ().abs_value < s->next_receive.abs_value)
+  if (GNUNET_TIME_absolute_get ().abs_value_us < s->next_receive.abs_value_us)
   {
-
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Client: peer `%s' address `%s' next read delayed for %llu ms\n",
+                     "Client: peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
-                     http_common_plugin_address_to_string (NULL, s->plugin->protocol, s->addr, s->addrlen),
-                     delay);
+                     http_common_plugin_address_to_string (NULL,
+							   s->plugin->protocol, 
+							   s->addr, s->addrlen),
+                     GNUNET_STRINGS_relative_time_to_string (delay,
+							     GNUNET_YES));
   }
   client_reschedule_session_timeout (s);
   return GNUNET_OK;
@@ -993,14 +996,16 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
                    s, s->client_get,
                    len, GNUNET_i2s (&s->target));
   now = GNUNET_TIME_absolute_get ();
-  if (now.abs_value < s->next_receive.abs_value)
+  if (now.abs_value_us < s->next_receive.abs_value_us)
   {
     struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
     struct GNUNET_TIME_Relative delta =
         GNUNET_TIME_absolute_get_difference (now, s->next_receive);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                     "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %llu ms\n",
-                     s, s->client_get, delta.rel_value);
+                     "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %s\n",
+                     s, s->client_get, 
+		     GNUNET_STRINGS_relative_time_to_string (delta,
+							     GNUNET_YES));
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
@@ -1276,7 +1281,7 @@ client_connect_get (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_TIMEOUT, 0);
   curl_easy_setopt (s->client_get, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_get, CURLOPT_CONNECTTIMEOUT_MS,
-                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL);
   curl_easy_setopt (s->client_get, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
@@ -1353,7 +1358,7 @@ client_connect_put (struct Session *s)
   curl_easy_setopt (s->client_put, CURLOPT_TIMEOUT, 0);
   curl_easy_setopt (s->client_put, CURLOPT_PRIVATE, s);
   curl_easy_setopt (s->client_put, CURLOPT_CONNECTTIMEOUT_MS,
-                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value);
+                    (long) HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL);
   curl_easy_setopt (s->client_put, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
@@ -1597,8 +1602,10 @@ client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
-              "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
+              "Session %p was idle for %s, disconnecting\n",
+              s,
+	      GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+						      GNUNET_YES));
 
   /* call session destroy function */
   GNUNET_assert (GNUNET_OK == client_disconnect (s));
@@ -1620,8 +1627,10 @@ client_start_session_timeout (struct Session *s)
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout for session %p set to %llu ms\n",
-             s,  (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
+             "Timeout for session %p set to %s\n",
+             s, 
+	     GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+						     GNUNET_YES));
 }
 
 
@@ -1642,8 +1651,10 @@ client_reschedule_session_timeout (struct Session *s)
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
-             "Timeout rescheduled for session %p set to %llu ms\n",
-             s, (unsigned long long) CLIENT_SESSION_TIMEOUT.rel_value);
+             "Timeout rescheduled for session %p set to %s\n",
+             s,
+	     GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+						     GNUNET_YES));
 }
 
 

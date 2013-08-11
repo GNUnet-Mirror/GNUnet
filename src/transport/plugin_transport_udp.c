@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -509,9 +509,9 @@ schedule_select (struct Plugin *plugin)
      * - timeout minimum delay */
     plugin->select_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				   (0 == min_delay.rel_value) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
+				   (0 == min_delay.rel_value_us) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
 				   plugin->rs_v4,
-				   (0 == min_delay.rel_value) ? plugin->ws_v4 : NULL,
+				   (0 == min_delay.rel_value_us) ? plugin->ws_v4 : NULL,
 				   &udp_plugin_select, plugin);  
   }
   if ((GNUNET_YES == plugin->enable_ipv6) && (NULL != plugin->sockv6))
@@ -525,9 +525,9 @@ schedule_select (struct Plugin *plugin)
       GNUNET_SCHEDULER_cancel(plugin->select_task_v6);
     plugin->select_task_v6 =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				   (0 == min_delay.rel_value) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
+				   (0 == min_delay.rel_value_us) ? GNUNET_TIME_UNIT_FOREVER_REL : min_delay,
 				   plugin->rs_v6,
-				   (0 == min_delay.rel_value) ? plugin->ws_v6 : NULL,
+				   (0 == min_delay.rel_value_us) ? plugin->ws_v6 : NULL,
 				   &udp_plugin_select_v6, plugin);
   }
 }
@@ -1328,8 +1328,10 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Session %p was idle for %llu ms, disconnecting\n",
-              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+              "Session %p was idle for %s, disconnecting\n",
+              s,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
   /* call session destroy function */
   disconnect_session (s);
 }
@@ -1347,8 +1349,10 @@ start_session_timeout (struct Session *s)
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout for session %p set to %llu ms\n",
-              s,  (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+              "Timeout for session %p set to %s\n",
+              s,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
 }
 
 
@@ -1366,8 +1370,10 @@ reschedule_session_timeout (struct Session *s)
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout rescheduled for session %p set to %llu ms\n",
-              s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+              "Timeout rescheduled for session %p set to %s\n",
+              s, 
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
 }
 
 
@@ -1385,7 +1391,7 @@ stop_session_timeout (struct Session *s)
     s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Timeout stopped for session %p canceled\n",
-                s, (unsigned long long) GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value);
+                s);
   }
 }
 
@@ -2173,16 +2179,17 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   if (NULL == s)
     return;
 
-  if (s->flow_delay_for_other_peer.rel_value <= UINT32_MAX)
-    delay = s->flow_delay_for_other_peer.rel_value;
+  if (s->flow_delay_for_other_peer.rel_value_us <= UINT32_MAX)
+    delay = s->flow_delay_for_other_peer.rel_value_us;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ACK to `%s' including delay of %u ms\n",
+       "Sending ACK to `%s' including delay of %s\n",
        GNUNET_a2s (rc->src_addr,
                    (rc->src_addr->sa_family ==
                     AF_INET) ? sizeof (struct sockaddr_in) : sizeof (struct
                                                                      sockaddr_in6)),
-       delay);
+       GNUNET_STRINGS_relative_time_to_string (s->flow_delay_for_other_peer,
+					       GNUNET_YES));
   udpw = GNUNET_malloc (sizeof (struct UDP_MessageWrapper) + msize);
   udpw->msg_size = msize;
   udpw->payload_size = 0;
@@ -2248,10 +2255,11 @@ read_process_ack (struct Plugin *plugin,
     return;
   }
 
-  flow_delay.rel_value = (uint64_t) ntohl (udp_ack->delay);
+  flow_delay.rel_value_us = (uint64_t) ntohl (udp_ack->delay);
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "We received a sending delay of %llu\n",
-       flow_delay.rel_value);
+       "We received a sending delay of %s\n",
+       GNUNET_STRINGS_relative_time_to_string (flow_delay,
+					       GNUNET_YES));
   s->flow_delay_from_other_peer =
       GNUNET_TIME_relative_to_absolute (flow_delay);
 
@@ -2324,7 +2332,7 @@ read_process_fragment (struct Plugin *plugin,
     d_ctx->hnode =
         GNUNET_CONTAINER_heap_insert (plugin->defrag_ctxs, d_ctx,
                                       (GNUNET_CONTAINER_HeapCostType)
-                                      now.abs_value);
+                                      now.abs_value_us);
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Created new defragmentation context for %u-byte fragment from `%s'\n",
 	 (unsigned int) ntohs (msg->size),
@@ -2343,7 +2351,7 @@ read_process_fragment (struct Plugin *plugin,
     /* keep this 'rc' from expiring */
     GNUNET_CONTAINER_heap_update_cost (plugin->defrag_ctxs, d_ctx->hnode,
                                        (GNUNET_CONTAINER_HeapCostType)
-                                       now.abs_value);
+                                       now.abs_value_us);
   }
   if (GNUNET_CONTAINER_heap_get_size (plugin->defrag_ctxs) >
       UDP_MAX_SENDER_ADDRESSES_WITH_DEFRAG)
@@ -2459,7 +2467,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
   {
     /* Find messages with timeout */
     remaining = GNUNET_TIME_absolute_get_remaining (udpw->timeout);
-    if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
+    if (GNUNET_TIME_UNIT_ZERO.rel_value_us == remaining.rel_value_us)
     {
       /* Message timed out */
       switch (udpw->msg_type) {
@@ -2542,7 +2550,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
     {
       /* Message did not time out, check flow delay */
       remaining = GNUNET_TIME_absolute_get_remaining (udpw->session->flow_delay_from_other_peer);
-      if (GNUNET_TIME_UNIT_ZERO.rel_value == remaining.rel_value)
+      if (GNUNET_TIME_UNIT_ZERO.rel_value_us == remaining.rel_value_us)
       {
         /* this message is not delayed */
         LOG (GNUNET_ERROR_TYPE_DEBUG, 
@@ -2554,8 +2562,10 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
       {
         /* Message is delayed, try next */
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Message for peer `%s' (%u bytes) is delayed for %llu \n",
-             GNUNET_i2s(&udpw->session->target), udpw->payload_size, remaining.rel_value);
+             "Message for peer `%s' (%u bytes) is delayed for %s\n",
+             GNUNET_i2s(&udpw->session->target), udpw->payload_size, 
+	     GNUNET_STRINGS_relative_time_to_string (remaining,
+						     GNUNET_YES));
         udpw = udpw->next;
       }
     }

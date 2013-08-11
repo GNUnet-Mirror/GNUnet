@@ -200,13 +200,14 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   	/* Received non-delayed message */
   	dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received non-delayed message %u after %llu\n",
+                "Received non-delayed message %u after %s\n",
                 messages_recv,
-                (long long unsigned int) dur_normal.rel_value);
+                GNUNET_STRINGS_relative_time_to_string (dur_normal,
+							GNUNET_YES));
 
     struct GNUNET_ATS_Information ats[2];
   	ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  	ats[0].value = htonl (1000);
+  	ats[0].value = htonl (1000 * 1000LL);
   	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   	ats[1].value = htonl (10);
 
@@ -218,16 +219,18 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   	/* Received manipulated message */
     	dur_delayed = GNUNET_TIME_absolute_get_duration(start_delayed);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received delayed message %u after %llu\n",
+                  "Received delayed message %u after %s\n",
                   messages_recv,
-                  (long long unsigned int) dur_delayed.rel_value);
-      if (dur_delayed.rel_value < 1000)
+		  GNUNET_STRINGS_relative_time_to_string (dur_delayed,
+							  GNUNET_YES));
+      if (dur_delayed.rel_value_us < 1000 * 1000LL)
       {
-				GNUNET_break (0);
-				ok += 1;
+	GNUNET_break (0);
+	ok += 1;
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Delayed message was not delayed correctly: took only %llu\n",
-                    (long long unsigned int) dur_delayed.rel_value);
+                    "Delayed message was not delayed correctly: took only %s\n",
+		    GNUNET_STRINGS_relative_time_to_string (dur_delayed,
+							    GNUNET_YES));
       }
       /* shutdown */
       end ();

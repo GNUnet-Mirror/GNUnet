@@ -63,11 +63,13 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
   if (amount >= 0)
   {
     ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker, amount);
-    if (ret.rel_value > 0)
+    if (ret.rel_value_us > 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Delay to satisfy reservation for %d bytes is %llu ms\n",
-                  (int) amount, (unsigned long long) ret.rel_value);
+                  "Delay to satisfy reservation for %d bytes is %s\n",
+                  (int) amount,
+		  GNUNET_STRINGS_relative_time_to_string (ret,
+							  GNUNET_YES));
       return ret;
     }
   }

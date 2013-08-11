@@ -231,10 +231,10 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   FPRINTF (stdout, "%s",  "\n");
   running = GNUNET_NO;
 
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
 
-  throughput_out = total_bytes_sent * 1000 / delta;     /* convert to bytes/s */
-  throughput_in = total_bytes_recv * 1000 / delta;      /* convert to bytes/s */
+  throughput_out = total_bytes_sent * 1000000LL / delta;     /* convert to bytes/s */
+  throughput_in = total_bytes_recv * 1000000LL / delta;      /* convert to bytes/s */
 
   max_quota_in = GNUNET_MIN (current_quota_p1_in, current_quota_p2_in);
   max_quota_out = GNUNET_MIN (current_quota_p1_out, current_quota_p2_out);

@@ -674,7 +674,7 @@ get_redirect_state (int af,
   if (NULL == state_key)
     GNUNET_CONTAINER_heap_update_cost (connections_heap, 
 				       state->specifics.tcp_udp.heap_node,
-				       GNUNET_TIME_absolute_get ().abs_value);
+				       GNUNET_TIME_absolute_get ().abs_value_us);
   return state;
 }
 
@@ -1497,7 +1497,7 @@ setup_state_record (struct TunnelState *state)
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   state->specifics.tcp_udp.heap_node = GNUNET_CONTAINER_heap_insert (connections_heap,
 						   state,
-						   GNUNET_TIME_absolute_get ().abs_value);   
+						   GNUNET_TIME_absolute_get ().abs_value_us);   
   while (GNUNET_CONTAINER_heap_get_size (connections_heap) > max_connections)
   {
     s = GNUNET_CONTAINER_heap_remove_root (connections_heap);

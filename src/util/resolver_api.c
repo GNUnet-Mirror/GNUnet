@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -24,13 +24,9 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_server_lib.h"
 #include "resolver.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "resolver-api", __VA_ARGS__)
@@ -703,8 +699,8 @@ reconnect ()
     }
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Will try to connect to DNS service in %llu ms\n",
-       (unsigned long long) backoff.rel_value);
+       "Will try to connect to DNS service in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (backoff, GNUNET_YES));
   GNUNET_assert (NULL != resolver_cfg);
   r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
   backoff = GNUNET_TIME_STD_BACKOFF (backoff);

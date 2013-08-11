@@ -264,14 +264,14 @@ shutdown_task (void *cls,
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
-             1000 * traffic_sent / (1 + duration.rel_value), traffic_sent,
+             1000LL * 1000LL * traffic_sent / (1 + duration.rel_value_us), traffic_sent,
              GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
     FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %s)\n"),
-             1000 * traffic_received / (1 + duration.rel_value),
+             1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
              traffic_received,
              GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }

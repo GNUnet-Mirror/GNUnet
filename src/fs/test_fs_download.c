@@ -142,18 +142,18 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     fprintf (stdout,
 	     "Publishing complete, %llu kb/s.\n",
-	     (unsigned long long) (FILESIZE * 1000LL /
+	     (unsigned long long) (FILESIZE * 1000000LL /
 				   (1 +
 				    GNUNET_TIME_absolute_get_duration
-				    (start).rel_value) / 1024LL));
+				    (start).rel_value_us) / 1024LL));
     GAUGER ("FS", 
 	    (GNUNET_YES == indexed) 
 	    ? "Publishing speed (indexing)"
 	     : "Publishing speed (insertion)",
-	    (unsigned long long) (FILESIZE * 1000LL /
+	    (unsigned long long) (FILESIZE * 1000000LL /
 				  (1 +
 				   GNUNET_TIME_absolute_get_duration
-				   (start).rel_value) / 1024LL), "kb/s");
+				   (start).rel_value_us) / 1024LL), "kb/s");
     fn = GNUNET_DISK_mktemp ("gnunet-download-test-dst");
     start = GNUNET_TIME_absolute_get ();
     download =
@@ -168,18 +168,18 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     fprintf (stdout,
 	     "Download complete,  %llu kb/s.\n",
-	     (unsigned long long) (FILESIZE * 1000LL /
+	     (unsigned long long) (FILESIZE * 1000000LL /
 				   (1 +
 				    GNUNET_TIME_absolute_get_duration
-				    (start).rel_value) / 1024LL));
+				    (start).rel_value_us) / 1024LL));
     GAUGER ("FS",
 	    (GNUNET_YES == indexed) 
 	    ? "Local download speed (indexed)"  
 	    : "Local download speed (inserted)",
-            (unsigned long long) (FILESIZE * 1000LL /
+            (unsigned long long) (FILESIZE * 1000000LL /
                                   (1 +
                                    GNUNET_TIME_absolute_get_duration
-                                   (start).rel_value) / 1024LL), "kb/s");
+                                   (start).rel_value_us) / 1024LL), "kb/s");
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:

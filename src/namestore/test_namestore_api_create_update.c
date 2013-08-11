@@ -146,7 +146,7 @@ create_identical_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     res = 0;
-    s_first_record->expiration_time = GNUNET_TIME_absolute_get ().abs_value;
+    s_first_record->expiration_time = GNUNET_TIME_absolute_get ().abs_value_us;
     GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name,
 					      1, s_first_record,
 					      &create_updated_cont, s_name);
@@ -239,7 +239,7 @@ run (void *cls,
   char rd_ser[rd_ser_len];
   GNUNET_NAMESTORE_records_serialize(1, s_first_record, rd_ser_len, rd_ser);
 
-  et.abs_value = s_first_record->expiration_time;
+  et.abs_value_us = s_first_record->expiration_time;
   s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_first_record, 1);
 
   /* create random zone hash */

@@ -297,11 +297,11 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   del = GNUNET_TIME_absolute_get_duration (start_time);
-  if (del.rel_value == 0)
-    del.rel_value = 1;
+  if (del.rel_value_us == 0)
+    del.rel_value_us = 1;
   fancy =
     GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
-				    1000LL / del.rel_value);
+				    1000000LL / del.rel_value_us);
   FPRINTF (stderr, "Download speed of type `%s' was %s/s\n", type, fancy);
   GNUNET_free (fancy);
   if (NUM_DAEMONS != ++download_counter)

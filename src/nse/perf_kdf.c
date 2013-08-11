@@ -79,7 +79,7 @@ main (int argc, char *argv[])
   GAUGER ("NSE", "Proof-of-work hashing",
           1024 / (1 +
 		  GNUNET_TIME_absolute_get_duration
-		  (start).rel_value), "hashes/s");
+		  (start).rel_value_us / 1000LL), "hashes/ms");
   return 0;
 }
 

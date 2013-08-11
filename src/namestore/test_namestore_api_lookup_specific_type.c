@@ -250,13 +250,13 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count-1; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = 1;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
     memset ((char *) rd[c].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
   }
-  rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
+  rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
   rd[c].record_type = TEST_RECORD_LOOKUP_TYPE_EXISTING;
   rd[c].data_size = TEST_RECORD_DATALEN;
   rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
@@ -296,7 +296,7 @@ run (void *cls,
     GNUNET_NAMESTORE_records_serialize(RECORDS, s_rd, rd_ser_len, rd_ser);
 
     /* sign */
-    et.abs_value = s_rd[RECORDS - 1].expiration_time;
+    et.abs_value_us = s_rd[RECORDS - 1].expiration_time;
     s_signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);
 
     /* create random zone hash */

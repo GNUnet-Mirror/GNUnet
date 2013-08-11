@@ -87,7 +87,7 @@ main (int argc, char *argv[])
   WANT ("btx", b);
   if (0 != GNUNET_STRINGS_buffer_tokenize (buf, 2, 2, &r, &b))
     return 1;
-  at.abs_value = 5000;
+  at.abs_value_us = 5000000;
   bc = GNUNET_STRINGS_absolute_time_to_string (at);
   /* bc should be something like "Wed Dec 31 17:00:05 1969"
    * where the details of the day and hour depend on the timezone;
@@ -105,7 +105,7 @@ main (int argc, char *argv[])
   bc = GNUNET_STRINGS_absolute_time_to_string (at);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_STRINGS_fancy_time_to_absolute (bc, &atx));
-  GNUNET_assert (atx.abs_value == at.abs_value);
+  GNUNET_assert (atx.abs_value_us == at.abs_value_us);
 
   GNUNET_log_skip (2, GNUNET_NO);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");
@@ -116,7 +116,7 @@ main (int argc, char *argv[])
       GNUNET_STRINGS_fancy_time_to_relative ("15m", &rt));
   GNUNET_assert (GNUNET_OK ==
       GNUNET_STRINGS_fancy_time_to_relative ("15 m", &rtx));
-  GNUNET_assert (rt.rel_value == rtx.rel_value);
+  GNUNET_assert (rt.rel_value_us == rtx.rel_value_us);
 
   return 0;
 }

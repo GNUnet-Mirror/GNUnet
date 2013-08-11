@@ -850,9 +850,10 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
   union QueueContext qc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to put %u bytes of data under key `%s' for %llu ms\n", size,
+       "Asked to put %u bytes of data under key `%s' for %s\n", size,
        GNUNET_h2s (key),
-       GNUNET_TIME_absolute_get_remaining (expiration).rel_value);
+       GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
+					       GNUNET_YES));
   msize = sizeof (struct DataMessage) + size;
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   qc.sc.cont = cont;
@@ -1037,8 +1038,10 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
   if (cont == NULL)
     cont = &drop_status_cont;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to update entry %llu raising priority by %u and expiration to %llu\n",
-       uid, (unsigned int) priority, (unsigned long long) expiration.abs_value);
+       "Asked to update entry %llu raising priority by %u and expiration to %s\n",
+       uid, 
+       (unsigned int) priority,
+       GNUNET_STRINGS_absolute_time_to_string (expiration));
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
   qe = make_queue_entry (h, sizeof (struct UpdateMessage), queue_priority,
@@ -1268,8 +1271,9 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
   union QueueContext qc;
 
   GNUNET_assert (NULL != proc);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Asked to get replication entry in %llu ms\n",
-       (unsigned long long) timeout.rel_value);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to get replication entry in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
   qc.rc.proc = proc;
   qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h, sizeof (struct GNUNET_MessageHeader),
@@ -1330,9 +1334,9 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
   GNUNET_assert (NULL != proc);
   GNUNET_assert (type != GNUNET_BLOCK_TYPE_ANY);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to get %llu-th zero-anonymity entry of type %d in %llu ms\n",
+       "Asked to get %llu-th zero-anonymity entry of type %d in %s\n",
        (unsigned long long) offset, type,
-       (unsigned long long) timeout.rel_value);
+       GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
   qc.rc.proc = proc;
   qc.rc.proc_cls = proc_cls;
   qe = make_queue_entry (h, sizeof (struct GetZeroAnonymityMessage),

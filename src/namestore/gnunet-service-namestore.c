@@ -442,12 +442,12 @@ get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_
   {
     if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
     {
-      rt.rel_value = rd[c].expiration_time;
+      rt.rel_value_us = rd[c].expiration_time;
       at = GNUNET_TIME_relative_to_absolute (rt);
     }
     else
     {
-      at.abs_value = rd[c].expiration_time;
+      at.abs_value_us = rd[c].expiration_time;
     }
     expire = GNUNET_TIME_absolute_min (at, expire);  
   }
@@ -742,16 +742,16 @@ handle_lookup_name_it (void *cls,
 	{
 	  GNUNET_break (GNUNET_YES == authoritative);
 	  rd_modified = GNUNET_YES;
-	  re.rel_value = rd[c].expiration_time;
+	  re.rel_value_us = rd[c].expiration_time;
 	  e = GNUNET_TIME_relative_to_absolute (re);
 	}
 	else
 	{
-	  e.abs_value = rd[c].expiration_time;
+	  e.abs_value_us = rd[c].expiration_time;
 	}
 	/* found matching record, copy and convert flags to public format */
 	rd_selected[copied_elements] = rd[c]; /* shallow copy! */
-	rd_selected[copied_elements].expiration_time = e.abs_value;
+	rd_selected[copied_elements].expiration_time = e.abs_value_us;
 	if (0 != (rd_selected[copied_elements].flags &
 		  (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION | GNUNET_NAMESTORE_RF_AUTHORITY)))
 	{
@@ -1609,8 +1609,8 @@ zone_iteraterate_proc (void *cls,
 	 (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) )
     {
       /* should convert relative-to-absolute expiration time */
-      rt.rel_value = rd[c].expiration_time;
-      rd_filtered[c].expiration_time = GNUNET_TIME_relative_to_absolute (rt).abs_value;
+      rt.rel_value_us = rd[c].expiration_time;
+      rd_filtered[c].expiration_time = GNUNET_TIME_relative_to_absolute (rt).abs_value_us;
       rd_filtered[c].flags &= ~ GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
     }
     /* we NEVER keep the 'authority' flag */
@@ -1637,10 +1637,10 @@ zone_iteraterate_proc (void *cls,
 
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Creating signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		  "Creating signature for `%s' in zone `%s' with %u records and expiration %s\n",
 		  name, GNUNET_NAMESTORE_short_h2s(&zone_hash), 
 		  rd_count_filtered,
-		  (unsigned long long) expire.abs_value);
+		  GNUNET_STRINGS_absolute_time_to_string (expire));
       /* TODO 1) AB: New publishing
        * - Create HDKF(Q,i)
        * - Encrypt record block R with HKDF: HDKF(Q,i) == E(R)
@@ -1671,9 +1671,9 @@ zone_iteraterate_proc (void *cls,
       if (NULL != signature)
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		      "Using provided signature for `%s' in zone `%s' with %u records and expiration %llu\n",
+		      "Using provided signature for `%s' in zone `%s' with %u records and expiration %s\n",
 		      name, GNUNET_NAMESTORE_short_h2s (&zone_hash), rd_count_filtered, 
-		      (unsigned long long) expire.abs_value);
+		      GNUNET_STRINGS_absolute_time_to_string (expire));
 	  return;
 	}    
     }

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -747,8 +747,8 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
 
   if (0 != (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
     return GNUNET_NO;
-  at.abs_value = rd->expiration_time;
-  return (0 == GNUNET_TIME_absolute_get_remaining (at).rel_value) ? GNUNET_YES : GNUNET_NO;
+  at.abs_value_us = rd->expiration_time;
+  return (0 == GNUNET_TIME_absolute_get_remaining (at).rel_value_us) ? GNUNET_YES : GNUNET_NO;
 }
 
 

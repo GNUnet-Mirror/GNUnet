@@ -177,7 +177,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
     GNUNET_break_op(0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
   }
-  if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (rba->expiration_time)).rel_value)
+  if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (rba->expiration_time)).rel_value_us)
   {
     /* technically invalid, but can happen without an error, so
        we're nice by reporting it as a 'duplicate' */

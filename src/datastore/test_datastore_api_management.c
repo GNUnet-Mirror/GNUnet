@@ -113,7 +113,7 @@ get_expiration (int i)
 {
   struct GNUNET_TIME_Absolute av;
 
-  av.abs_value = now.abs_value + i * 1000;
+  av.abs_value_us = now.abs_value_us + i * 1000 * 1000LL;
   return av;
 }
 
@@ -159,7 +159,7 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   GNUNET_assert (type == get_type (i));
   GNUNET_assert (priority == get_priority (i));
   GNUNET_assert (anonymity == get_anonymity (i));
-  GNUNET_assert (expiration.abs_value == get_expiration (i).abs_value);
+  GNUNET_assert (expiration.abs_value_us == get_expiration (i).abs_value_us);
   crc->offset++;
   crc->i--;
   if (crc->i == 0)

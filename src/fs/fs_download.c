@@ -1082,7 +1082,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   pi.value.download.specifics.progress.depth = dr->depth;
   pi.value.download.specifics.progress.respect_offered = prc->respect_offered;
   pi.value.download.specifics.progress.num_transmissions = prc->num_transmissions;
-  if (prc->last_transmission.abs_value != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+  if (prc->last_transmission.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     pi.value.download.specifics.progress.block_download_duration 
       = GNUNET_TIME_absolute_get_duration (prc->last_transmission);
   else
@@ -1437,7 +1437,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
     dc->in_receive = GNUNET_NO;
     dc->client = NULL;
   }
-  if (0 == dc->reconnect_backoff.rel_value)
+  if (0 == dc->reconnect_backoff.rel_value_us)
     dc->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   else
     dc->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (dc->reconnect_backoff);

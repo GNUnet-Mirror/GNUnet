@@ -596,13 +596,14 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
 
   now = GNUNET_TIME_absolute_get();
 
-  if (current->blocked_until.abs_value == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value)
+  if (current->blocked_until.abs_value_us == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value_us)
   {
     /* This address is blocked for suggestion */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Address %p blocked for suggestion for %llu ms \n",
-                current,
-                GNUNET_TIME_absolute_get_difference(now, current->blocked_until).rel_value);
+	 "Address %p blocked for suggestion for %s \n",
+	 current,
+	 GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until),
+						 GNUNET_YES));
     return GNUNET_OK;
   }
   if (GNUNET_NO == is_bandwidth_available_in_network (net))

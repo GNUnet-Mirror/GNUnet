@@ -192,14 +192,15 @@ show_end_data (void)
   end_time = GNUNET_TIME_absolute_get();
   total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
   FPRINTF (stderr, "\nResults of test \"%s\"\n", test_name);
-  FPRINTF (stderr, "Test time %llu ms\n",
-            (unsigned long long) total_time.rel_value);
+  FPRINTF (stderr, "Test time %s\n",
+	   GNUNET_STRINGS_relative_time_to_string (total_time,
+						   GNUNET_YES));
   FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
-            4 * TOTAL_PACKETS * 1.0 / total_time.rel_value); // 4bytes * ms
+	   4 * TOTAL_PACKETS * 1.0 / (total_time.rel_value_us / 1000)); // 4bytes * ms
   FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
-            TOTAL_PACKETS * 1000.0 / total_time.rel_value); // packets * ms
+	   TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000)); // packets * ms
   GAUGER ("MESH", test_name,
-          TOTAL_PACKETS * 1000.0 / total_time.rel_value,
+          TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000),
           "packets/s");
 }
 

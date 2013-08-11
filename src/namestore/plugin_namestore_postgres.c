@@ -311,7 +311,7 @@ namestore_postgres_put_records (void *cls,
   }
   {
     char data[data_size];
-    uint64_t expire_be = GNUNET_htonll (expire.abs_value);
+    uint64_t expire_be = GNUNET_htonll (expire.abs_value_us);
     uint64_t rvalue_be = GNUNET_htonll (rvalue);
     uint32_t rd_count_be = htonl ((uint32_t) rd_count);
     const char *paramValues[] = {
@@ -421,7 +421,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
   data_size = PQgetlength (res, 0, 3);
   data = PQgetvalue (res, 0, 3);
-  expiration.abs_value =
+  expiration.abs_value_us =
     GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
   sig = (const struct GNUNET_CRYPTO_EccSignature*) PQgetvalue (res, 0, 5);
   if (record_count > 64 * 1024)

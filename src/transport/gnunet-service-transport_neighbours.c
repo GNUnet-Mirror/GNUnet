@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011,2012 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -155,7 +155,7 @@ print_allocators ()
       next = GNUNET_TIME_UNIT_ZERO_ABS;
       start = GNUNET_NO;
   }
-  if (0 == (rem = GNUNET_TIME_absolute_get_remaining(next)).rel_value)
+  if (0 == (rem = GNUNET_TIME_absolute_get_remaining(next)).rel_value_us)
   {
       fprintf (stderr, "Allocated in `%s' total: %5u bytes\n", __FILE__, bytes_alloced);
       while (NULL != cur)
@@ -1406,7 +1406,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   while (NULL != (mq = n->messages_head))
   {
     timeout = GNUNET_TIME_absolute_get_remaining (mq->timeout);
-    if (timeout.rel_value > 0)
+    if (timeout.rel_value_us > 0)
       break;
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
@@ -1443,7 +1443,7 @@ send_keepalive (struct NeighbourMapEntry *n)
   GNUNET_assert ((S_CONNECTED == n->state) ||
                  (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
                  (S_CONNECTED_SWITCHING_CONNECT_SENT));
-  if (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time).rel_value > 0)
+  if (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time).rel_value_us > 0)
     return; /* no keepalive needed at this time */
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
@@ -1534,14 +1534,16 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
   n->latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Latency for peer `%s' is %llu ms\n",
-              GNUNET_i2s (&n->id), n->latency.rel_value);
+	      "Latency for peer `%s' is %s\n",
+              GNUNET_i2s (&n->id), 
+	      GNUNET_STRINGS_relative_time_to_string (n->latency,
+						      GNUNET_YES));
   /* append latency */
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  if (n->latency.rel_value > UINT32_MAX)
+  if (n->latency.rel_value_us > UINT32_MAX)
     latency = UINT32_MAX;
   else
-    latency = n->latency.rel_value;
+    latency = n->latency.rel_value_us;
   ats.value = htonl (latency);
   GST_ats_update_metrics (&n->id,
   		 	 	 	 	 	 	 	 	 	  n->primary_address.address,
@@ -1622,17 +1624,18 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
   }
   *do_forward = GNUNET_YES;
   ret = GNUNET_BANDWIDTH_tracker_get_delay (&n->in_tracker, 32 * 1024);
-  if (ret.rel_value > 0)
+  if (ret.rel_value_us > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Throttling read (%llu bytes excess at %u b/s), waiting %llu ms before reading more.\n",
+                "Throttling read (%llu bytes excess at %u b/s), waiting %s before reading more.\n",
                 (unsigned long long) n->in_tracker.
                 consumption_since_last_update__,
                 (unsigned int) n->in_tracker.available_bytes_per_s__,
-                (unsigned long long) ret.rel_value);
+                GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# ms throttling suggested"),
-                              (int64_t) ret.rel_value, GNUNET_NO);
+                              (int64_t) ret.rel_value_us / 1000LL, 
+			      GNUNET_NO);
   }
   return ret;
 }
@@ -2526,10 +2529,11 @@ master_task (void *cls,
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Master task runs for neighbour `%s' in state %s with timeout in %llu ms\n",
+	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
 	      print_state(n->state),
-	      (unsigned long long) delay.rel_value);
+	      GNUNET_STRINGS_relative_time_to_string (delay,
+						      GNUNET_YES));
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -2539,7 +2543,7 @@ master_task (void *cls,
     free_neighbour (n, GNUNET_NO);
     return;
   case S_INIT_ATS:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting for ATS to provide address\n",
@@ -2550,7 +2554,7 @@ master_task (void *cls,
     }
     break;
   case S_INIT_BLACKLIST:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting for BLACKLIST to approve address\n",
@@ -2561,7 +2565,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECT_SENT:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting for other peer to send CONNECT_ACK\n",
@@ -2571,7 +2575,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connection to `%s' timed out waiting BLACKLIST to approve address to use for received CONNECT\n",
@@ -2582,7 +2586,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECT_RECV_ATS:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting ATS to provide address to use for CONNECT_ACK\n",
@@ -2593,7 +2597,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECT_RECV_BLACKLIST:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting BLACKLIST to approve address to use for CONNECT_ACK\n",
@@ -2604,7 +2608,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECT_RECV_ACK:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting for other peer to send SESSION_ACK\n",
@@ -2614,7 +2618,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECTED:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs\n",
@@ -2626,7 +2630,7 @@ master_task (void *cls,
     send_keepalive (n);
     break;
   case S_RECONNECT_ATS:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, waiting for ATS replacement address\n",
@@ -2636,7 +2640,7 @@ master_task (void *cls,
     }
     break;
   case S_RECONNECT_BLACKLIST:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, waiting for BLACKLIST to approve replacement address\n",
@@ -2646,7 +2650,7 @@ master_task (void *cls,
     }
     break;
   case S_RECONNECT_SENT:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, waiting for other peer to CONNECT_ACK replacement address\n",
@@ -2656,7 +2660,7 @@ master_task (void *cls,
     }
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs\n",
@@ -2668,7 +2672,7 @@ master_task (void *cls,
     send_keepalive (n);
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
-    if (0 == delay.rel_value)
+    if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs (after trying to CONNECT on alternative address)\n",
@@ -2785,7 +2789,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               1, GNUNET_NO);
     break;    
   case S_CONNECT_SENT:
-    if (ts.abs_value != n->primary_address.connect_timestamp.abs_value)
+    if (ts.abs_value_us != n->primary_address.connect_timestamp.abs_value_us)
       break; /* ACK does not match our original CONNECT message */
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -3142,7 +3146,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
   sdm = (const struct SessionDisconnectMessage *) msg;
   if (NULL == (n = lookup_neighbour (peer)))
     return;                     /* gone already */
-  if (GNUNET_TIME_absolute_ntoh (sdm->timestamp).abs_value <= n->connect_ack_timestamp.abs_value)
+  if (GNUNET_TIME_absolute_ntoh (sdm->timestamp).abs_value_us <= n->connect_ack_timestamp.abs_value_us)
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop

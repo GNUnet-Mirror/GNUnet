@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -283,7 +283,7 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
   uint32_t bprio = htonl (priority);
   uint32_t banon = htonl (anonymity);
   uint32_t brepl = htonl (replication);
-  uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).abs_value__;
+  uint64_t bexpi = GNUNET_TIME_absolute_hton (expiration).abs_value_us__;
 
   const char *paramValues[] = {
     (const char *) &brepl,
@@ -392,7 +392,7 @@ process_result (struct Plugin *plugin, PluginDatumProcessor proc,
   type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
   priority = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
   anonymity = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
-  expiration_time.abs_value =
+  expiration_time.abs_value_us =
       GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 3));
   memcpy (&key, PQgetvalue (res, 0, 4), sizeof (struct GNUNET_HashCode));
   size = PQgetlength (res, 0, 5);
@@ -712,7 +712,7 @@ postgres_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   const char *paramValues[] = { (const char *) &btime };
   PGresult *ret;
 
-  btime = GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value);
+  btime = GNUNET_htonll (GNUNET_TIME_absolute_get ().abs_value_us);
   ret =
       PQexecPrepared (plugin->dbh, "select_expiration_order", 1, paramValues,
                       paramLengths, paramFormats, 1);
@@ -751,7 +751,7 @@ postgres_plugin_update (void *cls, uint64_t uid, int delta,
   PGresult *ret;
   int32_t bdelta = (int32_t) htonl ((uint32_t) delta);
   uint32_t boid = htonl ((uint32_t) uid);
-  uint64_t bexpire = GNUNET_TIME_absolute_hton (expire).abs_value__;
+  uint64_t bexpire = GNUNET_TIME_absolute_hton (expire).abs_value_us__;
 
   const char *paramValues[] = {
     (const char *) &bdelta,

@@ -179,10 +179,10 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   random_delay =
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS,
                                    GNUNET_CRYPTO_random_u32 (
                                      GNUNET_CRYPTO_QUALITY_WEAK,
-                                     reannounce_period_max.rel_value));
+                                     reannounce_period_max.rel_value_us));
   reannounce_task = GNUNET_SCHEDULER_add_delayed (random_delay,
                                                   &reannounce_regex, cls);
 }

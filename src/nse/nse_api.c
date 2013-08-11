@@ -24,14 +24,11 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_client_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_nse_service.h"
 #include "nse.h"
 
@@ -150,8 +147,9 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Scheduling task to reconnect to nse service in %llu ms.\n",
-       h->reconnect_delay.rel_value);
+       "Scheduling task to reconnect to nse service in %s.\n",
+       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
+					       GNUNET_YES));
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);

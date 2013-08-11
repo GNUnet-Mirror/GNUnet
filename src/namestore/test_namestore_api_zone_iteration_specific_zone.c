@@ -302,7 +302,7 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = 1111;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
@@ -344,7 +344,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
-  et.abs_value = s_rd_1[0].expiration_time;
+  et.abs_value_us = s_rd_1[0].expiration_time;
   sig_1 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_1, s_rd_1, 1);
   GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_1,
 					    1, s_rd_1, 
@@ -353,7 +353,7 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
-  et.abs_value = s_rd_2[0].expiration_time;
+  et.abs_value_us = s_rd_2[0].expiration_time;
   sig_2 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_2, s_rd_2, 1);
   GNUNET_NAMESTORE_record_put_by_authority (nsh, privkey, s_name_2,
 					    1, s_rd_2, 
@@ -363,7 +363,7 @@ run (void *cls,
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
   s_rd_3 = create_record(1);
-  et.abs_value = s_rd_3[0].expiration_time;
+  et.abs_value_us = s_rd_3[0].expiration_time;
   sig_3 = GNUNET_NAMESTORE_create_signature(privkey, et, s_name_3, s_rd_3, 1);
   GNUNET_NAMESTORE_record_put (nsh, &pubkey2, s_name_3,
 			       GNUNET_TIME_UNIT_FOREVER_ABS, 1, s_rd_3, sig_3, &put_cont, NULL);

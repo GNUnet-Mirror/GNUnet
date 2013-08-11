@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2005-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -300,18 +300,19 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
 {
   static const struct ConversionTable table[] =
   {
-    { "ms", 1},
-    { "s", 1000},
-    { "\"", 1000},
-    { "m", 60 * 1000},
-    { "min", 60 * 1000},
-    { "minutes", 60 * 1000},
-    { "'", 60 * 1000},
-    { "h", 60 * 60 * 1000},
-    { "d", 24 * 60 * 60 * 1000},
-    { "day", 24 * 60 * 60 * 1000},
-    { "days", 24 * 60 * 60 * 1000},
-    { "a", 31536000000LL /* year */ },
+    { "us", 1},
+    { "ms", 1000 },
+    { "s", 1000 * 1000LL },
+    { "\"", 1000  * 1000LL },
+    { "m", 60 * 1000  * 1000LL},
+    { "min", 60 * 1000  * 1000LL},
+    { "minutes", 60 * 1000  * 1000LL},
+    { "'", 60 * 1000  * 1000LL},
+    { "h", 60 * 60 * 1000  * 1000LL},
+    { "d", 24 * 60 * 60 * 1000LL * 1000LL},
+    { "day", 24 * 60 * 60 * 1000LL * 1000LL},
+    { "days", 24 * 60 * 60 * 1000LL * 1000LL},
+    { "a", 31536000000000LL /* year */ },
     { NULL, 0}
   };
   int ret;
@@ -325,7 +326,7 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
   ret = convert_with_table (fancy_time,
 			    table,
 			    &val);
-  rtime->rel_value = (uint64_t) val;
+  rtime->rel_value_us = (uint64_t) val;
   return ret;
 }
 
@@ -363,9 +364,9 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
        (NULL == strptime (fancy_time, "%Y", &tv)) )
     return GNUNET_SYSERR;
   t = mktime (&tv);
-  atime->abs_value = (uint64_t) ((uint64_t) t * 1000LL);
+  atime->abs_value_us = (uint64_t) ((uint64_t) t * 1000LL * 1000LL);
 #if LINUX
-  atime->abs_value -= 1000LL * timezone;
+  atime->abs_value_us -= 1000LL * 1000LL * timezone;
 #endif
   return GNUNET_OK;
 }
@@ -380,7 +381,10 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_conv (const char *input, size_t len, const char *input_charset, const char *output_charset)
+GNUNET_STRINGS_conv (const char *input,
+		     size_t len, 
+		     const char *input_charset, 
+		     const char *output_charset)
 {
   char *ret;
   uint8_t *u8_string;
@@ -634,41 +638,48 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
 					int do_round)
 {
   static char buf[128];
-  const char *unit = _( /* time unit */ "ms");
-  uint64_t dval = delta.rel_value;
+  const char *unit = _( /* time unit */ "µs");
+  uint64_t dval = delta.rel_value_us;
 
-  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value == delta.rel_value)
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == delta.rel_value_us)
     return _("forever");
-  if (0 == delta.rel_value)
+  if (0 == delta.rel_value_us)
     return _("0 ms");
   if ( ( (GNUNET_YES == do_round) && 
 	 (dval > 5 * 1000) ) || 
        (0 == (dval % 1000) ))
   {
     dval = dval / 1000;
-    unit = _( /* time unit */ "s");
-    if ( ( (GNUNET_YES == do_round) &&
-	   (dval > 5 * 60) ) ||
-	 (0 == (dval % 60) ) )
+    unit = _( /* time unit */ "ms");
+    if ( ( (GNUNET_YES == do_round) && 
+	   (dval > 5 * 1000) ) || 
+	 (0 == (dval % 1000) ))
     {
-      dval = dval / 60;
-      unit = _( /* time unit */ "m");
+      dval = dval / 1000;
+      unit = _( /* time unit */ "s");
       if ( ( (GNUNET_YES == do_round) &&
-	     (dval > 5 * 60) ) || 
-	   (0 == (dval % 60) ))
+	     (dval > 5 * 60) ) ||
+	   (0 == (dval % 60) ) )
       {
-        dval = dval / 60;
-        unit = _( /* time unit */ "h");
-        if ( ( (GNUNET_YES == do_round) &&
-	       (dval > 5 * 24) ) ||
-	     (0 == (dval % 24)) )
+	dval = dval / 60;
+	unit = _( /* time unit */ "m");
+	if ( ( (GNUNET_YES == do_round) &&
+	       (dval > 5 * 60) ) || 
+	     (0 == (dval % 60) ))
 	{
-          dval = dval / 24;
-	  if (1 == dval)
-	    unit = _( /* time unit */ "day");
-	  else
-	    unit = _( /* time unit */ "days");
-        }
+	  dval = dval / 60;
+	  unit = _( /* time unit */ "h");
+	  if ( ( (GNUNET_YES == do_round) &&
+		 (dval > 5 * 24) ) ||
+	       (0 == (dval % 24)) )
+	  {
+	    dval = dval / 24;
+	    if (1 == dval)
+	      unit = _( /* time unit */ "day");
+	    else
+	      unit = _( /* time unit */ "days");
+	  }
+	}
       }
     }
   }
@@ -693,9 +704,9 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   time_t tt;
   struct tm *tp;
 
-  if (t.abs_value == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value)
+  if (t.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     return _("end of time");
-  tt = t.abs_value / 1000;
+  tt = t.abs_value_us / 1000LL / 1000LL;
   tp = gmtime (&tt);
   strftime (buf, sizeof (buf), "%a %b %d %H:%M:%S %Y", tp);
   return buf;

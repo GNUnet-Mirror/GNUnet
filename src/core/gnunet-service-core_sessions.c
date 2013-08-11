@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -240,8 +240,8 @@ transmit_typemap_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     delay = TYPEMAP_FREQUENCY;
   }
   /* randomize a bit to avoid spont. sync */
-  delay.rel_value +=
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000);
+  delay.rel_value_us +=
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000 * 1000);
   session->typemap_task =
       GNUNET_SCHEDULER_add_delayed (delay, &transmit_typemap_task, session);
   GNUNET_STATISTICS_update (GSC_stats,
@@ -409,7 +409,7 @@ discard_expired_requests (struct Session *session)
   {
     pos = nxt;
     nxt = pos->next;
-    if ((pos->deadline.abs_value < now.abs_value) &&
+    if ((pos->deadline.abs_value_us < now.abs_value_us) &&
         (GNUNET_YES != pos->was_solicited))
     {
       GNUNET_STATISTICS_update (GSC_stats,
@@ -501,7 +501,7 @@ try_transmission (struct Session *session)
   now = GNUNET_TIME_absolute_get ();
   if ((msize == 0) ||
       ((msize < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / 2) &&
-       (min_deadline.abs_value > now.abs_value)))
+       (min_deadline.abs_value_us > now.abs_value_us)))
   {
     /* not enough ready yet, try to solicit more */
     solicit_messages (session);

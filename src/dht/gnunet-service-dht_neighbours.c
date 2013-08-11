@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -602,10 +602,10 @@ send_find_peer_message (void *cls,
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
   GNUNET_CONTAINER_bloomfilter_free (bcc.bloom);
   /* schedule next round */
-  next_send_time.rel_value =
-      DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value +
+  next_send_time.rel_value_us =
+      DHT_MINIMUM_FIND_PEER_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value /
+                                DHT_MAXIMUM_FIND_PEER_INTERVAL.rel_value_us /
                                 (newly_found_peers + 1));
   newly_found_peers = 0;
   find_peer_task =
@@ -757,7 +757,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 
   peer->th = NULL;
   while ((NULL != (pending = peer->head)) &&
-         (GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value == 0))
+         (0 == GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value_us))
   {
     peer->pending_count--;
     GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);

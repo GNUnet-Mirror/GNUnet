@@ -87,7 +87,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
     if (0 ==
         GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh
-                                            (rec->expiration_time)).rel_value)
+                                            (rec->expiration_time)).rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: Timeout\n");
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

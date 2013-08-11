@@ -127,10 +127,10 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value;
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
-           total_bytes * 1000 / 1024 / delta);
-  GAUGER ("CORE", "Core throughput/s", total_bytes * 1000 / 1024 / delta,
+           total_bytes * 1000000LL / 1024 / delta);
+  GAUGER ("CORE", "Core throughput/s", total_bytes * 1000000LL / 1024 / delta,
           "kb/s");
   ok = 0;
 }

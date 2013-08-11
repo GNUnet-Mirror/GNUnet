@@ -282,7 +282,7 @@ result_processor (void *cls,
   //packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_STATUS; // ???
   for (i=0;i<rd_count;i++)
     {
-      rec.expiration_time.abs_value = rd[i].expiration_time;
+      rec.expiration_time.abs_value_us = rd[i].expiration_time;
       switch (rd[i].record_type)
 	{
 	case GNUNET_DNSPARSER_TYPE_A:

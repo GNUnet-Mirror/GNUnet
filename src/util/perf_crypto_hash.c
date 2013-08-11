@@ -53,9 +53,9 @@ main (int argc, char *argv[])
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
 						  GNUNET_YES));
   GAUGER ("UTIL", "Cryptographic hashing",
-          1024 * 64 * 1024 / (1 +
-                              GNUNET_TIME_absolute_get_duration
-                              (start).rel_value), "kb/s");
+          64 * 1024 / (1 +
+		       GNUNET_TIME_absolute_get_duration
+		       (start).rel_value_us / 1000LL), "kb/ms");
   return 0;
 }
 

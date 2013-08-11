@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -444,7 +444,7 @@ timeout_hello_validation (void *cls,
   ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   max = GNUNET_TIME_absolute_max (ve->valid_until, ve->revalidation_block);
   left = GNUNET_TIME_absolute_get_remaining (max);
-  if (left.rel_value > 0)
+  if (left.rel_value_us > 0)
   {
     /* should wait a bit longer */
     ve->timeout_task =
@@ -494,7 +494,7 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
               GNUNET_i2s (pid), GST_plugins_a2s (ve->address), ve->address->transport_name);
 
   next = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), validation_delay);
-  if (next.abs_value > validation_next.abs_value)
+  if (next.abs_value_us > validation_next.abs_value_us)
   	validation_next = next; /* We're going to send a PING so delay next validation */
 
   slen = strlen (ve->address->transport_name) + 1;
@@ -607,15 +607,15 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   canonical_delay =
       (ve->in_use ==
        GNUNET_YES) ? CONNECTED_PING_FREQUENCY
-      : ((GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value >
+      : ((GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us >
           0) ? VALIDATED_PING_FREQUENCY : UNVALIDATED_PING_KEEPALIVE);
-  if (delay.rel_value > canonical_delay.rel_value * 2)
+  if (delay.rel_value_us > canonical_delay.rel_value_us * 2)
   {
     /* situation changed, recalculate delay */
     delay = canonical_delay;
     ve->revalidation_block = GNUNET_TIME_relative_to_absolute (delay);
   }
-  if (delay.rel_value > 0)
+  if (delay.rel_value_us > 0)
   {
     /* should wait a bit longer */
     ve->revalidation_task =
@@ -624,7 +624,7 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
   if ((validations_running > validations_fast_start_threshold) &&
-  		(blocked_for.rel_value > 0))
+  		(blocked_for.rel_value_us > 0))
   {
     /* Validations are blocked, have to wait for blocked_for time */
     ve->revalidation_task =
@@ -636,24 +636,20 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* schedule next PINGing with some extra random delay to avoid synchronous re-validations */
   rdelay =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                canonical_delay.rel_value);
+                                canonical_delay.rel_value_us);
 
-  /* Debug code for mantis 0002726*/
-  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value ==
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rdelay).rel_value)
+  /* Debug code for mantis 0002726 */
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us ==
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, rdelay).rel_value_us)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Revalidation interval for peer `%s' for is FOREVER (debug: rdelay: %llu, canonical delay %llu)\n",
-                GNUNET_i2s (&ve->pid),
-                (unsigned long long) delay.rel_value,
-                (unsigned long long) canonical_delay.rel_value);
+    GNUNET_break (0);
     delay = canonical_delay;
   }
   else
   {
-      delay = GNUNET_TIME_relative_add (canonical_delay,
-                                GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MILLISECONDS, rdelay));
+    delay = GNUNET_TIME_relative_add (canonical_delay,
+				      GNUNET_TIME_relative_multiply
+				      (GNUNET_TIME_UNIT_MICROSECONDS, rdelay));
   }
   /* End debug code for mantis 0002726*/
   ve->revalidation_task =
@@ -739,7 +735,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
   struct GNUNET_ATS_Information ats;
   struct GNUNET_CRYPTO_EccPublicKey public_key;
 
-  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
+  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
   if ((GNUNET_OK != GNUNET_HELLO_get_id (hello, &pid)) ||
       (GNUNET_OK != GNUNET_HELLO_get_key (hello, &public_key)))
@@ -806,16 +802,18 @@ GST_validation_start (unsigned int max_fds)
 	 * when doing to many validations in parallel:
 	 * if (running validations < (max_fds / 2))
 	 * - "fast start": run validation immediately
-	 * - have delay of (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) / (max_fds / 2)
+	 * - have delay of (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2)
 	 *   (300 sec / ~150 == ~2 sec.) between two validations
 	 */
 
 	validation_next = GNUNET_TIME_absolute_get();
-	validation_delay.rel_value = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value) /  (max_fds / 2);
+	validation_delay.rel_value_us = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2);
 	validations_fast_start_threshold = (max_fds / 2);
 	validations_running = 0;
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %u ms\n ",
-			validations_fast_start_threshold, validation_delay.rel_value);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
+		    validations_fast_start_threshold, 
+		    GNUNET_STRINGS_relative_time_to_string (validation_delay,
+							    GNUNET_YES));
   validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
   pnc = GNUNET_PEERINFO_notify (GST_cfg, GNUNET_YES, &process_peerinfo_hello, NULL);
@@ -1056,8 +1054,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     GNUNET_assert (NULL != addrend);
     memcpy (&((char *) &pong[1])[slen], addrend, alen);
   }
-  if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value <
-      PONG_SIGNATURE_LIFETIME.rel_value / 4)
+  if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value_us <
+      PONG_SIGNATURE_LIFETIME.rel_value_us / 4)
   {
     /* create / update cached sig */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1164,7 +1162,7 @@ validate_address_iterator (void *cls,
   const struct ValidateAddressContext *vac = cls;
   struct ValidationEntry *ve;
 
-  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value == 0)
+  if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
   ve = find_validation_entry (&vac->public_key, address);
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
@@ -1261,7 +1259,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return;
   }
   if (GNUNET_TIME_absolute_get_remaining
-      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value == 0)
+      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value_us == 0)
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -1272,7 +1270,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
 
   sig_res = GNUNET_SYSERR;
   do_verify = GNUNET_YES;
-  if (0 != GNUNET_TIME_absolute_get_remaining(ve->pong_sig_valid_until).rel_value)
+  if (0 != GNUNET_TIME_absolute_get_remaining(ve->pong_sig_valid_until).rel_value_us)
   {
   		/* We have a cached and valid signature for this peer,
   		 * try to compare instead of verify */
@@ -1316,7 +1314,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   {
     struct GNUNET_ATS_Information ats[2];
     ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-    ats[0].value = htonl ((uint32_t) ve->latency.rel_value);
+    ats[0].value = htonl ((uint32_t) ve->latency.rel_value_us);
     ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
     ats[1].value = htonl ((uint32_t) ve->network);
     GNUNET_ATS_address_add (GST_ats, ve->address, NULL, ats, 2);

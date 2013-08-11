@@ -158,7 +158,7 @@ find_it (void *cls,
 
 	if (0 != strcmp(e->name, find_ctx->name))
 		return GNUNET_OK;
-	if (e->version.abs_value != find_ctx->version.abs_value)
+	if (e->version.abs_value_us != find_ctx->version.abs_value_us)
 		return GNUNET_OK;
 
 	find_ctx->res = e;
@@ -272,8 +272,8 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 			e->name,
 			GNUNET_STRINGS_absolute_time_to_string (start),
 			GNUNET_STRINGS_absolute_time_to_string (stop),
-			(long long unsigned int) frequency.rel_value / 1000,
-			(long long unsigned int) duration.rel_value / 1000);
+			(long long unsigned int) frequency.rel_value_us / 1000000LL,
+			(long long unsigned int) duration.rel_value_us / 1000000LL);
 	GNUNET_CONTAINER_multihashmap_put (experiments, &e->issuer.hashPubKey, e, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (GED_stats, "# experiments", GNUNET_CONTAINER_multihashmap_size (experiments), GNUNET_NO);
 
@@ -336,7 +336,7 @@ void exp_file_iterator (void *cls,
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Experiment `%s': Version missing or invalid \n"), name);
 			return;
 	}
-	version.abs_value = number;
+	version.abs_value_us = number; // FIXME: what is this supposed to be? Version != TIME!???
 
 	/* Required capabilities */
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "CAPABILITIES", &number))
@@ -358,14 +358,14 @@ void exp_file_iterator (void *cls,
 
 
 
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "START", (long long unsigned int *) &start.abs_value))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "START", (long long unsigned int *) &start.abs_value_us))
 			start = GNUNET_TIME_UNIT_ZERO_ABS;
 
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (exp, name, "FREQUENCY", &frequency))
 			frequency = EXP_DEFAULT_EXP_FREQ;
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (exp, name, "DURATION", &duration))
 			duration = EXP_DEFAULT_EXP_DUR;
-	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "STOP", (long long unsigned int *)&stop.abs_value))
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "STOP", (long long unsigned int *)&stop.abs_value_us))
 			stop = GNUNET_TIME_UNIT_FOREVER_ABS;
 
 	GNUNET_EXPERIMENTATION_experiments_add (i, name, issuer, version,

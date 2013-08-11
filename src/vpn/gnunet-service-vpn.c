@@ -1120,7 +1120,7 @@ route_packet (struct DestinationEntry *destination,
     ts->destination_port = destination_port;
     ts->heap_node = GNUNET_CONTAINER_heap_insert (tunnel_heap,
 						  ts,
-						  GNUNET_TIME_absolute_get ().abs_value);
+						  GNUNET_TIME_absolute_get ().abs_value_us);
     GNUNET_assert (GNUNET_YES ==
 		   GNUNET_CONTAINER_multihashmap_put (tunnel_map,
 						      &key,
@@ -1137,7 +1137,7 @@ route_packet (struct DestinationEntry *destination,
     is_new = GNUNET_NO;
     GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
 				       ts->heap_node,
-				       GNUNET_TIME_absolute_get ().abs_value);
+				       GNUNET_TIME_absolute_get ().abs_value_us);
   }
   GNUNET_assert (NULL != ts->tunnel);
   
@@ -2070,7 +2070,7 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
 				     ts->heap_node,
-				     GNUNET_TIME_absolute_get ().abs_value);
+				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
 }
 
@@ -2225,7 +2225,7 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
 				     ts->heap_node,
-				     GNUNET_TIME_absolute_get ().abs_value);
+				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
 }
 
@@ -2367,7 +2367,7 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
 				     ts->heap_node,
-				     GNUNET_TIME_absolute_get ().abs_value);
+				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
 }
 
@@ -2708,7 +2708,7 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
-						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value_us);
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active destinations"),
 			    1, GNUNET_NO);
@@ -2814,7 +2814,7 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   de->heap_node = GNUNET_CONTAINER_heap_insert (destination_heap,
 						de,
-						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value);
+						GNUNET_TIME_absolute_ntoh (msg->expiration_time).abs_value_us);
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
   ts = create_tunnel_to_destination (de,

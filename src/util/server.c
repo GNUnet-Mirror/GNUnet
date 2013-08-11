@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -1032,8 +1032,8 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
     if (GNUNET_OK == ret)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Server re-enters receive loop, timeout: %llu.\n",
-           client->idle_timeout.rel_value);
+           "Server re-enters receive loop, timeout: %s.\n",
+           GNUNET_STRINGS_relative_time_to_string (client->idle_timeout, GNUNET_YES));
       client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -1094,7 +1094,7 @@ process_incoming (void *cls, const void *buf, size_t available,
   if ((NULL == buf) && (0 == available) && (NULL == addr) && (0 == errCode) &&
       (GNUNET_YES != client->shutdown_now) && (NULL != server) &&
       (GNUNET_YES == GNUNET_CONNECTION_check (client->connection)) &&
-      (end.abs_value > now.abs_value))
+      (end.abs_value_us > now.abs_value_us))
   {
     /* wait longer, timeout changed (i.e. due to us sending) */
     LOG (GNUNET_ERROR_TYPE_DEBUG,

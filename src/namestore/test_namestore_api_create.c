@@ -316,7 +316,7 @@ create_record (unsigned int count)
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value;
+    rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);

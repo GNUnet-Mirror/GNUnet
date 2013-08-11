@@ -692,7 +692,7 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   timeout = GNUNET_TIME_absolute_get_remaining (session->timeout);
-  if (0 == timeout.rel_value) 
+  if (0 == timeout.rel_value_us) 
   {
     free_session (session);
     return;
@@ -1003,7 +1003,7 @@ macendpoint_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   endpoint->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   timeout = GNUNET_TIME_absolute_get_remaining (endpoint->timeout);
-  if (0 == timeout.rel_value) 
+  if (0 == timeout.rel_value_us) 
   {
     free_macendpoint (endpoint);
     return;

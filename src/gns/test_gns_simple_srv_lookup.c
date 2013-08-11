@@ -251,7 +251,7 @@ do_check (void *cls,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME,
                                           &rd, 1);
-  et.abs_value = rd.expiration_time;
+  et.abs_value_us = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
                                TEST_RECORD_NAME,
@@ -274,7 +274,7 @@ do_check (void *cls,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
                                           TEST_RECORD_NAME_SRV,
                                           &rd, 1);
-  et.abs_value = rd.expiration_time;
+  et.abs_value_us = rd.expiration_time;
   GNUNET_NAMESTORE_record_put (namestore_handle,
                                &bob_pkey,
                                TEST_RECORD_NAME_SRV,

@@ -182,7 +182,7 @@ put_cb (void *cls,
 	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));   
     GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
 				       val->hn,
-				       val->discard_time.abs_value);
+				       val->discard_time.abs_value_us);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Got same value for key %s and type %d (size %u vs %u)\n",
 		GNUNET_h2s (key),
@@ -250,7 +250,7 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   val->hn = GNUNET_CONTAINER_heap_insert (plugin->heap,
 					  val,
-					  val->discard_time.abs_value);
+					  val->discard_time.abs_value_us);
   return size + OVERHEAD;
 }
 

@@ -2200,7 +2200,7 @@ run_httpd (struct MhdHttpList *hd)
   haveto = MHD_get_timeout (hd->daemon, &timeout);
 
   if (MHD_YES == haveto)
-    tv.rel_value = (uint64_t) timeout;
+    tv.rel_value_us = (uint64_t) timeout * 1000LL;
   else
     tv = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_NETWORK_fdset_copy_native (wrs, &rs, max + 1);
