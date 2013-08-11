@@ -49,13 +49,8 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   received++;
-
-  printf ("received\n");
-
-
   if ((received == 2) && (GNUNET_YES == notify))
   {
-    printf ("done\n");
     GNUNET_SERVER_receive_done (argclient, GNUNET_NO);
     return;
   }
@@ -103,7 +98,6 @@ void send_cb (void *cls)
 {
   /* the notify should only be called once */
   GNUNET_assert (GNUNET_NO == notify);
-  printf ("notify sent\n");
   notify = GNUNET_YES;
 }
 
