@@ -1267,7 +1267,7 @@ typedef void (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
  * callback.  The 'ca' callback is used to create the connection
  * when the time is right; the 'da' callback will be used to
  * destroy the connection (upon 'GNUNET_TESTBED_operation_done').
- * 'GNUNET_TESTBED_operation_cancel' can be used to abort this
+ * 'GNUNET_TESTBED_operation_done' can be used to abort this
  * operation until the event callback has been called.
  *
  * @param op_cls closure to pass in operation event // FIXME: didn't we say we'd no longer use the global callback for these? -CG
