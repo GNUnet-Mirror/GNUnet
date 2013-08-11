@@ -60,7 +60,7 @@ try:
   pseu.spawn (None, [pseudonym, '-c', 'test_gnunet_fs_ns_data.conf', '-A', 'licenses', '-k', 'gplad', '-m', 'description:Free Software Licenses', '-R', 'myroot'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
   s = pexpect ()
-  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_ns_data.conf', 'gplad'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  s.spawn (None, [search, '-V', '-t', '1000 ms', '-N', '1', '-c', 'test_gnunet_fs_ns_data.conf', 'gplad'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   s.expect ("stdout", re.compile (r'#0:\r?\n'))
   s.expect ("stdout", re.compile (r'gnunet-download gnunet://fs/sks/.*/myroot\r?\n'))
   s.expect ("stdout", re.compile (r'\s*description: Free Software Licenses\r?\n'))

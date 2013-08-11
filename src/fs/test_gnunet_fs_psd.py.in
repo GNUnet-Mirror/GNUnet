@@ -60,7 +60,7 @@ try:
   pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822'\.\r?\n"))
 
   s = pexpect ()
-  s.spawn (None, [search, '-V', '-t', '1000', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  s.spawn (None, [search, '-V', '-t', '1000 ms', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   s.expect ("stdout", re.compile (r'#0:\r?\n'))
   s.expect ("stdout", re.compile (r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822\r?\n'))
   s.expect ("stdout", re.compile (r"\s*description: Test archive\r?\n"))
