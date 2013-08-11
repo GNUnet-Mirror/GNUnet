@@ -134,6 +134,7 @@ testLocation ()
   GNUNET_free (uric);
   if (uri2 == NULL)
   {
+    fprintf (stderr, "URI parsing failed: %s\n", emsg);
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (uri);
     GNUNET_CONFIGURATION_destroy (cfg);

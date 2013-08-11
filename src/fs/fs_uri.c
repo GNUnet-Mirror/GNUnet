@@ -588,7 +588,7 @@ uri_loc_parse (const char *s, char **emsg)
        SSCANF (&s[pos + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) * 2],
                "%llu", &flen)))
   {
-    *emsg = GNUNET_strdup (_("SKS URI malformed"));
+    *emsg = GNUNET_strdup (_("LOC URI malformed"));
     return NULL;
   }
   ass.fi.file_length = GNUNET_htonll (flen);
@@ -598,7 +598,7 @@ uri_loc_parse (const char *s, char **emsg)
     npos++;
   if (s[npos] == '\0')
   {
-    *emsg = GNUNET_strdup (_("SKS URI malformed"));
+    *emsg = GNUNET_strdup (_("LOC URI malformed"));
     goto ERR;
   }
   npos++;
@@ -608,7 +608,7 @@ uri_loc_parse (const char *s, char **emsg)
   if (ret == -1)
   {
     *emsg =
-        GNUNET_strdup (_("SKS URI malformed (could not decode public key)"));
+        GNUNET_strdup (_("LOC URI malformed (could not decode public key)"));
     goto ERR;
   }
   npos += ret;
@@ -900,6 +900,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   struct GNUNET_CRYPTO_EccPublicKey my_public_key;
   char *keyfile;
   struct LocUriAssembly ass;
+  struct GNUNET_TIME_Absolute et;
 
   if (baseUri->type != GNUNET_FS_URI_CHK)
     return NULL;
@@ -919,16 +920,18 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
     return NULL;
   }
   GNUNET_free (keyfile);
+  /* we round expiration time to full seconds for SKS URIs */
+  et.abs_value_us = (expiration_time.abs_value_us / 1000000LL) * 1000000LL;
   GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
   ass.purpose.size = htonl (sizeof (struct LocUriAssembly));
   ass.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
-  ass.exptime = GNUNET_TIME_absolute_hton (expiration_time);
+  ass.exptime = GNUNET_TIME_absolute_hton (et);
   ass.fi = baseUri->data.chk;
   ass.peer = my_public_key;
   uri = GNUNET_new (struct GNUNET_FS_Uri);
   uri->type = GNUNET_FS_URI_LOC;
   uri->data.loc.fi = baseUri->data.chk;
-  uri->data.loc.expirationTime = expiration_time;
+  uri->data.loc.expirationTime = et;
   uri->data.loc.peer = my_public_key;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecc_sign (my_private_key, &ass.purpose,
@@ -2037,7 +2040,7 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
                    (unsigned long long) GNUNET_ntohll (uri->data.loc.
                                                        fi.file_length), peerId,
                    peerSig,
-                   (unsigned long long) uri->data.loc.expirationTime.abs_value_us / 1000LL / 1000LL);
+                   (unsigned long long) uri->data.loc.expirationTime.abs_value_us / 1000000LL);
   GNUNET_free (peerSig);
   GNUNET_free (peerId);
   return ret;
