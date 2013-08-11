@@ -20,8 +20,8 @@
 
 /** 
  * @file include/gnunet_env_lib.h
- * @brief Library providing operations for the @e environment of PSYC and Social messages,
- *        and for (de)serializing variable values.
+ * @brief Library providing operations for the @e environment of
+ *        PSYC and Social messages, and for (de)serializing variable values.
  * @author Gabor X Toth
  */
 
@@ -144,28 +144,31 @@ GNUNET_ENV_environment_operation (struct GNUNET_ENV_Environment *env,
 /** 
  * Get all modifiers in the environment.
  *
+ * FIXME: use an iterator instead, as we'll likely use a SList to store the
+ *        modifiers in the environment.
+ *
  * @param env The environment.
- * @param[out] modifiers_length Set to the number of returned modifiers.
+ * @param[out] modifier_count Set to the number of returned modifiers.
  * 
  * @return Array of modifiers.
  */
 const struct GNUNET_ENV_Modifier *
 GNUNET_ENV_environment_get_modifiers (const struct GNUNET_ENV_Environment *env,
-                                      size_t *modifiers_length);
+                                      size_t *modifier_count);
 
 
 /** 
  * Add list of modifiers to the environment.
  *
  * @param env The environment.
- * @param modifiers_length Number of @a modifiers.
+ * @param modifier_count Number of @a modifiers.
  * @param modifiers Array of modifiers to add.
  * 
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error.
  */
 int
 GNUNET_ENV_environment_set_modifiers (const struct GNUNET_ENV_Environment *env,
-                                      size_t modifiers_length,
+                                      size_t modifier_count,
                                       const struct GNUNET_ENV_Modifier *modifiers);
 
 

@@ -225,7 +225,7 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
  * GNUNET_SOCIAL_home_leave().
  *
  * @param cfg Configuration to contact the social service.
- * @param home_keyfile File with the private key for the home,
+ * @param home_keyfile File with the private-public key pair of the home,
  *        created if the file does not exist; pass NULL for ephemeral homes.
  * @param policy Policy specifying entry and history restrictions of the home.
  * @param ego Owner of the home (host).
@@ -295,29 +295,27 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
 
 
 /** 
- * Get the identity of a user.
+ * Get the public key of a nym.
  *
  * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
  *
  * @param nym Pseudonym to map to a cryptographic identifier.
- * @param[out] identity Set to the identity of the nym (short hash of the public key).
+ * @param[out] identity Set to the public key of the nym.
  */
 void
-GNUNET_SOCIAL_nym_get_identity (struct GNUNET_SOCIAL_Nym *nym,
-                                struct GNUNET_CRYPTO_ShortHashCode *identity);
+GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
+                           struct GNUNET_CRYPTO_EccPublicKey *nym_key);
 
 
 /** 
- * Obtain the (cryptographic, binary) address for the home.
+ * Obtain the private-public key pair of the home.
  * 
- * @param home Home to get the (public) address from.
- * @param[out] crypto_address Address suitable for storing in GADS, i.e. in
- *        'HEX.place' or within the respective GADS record type ("PLACE")
+ * @param home Home to get the key of.
+ * @param[out] home_key Set to the private-public key pair of the home.  The public part is suitable for storing in GADS within a "PLACE" record, along with peer IDs to join at.
  */
 void
-GNUNET_SOCIAL_home_get_address (struct GNUNET_SOCIAL_Home *home,
-                                struct GNUNET_HashCode *crypto_address);
-
+GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
+                            struct GNUNET_CRYPTO_EccPrivateKey *home_key);
 
 
 /** 
@@ -409,9 +407,10 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
  * @param address GADS name of the place to enter.  Either in the form of
- *        'room.friend.gads', or 'HEX.zkey'.  This latter case refers to the
- *        'PLACE' record in the GADS zone with the public key 'HEX', and can be
- *        used to request entry to a pseudonym's place directly.
+ *        'room.friend.gads', or 'NYMPUBKEY.zkey'.  This latter case refers to
+ *        the 'PLACE' record of the empty label ("+") in the GADS zone with the
+ *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
+ *        pseudonym's place directly.
  * @param env Environment containing variables for the message, or NULL.
  * @param data_size Number of bytes in @a data.
  * @param data Payload for the message to give to the enter callback.
@@ -443,7 +442,7 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_SOCIAL_Ego *ego,
-                           struct GNUNET_HashCode *crypto_address,
+                           struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
                            struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_SOCIAL_Slicer *slicer,
                            const struct GNUNET_ENV_Environment *env,

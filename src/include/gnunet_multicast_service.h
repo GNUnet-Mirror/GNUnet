@@ -172,6 +172,10 @@ struct GNUNET_MULTICAST_MessageHeader
 
   /** 
    * Signature of the multicast message fragment.
+   *
+   * FIXME: not strictly necessary, the size is already in the MessageHeader
+   *        (minus the unsigned fields), and we could implicitly associate
+   *        a sig. purpose with the message type in the header.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
@@ -225,14 +229,19 @@ struct GNUNET_MULTICAST_MessageHeader
    * messages to update its list of candidates for content distribution.  All
    * other message types are application-specific.
    *
-   * FIXME: Needed? There's no message type argument of origin_to_all(),
-   *        PSYC does not need it, but could be added.
+   * FIXME: Needed? The payload could have its own message header already,
+   *        multicast does not actually need it.
+   *        Also, we have no message type argument for origin_to_all(),
    */
   struct GNUNET_MessageHeader body;
 
   /* Followed by message body. */
 };
 
+GNUNET_NETWORK_STRUCT_END
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /** 
  * Header of a request from a member to the origin.
@@ -247,24 +256,74 @@ struct GNUNET_MULTICAST_RequestHeader
   struct GNUNET_MessageHeader header;
 
   /**
-   * Public key of the group.
+   * Public key of the sending member.
    */
-  struct GNUNET_CRYPTO_ECCPublicKey pub_key;
+  struct GNUNET_CRYPTO_EccPublicKey member_key;
+
+  /** 
+   * ECC signature of the request fragment.
+   *
+   * Signature must match the public key of the multicast group.
+   */
+  struct GNUNET_CRYPTO_EccSignature signature;
+
+  /** 
+   * Number of the request fragment, monotonically increasing.
+   */
+  uint64_t fragment_id GNUNET_PACKED;
+
+  /** 
+   * Byte offset of this @e fragment of the @e request.
+   */
+  uint64_t fragment_offset GNUNET_PACKED;
+
+  /** 
+   * Number of the request this fragment belongs to.
+   *
+   * Set in GNUNET_MULTICAST_origin_to_all().
+   */
+  uint64_t request_id GNUNET_PACKED;
 
   /**
    * Flags for this request.
    */
   enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
 
+  /* Followed by request body. */
+};
+
+GNUNET_NETWORK_STRUCT_END
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+struct GNUNET_MULTICAST_JoinRequest {
   /** 
-   * Header for the request body.
-   *
-   * Two request types are specifically understood by multicast, namely "peer
-   * join", "peer part".  Multicast will use those messages to update its list
-   * of candidates for content distribution.  All other message types are
-   * application-specific.
+   * Header for the join request.
    */
-  struct GNUNET_MessageHeader body;
+  struct GNUNET_MessageHeader header;
+
+  /** 
+   * ECC signature of the rest of the fields of the join request.
+   *
+   * Signature must match the public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EccSignature signature;
+
+  /**
+   * Public key of the target group.
+   */
+  struct GNUNET_CRYPTO_EccPublicKey group_key;
+
+  /**
+   * Public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EccPublicKey member_key;
+
+  /**
+   * Peer identity of the joining member.
+   */
+  struct GNUNET_PeerIdentity member_peer;
 
   /* Followed by request body. */
 };
@@ -318,17 +377,18 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  * with the decision.
  *
  * @param cls Closure.
- * @param peer Identity of the peer that wants to join.
- * @param join_req Application-dependent join message from the new user
+ * @param peer Identity of the member that wants to join.
+ * @param join_req Application-dependent join message from the new member
  *        (might, for example, contain a user,
  *        bind user identity/pseudonym to peer identity, application-level
  *        message to origin, etc.).
  * @param jh Join handle to pass to GNUNET_MULTICAST_join_decison().
  */
-typedef void (*GNUNET_MULTICAST_JoinCallback)(void *cls,
-                                              const struct GNUNET_PeerIdentity *peer,
-                                              const struct GNUNET_MessageHeader *join_req,
-                                              struct GNUNET_MULTICAST_JoinHandle *jh);
+typedef void
+(*GNUNET_MULTICAST_JoinCallback) (void *cls,
+                                  const struct GNUNET_EccPublicKey *member_key,
+                                  const struct GNUNET_MessageHeader *join_req,
+                                  struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
 /** 
@@ -341,12 +401,12 @@ struct GNUNET_MULTICAST_MembershipTestHandle;
  * Call informing multicast about the decision taken for membership test.
  *
  * @param mth Handle that was given for the query.
- * @param decision #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
- *         #GNUNET_SYSERR if we cannot answer the membership test.
+ * @param result #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
+ *        #GNUNET_SYSERR if we cannot answer the membership test.
  */
 void
-GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
-                                         int decision);
+GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
+                                         int result);
 
 
 /** 
@@ -356,14 +416,15 @@ GNUNET_MULTICAST_membership_test_answer (struct GNUNET_MULTICAST_MembershipTestH
  * message can be replayed.
  *
  * @param cls Closure.
- * @param peer Identity of the peer that we want to test.
+ * @param member_id Identity of the member that we want to test.
  * @param fragment_id Message fragment ID for which we want to do the test.
  * @param mth Handle to give to GNUNET_MULTICAST_membership_test_answer().
  */
-typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
-                                                        const struct GNUNET_PeerIdentity *peer,
-                                                        uint64_t fragment_id,
-                                                        struct GNUNET_MULTICAST_MembershipTestHandle *mth);
+typedef void
+(*GNUNET_MULTICAST_MembershipTestCallback) (void *cls,
+                                            const struct GNUNET_CRYPTO_EccPublicKey *member_key,
+                                            uint64_t fragment_id,
+                                            struct GNUNET_MULTICAST_MembershipTestHandle *mth);
 
 
 /** 
@@ -375,10 +436,11 @@ typedef void (*GNUNET_MULTICAST_MembershipTestCallback)(void *cls,
  * @param req Request to the origin.
  * @param flags Flags for the request.
  */
-typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
-                                                  const struct GNUNET_PeerIdentity *sender,
-                                                  const struct GNUNET_MessageHeader *req,
-                                                  enum GNUNET_MULTICAST_MessageFlags flags);
+typedef void
+(*GNUNET_MULTICAST_RequestCallback) (void *cls,
+                                     const struct GNUNET_EccPublicKey *member_key,
+                                     const struct GNUNET_MessageHeader *req,
+                                     enum GNUNET_MULTICAST_MessageFlags flags);
 
 
 /** 
@@ -394,8 +456,9 @@ typedef void (*GNUNET_MULTICAST_RequestCallback) (void *cls,
  *        (or we were kicked out, and we should thus call
  *        GNUNET_MULTICAST_member_part() next)
  */
-typedef void (*GNUNET_MULTICAST_MessageCallback) (void *cls,
-                                                  const struct GNUNET_MULTICAST_MessageHeader *msg);
+typedef void
+(*GNUNET_MULTICAST_MessageCallback) (void *cls,
+                                     const struct GNUNET_MULTICAST_MessageHeader *msg);
 
 
 /** 
@@ -417,9 +480,10 @@ struct GNUNET_MULTICAST_ReplayHandle;
  * @param fragment_id Which message fragment should be replayed.
  * @param rh Handle to pass to message transmit function.
  */
-typedef void (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
-                                                 uint64_t fragment_id,
-                                                 struct GNUNET_MULTICAST_ReplayHandle *rh);
+typedef void
+(*GNUNET_MULTICAST_ReplayCallback) (void *cls,
+                                    uint64_t fragment_id,
+                                    struct GNUNET_MULTICAST_ReplayHandle *rh);
 
 
 /** 
@@ -570,7 +634,9 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  * members of the group.
  *
  * @param cfg Configuration to use.
- * @param pub_key ECC key that identifies the group.
+ * @param group_key ECC public key that identifies the group to join.
+ * @param member_key ECC key that identifies the member and used to sign
+ *        requests sent to the origin.
  * @param origin Peer ID of the origin to send unicast requsets to.  If NULL,
  *        unicast requests are sent back via multiple hops on the reverse path
  *        of multicast messages.
@@ -600,7 +666,8 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_CRYPTO_EccPublicKey *pub_key,
+                              const struct GNUNET_CRYPTO_EccPublicKey *group_key,
+                              const struct GNUNET_CRYPTO_EccPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               size_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
@@ -622,7 +689,7 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
 /** 
  * Request a message to be replayed.
  *
- * Useful if messages below the @e max_known_*_id's given when joining are
+ * Useful if messages below the @e max_known_fragment_id given when joining are
  * needed and not known to the client.
  *
  * @param member Membership handle.
@@ -671,6 +738,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * Send a message to the origin of the multicast group.
  * 
  * @param member Membership handle.
+ * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param size Number of bytes we want to send to origin.
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
@@ -678,6 +746,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  */
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
+                                   uint64_t message_id,
                                    size_t size,
                                    GNUNET_CONNECTION_TransmitReadyNotify notify,
                                    void *notify_cls);
@@ -690,46 +759,6 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
  */
 void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberRequestHandle *rh);
-
-
-/** 
- * Handle to access multicast group operations for both the origin and members.
- */
-struct GNUNET_MULTICAST_Group;
-
-
-/** 
- * Convert a group @a origin to a @e group handle to access the @e group APIs.
- *
- * @param origin Group origin handle.
- * @return Group handle, valid for as long as @a origin is valid.
- */
-struct GNUNET_MULTICAST_Group *
-GNUNET_MULTICAST_origin_get_group (struct GNUNET_MULTICAST_Origin *origin);
-
-
-/** 
- * Convert @a member to a @e group handle to access the @e group APIs.
- *
- * @param member Member handle.
- * @return Group handle, valid for as long as @a member is valid.
- */
-struct GNUNET_MULTICAST_Group *
-GNUNET_MULTICAST_member_get_group (struct GNUNET_MULTICAST_Member *member);
-
-
-/**
- * Remove a peer from the group.
- *
- * After a message was received notifying about a leaving member, remove the
- * member from the multicast group.  Fragments with a greater @a message_id than
- * the specified one won't be transmitted to the member anymore, but the
- * transmission of lower or equal ones will still be performed.
- */
-void
-GNUNET_MULTICAST_group_member_remove (struct GNUNET_MULTICAST_Group *group,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      uint64_t message_id);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
