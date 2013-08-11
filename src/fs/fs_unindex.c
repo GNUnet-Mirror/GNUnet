@@ -578,6 +578,7 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
   keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
   GNUNET_CRYPTO_ecc_public_key_derive (&anon_pub,
 				       keyword,
+				       "fs-ublock",
 				       &dpub);
   GNUNET_CRYPTO_hash (&dpub,
 		      sizeof (dpub),
