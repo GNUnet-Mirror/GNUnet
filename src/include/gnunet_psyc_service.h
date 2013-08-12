@@ -287,6 +287,26 @@ typedef int
                                  void *data);
 
 
+
+/**
+ * Flags for transmitting messages to a channel by the master.
+ */
+enum GNUNET_PSYC_MasterTransmitFlags
+{
+  /** 
+   * Whether this message should reset the channel state,
+   * i.e. remove all previously stored state variables.
+   */
+  GNUNET_PSYC_MASTER_TRANSMIT_RESET_STATE = 1 << 0,
+
+  /** 
+   * Whether we need to increment the group generation counter after
+   * transmitting this message.
+   */
+  GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN = 1 << 1,
+};
+
+
 /** 
  * Handle for a pending PSYC transmission operation.
  */
@@ -302,11 +322,7 @@ struct GNUNET_PSYC_MasterTransmitHandle;
  *            for the message, or NULL.
  * @param notify Function to call to obtain the arguments.
  * @param notify_cls Closure for @a notify.
- * @param reset_state #GNUNET_YES if this message should reset the channel
- *        state, i.e. remove all previously stored state variables.
- *        #GNUNET_NO to keep the state as is.
- * @param increment_group_generation #GNUNET_YES if we need to increment
- *        the group generation counter after transmitting this message.
+ * @param flags Flags for the message being transmitted.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
 struct GNUNET_PSYC_MasterTransmitHandle *
@@ -315,8 +331,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_MasterReadyNotify notify,
                              void *notify_cls,
-                             int reset_state,
-                             int increment_group_generation);
+                             enum GNUNET_PSYC_TransmitFlags flags);
 
 
 /** 

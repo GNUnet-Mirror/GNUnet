@@ -331,6 +331,21 @@ GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
                               GNUNET_TIME_Relative expiration_time);
 
 
+/**
+ * Flags for announcements in a home.
+ */
+enum GNUNET_PSYC_AnnouncementFlags
+{
+  /** 
+   * Whether this announcement removes all objects from the home.
+   * 
+   * New objects can be still added to the now empty home using the @e env
+   * parameter of the same announcement.
+   */
+  GNUNET_SOCIAL_ANNOUNCEMENT_CLEAR_OBJECTS = 1 << 0,
+};
+
+
 /** 
  * Handle for an announcement request.
  */
@@ -349,8 +364,7 @@ struct GNUNET_SOCIAL_Announcement;
  *        objects of the home, or NULL.
  * @param notify Function to call to get the payload of the announcement.
  * @param notify_cls Closure for @a notify.
- * @param clear_objects #GNUNET_YES to remove all objects from the home, #GNUNET_NO otherwise.
- *        New objects can be added to the now empty home using the @a env parameter.
+ * @param flags Flags for this announcement.
  * @return NULL on error (announcement already in progress?).
  */
 struct GNUNET_SOCIAL_Announcement *
@@ -359,7 +373,7 @@ GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_CONNECTION_TransmitReadyNotify notify,
                              void *notify_cls,
-                             int clear_objects);
+                             GNUNET_SOCIAL_AnnouncementFlags flags);
 
 
 /** 

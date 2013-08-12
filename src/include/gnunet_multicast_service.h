@@ -171,6 +171,11 @@ struct GNUNET_MULTICAST_MessageHeader
   struct GNUNET_CRYPTO_EccSignature signature;
 
   /** 
+   * Purpose for the signature and size of the signed data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /** 
    * Number of the message fragment, monotonically increasing.
    */
   uint64_t fragment_id GNUNET_PACKED;
@@ -244,6 +249,11 @@ struct GNUNET_MULTICAST_RequestHeader
   struct GNUNET_CRYPTO_EccSignature signature;
 
   /** 
+   * Purpose for the signature and size of the signed data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /** 
    * Number of the request fragment, monotonically increasing.
    */
   uint64_t fragment_id GNUNET_PACKED;
@@ -290,6 +300,11 @@ struct GNUNET_MULTICAST_JoinRequest {
    * Signature must match the public key of the joining member.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
+
+  /** 
+   * Purpose for the signature and size of the signed data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * Public key of the target group.
