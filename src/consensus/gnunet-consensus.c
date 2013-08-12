@@ -53,6 +53,8 @@ static struct GNUNET_HashCode session_id;
 
 static unsigned int peers_done = 0;
 
+static unsigned *results_for_peer;
+
 
 /**
  * Signature of the event handler function called by the
@@ -78,9 +80,11 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
   peers_done++;
   if (peers_done == num_peers)
   {
-    int i;
+    unsigned int i;
     for (i = 0; i < num_peers; i++)
       GNUNET_TESTBED_operation_done (testbed_operations[i]);
+    for (i = 0; i < num_peers; i++)
+      printf ("P%u got %u of %u elements\n", i, results_for_peer[i], num_values);
     GNUNET_SCHEDULER_shutdown ();
   }
 }
@@ -174,7 +178,6 @@ connect_complete (void *cls,
                   void *ca_result,
                   const char *emsg)
 {
-  struct GNUNET_CONSENSUS_Handle **chp;
 
   if (NULL != emsg)
   {
@@ -182,11 +185,9 @@ connect_complete (void *cls,
     GNUNET_assert (0);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connect complete\n");
-
-  chp = (struct GNUNET_CONSENSUS_Handle **) cls;
-  *chp = (struct GNUNET_CONSENSUS_Handle *) ca_result;
   num_connected_handles++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connect complete\n");
 
   if (num_connected_handles == num_peers)
   {
@@ -199,7 +200,11 @@ static void
 new_element_cb (void *cls,
                 const struct GNUNET_SET_Element *element)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "received new element\n");
+  struct GNUNET_CONSENSUS_Handle **chp = cls;
+
+  GNUNET_assert (NULL != cls);
+  
+  results_for_peer[chp - consensus_handles]++;
 }
 
 
@@ -217,10 +222,13 @@ static void *
 connect_adapter (void *cls,
                  const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  struct GNUNET_CONSENSUS_Handle **chp = cls;
   struct GNUNET_CONSENSUS_Handle *consensus;
+  chp = (struct GNUNET_CONSENSUS_Handle **) cls;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connect adapter, %d peers\n", num_peers);
-  consensus = GNUNET_CONSENSUS_create (cfg, num_peers, peer_ids, &session_id, new_element_cb, NULL);
-  GNUNET_assert (NULL != consensus);
+  consensus = GNUNET_CONSENSUS_create (cfg, num_peers, peer_ids, &session_id, new_element_cb, chp);
+  *chp = (struct GNUNET_CONSENSUS_Handle *) consensus;
   return consensus;
 }
 
@@ -268,8 +276,8 @@ peer_info_cb (void *cb_cls,
     if (num_retrieved_peer_ids == num_peers)
       for (i = 0; i < num_peers; i++)
         testbed_operations[i] =
-            GNUNET_TESTBED_service_connect (NULL, peers[i], "consensus", connect_complete, &consensus_handles[i],
-                                            connect_adapter, disconnect_adapter, NULL);
+            GNUNET_TESTBED_service_connect (NULL, peers[i], "consensus", connect_complete, NULL,
+                                            connect_adapter, disconnect_adapter, &consensus_handles[i]);
   }
   else
   {
@@ -309,6 +317,7 @@ test_master (void *cls,
 
   peer_ids = GNUNET_malloc (num_peers * sizeof (struct GNUNET_PeerIdentity));
 
+  results_for_peer = GNUNET_malloc (num_peers * sizeof (unsigned int));
   consensus_handles = GNUNET_malloc (num_peers * sizeof (struct ConsensusHandle *));
   testbed_operations = GNUNET_malloc (num_peers * sizeof (struct ConsensusHandle *));
 
@@ -324,6 +333,23 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static char *session_str = "gnunet-consensus/test";
+  char *topology;
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed", "OVERLAY_TOPOLOGY", &topology))
+  {
+    fprintf (stderr, "'OVERLAY_TOPOLOGY' not found in 'testbed' config section, "
+                     "seems like you passed the wrong configuration file\n");
+    return;
+  }
+
+  if (0 == strcasecmp (topology, "NONE"))
+  {
+    fprintf (stderr, "'OVERLAY_TOPOLOGY' set to 'NONE', "
+                     "seems like you passed the wrong configuration file\n");
+    return;
+  }
+
+  GNUNET_free (topology);
 
   if (num_peers < replication)
   {
