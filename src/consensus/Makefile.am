@@ -16,7 +16,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-consensus
+ gnunet-consensus-profiler
 
 libexec_PROGRAMS = \
  gnunet-service-consensus
@@ -30,14 +30,14 @@ endif
 lib_LTLIBRARIES = \
   libgnunetconsensus.la
 
-gnunet_consensus_SOURCES = \
- gnunet-consensus.c
-gnunet_consensus_LDADD = \
+gnunet_consensus_profiler_SOURCES = \
+ gnunet-consensus-profiler.c
+gnunet_consensus_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(GN_LIBINTL)
-gnunet_consensus_DEPENDENCIES = \
+gnunet_consensus_profiler_DEPENDENCIES = \
   libgnunetconsensus.la
 
 gnunet_service_consensus_SOURCES = \
