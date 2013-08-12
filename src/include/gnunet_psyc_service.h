@@ -297,22 +297,26 @@ struct GNUNET_PSYC_MasterTransmitHandle;
  * Send a message to call a method to all members in the PSYC channel.
  *
  * @param master Handle to the PSYC channel.
- * @param increment_group_generation #GNUNET_YES if we need to increment
- *        the group generation counter after transmitting this message.
  * @param method_name Which method should be invoked.
  * @param env Environment containing state operations and transient variables
  *            for the message, or NULL.
  * @param notify Function to call to obtain the arguments.
  * @param notify_cls Closure for @a notify.
+ * @param reset_state #GNUNET_YES if this message should reset the channel
+ *        state, i.e. remove all previously stored state variables.
+ *        #GNUNET_NO to keep the state as is.
+ * @param increment_group_generation #GNUNET_YES if we need to increment
+ *        the group generation counter after transmitting this message.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
 struct GNUNET_PSYC_MasterTransmitHandle *
 GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
-                             int increment_group_generation,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_MasterReadyNotify notify,
-                             void *notify_cls);
+                             void *notify_cls,
+                             int reset_state,
+                             int increment_group_generation);
 
 
 /** 
@@ -495,12 +499,14 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  *
  * @param channel Channel handle.
  * @param slave_key Identity of channel slave to add.
- * @param message_id Message ID for the message that changed the membership.
+ * @param announced_at ID of the message that announced the membership change.
+ * @param effective_since Addition of slave is in effect since this message ID.
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
                                const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-                               uint64_t message_id);
+                               uint64_t announced_at,
+                               uint64_t effective_since);
 
 
 /** 
@@ -522,12 +528,14 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  *
  * @param channel Channel handle.
  * @param slave_key Identity of channel slave to remove.
- * @param message_id Message ID for the message that changed the membership.
+ * @param announced_at ID of the message that announced the membership change.
+ * @param effective_since Removal of slave is in effect since this message ID.
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-                                  uint64_t message_id);
+                                  uint64_t announced_at,
+                                  uint64_t effective_since);
 
 
 /** 

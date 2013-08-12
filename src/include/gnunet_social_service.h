@@ -345,9 +345,12 @@ struct GNUNET_SOCIAL_Announcement;
  *
  * @param home Home to address the announcement to.
  * @param method_name Method to use for the announcement.
- * @param env Environment containing variables for the message, or NULL.
+ * @param env Environment containing variables for the message and operations on
+ *        objects of the home, or NULL.
  * @param notify Function to call to get the payload of the announcement.
  * @param notify_cls Closure for @a notify.
+ * @param clear_objects #GNUNET_YES to remove all objects from the home, #GNUNET_NO otherwise.
+ *        New objects can be added to the now empty home using the @a env parameter.
  * @return NULL on error (announcement already in progress?).
  */
 struct GNUNET_SOCIAL_Announcement *
@@ -355,7 +358,8 @@ GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_CONNECTION_TransmitReadyNotify notify,
-                             void *notify_cls);
+                             void *notify_cls,
+                             int clear_objects);
 
 
 /** 

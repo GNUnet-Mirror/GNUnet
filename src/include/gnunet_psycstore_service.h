@@ -92,8 +92,9 @@ typedef void (*GNUNET_PSYCSTORE_ResultCallback)(void *cls,
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel where the event happened.
  * @param slave_key Public key of joining/leaving slave.
- * @param message_id ID of the message in which this event was announced.
- * @param did_join #GNUNET_YES on join, #GNUNET_NO on leave.
+ * @param announced_at ID of the message that announced the membership change.
+ * @param effective_since Message ID this membership change is in effect since.
+ * @param did_join #GNUNET_YES on join, #GNUNET_NO on part.
  * @param rcb Callback to call with the result of the storage operation.
  * @param rcb_cls Closure for the callback.
  *
@@ -103,7 +104,8 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
                                    const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                                    const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-                                   uint64_t message_id,
+                                   uint64_t announced_at,
+                                   uint64_t effective_since,
                                    int did_join,
                                    GNUNET_PSYCSTORE_ResultCallback rcb,
                                    void *rcb_cls);

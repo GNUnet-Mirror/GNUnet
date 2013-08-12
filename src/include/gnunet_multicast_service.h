@@ -171,15 +171,6 @@ struct GNUNET_MULTICAST_MessageHeader
   struct GNUNET_CRYPTO_EccSignature signature;
 
   /** 
-   * Signature of the multicast message fragment.
-   *
-   * FIXME: not strictly necessary, the size is already in the MessageHeader
-   *        (minus the unsigned fields), and we could implicitly associate
-   *        a sig. purpose with the message type in the header.
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /** 
    * Number of the message fragment, monotonically increasing.
    */
   uint64_t fragment_id GNUNET_PACKED;
@@ -221,32 +212,17 @@ struct GNUNET_MULTICAST_MessageHeader
    */
   enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
 
-  /** 
-   * Header for the message body.
-   *
-   * Three message types are specifically understood by multicast, namely "peer
-   * join", "peer part", and "group terminated".  Multicast will use those
-   * messages to update its list of candidates for content distribution.  All
-   * other message types are application-specific.
-   *
-   * FIXME: Needed? The payload could have its own message header already,
-   *        multicast does not actually need it.
-   *        Also, we have no message type argument for origin_to_all(),
-   */
-  struct GNUNET_MessageHeader body;
-
   /* Followed by message body. */
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /** 
  * Header of a request from a member to the origin.
  *
- * FIXME: this is going to be internal.
+ * FIXME: this struct is going to be internal.
  */
 struct GNUNET_MULTICAST_RequestHeader
 {
@@ -297,6 +273,11 @@ GNUNET_NETWORK_STRUCT_END
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/** 
+ * Header of a join request sent to the origin or another member.
+ *
+ * FIXME: this struct is going to be internal.
+ */
 struct GNUNET_MULTICAST_JoinRequest {
   /** 
    * Header for the join request.
