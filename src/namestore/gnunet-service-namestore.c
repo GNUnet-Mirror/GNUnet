@@ -62,16 +62,9 @@ struct ZoneIteration
   struct NamestoreClient *client;
 
   /**
-   * GNUNET_YES if we iterate over a specific zone
-   * GNUNET_NO if we iterate over all zones
+   * Key of the zone we are iterating over.
    */
-  int has_zone;
-
-  /**
-   * Hash of the specific zone if 'has_zone' is GNUNET_YES,
-   * othwerwise set to '\0'
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_EccPrivateKey zone;
 
   /**
    * The operation id fot the zone iteration in the response for the client
@@ -87,15 +80,6 @@ struct ZoneIteration
    */
   uint32_t offset;
 
-  /**
-   * Which flags must be included
-   */
-  uint16_t must_have_flags;
-
-  /**
-   * Which flags must not be included
-   */
-  uint16_t must_not_have_flags;
 };
 
 
@@ -134,29 +118,6 @@ struct NamestoreClient
 
 
 /**
- * A container struct to store information belonging to a zone crypto key pair
- */
-struct GNUNET_NAMESTORE_CryptoContainer
-{
-  /**
-   * Filename where to store the container
-   */
-  char *filename;
-
-  /**
-   * Short hash of the zone's public key
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-
-  /**
-   * Zone's private key
-   */
-  struct GNUNET_CRYPTO_EccPrivateKey *privkey;
-
-};
-
-
-/**
  * A namestore monitor.
  */
 struct ZoneMonitor
@@ -177,16 +138,9 @@ struct ZoneMonitor
   struct GNUNET_SERVER_Client *client;
 
   /**
-   * GNUNET_YES if we monitor over a specific zone
-   * GNUNET_NO if we monitor all zones
+   * Private key of the zone.
    */
-  int has_zone;
-
-  /**
-   * Hash of the specific zone if 'has_zone' is GNUNET_YES,
-   * othwerwise set to '\0'
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_EccPrivateKey zone;
 
   /**
    * The operation id fot the zone iteration in the response for the client
@@ -210,8 +164,6 @@ struct ZoneMonitor
 };
 
 
-
-
 /**
  * Configuration handle.
  */
@@ -221,11 +173,6 @@ static const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
  * Database handle
  */
 static struct GNUNET_NAMESTORE_PluginFunctions *GSN_database;
-
-/**
- * Zonefile directory
- */
-static char *zonefile_directory;
 
 /**
  * Name of the database plugin
@@ -248,14 +195,6 @@ static struct NamestoreClient *client_head;
 static struct NamestoreClient *client_tail;
 
 /**
- * Hashmap containing the zone keys this namestore has is authoritative for
- *
- * Keys are the GNUNET_CRYPTO_HashCode of the GNUNET_CRYPTO_ShortHashCode
- * The values are 'struct GNUNET_NAMESTORE_CryptoContainer *'
- */
-static struct GNUNET_CONTAINER_MultiHashMap *zonekeys;
-
-/**
  * First active zone monitor.
  */
 static struct ZoneMonitor *monitor_head;
@@ -270,189 +209,6 @@ static struct ZoneMonitor *monitor_tail;
  */
 static struct GNUNET_SERVER_NotificationContext *monitor_nc;
 
-
-/**
- * Writes the encrypted private key of a zone in a file
- *
- * @param filename where to store the zone
- * @param c the crypto container containing private key of the zone
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
- */
-static int
-write_key_to_file (const char *filename, 
-		   struct GNUNET_NAMESTORE_CryptoContainer *c)
-{
-  struct GNUNET_CRYPTO_EccPrivateKey *ret = c->privkey;
-  struct GNUNET_DISK_FileHandle *fd;
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-  struct GNUNET_CRYPTO_EccPublicKey pubkey;
-  struct GNUNET_CRYPTO_EccPrivateKey *privkey;
-
-  fd = GNUNET_DISK_file_open (filename, 
-			      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_FAILIFEXISTS, 
-			      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  if ( (NULL == fd) && (EEXIST == errno) )
-  {
-    privkey = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
-    if (NULL == privkey)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Failed to write zone key to file `%s': %s\n"),
-		  filename,
-		  _("file exists but reading key failed"));
-      return GNUNET_SYSERR;
-    }
-    GNUNET_CRYPTO_ecc_key_get_public (privkey, &pubkey);
-    GNUNET_CRYPTO_short_hash (&pubkey, 
-			      sizeof (struct GNUNET_CRYPTO_EccPublicKey), 
-			      &zone);
-    GNUNET_CRYPTO_ecc_key_free (privkey);
-    if (0 == memcmp (&zone, &c->zone, sizeof(zone)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "File zone `%s' containing this key already exists\n", 
-		  GNUNET_NAMESTORE_short_h2s (&zone));
-      return GNUNET_OK;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to write zone key to file `%s': %s\n"),
-		filename,
-		_("file exists with different key"));
-    return GNUNET_OK;    
-  }
-  if (NULL == fd)
-  {
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_ERROR, "open", filename);
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_YES != 
-      GNUNET_DISK_file_lock (fd, 0, 
-			     sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
-			     GNUNET_YES))
-  {
-    GNUNET_break (GNUNET_YES == GNUNET_DISK_file_close (fd));
-    return GNUNET_SYSERR;
-  }
-  GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) ==
-		 GNUNET_DISK_file_write (fd, ret,
-					 sizeof (struct GNUNET_CRYPTO_EccPrivateKey)));
-  GNUNET_DISK_file_sync (fd);
-  if (GNUNET_YES != 
-      GNUNET_DISK_file_unlock (fd, 0, 
-			       sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
-    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "fcntl", filename);
-  GNUNET_assert (GNUNET_YES == GNUNET_DISK_file_close (fd));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Stored zonekey for zone `%s' in file `%s'\n",
-	      GNUNET_NAMESTORE_short_h2s(&c->zone), c->filename);
-  return GNUNET_OK;
-}
-
-
-/**
- * Write allthe given zone key to disk and then removes the entry from the
- * 'zonekeys' hash map.
- *
- * @param cls unused
- * @param key zone key
- * @param value 'struct GNUNET_NAMESTORE_CryptoContainer' containing the private
- *        key
- * @return GNUNET_OK to continue iteration
- */
-static int
-zone_to_disk_it (void *cls,
-                 const struct GNUNET_HashCode *key,
-                 void *value)
-{
-  struct GNUNET_NAMESTORE_CryptoContainer *c = value;
-
-  if (NULL == c->filename)
-    GNUNET_asprintf(&c->filename, 
-		    "%s/%s.zkey", 
-		    zonefile_directory, 
-		    GNUNET_NAMESTORE_short_h2s (&c->zone));
-  (void) write_key_to_file(c->filename, c);
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (zonekeys, key, value));
-  GNUNET_CRYPTO_ecc_key_free (c->privkey);
-  GNUNET_free (c->filename);
-  GNUNET_free (c);
-  return GNUNET_OK;
-}
-
-
-/**
- * Add the given private key to the set of private keys
- * this namestore can use to sign records when needed.
- *
- * @param pkey private key to add to our list (reference will
- *        be taken over or freed and should not be used afterwards)
- */
-static void
-learn_private_key (struct GNUNET_CRYPTO_EccPrivateKey *pkey)
-{
-  struct GNUNET_CRYPTO_EccPublicKey pub;
-  struct GNUNET_HashCode long_hash;
-  struct GNUNET_CRYPTO_ShortHashCode pubkey_hash;
-  struct GNUNET_NAMESTORE_CryptoContainer *cc;
-
-  GNUNET_CRYPTO_ecc_key_get_public (pkey, &pub);
-  GNUNET_CRYPTO_short_hash (&pub,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
-			    &pubkey_hash);
-  GNUNET_CRYPTO_short_hash_double (&pubkey_hash, &long_hash);
-
-  if (GNUNET_NO != GNUNET_CONTAINER_multihashmap_contains(zonekeys, &long_hash))
-  {
-    GNUNET_CRYPTO_ecc_key_free (pkey);
-    return;
-  }  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received new private key for zone `%s'\n",
-	      GNUNET_NAMESTORE_short_h2s(&pubkey_hash));
-  cc = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_CryptoContainer));
-  cc->privkey = pkey;
-  cc->zone = pubkey_hash;
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put(zonekeys, &long_hash, cc, 
-						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));  
-}
-
-
-/**
- * Returns the expiration time of the given block of records. The block
- * expiration time is the expiration time of the block with smallest
- * expiration time.
- *
- * @param rd_count number of records given in 'rd'
- * @param rd array of records
- * @return absolute expiration time
- */
-static struct GNUNET_TIME_Absolute
-get_block_expiration_time (unsigned int rd_count, const struct GNUNET_NAMESTORE_RecordData *rd)
-{
-  unsigned int c;
-  struct GNUNET_TIME_Absolute expire;
-  struct GNUNET_TIME_Absolute at;
-  struct GNUNET_TIME_Relative rt;
-
-  if (NULL == rd)
-    return GNUNET_TIME_UNIT_ZERO_ABS;
-  expire = GNUNET_TIME_UNIT_FOREVER_ABS;
-  for (c = 0; c < rd_count; c++)  
-  {
-    if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
-    {
-      rt.rel_value_us = rd[c].expiration_time;
-      at = GNUNET_TIME_relative_to_absolute (rt);
-    }
-    else
-    {
-      at.abs_value_us = rd[c].expiration_time;
-    }
-    expire = GNUNET_TIME_absolute_min (at, expire);  
-  }
-  return expire;
-}
 
 
 /**
@@ -473,12 +229,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SERVER_notification_context_destroy (snc);
     snc = NULL;
   }
-  if (NULL != zonekeys)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (zonekeys, &zone_to_disk_it, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (zonekeys);
-    zonekeys = NULL;
-  }
   while (NULL != (nc = client_head))
   {
     while (NULL != (no = nc->op_head))
@@ -492,8 +242,6 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));
   GNUNET_free (db_lib_name);
   db_lib_name = NULL;
-  GNUNET_free_non_null (zonefile_directory);
-  zonefile_directory = NULL;
   if (NULL != monitor_nc)
   {
     GNUNET_SERVER_notification_context_destroy (monitor_nc);

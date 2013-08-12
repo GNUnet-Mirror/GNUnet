@@ -280,6 +280,44 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 
 
 /**
+ * Returns the expiration time of the given block of records. The block
+ * expiration time is the expiration time of the block with smallest
+ * expiration time.
+ *
+ * @param rd_count number of records given in 'rd'
+ * @param rd array of records
+ * @return absolute expiration time
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count, 
+					     const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  unsigned int c;
+  struct GNUNET_TIME_Absolute expire;
+  struct GNUNET_TIME_Absolute at;
+  struct GNUNET_TIME_Relative rt;
+
+  if (NULL == rd)
+    return GNUNET_TIME_UNIT_ZERO_ABS;
+  expire = GNUNET_TIME_UNIT_FOREVER_ABS;
+  for (c = 0; c < rd_count; c++)  
+  {
+    if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    {
+      rt.rel_value_us = rd[c].expiration_time;
+      at = GNUNET_TIME_relative_to_absolute (rt);
+    }
+    else
+    {
+      at.abs_value_us = rd[c].expiration_time;
+    }
+    expire = GNUNET_TIME_absolute_min (at, expire);  
+  }
+  return expire;
+}
+
+
+/**
  * Sign name and records
  *
  * @param key the private key

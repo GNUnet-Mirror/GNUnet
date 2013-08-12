@@ -691,6 +691,18 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
                               const struct GNUNET_NAMESTORE_RecordData *b);
 
 
+/**
+ * Returns the expiration time of the given block of records. The block
+ * expiration time is the expiration time of the block with smallest
+ * expiration time.
+ *
+ * @param rd_count number of records given in 'rd'
+ * @param rd array of records
+ * @return absolute expiration time
+ */
+struct GNUNET_TIME_Absolute
+GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count, 
+					     const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
