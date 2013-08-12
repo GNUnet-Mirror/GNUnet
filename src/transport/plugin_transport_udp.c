@@ -78,25 +78,25 @@ static struct PrettyPrinterContext *ppc_dll_tail;
  */
 struct PrettyPrinterContext
 {
-	/**
-	 * DLL
-	 */
-	struct PrettyPrinterContext *next;
+  /**
+   * DLL
+   */
+  struct PrettyPrinterContext *next;
+  
+  /**
+   * DLL
+   */
+  struct PrettyPrinterContext *prev;
 
-	/**
-	 * DLL
-	 */
-	struct PrettyPrinterContext *prev;
+  /**
+   * Timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
-	/**
-	 * Timeout task
-	 */
-	GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-	/**
-	 * Resolver handle
-	 */
-	struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
+  /**
+   * Resolver handle
+   */
+  struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
 
   /**
    * Function to call with the result.
@@ -464,22 +464,23 @@ udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Start session timeout
- */
-static void
-start_session_timeout (struct Session *s);
-
-/**
- * Increment session timeout due to activity
- */
-static void
-reschedule_session_timeout (struct Session *s);
-
-/**
  * Cancel timeout
  */
 static void
-stop_session_timeout (struct Session *s);
+stop_session_timeout (struct Session *s)
+{
+  GNUNET_assert (NULL != s);
+
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Timeout stopped for session %p canceled\n",
+                s);
+  }
+}
+
 
 /**
  * (re)schedule select tasks for this plugin.
@@ -578,17 +579,18 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     sb = &a4;
   }
   else if (addrlen == 0)
-	{
-		GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
-		return rbuf;
-	}
+  {
+    GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
+    return rbuf;
+  }
   else
   {
     return NULL;
   }
   inet_ntop (af, sb, buf, INET6_ADDRSTRLEN);
 
-  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "%s.%u.[%s]:%u" : "%s.%u.%s:%u",
+  GNUNET_snprintf (rbuf, sizeof (rbuf), 
+		   (af == AF_INET6) ? "%s.%u.[%s]:%u" : "%s.%u.%s:%u",
                    PLUGIN_NAME, options, buf, port);
   return rbuf;
 }
@@ -701,7 +703,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 }
 
 
-void
+static void
 ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	struct PrettyPrinterContext *ppc = cls;
@@ -1140,6 +1142,7 @@ dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
                                  plugin->ipv6_queue_tail, udpw);
 }
 
+
 static void
 fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
 {
@@ -1148,7 +1151,10 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
   struct UDP_MessageWrapper dummy;
   struct Session *s = fc->session;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%p : Fragmented message removed with result %s\n", fc, (result == GNUNET_SYSERR) ? "FAIL" : "SUCCESS");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "%p : Fragmented message removed with result %s\n",
+       fc,
+       (result == GNUNET_SYSERR) ? "FAIL" : "SUCCESS");
   
   /* Call continuation for fragmented message */
   memset (&dummy, 0, sizeof (dummy));
@@ -1377,25 +1383,6 @@ reschedule_session_timeout (struct Session *s)
 }
 
 
-/**
- * Cancel timeout
- */
-static void
-stop_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout stopped for session %p canceled\n",
-                s);
-  }
-}
-
-
 static struct Session *
 create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen,
@@ -1441,8 +1428,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       return NULL;
     }
     t6 = addr;
-    s =
-        GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
+    s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
     len = sizeof (struct sockaddr_in6);
     v6 = (struct sockaddr_in6 *) &s[1];
     v6->sin6_family = AF_INET6;
@@ -1485,9 +1471,11 @@ session_cmp_it (void *cls,
 
   socklen_t s_addrlen = s->addrlen;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Comparing  address %s <-> %s\n",
-      udp_address_to_string (NULL, (void *) address->address, address->address_length),
-      GNUNET_a2s (s->sock_addr, s->addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Comparing address %s <-> %s\n",
+       udp_address_to_string (NULL, (void *) address->address, 
+			      address->address_length),
+       GNUNET_a2s (s->sock_addr, s->addrlen));
   if ((address->address_length == sizeof (struct IPv4UdpAddress)) &&
       (s_addrlen == sizeof (struct sockaddr_in)))
   {
@@ -1544,7 +1532,7 @@ udp_get_network (void *cls,
  */
 static struct Session *
 udp_plugin_lookup_session (void *cls,
-                 const struct GNUNET_HELLO_Address *address)
+			   const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin * plugin = cls;
   struct IPv6UdpAddress * udp_a6;
@@ -1601,20 +1589,20 @@ udp_plugin_lookup_session (void *cls,
   return NULL;
 }
 
+
 static struct Session *
 udp_plugin_create_session (void *cls,
-                  const struct GNUNET_HELLO_Address *address)
+			   const struct GNUNET_HELLO_Address *address)
 {
-  struct Session * s = NULL;
+  struct Session *s;
 
-  /* otherwise create new */
   s = create_session (plugin,
-      &address->peer,
-      address->address,
-      address->address_length,
-      NULL, NULL);
+		      &address->peer,
+		      address->address,
+		      address->address_length,
+		      NULL, NULL);
   if (NULL == s)
-  	return NULL; /* protocol not supported or address invalid */
+    return NULL; /* protocol not supported or address invalid */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session %p for peer `%s' address `%s'\n",
        s,
@@ -1633,7 +1621,6 @@ udp_plugin_create_session (void *cls,
 }
 
 
-
 /**
  * Creates a new outbound session the transport service will use to send data to the
  * peer
@@ -1644,24 +1631,23 @@ udp_plugin_create_session (void *cls,
  */
 static struct Session *
 udp_plugin_get_session (void *cls,
-                  const struct GNUNET_HELLO_Address *address)
+			const struct GNUNET_HELLO_Address *address)
 {
-  struct Session * s = NULL;
+  struct Session *s;
 
   if (NULL == address)
   {
-  	GNUNET_break (0);
-  	return NULL;
+    GNUNET_break (0);
+    return NULL;
   }
   if ((address->address_length != sizeof (struct IPv4UdpAddress)) &&
-  		(address->address_length != sizeof (struct IPv6UdpAddress)))
-  		return NULL;
+      (address->address_length != sizeof (struct IPv6UdpAddress)))
+    return NULL;
 
   /* otherwise create new */
-  if (NULL != (s = udp_plugin_lookup_session(cls, address)))
-  	return s;
-  else
-  	return udp_plugin_create_session (cls, address);
+  if (NULL != (s = udp_plugin_lookup_session (cls, address)))
+    return s;
+  return udp_plugin_create_session (cls, address);
 }
 
 
@@ -1706,6 +1692,7 @@ send_next_fragment (void *cls,
 		    int result, size_t payload, size_t physical)
 {
   struct UDP_MessageWrapper *udpw = cls;
+
   GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);  
 }
 
@@ -2455,6 +2442,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
 }
 
+
 static struct UDP_MessageWrapper *
 remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
                                     struct GNUNET_NETWORK_Handle *sock)
@@ -2621,6 +2609,7 @@ analyze_send_error (struct Plugin *plugin,
       GNUNET_a2s (sa, slen), STRERROR (error));
  }
 }
+
 
 static size_t
 udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
