@@ -975,7 +975,7 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   gcry_ctx_t ctx;
 
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  n = gcry_mpi_ec_get_mpi ("n", ctx, 0 /* no copy */);
+  n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
   GNUNET_CRYPTO_ecc_key_get_public (priv, &pub);
   h = derive_h (&pub, label, context);
   mpi_scan (&x, priv->d, sizeof (priv->d));
@@ -983,6 +983,8 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   gcry_mpi_mulm (d, h, x, n);
   gcry_mpi_release (h);
   gcry_mpi_release (x);
+  gcry_mpi_release (n);
+  gcry_ctx_release (ctx);
   ret = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
   mpi_print (ret->d, sizeof (ret->d), d);
   gcry_mpi_release (d);
@@ -1028,7 +1030,7 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pu
 
   /* calulcate h_mod_n = h % n */
   h = derive_h (pub, label, context);
-  n = gcry_mpi_ec_get_mpi ("n", ctx, 0 /* no copy */);
+  n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
   h_mod_n = gcry_mpi_new (256);
   gcry_mpi_mod (h_mod_n, h, n);
   /* calculate v = h_mod_n * q */
@@ -1036,6 +1038,7 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pu
   gcry_mpi_ec_mul (v, h_mod_n, q, ctx);
   gcry_mpi_release (h_mod_n);
   gcry_mpi_release (h);
+  gcry_mpi_release (n);
   gcry_mpi_point_release (q);
   /* convert point 'v' to public key that we return */
   point_to_public_key (v, ctx, result);
