@@ -27,8 +27,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_peer_lib.h"
 #include "gnunet_mesh_service_enc.h"
-#include "mesh.h"
-#include "mesh_protocol.h"
+#include "mesh_enc.h"
+#include "mesh_protocol_enc.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "mesh-api",__VA_ARGS__)
 
@@ -816,7 +816,7 @@ process_channel_created (struct GNUNET_MESH_Handle *h,
     else
       ch->ooorder = GNUNET_NO;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", t);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", ch);
     ch->ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
   }
@@ -887,11 +887,11 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 
   dmsg = (struct GNUNET_MESH_LocalData *) message;
 
-  ch = retrieve_channel (h, ntohl (dmsg->chid));
+  ch = retrieve_channel (h, ntohl (dmsg->id));
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
        ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? "fwd" : "bck",
-       GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->chid));
+       GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->id));
   if (NULL == ch)
   {
     /* Channel was ignored/destroyed, probably service didn't get it yet */
@@ -941,7 +941,6 @@ process_ack (struct GNUNET_MESH_Handle *h,
   MESH_ChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
-  h->acks_recv++;
   msg = (struct GNUNET_MESH_LocalAck *) message;
   chid = ntohl (msg->channel_id);
     ch = retrieve_channel (h, chid);
@@ -1179,7 +1178,7 @@ send_callback (void *cls, size_t size, void *buf)
         psize += sizeof (struct GNUNET_MESH_LocalData);
         GNUNET_assert (size >= psize);
         dmsg->header.size = htons (psize);
-        dmsg->chid = htonl (ch->chid);
+        dmsg->id = htonl (ch->chid);
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
              GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
@@ -1502,7 +1501,7 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel)
  */
 const union MeshChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
-                             enum MeshChannelOption option, ...)
+                             enum MeshOption option, ...)
 {
   const union MeshChannelInfo *ret;
 
