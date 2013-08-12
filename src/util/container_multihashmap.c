@@ -840,7 +840,7 @@ int
 GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMapIterator *iter,
                                              struct GNUNET_HashCode *key, const void **value)
 {
-  /* make sure nobody modified the map */
+  /* make sure the map has not been modified */
   GNUNET_assert (iter->modification_counter == iter->map->modification_counter);
 
   /* look for the next entry, skipping empty buckets */
@@ -883,7 +883,7 @@ GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMa
  * @param iter the iterator to destroy
  */
 void
-GNUNET_CONTAINER_multihashmap_enumerator_destroy (struct GNUNET_CONTAINER_MultiHashMapIterator *iter)
+GNUNET_CONTAINER_multihashmap_iterator_destroy (struct GNUNET_CONTAINER_MultiHashMapIterator *iter)
 {
   GNUNET_free (iter);
 }

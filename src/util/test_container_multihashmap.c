@@ -87,6 +87,7 @@ testMap (int i)
   CHECK (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, &key_ret, (const void **)&ret));
   CHECK (0 == memcmp (&key_ret, &k1, sizeof (key_ret)));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, NULL));
+  GNUNET_free (iter);
 
   CHECK (2 == GNUNET_CONTAINER_multihashmap_remove_all (m, &k1));
   for (j = 0; j < 1024; j++)
@@ -97,6 +98,7 @@ testMap (int i)
   for (j = 0; j < GNUNET_CONTAINER_multihashmap_size (m); j++)
     CHECK (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, NULL));
   CHECK (GNUNET_NO == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, NULL));
+  GNUNET_free (iter);
 
   GNUNET_CONTAINER_multihashmap_destroy (m);
   return 0;
