@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -498,7 +498,7 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 
   GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
 		     ctx, sizeof (ctx),
-		     skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+		     key_material, sizeof (struct GNUNET_HashCode),
 		     sender, sizeof (struct GNUNET_PeerIdentity),
 		     receiver, sizeof (struct GNUNET_PeerIdentity),
 		     NULL);
