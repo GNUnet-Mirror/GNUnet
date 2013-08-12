@@ -99,8 +99,9 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
 static void
 conclude_cb (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus done\n");
-  GNUNET_SCHEDULER_add_now (destroy, cls);
+  struct GNUNET_CONSENSUS_Handle **chp = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus %d done\n", chp - consensus_handles);
+  GNUNET_SCHEDULER_add_now (destroy, *chp);
 }
 
 
@@ -159,7 +160,7 @@ do_consensus ()
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "all elements inserted, calling conclude\n");
 
   for (i = 0; i < num_peers; i++)
-    GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, conclude_cb, consensus_handles[i]);
+    GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, conclude_cb, &consensus_handles[i]);
 }
 
 

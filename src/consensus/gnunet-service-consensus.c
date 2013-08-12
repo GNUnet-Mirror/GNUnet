@@ -369,7 +369,7 @@ send_to_client_iter (void *cls,
   {
     struct GNUNET_CONSENSUS_ElementMessage *m;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: got element for client\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: got element for client\n",
                 session->local_peer_idx);
 
     ev = GNUNET_MQ_msg_extra (m, element->size, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
@@ -379,7 +379,7 @@ send_to_client_iter (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: finished iterating elements for client\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: finished iterating elements for client\n",
                 session->local_peer_idx);
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
     GNUNET_MQ_send (session->client_mq, ev);
@@ -406,7 +406,7 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   session = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: round over\n", session->local_peer_idx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: round over\n", session->local_peer_idx);
 
   if (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -422,7 +422,7 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       subround_over (session, NULL);
       break;
     case CONSENSUS_ROUND_EXCHANGE:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: finished, sending elements to client\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: finished, sending elements to client\n",
                   session->local_peer_idx);
       session->current_round = CONSENSUS_ROUND_FINISH;
       GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
@@ -494,7 +494,7 @@ find_partners (struct ConsensusSession *session)
     largest_arc <<= 1;
   num_ghosts = largest_arc - session->num_peers;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "num ghosts: %d\n", num_ghosts);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "num ghosts: %d\n", num_ghosts);
 
   if (0 == (my_idx & arc))
   {
@@ -509,13 +509,13 @@ find_partners (struct ConsensusSession *session)
     if (my_idx < num_ghosts)
     {
       int ghost_partner_idx;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "my index %d, arc %d, peers %u\n", my_idx, arc, session->num_peers);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "my index %d, arc %d, peers %u\n", my_idx, arc, session->num_peers);
       ghost_partner_idx = (my_idx - (int) arc) % (int) session->num_peers;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ghost partner is before %d\n", ghost_partner_idx);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is before %d\n", ghost_partner_idx);
       /* platform dependent; modulo sometimes returns negative values */
       if (ghost_partner_idx < 0)
         ghost_partner_idx += session->num_peers;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ghost partner is after %d\n", ghost_partner_idx);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is after %d\n", ghost_partner_idx);
       session->partner_incoming = &session->info[session->shuffle[ghost_partner_idx]];
       session->partner_incoming->exp_subround_finished = GNUNET_NO;
       return;
@@ -555,29 +555,29 @@ set_result_cb (void *cls,
   switch (status)
   {
     case GNUNET_SET_STATUS_OK:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: set result from P%u: element\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: set result from P%u: element\n",
                   local_idx, remote_idx);
       break;
     case GNUNET_SET_STATUS_FAILURE:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: set result from P%u: failure\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: set result from P%u: failure\n",
                   local_idx, remote_idx);
       cpi->set_op = NULL;
       return;
     case GNUNET_SET_STATUS_HALF_DONE:
     case GNUNET_SET_STATUS_DONE:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: set result from P%u: done\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: set result from P%u: done\n",
                   local_idx, remote_idx);
       cpi->exp_subround_finished = GNUNET_YES;
       cpi->set_op = NULL;
       if (have_exp_subround_finished (cpi->session) == GNUNET_YES)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: all reconciliations of subround done\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: all reconciliations of subround done\n",
                     local_idx);
         subround_over (cpi->session, NULL);
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: waiting for further set results\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: waiting for further set results\n",
                     local_idx);
       }
       return;
@@ -731,7 +731,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SET_commit (session->partner_incoming->delayed_set_op, session->element_set);
       session->partner_incoming->set_op = session->partner_incoming->delayed_set_op;
       session->partner_incoming->delayed_set_op = NULL;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d resumed delayed round with P%d\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d resumed delayed round with P%d\n",
                   session->local_peer_idx, (int) (session->partner_incoming - session->info));
     }
     else
@@ -753,7 +753,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       in = -1;
     else
       in = (int) (session->partner_incoming - session->info);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: doing exp-round, r=%d, sub=%d, in: %d, out: %d\n", session->local_peer_idx,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: doing exp-round, r=%d, sub=%d, in: %d, out: %d\n", session->local_peer_idx,
                 session->exp_round, session->exp_subround, in, out);
   }
 #endif /* GNUNET_EXTRA_LOGGING */
@@ -930,7 +930,7 @@ set_listen_cb (void *cls,
 
   cpi = &session->info[index];
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d got set request from P%d\n", session->local_peer_idx, index);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d got set request from P%d\n", session->local_peer_idx, index);
 
   switch (session->current_round)
   {
@@ -956,7 +956,7 @@ set_listen_cb (void *cls,
       {
         cpi->set_op = set_op;
         GNUNET_SET_commit (set_op, session->element_set);
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d commited to set request from P%d\n", session->local_peer_idx, index);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d commited to set request from P%d\n", session->local_peer_idx, index);
       }
       else
       {
@@ -964,7 +964,7 @@ set_listen_cb (void *cls,
         cpi->delayed_set_op = set_op;
         cpi->delayed_round_info = round_info;
         cpi->exp_subround_finished = GNUNET_YES;
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d delaying set request from P%d\n", session->local_peer_idx, index);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d delaying set request from P%d\n", session->local_peer_idx, index);
       }
       break;
     default:
@@ -987,7 +987,7 @@ initialize_session (struct ConsensusSession *session,
   struct ConsensusSession *other_session;
 
   initialize_session_peer_list (session, join_msg);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "session with %u peers\n", session->num_peers);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "session with %u peers\n", session->num_peers);
   compute_global_id (session, &join_msg->session_id);
 
   /* check if some local client already owns the session.
@@ -1017,8 +1017,8 @@ initialize_session (struct ConsensusSession *session,
   session->set_listener = GNUNET_SET_listen (cfg, GNUNET_SET_OPERATION_UNION,
                                              &session->global_id,
                                              set_listen_cb, session);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d is the local peer\n", session->local_peer_idx);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "session %s initialized\n", GNUNET_h2s (&session->global_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%d is the local peer\n", session->local_peer_idx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "session %s initialized\n", GNUNET_h2s (&session->global_id));
 }
 
 
@@ -1052,7 +1052,7 @@ client_join (void *cls,
 {
   struct ConsensusSession *session;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "join message sent by client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "join message sent by client\n");
 
   session = get_session_by_client (client);
   if (NULL != session)
@@ -1068,7 +1068,7 @@ client_join (void *cls,
   initialize_session (session, (struct GNUNET_CONSENSUS_JoinMessage *) m);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "join done\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "join done\n");
 }
 
 
@@ -1122,7 +1122,7 @@ client_insert (void *cls,
   GNUNET_free (element);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: element added\n", session->local_peer_idx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: element added\n", session->local_peer_idx);
 }
 
 
@@ -1142,7 +1142,7 @@ client_conclude (void *cls,
   struct GNUNET_CONSENSUS_ConcludeMessage *cmsg;
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "conclude requested\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "conclude requested\n");
   cmsg = (struct GNUNET_CONSENSUS_ConcludeMessage *) message;
   session = get_session_by_client (client);
   if (NULL == session)
@@ -1188,7 +1188,7 @@ shutdown_task (void *cls,
   while (NULL != sessions_head)
     destroy_session (sessions_head);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "handled shutdown request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled shutdown request\n");
 }
 
 
@@ -1211,7 +1211,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
       (CONSENSUS_ROUND_FINISH == session->current_round))
     destroy_session (session);
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client disconnected, but waiting for consensus to finish\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, but waiting for consensus to finish\n");
 }
 
 
