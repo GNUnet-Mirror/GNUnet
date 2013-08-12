@@ -169,6 +169,13 @@ struct GNUNET_SET_ListenHandle
   struct GNUNET_MQ_Handle* mq;
 
   /**
+   * Configuration handle for the listener, stored
+   * here to be able to reconnect transparently on
+   * connection failure.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
    * Function to call on a new incoming request,
    * or on error.
    */
@@ -178,7 +185,28 @@ struct GNUNET_SET_ListenHandle
    * Closure for listen_cb.
    */
   void *listen_cls;
+
+  /**
+   * Operation we listen for.
+   */
+  enum GNUNET_SET_OperationType operation;
+
+  /**
+   * Application ID we listen for.
+   */
+  struct GNUNET_HashCode app_id;
+
+  /**
+   * Time to wait until we try to reconnect on failure.
+   */
+  struct GNUNET_TIME_Relative reconnect_backoff;
 };
+
+
+/* forward declaration */
+static void
+listen_connect (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -198,7 +226,8 @@ handle_iter_element (void *cls, const struct GNUNET_MessageHeader *mh)
   if (NULL == set->iterator)
     return;
 
-  element.type = htons (mh->type);
+  element.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_IterResponseMessage);
+  element.type = htons (msg->element_type);
   element.data = &msg[1];
   set->iterator (set->iterator_cls, &element);
 }
@@ -266,6 +295,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
     oh->result_cb (oh->result_cls, &e, result_status);
 }
 
+
 /**
  * Handle request message for a listen operation
  *
@@ -297,9 +327,9 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
     amsg->request_id = htonl (0);
     amsg->accept_reject_id = msg->accept_id;
     GNUNET_MQ_send (lh->mq, mqm);
-    GNUNET_free (req);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "rejecting request\n");
   }
+  GNUNET_free (req);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "processed op request from service\n");
 
@@ -313,8 +343,14 @@ handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_ListenHandle *lh = cls;
 
-  /* FIXME: why do you do this? */
-  lh->listen_cb (lh->listen_cls, NULL, NULL, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "listener broke down, re-connecting\n");
+  GNUNET_CLIENT_disconnect (lh->client);
+  lh->client = NULL;
+  GNUNET_MQ_destroy (lh->mq);
+  lh->mq = NULL;
+
+  GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff, listen_connect, lh);
+  lh->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (lh->reconnect_backoff);
 }
 
 
@@ -465,6 +501,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
   set->client = NULL;
   GNUNET_MQ_destroy (set->mq);
   set->mq = NULL;
+  GNUNET_free (set);
 }
 
 
@@ -514,11 +551,49 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   return oh;
 }
 
+
+/**
+ * Connect to the set service in order to listen
+ * for request.
+ *
+ * @param cls the listen handle to connect
+ * @param tc task context if invoked as a task, NULL otherwise
+ */
+static void
+listen_connect (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MQ_Envelope *mqm;
+  struct GNUNET_SET_ListenMessage *msg;
+  struct GNUNET_SET_ListenHandle *lh = cls;
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    {handle_request, GNUNET_MESSAGE_TYPE_SET_REQUEST},
+    GNUNET_MQ_HANDLERS_END
+  };
+
+  GNUNET_assert (NULL == lh->client);
+  lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);
+  if (NULL == lh->client)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "could not connect to set (wrong configuration?), giving up listening\n");
+    return;
+  }
+  GNUNET_assert (NULL == lh->mq);
+  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client, mq_handlers,
+                                                  handle_client_listener_error, lh);
+  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
+  msg->operation = htonl (lh->operation);
+  msg->app_id = lh->app_id;
+  GNUNET_MQ_send (lh->mq, mqm);
+}
+
+
 /**
  * Wait for set operation requests for the given application id
  * 
  * @param cfg configuration to use for connecting to
- *            the set service
+ *            the set service, needs to be valid for the lifetime of the listen handle
  * @param operation operation we want to listen for
  * @param app_id id of the application that handles set operation requests
  * @param listen_cb called for each incoming request matching the operation
@@ -534,25 +609,15 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    void *listen_cls)
 {
   struct GNUNET_SET_ListenHandle *lh;
-  struct GNUNET_MQ_Envelope *mqm;
-  struct GNUNET_SET_ListenMessage *msg;
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {handle_request, GNUNET_MESSAGE_TYPE_SET_REQUEST},
-    GNUNET_MQ_HANDLERS_END
-  };
 
   lh = GNUNET_new (struct GNUNET_SET_ListenHandle);
-  lh->client = GNUNET_CLIENT_connect ("set", cfg);
   lh->listen_cb = listen_cb;
   lh->listen_cls = listen_cls;
-  GNUNET_assert (NULL != lh->client);
-  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client, mq_handlers,
-                                                  handle_client_listener_error, lh);
-  mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
-  msg->operation = htons (operation);
-  msg->app_id = *app_id;
-  GNUNET_MQ_send (lh->mq, mqm);
-
+  lh->cfg = cfg;
+  lh->operation = operation;
+  lh->app_id = *app_id;
+  lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+  listen_connect (lh, NULL);
   return lh;
 }
 
@@ -678,7 +743,6 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
   oh->request_id_addr = NULL;
   return GNUNET_OK;
 }
-
 
 
 /**

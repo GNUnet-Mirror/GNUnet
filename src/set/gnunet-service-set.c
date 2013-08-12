@@ -442,8 +442,8 @@ handle_incoming_msg (struct OperationState *op,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received P2P operation request (op %u, app %s)\n",
-              ntohs (msg->operation), GNUNET_h2s (&msg->app_id));
-  listener = listener_get_by_target (ntohs (msg->operation), &msg->app_id);
+              ntohl (msg->operation), GNUNET_h2s (&msg->app_id));
+  listener = listener_get_by_target (ntohl (msg->operation), &msg->app_id);
   if (NULL == listener)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -477,6 +477,7 @@ handle_client_iterate (void *cls,
     return;
   }
 
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   set->vt->iterate (set);
 }
 
@@ -557,21 +558,30 @@ handle_client_listen (void *cls,
   listener->client = client;
   listener->client_mq = GNUNET_MQ_queue_for_server_client (client);
   listener->app_id = msg->app_id;
-  listener->operation = ntohs (msg->operation);
+  listener->operation = ntohl (msg->operation);
   GNUNET_CONTAINER_DLL_insert_tail (listeners_head, listeners_tail, listener);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new listener created (op %u, app %s)\n",
               listener->operation, GNUNET_h2s (&listener->app_id));
   for (incoming = incoming_head; NULL != incoming; incoming = incoming->next)
   {
-    if ( (NULL == incoming->spec) ||
-         (0 != incoming->suggest_id) )
+    if (NULL == incoming->spec)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "request has no spec yet\n");
+      continue;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "considering (op: %u, app: %s, suggest: %u)\n",
+                incoming->spec->operation, GNUNET_h2s (&incoming->spec->app_id), incoming->suggest_id);
+
+    if (0 != incoming->suggest_id)
       continue;
     if (listener->operation != incoming->spec->operation)
       continue;
     if (0 != GNUNET_CRYPTO_hash_cmp (&listener->app_id, &incoming->spec->app_id))
       continue;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "request suggested\n");
     incoming_suggest (incoming, listener);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "considered all incoming requests\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -942,8 +952,9 @@ dispatch_p2p_message (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message (type: %u)\n",
               ntohs (message->type));
-  ret = tc->vt->msg_handler (tc->op, message);
+  /* FIXME: do this before or after the handler? */
   GNUNET_MESH_receive_done (tunnel);
+  ret = tc->vt->msg_handler (tc->op, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message (type: %u)\n",
               ntohs (message->type));
   return ret;
@@ -1023,7 +1034,7 @@ main (int argc, char *const *argv)
   int ret;
   ret = GNUNET_SERVICE_run (argc, argv, "set",
                             GNUNET_SERVICE_OPTION_NONE, &run, NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exit\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exit (%d)\n", GNUNET_OK != ret);
   return (GNUNET_OK == ret) ? 0 : 1;
 }
 

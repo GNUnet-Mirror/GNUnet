@@ -147,6 +147,8 @@ struct OperationState
 
   /**
    * Maps IBF-Keys (specific to the current salt) to elements.
+   * Used as a multihashmap, the keys being the lower 32bit of the IBF-Key.
+   * Colliding IBF-Keys are linked.
    */
   struct GNUNET_CONTAINER_MultiHashMap32 *key_to_element;
 
@@ -493,7 +495,7 @@ send_operation_request (struct OperationState *eo)
     GNUNET_SERVER_client_disconnect (eo->spec->set->client);
     return;
   }
-  msg->operation = htons (GNUNET_SET_OPERATION_UNION);
+  msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
   msg->app_id = eo->spec->app_id;
   msg->salt = htonl (eo->spec->salt);
   GNUNET_MQ_send (eo->mq, ev);
@@ -524,7 +526,7 @@ send_operation_request (struct OperationState *eo)
  *         GNUNET_NO if not.
  */
 static int
-insert_element_iterator (void *cls,
+op_register_element_iterator (void *cls,
                          uint32_t key,
                          void *value)
 {
@@ -549,12 +551,16 @@ insert_element_iterator (void *cls,
 /**
  * Insert an element into the union operation's
  * key-to-element mapping. Takes ownership of 'ee'.
+ * Note that this does not insert the element in the set,
+ * only in the operation's key-element mapping.
+ * This is done to speed up re-tried operations, if some elements
+ * were transmitted, and then the IBF fails to decode.
  *
  * @param eo the union operation
  * @param ee the element entry
  */
 static void
-insert_element (struct OperationState *eo, struct ElementEntry *ee)
+op_register_element (struct OperationState *eo, struct ElementEntry *ee)
 {
   int ret;
   struct IBF_Key ibf_key;
@@ -566,14 +572,14 @@ insert_element (struct OperationState *eo, struct ElementEntry *ee)
   k->ibf_key = ibf_key;
   ret = GNUNET_CONTAINER_multihashmap32_get_multiple (eo->key_to_element,
                                                       (uint32_t) ibf_key.key_val,
-                                                      insert_element_iterator, k);
+                                                      op_register_element_iterator, k);
 
   /* was the element inserted into a colliding bucket? */
   if (GNUNET_SYSERR == ret)
     return;
 
   GNUNET_CONTAINER_multihashmap32_put (eo->key_to_element, (uint32_t) ibf_key.key_val, k,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 }
 
 
@@ -623,7 +629,7 @@ init_key_to_element_iterator (void *cls,
 
   e->remote = GNUNET_NO;
 
-  insert_element (eo, e);
+  op_register_element (eo, e);
   return GNUNET_YES;
 }
 
@@ -861,27 +867,32 @@ decode_and_send (struct OperationState *eo)
   ibf_destroy (eo->remote_ibf);
   eo->remote_ibf = NULL;
 
-  num_decoded = 0;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoding IBF (size=%u)\n", diff_ibf->size);
+
+  num_decoded = 0;
+  last_key.key_val = 0;
 
   while (1)
   {
     int res;
+    int cycle_detected = GNUNET_NO;
 
-    if (num_decoded > 0)
-      last_key = key;
+    last_key = key;
 
     res = ibf_decode (diff_ibf, &side, &key);
     if (res == GNUNET_OK)
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "decoded ibf key %lx\n",
                   key.key_val);
-    num_decoded += 1;
-    if (num_decoded > diff_ibf->size || (num_decoded > 1 && last_key.key_val == key.key_val))
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf (decoded %u/%u)\n",
-                  num_decoded, diff_ibf->size);
-    if ((GNUNET_SYSERR == res) || (num_decoded > diff_ibf->size) ||
-        (num_decoded > 1 && last_key.key_val == key.key_val))
+      num_decoded += 1;
+      if (num_decoded > diff_ibf->size || (num_decoded > 1 && last_key.key_val == key.key_val))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "detected cyclic ibf (decoded %u/%u)\n",
+                    num_decoded, diff_ibf->size);
+        cycle_detected = GNUNET_YES;
+      }
+    }
+    if ((GNUNET_SYSERR == res) || (GNUNET_YES == cycle_detected))
     {
       int next_order;
       next_order = 0;
@@ -922,6 +933,8 @@ decode_and_send (struct OperationState *eo)
 
       /* FIXME: before sending the request, check if we may just have the element */
       /* FIXME: merge multiple requests */
+      /* FIXME: remember somewhere that we already requested the element,
+       * so that we don't request it again with the next ibf if decoding fails */
       ev = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
                                         GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
       
@@ -1089,7 +1102,9 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   ee->remote = GNUNET_YES;
   GNUNET_CRYPTO_hash (ee->element.data, ee->element.size, &ee->element_hash);
 
-  insert_element (eo, ee);
+  /* FIXME: see if the element has already been inserted! */
+
+  op_register_element (eo, ee);
   send_client_element (eo, &ee->element);
 }
 
@@ -1386,6 +1401,8 @@ int
 union_handle_p2p_message (struct OperationState *eo,
                           const struct GNUNET_MessageHeader *mh)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received p2p message (t: %u, s: %u)\n",
+              ntohs (mh->type), ntohs (mh->size));
   switch (ntohs (mh->type))
   {
     case GNUNET_MESSAGE_TYPE_SET_P2P_IBF:
@@ -1490,6 +1507,8 @@ union_iterate (struct Set *set)
 {
   struct GNUNET_MQ_Envelope *ev;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterating union set with %u elements\n",
+              GNUNET_CONTAINER_multihashmap_size (set->state->elements));
   GNUNET_CONTAINER_multihashmap_iterate (set->state->elements, send_iter_element_iter, set);
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
   GNUNET_MQ_send (set->client_mq, ev);

@@ -208,8 +208,7 @@ typedef int (*GNUNET_SET_ElementIterator) (void *cls,
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
  *        the other peer
- * @param request request from the other peer, use GNUNET_SET_accept
- *        Will be NULL if the listener failed.
+ * @param request request from the other peer (never NULL), use GNUNET_SET_accept
  *        to accept it, otherwise the request will be refused
  *        Note that we can't just return value from the listen callback,
  *        as it is also necessary to specify the set we want to do the
@@ -315,7 +314,9 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
 
 
 /**
- * Wait for set operation requests for the given application id
+ * Wait for set operation requests for the given application ID.
+ * If the connection to the set service is lost, the listener is
+ * re-created transparently with exponential backoff.
  * 
  * @param cfg configuration to use for connecting to
  *            the set service
@@ -336,6 +337,8 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Cancel the given listen operation.
+ * After calling cancel, the listen callback for this listen handle
+ * will not be called again.
  *
  * @param lh handle for the listen operation
  */

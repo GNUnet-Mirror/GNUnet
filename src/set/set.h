@@ -59,7 +59,7 @@ struct GNUNET_SET_ListenMessage
   /**
    * Operation type, values of enum GNUNET_SET_OperationType
    */
-  uint16_t operation GNUNET_PACKED;
+  uint32_t operation GNUNET_PACKED;
 
   /**
    * application id
