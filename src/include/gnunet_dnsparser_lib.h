@@ -27,7 +27,6 @@
 #ifndef GNUNET_DNSPARSER_LIB_H
 #define GNUNET_DNSPARSER_LIB_H
 
-#include "platform.h"
 #include "gnunet_common.h"
 
 /**
