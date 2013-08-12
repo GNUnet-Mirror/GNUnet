@@ -1978,6 +1978,20 @@ peer_delete_oldest (void)
 
 
 /**
+ * Get the static string for a peer ID.
+ *
+ * @param peer Peer.
+ *
+ * @return Static string for it's ID.
+ */
+static const char *
+peer2s (const struct MeshPeer *peer)
+{
+  return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
+}
+
+
+/**
  * Retrieve the MeshPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
@@ -2087,7 +2101,7 @@ peer_get_best_path (const struct MeshPeer *peer)
     for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
       if (c->path == p)
         break;
-    if (NULL != p)
+    if (NULL != c)
       continue; /* If path is in use in a connection, skip it. */
 
     if ((cost = peer_get_path_cost (peer, p)) < best_cost)
@@ -2157,12 +2171,17 @@ peer_connect (struct MeshPeer *peer)
   struct MeshPeerPath *p;
   struct MeshConnection *c;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "peer_connect towards %s\n",
+              peer2s (peer));
   t = peer->tunnel;
   if (NULL != peer->path_head)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
     p = peer_get_best_path (peer);
     if (NULL != p)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
       c = tunnel_use_path (t, p);
       send_connection_create (c);
     }
@@ -2173,7 +2192,7 @@ peer_connect (struct MeshPeer *peer)
 
     id = GNUNET_PEER_resolve2 (peer->id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  Starting DHT GET for peer %s\n", GNUNET_i2s (id));
+                "  Starting DHT GET for peer %s\n", peer2s (peer));
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
                                          &id->hashPubKey,     /* key to search */
@@ -2415,15 +2434,10 @@ peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
           GNUNET_realloc (path->peers, path->length * sizeof (GNUNET_PEER_Id));
     }
   }
-#if MESH_DEBUG
-  {
-    struct GNUNET_PeerIdentity id;
 
-    GNUNET_PEER_resolve (peer_info->id, &id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
-                path->length, GNUNET_i2s (&id));
-  }
-#endif
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
+              path->length, peer2s (peer_info));
+
   l = path_get_length (path);
   if (0 == l)
   {
@@ -2500,7 +2514,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   c = fc->c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection %s[%X]\n", 
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id);
+              peer2s (c->t->peer), c->id);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
@@ -2685,11 +2699,11 @@ tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s state was %s\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (t->peer->id)),
+              peer2s (t->peer),
               GNUNET_MESH_DEBUG_TS2S (t->state));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s state is now %s\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (t->peer->id)),
+              peer2s (t->peer),
               GNUNET_MESH_DEBUG_TS2S (state));
   t->state = state;
 }
@@ -2701,11 +2715,11 @@ connection_change_state (struct MeshConnection* c,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] state was %s\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id,
+              peer2s (c->t->peer), c->id,
               GNUNET_MESH_DEBUG_CS2S (c->state));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] state is now %s\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)), c->id,
+              peer2s (c->t->peer), c->id,
               GNUNET_MESH_DEBUG_CS2S (state));
   c->state = state;
 }
@@ -3468,7 +3482,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "sending %s keepalive for connection %s[%d]\n",
               fwd ? "FWD" : "BCK",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              peer2s (c->t->peer),
               c->id);
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
@@ -3582,7 +3596,7 @@ connection_send_destroy (struct MeshConnection *c)
   msg.tid = c->t->id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  sending tunnel destroy for connection %s[%X]\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              peer2s (c->t->peer),
               c->id);
 
   send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
@@ -3609,7 +3623,7 @@ channel_send_destroy (struct MeshChannel *ch)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  sending tunnel destroy for channel %s:%X\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (ch->t->peer->id)),
+              peer2s (ch->t->peer),
               ch->gid);
 
   if (NULL != ch->root)
@@ -3772,7 +3786,7 @@ connection_destroy (struct MeshConnection *c)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s[%X]\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (c->t->peer->id)),
+              peer2s (c->t->peer),
               c->id);
 
   connection_cancel_queues (c, GNUNET_YES);
@@ -3800,7 +3814,7 @@ tunnel_destroy (struct MeshTunnel2 *t)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
-              GNUNET_i2s (GNUNET_PEER_resolve2 (t->peer->id)));
+              peer2s (t->peer);
 
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
     GNUNET_break (0);
@@ -4051,7 +4065,7 @@ connection_fwd_timeout (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
-              GNUNET_i2s(GNUNET_PEER_resolve2 (c->t->peer->id)),
+              peer2s (c->t->peer),
               c->id);
 
   if (NULL != c->t->channel_head) /* If local, leave TODO review */
@@ -4080,7 +4094,7 @@ connection_bck_timeout (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
-              GNUNET_i2s(GNUNET_PEER_resolve2 (c->t->peer->id)),
+              peer2s (c->t->peer),
               c->id);
 
   if (NULL != c->t->channel_head) /* If local, leave TODO review */
