@@ -20,8 +20,11 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
-EXP_LIBEXEC = 
-# gnunet-service-mesh-enc
+EXP_LIB = \
+ libgnunetmeshenc.la
+
+EXP_LIBEXEC = \
+ gnunet-service-mesh-enc
 
 libexec_PROGRAMS = \
  gnunet-service-mesh $(EXP_LIBEXEC)
@@ -56,6 +59,18 @@ libgnunetmesh_la_LIBADD = \
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 3:0:0
+
+
+libgnunetmeshenc_la_SOURCES = \
+  mesh_api_enc.c mesh_common.c
+libgnunetmeshenc_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) \
+  $(LTLIBINTL)
+libgnunetmeshenc_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
+  -version-info 1:0:0
+
 
 gnunet_mesh_SOURCES = \
   gnunet-mesh.c
