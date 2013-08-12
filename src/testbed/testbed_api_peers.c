@@ -685,6 +685,7 @@ GNUNET_TESTBED_peer_stop (void *op_cls,
  * with event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
  * operation is available. Instead, the GNUNET_TESTBED_PeerInfoCallback() will
  * be called.
+ * The peer information in the callback is valid until the operation is canceled.
  *
  * @param peer peer to request information about
  * @param pit desired information
