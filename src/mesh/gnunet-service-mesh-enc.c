@@ -4827,7 +4827,7 @@ handle_mesh_connection_create (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
   path_add_to_peers (path, GNUNET_NO);
-  c->path = path;
+  c->path = path_duplicate (path);
   c->own_pos = own_pos;
 
   /* Is it a connection to us? */
