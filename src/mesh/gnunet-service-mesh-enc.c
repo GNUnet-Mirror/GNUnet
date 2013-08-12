@@ -1865,10 +1865,8 @@ send_core_connection_ack (void *cls, size_t size, void *buf)
   }
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
-  GNUNET_CRYPTO_hash_xor (&GNUNET_PEER_resolve2 (t->peer->id)->hashPubKey,
-                          &my_full_id.hashPubKey,
-                          &msg->tid);
   msg->cid = htonl (c->id);
+  msg->tid = t->id;
 
   /* TODO add signature */
 
@@ -2261,6 +2259,25 @@ connection_get_first_message (struct MeshConnection *c, int fwd)
   return NULL;
 }
 
+
+/**
+ * Is this peer the last one on the connection?
+ *
+ * @param c Connection.
+ * @param fwd Is this about fwd traffic?
+ *            Note that the ROOT is the terminal for BCK traffic!
+ *
+ * @return GNUNET_YES if terminal, GNUNET_NO if relay/origin.
+ */
+static int
+connection_is_terminal (struct MeshConnection *c, int fwd)
+{
+  if (fwd && c->own_pos == c->path->length - 1)
+    return GNUNET_YES;
+  if (!fwd && c->own_pos == 0)
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
 
 
 /**
@@ -3780,6 +3797,8 @@ connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
   struct MeshTunnel2 *t;
 
   t = tunnel_get (tid);
+  if (NULL == t)
+    return NULL;
   for (c = t->connection_head; NULL != c; c = c->next)
     if (c->id == cid)
       return c;
@@ -4079,7 +4098,7 @@ connection_fwd_timeout (void *cls,
               peer2s (c->t->peer),
               c->id);
 
-  if (NULL != c->t->channel_head) /* If local, leave TODO review */
+  if (connection_is_terminal (c, GNUNET_NO)) /* If local, leave. */
     return;
 
   connection_destroy (c);
@@ -4108,7 +4127,7 @@ connection_bck_timeout (void *cls,
               peer2s (c->t->peer),
               c->id);
 
-  if (NULL != c->t->channel_head) /* If local, leave TODO review */
+  if (connection_is_terminal (c, GNUNET_YES)) /* If local, leave. */
     return;
 
   connection_destroy (c);
@@ -4140,7 +4159,7 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
   if (GNUNET_SCHEDULER_NO_TASK != *ti)
     GNUNET_SCHEDULER_cancel (*ti);
 
-  if (NULL != c->t->channel_head) /* Endpoint */
+  if (connection_is_terminal (c, !fwd)) /* Endpoint */
   {
     f  = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
     *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, c);
@@ -4339,14 +4358,14 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path create\n");
-      if (NULL != c->t->channel_head)
+      if (connection_is_terminal (c, GNUNET_NO))
         data_size = send_core_connection_create (queue->cls, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
-      if (NULL != c->t->channel_head)
+      if (connection_is_terminal (c, GNUNET_YES))
         data_size = send_core_connection_ack (queue->cls, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
@@ -4903,7 +4922,7 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   connection_reset_timeout (c, GNUNET_NO);
 
   /* Message for us? */
-  if (NULL != c->t->channel_head)
+  if (connection_is_terminal (c, GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     if (3 <= tunnel_count_connections(c->t) && NULL != c->t->peer->dhtget)
@@ -5194,7 +5213,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   fc->last_pid_recv = pid;
 
   /* Is this message for us? */
-  if (NULL != c->t->channel_head)
+  if (connection_is_terminal (c, fwd))
   {
     size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
     char cbuf[dsize];
@@ -5489,7 +5508,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   connection_change_state (c, MESH_CONNECTION_READY);
   connection_reset_timeout (c, fwd);
 
-  if (NULL != c->t->channel_head)
+  if (connection_is_terminal (c, fwd))
     return GNUNET_OK;
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
