@@ -728,7 +728,7 @@ GNUNET_CONTAINER_multihashmap_iterator_create (const struct GNUNET_CONTAINER_Mul
  */
 int
 GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMapIterator *iter,
-                                             struct GNUNET_HashCode *key, void **value);
+                                             struct GNUNET_HashCode *key, const void **value);
 
 
 /**
