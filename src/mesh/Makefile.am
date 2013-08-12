@@ -132,9 +132,9 @@ libgnunetmeshtest_a_SOURCES = \
 libgnunetmeshtest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/mesh/libgnunetmesh.la
+ $(top_builddir)/src/mesh/libgnunetmeshenc.la
 libgnunetmeshtest_a_DEPENDENCIES = \
-  libgnunetmesh.la
+  libgnunetmeshenc.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
@@ -155,11 +155,11 @@ ld_mesh_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/mesh/libgnunetmeshtest.a \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/mesh/libgnunetmeshenc.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la
 
 dep_mesh_test_lib = \
-  libgnunetmesh.la \
+  libgnunetmeshenc.la \
   libgnunetmeshtest.a
 
 test_mesh_single_SOURCES = \
