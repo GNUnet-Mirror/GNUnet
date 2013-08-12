@@ -313,6 +313,7 @@ handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_ListenHandle *lh = cls;
 
+  /* FIXME: why do you do this? */
   lh->listen_cb (lh->listen_cls, NULL, NULL, NULL);
 }
 
