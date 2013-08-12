@@ -84,8 +84,8 @@ struct GNUNET_SOCIAL_Slicer;
  * @param message_id Unique message counter for this message
  *                   (unique only in combination with the given sender for
  *                    this channel).
- * @param header_length Number of modifiers in header.
- * @param header Modifiers present in the message. FIXME: use environment instead?
+ * @param modifier_count Number of elements in the @a modifiers array.
+ * @param modifiers Modifiers present in the message. FIXME: use environment instead?
  * @param data_offset Byte offset of @a data in the overall data of the method.
  * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated
@@ -95,8 +95,8 @@ struct GNUNET_SOCIAL_Slicer;
 typedef int (*GNUNET_SOCIAL_Method)(void *cls,
                                     const char *full_method_name,
                                     uint64_t message_id,
-                                    size_t header_length,
-                                    GNUNET_PSYC_Modifier *header,
+                                    size_t modifier_count,
+                                    GNUNET_PSYC_Modifier *modifiers,
                                     uint64_t data_offset,
                                     size_t data_size,
                                     const void *data,
@@ -187,15 +187,15 @@ GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
  *
  * @param cls Closure.
  * @param nym Handle for the user who wants to enter.
- * @param header_length Number of modifiers in header.
- * @param header Modifiers present in the message.
+ * @param variable_count Number of elements in the @a variables array.
+ * @param variables Variables present in the message.
  * @param data_size Number of bytes in @a data.
  * @param data Payload given on enter (e.g. a password).
  */
 typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
                                                  struct GNUNET_SOCIAL_Nym *nym,
-                                                 size_t header_length,
-                                                 GNUNET_PSYC_Modifier *header,
+                                                 size_t variable_count,
+                                                 GNUNET_PSYC_Modifier *variables,
                                                  size_t data_size,
                                                  const void *data);
 
@@ -208,13 +208,13 @@ typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
  *
  * @param cls Closure.
  * @param nym Handle for the user who left.
- * @param header_length Number of modifiers in header.
- * @param header Modifiers present in the message.
+ * @param variable_count Number of elements in the @a variables array.
+ * @param variables Variables present in the message.
  */
 typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
                                                struct GNUNET_SOCIAL_Nym *nym,
-                                               size_t header_length,
-                                               GNUNET_PSYC_Modifier *header);
+                                               size_t variable_count,
+                                               GNUNET_PSYC_Modifier *variables);
 
 
 /** 
@@ -554,6 +554,12 @@ GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
                              size_t *value_size);
 
 
+/**
+ * Flags for talking to the host of a place.
+ */
+enum GNUNET_SOCIAL_TalkFlags;
+
+
 /** 
  * A talk request.
  */
@@ -567,6 +573,7 @@ struct GNUNET_SOCIAL_TalkRequest;
  * @param env Environment containing variables for the message, or NULL.
  * @param notify Function to use to get the payload for the method.
  * @param notify_cls Closure for @a notify.
+ * @param flags Flags for the message being sent.
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request.
  */
@@ -575,7 +582,8 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
                           const char *method_name,
                           const struct GNUNET_ENV_Environment *env,
                           GNUNET_CONNECTION_TransmitReadyNotify notify,
-                          void *notify_cls);
+                          void *notify_cls,
+                          GNUNET_SOCIAL_TalkFlags flags);
 
 
 /** 

@@ -437,6 +437,11 @@ typedef int
                                  char *data);
 
 
+/**
+ * Flags for transmitting messages to the channel master by a slave.
+ */
+enum GNUNET_PSYC_SlaveTransmitFlags;
+
 /** 
  * Handle for a pending PSYC transmission operation.
  */
@@ -451,6 +456,7 @@ struct GNUNET_PSYC_SlaveTransmitHandle;
  * @param env Environment containing transient variables for the message, or NULL.
  * @param notify Function to call when we are allowed to transmit (to get data).
  * @param notify_cls Closure for @a notify.
+ * @param flags Flags for the message being transmitted.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
 struct GNUNET_PSYC_SlaveTransmitHandle *
@@ -458,7 +464,8 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
                             const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
                             GNUNET_PSYC_SlaveReadyNotify notify,
-                            void *notify_cls);
+                            void *notify_cls,
+                            enum GNUNET_PSYC_SlaveTransmitFlags flags);
 
 
 /** 
