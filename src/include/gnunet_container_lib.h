@@ -490,6 +490,12 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size);
 struct GNUNET_CONTAINER_MultiHashMap;
 
 /**
+ * Opaque handle to an iterator over
+ * a multihashmap.
+ */
+struct GNUNET_CONTAINER_MultiHashMapIterator;
+
+/**
  * Options for storing values in the HashMap.
  */
 enum GNUNET_CONTAINER_MultiHashMapOption
@@ -688,6 +694,50 @@ GNUNET_CONTAINER_multihashmap_iterate (const struct
                                        GNUNET_CONTAINER_MultiHashMap *map,
                                        GNUNET_CONTAINER_HashMapIterator it,
                                        void *it_cls);
+
+
+/**
+ * Create an iterator for a multihashmap.
+ * The iterator can be used to retrieve all the elements in the multihashmap
+ * one by one, without having to handle all elements at once (in contrast to
+ * 'GNUNET_CONTAINER_multihashmap_iterate').  Note that the iterator can not be
+ * used anymore if elements have been removed from 'map' after the creation of
+ * the iterator, or 'map' has been destroyed.  Adding elements to 'map' may
+ * result in skipped or repeated elements.
+ *
+ * @param map the map to create an iterator for
+ * @return an iterator over the given multihashmap 'map'
+ */
+struct GNUNET_CONTAINER_MultiHashMapIterator *
+GNUNET_CONTAINER_multihashmap_iterator_create (const struct GNUNET_CONTAINER_MultiHashMap *map);
+
+
+/**
+ * Retrieve the next element from the hash map at the iterator's position.
+ * If there are no elements left, GNUNET_NO is returned, and 'key' and 'value'
+ * are not modified.
+ * This operation is only allowed if no elements have been removed from the
+ * multihashmap since the creation of 'iter', and the map has not been destroyed.
+ * Adding elements may result in repeating or skipping elements.
+ *
+ * @param iter the iterator to get the next element from
+ * @param key pointer to store the key in, can be NULL
+ * @param value pointer to store the value in, can be NULL
+ * @return GNUNET_YES we returned an element,
+ *         GNUNET_NO if we are out of elements
+ */
+int
+GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMapIterator *iter,
+                                             struct GNUNET_HashCode *key, void **value);
+
+
+/**
+ * Destroy a multihashmap iterator.
+ *
+ * @param iter the iterator to destroy
+ */
+void
+GNUNET_CONTAINER_multihashmap_iterator_destroy (struct GNUNET_CONTAINER_MultiHashMapIterator *iter);
 
 
 /**

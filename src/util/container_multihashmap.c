@@ -100,7 +100,6 @@ union MapEntry
  */
 struct GNUNET_CONTAINER_MultiHashMap
 {
-
   /**
    * All of our buckets.
    */
@@ -121,6 +120,41 @@ struct GNUNET_CONTAINER_MultiHashMap
    * GNUNET_YES if the map entries are of type 'struct SmallMapEntry'.
    */
   int use_small_entries;
+
+  /**
+   * Counts the destructive modifications (grow, remove)
+   * to the map, so that iterators can check if they are still valid.
+   */
+  unsigned int modification_counter;
+};
+
+
+/**
+ * Cursor into a multihashmap.
+ * Allows to enumerate elements asynchronously.
+ */
+struct GNUNET_CONTAINER_MultiHashMapIterator
+{
+  /**
+   * Position in the bucket 'idx'
+   */
+  union MapEntry me;
+
+  /**
+   * Current bucket index.
+   */
+  unsigned int idx;
+
+  /**
+   * Modification counter as observed on the map when the iterator
+   * was created.
+   */
+  unsigned int modification_counter;
+
+  /**
+   * Map that we are iterating over.
+   */
+  const struct GNUNET_CONTAINER_MultiHashMap *map;
 };
 
 
@@ -353,6 +387,8 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
   union MapEntry me;
   unsigned int i;
 
+  map->modification_counter++;
+
   i = idx_of (map, key);
   me = map->map[i];
   if (map->use_small_entries)
@@ -418,6 +454,8 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
   union MapEntry me;
   unsigned int i;
   int ret;
+
+  map->modification_counter++;
 
   ret = 0;
   i = idx_of (map, key);
@@ -578,6 +616,8 @@ grow (struct GNUNET_CONTAINER_MultiHashMap *map)
   unsigned int new_len;
   unsigned int idx;
   unsigned int i;
+
+  map->modification_counter++;
 
   old_map = map->map;
   old_len = map->map_length;
@@ -754,6 +794,98 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
     }
   }
   return count;
+}
+
+
+/**
+ * Create an iterator for a multihashmap.
+ * The iterator can be used to retrieve all the elements in the multihashmap
+ * one by one, without having to handle all elements at once (in contrast to
+ * 'GNUNET_CONTAINER_multihashmap_iterate').  Note that the iterator can not be
+ * used anymore if elements have been removed from 'map' after the creation of
+ * the iterator, or 'map' has been destroyed.  Adding elements to 'map' may
+ * result in skipped or repeated elements.
+ *
+ * @param map the map to create an iterator for
+ * @return an iterator over the given multihashmap 'map'
+ */
+struct GNUNET_CONTAINER_MultiHashMapIterator *
+GNUNET_CONTAINER_multihashmap_iterator_create (const struct GNUNET_CONTAINER_MultiHashMap *map)
+{
+  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
+
+  iter = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMapIterator);
+  iter->map = map;
+  iter->modification_counter = map->modification_counter;
+  iter->me = map->map[0];
+  return iter;
+}
+
+
+/**
+ * Retrieve the next element from the hash map at the iterator's position.
+ * If there are no elements left, GNUNET_NO is returned, and 'key' and 'value'
+ * are not modified.
+ * This operation is only allowed if no elements have been removed from the
+ * multihashmap since the creation of 'iter', and the map has not been destroyed.
+ * Adding elements may result in repeating or skipping elements.
+ *
+ * @param iter the iterator to get the next element from
+ * @param key pointer to store the key in, can be NULL
+ * @param value pointer to store the value in, can be NULL
+ * @return GNUNET_YES we returned an element,
+ *         GNUNET_NO if we are out of elements
+ */
+int
+GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMapIterator *iter,
+                                             struct GNUNET_HashCode *key, void **value)
+{
+  /* make sure nobody modified the map */
+  GNUNET_assert (iter->modification_counter == iter->map->modification_counter);
+
+  /* look for the next entry, skipping empty buckets */
+  while (1)
+  {
+    if (iter->idx >= iter->map->map_length)
+      return GNUNET_NO;
+    if (GNUNET_YES == iter->map->use_small_entries)
+    {
+      if (NULL != iter->me.sme)
+      {
+        if (NULL != key)
+          *key = *iter->me.sme->key;
+        if (NULL != value)
+          *value = iter->me.sme->value;
+        iter->me.sme = iter->me.sme->next;
+        return GNUNET_YES;
+      }
+    }
+    else
+    {
+      if (NULL != iter->me.bme)
+      {
+        if (NULL != key)
+          *key = iter->me.bme->key;
+        if (NULL != value)
+          *value = iter->me.bme->value;
+        iter->me.bme = iter->me.bme->next;
+        return GNUNET_YES;
+      }
+    }
+    iter->idx++;
+  }
+}
+
+
+/**
+ * Destroy a multihashmap iterator.
+ *
+ * @param iter the iterator to destroy
+ */
+void
+GNUNET_CONTAINER_multihashmap_enumerator_destroy (struct GNUNET_CONTAINER_MultiHashMapIterator *iter)
+{
+  GNUNET_free (iter);
 }
 
 
