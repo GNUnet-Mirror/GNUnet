@@ -222,6 +222,8 @@ handle_iter_element (void *cls, const struct GNUNET_MessageHeader *mh)
   struct GNUNET_SET_Element element;
   const struct GNUNET_SET_IterResponseMessage *msg =
     (const struct GNUNET_SET_IterResponseMessage *) mh;
+  struct GNUNET_SET_IterAckMessage *ack_msg;
+  struct GNUNET_MQ_Envelope *ev;
 
   if (NULL == set->iterator)
     return;
@@ -230,6 +232,9 @@ handle_iter_element (void *cls, const struct GNUNET_MessageHeader *mh)
   element.type = htons (msg->element_type);
   element.data = &msg[1];
   set->iterator (set->iterator_cls, &element);
+  ev = GNUNET_MQ_msg (ack_msg, GNUNET_MESSAGE_TYPE_SET_ITER_ACK);
+  ack_msg->send_more = htonl (1);
+  GNUNET_MQ_send (set->mq, ev);
 }
 
 

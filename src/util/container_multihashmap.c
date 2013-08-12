@@ -872,7 +872,9 @@ GNUNET_CONTAINER_multihashmap_iterator_next (struct GNUNET_CONTAINER_MultiHashMa
         return GNUNET_YES;
       }
     }
-    iter->idx++;
+    iter->idx += 1;
+    if (iter->idx < iter->map->map_length)
+      iter->me = iter->map->map[iter->idx];
   }
 }
 

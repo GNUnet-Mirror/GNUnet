@@ -227,6 +227,19 @@ struct GNUNET_SET_IterResponseMessage
   /* rest: element */
 };
 
+struct GNUNET_SET_IterAckMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SET_ITER_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Non-zero if the service should continue sending elements.
+   */
+  uint32_t send_more;
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

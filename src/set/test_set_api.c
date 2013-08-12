@@ -36,7 +36,7 @@ static struct GNUNET_SET_Handle *set2;
 static struct GNUNET_SET_ListenHandle *listen_handle;
 const static struct GNUNET_CONFIGURATION_Handle *config;
 
-int num_done;
+static int iter_count;
 
 
 static void
@@ -144,6 +144,9 @@ init_set2 (void *cls)
   GNUNET_SET_add_element (set2, &element, NULL, NULL);
   element.data = "quux";
   element.size = strlen(element.data);
+  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  element.data = "baz";
+  element.size = strlen(element.data);
   GNUNET_SET_add_element (set2, &element, start, NULL);
 }
 
@@ -164,6 +167,44 @@ init_set1 (void)
   GNUNET_SET_add_element (set1, &element, init_set2, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
+}
+
+
+static int
+iter_cb (void *cls,
+         const struct GNUNET_SET_Element *element)
+{
+  if (NULL == element)
+  {
+    GNUNET_assert (iter_count == 3);
+    GNUNET_SET_destroy (cls);
+    return GNUNET_YES;
+  }
+  printf ("iter: got element\n");
+  iter_count++;
+  return GNUNET_YES;
+}
+
+
+static void
+test_iter ()
+{
+  struct GNUNET_SET_Element element;
+  struct GNUNET_SET_Handle *iter_set;
+
+  iter_set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
+
+  element.data = "hello";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
+  element.data = "bar";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
+  element.data = "quux";
+  element.size = strlen(element.data);
+  GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
+
+  GNUNET_SET_iterate (iter_set, iter_cb, iter_set);
 }
 
 
@@ -188,6 +229,10 @@ run (void *cls,
   printf ("my id (from CRYPTO): %s\n", GNUNET_h2s (&local_id.hashPubKey));
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
   printf ("my id (from TESTING): %s\n", GNUNET_h2s (&local_id.hashPubKey));
+
+  test_iter ();
+
+  return;
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);

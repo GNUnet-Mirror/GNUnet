@@ -57,6 +57,7 @@ struct OperationState;
 /* forward declarations */
 struct Set;
 struct TunnelContext;
+struct ElementEntry;
 
 
 /**
@@ -103,6 +104,8 @@ struct OperationSpecification
 };
 
 
+
+
 /**
  * Signature of functions that create the implementation-specific
  * state for a set supporting a specific operation.
@@ -119,7 +122,7 @@ typedef struct SetState *(*CreateImpl) (void);
  * @param set implementation-specific set state
  * @param msg element message from the client
  */
-typedef void (*AddRemoveImpl) (struct SetState *state, const struct GNUNET_SET_Element *element);
+typedef void (*AddRemoveImpl) (struct SetState *state, struct ElementEntry *ee);
 
 
 /**
@@ -240,6 +243,54 @@ struct SetVT
 
 
 /**
+ * Information about an element element in the set.
+ * All elements are stored in a hash-table
+ * from their hash-code to their 'struct Element',
+ * so that the remove and add operations are reasonably
+ * fast.
+ */
+struct ElementEntry
+{
+  /**
+   * The actual element. The data for the element
+   * should be allocated at the end of this struct.
+   */
+  struct GNUNET_SET_Element element;
+
+  /**
+   * Hash of the element.
+   * Will be used to derive the different IBF keys
+   * for different salts.
+   */
+  struct GNUNET_HashCode element_hash;
+
+  /**
+   * Generation the element was added by the client.
+   * Operations of earlier generations will not consider the element.
+   */
+  unsigned int generation_added;
+
+  /**
+   * GNUNET_YES if the element has been removed in some generation.
+   */
+  int removed;
+
+  /**
+   * Generation the element was removed by the client. 
+   * Operations of later generations will not consider the element.
+   * Only valid if is_removed is GNUNET_YES.
+   */
+  unsigned int generation_removed;
+
+  /**
+   * GNUNET_YES if the element is a remote element, and does not belong
+   * to the operation's set.
+   */
+  int remote;
+};
+
+
+/**
  * A set that supports a specific operation
  * with other peers.
  */
@@ -281,6 +332,23 @@ struct Set
    * Implementation-specific state.
    */
   struct SetState *state;
+
+  /**
+   * Current state of iterating elements for the client.
+   * NULL if we are not currently iterating.
+   */
+  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
+
+  /**
+   * Maps 'struct GNUNET_HashCode' to 'struct ElementEntry'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *elements;
+
+  /**
+   * Current generation, that is, number of
+   * previously executed operations on this set
+   */
+  unsigned int current_generation;
 };
 
 

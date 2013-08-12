@@ -167,7 +167,7 @@ struct OperationState
    * Set state of the set that this operation
    * belongs to.
    */
-  struct SetState *set_state;
+  struct Set *set;
   
   /**
    * Evaluate operations are held in
@@ -180,54 +180,6 @@ struct OperationState
     * a linked list.
     */
   struct OperationState *prev;
-};
-
-
-/**
- * Information about an element element in the set.
- * All elements are stored in a hash-table
- * from their hash-code to their 'struct Element',
- * so that the remove and add operations are reasonably
- * fast.
- */
-struct ElementEntry
-{
-  /**
-   * The actual element. The data for the element
-   * should be allocated at the end of this struct.
-   */
-  struct GNUNET_SET_Element element;
-
-  /**
-   * Hash of the element.
-   * Will be used to derive the different IBF keys
-   * for different salts.
-   */
-  struct GNUNET_HashCode element_hash;
-
-  /**
-   * Generation the element was added by the client.
-   * Operations of earlier generations will not consider the element.
-   */
-  unsigned int generation_added;
-
-  /**
-   * GNUNET_YES if the element has been removed in some generation.
-   */
-  int removed;
-
-  /**
-   * Generation the element was removed by the client. 
-   * Operations of later generations will not consider the element.
-   * Only valid if is_removed is GNUNET_YES.
-   */
-  unsigned int generation_removed;
-
-  /**
-   * GNUNET_YES if the element is a remote element, and does not belong
-   * to the operation's set.
-   */
-  int remote;
 };
 
 
@@ -289,11 +241,6 @@ struct SetState
   struct StrataEstimator *se;
 
   /**
-   * Maps 'struct GNUNET_HashCode' to 'struct ElementEntry'.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *elements;
-
-  /**
    * Evaluate operations are held in
    * a linked list.
    */
@@ -304,36 +251,7 @@ struct SetState
    * a linked list.
    */
   struct OperationState *ops_tail;
-
-  /**
-   * Current generation, that is, number of
-   * previously executed operations on this set
-   */
-  unsigned int current_generation;
 };
-
-
-
-/**
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-destroy_elements_iterator (void *cls,
-                           const struct GNUNET_HashCode * key,
-                           void *value)
-{
-  struct ElementEntry *ee = value;
-
-  GNUNET_free (ee);
-  return GNUNET_YES;
-}
 
 
 /**
@@ -378,8 +296,8 @@ static void
 union_operation_destroy (struct OperationState *eo)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying union op\n");
-  GNUNET_CONTAINER_DLL_remove (eo->set_state->ops_head,
-                               eo->set_state->ops_tail,
+  GNUNET_CONTAINER_DLL_remove (eo->set->state->ops_head,
+                               eo->set->state->ops_tail,
                                eo);
   if (NULL != eo->mq)
   {
@@ -647,9 +565,9 @@ prepare_ibf (struct OperationState *eo, uint16_t size)
   if (NULL == eo->key_to_element)
   {
     unsigned int len;
-    len = GNUNET_CONTAINER_multihashmap_size (eo->set_state->elements);
+    len = GNUNET_CONTAINER_multihashmap_size (eo->set->elements);
     eo->key_to_element = GNUNET_CONTAINER_multihashmap32_create (len + 1);
-    GNUNET_CONTAINER_multihashmap_iterate (eo->set_state->elements,
+    GNUNET_CONTAINER_multihashmap_iterate (eo->set->elements,
                                            init_key_to_element_iterator, eo);
   }
   if (NULL != eo->local_ibf)
@@ -720,7 +638,7 @@ send_strata_estimator (struct OperationState *eo)
   ev = GNUNET_MQ_msg_header_extra (strata_msg,
                                    SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
                                    GNUNET_MESSAGE_TYPE_SET_P2P_SE);
-  strata_estimator_write (eo->set_state->se, &strata_msg[1]);
+  strata_estimator_write (eo->set->state->se, &strata_msg[1]);
   GNUNET_MQ_send (eo->mq, ev);
   eo->phase = PHASE_EXPECT_IBF;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent SE, expecting IBF\n");
@@ -1218,7 +1136,7 @@ union_evaluate (struct OperationSpecification *spec,
   tc->vt = _GSS_union_vt ();
   tc->op = eo;
   eo->se = strata_estimator_dup (spec->set->state->se);
-  eo->set_state = spec->set->state;
+  eo->set = spec->set;
   eo->spec = spec;
   eo->tunnel = tunnel;
   eo->mq = GNUNET_MESH_mq_create (tunnel);
@@ -1230,8 +1148,8 @@ union_evaluate (struct OperationSpecification *spec,
   /* we started the operation, thus we have to send the operation request */
   eo->phase = PHASE_EXPECT_SE;
 
-  GNUNET_CONTAINER_DLL_insert (eo->set_state->ops_head,
-                               eo->set_state->ops_tail,
+  GNUNET_CONTAINER_DLL_insert (eo->set->state->ops_head,
+                               eo->set->state->ops_tail,
                                eo);
 
   send_operation_request (eo);
@@ -1259,15 +1177,15 @@ union_accept (struct OperationSpecification *spec,
   eo = GNUNET_new (struct OperationState);
   tc->vt = _GSS_union_vt ();
   tc->op = eo;
-  eo->set_state = spec->set->state;
-  eo->generation_created = eo->set_state->current_generation++;
+  eo->set = spec->set;
+  eo->generation_created = eo->set->current_generation++;
   eo->spec = spec;
   eo->tunnel = tunnel;
   eo->mq = GNUNET_MESH_mq_create (tunnel);
-  eo->se = strata_estimator_dup (eo->set_state->se);
+  eo->se = strata_estimator_dup (eo->set->state->se);
   /* transfer ownership of mq and socket from incoming to eo */
-  GNUNET_CONTAINER_DLL_insert (eo->set_state->ops_head,
-                               eo->set_state->ops_tail,
+  GNUNET_CONTAINER_DLL_insert (eo->set->state->ops_head,
+                               eo->set->state->ops_tail,
                                eo);
   /* kick off the operation */
   send_strata_estimator (eo);
@@ -1287,9 +1205,6 @@ union_set_create (void)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "union set created\n");
   
   set_state = GNUNET_new (struct SetState);
-  /* keys of the hash map are stored in the element entrys, thus we do not
-   * want the hash map to copy them */
-  set_state->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set_state->se = strata_estimator_create (SE_STRATA_COUNT,
                                               SE_IBF_SIZE, SE_IBF_HASH_NUM);  
   return set_state;
@@ -1303,30 +1218,8 @@ union_set_create (void)
  * @param element the element to add to the set
  */
 static void
-union_add (struct SetState *set_state, const struct GNUNET_SET_Element *element)
+union_add (struct SetState *set_state, struct ElementEntry *ee)
 {
-  struct ElementEntry *ee;
-  struct ElementEntry *ee_dup;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding union element of size %u\n", element->size);
-
-  ee = GNUNET_malloc (element->size + sizeof *ee);
-  ee->element.size = element->size;
-  memcpy (&ee[1], element->data, element->size);
-  ee->element.data = &ee[1];
-  ee->generation_added = set_state->current_generation;
-  ee->remote = GNUNET_NO;
-  GNUNET_CRYPTO_hash (ee->element.data, element->size, &ee->element_hash);
-  ee_dup = GNUNET_CONTAINER_multihashmap_get (set_state->elements,
-                                              &ee->element_hash);
-  if (NULL != ee_dup)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "element inserted twice, ignoring\n");
-    GNUNET_free (ee);
-    return;
-  }
-  GNUNET_CONTAINER_multihashmap_put (set_state->elements, &ee->element_hash, ee,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   strata_estimator_insert (set_state->se, get_ibf_key (&ee->element_hash, 0));
 }
 
@@ -1348,16 +1241,9 @@ union_set_destroy (struct SetState *set_state)
     strata_estimator_destroy (set_state->se);
     set_state->se = NULL;
   }
-  if (NULL != set_state->elements)
-  {
-    GNUNET_CONTAINER_multihashmap_iterate (set_state->elements,
-                                           destroy_elements_iterator, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (set_state->elements);
-    set_state->elements = NULL;
-  }
-
   GNUNET_free (set_state);
 }
+
 
 /**
  * Remove the element given in the element message from the set.
@@ -1367,25 +1253,9 @@ union_set_destroy (struct SetState *set_state)
  * @param element set element to remove
  */
 static void
-union_remove (struct SetState *set_state, const struct GNUNET_SET_Element *element)
+union_remove (struct SetState *set_state, struct ElementEntry *element)
 {
-  struct GNUNET_HashCode hash;
-  struct ElementEntry *ee;
-
-  GNUNET_CRYPTO_hash (element->data, element->size, &hash);
-  ee = GNUNET_CONTAINER_multihashmap_get (set_state->elements, &hash);
-  if (NULL == ee)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to remove non-existing element\n");
-    return;
-  }
-  if (GNUNET_YES == ee->removed)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to remove element twice\n");
-    return;
-  }
-  ee->removed = GNUNET_YES;
-  ee->generation_removed = set_state->current_generation;
+  /* FIXME: remove from strata estimator */
 }
 
 
@@ -1466,55 +1336,6 @@ union_op_cancel (struct SetState *set_state, uint32_t op_id)
 }
 
 
-/**
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-send_iter_element_iter (void *cls,
-                        const struct GNUNET_HashCode *key,
-                        void *value)
-{
-  struct ElementEntry *ee = value;
-  struct Set *set = cls;
-  struct GNUNET_SET_IterResponseMessage *m;
-  struct GNUNET_MQ_Envelope *ev;
-
-  ev = GNUNET_MQ_msg_extra (m, ee->element.size,
-                            GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
-
-  m->element_type = ee->element.type;
-  memcpy (&m[1], ee->element.data, ee->element.size);
-  GNUNET_MQ_send (set->client_mq, ev);
-
-  return GNUNET_YES;
-}
-
-
-/**
- * Send all elements of the union set to the client.
- *
- * @param set set to iterate over
- */
-static void
-union_iterate (struct Set *set)
-{
-  struct GNUNET_MQ_Envelope *ev;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterating union set with %u elements\n",
-              GNUNET_CONTAINER_multihashmap_size (set->state->elements));
-  GNUNET_CONTAINER_multihashmap_iterate (set->state->elements, send_iter_element_iter, set);
-  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
-  GNUNET_MQ_send (set->client_mq, ev);
-}
-
-
 const struct SetVT *
 _GSS_union_vt ()
 {
@@ -1528,7 +1349,6 @@ _GSS_union_vt ()
     .accept = &union_accept,
     .peer_disconnect = &union_peer_disconnect,
     .cancel = &union_op_cancel,
-    .iterate = &union_iterate
   };
 
   return &union_vt;

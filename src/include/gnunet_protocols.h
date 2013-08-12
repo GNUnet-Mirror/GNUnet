@@ -1690,9 +1690,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_CANCEL 570
 
 /**
- * Acknowledge results
+ * Acknowledge result from iteration
  */
-#define GNUNET_MESSAGE_TYPE_SET_ACK 571
+#define GNUNET_MESSAGE_TYPE_SET_ITER_ACK 571
 
 /**
  * Create an empty set

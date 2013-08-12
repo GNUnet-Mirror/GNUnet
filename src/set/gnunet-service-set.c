@@ -261,6 +261,28 @@ listener_destroy (struct Listener *listener)
 
 
 /**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+destroy_elements_iterator (void *cls,
+                           const struct GNUNET_HashCode * key,
+                           void *value)
+{
+  struct ElementEntry *ee = value;
+
+  GNUNET_free (ee);
+  return GNUNET_YES;
+}
+
+
+/**
  * Destroy a set, and free all resources associated with it.
  *
  * @param set the set to destroy
@@ -281,6 +303,18 @@ set_destroy (struct Set *set)
   {
     GNUNET_MQ_destroy (set->client_mq);
     set->client_mq = NULL;
+  }
+  if (NULL != set->elements)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (set->elements,
+                                           destroy_elements_iterator, NULL);
+    GNUNET_CONTAINER_multihashmap_destroy (set->elements);
+    set->elements = NULL;
+  }
+  if (NULL != set->iter)
+  {
+    GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
+    set->iter = NULL;
   }
   GNUNET_assert (NULL != set->state);
   set->vt->destroy_set (set->state);
@@ -455,6 +489,32 @@ handle_incoming_msg (struct OperationState *op,
 }
 
 
+static void
+send_client_element (struct Set *set)
+{
+  int ret;
+  struct ElementEntry *ee;
+  struct GNUNET_MQ_Envelope *ev;
+
+  GNUNET_assert (NULL != set->iter);
+  ret = GNUNET_CONTAINER_multihashmap_iterator_next (set->iter, NULL, (const void **) &ee);
+  if (GNUNET_NO == ret)
+  {
+    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
+  }
+  else
+  {
+    struct GNUNET_SET_IterResponseMessage *msg;
+
+    GNUNET_assert (NULL != ee);
+    ev = GNUNET_MQ_msg_extra (msg, ee->element.size, GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
+    memcpy (&msg[1], ee->element.data, ee->element.size);
+    msg->element_type = ee->element.type;
+  }
+  GNUNET_MQ_send (set->client_mq, ev);
+}
+
+
 /**
  * Called when a client wants to iterate the elements of a set.
  *
@@ -477,8 +537,17 @@ handle_client_iterate (void *cls,
     return;
   }
 
+  if (NULL != set->iter)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterating union set with %u elements\n",
+              GNUNET_CONTAINER_multihashmap_size (set->elements));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  set->vt->iterate (set);
+  set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
+  send_client_element (set);
 }
 
 
@@ -525,6 +594,7 @@ handle_client_create (void *cls,
   }
 
   set->state = set->vt->create ();
+  set->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set->client = client;
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head, sets_tail, set);
@@ -633,6 +703,7 @@ handle_client_add_remove (void *cls,
   struct Set *set;
   const struct GNUNET_SET_ElementMessage *msg;
   struct GNUNET_SET_Element el;
+  struct ElementEntry *ee;
 
   set = set_get (client);
   if (NULL == set)
@@ -641,16 +712,55 @@ handle_client_add_remove (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   msg = (const struct GNUNET_SET_ElementMessage *) m;
   el.size = ntohs (m->size) - sizeof *msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "client ins/rem element of size %u\n", el.size);
   el.data = &msg[1];
   if (GNUNET_MESSAGE_TYPE_SET_REMOVE == ntohs (m->type))
-    set->vt->remove (set->state, &el);
+  {
+    struct GNUNET_HashCode hash;
+
+    GNUNET_CRYPTO_hash (el.data, el.size, &hash);
+    ee = GNUNET_CONTAINER_multihashmap_get (set->elements, &hash);
+    if (NULL == ee)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to remove non-existing element\n");
+      return;
+    }
+    if (GNUNET_YES == ee->removed)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "client tried to remove element twice\n");
+      return;
+    }
+    ee->removed = GNUNET_YES;
+    ee->generation_removed = set->current_generation;
+    set->vt->remove (set->state, ee);
+  }
   else
-    set->vt->add (set->state, &el);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  {
+    struct ElementEntry *ee_dup;
+
+    ee = GNUNET_malloc (el.size + sizeof *ee);
+    ee->element.size = el.size;
+    memcpy (&ee[1], el.data, el.size);
+    ee->element.data = &ee[1];
+    ee->generation_added = set->current_generation;
+    ee->remote = GNUNET_NO;
+    GNUNET_CRYPTO_hash (ee->element.data, el.size, &ee->element_hash);
+    ee_dup = GNUNET_CONTAINER_multihashmap_get (set->elements,
+                                                &ee->element_hash);
+    if (NULL != ee_dup)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "element inserted twice, ignoring\n");
+      GNUNET_free (ee);
+      return;
+    }
+    GNUNET_CONTAINER_multihashmap_put (set->elements, &ee->element_hash, ee,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    set->vt->add (set->state, ee);
+  }
 }
 
 
@@ -712,12 +822,29 @@ handle_client_evaluate (void *cls,
  * @param m the message
  */
 static void
-handle_client_ack (void *cls,
+handle_client_iter_ack (void *cls,
                    struct GNUNET_SERVER_Client *client,
                    const struct GNUNET_MessageHeader *m)
 {
-  /* FIXME: implement */
+  struct Set *set;
+  
+  set = set_get (client);
+  if (NULL == set)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
+  if (NULL == set->iter)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  send_client_element (set);
 }
 
 
@@ -976,7 +1103,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
     {handle_client_accept, NULL, GNUNET_MESSAGE_TYPE_SET_ACCEPT,
         sizeof (struct GNUNET_SET_AcceptRejectMessage)},
-    {handle_client_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ACK, 0},
+    {handle_client_iter_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ITER_ACK, 0},
     {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
     {handle_client_create, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE,
         sizeof (struct GNUNET_SET_CreateMessage)},
