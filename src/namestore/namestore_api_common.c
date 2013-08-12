@@ -23,6 +23,7 @@
  * @brief API to access the NAMESTORE service
  * @author Martin Schanzenbach
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 
 #include "platform.h"
@@ -39,6 +40,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
 
 /**
  * Internal format of a record in the serialized form.
@@ -88,20 +90,29 @@ GNUNET_NAMESTORE_normalize_string (const char *src)
 
 
 /**
- * Convert a short hash to a string (for printing debug messages).
+ * Convert a zone key to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  *
- * @param hc the short hash code
- * @return string form; will be overwritten by next call to GNUNET_h2s.
+ * @param z the zone key
+ * @return string form; will be overwritten by next call to GNUNET_NAMESTORE_z2s
  */
 const char *
-GNUNET_NAMESTORE_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc)
+GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z)
 {
-  static struct GNUNET_CRYPTO_ShortHashAsciiEncoded ret;
+  static char buf[sizeof (struct GNUNET_CRYPTO_EccPublicKey) * 8];
+  char *end;
 
-  GNUNET_CRYPTO_short_hash_to_enc (hc, &ret);
-  return (const char *) &ret;
+  end = GNUNET_STRINGS_data_to_string ((const unsigned char *) z, 
+				       sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+				       buf, sizeof (buf));
+  if (NULL == end)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  *end = '\0';
+  return buf;
 }
 
 
@@ -273,20 +284,82 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  *
  * @param key the private key
  * @param expire block expiration
+ * @param label the name for the records
+ * @param rd record data
+ * @param rd_count number of records
+ * @param signature where to store the signature
+ */
+struct GNUNET_NAMESTORE_Block *
+GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+			       struct GNUNET_TIME_Absolute expire,
+			       const char *label,
+			       const struct GNUNET_NAMESTORE_RecordData *rd,
+			       unsigned int rd_count)
+{
+  GNUNET_break (0);
+  return NULL;
+}
+
+
+/**
+ * Check if a signature is valid.  This API is used by the GNS Block
+ * to validate signatures received from the network.
+ *
+ * @param block block to verify
+ * @return GNUNET_OK if the signature is valid
+ */
+int
+GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
+ * Decrypt block.
+ *
+ * @param block block to decrypt
+ * @param zone_key public key of the zone
+ * @param label the name for the records
+ * @param proc function to call with the result
+ * @param proc_cls closure for proc
+ * @param GNUNET_OK on success, GNUNET_SYSERR if the block was 
+ *        not well-formed
+ */
+int
+GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
+				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				const char *label,
+				GNUNET_NAMESTORE_RecordMonitor proc,
+				void *proc_cls)
+{
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+#if OLD
+/**
+ * Sign name and records
+ *
+ * @param key the private key
+ * @param expire block expiration
  * @param name the name
  * @param rd record data
  * @param rd_count number of records
- *
- * @return the signature
+ * @param signature where to store the signature
  */
-struct GNUNET_CRYPTO_EccSignature *
+void
 GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 				   struct GNUNET_TIME_Absolute expire,
 				   const char *name,
 				   const struct GNUNET_NAMESTORE_RecordData *rd,
-				   unsigned int rd_count)
+				   unsigned int rd_count,
+				   struct GNUNET_CRYPTO_EccSignature *signature)
+				   
 {
-  struct GNUNET_CRYPTO_EccSignature *sig;
+  struct GNUNET_CRYPTO_EccPrivateKey *dkey;
   struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
   struct GNUNET_TIME_AbsoluteNBO expire_nbo;
   size_t rd_ser_len;
@@ -297,12 +370,7 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key
   int res;
   uint32_t sig_len;
 
-  if (NULL == name)
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-  sig = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignature));
+  dkey = GNUNET_CRYPTO_ecc_key_derive (key, name, "gns");
   name_len = strlen (name) + 1;
   expire_nbo = GNUNET_TIME_absolute_hton (expire);
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
@@ -321,17 +389,70 @@ GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key
     memcpy (name_tmp, name, name_len);
     rd_tmp = &name_tmp[name_len];
     memcpy (rd_tmp, rd_ser, rd_ser_len);
-    res = GNUNET_CRYPTO_ecc_sign (key, sig_purpose, sig);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_ecc_sign (dkey, sig_purpose, signature));
     GNUNET_free (sig_purpose);
   }
-  if (GNUNET_OK != res)
+  GNUNET_CRYPTO_ecc_key_free (dkey);
+}
+
+
+/**
+ * Check if a signature is valid.  This API is used by the GNS Block
+ * to validate signatures received from the network.
+ *
+ * @param derived_key derived key of the zone and the label
+ * @param freshness time set for block expiration
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @param signature signature for all the records in the zone under the given name
+ * @return GNUNET_OK if the signature is valid
+ */
+int
+GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *derived_key,
+                                   const struct GNUNET_TIME_Absolute freshness,
+                                   unsigned int rd_count,
+                                   const struct GNUNET_NAMESTORE_RecordData *rd,
+                                   const struct GNUNET_CRYPTO_EccSignature *signature)
+{
+  size_t rd_ser_len;
+  size_t name_len;
+  char *name_tmp;
+  char *rd_ser;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
+  struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
+  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton (freshness);
+  uint32_t sig_len;
+
+  GNUNET_assert (NULL != public_key);
+  GNUNET_assert (NULL != name);
+  GNUNET_assert (NULL != rd);
+  GNUNET_assert (NULL != signature);
+  name_len = strlen (name) + 1;
+  if (name_len > MAX_NAME_LEN)
   {
     GNUNET_break (0);
-    GNUNET_free (sig);
-    return NULL;
+    return GNUNET_SYSERR;
   }
-  return sig;
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  sig_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+  {
+    char sig_buf[sig_len] GNUNET_ALIGN;
+
+    sig_purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) sig_buf;
+    sig_purpose->size = htonl (sig_len);
+    sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+    expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
+    memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
+    name_tmp = (char *) &expire_tmp[1];
+    memcpy (name_tmp, name, name_len);
+    rd_ser = &name_tmp[name_len];
+    GNUNET_assert (rd_ser_len ==
+		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
+    return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
+  }
 }
+#endif
 
 
 /**
@@ -352,7 +473,6 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   const struct vpn_data *vpn;
   const struct srv_data *srv;
   const struct tlsa_data *tlsa;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
   const char *cdata;
   char* vpn_str;
@@ -419,11 +539,9 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_NAMESTORE_TYPE_PKEY:
-    if (data_size != sizeof (struct GNUNET_CRYPTO_ShortHashCode))
+    if (data_size != sizeof (struct GNUNET_CRYPTO_EccPublicKey))
       return NULL;
-    GNUNET_CRYPTO_short_hash_to_enc (data,
-				     &enc);
-    return GNUNET_strdup ((const char*) enc.short_encoding);
+    return GNUNET_CRYPTO_ecc_public_key_to_string (data);
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_LEHO:
@@ -505,7 +623,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 {
   struct in_addr value_a;
   struct in6_addr value_aaaa;
-  struct GNUNET_CRYPTO_ShortHashCode pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct soa_data *soa;
   struct vpn_data *vpn;
   struct tlsa_data *tlsa;
@@ -610,16 +728,16 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PKEY:
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_short_hash_from_string (s, &pkey))
+	GNUNET_CRYPTO_ecc_public_key_from_string (s, strlen (s), &pkey))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Unable to parse PKEY record `%s'\n"),
 		  s);
       return GNUNET_SYSERR;
     }
-    *data = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+    *data = GNUNET_new (struct GNUNET_CRYPTO_EccPublicKey);
     memcpy (*data, &pkey, sizeof (pkey));
-    *data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
+    *data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PSEU:
     *data = GNUNET_strdup (s);
@@ -676,6 +794,10 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 }
 
 
+/**
+ * Mapping of record type numbers to human-readable
+ * record type names.
+ */
 static struct { 
   const char *name; 
   uint32_t number; 
@@ -734,6 +856,7 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type)
   return name_map[i].name;  
 }
 
+
 /**
  * Test if a given record is expired.
  * 
@@ -749,6 +872,44 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
     return GNUNET_NO;
   at.abs_value_us = rd->expiration_time;
   return (0 == GNUNET_TIME_absolute_get_remaining (at).rel_value_us) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
+ * Calculate the DHT query for a given 'label' in a given zone.
+ * 
+ * @param zone private key of the zone
+ * @param label label of the record
+ * @return query hash to use for the query
+ */
+void
+GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+					 const char *label,
+					 struct GNUNET_HashCode *query)
+{
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  GNUNET_CRYPTO_ecc_key_get_public (zone, &pub);
+  GNUNET_NAMESTORE_query_from_public_key (&pub, label, query);
+}
+
+
+/**
+ * Calculate the DHT query for a given 'label' in a given zone.
+ * 
+ * @param pub public key of the zone
+ * @param label label of the record
+ * @return query hash to use for the query
+ */
+void
+GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pub,
+					const char *label,
+					struct GNUNET_HashCode *query)
+{
+  struct GNUNET_CRYPTO_EccPublicKey pd;
+
+  GNUNET_CRYPTO_ecc_public_key_derive (pub, label, "gns", &pd);
+  GNUNET_CRYPTO_hash (&pd, sizeof (pd), query);
 }
 
 

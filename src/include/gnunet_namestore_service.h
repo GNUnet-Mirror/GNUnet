@@ -21,12 +21,11 @@
 /**
  * @file include/gnunet_namestore_service.h
  * @brief API that can be used to store naming information on a GNUnet node;
+ *        Naming information can either be records for which this peer/user
+ *        is authoritative, or blocks which are cached, encrypted naming
+ *        data from other peers.
  * @author Christian Grothoff
- *
- * Other functions we might want:
- * - enumerate all known zones
  */
-
 #ifndef GNUNET_NAMESTORE_SERVICE_H
 #define GNUNET_NAMESTORE_SERVICE_H
 
@@ -95,7 +94,6 @@ struct GNUNET_NAMESTORE_ZoneIterator;
  * Maximum size of a value that can be stored in the namestore.
  */
 #define GNUNET_NAMESTORE_MAX_VALUE_SIZE (63 * 1024)
-
 
 
 /**
@@ -229,53 +227,51 @@ struct GNUNET_NAMESTORE_RecordData
 
 
 /**
+ * Information we have in an encrypted block with record data (i.e. in the DHT).
+ */
+struct GNUNET_NAMESTORE_Block
+{
+
+  /**
+   * Signature of the block.
+   */
+  struct GNUNET_CRYPTO_EccSignature signature;
+
+  /**
+   * Derived key used for signing; hash of this is the query.
+   */
+  struct GNUNET_CRYPTO_EccPublicKey derived_key;
+
+  /**
+   * Number of bytes signed; also specifies the number of bytes
+   * of encrypted data that follow.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+  
+  /**
+   * Expiration time of the block.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /* followed by encrypted data */
+};
+
+
+/**
  * Store an item in the namestore.  If the item is already present,
- * it is replaced with the new record.  Use an empty array to
- * remove all records under the given name.
+ * it is replaced with the new record.  
  *
  * @param h handle to the namestore
- * @param zone_key public key of the zone
- * @param name name that is being mapped (at most 255 characters long)
- * @param freshness when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature for all the records in the zone under the given name
+ * @param block block to store
  * @param cont continuation to call when done
  * @param cont_cls closure for cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_put (struct GNUNET_NAMESTORE_Handle *h,
-			     const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-			     const char *name,
-			     struct GNUNET_TIME_Absolute freshness,
-			     unsigned int rd_count,
-			     const struct GNUNET_NAMESTORE_RecordData *rd,
-			     const struct GNUNET_CRYPTO_EccSignature *signature,
-			     GNUNET_NAMESTORE_ContinuationWithStatus cont,
-			     void *cont_cls);
-
-
-/**
- * Check if a signature is valid.  This API is used by the GNS Block
- * to validate signatures received from the network.
- *
- * @param public_key public key of the zone
- * @param freshness time set for block expiration
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature for all the records in the zone under the given name
- * @return GNUNET_OK if the signature is valid
- */
-int
-GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *public_key,
-                                   const struct GNUNET_TIME_Absolute freshness,
-                                   const char *name,
-                                   unsigned int rd_count,
-                                   const struct GNUNET_NAMESTORE_RecordData *rd,
-                                   const struct GNUNET_CRYPTO_EccSignature *signature);
+GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
+			      const struct GNUNET_NAMESTORE_Block *block,
+			      GNUNET_NAMESTORE_ContinuationWithStatus cont,
+			      void *cont_cls);
 
 
 /**
@@ -285,7 +281,7 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *publ
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
- * @param name name that is being mapped (at most 255 characters long)
+ * @param label name that is being mapped (at most 255 characters long)
  * @param rd_count number of records in the 'rd' array
  * @param rd array of records with data to store
  * @param cont continuation to call when done
@@ -293,67 +289,56 @@ GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *publ
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_record_put_by_authority (struct GNUNET_NAMESTORE_Handle *h,
-					  const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
-					  const char *name,
-					  unsigned int rd_count,
-					  const struct GNUNET_NAMESTORE_RecordData *rd,
-					  GNUNET_NAMESTORE_ContinuationWithStatus cont,
-					  void *cont_cls);
+GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
+				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
+				const char *label,
+				unsigned int rd_count,
+				const struct GNUNET_NAMESTORE_RecordData *rd,
+				GNUNET_NAMESTORE_ContinuationWithStatus cont,
+				void *cont_cls);
 
 
 /**
  * Process a record that was stored in the namestore.
  *
  * @param cls closure
- * @param zone_key public key of the zone
- * @param freshness when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
+ * @param block block that was stored in the namestore
  */
-typedef void (*GNUNET_NAMESTORE_RecordProcessor) (void *cls,
-						  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-						  struct GNUNET_TIME_Absolute freshness,			    
-						  const char *name,
-						  unsigned int rd_count,
-						  const struct GNUNET_NAMESTORE_RecordData *rd,
-						  const struct GNUNET_CRYPTO_EccSignature *signature);
+typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
+						 const struct GNUNET_NAMESTORE_Block *block);
 
 
 /**
  * Get a result for a particular key from the namestore.  The processor
- * will only be called once.  When using this functions, relative expiration
- * times will be converted to absolute expiration times and a signature
- * will be created if we are the authority.  The record data and signature
- * passed to 'proc' is thus always suitable for passing on to other peers
- * (if we are the authority).  If the record type is NOT set to 'ANY' and
- * if we are NOT the authority, then non-matching records may be omitted
- * from the result and no valid signature can be created; in this case,
- * 'signature' will be NULL and the result cannot be given to other peers.
+ * will only be called once.  
  *
  * @param h handle to the namestore
- * @param zone zone to look up a record from
- * @param name name to look up
- * @param record_type desired record type, 0 for all
- * @param proc function to call on the matching records, or with
- *        NULL (rd_count == 0) if there are no matching records
+ * @param derived_hash hash of zone key combined with name to lookup
+ * @param proc function to call on the matching block, or with
+ *        NULL if there is no matching block
  * @param proc_cls closure for proc
- * @return a handle that can be used to
- *         cancel
+ * @return a handle that can be used to cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h, 
-				const struct GNUNET_CRYPTO_ShortHashCode *zone,
-				const char *name,
-				uint32_t record_type,
-				GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
+GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h, 
+			       const struct GNUNET_HashCode *derived_hash,
+			       GNUNET_NAMESTORE_BlockProcessor proc, void *proc_cls);
+
+
+/**
+ * Process a record that was stored in the namestore.
+ *
+ * @param cls closure
+ * @param zone private key of the zone
+ * @param label label of the records
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ */
+typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
+						const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+						const char *label,
+						unsigned int rd_count,
+						const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 /**
@@ -361,8 +346,8 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
  * Returns at most one result to the processor.
  *
  * @param h handle to the namestore
- * @param zone hash of public key of the zone to look up in, never NULL
- * @param value_zone hash of the public key of the target zone (value), never NULL
+ * @param zone public key of the zone to look up in, never NULL
+ * @param value_zone public key of the target zone (value), never NULL
  * @param proc function to call on the matching records, or with
  *        NULL (rd_count == 0) if there are no matching records
  * @param proc_cls closure for proc
@@ -371,9 +356,9 @@ GNUNET_NAMESTORE_lookup_record (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h, 
-			       const struct GNUNET_CRYPTO_ShortHashCode *zone,
-			       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
-			       GNUNET_NAMESTORE_RecordProcessor proc, void *proc_cls);
+			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
 
 
 /**
@@ -393,28 +378,8 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
  * records into our DHT). "proc" will be called once immediately, and
  * then again after "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
  *
- * By specifying a 'zone' of NULL and setting 'GNUNET_NAMESTORE_RF_AUTHORITY'
- * in 'must_have_flags', we can iterate over all records for which we are
- * the authority (the 'authority' flag will NOT be set in the returned
- * records anyway).  
- *
- * The 'GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION'
- * bit in 'must_have_flags' has a special meaning:
- *
- * 0) If the bit is clear, all relative expriation times are converted to
- *    absolute expiration times.  This is useful for performing DHT PUT
- *    operations (and zone transfers) of our zone.  The generated signatures
- *    will be valid for other peers.
- * 1) if it is set, it means that relative expiration times should be
- *    preserved when returned (this is useful for the zone editor user 
- *    interface).  No signatures will be created in this case, as 
- *    signatures must not cover records with relative expiration times.
- *
- * Note that not all queries against this interface are equally performant
- * as for some combinations no efficient index may exist.
- *
  * @param h handle to the namestore
- * @param zone zone to access, NULL for all zones
+ * @param zone zone to access
  * @param must_have_flags flags that must be set for the record to be returned
  * @param must_not_have_flags flags that must NOT be set for the record to be returned
  * @param proc function to call on each name from the zone; it
@@ -425,10 +390,8 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
-				       const struct GNUNET_CRYPTO_ShortHashCode *zone,
-				       enum GNUNET_NAMESTORE_RecordFlags must_have_flags,
-				       enum GNUNET_NAMESTORE_RecordFlags must_not_have_flags,
-				       GNUNET_NAMESTORE_RecordProcessor proc,
+				       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				       GNUNET_NAMESTORE_RecordMonitor proc,
 				       void *proc_cls);
 
 
@@ -460,35 +423,6 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
 
 
 /**
- * Function called whenever the records for a given name changed.
- *
- * @param cls closure
- * @param zone_key NULL if the communication with the namestore broke down
- *                    (and thus all entries should be 'cleared' until the communication
- *                     can be re-established, at which point the monitor will 
- *                     re-add all records that are (still) in the namestore after
- *                     the reconnect); if this value is NULL, all other arguments
- *                     will also be 0/NULL.
- * @param freshness when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature of the record block
- */
-typedef void (*GNUNET_NAMESTORE_RecordMonitor)(void *cls,
-					       const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-					       struct GNUNET_TIME_Absolute freshness,			    
-					       const char *name,
-					       unsigned int rd_len,
-					       const struct GNUNET_NAMESTORE_RecordData *rd,
-					       const struct GNUNET_CRYPTO_EccSignature *signature);
-
-
-/**
  * Function called once the monitor has caught up with the current 
  * state of the database.  Will be called AGAIN after each disconnect
  * (record monitor called with 'NULL' for zone_key) once we're again
@@ -513,7 +447,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  * monitoring).
  *
  * @param cfg configuration to use to connect to namestore
- * @param zone zone to monitor, NULL for all zones
+ * @param zone zone to monitor
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
  * @param cls closure for 'monitor' and 'sync_cb'
@@ -521,7 +455,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     const struct GNUNET_CRYPTO_ShortHashCode *zone,
+				     const struct GNUNET_CRYPTO_EccPrivateKey *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls);
@@ -659,15 +593,41 @@ GNUNET_NAMESTORE_normalize_string (const char *src);
 
 
 /**
- * Convert a short hash to a string (for printing debug messages).
+ * Convert a zone to a string (for printing debug messages).
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  *
- * @param hc the short hash code
+ * @param z public key of a zone
  * @return string form; will be overwritten by next call to GNUNET_h2s.
  */
 const char *
-GNUNET_NAMESTORE_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
+GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z);
+
+
+/**
+ * Calculate the DHT query for a given 'label' in a given zone.
+ * 
+ * @param zone private key of the zone
+ * @param label label of the record
+ * @return query hash to use for the query
+ */
+void
+GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+					 const char *label,
+					 struct GNUNET_HashCode *query);
+
+
+/**
+ * Calculate the DHT query for a given 'label' in a given zone.
+ * 
+ * @param pub public key of the zone
+ * @param label label of the record
+ * @return query hash to use for the query
+ */
+void
+GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pub,
+					const char *label,
+					struct GNUNET_HashCode *query);
 
 
 /**
@@ -675,18 +635,47 @@ GNUNET_NAMESTORE_short_h2s (const struct GNUNET_CRYPTO_ShortHashCode * hc);
  *
  * @param key the private key
  * @param expire block expiration
- * @param name the name
+ * @param label the name for the records
  * @param rd record data
  * @param rd_count number of records
- *
- * @return the signature
+ * @param signature where to store the signature
  */
-struct GNUNET_CRYPTO_EccSignature *
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-				   struct GNUNET_TIME_Absolute expire,
-				   const char *name,
-				   const struct GNUNET_NAMESTORE_RecordData *rd,
-				   unsigned int rd_count);
+struct GNUNET_NAMESTORE_Block *
+GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+			       struct GNUNET_TIME_Absolute expire,
+			       const char *label,
+			       const struct GNUNET_NAMESTORE_RecordData *rd,
+			       unsigned int rd_count);
+
+
+/**
+ * Check if a signature is valid.  This API is used by the GNS Block
+ * to validate signatures received from the network.
+ *
+ * @param block block to verify
+ * @return GNUNET_OK if the signature is valid
+ */
+int
+GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
+
+
+/**
+ * Decrypt block.
+ *
+ * @param block block to decrypt
+ * @param zone_key public key of the zone
+ * @param label the name for the records
+ * @param proc function to call with the result
+ * @param proc_cls closure for proc
+ * @param GNUNET_OK on success, GNUNET_SYSERR if the block was 
+ *        not well-formed
+ */
+int
+GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
+				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				const char *label,
+				GNUNET_NAMESTORE_RecordMonitor proc,
+				void *proc_cls);
 
 
 /**

@@ -10,15 +10,17 @@ if HAVE_TESTING
 endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION)
+ EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION) 
 endif
 
 if LINUX
 # All of these currently only work on GNU/Linux or W32
- LINUX_DIR = exit vpn pt
+ LINUX_DIR = exit vpn
+# pt # without namestore, pt currently has some issues...
 endif
 if MINGW
- MINGW_DIR = vpn exit pt
+ MINGW_DIR = vpn exit 
+# pt # without namestore, pt currently has some issues...
 endif
 
 if HAVE_MYSQL
@@ -44,7 +46,6 @@ SUBDIRS = \
   $(POSTGRES_DIR) \
   datacache \
   datastore \
-  namestore \
   template \
   ats \
   nat \
@@ -67,6 +68,7 @@ SUBDIRS = \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
-  gns \
   integration-tests \
   $(EXP_DIR) 
+
+# note: namestore, gns are not listed right now as they are being reworked to use the new crypto

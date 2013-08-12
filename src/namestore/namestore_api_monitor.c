@@ -73,12 +73,8 @@ struct GNUNET_NAMESTORE_ZoneMonitor
   /**
    * Monitored zone.
    */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_EccPrivateKey zone;
 
-  /**
-   * GNUNET_YES if we monitor all zones, GNUNET_NO if we only monitor 'zone'.
-   */
-  int all_zones;
 };
 
 
@@ -108,8 +104,7 @@ reconnect (struct GNUNET_NAMESTORE_ZoneMonitor *zm)
     GNUNET_CLIENT_disconnect (zm->h);
   zm->monitor (zm->cls,
 	       NULL,
-	       GNUNET_TIME_UNIT_ZERO_ABS,
-	       NULL, 0, NULL, NULL);
+	       NULL, 0, NULL);
   GNUNET_assert (NULL != (zm->h = GNUNET_CLIENT_connect ("namestore", zm->cfg)));
   zm->th = GNUNET_CLIENT_notify_transmit_ready (zm->h,
 						sizeof (struct ZoneMonitorStartMessage),
@@ -132,7 +127,7 @@ handle_updates (void *cls,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_NAMESTORE_ZoneMonitor *zm = cls;
-  const struct LookupNameResponseMessage *lrm;
+  const struct RecordResultMessage *lrm;
   size_t lrm_len;
   size_t exp_lrm_len;
   size_t name_len;
@@ -140,7 +135,6 @@ handle_updates (void *cls,
   unsigned rd_count;
   const char *name_tmp;
   const char *rd_ser_tmp;
-  struct GNUNET_TIME_Absolute expire;
 
   if (NULL == msg)
   {
@@ -158,20 +152,19 @@ handle_updates (void *cls,
       zm->sync_cb (zm->cls);
     return;
   }
-  if ( (ntohs (msg->size) < sizeof (struct LookupNameResponseMessage)) ||
-       (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE != ntohs (msg->type) ) )
+  if ( (ntohs (msg->size) < sizeof (struct RecordResultMessage)) ||
+       (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT != ntohs (msg->type) ) )
   {
     GNUNET_break (0);
     reconnect (zm);
     return;
   }
-  lrm = (const struct LookupNameResponseMessage *) msg;
+  lrm = (const struct RecordResultMessage *) msg;
   lrm_len = ntohs (lrm->gns_header.header.size);
   rd_len = ntohs (lrm->rd_len);
   rd_count = ntohs (lrm->rd_count);
   name_len = ntohs (lrm->name_len);
-  expire = GNUNET_TIME_absolute_ntoh (lrm->expire);
-  exp_lrm_len = sizeof (struct LookupNameResponseMessage) + name_len + rd_len;
+  exp_lrm_len = sizeof (struct RecordResultMessage) + name_len + rd_len;
   if (lrm_len != exp_lrm_len)
   {
     GNUNET_break (0);
@@ -206,9 +199,9 @@ handle_updates (void *cls,
 			   zm,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     zm->monitor (zm->cls, 
-		 &lrm->public_key, expire, 
+		 &lrm->private_key,
 		 name_tmp, 
-		 rd_count, rd, NULL);
+		 rd_count, rd);
   }
 }
 
@@ -239,7 +232,6 @@ transmit_monitor_message (void *cls,
   sm.gns_header.header.size = htons (sizeof (struct ZoneMonitorStartMessage));
   sm.gns_header.r_id = htonl (0);
   sm.zone = zm->zone;
-  sm.all_zones = htonl (zm->all_zones);
   memcpy (buf, &sm, sizeof (sm));
   GNUNET_CLIENT_receive (zm->h,
 			 &handle_updates,
@@ -255,7 +247,7 @@ transmit_monitor_message (void *cls,
  * a record changes.
  *
  * @param cfg configuration to use to connect to namestore
- * @param zone zone to monitor, NULL for all zones
+ * @param zone zone to monitor
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
  * @param cls closure for 'monitor' and 'sync_cb'
@@ -263,7 +255,7 @@ transmit_monitor_message (void *cls,
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     const struct GNUNET_CRYPTO_ShortHashCode *zone,
+				     const struct GNUNET_CRYPTO_EccPrivateKey *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls)
@@ -276,10 +268,7 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
   zm = GNUNET_new (struct GNUNET_NAMESTORE_ZoneMonitor);
   zm->cfg = cfg;
   zm->h = client;
-  if (NULL == zone)
-    zm->all_zones = GNUNET_YES;
-  else
-    zm->zone = *zone;
+  zm->zone = *zone;
   zm->monitor = monitor;
   zm->sync_cb = sync_cb;
   zm->cls = cls;

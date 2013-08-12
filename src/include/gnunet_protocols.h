@@ -1331,39 +1331,34 @@ extern "C"
  ******************************************************************************/
 
 /**
- * Client to service: register.
+ * Client to service: lookup block
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_START 430
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK 431
 
 /**
- * Client to service: lookup name
+ * Service to client: result of block lookup
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME 431
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE 432
 
 /**
- * Service to client: result of name lookup
+ * Client to service: store records (as authority)
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_NAME_RESPONSE 432
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE 433
 
 /**
- * Client to service: put records (for caching)
+ * Service to client: result of store operation.
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT 433
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE 434
 
 /**
- * Service to client: result of put operation.
+ * Client to service: cache a block
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_PUT_RESPONSE 434
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE 435
 
 /**
- * Client to service: create record as authority
+ * Service to client: result of block cache request
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE 435
-
-/**
- * Service to client: result of record creation request
- */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_CREATE_RESPONSE 436
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE 436
 
 /**
  * Client to service: "reverse" lookup for zone name based on zone key
@@ -1385,6 +1380,11 @@ extern "C"
  * Service to client: you're now in sync.
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_SYNC 442
+
+/**
+ * Service to client: here is a (plaintext) record you requested.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT 443
 
 /**
  * Client to service: please start iteration; receives

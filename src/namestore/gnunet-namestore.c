@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -39,17 +39,12 @@
 static struct GNUNET_NAMESTORE_Handle *ns;
 
 /**
- * Hash of the public key of our zone.
- */
-static struct GNUNET_CRYPTO_ShortHashCode zone;
-
-/**
  * Private key for the our zone.
  */
 static struct GNUNET_CRYPTO_EccPrivateKey *zone_pkey;
 
 /**
- * Keyfile to manipulate.
+ * Keyfile to manipulate.  FIXME: change to ego's name!
  */
 static char *keyfile;	
 
@@ -59,14 +54,19 @@ static char *keyfile;
 static int add;
 
 /**
- * Queue entry for the 'add' operation.
+ * Iterator for the 'add' operation.
  */
-static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
+static struct GNUNET_NAMESTORE_ZoneIterator *add_zit;
 
 /**
  * Queue entry for the 'add-uri' operation.
  */
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
+
+/**
+ * Queue entry for the 'add' operation.
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
 /**
  * Desired action is to list records.
@@ -167,6 +167,7 @@ static struct GNUNET_NAMESTORE_ZoneMonitor *zm;
  * Enables monitor mode.
  */
 static int monitor;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -291,33 +292,21 @@ del_continuation (void *cls,
  * Process a record that was stored in the namestore.
  *
  * @param cls closure
- * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
+ * @param zone_key private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_len number of entries in 'rd' array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
  */
 static void
 display_record (void *cls,
-		const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-		struct GNUNET_TIME_Absolute expire,			    
+		const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 		const char *name,
 		unsigned int rd_len,
-		const struct GNUNET_NAMESTORE_RecordData *rd,
-		const struct GNUNET_CRYPTO_EccSignature *signature)
+		const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   const char *typestring;
   char *s;
   unsigned int i;
-  const char *etime;
-  struct GNUNET_TIME_Absolute aex;
-  struct GNUNET_TIME_Relative rex;
 
   if (NULL == name)
   {
@@ -343,21 +332,10 @@ display_record (void *cls,
 	       (unsigned int) rd[i].record_type);
       continue;
     }
-    if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
-    {
-      rex.rel_value_us = rd[i].expiration_time;
-      etime = GNUNET_STRINGS_relative_time_to_string (rex, GNUNET_YES);
-    }
-    else
-    {
-      aex.abs_value_us = rd[i].expiration_time;
-      etime = GNUNET_STRINGS_absolute_time_to_string (aex);
-    }
-    FPRINTF (stdout, "\t%s: %s (%s %s)\n", typestring, s, 
-	     (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) 
-	     ? _(/* what follows is relative expiration */ "for at least")
-	     : _(/* what follows is absolute expiration */ "until"),
-	     etime);
+    FPRINTF (stdout, 
+	     "\t%s: %s\n",
+	     typestring, 
+	     s);
     GNUNET_free (s);    
   }
   FPRINTF (stdout, "%s", "\n");
@@ -382,31 +360,27 @@ sync_cb (void *cls)
  * so that we can merge the information.
  *
  * @param cls closure, unused
- * @param zone_key public key of the zone
- * @param freshness when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
+ * @param zone_key private key of the zone
  * @param rec_name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
  */
 static void
 get_existing_record (void *cls,
-		     const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-		     struct GNUNET_TIME_Absolute freshness,			    
+		     const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 		     const char *rec_name,
 		     unsigned int rd_count,
-		     const struct GNUNET_NAMESTORE_RecordData *rd,
-		     const struct GNUNET_CRYPTO_EccSignature *signature)
+		     const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GNUNET_NAMESTORE_RecordData rdn[rd_count + 1];
   struct GNUNET_NAMESTORE_RecordData *rde;
-  
-  add_qe = NULL;
+
+  if ( (NULL != zone_key) &&
+       (0 != strcmp (rec_name, name)) )
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (add_zit);
+    return;
+  }
   memset (rdn, 0, sizeof (struct GNUNET_NAMESTORE_RecordData));
   memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
   /* FIXME: should add some logic to overwrite records if there
@@ -416,27 +390,20 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  if (GNUNET_YES == etime_is_rel)
-  {
-    rde->expiration_time = etime_rel.rel_value_us;
-    rde->flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
-  }
-  else if (GNUNET_NO == etime_is_rel)
-  {
-    rde->expiration_time = etime_abs.abs_value_us;
-  }
   if (1 != nonauthority)
     rde->flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
   if (1 != public)
     rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
   GNUNET_assert (NULL != name);
-  add_qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
-						     zone_pkey,
-						     name,
-						     rd_count + 1,
-						     rde,
-						     &add_continuation,
-						     &add_qe);
+  add_qe = GNUNET_NAMESTORE_records_store (ns,
+					   zone_pkey,
+					   name,
+					   rd_count + 1,
+					   rde,
+					   &add_continuation,
+					   &add_qe);
+  GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
+  add_zit = NULL;
 }
 
 
@@ -494,7 +461,6 @@ testservice_task (void *cls,
   }
   GNUNET_CRYPTO_ecc_key_get_public (zone_pkey,
                                     &pub);
-  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &zone);
 
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
@@ -590,12 +556,10 @@ testservice_task (void *cls,
       ret = 1;
       return;     
     }
-    add_qe = GNUNET_NAMESTORE_lookup_record (ns,
-					     &zone,
-					     name,
-					     0, 
-					     &get_existing_record,
-					     NULL);
+    add_zit = GNUNET_NAMESTORE_zone_iteration_start (ns,
+						     zone_pkey,
+						     &get_existing_record,
+						     NULL);
   }
   if (del)
   {
@@ -608,12 +572,12 @@ testservice_task (void *cls,
       ret = 1;
       return;     
     }
-    del_qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
-						       zone_pkey,
-						       name,
-						       0, NULL,
-						       &del_continuation,
-						       NULL);
+    del_qe = GNUNET_NAMESTORE_records_store (ns,
+					     zone_pkey,
+					     name,
+					     0, NULL,
+					     &del_continuation,
+					     NULL);
   }
   if (list)
   {
@@ -626,24 +590,22 @@ testservice_task (void *cls,
       must_not_flags |= GNUNET_NAMESTORE_RF_PRIVATE;
 
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                     &zone,
-                                                     GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION,
-                                                     must_not_flags,
+                                                     zone_pkey,
                                                      &display_record,
                                                      NULL);
   }
   if (NULL != uri)
   {
-    char sh[53];
+    char sh[105];
     char sname[64];
-    struct GNUNET_CRYPTO_ShortHashCode sc;
+    struct GNUNET_CRYPTO_EccPublicKey pkey;
 
     if ( (2 != (sscanf (uri,
-                        "gnunet://gns/%52s/%63s",
+                        "gnunet://gns/%104s/%63s",
                         sh,
                         sname)) ) ||
          (GNUNET_OK !=
-          GNUNET_CRYPTO_short_hash_from_string (sh, &sc)) )
+          GNUNET_CRYPTO_ecc_public_key_from_string (sh, strlen (sh), &pkey)) )
     {
       fprintf (stderr, 
                _("Invalid URI `%s'\n"),
@@ -653,8 +615,8 @@ testservice_task (void *cls,
       return;
     }
     memset (&rd, 0, sizeof (rd));
-    rd.data = &sc;
-    rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
+    rd.data = &pkey;
+    rd.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
     if (GNUNET_YES == etime_is_rel)
     {
@@ -667,18 +629,18 @@ testservice_task (void *cls,
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
-    add_qe_uri = GNUNET_NAMESTORE_record_put_by_authority (ns,
-							   zone_pkey,
-							   sname,
-							   1,
-							   &rd,
-							   &add_continuation,
-							   &add_qe_uri);
+    add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
+						 zone_pkey,
+						 sname,
+						 1,
+						 &rd,
+						 &add_continuation,
+						 &add_qe_uri);
   }
   if (monitor)
   {
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
-					      &zone,
+					      zone_pkey,
 					      &display_record,
 					      &sync_cb,
 					      NULL);

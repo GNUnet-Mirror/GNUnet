@@ -25,12 +25,17 @@ if HAVE_TESTING
 SQLITE_TESTS = test_plugin_namestore_sqlite 
 endif
 endif
+
 if HAVE_POSTGRES
+# postgres doesn't even build yet; thus: experimental!
+if HAVE_EXPERIMENTAL
 POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 if HAVE_TESTING
 POSTGRES_TESTS = test_plugin_namestore_postgres
 endif
 endif
+endif
+
 if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api \

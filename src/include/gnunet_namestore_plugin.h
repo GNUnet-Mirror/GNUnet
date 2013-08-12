@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -40,25 +40,29 @@ extern "C"
 
 
 /**
+ * Function called for matching blocks.
+ *
+ * @param cls closure
+ * @param block lookup result
+ */
+typedef void (*GNUNET_NAMESTORE_BlockCallback) (void *cls,
+						const struct GNUNET_NAMESTORE_Block *block);
+
+
+/**
  * Function called by for each matching record.
  *
  * @param cls closure
- * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?
- * @param name name that is being mapped (at most 255 characters long)
+ * @param zone_key private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-						 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-						 struct GNUNET_TIME_Absolute expire,
-						 const char *name,
-						 unsigned int rd_len,
-						 const struct GNUNET_NAMESTORE_RecordData *rd,
-						 const struct GNUNET_CRYPTO_EccSignature *signature);
+						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
+						 const char *label,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd);
 
 
 /**
@@ -73,49 +77,58 @@ struct GNUNET_NAMESTORE_PluginFunctions
   void *cls;
 
   /**
-   * Store a record in the datastore.  Removes any existing record in the
-   * same zone with the same name.
+   * Cache a block in the datastore. Overwrites (older) existing blocks
+   * for the same zone and label.
    *
    * @param cls closure (internal context for the plugin)
-   * @param zone_key public key of the zone
-   * @param expire when does the corresponding block in the DHT expire (until
-   *               when should we never do a DHT lookup for the same name again)?
-   * @param name name that is being mapped (at most 255 characters long)
-   * @param rd_count number of entries in 'rd' array
-   * @param rd array of records with data to store
-   * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
-   *        because the user queried for a particular record type only)
+   * @param block block to cache
    * @return GNUNET_OK on success, else GNUNET_SYSERR
    */
-  int (*put_records) (void *cls, 
-		      const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-		      struct GNUNET_TIME_Absolute expire,
-		      const char *name,
-		      unsigned int rd_len,
-		      const struct GNUNET_NAMESTORE_RecordData *rd,
-		      const struct GNUNET_CRYPTO_EccSignature *signature);
+  int (*cache_block) (void *cls, 
+		      const struct GNUNET_NAMESTORE_Block *block);
 
 
   /**
-   * Removes any existing record in the given zone with the same name.
-   *
-   * @param cls closure (internal context for the plugin)
-   * @param zone hash of the public key of the zone
-   * @param name name to remove (at most 255 characters long)
-   * @return GNUNET_OK on success
-   */
-  int (*remove_records) (void *cls, 
-			 const struct GNUNET_CRYPTO_ShortHashCode *zone,
-			 const char *name);
-
-
-  /**
-   * Iterate over the results for a particular key and zone in the
+   * Get the block for a particular zone and label in the
    * datastore.  Will return at most one result to the iterator.
    *
    * @param cls closure (internal context for the plugin)
-   * @param zone hash of public key of the zone, NULL to iterate over all zones
-   * @param name name as '\0' terminated string, NULL to iterate over all records of the zone
+   * @param query hash of public key derived from the zone and the label
+   * @param iter function to call with the result
+   * @param iter_cls closure for iter
+   * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+   *         'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+   */
+  int (*lookup_block) (void *cls, 
+		       const struct GNUNET_HashCode *query,
+		       GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls);
+
+
+
+  /**
+   * Store a record in the datastore for which we are the authority.
+   * Removes any existing record in the same zone with the same name.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param zone private key of the zone
+   * @param label name of the record in the zone
+   * @param rd_count number of entries in 'rd' array, 0 to delete all records
+   * @param rd array of records with data to store
+   * @return GNUNET_OK on success, else GNUNET_SYSERR
+   */
+  int (*store_records) (void *cls, 
+			const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+			const char *label,
+			unsigned int rd_count,
+			const struct GNUNET_NAMESTORE_RecordData *rd);
+
+
+  /**
+   * Iterate over the results for a particular zone in the
+   * datastore.  Will return at most one result to the iterator.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param zone private key of the zone
    * @param offset offset in the list of all matching records
    * @param iter function to call with the result
    * @param iter_cls closure for iter
@@ -123,8 +136,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
    */
   int (*iterate_records) (void *cls, 
-			  const struct GNUNET_CRYPTO_ShortHashCode *zone,
-			  const char *name,
+			  const struct GNUNET_CRYPTO_EccPrivateKey *zone,
 			  uint64_t offset,
 			  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
@@ -134,27 +146,17 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * Returns at most one result to the iterator.
    *
    * @param cls closure (internal context for the plugin)
-   * @param zone hash of public key of the zone to look up in, never NULL
-   * @param value_zone hash of the public key of the target zone (value), never NULL
+   * @param zone private key of the zone to look up in, never NULL
+   * @param value_zone public key of the target zone (value), never NULL
    * @param iter function to call with the result
    * @param iter_cls closure for iter
    * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
    *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
    */
   int (*zone_to_name) (void *cls, 
-		       const struct GNUNET_CRYPTO_ShortHashCode *zone,
-		       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
+		       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+		       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
 		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
-
-
-  /**
-   * Delete an entire zone (all records).  Not used in normal operation.
-   *
-   * @param cls closure (internal context for the plugin)
-   * @param zone zone to delete
-   */
-  void (*delete_zone) (void *cls,
-		       const struct GNUNET_CRYPTO_ShortHashCode *zone);
 
 
 };
