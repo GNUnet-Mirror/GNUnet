@@ -727,6 +727,12 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
     mq->current_envelope = NULL;
   }
 
+  if (NULL != mq->assoc_map)
+  {
+    GNUNET_CONTAINER_multihashmap32_destroy (mq->assoc_map);
+    mq->assoc_map = NULL;
+  }
+
   GNUNET_free (mq);
 }
 
