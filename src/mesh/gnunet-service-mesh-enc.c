@@ -785,14 +785,14 @@ static unsigned long long default_ttl;
 static unsigned long long dht_replication_level;
 
 /**
- * How many tunnels are we willing to maintain.
- * Local tunnels are always allowed, even if there are more tunnels than max.
+ * How many connections are we willing to maintain.
+ * Local connections are always allowed, even if there are more connections than max.
  */
-static unsigned long long max_tunnels;
+static unsigned long long max_connections;
 
 /**
  * How many messages *in total* are we willing to queue, divided by number of 
- * tunnels to get tunnel queue size.
+ * connections to get tunnel queue size.
  */
 static unsigned long long max_msgs_queue;
 
@@ -1035,6 +1035,23 @@ tunnel_destroy_empty (struct MeshTunnel2 *t);
  */
 static void
 tunnel_destroy (struct MeshTunnel2 *t);
+
+/**
+ * Create a connection.
+ *
+ * @param tid Tunnel ID.
+ * @param cid Connection ID.
+ */
+static struct MeshConnection *
+connection_new (struct GNUNET_HashCode *tid, uint32_t cid);
+
+/**
+ * Connection is no longer needed: destroy it and remove from tunnel.
+ *
+ * @param c Connection to destroy.
+ */
+static void
+connection_destroy (struct MeshConnection *c);
 
 /**
  * Send FWD keepalive packets for a connection.
@@ -1694,7 +1711,7 @@ send_connection_create (struct MeshConnection *connection)
              neighbor,
              connection,
              NULL);
-  if (MESH_TUNNEL_SEARCHING == t->state)
+  if (MESH_TUNNEL_SEARCHING == t->state || MESH_TUNNEL_NEW == t->state)
     tunnel_change_state (t, MESH_TUNNEL_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
@@ -1779,7 +1796,7 @@ send_core_data_raw (void *cls, size_t size, void *buf)
 
 
 /**
- * Function to send a create path packet to a peer.
+ * Function to send a create connection message to a peer.
  *
  * @param cls closure
  * @param size number of bytes available in buf
@@ -1810,6 +1827,7 @@ send_core_connection_create (void *cls, size_t size, void *buf)
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
   msg->cid = htonl (c->id);
+  msg->tid = c->t->id;
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -2770,7 +2788,7 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   struct MeshConnection *c;
   unsigned int own_pos;
 
-  c = GNUNET_new (struct MeshConnection);
+  c = connection_new (&t->id, t->next_cid++);
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
     if (p->peers[own_pos] == myid)
@@ -2779,13 +2797,11 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   if (own_pos > p->length - 1)
   {
     GNUNET_break (0);
+    connection_destroy (c);
     return NULL;
   }
   c->own_pos = own_pos;
   c->path = p;
-  c->id = t->next_cid++;
-  c->t = t;
-  GNUNET_CONTAINER_DLL_insert_tail (t->connection_head, t->connection_tail, c);
 
   if (0 == own_pos)
   {
@@ -3715,20 +3731,15 @@ fc_init (struct MeshFlowControl *fc)
 {
   fc->last_pid_sent = (uint32_t) -1; /* Next (expected) = 0 */
   fc->last_pid_recv = (uint32_t) -1;
-  fc->last_ack_sent = (uint32_t) -1; /* No traffic allowed yet */
-  fc->last_ack_recv = (uint32_t) -1;
+  fc->last_ack_sent = (uint32_t) 0;
+  fc->last_ack_recv = (uint32_t) 0;
   fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
   fc->queue_n = 0;
+  fc->queue_max = (max_msgs_queue / max_connections) + 1;
 }
 
 
-/**
- * Create a connection.
- *
- * @param tid Tunnel ID.
- * @param cid Connection ID.
- */
 static struct MeshConnection *
 connection_new (struct GNUNET_HashCode *tid, uint32_t cid)
 {
@@ -3777,11 +3788,6 @@ connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
 }
 
 
-/**
- * Connection is no longer needed: destroy it and remove from tunnel.
- *
- * @param c Connection to destroy.
- */
 static void
 connection_destroy (struct MeshConnection *c)
 {
@@ -3939,6 +3945,8 @@ channel_new (struct MeshTunnel2 *t,
   ch->root = owner;
   ch->lid_root = lid_root;
   ch->t = t;
+
+  GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, ch);
 
   GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
 
@@ -4444,6 +4452,10 @@ queue_add (void *cls, uint16_t type, size_t size,
   struct MeshFlowControl *fc;
   int priority;
   int fwd;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "queue add %s (%u bytes) on c %p, ch %p\n",
+              GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
 
   fwd = (dst == connection_get_next_hop (c));
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -5783,6 +5795,7 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &tid);
     peer->tunnel = tunnel_new (&tid);
+    peer->tunnel->peer = peer;
   }
   t = peer->tunnel;
 
@@ -6504,8 +6517,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_TUNNELS",
-                                             &max_tunnels))
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
+                                             &max_connections))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
