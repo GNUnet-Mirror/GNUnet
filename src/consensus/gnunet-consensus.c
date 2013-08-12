@@ -95,6 +95,7 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
 static void
 conclude_cb (void *cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus done\n");
   GNUNET_SCHEDULER_add_now (destroy, cls);
 }
 
@@ -274,6 +275,8 @@ peer_info_cb (void *cb_cls,
   {
     GNUNET_assert (0);
   }
+
+  GNUNET_TESTBED_operation_done (op);
 }
 
 
@@ -301,7 +304,6 @@ test_master (void *cls,
   GNUNET_log_setup ("gnunet-consensus", "INFO", NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "test master\n");
-
 
   peers = started_peers;
 

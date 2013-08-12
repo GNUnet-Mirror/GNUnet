@@ -266,6 +266,7 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
     i->cls = idc_cls;
     GNUNET_MQ_notify_sent (ev, idc_adapter, i);
   }
+  GNUNET_MQ_send (consensus->mq, ev);
 }
 
 
