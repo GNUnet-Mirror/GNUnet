@@ -1224,6 +1224,22 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Get the static string for a peer ID.
+ *
+ * @param peer Peer.
+ *
+ * @return Static string for it's ID.
+ */
+static const char *
+peer2s (const struct MeshPeer *peer)
+{
+  if (NULL == peer)
+    return "(NULL)";
+  return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
+}
+
+
+/**
  * Get the previous hop in a connection
  *
  * @param c Connection.
@@ -1669,6 +1685,7 @@ send_connection_create (struct MeshConnection *connection)
   t = connection->t;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
   neighbor = connection_get_next_hop (connection);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  to %s\n", peer2s (neighbor));
   queue_add (connection,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
              sizeof (struct GNUNET_MESH_ConnectionCreate) +
@@ -1974,20 +1991,6 @@ peer_delete_oldest (void)
   GNUNET_CONTAINER_multihashmap_iterate (peers,
                                          &peer_timeout,
                                          &abs);
-}
-
-
-/**
- * Get the static string for a peer ID.
- *
- * @param peer Peer.
- *
- * @return Static string for it's ID.
- */
-static const char *
-peer2s (const struct MeshPeer *peer)
-{
-  return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
 }
 
 
@@ -3814,7 +3817,7 @@ tunnel_destroy (struct MeshTunnel2 *t)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
-              peer2s (t->peer);
+              peer2s (t->peer));
 
   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
     GNUNET_break (0);
