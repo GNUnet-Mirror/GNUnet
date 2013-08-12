@@ -197,6 +197,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct AddressWrapper *w;
   int c = 0;
+
   timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
   {
@@ -350,7 +351,7 @@ env_notify_address (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding address of length %u\n", addrlen);
 
-      w = GNUNET_malloc (sizeof (struct AddressWrapper));
+      w = GNUNET_new (struct AddressWrapper);
       w->addr = GNUNET_malloc (addrlen);
       w->addrlen = addrlen;
       memcpy (w->addr, addr, addrlen);
@@ -523,7 +524,6 @@ setup_plugin_environment ()
   env.my_identity = &my_identity;
   env.max_connections = max_connect_per_transport;
   env.stats = stats;
-
   env.receive = &env_receive;
   env.notify_address = &env_notify_address;
   env.get_address_type = &env_get_address_type;
@@ -531,6 +531,7 @@ setup_plugin_environment ()
   env.get_our_hello = &env_get_our_hello;
   env.session_end = &env_session_end;
 }
+
 
 static int
 handle_helper_message (void *cls, void *client,

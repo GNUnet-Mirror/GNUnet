@@ -578,42 +578,62 @@ GST_manipulation_recv (void *cls,
 void
 GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 {
-	unsigned long long tmp;
-
-	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_IN", &tmp) && (tmp > 0))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting inbound distance_in to %u\n",
-				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
-	}
-
-	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DISTANCE_OUT", &tmp) && (tmp > 0))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting outbound distance_in to %u\n",
-				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_SEND, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
-	}
-
-	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DELAY_IN", &tmp) && (tmp > 0))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying inbound traffic for %llu ms\n",
-				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DELAY, tmp);
-	}
-
-
-	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-			"transport", "MANIPULATE_DELAY_OUT", &tmp) && (tmp > 0))
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Delaying outbound traffic for %llu ms\n",
-				(unsigned long long) tmp);
-		set_metric (&man_handle.general, TM_SEND, GNUNET_ATS_QUALITY_NET_DELAY, tmp);
-	}
-
-	man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  unsigned long long tmp;
+  struct GNUNET_TIME_Relative delay;
+  
+  if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+							  "transport",
+							  "MANIPULATE_DISTANCE_IN",
+							    &tmp)) && 
+	(tmp > 0) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Setting inbound distance_in to %llu\n",
+		(unsigned long long) tmp);
+    set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
+  }
+       
+  if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+							    "transport", 
+							    "MANIPULATE_DISTANCE_OUT",
+							    &tmp)) &&
+       (tmp > 0) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Setting outbound distance_in to %llu\n",
+		(unsigned long long) tmp);
+    set_metric (&man_handle.general, TM_SEND, 
+		GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
+  }
+  
+  if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
+							  "transport",
+							  "MANIPULATE_DELAY_IN",
+							  &delay)) && 
+       (delay.rel_value_us > 0) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Delaying inbound traffic for %s\n",
+		GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    set_metric (&man_handle.general, TM_RECEIVE,
+		GNUNET_ATS_QUALITY_NET_DELAY, 
+		delay.rel_value_us);
+  }
+  if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
+							  "transport",
+							  "MANIPULATE_DELAY_OUT",
+							  &delay)) && 
+       (delay.rel_value_us > 0) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Delaying outbound traffic for %s\n",
+		GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    set_metric (&man_handle.general, 
+		TM_SEND,
+		GNUNET_ATS_QUALITY_NET_DELAY, 
+		delay.rel_value_us);
+  }  
+  man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 }
 
 
@@ -622,32 +642,35 @@ free_tmps (void *cls,
 	   const struct GNUNET_HashCode * key,
 	   void *value)
 {
-	struct DelayQueueEntry *dqe;
-	struct DelayQueueEntry *next;
-	if (NULL != value)
-	{
-			struct TM_Peer *tmp = (struct TM_Peer *) value;
-			if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value))
-				GNUNET_break (0);
-			free_metric (tmp);
-			next = tmp->send_head;
-			while (NULL != (dqe = next))
-			{
-					next = dqe->next;
-					GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
-					if (NULL != dqe->cont)
-							dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
-					GNUNET_free (dqe);
-			}
-			if (GNUNET_SCHEDULER_NO_TASK != tmp->send_delay_task)
-			{
-					GNUNET_SCHEDULER_cancel (tmp->send_delay_task);
-					tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
-			}
-			GNUNET_free (tmp);
-	}
-	return GNUNET_OK;
+  struct DelayQueueEntry *dqe;
+  struct DelayQueueEntry *next;
+
+  if (NULL != value)
+  {
+    struct TM_Peer *tmp = (struct TM_Peer *) value;
+
+    if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value))
+      GNUNET_break (0);
+    free_metric (tmp);
+    next = tmp->send_head;
+    while (NULL != (dqe = next))
+      {
+	next = dqe->next;
+	GNUNET_CONTAINER_DLL_remove (tmp->send_head, tmp->send_tail, dqe);
+	if (NULL != dqe->cont)
+	  dqe->cont (dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
+	GNUNET_free (dqe);
+      }
+    if (GNUNET_SCHEDULER_NO_TASK != tmp->send_delay_task)
+      {
+	GNUNET_SCHEDULER_cancel (tmp->send_delay_task);
+	tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+    GNUNET_free (tmp);
+  }
+  return GNUNET_OK;
 }
+
 
 /**
  * Notify manipulation about disconnect so it can discard queued messages

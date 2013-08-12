@@ -593,7 +593,7 @@ test_plugin_tcp_LDADD = \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
 test_plugin_udp_SOURCES = \
  test_plugin_transport.c
 test_plugin_udp_LDADD = \

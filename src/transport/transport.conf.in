@@ -26,10 +26,10 @@ UNIX_MATCH_GID = YES
 # Configuration settings related to traffic manipulation for testing purposes
 # Distance
 # MANIPULATE_DISTANCE_IN = 1
-# MANIPULATE_DISTANCE_OUT = 1
-# Delay in ms; WARNING: to large values may lead to peers not connecting!
-# MANIPULATE_DELAY_IN = 1
-# MANIPULATE_DELAY_OUT = 1
+# MANIPULATE_DISTANCE_OUT = 1 
+# Delay; WARNING: to large values may lead to peers not connecting!
+# MANIPULATE_DELAY_IN = 1 ms
+# MANIPULATE_DELAY_OUT = 1 ms
   
 
 [transport-unix]
