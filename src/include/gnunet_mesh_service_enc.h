@@ -275,14 +275,14 @@ union MeshChannelInfo {
  * Get information about a channel.
  *
  * @param channel Channel handle.
- * @param option Query, as listed in src/mesh/mesh.h (GNUNET_MESH_OPTION_*)
+ * @param option Query type GNUNET_MESH_OPTION_*
  * @param ... dependant on option, currently not used
  *
  * @return Union with an answer to the query.
  */
 const union MeshChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
-                             enum MeshChannelOption option, ...);
+                              enum MeshOption option, ...);
 
 
 /**
