@@ -41,24 +41,10 @@
 #include "gnunet_vpn_service.h"
 
 
-#define DHT_OPERATION_TIMEOUT  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
-
-#define GNUNET_GNS_DEFAULT_LOOKUP_TIMEOUT \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-#define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
-
-#define DHT_GNS_REPLICATION_LEVEL 5
-
-#define GNUNET_GNS_MAX_PARALLEL_LOOKUPS 500
-
-#define GNUNET_GNS_MAX_NS_TASKS 500
-
-
 /**
- * Default DHT timeout
+ * Default DHT timeout for lookups.
  */
-#define DHT_LOOKUP_TIMEOUT DHT_OPERATION_TIMEOUT
+#define DHT_LOOKUP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
  * DHT replication level
