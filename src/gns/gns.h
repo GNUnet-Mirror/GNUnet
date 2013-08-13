@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2012 Christian Grothoff (and other contributing authors)
+      (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -28,9 +28,9 @@
 #include "gnunet_gns_service.h"
 
 /**
- * Name of the GADS TLD.
+ * Name of the GNS TLD.
  */
-#define GNUNET_GNS_TLD "gads"
+#define GNUNET_GNS_TLD "gnu"
 
 /**
  * Name of the zone key TLD.
@@ -61,29 +61,24 @@ struct GNUNET_GNS_ClientLookupMessage
   uint32_t id GNUNET_PACKED;
 
   /**
-   * If use_default_zone is empty this zone is used for lookup
+   * Zone that is to be used for lookup
    */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
+  struct GNUNET_CRYPTO_EccPublicKey zone;
 
   /**
    * Only check cached results
    */
-  uint32_t only_cached GNUNET_PACKED;
-
-  /**
-   * Should we look up in the given zone, instead of the default zone?
-   */
-  uint32_t have_zone GNUNET_PACKED;
+  int16_t only_cached GNUNET_PACKED;
 
   /**
    * Is a shorten key attached?
    */
-  uint32_t have_key GNUNET_PACKED;
+  int16_t have_key GNUNET_PACKED;
 
   /**
    * the type of record to look up
    */
-  /* int */ uint32_t type;
+  int32_t type;
   
   /**
    * The key for shorten, if 'have_key' is set 
@@ -118,103 +113,6 @@ struct GNUNET_GNS_ClientLookupResultMessage
 
 };
 
-
-/**
- * Message from client to GNS service to shorten names.
- */
-struct GNUNET_GNS_ClientShortenMessage
-{
-  /**
-   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /**
-   * If use_default_zone is empty this zone is used for lookup
-   */
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-
-  /**
-   * Shorten zone
-   */
-  struct GNUNET_CRYPTO_ShortHashCode shorten_zone;
-
-  /**
-   * Private zone
-   */
-  struct GNUNET_CRYPTO_ShortHashCode private_zone;
-
-  /**
-   * Should we look up in the default zone?
-   */
-  uint32_t use_default_zone GNUNET_PACKED;
-  
-  /* Followed by the name to shorten up */
-};
-
-
-/**
- * Message from GNS service to client: shorten result.
- */
-struct GNUNET_GNS_ClientShortenResultMessage
-{
-  /**
-   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_SHORTEN_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /* followed by the shortened name or '\0' for no result*/
-
-};
-
-
-/**
- * Message from client to GNS service to lookup an authority of a name.
- */
-struct GNUNET_GNS_ClientGetAuthMessage
-{
-  /**
-   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /* Followed by the name to get authority for */
-};
-
-
-/**
- * Message from GNS service to client: authority result.
- */
-struct GNUNET_GNS_ClientGetAuthResultMessage
-{
-  /**
-   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_GET_AUTH_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique identifier for this request (for key collisions).
-   */
-  uint32_t id GNUNET_PACKED;
-
-  /* followed by the authority part of the name or '\0' for no result*/
-
-};
 
 GNUNET_NETWORK_STRUCT_END
 
