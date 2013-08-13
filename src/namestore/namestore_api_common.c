@@ -95,7 +95,7 @@ GNUNET_NAMESTORE_normalize_string (const char *src)
  * NOT reentrant!
  *
  * @param z the zone key
- * @return string form; will be overwritten by next call to GNUNET_NAMESTORE_z2s
+ * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s
  */
 const char *
 GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z)
@@ -121,10 +121,8 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z)
  * records.
  *
  * @param rd_count number of records in the rd array
- * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
- *
+ * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
  * @return the required size to serialize
- *
  */
 size_t
 GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
@@ -147,10 +145,9 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
  * Serialize the given records to the given destination buffer.
  *
  * @param rd_count number of records in the rd array
- * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
+ * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
  * @param dest_size size of the destination array
  * @param dest where to write the result
- *
  * @return the size of serialized records, -1 if records do not fit
  */
 ssize_t
@@ -190,7 +187,7 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
  *
  * @param a record
  * @param b record
- * @return GNUNET_YES if the records are equal or GNUNET_NO if they are not
+ * @return #GNUNET_YES if the records are equal or #GNUNET_NO if they are not
  */
 int
 GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
@@ -245,8 +242,7 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  * @param src the serialized record data
  * @param rd_count number of records in the rd array
  * @param dest where to put the data
- *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_NAMESTORE_records_deserialize (size_t len,
@@ -284,7 +280,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  * expiration time is the expiration time of the block with smallest
  * expiration time.
  *
- * @param rd_count number of records given in 'rd'
+ * @param rd_count number of records given in @a rd
  * @param rd array of records
  * @return absolute expiration time
  */
@@ -325,7 +321,6 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
  * @param label the name for the records
  * @param rd record data
  * @param rd_count number of records
- * @param signature where to store the signature
  */
 struct GNUNET_NAMESTORE_Block *
 GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
@@ -344,7 +339,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
  * to validate signatures received from the network.
  *
  * @param block block to verify
- * @return GNUNET_OK if the signature is valid
+ * @return #GNUNET_OK if the signature is valid
  */
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
@@ -362,7 +357,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
  * @param label the name for the records
  * @param proc function to call with the result
  * @param proc_cls closure for proc
- * @param GNUNET_OK on success, GNUNET_SYSERR if the block was 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was 
  *        not well-formed
  */
 int
@@ -898,8 +893,8 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type)
 /**
  * Test if a given record is expired.
  * 
- * @return GNUNET_YES if the record is expired,
- *         GNUNET_NO if not
+ * @return #GNUNET_YES if the record is expired,
+ *         #GNUNET_NO if not
  */
 int
 GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -914,11 +909,11 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
 
 
 /**
- * Calculate the DHT query for a given 'label' in a given zone.
+ * Calculate the DHT query for a given @a label in a given @a zone.
  * 
  * @param zone private key of the zone
  * @param label label of the record
- * @return query hash to use for the query
+ * @param query hash to use for the query
  */
 void
 GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
@@ -933,11 +928,11 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
 
 
 /**
- * Calculate the DHT query for a given 'label' in a given zone.
+ * Calculate the DHT query for a given @a label in a given @a zone.
  * 
  * @param pub public key of the zone
  * @param label label of the record
- * @return query hash to use for the query
+ * @param query hash to use for the query
  */
 void
 GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pub,

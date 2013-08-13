@@ -879,7 +879,7 @@ server_disconnect (struct Session *s)
 
 
 /**
- * Tell MHD that the connection should timeout after #to seconds.
+ * Tell MHD that the connection should timeout after @a to seconds.
  *
  * @param plugin our plugin
  * @param s session for which the timeout changes

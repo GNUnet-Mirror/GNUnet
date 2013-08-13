@@ -1226,7 +1226,13 @@ primary_task (void *cls, int success)
 
 
 /**
+ * We've received the previous delay value from statistics.  Remember it.
+ *
+ * @param cls NULL, unused
+ * @param subsystem should be "hostlist", unused
+ * @param name will be "milliseconds between hostlist downloads", unused
  * @param value previous delay value, in milliseconds (!)
+ * @param is_persistent unused, will be GNUNET_YES
  */
 static int
 process_stat (void *cls, const char *subsystem, const char *name,

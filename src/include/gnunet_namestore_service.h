@@ -365,7 +365,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  * Cancel a namestore operation.  The final callback from the
  * operation must not have been done yet.  Must be called on any
  * namestore operation that has not yet completed prior to calling
- * 'GNUNET_NAMESTORE_disconnect'.
+ * #GNUNET_NAMESTORE_disconnect.
  *
  * @param qe operation to cancel
  */
@@ -375,13 +375,11 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). "proc" will be called once immediately, and
- * then again after "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
+ * records into our DHT). @a proc will be called once immediately, and
+ * then again after #GNUNET_NAMESTORE_zone_iterator_next is invoked.
  *
  * @param h handle to the namestore
  * @param zone zone to access
- * @param must_have_flags flags that must be set for the record to be returned
- * @param must_not_have_flags flags that must NOT be set for the record to be returned
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
  *        and always once at the end with a name of NULL.
@@ -408,7 +406,7 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it);
 /**
  * Stops iteration and releases the namestore handle for further calls.  Must
  * be called on any iteration that has not yet completed prior to calling
- * 'GNUNET_NAMESTORE_disconnect'.
+ * #GNUNET_NAMESTORE_disconnect.
  *
  * @param it the iterator
  */
@@ -441,11 +439,6 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  * the connection is re-established, the process begins from the start (all
  * existing records, sync, then updates).
  *
- * Note that the 'signature' in the 'monitor' callback will always be
- * NULL (as signatures are usually not valuable to monitoring clients,
- * the service does not bother to generate a valid signature for
- * monitoring).
- *
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor
  * @param monitor function to call on zone changes
@@ -477,7 +470,7 @@ GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
  * records.
  *
  * @param rd_count number of records in the rd array
- * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
+ * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
  *
  * @return the required size to serialize
  *
@@ -491,10 +484,9 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
  * Serialize the given records to the given destination buffer.
  *
  * @param rd_count number of records in the rd array
- * @param rd array of GNUNET_NAMESTORE_RecordData with rd_count elements
+ * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
  * @param dest_size size of the destination array
  * @param dest where to write the result
- *
  * @return the size of serialized records, -1 if records do not fit
  */
 ssize_t
@@ -576,8 +568,8 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type);
  * Test if a given record is expired.
  * 
  * @param rd record to test
- * @return GNUNET_YES if the record is expired,
- *         GNUNET_NO if not
+ * @return #GNUNET_YES if the record is expired,
+ *         #GNUNET_NO if not
  */
 int
 GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd);
@@ -598,18 +590,18 @@ GNUNET_NAMESTORE_normalize_string (const char *src);
  * NOT reentrant!
  *
  * @param z public key of a zone
- * @return string form; will be overwritten by next call to GNUNET_h2s.
+ * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s.
  */
 const char *
 GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z);
 
 
 /**
- * Calculate the DHT query for a given 'label' in a given zone.
+ * Calculate the DHT query for a given @a label in a given @a zone.
  * 
  * @param zone private key of the zone
  * @param label label of the record
- * @return query hash to use for the query
+ * @param query hash to use for the query
  */
 void
 GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
@@ -618,11 +610,11 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
 
 
 /**
- * Calculate the DHT query for a given 'label' in a given zone.
+ * Calculate the DHT query for a given @a label in a given @a zone.
  * 
  * @param pub public key of the zone
  * @param label label of the record
- * @return query hash to use for the query
+ * @param query hash to use for the query
  */
 void
 GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pub,
@@ -638,7 +630,6 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey 
  * @param label the name for the records
  * @param rd record data
  * @param rd_count number of records
- * @param signature where to store the signature
  */
 struct GNUNET_NAMESTORE_Block *
 GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
@@ -653,7 +644,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
  * to validate signatures received from the network.
  *
  * @param block block to verify
- * @return GNUNET_OK if the signature is valid
+ * @return #GNUNET_OK if the signature is valid
  */
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
@@ -667,7 +658,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
  * @param label the name for the records
  * @param proc function to call with the result
  * @param proc_cls closure for proc
- * @param GNUNET_OK on success, GNUNET_SYSERR if the block was 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was 
  *        not well-formed
  */
 int
@@ -681,10 +672,9 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
 /**
  * Compares if two records are equal
  *
- * @param a Record a
- * @param b Record b
- *
- * @return GNUNET_YES or GNUNET_NO
+ * @param a a record
+ * @param b another record 
+ * @return #GNUNET_YES if the records are equal, or #GNUNET_NO if not.
  */
 int
 GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
