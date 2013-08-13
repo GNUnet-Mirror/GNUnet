@@ -232,7 +232,6 @@ run (void *cls,
 
   test_iter ();
 
-  return;
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);

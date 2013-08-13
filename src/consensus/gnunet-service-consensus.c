@@ -968,6 +968,8 @@ set_listen_cb (void *cls,
       }
       break;
     default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "P%d got unexpected set request in round %d from P%d\n",
+                  session->local_peer_idx, session->current_round, index);
       GNUNET_break_op (0);
       return;
   }

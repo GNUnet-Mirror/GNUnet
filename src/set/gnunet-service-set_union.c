@@ -180,6 +180,11 @@ struct OperationState
     * a linked list.
     */
   struct OperationState *prev;
+
+  /**
+   * Did we send the client that we are done?
+   */
+  int client_done_sent;
 };
 
 
@@ -981,12 +986,17 @@ send_client_done_and_destroy (struct OperationState *eo)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
+  GNUNET_assert (GNUNET_NO == eo->client_done_sent);
+
+  eo->client_done_sent = GNUNET_YES;
+
   ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (eo->spec->client_request_id);
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
   rm->element_type = htons (0);
   GNUNET_MQ_send (eo->spec->set->client_mq, ev);
 
+  union_operation_destroy (eo);
 }
 
 
@@ -1067,12 +1077,14 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Callback used for notifications
- *
- * @param cls closure
+ * Handle a 'DIE' message from the remote peer.
+ * This indicates that the other peer is terminated.
+ * 
+ * @param cls the union operation
+ * @param mh the message
  */
 static void
-peer_done_sent_cb (void *cls)
+handle_p2p_die (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct OperationState *eo = cls;
 
@@ -1090,22 +1102,24 @@ static void
 handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct OperationState *eo = cls;
+  struct GNUNET_MQ_Envelope *ev;
 
   if (eo->phase == PHASE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
     /* we got all requests, but still have to send our elements as response */
-    struct GNUNET_MQ_Envelope *ev;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got DONE, sending final DONE after elements\n");
     eo->phase = PHASE_FINISHED;
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
-    GNUNET_MQ_notify_sent (ev, peer_done_sent_cb, eo);
     GNUNET_MQ_send (eo->mq, ev);
     return;
   }
   if (eo->phase == PHASE_EXPECT_ELEMENTS)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got final DONE\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got final DONE, trying to send DIE\n");
+    /* send the die message, which might not even be delivered,
+     * as we could have shut down before that */
+    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DIE);
     eo->phase = PHASE_FINISHED;
     send_client_done_and_destroy (eo);
     return;
@@ -1290,6 +1304,9 @@ union_handle_p2p_message (struct OperationState *eo,
     case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
       handle_p2p_done (eo, mh);
       break;
+    case GNUNET_MESSAGE_TYPE_SET_P2P_DIE:
+      handle_p2p_die (eo, mh);
+      break;
     default:
       /* something wrong with mesh's message handlers? */
       GNUNET_assert (0);
@@ -1314,18 +1331,20 @@ union_peer_disconnect (struct OperationState *op)
   {
     struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_SET_ResultMessage *msg;
+
     ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
     msg->request_id = htonl (op->spec->client_request_id);
     msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
     msg->element_type = htons (0);
     GNUNET_MQ_send (op->spec->set->client_mq, ev);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "other peer disconnected prematurely\n");
+    union_operation_destroy (op);
+    return;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
-  }
-  union_operation_destroy (op);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
+  /* maybe the other peer did not get to send his 'DIE' message before he died? */
+  if (GNUNET_NO == op->client_done_sent)
+    send_client_done_and_destroy (op);
 }
 
 

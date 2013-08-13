@@ -291,7 +291,9 @@ static void
 set_destroy (struct Set *set)
 {
   /* If the client is not dead yet, destroy it.
-   * The client's destroy callback will destroy the set again. */
+   * The client's destroy callback will destroy the set again.
+   * We do this so that the tunnel end handler still has a valid set handle
+   * to destroy. */
   if (NULL != set->client)
   {
     struct GNUNET_SERVER_Client *client = set->client;
@@ -299,11 +301,20 @@ set_destroy (struct Set *set)
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+  GNUNET_assert (NULL != set->state);
+  set->vt->destroy_set (set->state);
+  set->state = NULL;
   if (NULL != set->client_mq)
   {
     GNUNET_MQ_destroy (set->client_mq);
     set->client_mq = NULL;
   }
+  if (NULL != set->iter)
+  {
+    GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
+    set->iter = NULL;
+  }
+  GNUNET_CONTAINER_DLL_remove (sets_head, sets_tail, set);
   if (NULL != set->elements)
   {
     GNUNET_CONTAINER_multihashmap_iterate (set->elements,
@@ -311,15 +322,6 @@ set_destroy (struct Set *set)
     GNUNET_CONTAINER_multihashmap_destroy (set->elements);
     set->elements = NULL;
   }
-  if (NULL != set->iter)
-  {
-    GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
-    set->iter = NULL;
-  }
-  GNUNET_assert (NULL != set->state);
-  set->vt->destroy_set (set->state);
-  set->state = NULL;
-  GNUNET_CONTAINER_DLL_remove (sets_head, sets_tail, set);
   GNUNET_free (set);
 }
 
@@ -1079,7 +1081,7 @@ dispatch_p2p_message (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message (type: %u)\n",
               ntohs (message->type));
-  /* FIXME: do this before or after the handler? */
+  /* do this before the handler, as the handler might kill the tunnel */
   GNUNET_MESH_receive_done (tunnel);
   ret = tc->vt->msg_handler (tc->op, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message (type: %u)\n",
@@ -1124,6 +1126,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_IBF, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DIE, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_SE, 0},
     {NULL, 0, 0}
