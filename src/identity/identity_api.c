@@ -398,13 +398,11 @@ message_handler (void *cls,
       reschedule_connect (h);
       return;
     }
+    /* Note: we know which service this should be for, so we're not
+       really using 'str' henceforth */
     GNUNET_CRYPTO_ecc_key_get_public (&sdm->private_key,
 				      &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
-    if (0 == name_len)
-      str = NULL;
-    else
-      str = (const char *) &sdm[1];
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
 					     &id);
     if (NULL == ego)
@@ -417,6 +415,7 @@ message_handler (void *cls,
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
+    GNUNET_free (ego->name);
     if (NULL != op->cb)
       op->cb (op->cls,
 	      ego,
