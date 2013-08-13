@@ -54,7 +54,7 @@
 #define MESH_BLOOM_SIZE         128
 
 #define MESH_DEBUG_DHT          GNUNET_NO
-#define MESH_DEBUG_CONNECTION   GNUNET_NO
+#define MESH_DEBUG_CONNECTION   GNUNET_YES
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
 
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
@@ -2903,6 +2903,7 @@ static struct MeshConnection *
 tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
 {
   struct MeshConnection *c;
+  struct MeshPeer *peer;
   unsigned int own_pos;
 
   c = connection_new (&t->id, t->next_cid++);
@@ -2926,6 +2927,13 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
         GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
                                       &connection_fwd_keepalive, c);
   }
+
+  peer = connection_get_next_hop (c);
+  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->t->id, c,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  peer = connection_get_prev_hop (c);
+  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->t->id, c,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return c;
 }
 
@@ -3816,6 +3824,8 @@ connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
 static void
 connection_destroy (struct MeshConnection *c)
 {
+  struct MeshPeer *peer;
+
   if (NULL == c)
     return;
 
@@ -3823,17 +3833,27 @@ connection_destroy (struct MeshConnection *c)
               peer2s (c->t->peer),
               c->id);
 
+  /* Cancel all traffic */
   connection_cancel_queues (c, GNUNET_YES);
   connection_cancel_queues (c, GNUNET_NO);
 
+  /* Cancel maintainance task (keepalive/timeout) */
   if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
 
-  GNUNET_CONTAINER_DLL_remove (c->t->connection_head, c->t->connection_tail, c);
+  /* Deregister from neighbors */
+  peer = connection_get_next_hop (c);
+  if (NULL != peer)
+    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->t->id, c);
+  peer = connection_get_prev_hop (c);
+  if (NULL != peer)
+    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->t->id, c);
 
+  /* Delete */
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
+  GNUNET_CONTAINER_DLL_remove (c->t->connection_head, c->t->connection_tail, c);
   GNUNET_free (c);
 }
 
