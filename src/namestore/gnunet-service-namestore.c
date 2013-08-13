@@ -23,6 +23,13 @@
  * @brief namestore for the GNUnet naming system
  * @author Matthias Wachs
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - private records can currently not be used for resolving
+ *   our own queries as our lookup only goes for the encrypted
+ *   records; we need a way to ensure that the records available
+ *   in our own zone can actually always be used for our own
+ *   resolutions!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

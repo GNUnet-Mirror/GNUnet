@@ -21,6 +21,13 @@
  * @file gns/gnunet-service-gns.c
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
+ *
+ * TODO:
+ * - conversion of private to public records does NOT check if the
+ *   records are actually public 
+ * - need to watch for client disconnects and abort operations on
+ *   disconnect
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
