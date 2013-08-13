@@ -1132,6 +1132,26 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
+ * Perform a lookup and decrypt the resulting block.
+ *
+ * @param h namestore to perform lookup in
+ * @param value_zone zone to look up record in
+ * @param label label to look for
+ * @param proc function to call with the result
+ * @param proc_cls closure for @a proc
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_lookup (struct GNUNET_NAMESTORE_Handle *h,
+			 const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			 const char *label,
+			 GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls)
+{
+  GNUNET_break (0); // FIXME: not implemented
+  return NULL;
+}
+
+
+/**
  * Look for an existing PKEY delegation record for a given public key.
  * Returns at most one result to the processor.
  *

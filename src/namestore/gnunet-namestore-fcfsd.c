@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,12 +27,11 @@
  *   domain name is available and allocating it to the new public key
  *   (should this race be solved by namestore or by fcfsd?)
  * - nicer error reporting to browser
- * - figure out where this binary should go (is gns the right directory!?)
  */
 #include "platform.h"
-#include <gnunet_util_lib.h>
 #include <microhttpd.h>
-#include <gnunet_namestore_service.h>
+#include "gnunet_util_lib.h"
+#include "gnunet_namestore_service.h"
 
 /**
  * Invalid method page.
@@ -141,7 +140,7 @@ struct Request
   /**
    * Public key submitted via form.
    */
-  char public_key[64];
+  char public_key[128];
 
 };
 
@@ -192,11 +191,6 @@ static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 static struct GNUNET_NAMESTORE_Handle *ns;
 
 /**
- * Hash of the public key of the fcfsd zone.
- */
-static struct GNUNET_CRYPTO_ShortHashCode fcfsd_zone;
-
-/**
  * Private key for the fcfsd zone.
  */
 static struct GNUNET_CRYPTO_EccPrivateKey *fcfs_zone_pkey;
@@ -227,14 +221,13 @@ run_httpd_now ()
   httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
 }
 
+
 static void
 iterate_cb (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-                struct GNUNET_TIME_Absolute expire,
-                const char *name,
-                unsigned int rd_len,
-                const struct GNUNET_NAMESTORE_RecordData *rd,
-                const struct GNUNET_CRYPTO_EccSignature *signature)
+	    const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+	    const char *name,
+	    unsigned int rd_len,
+	    const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct ZoneinfoRequest *zr = cls;
   struct MHD_Response *response;
@@ -316,21 +309,15 @@ serve_zoneinfo_page (struct MHD_Connection *connection)
 {
   struct ZoneinfoRequest *zr;
 
-  zr = GNUNET_malloc (sizeof (struct ZoneinfoRequest));
-
+  zr = GNUNET_new (struct ZoneinfoRequest);
   zr->zoneinfo = GNUNET_malloc (DEFAULT_ZONEINFO_BUFSIZE);
   zr->buf_len = DEFAULT_ZONEINFO_BUFSIZE;
   zr->connection = connection;
   zr->write_offset = 0;
-
-  printf ("adsadad1!\n");
   zr->list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                   &fcfsd_zone,
-                                                   GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION,
-                                                   GNUNET_NAMESTORE_RF_PRIVATE,
-                                                   &iterate_cb,
-                                                   zr);
-
+						       fcfs_zone_pkey,
+						       &iterate_cb,
+						       zr);
   return MHD_YES;
 }
 
@@ -493,25 +480,16 @@ put_continuation (void *cls,
  *
  * @param cls closure
  * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
  */
 static void 
 zone_to_name_cb (void *cls,
-		 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-		 struct GNUNET_TIME_Absolute expire,			    
+		 const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 		 const char *name,
 		 unsigned int rd_count,
-		 const struct GNUNET_NAMESTORE_RecordData *rd,
-		 const struct GNUNET_CRYPTO_EccSignature *signature)
+		 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
@@ -527,22 +505,17 @@ zone_to_name_cb (void *cls,
     run_httpd_now ();
     return;
   }
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_short_hash_from_string2 (request->public_key,
-							strlen (request->public_key),
-							&pub));
   r.data = &pub;
   r.data_size = sizeof (pub);
   r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
-  request->qe = GNUNET_NAMESTORE_record_put_by_authority (ns,
-							  fcfs_zone_pkey,
-							  request->domain_name,
-							  1,
-							  &r,
-							  &put_continuation,
-							  request);
+  request->qe = GNUNET_NAMESTORE_records_store (ns,
+						fcfs_zone_pkey,
+						request->domain_name,
+						1, &r,
+						&put_continuation,
+						request);
 }
 
 
@@ -552,35 +525,22 @@ zone_to_name_cb (void *cls,
  * proceed to check if the requested key already exists.
  *
  * @param cls closure
- * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?; 
- *               GNUNET_TIME_UNIT_ZERO_ABS if there are no records of any type in the namestore,
- *               or the expiration time of the block in the namestore (even if there are zero
- *               records matching the desired record type)
+ * @param zone_key private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
  */
 static void 
 lookup_result_processor (void *cls,
-			 const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-			 struct GNUNET_TIME_Absolute expire,			    
+			 const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 			 const char *name,
 			 unsigned int rd_count,
-			 const struct GNUNET_NAMESTORE_RecordData *rd,
-			 const struct GNUNET_CRYPTO_EccSignature *signature)
+			 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_ShortHashCode pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
   
   request->qe = NULL;
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_short_hash_from_string2 (request->public_key,
-							strlen (request->public_key),
-							&pub));
   if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -591,8 +551,18 @@ lookup_result_processor (void *cls,
     run_httpd_now ();
     return;
   }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_public_key_from_string (request->public_key,
+						strlen (request->public_key),
+						&pub))
+  {
+    GNUNET_break (0);
+    request->phase = RP_FAIL;
+    run_httpd_now ();
+    return;
+  }
   request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
-					       &fcfsd_zone,
+					       fcfs_zone_pkey,
 					       &pub,
 					       &zone_to_name_cb,
 					       request);
@@ -635,7 +605,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   int ret;
-  struct GNUNET_CRYPTO_ShortHashCode pub;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
@@ -684,9 +654,9 @@ create_response (void *cls,
 	request->pp = NULL;
       }
       if (GNUNET_OK !=
-	  GNUNET_CRYPTO_short_hash_from_string2 (request->public_key,
-						 strlen (request->public_key),
-						 &pub))
+	  GNUNET_CRYPTO_ecc_public_key_from_string (request->public_key,
+						    strlen (request->public_key),
+						    &pub))
       {
 	/* parse error */
 	return fill_s_reply ("Failed to parse given public key",
@@ -712,12 +682,13 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  request->qe = GNUNET_NAMESTORE_lookup_record (ns,
-							&fcfsd_zone,
-							request->domain_name,
-							GNUNET_NAMESTORE_TYPE_PKEY,
-							&lookup_result_processor,
-							request);
+	  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
+					    &pub);
+	  request->qe = GNUNET_NAMESTORE_lookup (ns,
+						 &pub,
+						 request->domain_name,
+						 &lookup_result_processor,
+						 request);
 	  break;
 	case RP_LOOKUP:
 	  break;
@@ -883,7 +854,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char *keyfile;
   unsigned long long port;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -913,9 +883,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 		_("Failed to read or create private zone key\n"));
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
-				    &pub);
-  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &fcfsd_zone);
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
     {

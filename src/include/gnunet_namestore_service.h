@@ -367,6 +367,34 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
+ * Process a records that were decrypted from a block.
+ *
+ * @param cls closure
+ * @param rd_count number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+typedef void (*GNUNET_NAMESTORE_RecordCallback) (void *cls,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd);
+
+
+/**
+ * Perform a lookup and decrypt the resulting block.
+ *
+ * @param h namestore to perform lookup in
+ * @param value_zone zone to look up record in
+ * @param label label to look for
+ * @param proc function to call with the result
+ * @param proc_cls closure for @a proc
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_lookup (struct GNUNET_NAMESTORE_Handle *h,
+			 const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			 const char *label,
+			 GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
+
+
+/**
  * Cancel a namestore operation.  The final callback from the
  * operation must not have been done yet.  Must be called on any
  * namestore operation that has not yet completed prior to calling
@@ -654,17 +682,6 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
 
-
-/**
- * Process a records that were decrypted from a block.
- *
- * @param cls closure
- * @param rd_count number of entries in @a rd array
- * @param rd array of records with data to store
- */
-typedef void (*GNUNET_NAMESTORE_RecordCallback) (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd);
 
 /**
  * Decrypt block.

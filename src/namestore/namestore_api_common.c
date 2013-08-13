@@ -364,7 +364,7 @@ int
 GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
 				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 				const char *label,
-				GNUNET_NAMESTORE_RecordMonitor proc,
+				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls)
 {
   GNUNET_break (0);

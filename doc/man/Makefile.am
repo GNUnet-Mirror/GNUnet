@@ -13,10 +13,10 @@ man_MANS = \
   gnunet-ecc.1 \
   gnunet-fs.1 \
   gnunet-gns.1 \
-  gnunet-gns-fcfsd.1 \
   gnunet-gns-proxy.1 \
   gnunet-identity.1 \
   gnunet-namestore.1 \
+  gnunet-namestore-fcfsd.1 \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-pseudonym.1 \

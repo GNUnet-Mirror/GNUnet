@@ -154,16 +154,6 @@ gnunet_service_gns_DEPENDENCIES = \
 
 
 
-gnunet_gns_fcfsd_SOURCES = \
- gnunet-gns-fcfsd.c 
-gnunet_gns_fcfsd_LDADD = -lmicrohttpd \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(GN_LIBINTL)
-gnunet_gns_fcfsd_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
 libw32nsp_la_SOURCES = \
   w32nsp.c
 libw32nsp_la_LIBADD = \

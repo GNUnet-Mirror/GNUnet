@@ -1,4 +1,4 @@
-.TH GNUNET\-GNS 1 "Aug 8, 2012" "GNUnet"
+.TH GNUNET\-GNS 1 "Aug 8, 2013" "GNUnet"
 
 .SH NAME
 gnunet\-gns \- Access to GNUnet Name Service
@@ -13,10 +13,6 @@ gnunet\-gns \- Access to GNUnet Name Service
 
 .SH OPTIONS
 .B
-.IP "\-a NAME, \-\-authority=NAME"
-Get the authority of a particular name.
-For example the authority for "www.fcfs.gads" is "fcfs.gads".
-.B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
 .B
@@ -25,11 +21,6 @@ No unneeded output.
 This is a quiet mode where only important information is displayed.
 For example a lookup for an IP address will only yield the IP address, no
 descriptive text.
-.B
-.IP "\-s NAME, \-\-shorten NAME"
-Shorten GNUnet Name Service Name.
-The service will try to shorten the delegation chain of the name if a "closer"
-authority chain exists relative to your local root zone.
 .B
 .IP "\-t RRTYPE, \-\-type=RRTYPE"
 Resource Record Type (RRTYPE) to look for.

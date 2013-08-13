@@ -92,7 +92,8 @@ libexec_PROGRAMS = \
  gnunet-service-namestore 
 
 bin_PROGRAMS = \
- gnunet-namestore
+ gnunet-namestore \
+ gnunet-namestore-fcfsd
 
 
 gnunet_namestore_SOURCES = \
@@ -104,6 +105,17 @@ gnunet_namestore_LDADD = \
 gnunet_namestore_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
+
+
+gnunet_namestore_fcfsd_SOURCES = \
+ gnunet-namestore-fcfsd.c 
+gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(GN_LIBINTL)
+gnunet_namestore_fcfsd_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 
 

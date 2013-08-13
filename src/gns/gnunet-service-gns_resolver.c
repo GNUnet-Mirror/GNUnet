@@ -491,6 +491,7 @@ process_pseu_lookup_ns (void *cls,
 {
   struct GetPseuAuthorityHandle *gph = cls;
   struct GNUNET_NAMESTORE_RecordData new_pkey;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
 
   gph->namestore_task = NULL;
   if (rd_count > 0)
@@ -502,14 +503,19 @@ process_pseu_lookup_ns (void *cls,
        time, this time not using PSEU but the original label */
     if (0 == strcmp (name,
 		     gph->label))
+    {
       free_get_pseu_authority_handle (gph);
+    }
     else
+    {
+      GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+					&pub);
       gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						     &gph->shorten_zone_key,
+						     &pub,
 						     gph->label,
-						     GNUNET_NAMESTORE_TYPE_ANY,
 						     &process_pseu_lookup_ns,
 						     gph);
+    }
     return;
   }
   /* name is available */
@@ -543,6 +549,10 @@ static void
 process_pseu_result (struct GetPseuAuthorityHandle* gph, 
 		     const char *pseu)
 {
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+				    &pub);
   if (NULL == pseu)
   {
     /* no PSEU found, try original label */
@@ -550,9 +560,8 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph,
                 "No PSEU found, trying original label `%s' instead.\n",
 		gph->label);
     gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						   &gph->shorten_zone_key,
+						   &pub,
 						   gph->label,
-						   GNUNET_NAMESTORE_TYPE_ANY,
 						   &process_pseu_lookup_ns,
 						   gph);
     return;
@@ -560,9 +569,8 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph,
   
   /* check if 'pseu' is taken */
   gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						 &gph->shorten_zone_key,
+						 &pub,
 						 pseu,
-						 GNUNET_NAMESTORE_TYPE_ANY,
 						 &process_pseu_lookup_ns,
 						 gph);
 }
@@ -1927,12 +1935,12 @@ process_delegation_result_dht (void* cls,
 
 
     /* Check for key revocation and delegate */
-    rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-                                    &rh->authority,
-                                    GNUNET_GNS_MASTERZONE_STR,
-                                    GNUNET_NAMESTORE_TYPE_REV,
-                                    &process_pkey_revocation_result_ns,
-                                    rh);
+    rh->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
+						  &rh->authority,
+						  GNUNET_GNS_MASTERZONE_STR,
+						  GNUNET_NAMESTORE_TYPE_REV,
+						  &process_pkey_revocation_result_ns,
+						  rh);
 
     return;
   }
@@ -2801,12 +2809,12 @@ process_delegation_result_ns (void* cls,
       memcpy ((void*)rh->rd.data, rd[i].data, rd[i].data_size);
       rh->rd_count = 1;
       /* Check for key revocation and delegate */
-      rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-							   &rh->authority,
-							   GNUNET_GNS_MASTERZONE_STR,
-							   GNUNET_NAMESTORE_TYPE_REV,
-							   &process_pkey_revocation_result_ns,
-							   rh);
+      rh->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
+						    &rh->authority,
+						    GNUNET_GNS_MASTERZONE_STR,
+						    GNUNET_NAMESTORE_TYPE_REV,
+						    &process_pkey_revocation_result_ns,
+						    rh);
       return;
     default:
       /* ignore, move to next result */
@@ -2867,12 +2875,11 @@ resolve_delegation_ns (struct ResolverHandle *rh)
 	      rh->name,
 	      rh->authority_name,
 	      GNUNET_short_h2s (&rh->authority));
-  rh->namestore_task = GNUNET_NAMESTORE_lookup_record (namestore_handle,
-						       &rh->authority,
-						       rh->authority_name,
-						       GNUNET_DNSPARSER_TYPE_ANY,
-						       &process_delegation_result_ns,
-						       rh);
+  rh->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
+						&rh->authority,
+						rh->authority_name,
+						&process_delegation_result_ns,
+						rh);
 }
 
 #endif
