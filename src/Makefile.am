@@ -13,14 +13,6 @@ if HAVE_EXPERIMENTAL
  EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION) 
 endif
 
-if LINUX
-# All of these currently only work on GNU/Linux or W32
- LINUX_DIR = exit vpn pt
-endif
-if MINGW
- MINGW_DIR = vpn exit pt
-endif
-
 if HAVE_MYSQL
  MYSQL_DIR = mysql
 endif
@@ -64,10 +56,11 @@ SUBDIRS = \
   identity \
   set \
   namestore \
+  vpn \
   gns \
   fs \
-  $(LINUX_DIR) \
-  $(MINGW_DIR) \
+  exit \
+  pt \
   integration-tests \
   $(EXP_DIR) 
 
