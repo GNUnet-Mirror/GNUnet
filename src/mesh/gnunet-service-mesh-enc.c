@@ -4237,10 +4237,13 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 
   fwd = queue->fwd;
   peer = queue->peer;
+  GNUNET_assert (NULL != queue->c);
   fc = fwd ? &queue->c->fwd_fc : &queue->c->bck_fc;
 
   if (GNUNET_YES == clear_cls)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type %s\n",
+                GNUNET_MESH_DEBUG_M2S (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
@@ -4251,14 +4254,15 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_BCK:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type %s\n",
-                    GNUNET_MESH_DEBUG_M2S (queue->type));
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
+        GNUNET_free_non_null (queue->cls);
         break;
 
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   type create path\n");
+        if (GNUNET_NO == connection_is_terminal (queue->c, !fwd))
+          GNUNET_free_non_null (queue->cls);
         break;
 
       default:
@@ -4266,7 +4270,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   type %s unknown!\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
     }
-    GNUNET_free_non_null (queue->cls);
+
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
 
@@ -4315,7 +4319,6 @@ queue_send (void *cls, size_t size, void *buf)
     GNUNET_break (0); /* Core tmt_rdy should've been canceled */
     return 0;
   }
-  queue->peer->core_transmit = NULL;
   c = queue->c;
   fwd = queue->fwd;
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
