@@ -1620,7 +1620,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
-  type = ntohs(message->type);
+  type = ntohs (message->type);
 
   if (GNUNET_MESSAGE_TYPE_MESH_FWD == type ||
       GNUNET_MESSAGE_TYPE_MESH_BCK == type)
@@ -1670,7 +1670,7 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
     GNUNET_break (0);
     return;
   }
-  type = ntohs (msg->header.size);
+  type = ntohs (msg->header.type);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
