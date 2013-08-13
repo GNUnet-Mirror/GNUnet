@@ -753,8 +753,6 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   if (NULL != host->friend_only_hello)
     GNUNET_assert ((GNUNET_YES == GNUNET_HELLO_is_friend_only(host->friend_only_hello)));
 
-  store_hello = GNUNET_NO;
-  store_friend_hello = GNUNET_NO;
   fn = get_host_filename (peer);
   if ( (NULL != fn) &&
        (GNUNET_OK == GNUNET_DISK_directory_create_for_file (fn)) )
@@ -774,6 +772,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
     if (NULL != host->friend_only_hello)
       (void) GNUNET_HELLO_iterate_addresses (host->friend_only_hello, GNUNET_NO,
 					     &count_addresses, &cnt);
+    store_friend_hello = GNUNET_NO;
     if (0 < cnt)
     {
       store_friend_hello = GNUNET_YES;
@@ -892,8 +891,8 @@ discard_hosts_helper (void *cls, const char *fn)
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *new_hello;
   int read_size;
-  int cur_hello_size;
-  int new_hello_size;
+  unsigned int cur_hello_size;
+  unsigned int new_hello_size;
   int read_pos;
   int write_pos;
   unsigned int cnt;
@@ -917,7 +916,6 @@ discard_hosts_helper (void *cls, const char *fn)
     /* Check each HELLO */
     hello = (const struct GNUNET_HELLO_Message *) &buffer[read_pos];
     cur_hello_size = GNUNET_HELLO_size (hello);
-    new_hello_size = 0;
     if (0 == cur_hello_size)
     {
       /* Invalid data, discard */
@@ -933,7 +931,7 @@ discard_hosts_helper (void *cls, const char *fn)
     if ( (NULL != new_hello) && (0 < cnt) )
     {
       /* Store new HELLO to write it when done */
-      new_hello_size = GNUNET_HELLO_size(new_hello);
+      new_hello_size = GNUNET_HELLO_size (new_hello);
       memcpy (&writebuffer[write_pos], new_hello, new_hello_size);
       write_pos += new_hello_size;
     }
