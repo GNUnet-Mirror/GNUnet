@@ -82,7 +82,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param block block to cache
-   * @return GNUNET_OK on success, else GNUNET_SYSERR
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*cache_block) (void *cls, 
 		      const struct GNUNET_NAMESTORE_Block *block);
@@ -96,8 +96,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param query hash of public key derived from the zone and the label
    * @param iter function to call with the result
    * @param iter_cls closure for iter
-   * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
-   *         'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*lookup_block) (void *cls, 
 		       const struct GNUNET_HashCode *query,
@@ -112,9 +111,9 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cls closure (internal context for the plugin)
    * @param zone private key of the zone
    * @param label name of the record in the zone
-   * @param rd_count number of entries in 'rd' array, 0 to delete all records
+   * @param rd_count number of entries in @a rd array, 0 to delete all records
    * @param rd array of records with data to store
-   * @return GNUNET_OK on success, else GNUNET_SYSERR
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*store_records) (void *cls, 
 			const struct GNUNET_CRYPTO_EccPrivateKey *zone,
@@ -132,8 +131,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param offset offset in the list of all matching records
    * @param iter function to call with the result
    * @param iter_cls closure for iter
-   * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
-   *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*iterate_records) (void *cls, 
 			  const struct GNUNET_CRYPTO_EccPrivateKey *zone,
@@ -150,8 +148,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param value_zone public key of the target zone (value), never NULL
    * @param iter function to call with the result
    * @param iter_cls closure for iter
-   * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
-   *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*zone_to_name) (void *cls, 
 		       const struct GNUNET_CRYPTO_EccPrivateKey *zone,

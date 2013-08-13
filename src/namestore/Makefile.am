@@ -36,6 +36,9 @@ endif
 endif
 endif
 
+# testcases do not even build yet; thus: experimental!
+if HAVE_EXPERIMENTAL
+
 if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api \
@@ -60,6 +63,9 @@ check_PROGRAMS = \
  $(TESTING_TESTS) \
  test_namestore_record_serialization \
  test_namestore_api_sign_verify
+endif
+
+# end of 'HAVE_EXPERIMENTAL' for testcases 
 endif
 
 if ENABLE_TEST_RUN
