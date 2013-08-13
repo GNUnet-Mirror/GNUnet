@@ -494,8 +494,6 @@ find_partners (struct ConsensusSession *session)
     largest_arc <<= 1;
   num_ghosts = largest_arc - session->num_peers;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "num ghosts: %d\n", num_ghosts);
-
   if (0 == (my_idx & arc))
   {
     /* we are outgoing */
@@ -934,6 +932,9 @@ set_listen_cb (void *cls,
 
   switch (session->current_round)
   {
+    case CONSENSUS_ROUND_BEGIN:
+      /* we're in the begin round, so requests for the exchange round may
+       * come in, they will be delayed for now! */
     case CONSENSUS_ROUND_EXCHANGE:
       cmp = rounds_compare (session, &round_info);
       if (cmp > 0)
