@@ -49,7 +49,10 @@ lib_LTLIBRARIES = \
 if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBCURL
+# does not compile right now...
+if HAVE_EXPERIMENTAL
  DO_PROXY=gnunet-gns-proxy
+endif
 endif
 endif
 endif

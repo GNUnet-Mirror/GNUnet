@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 /**
  * @author Martin Schanzenbach
  * @file src/gns/gnunet-gns-proxy.c
- * @brief HTTP(S) proxy that rewrites URIs and fakes certificats to make GADS work
+ * @brief HTTP(S) proxy that rewrites URIs and fakes certificats to make GNS work
  *        with legacy browsers
  */
 #include "platform.h"

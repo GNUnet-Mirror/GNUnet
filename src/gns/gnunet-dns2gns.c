@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -139,6 +139,16 @@ static char *dns_ip;
  */
 static unsigned int listen_port = 53;
 
+/**
+ * Which GNS zone do we translate incoming DNS requests to?
+ */
+static struct GNUNET_CRYPTO_EccPublicKey my_zone;
+
+/**
+ * '-z' option with the main zone to use.
+ */
+static char *gns_zone_str;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -222,7 +232,7 @@ do_timeout (void *cls,
   if (NULL != request->packet)
     GNUNET_DNSPARSER_free_packet (request->packet);
   if (NULL != request->lookup)
-    GNUNET_GNS_cancel_lookup_request (request->lookup);
+    GNUNET_GNS_lookup_cancel (request->lookup);
   if (NULL != request->dns_lookup)
     GNUNET_DNSSTUB_resolve_cancel (request->dns_lookup);
   GNUNET_free (request);
@@ -230,8 +240,7 @@ do_timeout (void *cls,
 
 
 /**
- * Iterator called on obtained result for a DNS
- * lookup
+ * Iterator called on obtained result for a DNS lookup
  *
  * @param cls closure
  * @param rs the request socket
@@ -240,9 +249,9 @@ do_timeout (void *cls,
  */
 static void
 dns_result_processor (void *cls,
-                  struct GNUNET_DNSSTUB_RequestSocket *rs,
-                  const struct GNUNET_TUN_DnsHeader *dns,
-                  size_t r)
+		      struct GNUNET_DNSSTUB_RequestSocket *rs,
+		      const struct GNUNET_TUN_DnsHeader *dns,
+		      size_t r)
 {
   struct Request *request = cls;
 
@@ -453,9 +462,10 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       type = packet->queries[0].type;
       request->lookup = GNUNET_GNS_lookup (gns,
 					   name,
+					   &my_zone,
 					   type,
 					   GNUNET_NO,
-					   NULL,
+					   NULL /* no shorten */,
 					   &result_processor,
 					   request);
     }
@@ -576,7 +586,17 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == dns_ip)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No DNS server specified!\n");
+                _("No DNS server specified!\n"));
+    return;
+  }
+  if ( (NULL == gns_zone_str) ||
+       (GNUNET_OK !=
+	GNUNET_CRYPTO_ecc_public_key_from_string (gns_zone_str,
+						  strlen (gns_zone_str),
+						  &my_zone)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("No valid GNS zone specified!\n"));
     return;
   }
 
@@ -587,11 +607,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == (gns = GNUNET_GNS_connect (cfg)))
     return;
   if (NULL == (dns_stub = GNUNET_DNSSTUB_start (dns_ip)))
-    {
-      GNUNET_GNS_disconnect (gns);
-      gns = NULL;
-      return;
-    }
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+    return;
+  }
   listen_socket4 = GNUNET_NETWORK_socket_create (PF_INET,
 						 SOCK_DGRAM, 
 						 IPPROTO_UDP);
@@ -680,15 +700,18 @@ main (int argc,
     {'d', "dns", "IP",
       gettext_noop ("IP of recursive DNS resolver to use (required)"), 1,
       &GNUNET_GETOPT_set_string, &dns_ip},
-    {'s', "suffix", "SUFFIX",
-      gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
-      &GNUNET_GETOPT_set_string, &dns_suffix},
     {'f', "fcfs", "NAME",
       gettext_noop ("Authoritative FCFS suffix to use (optional); default: fcfs.zkey.eu"), 1,
       &GNUNET_GETOPT_set_string, &fcfs_suffix},
+    {'s', "suffix", "SUFFIX",
+      gettext_noop ("Authoritative DNS suffix to use (optional); default: zkey.eu"), 1,
+      &GNUNET_GETOPT_set_string, &dns_suffix},
     {'p', "port", "UDPPORT",
       gettext_noop ("UDP port to listen on for inbound DNS requests; default: 53"), 1,
       &GNUNET_GETOPT_set_uint, &listen_port},
+    {'z', "zone", "PUBLICKEY",
+      gettext_noop ("Public key of the GNS zone to use (required)"), 1,
+      &GNUNET_GETOPT_set_string, &gns_zone_str},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
