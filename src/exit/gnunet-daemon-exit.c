@@ -613,7 +613,7 @@ hash_redirect_info (struct GNUNET_HashCode *hash,
   memcpy (off, &ri->local_address.port, sizeof (uint16_t));
   off += sizeof (uint16_t);
   memcpy (off, &ri->remote_address.proto, sizeof (uint8_t));
-  off += sizeof (uint8_t);
+  /* off += sizeof (uint8_t); */
 }
 
 

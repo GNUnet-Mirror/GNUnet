@@ -125,7 +125,6 @@ src/gns/gns_api.c
 src/gns/gns_common.c
 src/gns/gnunet-dns2gns.c
 src/gns/gnunet-gns.c
-src/gns/gnunet-gns-fcfsd.c
 src/gns/gnunet-gns-helper-service-w32.c
 src/gns/gnunet-gns-proxy.c
 src/gns/gnunet-service-gns.c
@@ -162,6 +161,7 @@ src/mesh/mesh_tunnel_tree.c
 src/mesh/plugin_block_mesh.c
 src/mysql/mysql.c
 src/namestore/gnunet-namestore.c
+src/namestore/gnunet-namestore-fcfsd.c
 src/namestore/gnunet-service-namestore.c
 src/namestore/namestore_api.c
 src/namestore/namestore_api_common.c

@@ -581,14 +581,6 @@ testservice_task (void *cls,
   }
   if (list)
   {
-    uint32_t must_not_flags = 0;
-
-    if (1 == nonauthority) /* List non-authority records */
-      must_not_flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
-
-    if (1 == public)
-      must_not_flags |= GNUNET_NAMESTORE_RF_PRIVATE;
-
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
                                                      zone_pkey,
                                                      &display_record,

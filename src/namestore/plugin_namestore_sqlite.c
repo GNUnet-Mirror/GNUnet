@@ -697,7 +697,6 @@ get_record_and_call_iterator (struct Plugin *plugin,
   ret = GNUNET_NO;
   if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
   {     
-    ret = GNUNET_YES;
     record_count = sqlite3_column_int (stmt, 0);
     data_size = sqlite3_column_bytes (stmt, 1);
     data = sqlite3_column_blob (stmt, 1);

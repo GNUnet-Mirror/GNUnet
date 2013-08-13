@@ -454,7 +454,7 @@ get_tunnel_key_from_ips (int af,
     break;
   }
   memcpy (off, &protocol, sizeof (uint8_t));
-  off += sizeof (uint8_t);  
+  /* off += sizeof (uint8_t);  */
 }
 
 
