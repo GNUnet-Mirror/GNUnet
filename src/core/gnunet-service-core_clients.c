@@ -722,13 +722,6 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
                                                       NULL,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     size = sizeof (struct ConnectNotifyMessage);
-    if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-    {
-      GNUNET_break (0);
-      /* recovery strategy: throw away performance data */
-      atsi_count = 0;
-      size = sizeof (struct ConnectNotifyMessage);
-    }
     cnm = (struct ConnectNotifyMessage *) buf;
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
