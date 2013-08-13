@@ -3959,11 +3959,8 @@ channel_destroy (struct MeshChannel *ch)
     }
   }
 
-  if (GNUNET_YES == ch->reliable)
-  {
-    channel_rel_free_all (ch->fwd_rel);
-    channel_rel_free_all (ch->bck_rel);
-  }
+  channel_rel_free_all (ch->fwd_rel);
+  channel_rel_free_all (ch->bck_rel);
 
   GNUNET_CONTAINER_DLL_remove (ch->t->channel_head, ch->t->channel_tail, ch);
   GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
