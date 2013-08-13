@@ -493,6 +493,9 @@ find_partners (struct ConsensusSession *session)
   while (largest_arc < session->num_peers)
     largest_arc <<= 1;
   num_ghosts = largest_arc - session->num_peers;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "largest arc: %u\n", largest_arc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "arc: %u\n", arc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "num ghosts: %u\n", num_ghosts);
 
   if (0 == (my_idx & arc))
   {
@@ -509,18 +512,22 @@ find_partners (struct ConsensusSession *session)
       int ghost_partner_idx;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "my index %d, arc %d, peers %u\n", my_idx, arc, session->num_peers);
       ghost_partner_idx = (my_idx - (int) arc) % (int) session->num_peers;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is before %d\n", ghost_partner_idx);
       /* platform dependent; modulo sometimes returns negative values */
       if (ghost_partner_idx < 0)
         ghost_partner_idx += session->num_peers;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is after %d\n", ghost_partner_idx);
-      session->partner_incoming = &session->info[session->shuffle[ghost_partner_idx]];
-      session->partner_incoming->exp_subround_finished = GNUNET_NO;
-      return;
+      /* we only need to have a ghost partner if the partner is outgoing */
+      if (0 == (ghost_partner_idx & arc))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is %d\n", ghost_partner_idx);
+        session->partner_incoming = &session->info[session->shuffle[ghost_partner_idx]];
+        session->partner_incoming->exp_subround_finished = GNUNET_NO;
+        return;
+      }
     }
     session->partner_incoming = NULL;
     return;
   }
+  /* we only have an incoming connection */
   partner_idx = (my_idx - (int) arc) % (int) session->num_peers;
   if (partner_idx < 0)
     partner_idx += session->num_peers;
