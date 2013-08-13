@@ -489,7 +489,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
+GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
 {
   struct PendingMessage *p = (struct PendingMessage*) &lr[1];
 
@@ -519,14 +519,14 @@ GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr)
  * @return handle to the get request
  */
 struct GNUNET_GNS_LookupRequest*
-GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
-			const char *name,
-			struct GNUNET_CRYPTO_ShortHashCode *zone,
-			int type,
-			int only_cached,
-			struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
-			GNUNET_GNS_LookupResultProcessor proc,
-			void *proc_cls)
+GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
+		   const char *name,
+		   const struct GNUNET_CRYPTO_EccPublicKey *zone,
+		   int type,
+		   int only_cached,
+		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
+		   GNUNET_GNS_LookupResultProcessor proc,
+		   void *proc_cls)
 {
   /* IPC to shorten gns names, return shorten_handle */
   struct GNUNET_GNS_ClientLookupMessage *lookup_msg;
@@ -566,11 +566,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.size = htons (msize);
   lookup_msg->id = htonl (lr->r_id);
   lookup_msg->only_cached = htonl (only_cached);
-  if (NULL != zone)
-  {
-    lookup_msg->have_zone = htonl (GNUNET_YES);
-    lookup_msg->zone = *zone;
-  }
+  lookup_msg->zone = *zone;
   lookup_msg->type = htonl (type);
   if (NULL != shorten_key)
   {

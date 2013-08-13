@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -35,11 +35,6 @@
 static struct GNUNET_GNS_Handle *gns;
 
 /**
- * GNS name to shorten. (-s option)
- */
-static char *shorten_name;
-
-/**
  * GNS name to lookup. (-u option)
  */
 static char *lookup_name;
@@ -48,11 +43,6 @@ static char *lookup_name;
  * record type to look up (-t option)
  */
 static char *lookup_type;
-
-/**
- * name to look up authority for (-a option)
- */
-static char *auth_name;
 
 /**
  * raw output
@@ -69,16 +59,6 @@ static int rtype;
  */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
 
-/**
- * Handle to shorten request 
- */
-static struct GNUNET_GNS_ShortenRequest *shorten_request;
-
-/**
- * Handle to get authority request
- */
-static struct GNUNET_GNS_GetAuthRequest *getauth_request;
-
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -92,45 +72,14 @@ do_shutdown (void *cls,
 {
   if (NULL != lookup_request)
   {
-    GNUNET_GNS_cancel_lookup_request (lookup_request);
+    GNUNET_GNS_lookup_cancel (lookup_request);
     lookup_request = NULL;
-  }
-  if (NULL != shorten_request)
-  {
-    GNUNET_GNS_cancel_shorten_request (shorten_request);
-    shorten_request = NULL;
-  }
-  if (NULL != getauth_request)
-  {
-    GNUNET_GNS_cancel_get_auth_request (getauth_request);
-    getauth_request = NULL;
   }
   if (NULL != gns)
   {
     GNUNET_GNS_disconnect (gns);
     gns = NULL;
   }
-}
-
-
-/**
- * Function called with the result of a shorten operation.
- * Prints the result.
- *
- * @param cls a 'const char *' with the original (long) name
- * @param nshort the shortened name
- */
-static void
-process_shorten_result (void* cls, const char *nshort)
-{
-  const char *original_name = cls;
-
-  shorten_request = NULL;
-  if (raw)
-    printf("%s", nshort);
-  else
-    printf("%s shortened to %s\n", original_name, nshort);
-  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -142,21 +91,22 @@ process_shorten_result (void* cls, const char *nshort)
  * @param rd array of 'rd_count' records with the results
  */
 static void
-process_lookup_result (void* cls, uint32_t rd_count,
+process_lookup_result (void *cls, uint32_t rd_count,
 		       const struct GNUNET_NAMESTORE_RecordData *rd)
 {
-  const char* name = cls;
+  const char *name = cls;
   uint32_t i;
-  const char* typename;
+  const char *typename;
   char* string_val;
 
   lookup_request = NULL; 
   if (!raw) 
   {
     if (0 == rd_count)
-      printf("No results.\n");
+      printf ("No results.\n");
     else
-      printf("%s:\n", name);
+      printf ("%s:\n", 
+	      name);
   }
   for (i=0; i<rd_count; i++)
   {
@@ -165,28 +115,14 @@ process_lookup_result (void* cls, uint32_t rd_count,
 						   rd[i].data,
 						   rd[i].data_size);
     if (raw)
-      printf ("%s\n", string_val);
+      printf ("%s\n", 
+	      string_val);
     else
-      printf ("Got `%s' record: %s\n", typename, string_val);
+      printf ("Got `%s' record: %s\n",
+	      typename, 
+	      string_val);
     GNUNET_free_non_null (string_val);
   }
-  GNUNET_SCHEDULER_shutdown ();
-}
-
-
-/**
- * Function called with the result of an authority lookup.
- *
- * @param cls the 'const char *' with the name for which the
- *            authority was resolved
- * @param auth name of the authority
- */
-static void
-process_auth_result (void* cls, 
-		     const char *auth)
-{
-  getauth_request = NULL;
-  printf ("%s\n", auth);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -203,16 +139,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char* keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *key = NULL;
+  char *keyfile;
+  struct GNUNET_CRYPTO_EccPrivateKey *key;
   struct GNUNET_CRYPTO_EccPublicKey pkey;
-  struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
-  struct GNUNET_CRYPTO_ShortHashCode user_zone;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
-  struct GNUNET_CRYPTO_EccPrivateKey *shorten_key = NULL;
-  struct GNUNET_CRYPTO_EccPrivateKey *private_key = NULL;
-  struct GNUNET_CRYPTO_ShortHashCode *private_zone = NULL;
-  struct GNUNET_CRYPTO_ShortHashCode *shorten_zone = NULL;
+  struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
 
   gns = GNUNET_GNS_connect (cfg);
   if (NULL == gns)
@@ -224,118 +154,55 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                            "ZONEKEY", &keyfile))
   {
-    if (! raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No private key for root zone found, using default!\n");
+    fprintf (stderr,
+	     "Need zone to perform lookup in!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
-  else
-  {
-    key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-    GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
-			      &user_zone);
-    zone = &user_zone;
-    GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-    if (!raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Using zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_ecc_key_free (key);  
-    GNUNET_free(keyfile);
-  }
+  /* FIXME: use identity service and/or allow user to specify public key! */
+  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_free (key);  
+  GNUNET_free (keyfile);
   
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-							    "SHORTEN_ZONEKEY", &keyfile))
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+					       "SHORTEN_ZONEKEY", &keyfile))
   {
-    if (! raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No shorten key found!\n");
+    shorten_key = NULL;
   }
   else
   {
+    // FIXME: use identity service!
     shorten_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public (shorten_key, &pkey);
-    shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash(&pkey,
-			     sizeof(struct GNUNET_CRYPTO_EccPublicKey),
-			     shorten_zone);
-    GNUNET_CRYPTO_short_hash_to_enc (shorten_zone, &zonename);
-    if (! raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Using shorten zone: %s!\n", &zonename);
     GNUNET_free (keyfile);
   }
     
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-							    "PRIVATE_ZONEKEY", &keyfile))
-  {
-    if (! raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "No private zone key file name specified in configuration!\n");
-  }
-  else
-  {
-    private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public (private_key, &pkey);
-    private_zone = GNUNET_new (struct GNUNET_CRYPTO_ShortHashCode);
-    GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
-			      private_zone);
-    GNUNET_CRYPTO_short_hash_to_enc (private_zone, &zonename);
-    if (! raw)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Using private zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_ecc_key_free (private_key);
-  }
-  
   if (NULL != lookup_type)
     rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
   else
     rtype = GNUNET_DNSPARSER_TYPE_A;
 
-  if ( (NULL != shorten_name) && 
-       (NULL != shorten_zone) && 
-       (NULL != private_zone) )
-  {
-    shorten_request = GNUNET_GNS_shorten_zone (gns, shorten_name,
-					       private_zone,
-					       shorten_zone,
-					       zone,
-					       &process_shorten_result,
-					       shorten_name);
-  }
   if (NULL != lookup_name)
   {
-    lookup_request = GNUNET_GNS_lookup_zone (gns, lookup_name,
-					     zone,
-					     rtype,
-					     GNUNET_NO, /* Use DHT */
-					     shorten_key,
-					     &process_lookup_result, 
-					     lookup_name);
+    lookup_request = GNUNET_GNS_lookup (gns, 
+					lookup_name,
+					&pkey,
+					rtype,
+					GNUNET_NO, /* Use DHT */
+					shorten_key,
+					&process_lookup_result, 
+					lookup_name);
   }
-  if (NULL != auth_name)
-  {
-    getauth_request = GNUNET_GNS_get_authority (gns, auth_name,
-						&process_auth_result, auth_name);
-  }
-
-  if (NULL != shorten_key)
-    GNUNET_CRYPTO_ecc_key_free (shorten_key);
-  if (NULL != shorten_zone)
-    GNUNET_free (shorten_zone);
-  if (NULL != private_zone)
-    GNUNET_free (private_zone);
-  
-  if ( (NULL == auth_name) &&
-       (NULL == shorten_name) &&
-       (NULL == lookup_name))
+  else
   {
     fprintf (stderr,
-	     _("Please specify lookup, shorten or authority operation!\n"));
+	     _("Please specify name to lookup!\n"));
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
+  if (NULL != shorten_key)
+    GNUNET_CRYPTO_ecc_key_free (shorten_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_shutdown, NULL);
 }
@@ -352,15 +219,9 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'s', "shorten", "NAME",
-     gettext_noop ("try to shorten a given name"), 1,
-     &GNUNET_GETOPT_set_string, &shorten_name},
     {'u', "lookup", "NAME",
       gettext_noop ("Lookup a record for the given name"), 1,
       &GNUNET_GETOPT_set_string, &lookup_name},
-    {'a', "authority", "NAME",
-      gettext_noop ("Get the authority of a particular name"), 1,
-      &GNUNET_GETOPT_set_string, &auth_name},
     {'t', "type", "TYPE",
       gettext_noop ("Specify the type of the record to lookup"), 1,
       &GNUNET_GETOPT_set_string, &lookup_type},
@@ -378,7 +239,7 @@ main (int argc, char *const *argv)
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
-                           _("GNUnet GNS access tool"), 
+                           _("GNUnet GNS resolver tool"), 
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);

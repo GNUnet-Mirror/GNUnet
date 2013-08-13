@@ -110,7 +110,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const struct GNUNET_CRYPTO_EccPublicKey *zone,
 		   int type,
 		   int only_cached,
-		   struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone_key,
+		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls);
 
@@ -121,7 +121,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
  * @param lr the lookup request to cancel
  */
 void
-GNUNET_GNS_cancel_lookup_request (struct GNUNET_GNS_LookupRequest *lr);
+GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
