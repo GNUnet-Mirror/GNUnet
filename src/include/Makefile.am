@@ -13,7 +13,6 @@ EXTRA_DIST = \
   gauger.h \
   block_fs.h \
   block_dns.h \
-  block_gns.h \
   block_mesh.h \
   block_regex.h
 

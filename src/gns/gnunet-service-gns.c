@@ -31,7 +31,6 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
-#include "block_gns.h"
 #include "gns.h"
 #include "gns_common.h"
 #include "gnunet-service-gns_resolver.h"

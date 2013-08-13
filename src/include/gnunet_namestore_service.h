@@ -226,6 +226,10 @@ struct GNUNET_NAMESTORE_RecordData
 };
 
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+
 /**
  * Information we have in an encrypted block with record data (i.e. in the DHT).
  */
@@ -256,6 +260,7 @@ struct GNUNET_NAMESTORE_Block
   /* followed by encrypted data */
 };
 
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Store an item in the namestore.  If the item is already present,
