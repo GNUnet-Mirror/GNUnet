@@ -185,10 +185,10 @@ main (int argc, char *const *argv)
   static char *srv_name;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'c', "config", "FILENAME",
-     gettext_noop ("name of the template configuration file to use (optional)"), 1,
+     gettext_noop ("name of the template configuration file to use (optional)"), GNUNET_NO,
      &GNUNET_GETOPT_set_string, &cfg_name},
     {'s', "service", "SERVICE",
-     gettext_noop ("name of the service to run"), 1,
+     gettext_noop ("name of the service to run"), GNUNET_YES,
      &GNUNET_GETOPT_set_string, &srv_name},
     GNUNET_GETOPT_OPTION_HELP ("tool to start a service for testing"),
     GNUNET_GETOPT_OPTION_END
@@ -196,7 +196,7 @@ main (int argc, char *const *argv)
   int ret;
 
   if (GNUNET_SYSERR ==
-      GNUNET_GETOPT_run("gnunet-testing-run-service", options, argc, argv))
+      GNUNET_GETOPT_run ("gnunet-testing-run-service", options, argc, argv))
     return 1;
   ret = GNUNET_TESTING_service_run ("gnunet_service_test", srv_name,
 				    cfg_name, &testing_main, NULL);
