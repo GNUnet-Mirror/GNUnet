@@ -295,7 +295,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
        reply as request-validation (but we need response-validation).
        So we set 'data' to a 0-byte non-NULL value just to be sure */
     GNUNET_break (0 == data_size);
-    data_size = 0;
+    pc.data_size = 0;
     pc.data = ""; /* something not null */
   }
   GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key, &process, &pc);
