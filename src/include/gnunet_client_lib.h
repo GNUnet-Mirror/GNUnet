@@ -88,19 +88,6 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
 
 
 /**
- * Type of a function to call when we have finished shutting
- * down a service, or failed.
- *
- * @param cls closure
- * @param reason what is the result of the shutdown
- *        GNUNET_NO on shutdown (not running)
- *        GNUNET_YES on running
- *        GNUNET_SYSERR on failure to transmit message
- */
-typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
-
-
-/**
  * Read from the service.
  *
  * @param client connection to the service

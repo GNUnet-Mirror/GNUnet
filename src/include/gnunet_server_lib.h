@@ -788,7 +788,7 @@ typedef void* (*GNUNET_SERVER_MstCreateCallback) (void *cls,
 typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);
 
 /**
- * Signature of a function to destroy a custom tokenizer.
+ * Signature of a function to receive data for a custom tokenizer.
  *
  * @param cls closure from 'GNUNET_SERVER_set_callbacks'
  * @param mst custom tokenizer handle
