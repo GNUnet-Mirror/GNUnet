@@ -328,8 +328,7 @@ static void
 read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *r)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
-
-  int size_total;
+  unsigned int size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
 
@@ -338,7 +337,6 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   unsigned read_pos;
   int size_hello;
 
-  size_total = 0;
   r->friend_only_hello = NULL;
   r->hello = NULL;
 
