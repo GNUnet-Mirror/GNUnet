@@ -177,9 +177,13 @@ struct ConsensusSession
 
   /**
    * Permutation of peers for the current round,
-   * maps logical index (for current round) to physical index (location in info array)
    */
   uint32_t *shuffle;
+
+  /**
+   * Inverse permutation of peers for the current round,
+   */
+  uint32_t *shuffle_inv;
 
   /**
    * Current round of the exponential scheme.
@@ -331,6 +335,11 @@ destroy_session (struct ConsensusSession *session)
     GNUNET_free (session->shuffle);
     session->shuffle = NULL;
   }
+  if (NULL != session->shuffle_inv)
+  {
+    GNUNET_free (session->shuffle_inv);
+    session->shuffle_inv = NULL;
+  }
   if (NULL != session->info)
   {
     for (i = 0; i < session->num_peers; i++)
@@ -448,6 +457,8 @@ shuffle (struct ConsensusSession *session)
 
   if (NULL == session->shuffle)
     session->shuffle = GNUNET_malloc (session->num_peers * sizeof (*session->shuffle));
+  if (NULL == session->shuffle_inv)
+    session->shuffle_inv = GNUNET_malloc (session->num_peers * sizeof (*session->shuffle_inv));
 
   GNUNET_CRYPTO_kdf (randomness, sizeof (randomness), 
 		     &session->exp_round, sizeof (uint32_t),
@@ -466,6 +477,10 @@ shuffle (struct ConsensusSession *session)
     session->shuffle[x] = session->shuffle[i];
     session->shuffle[i] = tmp;
   }
+
+  /* create the inverse */
+  for (i = 0; i < session->num_peers; i++)
+    session->shuffle_inv[session->shuffle[i]] = i;
 }
 
 
@@ -501,7 +516,7 @@ find_partners (struct ConsensusSession *session)
   {
     /* we are outgoing */
     partner_idx = (my_idx + arc) % session->num_peers;
-    session->partner_outgoing = &session->info[session->shuffle[partner_idx]];
+    session->partner_outgoing = &session->info[session->shuffle_inv[partner_idx]];
     session->partner_outgoing->exp_subround_finished = GNUNET_NO;
     /* are we a 'ghost' of a peer that would exist if
      * the number of peers was a power of two, and thus have to partner
@@ -519,7 +534,7 @@ find_partners (struct ConsensusSession *session)
       if (0 == (ghost_partner_idx & arc))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is %d\n", ghost_partner_idx);
-        session->partner_incoming = &session->info[session->shuffle[ghost_partner_idx]];
+        session->partner_incoming = &session->info[session->shuffle_inv[ghost_partner_idx]];
         session->partner_incoming->exp_subround_finished = GNUNET_NO;
         return;
       }
@@ -532,7 +547,7 @@ find_partners (struct ConsensusSession *session)
   if (partner_idx < 0)
     partner_idx += session->num_peers;
   session->partner_outgoing = NULL;
-  session->partner_incoming = &session->info[session->shuffle[partner_idx]];
+  session->partner_incoming = &session->info[session->shuffle_inv[partner_idx]];
   session->partner_incoming->exp_subround_finished = GNUNET_NO;
 }
 
@@ -674,15 +689,17 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     session->exp_subround = 0;
     if (NULL == session->shuffle)
       session->shuffle = GNUNET_malloc ((sizeof (int)) * session->num_peers);
+    if (NULL == session->shuffle_inv)
+      session->shuffle_inv = GNUNET_malloc ((sizeof (int)) * session->num_peers);
     for (i = 0; i < session->num_peers; i++)
-      session->shuffle[i] = i;
+      session->shuffle[i] = session->shuffle_inv[i] = i;
   }
   else if (session->exp_subround + 1 >= (int) ceil (log2 (session->num_peers)))
   {
     /* subrounds done, start new log-round */
     session->exp_round++;
     session->exp_subround = 0;
-    //shuffle (session);
+    shuffle (session);
   }
   else 
   {

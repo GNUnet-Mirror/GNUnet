@@ -55,6 +55,8 @@ static unsigned int peers_done = 0;
 
 static unsigned *results_for_peer;
 
+static int verbose;
+
 
 /**
  * Signature of the event handler function called by the
@@ -202,10 +204,18 @@ new_element_cb (void *cls,
                 const struct GNUNET_SET_Element *element)
 {
   struct GNUNET_CONSENSUS_Handle **chp = cls;
+  int idx = chp - consensus_handles;
 
   GNUNET_assert (NULL != cls);
   
-  results_for_peer[chp - consensus_handles]++;
+  results_for_peer[idx]++;
+
+  GNUNET_assert (sizeof (struct GNUNET_HashCode) == element->size);
+
+  if (GNUNET_YES == verbose)
+  {
+    printf ("P%d received %s\n", idx, GNUNET_h2s ((struct GNUNET_HashCode *) element->data));
+  }
 }
 
 
@@ -389,6 +399,9 @@ main (int argc, char **argv)
       { 't', "timeout", NULL,
         gettext_noop ("consensus timeout"),
         GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &conclude_timeout },
+      { 'V', "verbose", NULL,
+        gettext_noop ("be more verbose (print received values)"),
+        GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
       GNUNET_GETOPT_OPTION_END
   };
   conclude_timeout = GNUNET_TIME_UNIT_SECONDS;
