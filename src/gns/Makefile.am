@@ -46,7 +46,7 @@ lib_LTLIBRARIES = \
   libgnunetgns_common.la
 
 
-#if HAVE_MHD
+if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBCURL
  DO_PROXY=gnunet-gns-proxy
