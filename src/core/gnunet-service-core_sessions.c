@@ -199,8 +199,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
     GNUNET_free (sme);
   }
   GNUNET_SCHEDULER_cancel (session->typemap_task);
-  GSC_CLIENTS_notify_clients_about_neighbour (&session->peer, NULL,
-                                              0 /* FIXME: ATSI */ ,
+  GSC_CLIENTS_notify_clients_about_neighbour (&session->peer, 
                                               session->tmap, NULL);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (sessions,
@@ -280,7 +279,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multihashmap_size (sessions),
                          GNUNET_NO);
-  GSC_CLIENTS_notify_clients_about_neighbour (peer, NULL, 0 /* FIXME: ATSI */ ,
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
                                               NULL, session->tmap);
 }
 
@@ -300,7 +299,7 @@ notify_client_about_session (void *cls, const struct GNUNET_HashCode * key,
   struct GSC_Client *client = cls;
   struct Session *session = value;
 
-  GSC_CLIENTS_notify_client_about_neighbour (client, &session->peer, NULL, 0,   /* FIXME: ATS!? */
+  GSC_CLIENTS_notify_client_about_neighbour (client, &session->peer,
                                              NULL,      /* old TMAP: none */
                                              session->tmap);
   return GNUNET_OK;
@@ -749,7 +748,7 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  GSC_CLIENTS_notify_clients_about_neighbour (peer, NULL, 0,    /* FIXME: ATS */
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
                                               session->tmap, nmap);
   GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;
@@ -778,7 +777,7 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_YES == GSC_TYPEMAP_test_match (session->tmap, &type, 1))
     return;                     /* already in it */
   nmap = GSC_TYPEMAP_extend (session->tmap, &type, 1);
-  GSC_CLIENTS_notify_clients_about_neighbour (peer, NULL, 0,    /* FIXME: ATS */
+  GSC_CLIENTS_notify_clients_about_neighbour (peer,
                                               session->tmap, nmap);
   GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;

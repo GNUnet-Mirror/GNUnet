@@ -680,8 +680,6 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
  *
  * @param client client to notify
  * @param neighbour identity of the neighbour that changed status
- * @param atsi performance information about neighbour
- * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
@@ -689,8 +687,6 @@ void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
                                            const struct GNUNET_PeerIdentity
                                            *neighbour,
-                                           const struct GNUNET_ATS_Information
-                                           *atsi, unsigned int atsi_count,
                                            const struct GSC_TypeMap *tmap_old,
                                            const struct GSC_TypeMap *tmap_new)
 {
@@ -755,23 +751,19 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  * or types processed by the respective peer.
  *
  * @param neighbour identity of the neighbour that changed status
- * @param atsi performance information about neighbour
- * @param atsi_count number of entries in 'ats' array
  * @param tmap_old previous type map for the neighbour, NULL for disconnect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
 GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
                                             *neighbour,
-                                            const struct GNUNET_ATS_Information
-                                            *atsi, unsigned int atsi_count,
                                             const struct GSC_TypeMap *tmap_old,
                                             const struct GSC_TypeMap *tmap_new)
 {
   struct GSC_Client *c;
 
   for (c = client_head; c != NULL; c = c->next)
-    GSC_CLIENTS_notify_client_about_neighbour (c, neighbour, atsi, atsi_count,
+    GSC_CLIENTS_notify_client_about_neighbour (c, neighbour, 
                                                tmap_old, tmap_new);
 }
 
