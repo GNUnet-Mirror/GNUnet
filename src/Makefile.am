@@ -64,6 +64,7 @@ SUBDIRS = \
   identity \
   set \
   namestore \
+  gns \
   fs \
   $(LINUX_DIR) \
   $(MINGW_DIR) \
