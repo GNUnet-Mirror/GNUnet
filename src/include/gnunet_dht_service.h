@@ -130,12 +130,12 @@ struct GNUNET_DHT_PutHandle;
 
 /**
  * Type of a PUT continuation.  You must not call
- * "GNUNET_DHT_disconnect" in this continuation.
+ * #GNUNET_DHT_disconnect in this continuation.
  *
  * @param cls closure
- * @param success GNUNET_OK if the PUT was transmitted,
- *                GNUNET_NO on timeout,
- *                GNUNET_SYSERR on disconnect from service
+ * @param success #GNUNET_OK if the PUT was transmitted,
+ *                #GNUNET_NO on timeout,
+ *                #GNUNET_SYSERR on disconnect from service
  *                after the PUT message was transmitted
  *                (so we don't know if it was received or not)
  */
