@@ -1610,6 +1610,8 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   size_t size;
   uint16_t type;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Connection %s[%X]\n",
+              GNUNET_h2s (&c->t->id), c->id);
   neighbor = connection_get_hop (c, fwd);
   if (NULL == neighbor)
   {
@@ -1664,6 +1666,8 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
   struct MeshConnection *c;
   uint16_t type;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n",
+              GNUNET_h2s (&t->id));
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
   {
@@ -1708,12 +1712,14 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
   uint16_t type;
   uint64_t iv;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X\n",
+              GNUNET_h2s (&ch->t->id), ch->gid);
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD : GNUNET_MESSAGE_TYPE_MESH_BCK;
-  iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
+  iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
 
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
   msg->header.type = htons (type);
-  msg->header.size = htons (size);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
   msg->iv = GNUNET_htonll (iv);
   tunnel_encrypt (ch->t, &msg[1], message, size, iv, fwd);
 
