@@ -116,8 +116,10 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown ();
     return;
   case 'r':
-    (void) GNUNET_TESTING_peer_stop (my_peer); 
-    (void) GNUNET_TESTING_peer_start (my_peer); 
+    if (GNUNET_OK != GNUNET_TESTING_peer_stop (my_peer))
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to stop the peer\n");
+    if (GNUNET_OK != GNUNET_TESTING_peer_start (my_peer))
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start the peer\n");
     printf ("restarted\n");
     fflush (stdout);
     break;
