@@ -15,12 +15,10 @@ endif
 
 if LINUX
 # All of these currently only work on GNU/Linux or W32
- LINUX_DIR = exit vpn
-# pt # without namestore, pt currently has some issues...
+ LINUX_DIR = exit vpn pt
 endif
 if MINGW
- MINGW_DIR = vpn exit 
-# pt # without namestore, pt currently has some issues...
+ MINGW_DIR = vpn exit pt
 endif
 
 if HAVE_MYSQL
