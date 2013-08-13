@@ -53,7 +53,7 @@ gnunet_identity_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_identity_DEPENDENCIES = \
+gnunet_identity_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la 
