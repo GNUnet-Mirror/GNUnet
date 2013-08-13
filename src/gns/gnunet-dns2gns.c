@@ -421,6 +421,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       /* Test if '.zkey' was requested */
       name[name_len - strlen (dns_suffix)] = '\0';
       dot = strrchr (name, (int) '.');
+      /* FIXME: #2985 */
       if ( (NULL != dot) &&
 	   (GNUNET_OK ==
 	    GNUNET_CRYPTO_short_hash_from_string (dot + 1, &zone)) )
