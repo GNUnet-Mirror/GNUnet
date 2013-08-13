@@ -19,7 +19,7 @@ src/block/block.c
 src/block/plugin_block_template.c
 src/block/plugin_block_test.c
 src/consensus/consensus_api.c
-src/consensus/gnunet-consensus.c
+src/consensus/gnunet-consensus-profiler.c
 src/consensus/gnunet-service-consensus.c
 src/core/core_api.c
 src/core/core_api_is_connected.c
@@ -92,6 +92,7 @@ src/fs/fs_namespace.c
 src/fs/fs_pseudonym.c
 src/fs/fs_publish.c
 src/fs/fs_publish_ksk.c
+src/fs/fs_publish_ublock.c
 src/fs/fs_search.c
 src/fs/fs_sharetree.c
 src/fs/fs_test_lib.c
@@ -151,7 +152,9 @@ src/lockmanager/gnunet-service-lockmanager.c
 src/lockmanager/lockmanager_api.c
 src/mesh/gnunet-mesh.c
 src/mesh/gnunet-service-mesh.c
+src/mesh/gnunet-service-mesh-enc.c
 src/mesh/mesh_api.c
+src/mesh/mesh_api_enc.c
 src/mesh/mesh_common.c
 src/mesh/mesh_path.c
 src/mesh/mesh_test_lib.c
@@ -338,5 +341,7 @@ src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h
 src/include/gnunet_postgres_lib.h
 src/include/gnunet_time_lib.h
+src/mesh/mesh_protocol_enc.h
+src/mesh/mesh_protocol.h
 src/testbed/testbed_api.h
 src/testbed/testbed_api_operations.h
