@@ -275,7 +275,9 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   block->signature = msg->signature;
   block->derived_key = msg->derived_key;
   block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  block->purpose.size = htonl (size - sizeof (struct LookupBlockResponseMessage) + sizeof (struct GNUNET_TIME_AbsoluteNBO));
+  block->purpose.size = htonl (size - sizeof (struct LookupBlockResponseMessage) + 
+			       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   block->expiration_time = msg->expire;
   memcpy (&block[1],
 	  &msg[1],

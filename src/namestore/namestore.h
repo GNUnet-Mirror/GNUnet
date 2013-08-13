@@ -58,7 +58,7 @@ struct GNUNET_NAMESTORE_Header
 struct LookupBlockMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -105,7 +105,7 @@ struct LookupBlockResponseMessage
 struct BlockCacheMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -134,12 +134,12 @@ struct BlockCacheMessage
 struct BlockCacheResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   *  name length: GNUNET_NO already exists, GNUNET_YES on success, GNUNET_SYSERR error
+   * #GNUNET_OK on success, #GNUNET_SYSERR error
    */
   int32_t op_result;
 };
@@ -151,7 +151,7 @@ struct BlockCacheResponseMessage
 struct RecordStoreMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_RECORD_STORE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_RECORD_STORE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -198,14 +198,12 @@ struct RecordStoreMessage
 struct RecordStoreResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   * result:
-   * GNUNET_SYSERR on failure
-   * GNUNET_OK on success
+   * #GNUNET_SYSERR on failure, #GNUNET_OK on success
    */
   int32_t op_result;
 };
@@ -218,7 +216,7 @@ struct RecordStoreResponseMessage
 struct ZoneToNameMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -240,7 +238,7 @@ struct ZoneToNameMessage
 struct ZoneToNameResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -260,8 +258,8 @@ struct ZoneToNameResponseMessage
   uint16_t rd_count;
 
   /**
-   * result in NBO: GNUNET_OK on success, GNUNET_NO if there were no
-   * results, GNUNET_SYSERR on error 
+   * result in NBO: #GNUNET_OK on success, #GNUNET_NO if there were no
+   * results, #GNUNET_SYSERR on error 
    */
   int16_t res;
 
@@ -284,7 +282,7 @@ struct ZoneToNameResponseMessage
 struct RecordResultMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -326,7 +324,7 @@ struct RecordResultMessage
 struct ZoneMonitorStartMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -344,7 +342,7 @@ struct ZoneMonitorStartMessage
 struct ZoneIterationStartMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 
@@ -362,7 +360,7 @@ struct ZoneIterationStartMessage
 struct ZoneIterationNextMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 };
@@ -374,7 +372,7 @@ struct ZoneIterationNextMessage
 struct ZoneIterationStopMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 };

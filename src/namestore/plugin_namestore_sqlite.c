@@ -493,8 +493,7 @@ namestore_sqlite_cache_block (void *cls,
  * @param query hash of public key derived from the zone and the label
  * @param iter function to call with the result
  * @param iter_cls closure for iter
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
- *         'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 namestore_sqlite_lookup_block (void *cls, 
@@ -523,7 +522,6 @@ namestore_sqlite_lookup_block (void *cls,
   ret = GNUNET_NO;
   if (SQLITE_ROW == (sret = sqlite3_step (plugin->lookup_block)))
   {     
-    ret = GNUNET_YES;
     block = sqlite3_column_blob (plugin->lookup_block, 0);
     block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
     if ( (block_size < sizeof (struct GNUNET_NAMESTORE_Block)) ||
@@ -537,13 +535,16 @@ namestore_sqlite_lookup_block (void *cls,
     else
     {
       iter (iter_cls, block);    
+      ret = GNUNET_YES;
     }
   }
   else
   {
     if (SQLITE_DONE != sret)
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-    iter (iter_cls, NULL);
+    {
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");    
+      ret = GNUNET_SYSERR;
+    }
   }
   if (SQLITE_OK != sqlite3_reset (plugin->lookup_block))
     LOG_SQLITE (plugin,
@@ -562,7 +563,7 @@ namestore_sqlite_lookup_block (void *cls,
  * @param label name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
- * @return GNUNET_OK on success, else GNUNET_SYSERR
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int 
 namestore_sqlite_store_records (void *cls, 
@@ -677,8 +678,8 @@ namestore_sqlite_store_records (void *cls,
  * @param stmt to run (and then clean up)
  * @param zone_key private key of the zone
  * @param iter iterator to call with the result
- * @param iter_cls closure for 'iter'
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
@@ -724,6 +725,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
       {
 	iter (iter_cls, zone_key, label, 
 	      record_count, rd);
+	ret = GNUNET_YES;
       }
     }
   }
@@ -731,7 +733,6 @@ get_record_and_call_iterator (struct Plugin *plugin,
   {
     if (SQLITE_DONE != sret)
       LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-    iter (iter_cls, NULL, NULL, 0, NULL);
   }
   if (SQLITE_OK != sqlite3_reset (stmt))
     LOG_SQLITE (plugin,
@@ -749,8 +750,8 @@ get_record_and_call_iterator (struct Plugin *plugin,
  * @param zone hash of public key of the zone, NULL to iterate over all zones
  * @param offset offset in the list of all matching records
  * @param iter function to call with the result
- * @param iter_cls closure for iter
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int 
 namestore_sqlite_iterate_records (void *cls, 
@@ -789,8 +790,8 @@ namestore_sqlite_iterate_records (void *cls,
  * @param zone private key of the zone to look up in, never NULL
  * @param value_zone public key of the target zone (value), never NULL
  * @param iter function to call with the result
- * @param iter_cls closure for iter
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 namestore_sqlite_zone_to_name (void *cls, 
@@ -825,7 +826,7 @@ namestore_sqlite_zone_to_name (void *cls,
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_NAMESTORE_PluginEnvironment*"
- * @return NULL on error, othrewise the plugin context
+ * @return NULL on error, otherwise the plugin context
  */
 void *
 libgnunet_plugin_namestore_sqlite_init (void *cls)
@@ -868,8 +869,6 @@ libgnunet_plugin_namestore_sqlite_done (void *cls)
   struct GNUNET_NAMESTORE_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "sqlite plugin is done\n");
   database_shutdown (plugin);
   plugin->cfg = NULL;
   GNUNET_free (api);
