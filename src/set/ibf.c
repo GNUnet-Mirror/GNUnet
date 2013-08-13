@@ -262,7 +262,6 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
   /* copy counts */
   count_dst = (struct IBF_Count *) key_hash_dst;
   memcpy (count_dst, ibf->count + start, count * sizeof *count_dst);
-  count_dst += count;
 }
 
 
