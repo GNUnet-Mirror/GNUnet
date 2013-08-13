@@ -1671,7 +1671,7 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
   {
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_YES == t->destroy);
     return;
   }
   type = ntohs (msg->header.type);
