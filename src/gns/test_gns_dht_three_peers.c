@@ -261,7 +261,7 @@ commence_testing(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     fprintf (stderr, "\n");
     wait_task = GNUNET_SCHEDULER_NO_TASK;
-    lookup_handle = GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+    lookup_handle = GNUNET_GNS_lookup(gh, TEST_DOMAIN, GNUNET_DNSPARSER_TYPE_A,
                       GNUNET_NO,
                       NULL,
                       &on_lookup_result, TEST_DOMAIN);
@@ -353,7 +353,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   GNUNET_assert(1 == inet_pton (AF_INET, TEST_IP, web));
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
-  rd.record_type = GNUNET_GNS_RECORD_A;
+  rd.record_type = GNUNET_DNSPARSER_TYPE_A;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[0], key, "www", 
@@ -362,7 +362,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 
   rd.data_size = strlen(TEST_DAVE_PSEU);
   rd.data = TEST_DAVE_PSEU;
-  rd.record_type = GNUNET_GNS_RECORD_PSEU;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PSEU;
 
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[0], key, 
@@ -421,7 +421,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &dave_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[1], key, "buddy",
@@ -473,7 +473,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[2], key, "bob", 

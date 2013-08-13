@@ -356,7 +356,7 @@ struct RecordLookupHandle
   /**
    * the record type to look up 
    */
-  enum GNUNET_GNS_RecordType record_type;
+  int record_type;
 
   /**
    * the name to look up 

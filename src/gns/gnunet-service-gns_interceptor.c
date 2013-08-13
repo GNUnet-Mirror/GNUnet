@@ -123,16 +123,16 @@ reply_to_dns (void* cls, uint32_t rd_count,
       answer_records[i].type = rd[i].record_type;
       switch(rd[i].record_type)
       {
-       case GNUNET_GNS_RECORD_NS:
-       case GNUNET_GNS_RECORD_CNAME:
-       case GNUNET_GNS_RECORD_PTR:
+       case GNUNET_DNSPARSER_TYPE_NS:
+       case GNUNET_DNSPARSER_TYPE_CNAME:
+       case GNUNET_DNSPARSER_TYPE_PTR:
          answer_records[i].data.hostname = (char*)rd[i].data;
          break;
-       case GNUNET_GNS_RECORD_SOA:
+       case GNUNET_DNSPARSER_TYPE_SOA:
          answer_records[i].data.soa =
            (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
          break;
-       case GNUNET_GNS_RECORD_MX:
+       case GNUNET_DNSPARSER_TYPE_MX:
          answer_records[i].data.mx =
            (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
          break;
@@ -150,16 +150,16 @@ reply_to_dns (void* cls, uint32_t rd_count,
       additional_records[i].type = rd[i].record_type;
       switch(rd[i].record_type)
       {
-       case GNUNET_GNS_RECORD_NS:
-       case GNUNET_GNS_RECORD_CNAME:
-       case GNUNET_GNS_RECORD_PTR:
+       case GNUNET_DNSPARSER_TYPE_NS:
+       case GNUNET_DNSPARSER_TYPE_CNAME:
+       case GNUNET_DNSPARSER_TYPE_PTR:
          additional_records[i].data.hostname = (char*)rd[i].data;
          break;
-       case GNUNET_GNS_RECORD_SOA:
+       case GNUNET_DNSPARSER_TYPE_SOA:
          additional_records[i].data.soa =
            (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
          break;
-       case GNUNET_GNS_RECORD_MX:
+       case GNUNET_DNSPARSER_TYPE_MX:
          additional_records[i].data.mx =
            (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
          break;

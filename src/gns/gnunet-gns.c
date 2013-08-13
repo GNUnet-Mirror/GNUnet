@@ -62,7 +62,7 @@ static int raw;
 /**
  * Requested record type.
  */
-static enum GNUNET_GNS_RecordType rtype;
+static int rtype;
 
 /**
  * Handle to lookup request 
@@ -291,7 +291,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != lookup_type)
     rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
   else
-    rtype = GNUNET_GNS_RECORD_A;
+    rtype = GNUNET_DNSPARSER_TYPE_A;
 
   if ( (NULL != shorten_name) && 
        (NULL != shorten_zone) && 

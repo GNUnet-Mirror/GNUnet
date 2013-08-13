@@ -256,7 +256,7 @@ void do_check (void *cls,
 
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   
   /* put bob into our zone */
@@ -308,7 +308,7 @@ void do_check (void *cls,
   
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   GNUNET_free(sig);
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,

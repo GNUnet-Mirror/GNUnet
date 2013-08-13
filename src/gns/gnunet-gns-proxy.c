@@ -1751,7 +1751,7 @@ process_leho_lookup (void *cls,
 
   for (i=0; i<rd_count; i++)
   {
-    if (rd[i].record_type != GNUNET_GNS_RECORD_LEHO)
+    if (rd[i].record_type != GNUNET_NAMESTORE_TYPE_LEHO)
       continue;
 
     memcpy (ctask->leho, rd[i].data, rd[i].data_size);
@@ -1849,7 +1849,7 @@ process_get_authority (void *cls,
   GNUNET_GNS_lookup_zone (gns_handle,
                           ctask->host,
                           local_gns_zone,
-                          GNUNET_GNS_RECORD_LEHO,
+                          GNUNET_NAMESTORE_TYPE_LEHO,
                           GNUNET_YES, //Only cached for performance
                           shorten_zonekey,
                           &process_leho_lookup,

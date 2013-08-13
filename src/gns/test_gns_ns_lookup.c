@@ -267,7 +267,7 @@ on_lookup_result_alt2 (void *cls, uint32_t rd_count,
   ok = 1;
   for (i=0; i<rd_count; i++)
   {
-    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+    if (rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
     {
       memcpy(&a, rd[i].data, sizeof(a));
       addr = inet_ntoa(a);
@@ -335,7 +335,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
   ok = 1;
   for (i=0; i<rd_count; i++)
   {
-    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+    if (rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
     {
       memcpy (&a, rd[i].data, sizeof(a));
       addr = inet_ntoa (a);
@@ -366,7 +366,7 @@ on_lookup_result_alt (void *cls, uint32_t rd_count,
 	      "Starting lookup for `%s'\n",
 	      TEST_DOMAIN_ALT2);
   lr = GNUNET_GNS_lookup (gns_handle, 
-			  TEST_DOMAIN_ALT2, GNUNET_GNS_RECORD_A,
+			  TEST_DOMAIN_ALT2, GNUNET_DNSPARSER_TYPE_A,
 			  GNUNET_YES,
 			  NULL,
 			  &on_lookup_result_alt2, NULL);
@@ -407,7 +407,7 @@ on_lookup_result (void *cls, uint32_t rd_count,
   ok = 1;
   for (i=0; i<rd_count; i++)
   {
-    if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+    if (rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
     {
       memcpy (&a, rd[i].data, sizeof(a));
       addr = inet_ntoa(a);
@@ -438,7 +438,7 @@ on_lookup_result (void *cls, uint32_t rd_count,
 	      "Starting lookup for `%s'\n",
 	      TEST_DOMAIN_ALT);
 
-  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_ALT, GNUNET_GNS_RECORD_A,
+  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN_ALT, GNUNET_DNSPARSER_TYPE_A,
 			  GNUNET_YES,
 			  NULL,
 			  &on_lookup_result_alt, NULL);
@@ -462,7 +462,7 @@ start_lookup ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Records ready, starting lookup for `%s'\n",
 	      TEST_DOMAIN);
-  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+  lr = GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_DNSPARSER_TYPE_A,
 			  GNUNET_YES,
 			  NULL,
 			  &on_lookup_result, NULL);
@@ -606,7 +606,7 @@ do_check (void *cls,
   rd[1].expiration_time = UINT64_MAX;
   rd[1].data_size = strlen (TEST_RECORD_NS);
   rd[1].data = TEST_RECORD_NS;
-  rd[1].record_type = GNUNET_GNS_RECORD_NS;
+  rd[1].record_type = GNUNET_DNSPARSER_TYPE_NS;
   rd[1].flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   qe = GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,

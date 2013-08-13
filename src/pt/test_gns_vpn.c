@@ -395,11 +395,11 @@ run (void *cls,
   host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gads.");
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_GNS_RECORD_VPN,
+  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_NAMESTORE_TYPE_VPN,
                                                                rd_string,
                                                                (void**)&rd.data,
                                                                &rd.data_size));
-  rd.record_type = GNUNET_GNS_RECORD_VPN;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_VPN;
 
   GNUNET_NAMESTORE_records_store (namestore,
 				  host_key,

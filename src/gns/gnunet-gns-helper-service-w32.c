@@ -282,13 +282,13 @@ process_ip_lookup_result (void* cls,
   {
     switch (rd[i].record_type)
     {
-    case GNUNET_GNS_RECORD_A:
+    case GNUNET_DNSPARSER_TYPE_A:
       if (rd[i].data_size != sizeof (struct in_addr))
         continue;
       size += sizeof (CSADDR_INFO) + sizeof (struct sockaddr_in) * 2;
       csanum++;
       break;
-    case GNUNET_GNS_RECORD_AAAA:
+    case GNUNET_DNSPARSER_TYPE_AAAA:
       if (rd[i].data_size != sizeof (struct in6_addr))
         continue;
       size += sizeof (CSADDR_INFO) + sizeof (struct sockaddr_in6) * 2;
@@ -305,13 +305,13 @@ process_ip_lookup_result (void* cls,
     blobsize += sizeof (void *); /* For addresses */
     for (i = 0; i < rd_count; i++)
     {
-      if ((rq->af == AF_INET || rq->af == AF_UNSPEC) && rd[i].record_type == GNUNET_GNS_RECORD_A)
+      if ((rq->af == AF_INET || rq->af == AF_UNSPEC) && rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
       {
         blobsize += sizeof (void *);
         blobsize += sizeof (struct in_addr);
         blobaddrcount++;
       }
-      else if (rq->af == AF_INET6 && rd[i].record_type == GNUNET_GNS_RECORD_AAAA)
+      else if (rq->af == AF_INET6 && rd[i].record_type == GNUNET_DNSPARSER_TYPE_AAAA)
       {
         blobsize += sizeof (void *);
         blobsize += sizeof (struct in6_addr);
@@ -367,7 +367,7 @@ process_ip_lookup_result (void* cls,
   {
     switch (rd[i].record_type)
     {
-    case GNUNET_GNS_RECORD_A:
+    case GNUNET_DNSPARSER_TYPE_A:
       if (rd[i].data_size != sizeof (struct in_addr))
         continue;
       qs->lpcsaBuffer[j].iSocketType = SOCK_STREAM;
@@ -389,7 +389,7 @@ process_ip_lookup_result (void* cls,
       size_recalc += sizeof (CSADDR_INFO) + sizeof (struct sockaddr_in) * 2;
       j++;
       break;
-    case GNUNET_GNS_RECORD_AAAA:
+    case GNUNET_DNSPARSER_TYPE_AAAA:
       if (rd[i].data_size != sizeof (struct in6_addr))
         continue;
       qs->lpcsaBuffer[j].iSocketType = SOCK_STREAM;
@@ -460,7 +460,7 @@ process_ip_lookup_result (void* cls,
     for (i = 0; i < rd_count; i++)
     {
       if ((rq->af == AF_INET || rq->af == AF_UNSPEC) &&
-          rd[i].record_type == GNUNET_GNS_RECORD_A)
+          rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
       {
         he->h_addr_list[j] = (char *) ptr;
         ptr += sizeof (struct in_addr);
@@ -471,7 +471,7 @@ process_ip_lookup_result (void* cls,
         memcpy (he->h_addr_list[j], rd[i].data, sizeof (struct in_addr));
         j++;
       }
-      else if (rq->af == AF_INET6 && rd[i].record_type == GNUNET_GNS_RECORD_AAAA)
+      else if (rq->af == AF_INET6 && rd[i].record_type == GNUNET_DNSPARSER_TYPE_AAAA)
       {
         he->h_addr_list[j] = (char *) ptr;
         ptr += sizeof (struct in6_addr);
@@ -512,25 +512,25 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
   uint32_t rtype;
 
   if (IsEqualGUID (&SVCID_DNS_TYPE_A, &sc))
-    rtype = GNUNET_GNS_RECORD_A;
+    rtype = GNUNET_DNSPARSER_TYPE_A;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_NS, &sc))
-    rtype = GNUNET_GNS_RECORD_NS;
+    rtype = GNUNET_DNSPARSER_TYPE_NS;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_CNAME, &sc))
-    rtype = GNUNET_GNS_RECORD_CNAME;
+    rtype = GNUNET_DNSPARSER_TYPE_CNAME;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_SOA, &sc))
-    rtype = GNUNET_GNS_RECORD_SOA;
+    rtype = GNUNET_DNSPARSER_TYPE_SOA;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_PTR, &sc))
-    rtype = GNUNET_GNS_RECORD_PTR;
+    rtype = GNUNET_DNSPARSER_TYPE_PTR;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_MX, &sc))
-    rtype = GNUNET_GNS_RECORD_MX;
+    rtype = GNUNET_DNSPARSER_TYPE_MX;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_TEXT, &sc))
-    rtype = GNUNET_GNS_RECORD_TXT;
+    rtype = GNUNET_DNSPARSER_TYPE_TXT;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_AAAA, &sc))
-    rtype = GNUNET_GNS_RECORD_AAAA;
+    rtype = GNUNET_DNSPARSER_TYPE_AAAA;
   else if (IsEqualGUID (&SVCID_DNS_TYPE_SRV, &sc))
-    rtype = GNUNET_GNS_RECORD_SRV;
+    rtype = GNUNET_DNSPARSER_TYPE_SRV;
   else if (IsEqualGUID (&SVCID_INET_HOSTADDRBYNAME, &sc))
-    rtype = GNUNET_GNS_RECORD_A;
+    rtype = GNUNET_DNSPARSER_TYPE_A;
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

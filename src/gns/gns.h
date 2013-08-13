@@ -83,7 +83,7 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * the type of record to look up
    */
-  /* enum GNUNET_GNS_RecordType */ uint32_t type;
+  /* int */ uint32_t type;
   
   /**
    * The key for shorten, if 'have_key' is set 

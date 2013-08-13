@@ -200,7 +200,7 @@ on_lookup_result (void *cls, uint32_t rd_count,
     for (i=0; i<rd_count; i++)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-      if (rd[i].record_type == GNUNET_GNS_RECORD_A)
+      if (rd[i].record_type == GNUNET_DNSPARSER_TYPE_A)
       {
         memcpy(&a, rd[i].data, sizeof(a));
         addr = inet_ntoa(a);
@@ -247,7 +247,7 @@ commence_testing (void *cls, int success)
   }
   GNUNET_GNS_lookup_zone (gns_handle, TEST_DOMAIN,
                           &our_zone,
-                          GNUNET_GNS_RECORD_A,
+                          GNUNET_DNSPARSER_TYPE_A,
                           GNUNET_NO,
                           short_key,
                           &on_lookup_result, TEST_DOMAIN);
@@ -272,7 +272,7 @@ put_pseu_dht (void *cls, int success)
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;
-  rd.record_type = GNUNET_GNS_RECORD_PSEU;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PSEU;
   rd.flags = 0;
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
@@ -447,7 +447,7 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   
   sig = GNUNET_NAMESTORE_create_signature (bob_key,
@@ -518,7 +518,7 @@ fin_init_zone (void *cls, int32_t success, const char *emsg)
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
@@ -539,7 +539,7 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &short_zone;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
@@ -640,7 +640,7 @@ do_check (void *cls,
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &priv_zone;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,

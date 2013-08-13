@@ -110,7 +110,7 @@ struct ClientShortenHandle
   /**
    * request type
    */
-  enum GNUNET_GNS_RecordType type;
+  int type;
 
   /** 
    * name to shorten
@@ -192,7 +192,7 @@ struct ClientLookupHandle
   /**
    * request type
    */
-  enum GNUNET_GNS_RecordType type;
+  int type;
 };
 
 
@@ -1129,7 +1129,7 @@ handle_lookup (void *cls,
     return;
   }
 
-  if ((GNUNET_GNS_RECORD_A == clh->type) &&
+  if ((GNUNET_DNSPARSER_TYPE_A == clh->type) &&
       (GNUNET_OK != v4_enabled))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1139,7 +1139,7 @@ handle_lookup (void *cls,
     return;
   }
   
-  if ((GNUNET_GNS_RECORD_AAAA == clh->type) &&
+  if ((GNUNET_DNSPARSER_TYPE_AAAA == clh->type) &&
       (GNUNET_OK != v6_enabled))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

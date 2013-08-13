@@ -138,7 +138,7 @@ on_lookup_result (void *cls, uint32_t rd_count,
   for (i=0; i<rd_count; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "type: %d\n", rd[i].record_type);
-    if (rd[i].record_type != GNUNET_GNS_RECORD_A)
+    if (rd[i].record_type != GNUNET_DNSPARSER_TYPE_A)
       continue;
     memcpy (&a, rd[i].data, sizeof (a));
     addr = inet_ntoa (a);
@@ -177,7 +177,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_GNS_RECORD_A,
+  GNUNET_GNS_lookup (gns_handle, TEST_DOMAIN, GNUNET_DNSPARSER_TYPE_A,
 		     GNUNET_NO,
 		     NULL,
 		     &on_lookup_result, TEST_DOMAIN);
@@ -232,7 +232,7 @@ do_check (void *cls,
   GNUNET_CRYPTO_short_hash (&bob_pkey, sizeof(bob_pkey), &bob_hash);
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    alice_key,

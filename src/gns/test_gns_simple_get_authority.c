@@ -231,7 +231,7 @@ void do_check (void *cls,
 
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
-  rd.record_type = GNUNET_GNS_RECORD_PKEY;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
 
   /* put bob into our zone */
@@ -280,7 +280,7 @@ void do_check (void *cls,
 
   rd.data_size = strlen(TEST_ALICE_PSEU);
   rd.data = TEST_ALICE_PSEU;
-  rd.record_type = GNUNET_GNS_RECORD_PSEU;
+  rd.record_type = GNUNET_NAMESTORE_TYPE_PSEU;
   GNUNET_free(sig);
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,GNUNET_TIME_UNIT_FOREVER_ABS,  "",

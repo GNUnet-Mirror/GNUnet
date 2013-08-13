@@ -356,7 +356,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   char *dot;
   char *nname;
   size_t name_len;
-  enum GNUNET_GNS_RecordType type;
+  int type;
   int use_gns;
   struct GNUNET_CRYPTO_ShortHashCode zone;
 

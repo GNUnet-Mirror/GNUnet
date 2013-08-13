@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -821,7 +821,7 @@ struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
 			const char *name,
 			struct GNUNET_CRYPTO_ShortHashCode *zone,
-			enum GNUNET_GNS_RecordType type,
+			int type,
 			int only_cached,
 			struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
 			GNUNET_GNS_LookupResultProcessor proc,
@@ -900,7 +900,7 @@ GNUNET_GNS_lookup_zone (struct GNUNET_GNS_Handle *handle,
 struct GNUNET_GNS_LookupRequest *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
                    const char *name,
-                   enum GNUNET_GNS_RecordType type,
+                   int type,
                    int only_cached,
                    struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
                    GNUNET_GNS_LookupResultProcessor proc,
