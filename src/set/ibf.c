@@ -294,7 +294,6 @@ ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct Invertib
   /* copy counts */
   count_src = (struct IBF_Count *) key_hash_src;
   memcpy (ibf->count + start, count_src, count * sizeof *count_src);
-  count_src += count;
 }
 
 
