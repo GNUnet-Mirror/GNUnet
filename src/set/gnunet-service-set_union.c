@@ -45,7 +45,7 @@
 /**
  * hash num parameter for the difference digests and strata estimators
  */
-#define SE_IBF_HASH_NUM 3
+#define SE_IBF_HASH_NUM 4
 
 /**
  * Number of buckets that can be transmitted in one message.

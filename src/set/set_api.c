@@ -322,6 +322,9 @@ handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
   /* calling GNUNET_SET_accept in the listen cb will set req->accepted */
   lh->listen_cb (lh->listen_cls, &msg->peer_id, context_msg, req);
 
+  /* we got another request => reset the backoff */
+  lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+
   if (GNUNET_NO == req->accepted)
   {
     struct GNUNET_MQ_Envelope *mqm;
