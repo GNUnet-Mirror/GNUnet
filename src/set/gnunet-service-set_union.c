@@ -63,7 +63,7 @@
  * Number of buckets used in the ibf per estimated
  * difference.
  */
-#define IBF_ALPHA 1
+#define IBF_ALPHA 3
 
 
 /**

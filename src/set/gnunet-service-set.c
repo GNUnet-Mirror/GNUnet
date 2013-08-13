@@ -755,7 +755,7 @@ handle_client_add_remove (void *cls,
                                                 &ee->element_hash);
     if (NULL != ee_dup)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "element inserted twice, ignoring\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "element inserted twice, ignoring\n");
       GNUNET_free (ee);
       return;
     }
