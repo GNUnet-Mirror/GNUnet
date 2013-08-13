@@ -30,8 +30,8 @@
 int
 GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 {
-    return (GNUNET_YES == PID_OVERFLOW(smaller, bigger) ||
-            (bigger > smaller && GNUNET_NO == PID_OVERFLOW(bigger, smaller)));
+    return (GNUNET_YES == PID_OVERFLOW (smaller, bigger) ||
+            (bigger > smaller && GNUNET_NO == PID_OVERFLOW (bigger, smaller)));
 }
 
 
@@ -63,17 +63,17 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Request the creation of a path
        */
-    case 256: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE";
+    case 256: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE";
 
       /**
        * Request the modification of an existing path
        */
-    case 257: return "GNUNET_MESSAGE_TYPE_MESH_PATH_ACK";
+    case 257: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK";
 
       /**
        * Notify that a connection of a path is no longer valid
        */
-    case 258: return "GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN";
+    case 258: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN";
 
       /**
        * At some point, the route will spontaneously change
@@ -103,7 +103,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Request the destuction of a path
        */
-    case 266: return "GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY";
+    case 266: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY";
 
       /**
        * Request the destruction of a whole tunnel
@@ -138,17 +138,27 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Ask the mesh service to create a new tunnel
        */
-    case 273: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE";
+    case 273: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE";
 
       /**
        * Ask the mesh service to destroy a tunnel
        */
-    case 274: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY";
+    case 274: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY";
+
+      /**
+       * Ask the mesh service to create a new tunnel
+       */
+    case 280: return "GNUNET_MESSAGE_TYPE_MESH_FWD";
+
+      /**
+       * Ask the mesh service to destroy a tunnel
+       */
+    case 281: return "GNUNET_MESSAGE_TYPE_MESH_BCK";
 
       /**
        * Local payload traffic
        */
-    case 275: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA";
+    case 285: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA";
 
       /**
        * Local ACK for data.
