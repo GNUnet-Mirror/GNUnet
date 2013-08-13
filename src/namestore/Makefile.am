@@ -92,9 +92,12 @@ libexec_PROGRAMS = \
  gnunet-service-namestore 
 
 bin_PROGRAMS = \
- gnunet-namestore \
- gnunet-namestore-fcfsd
+ gnunet-namestore 
 
+if HAVE_MHD
+bin_PROGRAMS += \
+ gnunet-namestore-fcfsd
+endif
 
 gnunet_namestore_SOURCES = \
  gnunet-namestore.c 

@@ -46,8 +46,7 @@ lib_LTLIBRARIES = \
   libgnunetgns_common.la
 
 
-if HAVE_MHD
- DO_FCFSD=gnunet-gns-fcfsd
+#if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBCURL
  DO_PROXY=gnunet-gns-proxy
@@ -56,7 +55,7 @@ endif
 endif
 
 libexec_PROGRAMS = \
-  gnunet-service-gns $(DO_FCFSD) \
+  gnunet-service-gns \
   $(DO_PROXY) \
   $(DO_W32_HELPER) \
   gnunet-dns2gns
