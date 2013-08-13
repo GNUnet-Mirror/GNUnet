@@ -36,16 +36,12 @@
  * @param dht handle to the dht
  * @param c configuration handle
  * @param max_bg_queries maximum amount of background queries
- * @param ignore_pending ignore records that still require user confirmation
- *        on lookup
- * @returns GNUNET_OK on success
  */
-int
+void
 GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
 		   struct GNUNET_DHT_Handle *dht,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
-		   unsigned long long max_bg_queries,
-		   int ignore_pending);
+		   unsigned long long max_bg_queries);
 
 
 /**
@@ -84,6 +80,7 @@ typedef void (*GNS_ResultProcessor)(void *cls,
  * @param only_cached GNUNET_NO to only check locally not DHT for performance
  * @param proc the processor to call
  * @param proc_cls the closure to pass to @a proc
+ * @return handle to cancel operation
  */
 struct GNS_ResolverHandle *
 GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,

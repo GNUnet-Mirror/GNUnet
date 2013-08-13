@@ -29,7 +29,7 @@
  *   our own queries as our lookup only goes for the encrypted
  *   records; we need a way to ensure that the records available
  *   in our own zone can actually always be used for our own
- *   resolutions!
+ *   resolutions! (#2993)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

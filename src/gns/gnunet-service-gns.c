@@ -598,7 +598,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
   struct GNUNET_CRYPTO_EccPublicKey dns_root;
   unsigned long long max_parallel_bg_queries = 0;
-  int ignore_pending = GNUNET_NO;
   char *dns_root_name;
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
@@ -635,15 +634,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 		max_parallel_bg_queries);
   }
 
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (c, "gns",
-                                            "AUTO_IMPORT_CONFIRMATION_REQ"))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Auto import requires user confirmation\n");
-    ignore_pending = GNUNET_YES;
-  }
-
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c, "gns",
 					   "DEFAULT_LOOKUP_TIMEOUT",
@@ -665,18 +655,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   
-  if (GNUNET_SYSERR ==
-      GNS_resolver_init (namestore_handle, dht_handle, 
-			 c,
-			 max_parallel_bg_queries,
-			 ignore_pending))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Unable to initialize resolver!\n"));
-    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-    return;
-  }
-
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (c, "gns", "DNS_ROOT",
 					     &dns_root_name))
@@ -706,6 +684,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   /* FIXME: install client disconnect handle to clean up pending
      lookups on client disconnect! */
+  GNS_resolver_init (namestore_handle, dht_handle, 
+		     c,
+		     max_parallel_bg_queries);
   
   /* Schedule periodic put for our records. */  
   first_zone_iteration = GNUNET_YES;

@@ -656,13 +656,24 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
 
 
 /**
+ * Process a records that were decrypted from a block.
+ *
+ * @param cls closure
+ * @param rd_count number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+typedef void (*GNUNET_NAMESTORE_RecordCallback) (void *cls,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd);
+
+/**
  * Decrypt block.
  *
  * @param block block to decrypt
  * @param zone_key public key of the zone
  * @param label the name for the records
  * @param proc function to call with the result
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was 
  *        not well-formed
  */
@@ -670,7 +681,7 @@ int
 GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
 				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
 				const char *label,
-				GNUNET_NAMESTORE_RecordMonitor proc,
+				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls);
 
 
