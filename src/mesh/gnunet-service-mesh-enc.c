@@ -142,7 +142,7 @@ enum MeshConnectionState
   MESH_CONNECTION_NEW,
 
   /**
-   * Connection created, waiting for ACK.
+   * Connection create message sent, waiting for ACK.
    */
   MESH_CONNECTION_SENT,
 
@@ -823,8 +823,8 @@ static unsigned long long dht_replication_level;
 static unsigned long long max_connections;
 
 /**
- * How many messages *in total* are we willing to queue, divided by number of 
- * connections to get tunnel queue size.
+ * How many messages *in total* are we willing to queue, divide by number of 
+ * connections to get connection queue size.
  */
 static unsigned long long max_msgs_queue;
 
@@ -1801,6 +1801,10 @@ send_ack (struct MeshConnection *c, uint32_t ack, int fwd)
   msg.ack = htonl (ack);
   msg.tid = c->t->id;
   msg.cid = htonl (c->id);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "connection send %s ack %u on %s[%X]\n",
+              fwd ? "FWD" : "BCK", ack, GNUNET_h2s (&c->t->id), c->id);
 
   send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
 }
@@ -2825,7 +2829,11 @@ tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
   struct MeshTunnelQueue *next;
   unsigned int room;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tunnel_send_queued_data on %s\n",
+              GNUNET_h2s (&t->id));
   room = tunnel_get_buffer (t, fwd);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
     next = tq->next;
@@ -3036,6 +3044,10 @@ connection_send_ack (struct MeshConnection *c, int fwd)
   next_fc = fwd ? &c->fwd_fc : &c->bck_fc;
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "connection send %s ack on %s[%X]\n",
+              fwd ? "FWD" : "BCK", GNUNET_h2s (&c->t->id), c->id);
+
   /* Check if we need to transmit the ACK */
   if (prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3)
   {
@@ -3063,110 +3075,6 @@ connection_send_ack (struct MeshConnection *c, int fwd)
   prev_fc->last_ack_sent = ack;
   send_ack (c, ack, fwd);
 }
-
-
-/**
- * Send an ACK informing the client about available buffer space.
- *
- * Note that although the name is fwd_ack, the FWD mean forward *traffic*,
- * the ACK itself goes "back" (towards root).
- * 
- * @param ch Channel on which to send the ACK, NULL if unknown.
- * @param fwd Is this FWD ACK? (Going dest->owner)
- */
-// static void
-// channel_send_ack (struct MeshChannel *ch, uint16_t type, int fwd)
-// {
-//   struct MeshChannelReliability *rel;
-//   struct MeshFlowControl *next_fc;
-//   struct MeshFlowControl *prev_fc;
-//   struct MeshClient *c;
-//   struct MeshClient *o;
-//   GNUNET_PEER_Id hop;
-//   uint32_t delta_mid;
-//   uint32_t ack;
-//   int delta;
-// 
-//   rel     = fwd ? ch->fwd_rel : ch->bck_rel;
-//   c       = fwd ? ch->client  : ch->owner;
-//   o       = fwd ? ch->owner   : ch->client;
-//   hop     = fwd ? connection_get_prev_hop (cn) : connection_get_next_hop (cn);
-//   next_fc = fwd ? &t->next_fc : &t->prev_fc;
-//   prev_fc = fwd ? &t->prev_fc : &t->next_fc;
-// 
-//   switch (type)
-//   {
-//     case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-//     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                   "ACK due to %s\n",
-//                   GNUNET_MESH_DEBUG_M2S (type));
-//       if (GNUNET_YES == t->nobuffer && (GNUNET_NO == t->reliable || NULL == c))
-//       {
-//         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, nobuffer\n");
-//         return;
-//       }
-//       if (GNUNET_YES == t->reliable && NULL != c)
-//         tunnel_send_data_ack (t, fwd);
-//       break;
-//     case GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK:
-//     case GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK:
-//     case GNUNET_MESSAGE_TYPE_MESH_ACK:
-//     case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
-//       break;
-//     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-//     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-//       t->force_ack = GNUNET_YES;
-//       break;
-//     default:
-//       GNUNET_break (0);
-//   }
-// 
-//   /* Check if we need to transmit the ACK */
-//   if (NULL == o &&
-//       prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3 &&
-//       GNUNET_NO == t->force_ack)
-//   {
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer free\n");
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//                 "  last pid recv: %u, last ack sent: %u\n",
-//                 prev_fc->last_pid_recv, prev_fc->last_ack_sent);
-//     return;
-//   }
-// 
-//   /* Ok, ACK might be necessary, what PID to ACK? */
-//   delta = t->queue_max - next_fc->queue_n;
-//   if (NULL != o && GNUNET_YES == t->reliable && NULL != rel->head_sent)
-//     delta_mid = rel->mid_sent - rel->head_sent->mid;
-//   else
-//     delta_mid = 0;
-//   if (0 > delta || (GNUNET_YES == t->reliable && 
-//                     NULL != o &&
-//                     (10 < rel->n_sent || 64 <= delta_mid)))
-//     delta = 0;
-//   if (NULL != o && delta > 1)
-//     delta = 1;
-//   ack = prev_fc->last_pid_recv + delta;
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
-//   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-//               " last pid %u, last ack %u, qmax %u, q %u\n",
-//               prev_fc->last_pid_recv, prev_fc->last_ack_sent,
-//               t->queue_max, next_fc->queue_n);
-//   if (ack == prev_fc->last_ack_sent && GNUNET_NO == t->force_ack)
-//   {
-//     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
-//     return;
-//   }
-// 
-//   prev_fc->last_ack_sent = ack;
-//   if (NULL != o)
-//     send_local_ack (t, o, fwd);
-//   else if (0 != hop)
-//     send_ack (t, hop, ack);
-//   else
-//     GNUNET_break (GNUNET_YES == t->destroy);
-//   t->force_ack = GNUNET_NO;
-// }
 
 
 /**
@@ -3553,6 +3461,10 @@ channel_send_ack (struct MeshChannel *ch, uint32_t buffer, int fwd)
   uint32_t to_allow;
   unsigned int cs;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Channel send %s ack on %s:%X\n",
+              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid);
+
   /* Count connections, how many messages are already allowed */
   for (cs = 0, allowed = 0, c = t->connection_head; NULL != c; c = c->next)
   {
@@ -3790,7 +3702,7 @@ tunnel_new (const struct GNUNET_HashCode *tid)
 
   t = GNUNET_new (struct MeshTunnel2);
   t->id = *tid;
-  t->next_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  t->next_chid = 0;
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
@@ -3870,6 +3782,8 @@ connection_new (struct GNUNET_HashCode *tid, uint32_t cid)
   c->id = cid;
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
+  c->fwd_fc.c = c;
+  c->bck_fc.c = c;
   tunnel_add_connection (t, c);
 
   return c;
@@ -4063,7 +3977,7 @@ channel_new (struct MeshTunnel2 *t,
 
   if (NULL != owner)
   {
-    while (NULL != channel_get_by_local_id (owner, t->next_chid))
+    while (NULL != channel_get (t, t->next_chid))
       t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
     ch->gid = t->next_chid;
     t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
@@ -4599,7 +4513,7 @@ queue_add (void *cls, uint16_t type, size_t size,
     return; /* Drop this message */
   }
 
-  if (GMC_is_pid_bigger(fc->last_pid_sent + 1, fc->last_ack_recv) &&
+  if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv) &&
       GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
     fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                   &connection_poll,
