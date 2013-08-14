@@ -404,7 +404,7 @@ struct GNUNET_DNSPARSER_Record
   /**
    * Name of the record that the query is for (0-terminated).
    * In UTF-8 format.  The library will convert from and to DNS-IDNA 
-   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
    */
@@ -419,7 +419,7 @@ struct GNUNET_DNSPARSER_Record
     /**
      * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
    * In UTF-8 format.  The library will convert from and to DNS-IDNA 
-   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
      */

@@ -199,7 +199,10 @@ struct GNUNET_NAMESTORE_RecordData
    * FIXME: goofy API: sometimes 'data' is individually
    * 'malloc'ed, sometimes it points into some existing
    * data area (so sometimes this should be a 'void *',
-   * sometimes a 'const void *').  This is unclean.
+   * sometimes a 'const void *').  This is unclean.  We
+   * should go over the code and make sure that 'data'
+   * is NEVER individually alloc'ed here but always points
+   * to some "other" location.
    */
   const void *data;
 
