@@ -21,8 +21,9 @@
 /**
  * @file include/gnunet_time_lib.h
  * @brief functions related to time
- *
  * @author Christian Grothoff
+ * @defgroup time Time and time calculations
+ * @{
  */
 
 #ifndef GNUNET_TIME_LIB_H
@@ -492,6 +493,9 @@ GNUNET_TIME_get_offset (void);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group time */
+
 
 /* ifndef GNUNET_TIME_LIB_H */
 #endif

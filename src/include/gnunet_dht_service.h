@@ -22,6 +22,8 @@
  * @file include/gnunet_dht_service.h
  * @brief API to the DHT service
  * @author Christian Grothoff
+ * @defgroup dht Distributed Hash Table
+ * @{
  */
 
 #ifndef GNUNET_DHT_SERVICE_H
@@ -395,6 +397,8 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group dht */
 
 
 #endif

@@ -27,6 +27,9 @@
  * @author Gerd Knorr <kraxel@bytesex.org>
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
+ *
+ * @defgroup crypto Cryptographic operations
+ * @defgroup hash Hashing and operations on hashes
  */
 
 #ifndef GNUNET_CRYPTO_LIB_H
@@ -220,6 +223,7 @@ struct GNUNET_CRYPTO_AuthKey
 /* **************** Functions and Macros ************* */
 
 /**
+ * @ingroup crypto
  * Seed a weak random generator. Only #GNUNET_CRYPTO_QUALITY_WEAK-mode generator
  * can be seeded.
  *
@@ -252,6 +256,7 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum);
 
 
 /**
+ * @ingroup hash
  * Calculate the checksum of a buffer in one step.
  *
  * @param buf buffer to calculate CRC over (must be 16-bit aligned)
@@ -263,11 +268,12 @@ GNUNET_CRYPTO_crc16_n (const void *buf, size_t len);
 
 
 /**
+ * @ingroup hash
  * Compute the CRC32 checksum for the first len
  * bytes of the buffer.
  *
  * @param buf the data over which we're taking the CRC
- * @param len the length of the buffer @buf in bytes
+ * @param len the length of the buffer @a buf in bytes
  * @return the resulting CRC32 checksum
  */
 int32_t
@@ -275,6 +281,7 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len);
 
 
 /**
+ * @ingroup crypto
  * Produce a random value.
  *
  * @param mode desired quality of the random number
@@ -286,6 +293,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i);
 
 
 /**
+ * @ingroup crypto
  * Random on unsigned 64-bit values.
  *
  * @param mode desired quality of the random number
@@ -297,6 +305,7 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max);
 
 
 /**
+ * @ingroup crypto
  * Get an array with a random permutation of the
  * numbers 0...n-1.
  * @param mode #GNUNET_CRYPTO_QUALITY_STRONG if the strong (but expensive) PRNG should be used,
@@ -309,7 +318,8 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n);
 
 
 /**
- * Create a new Session key.
+ * @ingroup crypto
+ * Create a new random session key.
  *
  * @param key key to initialize
  */
@@ -318,8 +328,8 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key);
 
 
 /**
- * Encrypt a block with the public key of another
- * host that uses the same cyper.
+ * @ingroup crypto
+ * Encrypt a block using a symmetric sessionkey.
  *
  * @param block the block to encrypt
  * @param len the size of the block
@@ -336,7 +346,8 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
 
 
 /**
- * Decrypt a given block with the sessionkey.
+ * @ingroup crypto
+ * Decrypt a given block using a symmetric sessionkey.
  *
  * @param block the data to decrypt, encoded as returned by encrypt
  * @param size how big is the block?
@@ -353,6 +364,7 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
 
 
 /**
+ * @ingroup crypto
  * @brief Derive an IV
  * @param iv initialization vector
  * @param skey session key
@@ -381,6 +393,7 @@ GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
 
 
 /**
+ * @ingroup hash
  * Convert hash to ASCII encoding.
  * @param block the hash code
  * @param result where to store the encoding (struct GNUNET_CRYPTO_HashAsciiEncoded can be
@@ -392,6 +405,7 @@ GNUNET_CRYPTO_hash_to_enc (const struct GNUNET_HashCode * block,
 
 
 /**
+ * @ingroup hash
  * Convert short hash to ASCII encoding.
  *
  * @param block the hash code
@@ -404,6 +418,7 @@ GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * bloc
 
 
 /**
+ * @ingroup hash
  * Convert ASCII encoding back to a 'struct GNUNET_HashCode'
  *
  * @param enc the encoding
@@ -417,6 +432,7 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * @ingroup hash
  * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
  *
  * @param enc the encoding
@@ -430,6 +446,7 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * @ingroup hash
  * Convert ASCII encoding back to struct GNUNET_HashCode
  *
  * @param enc the encoding
@@ -441,6 +458,7 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * @ingroup hash
  * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
  *
  * @param enc the encoding
@@ -452,6 +470,7 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * @ingroup hash
  * Compare function for ShortHashCodes, producing a total ordering
  * of all hashcodes.
  *
@@ -464,6 +483,7 @@ GNUNET_CRYPTO_short_hash_cmp (const struct GNUNET_CRYPTO_ShortHashCode * h1,
                               const struct GNUNET_CRYPTO_ShortHashCode * h2);
 
 /**
+ * @ingroup hash
  * Compute the distance between 2 hashcodes.
  * The computation must be fast, not involve
  * a.a or a.e (they're used elsewhere), and
@@ -480,6 +500,7 @@ GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode * a,
 
 
 /**
+ * @ingroup hash
  * Compute hash of a given block.
  *
  * @param block the data to hash
@@ -491,6 +512,7 @@ GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret
 
 
 /**
+ * @ingroup hash
  * Compute short (256-bit) hash of a given block.
  *
  * @param block the data to hash
@@ -503,6 +525,7 @@ GNUNET_CRYPTO_short_hash (const void *block, size_t size,
 
 
 /**
+ * @ingroup hash
  * Double short (256-bit) hash to create a long hash.
  *
  * @param sh short hash to double
@@ -514,6 +537,7 @@ GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
 
 
 /**
+ * @ingroup hash
  * Truncate doubled short hash back to a short hash.
  *
  * @param dh doubled short hash to reduce again
@@ -527,6 +551,7 @@ GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
 
 
 /**
+ * @ingroup hash
  * Calculate HMAC of a message (RFC 2104)
  *
  * @param key secret key
@@ -557,7 +582,9 @@ typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
  */
 struct GNUNET_CRYPTO_FileHashContext;
 
+
 /**
+ * @ingroup hash
  * Compute the hash of an entire file.
  *
  * @param priority scheduling priority to use
@@ -584,6 +611,7 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
 
 
 /**
+ * @ingroup hash
  * Create a random hash code.
  *
  * @param mode desired quality level
@@ -595,6 +623,7 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 
 
 /**
+ * @ingroup hash
  * compute result(delta) = b - a
  *
  * @param a some hash code
@@ -608,6 +637,7 @@ GNUNET_CRYPTO_hash_difference (const struct GNUNET_HashCode * a,
 
 
 /**
+ * @ingroup hash
  * compute result(b) = a + delta
  *
  * @param a some hash code
@@ -621,6 +651,7 @@ GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode * a,
 
 
 /**
+ * @ingroup hash
  * compute result = a ^ b
  *
  * @param a some hash code
@@ -633,6 +664,7 @@ GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_Ha
 
 
 /**
+ * @ingroup hash
  * Convert a hashcode into a key.
  *
  * @param hc hash code that serves to generate the key
@@ -647,6 +679,7 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
 
 
 /**
+ * @ingroup hash
  * Obtain a bit from a hashcode.
  *
  * @param code the GNUNET_CRYPTO_hash to index bit-wise
@@ -658,6 +691,7 @@ GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode * code, unsigned int bi
 
 
 /**
+ * @ingroup hash
  * Determine how many low order bits match in two
  * struct GNUNET_HashCodes.  i.e. - 010011 and 011111 share
  * the first two lowest order bits, and therefore the
@@ -674,6 +708,7 @@ GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode * first,
 
 
 /**
+ * @ingroup hash
  * Compare function for HashCodes, producing a total ordering
  * of all hashcodes.
  *
@@ -686,6 +721,7 @@ GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode * h1, const struct GNUNET_H
 
 
 /**
+ * @ingroup hash
  * Find out which of the two GNUNET_CRYPTO_hash codes is closer to target
  * in the XOR metric (Kademlia).
  *
@@ -701,6 +737,7 @@ GNUNET_CRYPTO_hash_xorcmp (const struct GNUNET_HashCode * h1,
 
 
 /**
+ * @ingroup hash
  * @brief Derive an authentication key
  * @param key authentication key
  * @param rkey root key
@@ -716,6 +753,7 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
 
 
 /**
+ * @ingroup hash
  * @brief Derive an authentication key
  * @param key authentication key
  * @param rkey root key
@@ -730,6 +768,7 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
 
 
 /**
+ * @ingroup hash
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
@@ -749,6 +788,7 @@ GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,
 
 
 /**
+ * @ingroup hash
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
@@ -785,6 +825,7 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
 
 
 /**
+ * @ingroup hash
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
@@ -813,6 +854,7 @@ typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
 
 
 /**
+ * @ingroup crypto
  * Free memory occupied by ECC key
  *
  * @param priv pointer to the memory to free
@@ -822,6 +864,7 @@ GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *priv);
 
 
 /**
+ * @ingroup crypto
  * Extract the public key for the given private key.
  *
  * @param priv the private key
@@ -857,6 +900,7 @@ GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc,
 
 
 /**
+ * @ingroup crypto
  * Create a new private key by reading it from a file.  If the
  * files does not exist, create a new key and write it to the
  * file.  Caller must free return value.  Note that this function
@@ -875,6 +919,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
 
 
 /**
+ * @ingroup crypto
  * Create a new private key by reading our peer's key from
  * the file specified in the configuration.
  *
@@ -886,6 +931,7 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
 
 
 /**
+ * @ingroup crypto
  * Create a new private key. Caller must free return value.
  *
  * @return fresh private key
@@ -895,6 +941,7 @@ GNUNET_CRYPTO_ecc_key_create (void);
 
 
 /**
+ * @ingroup crypto
  * Get the shared private key we use for anonymous users.
  *
  * @return "anonymous" private key
@@ -904,6 +951,7 @@ GNUNET_CRYPTO_ecc_key_get_anonymous (void);
 
 
 /**
+ * @ingroup crypto
  * Setup a hostkey file for a peer given the name of the
  * configuration file (!).  This function is used so that
  * at a later point code can be certain that reading a
@@ -916,6 +964,7 @@ GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
 
 
 /**
+ * @ingroup crypto
  * Retrieve the identity of the host's peer.
  *
  * @param cfg configuration to use
@@ -929,6 +978,7 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * @ingroup crypto
  * Derive key material from a public and a private ECC key.
  *
  * @param priv private key to use for the ECDH (x)
@@ -943,6 +993,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
 
 
 /**
+ * @ingroup crypto
  * Sign a given block.
  *
  * @param priv private key to use for the signing
@@ -957,6 +1008,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
 
 
 /**
+ * @ingroup crypto
  * Verify signature.
  *
  * @param purpose what is the purpose that the signature should have?
@@ -974,6 +1026,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
 
 
 /**
+ * @ingroup crypto
  * Derive a private key from a given private key and a label.
  * Essentially calculates a private key 'h = H(l,P) * d mod n'
  * where n is the size of the ECC group and P is the public
@@ -992,6 +1045,7 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
 
 
 /**
+ * @ingroup crypto
  * Derive a public key from a given public key and a label.
  * Essentially calculates a public key 'V = H(l,P) * P'.
  *
