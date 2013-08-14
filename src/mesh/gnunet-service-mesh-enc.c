@@ -1125,15 +1125,17 @@ connection_change_state (struct MeshConnection* c,
  *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
- * @param dst Neighbor to send message to.
- * @param c Connection this message belongs to, if any.
+ * @param c Connection this message belongs to (cannot be NULL).
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
+ * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  */
 static void
-queue_add (void *cls, uint16_t type, size_t size,
-           struct MeshPeer *dst,
-           struct MeshConnection *c,
-           struct MeshChannel *ch);
+queue_add (void* cls,
+           uint16_t type,
+           size_t size,
+           struct MeshConnection* c,
+           struct MeshChannel* ch,
+           int fwd);
 
 
 /**
@@ -1605,19 +1607,12 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
                                   struct MeshChannel *ch,
                                   int fwd)
 {
-  struct MeshPeer *neighbor;
   void *data;
   size_t size;
   uint16_t type;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Connection %s[%X]\n",
               GNUNET_h2s (&c->t->id), c->id);
-  neighbor = connection_get_hop (c, fwd);
-  if (NULL == neighbor)
-  {
-    GNUNET_break (0);
-    return;
-  }
 
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
@@ -1643,9 +1638,9 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   queue_add (data,
              type,
              size,
-             neighbor,
              c,
-             ch);
+             ch,
+             fwd);
 }
 
 
@@ -1736,21 +1731,18 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
 static void
 send_connection_create (struct MeshConnection *connection)
 {
-  struct MeshPeer *neighbor;
   struct MeshTunnel2 *t;
 
   t = connection->t;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  neighbor = connection_get_next_hop (connection);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  to %s\n", peer2s (neighbor));
-  queue_add (connection,
+  queue_add (NULL,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
              sizeof (struct GNUNET_MESH_ConnectionCreate) +
                 (connection->path->length *
                  sizeof (struct GNUNET_PeerIdentity)),
-             neighbor,
              connection,
-             NULL);
+             NULL,
+             GNUNET_YES);
   if (MESH_TUNNEL_SEARCHING == t->state || MESH_TUNNEL_NEW == t->state)
     tunnel_change_state (t, MESH_TUNNEL_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
@@ -1763,22 +1755,21 @@ send_connection_create (struct MeshConnection *connection)
  * directed to us.
  *
  * @param connection Connection to confirm.
+ * @param fwd Is this a fwd ACK? (First is bck (SYNACK), second is fwd (ACK))
  */
 static void
-send_connection_ack (struct MeshConnection *connection) 
+send_connection_ack (struct MeshConnection *connection, int fwd) 
 {
-  struct MeshPeer *neighbor;
   struct MeshTunnel2 *t;
 
   t = connection->t;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
-  neighbor = connection_get_prev_hop (connection);
-  queue_add (connection,
+  queue_add (NULL,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
              sizeof (struct GNUNET_MESH_ConnectionACK),
-             neighbor,
              connection,
-             NULL);
+             NULL,
+             fwd);
   if (MESH_TUNNEL_NEW == t->state)
     tunnel_change_state (t, MESH_TUNNEL_WAITING);
 }
@@ -1842,15 +1833,14 @@ send_core_data_raw (void *cls, size_t size, void *buf)
 /**
  * Function to send a create connection message to a peer.
  *
- * @param cls closure
+ * @param c Connection to create.
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
 static size_t
-send_core_connection_create (void *cls, size_t size, void *buf)
+send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
 {
-  struct MeshConnection *c = cls;
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
   struct MeshPeerPath *p = c->path;
@@ -1888,16 +1878,16 @@ send_core_connection_create (void *cls, size_t size, void *buf)
 /**
  * Creates a path ack message in buf and frees all unused resources.
  *
- * @param cls closure (MeshTransmissionDescriptor)
+ * @param c Connection to send an ACK on.
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
+ *
  * @return number of bytes written to buf
  */
 static size_t
-send_core_connection_ack (void *cls, size_t size, void *buf)
+send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
 {
   struct GNUNET_MESH_ConnectionACK *msg = buf;
-  struct MeshConnection *c = cls;
   struct MeshTunnel2 *t = c->t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
@@ -3556,7 +3546,7 @@ connection_recreate (struct MeshConnection *c, int fwd)
   if (fwd)
     send_connection_create (c);
   else
-    send_connection_ack (c);
+    send_connection_ack (c, GNUNET_NO);
 }
 
 
@@ -4264,22 +4254,18 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying CONNECTION_DESTROY\n");
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         GNUNET_break (GNUNET_YES == queue->c->destroy);
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_FWD:
       case GNUNET_MESSAGE_TYPE_MESH_BCK:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
-        GNUNET_free_non_null (queue->cls);
-        break;
-
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-        if (GNUNET_NO == connection_is_terminal (queue->c, !fwd))
-          GNUNET_free_non_null (queue->cls);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
+        GNUNET_free_non_null (queue->cls);
         break;
 
       default:
@@ -4385,14 +4371,14 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path create\n");
       if (connection_is_terminal (c, GNUNET_NO))
-        data_size = send_core_connection_create (queue->cls, size, buf);
+        data_size = send_core_connection_create (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
       if (connection_is_terminal (c, GNUNET_YES))
-        data_size = send_core_connection_ack (queue->cls, size, buf);
+        data_size = send_core_connection_ack (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
@@ -4489,21 +4475,22 @@ queue_send (void *cls, size_t size, void *buf)
 
 static void
 queue_add (void *cls, uint16_t type, size_t size,
-           struct MeshPeer *dst,
            struct MeshConnection *c,
-           struct MeshChannel *ch)
+           struct MeshChannel *ch,
+           int fwd)
 {
   struct MeshPeerQueue *queue;
   struct MeshFlowControl *fc;
+  struct MeshPeer *dst;
   int priority;
-  int fwd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "queue add %s (%u bytes) on c %p, ch %p\n",
               GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
+  GNUNET_assert (NULL != c);
 
-  fwd = (dst == connection_get_next_hop (c));
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  fc  = fwd ? &c->fwd_fc : &c->bck_fc;
+  dst = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
 
   if (NULL == fc)
   {
@@ -4881,7 +4868,7 @@ handle_mesh_connection_create (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
-    send_connection_ack (c);
+    send_connection_ack (c, GNUNET_NO);
 
     /* Keep tunnel alive in direction dest->owner*/
     connection_reset_timeout (c, GNUNET_NO); 
