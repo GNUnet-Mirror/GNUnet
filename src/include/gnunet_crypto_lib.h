@@ -727,6 +727,7 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
                                const struct GNUNET_CRYPTO_AesSessionKey *rkey,
                                const void *salt, size_t salt_len, ...);
 
+
 /**
  * @brief Derive key
  * @param result buffer for the derived key, allocated by caller

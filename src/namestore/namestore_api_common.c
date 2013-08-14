@@ -314,6 +314,36 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
 
 
 /**
+ * Derive session key and iv from label and public key.
+ *
+ * @param iv initialization vector to initialize
+ * @param skey session key to initialize
+ * @param label label to use for KDF
+ * @param pub public key to use for KDF
+ */
+static void
+derive_block_aes_key (struct GNUNET_CRYPTO_AesInitializationVector *iv,
+		      struct GNUNET_CRYPTO_AesSessionKey *skey,
+		      const char *label,
+		      const struct GNUNET_CRYPTO_EccPublicKey *pub)
+{
+  static const char ctx_key[] = "gns-aes-ctx-key";
+  static const char ctx_iv[] = "gns-aes-ctx-iv";
+
+  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+		     label, strlen (label),
+		     ctx_key, strlen (ctx_key),
+		     NULL, 0);
+  GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_AesInitializationVector),
+		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+		     label, strlen (label),
+		     ctx_iv, strlen (ctx_iv),
+		     NULL, 0);
+}
+
+
+/**
  * Sign name and records
  *
  * @param key the private key
@@ -321,6 +351,7 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
  * @param label the name for the records
  * @param rd record data
  * @param rd_count number of records
+ * @return NULL on error (block too large)
  */
 struct GNUNET_NAMESTORE_Block *
 GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
@@ -329,8 +360,51 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 			       const struct GNUNET_NAMESTORE_RecordData *rd,
 			       unsigned int rd_count)
 {
-  GNUNET_break (0);
-  return NULL;
+  size_t payload_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  char payload[sizeof (uint32_t) + payload_len];
+  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPrivateKey *dkey;
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AesSessionKey skey;
+  uint32_t rd_count_nbo;
+
+  if (payload_len > GNUNET_NAMESTORE_MAX_VALUE_SIZE)
+    return NULL;
+  rd_count_nbo = htonl (rd_count);
+  memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
+  GNUNET_assert (payload_len ==
+		 GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+						     payload_len, &payload[sizeof (uint32_t)])); 
+  block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) +
+			 sizeof (uint32_t) + payload_len);
+  block->purpose.size = htonl (sizeof (uint32_t) + payload_len + 
+			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+			       sizeof (struct GNUNET_TIME_AbsoluteNBO));
+  block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
+  block->expiration_time = GNUNET_TIME_absolute_hton (expire);
+  dkey = GNUNET_CRYPTO_ecc_key_derive (key,
+				       label,
+				       "gns");
+  GNUNET_CRYPTO_ecc_key_get_public (dkey,
+				    &block->derived_key);
+  GNUNET_CRYPTO_ecc_key_get_public (key,
+				    &pkey);
+  derive_block_aes_key (&iv, &skey, label, &pkey);
+  GNUNET_break (payload_len + sizeof (uint32_t) ==
+		GNUNET_CRYPTO_aes_encrypt (payload, payload_len + sizeof (uint32_t),
+					   &skey, &iv,
+					   &block[1]));
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_sign (dkey,
+			      &block->purpose,
+			      &block->signature))
+  {
+    GNUNET_break (0);
+    GNUNET_free (block);
+    return NULL;
+  }
+  return block;
 }
 
 
@@ -343,9 +417,11 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
  */
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
-{
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+{  
+  return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, 
+				   &block->purpose,
+				   &block->signature,
+				   &block->derived_key);
 }
 
 
@@ -367,125 +443,55 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
 				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls)
 {
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
-}
+  size_t payload_len = ntohl (block->purpose.size) -
+    sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) -
+    sizeof (struct GNUNET_TIME_AbsoluteNBO);
+  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_AesSessionKey skey;
 
-
-#if OLD
-/**
- * Sign name and records
- *
- * @param key the private key
- * @param expire block expiration
- * @param name the name
- * @param rd record data
- * @param rd_count number of records
- * @param signature where to store the signature
- */
-void
-GNUNET_NAMESTORE_create_signature (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-				   struct GNUNET_TIME_Absolute expire,
-				   const char *name,
-				   const struct GNUNET_NAMESTORE_RecordData *rd,
-				   unsigned int rd_count,
-				   struct GNUNET_CRYPTO_EccSignature *signature)
-				   
-{
-  struct GNUNET_CRYPTO_EccPrivateKey *dkey;
-  struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
-  struct GNUNET_TIME_AbsoluteNBO expire_nbo;
-  size_t rd_ser_len;
-  size_t name_len;
-  struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
-  char * name_tmp;
-  char * rd_tmp;
-  int res;
-  uint32_t sig_len;
-
-  dkey = GNUNET_CRYPTO_ecc_key_derive (key, name, "gns");
-  name_len = strlen (name) + 1;
-  expire_nbo = GNUNET_TIME_absolute_hton (expire);
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  if (ntohl (block->purpose.size) <
+      sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) -
+      sizeof (struct GNUNET_TIME_AbsoluteNBO))
   {
-    char rd_ser[rd_ser_len];
-
-    GNUNET_assert (rd_ser_len ==
-		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
-    sig_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
-    sig_purpose = GNUNET_malloc (sig_len);
-    sig_purpose->size = htonl (sig_len);
-    sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-    expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
-    memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
-    name_tmp = (char *) &expire_tmp[1];
-    memcpy (name_tmp, name, name_len);
-    rd_tmp = &name_tmp[name_len];
-    memcpy (rd_tmp, rd_ser, rd_ser_len);
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_ecc_sign (dkey, sig_purpose, signature));
-    GNUNET_free (sig_purpose);
-  }
-  GNUNET_CRYPTO_ecc_key_free (dkey);
-}
-
-
-/**
- * Check if a signature is valid.  This API is used by the GNS Block
- * to validate signatures received from the network.
- *
- * @param derived_key derived key of the zone and the label
- * @param freshness time set for block expiration
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature for all the records in the zone under the given name
- * @return GNUNET_OK if the signature is valid
- */
-int
-GNUNET_NAMESTORE_verify_signature (const struct GNUNET_CRYPTO_EccPublicKey *derived_key,
-                                   const struct GNUNET_TIME_Absolute freshness,
-                                   unsigned int rd_count,
-                                   const struct GNUNET_NAMESTORE_RecordData *rd,
-                                   const struct GNUNET_CRYPTO_EccSignature *signature)
-{
-  size_t rd_ser_len;
-  size_t name_len;
-  char *name_tmp;
-  char *rd_ser;
-  struct GNUNET_CRYPTO_EccSignaturePurpose *sig_purpose;
-  struct GNUNET_TIME_AbsoluteNBO *expire_tmp;
-  struct GNUNET_TIME_AbsoluteNBO expire_nbo = GNUNET_TIME_absolute_hton (freshness);
-  uint32_t sig_len;
-
-  GNUNET_assert (NULL != public_key);
-  GNUNET_assert (NULL != name);
-  GNUNET_assert (NULL != rd);
-  GNUNET_assert (NULL != signature);
-  name_len = strlen (name) + 1;
-  if (name_len > MAX_NAME_LEN)
-  {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-  sig_len = sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + sizeof (struct GNUNET_TIME_AbsoluteNBO) + rd_ser_len + name_len;
+  derive_block_aes_key (&iv, &skey, label, zone_key);
   {
-    char sig_buf[sig_len] GNUNET_ALIGN;
+    char payload[payload_len];    
+    uint32_t rd_count;
 
-    sig_purpose = (struct GNUNET_CRYPTO_EccSignaturePurpose *) sig_buf;
-    sig_purpose->size = htonl (sig_len);
-    sig_purpose->purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-    expire_tmp = (struct GNUNET_TIME_AbsoluteNBO *) &sig_purpose[1];
-    memcpy (expire_tmp, &expire_nbo, sizeof (struct GNUNET_TIME_AbsoluteNBO));
-    name_tmp = (char *) &expire_tmp[1];
-    memcpy (name_tmp, name, name_len);
-    rd_ser = &name_tmp[name_len];
-    GNUNET_assert (rd_ser_len ==
-		   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
-    return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, sig_purpose, signature, public_key);
+    GNUNET_break (payload_len ==
+		  GNUNET_CRYPTO_aes_decrypt (&block[1], payload_len,
+					     &skey, &iv,
+					     payload));
+    memcpy (&rd_count,
+	    payload,
+	    sizeof (uint32_t));
+    rd_count = ntohl (rd_count);
+    if (rd_count > 2048)
+    {
+      /* limit to sane value */
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
+    {
+      struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+      
+      if (GNUNET_OK !=
+	  GNUNET_NAMESTORE_records_deserialize (payload_len - sizeof (uint32_t),
+						&payload[sizeof (uint32_t)],
+						rd_count,
+						rd))
+      {
+	GNUNET_break_op (0);
+	return GNUNET_SYSERR;
+      }
+      proc (proc_cls, rd_count, rd);
+    }
   }
+  return GNUNET_OK;
 }
-#endif
 
 
 /**
