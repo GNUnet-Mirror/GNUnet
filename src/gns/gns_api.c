@@ -506,14 +506,14 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
 
 
 /**
- * Perform an asynchronous Lookup operation on the GNS.
+ * Perform an asynchronous lookup operation on the GNS.
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone the zone to start the resolution in
  * @param type the record type to look up
- * @param only_cached GNUNET_YES to only check locally not DHT for performance
- * @param shorten_key the private key of the shorten zone (can be NULL)
+ * @param only_cached #GNUNET_YES to only check locally (not in the DHT)
+ * @param shorten_zone_key the private key of the shorten zone (can be NULL)
  * @param proc processor to call on result
  * @param proc_cls closure for processor
  * @return handle to the get request
@@ -524,7 +524,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const struct GNUNET_CRYPTO_EccPublicKey *zone,
 		   int type,
 		   int only_cached,
-		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
+		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls)
 {
@@ -568,10 +568,10 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   lookup_msg->only_cached = htonl (only_cached);
   lookup_msg->zone = *zone;
   lookup_msg->type = htonl (type);
-  if (NULL != shorten_key)
+  if (NULL != shorten_zone_key)
   {
     lookup_msg->have_key = htonl (GNUNET_YES);
-    lookup_msg->shorten_key = *shorten_key;
+    lookup_msg->shorten_key = *shorten_zone_key;
   }
   memcpy (&lookup_msg[1], name, strlen (name) + 1);
   GNUNET_CONTAINER_DLL_insert_tail (handle->pending_head,

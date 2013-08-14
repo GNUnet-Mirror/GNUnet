@@ -19,7 +19,7 @@
  */
 
 /**
- * @file consensus/gnunet-consensus.c
+ * @file consensus/gnunet-consensus-profiler.c
  * @brief profiling tool for gnunet-consensus
  * @author Florian Dold
  */

@@ -95,11 +95,10 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
 /**
  * Cancel active resolution (i.e. client disconnected).
  *
- * @param h resolution to abort
+ * @param rh resolution to abort
  */
 void
-GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *h);
-
+GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh);
 
 
 

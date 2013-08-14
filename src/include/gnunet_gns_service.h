@@ -94,7 +94,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  * @param name the name to look up
  * @param zone zone to look in
  * @param type the GNS record type to look for
- * @param only_cached #GNUNET_NO to only check locally (not in the DHT)
+ * @param only_cached #GNUNET_YES to only check locally (not in the DHT)
  * @param shorten_zone_key the private key of the shorten zone (can be NULL);
  *                    specify to enable automatic shortening (given a PSEU
  *                    record, if a given pseudonym is not yet used in the

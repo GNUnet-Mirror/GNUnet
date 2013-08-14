@@ -3346,15 +3346,13 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
  * Initialize the resolver
  *
  * @param nh the namestore handle
- * @param dh the dht handle
+ * @param dht the dht handle
  * @param c configuration handle
  * @param max_bg_queries maximum number of parallel background queries in dht
- * @param ignore_pending ignore records that still require user confirmation
- *        on lookup
  */
 void
 GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
-		   struct GNUNET_DHT_Handle *dh,
+		   struct GNUNET_DHT_Handle *dht,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
 		   unsigned long long max_bg_queries)
 {

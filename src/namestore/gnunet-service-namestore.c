@@ -353,7 +353,7 @@ struct LookupBlockContext
 
 
 /**
- * A #GNUNET_NAMESTORE_BlockCallback for name lookups in #handle_lookup_name
+ * A #GNUNET_NAMESTORE_BlockCallback for name lookups in #handle_lookup_block
  *
  * @param cls a 'struct LookupNameContext *' with information about the request
  * @param block the block
@@ -873,11 +873,9 @@ struct ZoneIterationProcResult
  *
  * @param cls struct ZoneIterationProcResult *proc
  * @param zone_key the zone key
- * @param expire expiration time
  * @param name name
  * @param rd_count number of records for this name
  * @param rd record data
- * @param signature block signature
  */
 static void
 zone_iteraterate_proc (void *cls,
@@ -1118,11 +1116,9 @@ monitor_next (void *cls,
  *
  * @param cls a 'struct ZoneMonitor *' with information about the monitor
  * @param zone_key zone key of the zone
- * @param expire expiration time
  * @param name name
  * @param rd_count number of records
  * @param rd array of records
- * @param signature signature
  */
 static void
 monitor_iterate_cb (void *cls,

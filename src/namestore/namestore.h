@@ -151,7 +151,7 @@ struct BlockCacheResponseMessage
 struct RecordStoreMessage
 {
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_RECORD_STORE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 

@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file gnunet-gns-fcfsd.c
+ * @file gnunet-namestore-fcfsd.c
  * @brief HTTP daemon that offers first-come-first-serve GNS domain registration
  * @author Christian Grothoff
  *

@@ -220,7 +220,7 @@ struct GNUNET_CRYPTO_AuthKey
 /* **************** Functions and Macros ************* */
 
 /**
- * Seed a weak random generator. Only GNUNET_CRYPTO_QUALITY_WEAK-mode generator
+ * Seed a weak random generator. Only #GNUNET_CRYPTO_QUALITY_WEAK-mode generator
  * can be seeded.
  *
  * @param seed the seed to use
@@ -234,7 +234,7 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed);
  *
  * @param sum current sum, initially 0
  * @param buf buffer to calculate CRC over (must be 16-bit aligned)
- * @param len number of bytes in hdr, must be multiple of 2
+ * @param len number of bytes in @a buf, must be multiple of 2
  * @return updated crc sum (must be subjected to GNUNET_CRYPTO_crc16_finish to get actual crc16)
  */
 uint32_t
@@ -254,8 +254,8 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum);
 /**
  * Calculate the checksum of a buffer in one step.
  *
- * @param buf buffer to  calculate CRC over (must be 16-bit aligned)
- * @param len number of bytes in hdr, must be multiple of 2
+ * @param buf buffer to calculate CRC over (must be 16-bit aligned)
+ * @param len number of bytes in @a buf, must be multiple of 2
  * @return crc16 value
  */
 uint16_t
@@ -267,7 +267,7 @@ GNUNET_CRYPTO_crc16_n (const void *buf, size_t len);
  * bytes of the buffer.
  *
  * @param buf the data over which we're taking the CRC
- * @param len the length of the buffer in bytes
+ * @param len the length of the buffer @buf in bytes
  * @return the resulting CRC32 checksum
  */
 int32_t
@@ -279,7 +279,7 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len);
  *
  * @param mode desired quality of the random number
  * @param i the upper limit (exclusive) for the random number
- * @return a random value in the interval [0,i) (exclusive).
+ * @return a random value in the interval [0,@a i) (exclusive).
  */
 uint32_t
 GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i);
@@ -289,7 +289,7 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i);
  * Random on unsigned 64-bit values.
  *
  * @param mode desired quality of the random number
- * @param max value returned will be in range [0,max) (exclusive)
+ * @param max value returned will be in range [0,@a max) (exclusive)
  * @return random 64-bit number
  */
 uint64_t
@@ -299,7 +299,8 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max);
 /**
  * Get an array with a random permutation of the
  * numbers 0...n-1.
- * @param mode GNUNET_CRYPTO_QUALITY_STRONG if the strong (but expensive) PRNG should be used, GNUNET_CRYPTO_QUALITY_WEAK otherwise
+ * @param mode #GNUNET_CRYPTO_QUALITY_STRONG if the strong (but expensive) PRNG should be used,
+ *             #GNUNET_CRYPTO_QUALITY_WEAK or #GNUNET_CRYPTO_QUALITY_NONCE otherwise
  * @param n the size of the array
  * @return the permutation array (allocated from heap)
  */
@@ -406,22 +407,22 @@ GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * bloc
  * Convert ASCII encoding back to a 'struct GNUNET_HashCode'
  *
  * @param enc the encoding
- * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
- * @param result where to store the GNUNET_CRYPTO_hash code
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @param enclen number of characters in @a enc (without 0-terminator, which can be missing)
+ * @param result where to store the hash code
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
-                                 struct GNUNET_HashCode * result);
+                                 struct GNUNET_HashCode *result);
 
 
 /**
  * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
  *
  * @param enc the encoding
- * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
- * @param result where to store the GNUNET_CRYPTO_hash code
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @param enclen number of characters in @a enc (without 0-terminator, which can be missing)
+ * @param result where to store the hash code
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
@@ -444,7 +445,7 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
  *
  * @param enc the encoding
  * @param result where to store the GNUNET_CRYPTO_ShortHash 
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 #define GNUNET_CRYPTO_short_hash_from_string(enc, result) \
   GNUNET_CRYPTO_short_hash_from_string2 (enc, strlen(enc), result)
@@ -482,7 +483,7 @@ GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode * a,
  * Compute hash of a given block.
  *
  * @param block the data to hash
- * @param size size of the block
+ * @param size size of the @a block
  * @param ret pointer to where to write the hashcode
  */
 void
@@ -493,7 +494,7 @@ GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret
  * Compute short (256-bit) hash of a given block.
  *
  * @param block the data to hash
- * @param size size of the block
+ * @param size size of the @a block
  * @param ret pointer to where to write the hashcode
  */
 void
@@ -530,7 +531,7 @@ GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
  *
  * @param key secret key
  * @param plaintext input plaintext
- * @param plaintext_len length of plaintext
+ * @param plaintext_len length of @a plaintext
  * @param hmac where to store the hmac
  */
 void
@@ -598,7 +599,7 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
  *
  * @param a some hash code
  * @param b some hash code
- * @param result set to b - a
+ * @param result set to @a b - @a a
  */
 void
 GNUNET_CRYPTO_hash_difference (const struct GNUNET_HashCode * a,
@@ -611,7 +612,7 @@ GNUNET_CRYPTO_hash_difference (const struct GNUNET_HashCode * a,
  *
  * @param a some hash code
  * @param delta some hash code
- * @param result set to a + delta
+ * @param result set to @a a + @a delta
  */
 void
 GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode * a,
@@ -624,7 +625,7 @@ GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode * a,
  *
  * @param a some hash code
  * @param b some hash code
- * @param result set to a ^ b
+ * @param result set to @a a ^ @a b
  */
 void
 GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_HashCode * b,
@@ -655,6 +656,7 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
 int
 GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode * code, unsigned int bit);
 
+
 /**
  * Determine how many low order bits match in two
  * struct GNUNET_HashCodes.  i.e. - 010011 and 011111 share
@@ -664,7 +666,6 @@ GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode * code, unsigned int bi
  *
  * @param first the first hashcode
  * @param second the hashcode to compare first to
- *
  * @return the number of bits that match
  */
 unsigned int
@@ -919,7 +920,7 @@ GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
  *
  * @param cfg configuration to use
  * @param dst pointer to where to write the peer identity
- * @return GNUNET_OK on success, GNUNET_SYSERR if the identity
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the identity
  *         could not be retrieved
  */
 int
@@ -933,7 +934,7 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param priv private key to use for the ECDH (x)
  * @param pub public key to use for the ECDY (yG)
  * @param key_material where to write the key material (xyG)
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
@@ -947,7 +948,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
  * @param sig where to write the signature
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
@@ -962,7 +963,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @param validate block to validate (size, purpose, data)
  * @param sig signature that is being validated
  * @param pub public key of the signer
- * @returns GNUNET_OK if ok, GNUNET_SYSERR if invalid
+ * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
 GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
