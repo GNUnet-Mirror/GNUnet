@@ -371,6 +371,11 @@ struct GetPseuAuthorityHandle
   char label[GNUNET_DNSPARSER_MAX_LABEL_LENGTH + 1];
 
   /**
+   * Label we are currently trying out (during #perform_pseu_lookup).
+   */
+  char *current_label;
+
+  /**
    * The zone for which we are trying to find the PSEU record.
    */
   struct GNUNET_CRYPTO_EccPublicKey target_zone;
@@ -542,6 +547,7 @@ free_get_pseu_authority_handle (struct GetPseuAuthorityHandle *gph)
     gph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
+  GNUNET_free_non_null (gph->current_label);
   GNUNET_free (gph);
 }
 
@@ -570,44 +576,110 @@ create_pkey_cont (void* cls,
  * (or with rd_count=0 to indicate no matches).
  *
  * @param cls the pending query
- * @param key the key of the zone we did the lookup
- * @param name the name for which we need an authority
  * @param rd_count the number of records with 'name'
  * @param rd the record data
  */
 static void
 process_pseu_lookup_ns (void *cls,
-			const struct GNUNET_CRYPTO_EccPrivateKey *key,
-			const char *name, 
+			unsigned int rd_count,
+			const struct GNUNET_NAMESTORE_RecordData *rd);
+
+
+/**
+ * We obtained a result for our query to the shorten zone from
+ * the namestore.  Try to decrypt.
+ *
+ * @param cls the handle to our shorten operation
+ * @param block resulting encrypted block
+ */
+static void
+process_pseu_block_ns (void *cls,
+		       const struct GNUNET_NAMESTORE_Block *block)
+{
+  struct GetPseuAuthorityHandle *gph = cls;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  gph->namestore_task = NULL;
+  if (NULL == block)
+  {
+    process_pseu_lookup_ns (gph, 0, NULL);
+    return;
+  }
+  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+				    &pub);
+  if (GNUNET_OK != 
+      GNUNET_NAMESTORE_block_decrypt (block,
+				      &pub,
+				      gph->current_label,
+				      &process_pseu_lookup_ns,
+				      gph))
+  {
+    GNUNET_break (0);
+    free_get_pseu_authority_handle (gph);
+    return;
+  }
+}
+
+
+/**
+ * Lookup in the namestore for the shorten zone the given label.
+ *
+ * @param gph the handle to our shorten operation
+ * @param label the label to lookup
+ */
+static void 
+perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
+		     const char *label)
+{ 
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_HashCode query;
+
+  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+				    &pub);
+  GNUNET_free_non_null (gph->current_label);
+  gph->current_label = GNUNET_strdup (label);
+  GNUNET_NAMESTORE_query_from_public_key (&pub,
+					  label,
+					  &query);
+  gph->namestore_task = GNUNET_NAMESTORE_lookup_block (namestore_handle,
+						       &query,
+						       &process_pseu_block_ns,
+						       gph);
+}
+
+
+/**
+ * Namestore calls this function if we have record for this name.
+ * (or with rd_count=0 to indicate no matches).
+ *
+ * @param cls the pending query
+ * @param rd_count the number of records with 'name'
+ * @param rd the record data
+ */
+static void
+process_pseu_lookup_ns (void *cls,
 			unsigned int rd_count,
 			const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GetPseuAuthorityHandle *gph = cls;
   struct GNUNET_NAMESTORE_RecordData new_pkey;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
 
   gph->namestore_task = NULL;
   if (rd_count > 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                "Name `%s' already taken, cannot shorten.\n", 
-	       name);
+	       gph->current_label);
     /* if this was not yet the original label, try one more
        time, this time not using PSEU but the original label */
-    if (0 == strcmp (name,
+    if (0 == strcmp (gph->current_label,
 		     gph->label))
     {
       free_get_pseu_authority_handle (gph);
     }
     else
     {
-      GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
-					&pub);
-      gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						     &pub,
-						     gph->label,
-						     &process_pseu_lookup_ns,
-						     gph);
+      perform_pseu_lookup (gph, gph->label);
     }
     return;
   }
@@ -615,7 +687,7 @@ process_pseu_lookup_ns (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shortening `%s' to `%s'\n", 
 	      GNUNET_NAMESTORE_z2s (&gph->target_zone),
-	      name);
+	      gph->current_label);
   new_pkey.expiration_time = UINT64_MAX;
   new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
   new_pkey.data = &gph->target_zone;
@@ -626,7 +698,7 @@ process_pseu_lookup_ns (void *cls,
   gph->namestore_task 
     = GNUNET_NAMESTORE_records_store (namestore_handle,
 				      &gph->shorten_zone_key,
-				      name,
+				      gph->current_label,
 				      1, &new_pkey,
 				      &create_pkey_cont, gph);
 }
@@ -642,30 +714,17 @@ static void
 process_pseu_result (struct GetPseuAuthorityHandle* gph, 
 		     const char *pseu)
 {
-  struct GNUNET_CRYPTO_EccPublicKey pub;
-
-  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
-				    &pub);
   if (NULL == pseu)
   {
     /* no PSEU found, try original label */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No PSEU found, trying original label `%s' instead.\n",
 		gph->label);
-    gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						   &pub,
-						   gph->label,
-						   &process_pseu_lookup_ns,
-						   gph);
+    perform_pseu_lookup (gph, gph->label);
     return;
-  }
-  
+  }  
   /* check if 'pseu' is taken */
-  gph->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						 &pub,
-						 pseu,
-						 &process_pseu_lookup_ns,
-						 gph);
+  perform_pseu_lookup (gph, pseu);
 }
 
 

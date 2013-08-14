@@ -1097,7 +1097,6 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
 			       GNUNET_NAMESTORE_BlockProcessor proc, void *proc_cls)
 {
-
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;
   struct LookupBlockMessage *msg;
@@ -1128,26 +1127,6 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit(h);
   return qe;
-}
-
-
-/**
- * Perform a lookup and decrypt the resulting block.
- *
- * @param h namestore to perform lookup in
- * @param value_zone zone to look up record in
- * @param label label to look for
- * @param proc function to call with the result
- * @param proc_cls closure for @a proc
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup (struct GNUNET_NAMESTORE_Handle *h,
-			 const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
-			 const char *label,
-			 GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls)
-{
-  GNUNET_break (0); // FIXME: not implemented
-  return NULL;
 }
 
 

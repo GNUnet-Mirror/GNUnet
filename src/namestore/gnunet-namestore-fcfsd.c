@@ -525,22 +525,17 @@ zone_to_name_cb (void *cls,
  * proceed to check if the requested key already exists.
  *
  * @param cls closure
- * @param zone_key private key of the zone
- * @param name name that is being mapped (at most 255 characters long)
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
  */
 static void 
 lookup_result_processor (void *cls,
-			 const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
-			 const char *name,
 			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_EccPublicKey pub;
   
-  request->qe = NULL;
   if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -566,6 +561,43 @@ lookup_result_processor (void *cls,
 					       &pub,
 					       &zone_to_name_cb,
 					       request);
+}
+
+
+/**
+ * We got a block back from the namestore.  Decrypt it
+ * and continue to process the result.
+ *
+ * @param cls the 'struct Request' we are processing
+ * @param block block returned form namestore, NULL on error
+ */
+static void
+lookup_block_processor (void *cls,
+			const struct GNUNET_NAMESTORE_Block *block)
+{
+  struct Request *request = cls;
+  struct GNUNET_CRYPTO_EccPublicKey pub;
+
+  request->qe = NULL;
+  if (NULL == block)
+  {
+    lookup_result_processor (request, 0, NULL);
+    return;
+  }
+  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
+				    &pub);
+  if (GNUNET_OK != 
+      GNUNET_NAMESTORE_block_decrypt (block,
+				      &pub,
+				      request->domain_name,
+				      &lookup_result_processor,
+				      request))
+  {
+    GNUNET_break (0);
+    request->phase = RP_FAIL;
+    run_httpd_now ();
+    return;
+  }
 }
 
 
@@ -606,6 +638,7 @@ create_response (void *cls,
   struct Request *request;
   int ret;
   struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_HashCode query;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
@@ -684,11 +717,13 @@ create_response (void *cls,
 	  request->phase = RP_LOOKUP;
 	  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
 					    &pub);
-	  request->qe = GNUNET_NAMESTORE_lookup (ns,
-						 &pub,
-						 request->domain_name,
-						 &lookup_result_processor,
-						 request);
+	  GNUNET_NAMESTORE_query_from_public_key (&pub,
+						  request->domain_name,
+						  &query);
+	  request->qe = GNUNET_NAMESTORE_lookup_block (ns,
+						       &query,
+						       &lookup_block_processor,
+						       request);
 	  break;
 	case RP_LOOKUP:
 	  break;

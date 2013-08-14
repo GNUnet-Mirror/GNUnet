@@ -334,10 +334,10 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 
 
 /**
- * Context for name lookups passed from 'handle_lookup_name' to
- * 'handle_lookup_name_it' as closure
+ * Context for name lookups passed from #handle_lookup_block to
+ * #handle_lookup_block_it as closure
  */
-struct LookupNameContext
+struct LookupBlockContext
 {
   /**
    * The client to send the response to
@@ -362,7 +362,7 @@ static void
 handle_lookup_block_it (void *cls,
 			const struct GNUNET_NAMESTORE_Block *block)
 {
-  struct LookupNameContext *lnc = cls;
+  struct LookupBlockContext *lnc = cls;
   struct LookupBlockResponseMessage *r;
   size_t esize;
 
@@ -379,7 +379,7 @@ handle_lookup_block_it (void *cls,
   memcpy (&r[1], &block[1], esize);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sending `%s' message\n", 
-	      "NAMESTORE_LOOKUP_NAME_RESPONSE");
+	      "NAMESTORE_LOOKUP_BLOCK_RESPONSE");
   GNUNET_SERVER_notification_context_unicast (snc, 
 					      lnc->nc->client, 
 					      &r->gns_header.header, 
@@ -401,14 +401,14 @@ handle_lookup_block (void *cls,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct LookupBlockMessage *ln_msg;
-  struct LookupNameContext lnc;
+  struct LookupBlockContext lnc;
   struct NamestoreClient *nc;
   struct LookupBlockResponseMessage zir_end;
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", 
-	      "NAMESTORE_LOOKUP_NAME");
+	      "NAMESTORE_LOOKUP_BLOCK");
   nc = client_lookup(client);
   ln_msg = (const struct LookupBlockMessage *) message;
   lnc.request_id = ntohl (ln_msg->gns_header.r_id);
