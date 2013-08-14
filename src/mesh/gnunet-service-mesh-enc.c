@@ -4481,16 +4481,16 @@ queue_add (void *cls, uint16_t type, size_t size,
 {
   struct MeshPeerQueue *queue;
   struct MeshFlowControl *fc;
-  struct MeshPeer *dst;
+  struct MeshPeer *peer;
   int priority;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "queue add %s (%u bytes) on c %p, ch %p\n",
-              GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
+              "queue add %s %s (%u) on c %p, ch %p\n",
+              fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
   GNUNET_assert (NULL != c);
 
-  fc  = fwd ? &c->fwd_fc : &c->bck_fc;
-  dst = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
+  fc   = fwd ? &c->fwd_fc : &c->bck_fc;
+  peer = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
 
   if (NULL == fc)
   {
@@ -4509,6 +4509,7 @@ queue_add (void *cls, uint16_t type, size_t size,
         (NULL != ch->dest && GNUNET_MESSAGE_TYPE_MESH_BCK == type) ))
     priority = 50;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
   if (fc->queue_n >= fc->queue_max && 0 == priority)
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
@@ -4522,38 +4523,53 @@ queue_add (void *cls, uint16_t type, size_t size,
 
   if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv) &&
       GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "no buffer space (%u > %u): starting poll\n",
+                fc->last_pid_sent + 1, fc->last_ack_recv);
     fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                   &connection_poll,
-                                                  dst);
+                                                  fc);
+  }
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
   queue->type = type;
   queue->size = size;
-  queue->peer = dst;
+  queue->peer = peer;
   queue->c = c;
   queue->ch = ch;
   queue->fwd = fwd;
   if (100 <= priority)
-    GNUNET_CONTAINER_DLL_insert (dst->queue_head, dst->queue_tail, queue);
+    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
   else
-    GNUNET_CONTAINER_DLL_insert_tail (dst->queue_head, dst->queue_tail, queue);
+    GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
 
-  if (NULL == dst->core_transmit)
+  if (NULL == peer->core_transmit)
   {
-    dst->core_transmit =
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "calling core tmt rdy towards %s\n",
+                peer2s (peer));
+    peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
                                            0,
                                            0,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_PEER_resolve2 (dst->id),
+                                           GNUNET_PEER_resolve2 (peer->id),
                                            size,
                                            &queue_send,
-                                           dst);
+                                           peer);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "core tmt rdy towards %s already called\n",
+                peer2s (peer));
+
   }
   c->pending_messages++;
   c->t->pending_messages++;
   fc->queue_n++;
-  dst->queue_n++;
+  peer->queue_n++;
 }
 
 
