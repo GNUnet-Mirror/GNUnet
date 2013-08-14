@@ -1652,6 +1652,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
     }
     msg->ttl = htonl (ttl - 1);
     msg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (msg->pid));
   }
 
   queue_add (data,
@@ -1678,7 +1679,6 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
                               int fwd)
 {
   struct MeshConnection *c;
-  struct MeshFlowControl *fc;
   uint16_t type;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n",
@@ -1689,7 +1689,6 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
     GNUNET_break (GNUNET_YES == t->destroy);
     return;
   }
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
   type = ntohs (msg->header.type);
   switch (type)
   {
@@ -1699,8 +1698,7 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
       msg->cid = htonl (c->id);
       msg->tid = t->id;
-      msg->ttl = default_ttl;
-      msg->pid = fc->next_pid++;
+      msg->ttl = htonl (default_ttl);
       break;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
