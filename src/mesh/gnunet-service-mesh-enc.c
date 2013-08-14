@@ -3764,6 +3764,7 @@ tunnel_new (const struct GNUNET_HashCode *tid)
   t = GNUNET_new (struct MeshTunnel2);
   t->id = *tid;
   t->next_chid = 0;
+  t->next_local_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
@@ -5153,7 +5154,9 @@ handle_channel_create (struct MeshTunnel2 *t,
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
   struct MeshClient *c;
+  uint32_t port;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Channel Create\n");
   /* Check message size */
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelCreate))
   {
@@ -5167,20 +5170,26 @@ handle_channel_create (struct MeshTunnel2 *t,
   if (NULL != ch)
   {
     /* Probably a retransmission, safe to ignore */
-    return GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
+  }
+  else
+  {
+    /* Create channel */
+    ch = channel_new (t, NULL, 0);
+    channel_set_options (ch, ntohl (msg->opt));
   }
 
   /* Find a destination client */
-  c = GNUNET_CONTAINER_multihashmap32_get (ports, msg->port);
+  port = ntohl (msg->port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", port);
+  c = GNUNET_CONTAINER_multihashmap32_get (ports, port);
   if (NULL == c)
   {
     /* TODO send reject */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
     return GNUNET_OK;
   }
 
-  /* Create channel */
-  ch = channel_new (t, NULL, 0);
-  channel_set_options (ch, ntohl (msg->opt));
   channel_add_client (ch, c);
   if (GNUNET_YES == ch->reliable)
   {
