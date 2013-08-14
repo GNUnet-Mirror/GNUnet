@@ -63,7 +63,7 @@
  * Number of buckets used in the ibf per estimated
  * difference.
  */
-#define IBF_ALPHA 3
+#define IBF_ALPHA 4
 
 
 /**
@@ -521,6 +521,8 @@ prepare_ibf_iterator (void *cls,
   struct InvertibleBloomFilter *ibf = cls;
   struct KeyEntry *ke = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "inserting %x into ibf\n", ke->ibf_key.key_val);
+
   ibf_insert (ibf, ke->ibf_key);
   return GNUNET_YES;
 }
@@ -534,6 +536,8 @@ prepare_ibf_iterator (void *cls,
  * @param key unised
  * @param value the element entry to insert
  *        into the key-to-element mapping
+ * @return GNUNET_YES to continue iterating,
+ *         GNUNET_NO to stop
  */
 static int
 init_key_to_element_iterator (void *cls,
@@ -550,7 +554,7 @@ init_key_to_element_iterator (void *cls,
          (e->generation_removed < eo->generation_created)))
     return GNUNET_YES;
 
-  e->remote = GNUNET_NO;
+  GNUNET_assert (GNUNET_NO == e->remote);
 
   op_register_element (eo, e);
   return GNUNET_YES;
@@ -663,7 +667,7 @@ get_order_from_difference (unsigned int diff)
   unsigned int ibf_order;
 
   ibf_order = 2;
-  while ((1<<ibf_order) < (IBF_ALPHA * diff))
+  while ((1<<ibf_order) < (IBF_ALPHA * diff) || (1<<ibf_order) < SE_IBF_HASH_NUM)
     ibf_order++;
   if (ibf_order > MAX_IBF_ORDER)
     ibf_order = MAX_IBF_ORDER;
@@ -694,12 +698,12 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
                                        SE_IBF_HASH_NUM);
   strata_estimator_read (&mh[1], remote_se);
   GNUNET_assert (NULL != eo->se);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got se, calculating diff\n");
   diff = strata_estimator_difference (remote_se, eo->se);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "se diff=%d\n", diff);
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (eo->se);
   eo->se = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got se diff=%d, using ibf size %d\n",
+              diff, 1<<get_order_from_difference (diff));
   send_ibf (eo, get_order_from_difference (diff));
 }
 
@@ -1077,22 +1081,6 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Handle a 'DIE' message from the remote peer.
- * This indicates that the other peer is terminated.
- * 
- * @param cls the union operation
- * @param mh the message
- */
-static void
-handle_p2p_die (void *cls, const struct GNUNET_MessageHeader *mh)
-{
-  struct OperationState *eo = cls;
-
-  send_client_done_and_destroy (eo);
-}
-
-
-/**
  * Handle a done message from a remote peer
  * 
  * @param cls the union operation
@@ -1116,10 +1104,7 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
   }
   if (eo->phase == PHASE_EXPECT_ELEMENTS)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got final DONE, trying to send DIE\n");
-    /* send the die message, which might not even be delivered,
-     * as we could have shut down before that */
-    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DIE);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got final DONE\n");
     eo->phase = PHASE_FINISHED;
     send_client_done_and_destroy (eo);
     return;
@@ -1150,6 +1135,7 @@ union_evaluate (struct OperationSpecification *spec,
   tc->vt = _GSS_union_vt ();
   tc->op = eo;
   eo->se = strata_estimator_dup (spec->set->state->se);
+  eo->generation_created = spec->set->current_generation++;
   eo->set = spec->set;
   eo->spec = spec;
   eo->tunnel = tunnel;
@@ -1304,9 +1290,6 @@ union_handle_p2p_message (struct OperationState *eo,
     case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
       handle_p2p_done (eo, mh);
       break;
-    case GNUNET_MESSAGE_TYPE_SET_P2P_DIE:
-      handle_p2p_die (eo, mh);
-      break;
     default:
       /* something wrong with mesh's message handlers? */
       GNUNET_assert (0);
@@ -1342,7 +1325,6 @@ union_peer_disconnect (struct OperationState *op)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
-  /* maybe the other peer did not get to send his 'DIE' message before he died? */
   if (GNUNET_NO == op->client_done_sent)
     send_client_done_and_destroy (op);
 }

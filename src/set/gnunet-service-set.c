@@ -1126,7 +1126,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_IBF, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DIE, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_SE, 0},
     {NULL, 0, 0}
