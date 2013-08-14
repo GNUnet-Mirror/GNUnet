@@ -1784,12 +1784,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_ITER_DONE 589
 
-/**
- * Iteration end marker for the client.
- */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_DIE 590
-
-
 
 /*******************************************************************************
  * TESTBED LOGGER message types
