@@ -4307,6 +4307,7 @@ queue_send (void *cls, size_t size, void *buf)
   uint16_t type;
   int fwd;
 
+  peer->core_transmit = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Queue send\n");
 
   if (NULL == buf || 0 == size)
