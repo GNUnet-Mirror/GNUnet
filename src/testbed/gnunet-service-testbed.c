@@ -616,7 +616,6 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
   }
   hostname = GNUNET_malloc (hostname_length + 1);
   strncpy (hostname, ptr, hostname_length);
-  ptr += hostname_length;
   if (NULL == (host_cfg = GNUNET_TESTBED_extract_config_ (message)))
   {
     GNUNET_free_non_null (username);

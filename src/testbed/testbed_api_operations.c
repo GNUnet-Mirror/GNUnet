@@ -470,7 +470,6 @@ decide_capacity (struct OperationQueue *opq,
   rval = GNUNET_YES;
   if (opq->active > opq->max_active)
   {
-    need += opq->active - opq->max_active;
     rval = GNUNET_NO;
     goto ret;
   }

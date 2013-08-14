@@ -576,7 +576,6 @@ main (int argc, char **argv)
                                            GNUNET_NO, GNUNET_NO)))
   {
     GNUNET_break (0);
-    ret = GNUNET_SYSERR;
     return 1;
   }
   shc_chld =

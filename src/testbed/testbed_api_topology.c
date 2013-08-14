@@ -688,7 +688,6 @@ gen_topo_from_file (struct TopologyContext *tc, const char *filename)
   offset = 0;
   peer_id = 0;
   state = PEER_INDEX;
-  buf = data;
   while (offset < fs)
   {
     if (0 != isspace (data[offset]))

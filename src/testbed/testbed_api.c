@@ -1080,7 +1080,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG_DEBUG ("Receive timed out or connection to service dropped\n");
     return;
   }
-  status = GNUNET_OK;
   msize = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
