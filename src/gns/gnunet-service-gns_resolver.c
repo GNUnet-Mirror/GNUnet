@@ -23,6 +23,12 @@
  * @brief GNUnet GNS resolver logic
  * @author Martin Schanzenbach
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - recurive GNS resulution
+ * - recursive DNS resolution
+ * - shortening triggers
+ * - revocation checks (privacy!?)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -877,300 +883,6 @@ start_shorten (const char *original_label,
 /* ************************** Resolution **************************** */
 
 #if 0
-/**
- * Helper function to free resolver handle
- *
- * @param rh the handle to free
- */
-static void
-free_resolver_handle (struct ResolverHandle* rh)
-{
-  struct AuthorityChain *ac;
-  struct AuthorityChain *ac_next;
-
-  if (NULL == rh)
-    return;
-
-  ac_next = rh->authority_chain_head;
-  while (NULL != (ac = ac_next))
-  {
-    ac_next = ac->next;
-    GNUNET_free (ac);
-  }
-  
-  if (NULL != rh->get_handle)
-    GNUNET_DHT_get_stop (rh->get_handle);
-  if (NULL != rh->dns_raw_packet)
-    GNUNET_free (rh->dns_raw_packet);
-  if (NULL != rh->namestore_task)
-  {
-    GNUNET_NAMESTORE_cancel (rh->namestore_task);
-    rh->namestore_task = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != rh->dns_read_task)
-    GNUNET_SCHEDULER_cancel (rh->dns_read_task);
-  if (GNUNET_SCHEDULER_NO_TASK != rh->timeout_task)
-    GNUNET_SCHEDULER_cancel (rh->timeout_task);
-  if (NULL != rh->dns_sock)
-    GNUNET_NETWORK_socket_close (rh->dns_sock);
-  if (NULL != rh->dns_resolver_handle)
-    GNUNET_RESOLVER_request_cancel (rh->dns_resolver_handle);
-  if (NULL != rh->rd.data)
-    GNUNET_free ((void*)(rh->rd.data));
-  if (NULL != rh->dht_heap_node)
-    GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
-  GNUNET_free (rh);
-}
-
-
-/**
- * Callback when record data is put into namestore
- *
- * @param cls the closure
- * @param success GNUNET_OK on success
- * @param emsg the error message. NULL if SUCCESS==GNUNET_OK
- */
-void
-on_namestore_record_put_result (void *cls,
-                                int32_t success,
-                                const char *emsg)
-{
-  struct NamestoreBGTask *nbg = cls;
-
-  GNUNET_CONTAINER_heap_remove_node (nbg->node);
-  GNUNET_free (nbg);
-
-  if (GNUNET_NO == success)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_NS: records already in namestore\n");
-    return;
-  }
-  else if (GNUNET_YES == success)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_NS: records successfully put in namestore\n");
-    return;
-  }
-
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-             "GNS_NS: Error putting records into namestore: %s\n", emsg);
-}
-
-
-/**
- * Function called when we get a result from the dht
- * for our record query
- *
- * @param cls the request handle
- * @param exp lifetime
- * @param key the key the record was stored under
- * @param get_path get path
- * @param get_path_length get path length
- * @param put_path put path
- * @param put_path_length put path length
- * @param type the block type
- * @param size the size of the record
- * @param data the record data
- */
-static void
-process_record_result_dht (void* cls,
-                           struct GNUNET_TIME_Absolute exp,
-                           const struct GNUNET_HashCode * key,
-                           const struct GNUNET_PeerIdentity *get_path,
-                           unsigned int get_path_length,
-                           const struct GNUNET_PeerIdentity *put_path,
-                           unsigned int put_path_length,
-                           enum GNUNET_BLOCK_Type type,
-                           size_t size, const void *data)
-{
-  struct ResolverHandle *rh = cls;
-  struct RecordLookupHandle *rlh = rh->proc_cls;
-  const struct GNSNameRecordBlock *nrb = data;
-  uint32_t num_records;
-  const char* name;
-  const char* rd_data;
-  uint32_t i;
-  size_t rd_size;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_REC-%llu: got dht result (size=%d)\n", rh->id, size);
-  /* stop lookup and timeout task */
-  GNUNET_DHT_get_stop (rh->get_handle);
-  rh->get_handle = NULL;
-  if (rh->dht_heap_node != NULL)
-  {
-    GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
-    rh->dht_heap_node = NULL;
-  }
-  if (rh->timeout_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (rh->timeout_task);
-    rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  rh->get_handle = NULL;
-  name = (const char*) &nrb[1];
-  num_records = ntohl (nrb->rd_count);
-  {
-    struct GNUNET_NAMESTORE_RecordData rd[num_records];
-    struct NamestoreBGTask *ns_heap_root;
-    struct NamestoreBGTask *namestore_bg_task;
-
-    rd_data = &name[strlen (name) + 1];
-    rd_size = size - strlen (name) - 1 - sizeof (struct GNSNameRecordBlock);
-    if (GNUNET_SYSERR == 
-	GNUNET_NAMESTORE_records_deserialize (rd_size,
-					      rd_data,
-					      num_records,
-					      rd))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "GNS_PHASE_REC-%llu: Error deserializing data!\n", rh->id);
-      rh->proc (rh->proc_cls, rh, 0, NULL);
-      return;
-    }
-    for (i = 0; i < num_records; i++)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Got name: %s (wanted %s)\n",
-                  rh->id, name, rh->name);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Got type: %d (wanted %d)\n",
-                  rh->id, rd[i].record_type, rlh->record_type);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Got data length: %d\n",
-                  rh->id, rd[i].data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Got flag %d\n",
-                  rh->id, rd[i].flags);
-
-      if ((strcmp (name, rh->name) == 0) &&
-          (rd[i].record_type == rlh->record_type))
-        rh->answered++;
-
-    }
-
-    /**
-     * FIXME check pubkey against existing key in namestore?
-     * https://gnunet.org/bugs/view.php?id=2179
-     */
-    if (max_allowed_ns_tasks <=
-        GNUNET_CONTAINER_heap_get_size (ns_task_heap))
-    {
-      ns_heap_root = GNUNET_CONTAINER_heap_remove_root (ns_task_heap);
-      GNUNET_NAMESTORE_cancel (ns_heap_root->qe);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Replacing oldest background ns task\n",
-                  rh->id);
-    }
-    
-    /* Save to namestore */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "GNS_PHASE_REC-%llu: Caching record for %s\n",
-                rh->id, name);
-    namestore_bg_task = GNUNET_malloc (sizeof (struct NamestoreBGTask));
-    namestore_bg_task->qe = GNUNET_NAMESTORE_record_put (namestore_handle,
-                                 &nrb->public_key,
-                                 name,
-                                 exp,
-                                 num_records,
-                                 rd,
-                                 &nrb->signature,
-                                 &on_namestore_record_put_result, //cont
-                                 namestore_bg_task);
-
-    namestore_bg_task->node = GNUNET_CONTAINER_heap_insert (ns_task_heap,
-                                  namestore_bg_task,
-                                  GNUNET_TIME_absolute_get().abs_value_us);
-    if (0 < rh->answered)
-      rh->proc (rh->proc_cls, rh, num_records, rd);
-    else
-      rh->proc (rh->proc_cls, rh, 0, NULL);
-  }
-}
-
-
-/**
- * Start DHT lookup for a (name -> query->record_type) record in
- * rh->authority's zone
- *
- * @param rh the pending gns query context
- */
-static void
-resolve_record_dht (struct ResolverHandle *rh)
-{
-  struct RecordLookupHandle *rlh = rh->proc_cls;
-  uint32_t xquery;
-  struct GNUNET_HashCode lookup_key;
-  struct ResolverHandle *rh_heap_root;
-
-  GNUNET_GNS_get_key_for_record (rh->name, &rh->authority, &lookup_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "GNS_PHASE_REC-%llu: starting dht lookup for %s with key: %s\n",
-              rh->id, rh->name, GNUNET_h2s (&lookup_key));
-
-  rh->dht_heap_node = NULL;
-
-  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != rh->timeout.rel_value_us)
-  {
-    /**
-     * Update timeout if necessary
-     */
-    if (GNUNET_SCHEDULER_NO_TASK == rh->timeout_task)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "GNS_PHASE_REC-%llu: Adjusting timeout to %s/2\n", 
-		  rh->id,
-		  GNUNET_STRINGS_relative_time_to_string (rh->timeout, GNUNET_YES));
-      /*
-       * Set timeout for authority lookup phase to 1/2
-       */
-      rh->timeout_task = GNUNET_SCHEDULER_add_delayed (
-                                   GNUNET_TIME_relative_divide (rh->timeout, 2),
-                                   &handle_lookup_timeout,
-                                   rh);
-    }
-    rh->timeout_cont = &dht_lookup_timeout;
-    rh->timeout_cont_cls = rh;
-  }
-  else 
-  {
-    if (max_allowed_background_queries <=
-        GNUNET_CONTAINER_heap_get_size (dht_lookup_heap))
-    {
-      rh_heap_root = GNUNET_CONTAINER_heap_remove_root (dht_lookup_heap);
-      GNUNET_DHT_get_stop (rh_heap_root->get_handle);
-      rh_heap_root->get_handle = NULL;
-      rh_heap_root->dht_heap_node = NULL;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                 "GNS_PHASE_REC-%llu: Replacing oldest background query for %s\n",
-                 rh->id, rh_heap_root->name);
-      rh_heap_root->proc (rh_heap_root->proc_cls,
-                          rh_heap_root,
-                          0,
-                          NULL);
-    }
-    rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
-                                         rh,
-                                         GNUNET_TIME_absolute_get ().abs_value_us);
-  }
-
-  xquery = htonl (rlh->record_type);
-
-  GNUNET_assert (rh->get_handle == NULL);
-  rh->get_handle = GNUNET_DHT_get_start (dht_handle, 
-                                         GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                         &lookup_key,
-                                         DHT_GNS_REPLICATION_LEVEL,
-                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                         &xquery,
-                                         sizeof (xquery),
-                                         &process_record_result_dht,
-                                         rh);
-
-}
 
 
 /**
@@ -1279,7 +991,6 @@ process_record_result_ns (void* cls,
 }
 
 
-#ifndef WINDOWS
 /**
  * VPN redirect result callback
  *
@@ -1345,7 +1056,6 @@ process_record_result_vpn (void* cls, int af, const void *address)
              rh->id);
   rh->proc (rh->proc_cls, rh, 0, NULL);
 }
-#endif
 
 
 /**
@@ -1638,75 +1348,6 @@ resolve_record_ns(struct ResolverHandle *rh)
 
 
 /**
- * Handle timeout for DHT requests
- *
- * @param cls the request handle as closure
- * @param tc the task context
- */
-static void
-dht_authority_lookup_timeout (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ResolverHandle *rh = cls;
-  struct RecordLookupHandle *rlh = rh->proc_cls;
-  char new_name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_DHT-%llu: dht lookup for query %s (%s) timed out.\n",
-	      rh->id, rh->authority_name, 
-	      GNUNET_STRINGS_relative_time_to_string (rh->timeout,
-						      GNUNET_YES));
-
-  rh->status |= RSL_TIMED_OUT;
-  rh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != rh->get_handle)
-  {
-    GNUNET_DHT_get_stop (rh->get_handle);
-    rh->get_handle = NULL;
-  }
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"GNS_PHASE_DELEGATE_DHT-%llu: Got shutdown\n",
-		rh->id);
-    rh->proc (rh->proc_cls, rh, 0, NULL);
-    return;
-  }
-  if (0 == strcmp (rh->name, ""))
-  {
-    /*
-     * promote authority back to name and try to resolve record
-     */
-    strcpy (rh->name, rh->authority_name);
-    rh->proc (rh->proc_cls, rh, 0, NULL);
-    return;
-  }
-  
-  /**
-   * Start resolution in bg
-   */
-  GNUNET_snprintf (new_name, GNUNET_DNSPARSER_MAX_NAME_LENGTH,
-		   "%s.%s.%s", 
-		   rh->name, rh->authority_name, GNUNET_GNS_TLD);
-  strcpy (rh->name, new_name);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_DHT-%llu: Starting background query for %s type %d\n",
-	      rh->id, rh->name,
-	      rlh->record_type);
-  gns_resolver_lookup_record (rh->authority,
-                              rh->private_local_zone,
-                              rlh->record_type,
-                              new_name,
-                              NULL,
-                              GNUNET_TIME_UNIT_FOREVER_REL,
-                              GNUNET_NO,
-                              &background_lookup_result_processor,
-                              NULL);
-  rh->proc (rh->proc_cls, rh, 0, NULL);
-}
-
-
-/**
  * This is a callback function that checks for key revocation
  *
  * @param cls the pending query
@@ -1781,41 +1422,6 @@ process_pkey_revocation_result_ns (void *cls,
     rh->proc (rh->proc_cls, rh, rh->rd_count, &rh->rd);
   else
     resolve_delegation_ns (rh);
-}
-
-
-/**
- * Callback when record data is put into namestore
- *
- * @param cls the closure
- * @param success GNUNET_OK on success
- * @param emsg the error message. NULL if SUCCESS==GNUNET_OK
- */
-static void
-on_namestore_delegation_put_result(void *cls,
-                                   int32_t success,
-                                   const char *emsg)
-{
-  struct NamestoreBGTask *nbg = cls;
-
-  GNUNET_CONTAINER_heap_remove_node (nbg->node);
-  GNUNET_free (nbg);
-
-  if (GNUNET_NO == success)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_NS: records already in namestore\n");
-    return;
-  }
-  else if (GNUNET_YES == success)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_NS: records successfully put in namestore\n");
-    return;
-  }
-
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-             "GNS_NS: Error putting records into namestore: %s\n", emsg);
 }
 
 
@@ -2945,29 +2551,6 @@ process_delegation_result_ns (void* cls,
   }
 }
 
-
-/**
- * Resolve the delegation chain for the request in our namestore
- * (as in, find the respective authority for the leftmost label).
- *
- * @param rh the resolver handle
- */
-static void
-resolve_delegation_ns (struct ResolverHandle *rh)
-{
-  pop_tld (rh->name, rh->authority_name);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "GNS_PHASE_DELEGATE_NS-%llu: Finding authority for `%s' by looking up `%s' in GADS zone `%s'\n",
-	      rh->id,	      
-	      rh->name,
-	      rh->authority_name,
-	      GNUNET_short_h2s (&rh->authority));
-  rh->namestore_task = GNUNET_NAMESTORE_lookup (namestore_handle,
-						&rh->authority,
-						rh->authority_name,
-						&process_delegation_result_ns,
-						rh);
-}
 
 #endif
 
