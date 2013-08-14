@@ -4896,7 +4896,6 @@ static void
 handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
-  struct MeshClient *next;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
   if (client == NULL)
@@ -4932,12 +4931,10 @@ handle_local_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
                                                &client_release_ports, c);
       GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
     }
-    next = c->next;
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
     GNUNET_free (c);
     GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
-    c = next;
   }
   else
   {
