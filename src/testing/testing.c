@@ -1164,20 +1164,6 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   ss_instances = NULL;
   if (NULL != emsg)
     *emsg = NULL;
-  /* Remove sections for shared services */
-  for (cnt = 0; cnt < system->n_shared_services; cnt++)
-  {
-    ss = system->shared_services[cnt];
-    GNUNET_CONFIGURATION_remove_section (cfg, ss->sname);
-  }
-  if (GNUNET_OK != GNUNET_TESTING_configuration_create_ (system, cfg,
-                                                         &ports, &nports))
-  {
-    GNUNET_asprintf (&emsg_,
-                     _("Failed to create configuration for peer "
-                       "(not enough free ports?)\n"));
-    goto err_ret;
-  }
   if (key_number >= system->total_hostkeys)
   {
     GNUNET_asprintf (&emsg_,
@@ -1193,9 +1179,30 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
 		     _("Failed to initialize hostkey for peer %u\n"),
 		     (unsigned int) key_number);
     goto err_ret;
-  }
+  }  
   if (NULL != pk)
     GNUNET_CRYPTO_ecc_key_free (pk);
+  if (GNUNET_NO == 
+      GNUNET_CONFIGURATION_have_value (cfg, "PEER", "PRIVATE_KEY"))
+  {
+    GNUNET_asprintf (&emsg_, 
+                     _("PRIVATE_KEY option in PEER section missing in configuration\n"));
+    goto err_ret;
+  }
+  /* Remove sections for shared services */
+  for (cnt = 0; cnt < system->n_shared_services; cnt++)
+  {
+    ss = system->shared_services[cnt];
+    GNUNET_CONFIGURATION_remove_section (cfg, ss->sname);
+  }
+  if (GNUNET_OK != GNUNET_TESTING_configuration_create_ (system, cfg,
+                                                         &ports, &nports))
+  {
+    GNUNET_asprintf (&emsg_,
+                     _("Failed to create configuration for peer "
+                       "(not enough free ports?)\n"));
+    goto err_ret;
+  }
   GNUNET_assert (GNUNET_OK == 
                  GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER",
 							  "PRIVATE_KEY",
