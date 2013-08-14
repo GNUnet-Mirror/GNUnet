@@ -162,7 +162,7 @@ test_master (void *cls, unsigned int num_peers,
   state = STATE_PEER_STARTED;
   peers = peers_;
   cfg = GNUNET_CONFIGURATION_create ();
-  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_parse 
+  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_load
              (cfg, "test_testbed_api_testbed_run_topologyrandom.conf"), return);
   op = GNUNET_TESTBED_peer_update_configuration (peers[0], cfg);
   GNUNET_CONFIGURATION_destroy (cfg);
