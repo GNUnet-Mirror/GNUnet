@@ -132,26 +132,14 @@ struct GNUNET_TESTING_System
   unsigned int n_shared_services;
 
   /**
-   * Bitmap where each TCP port that has already been reserved for
-   * some GNUnet peer is recorded.  Note that we additionally need to
-   * test if a port is already in use by non-GNUnet components before
-   * assigning it to a peer/service.  If we detect that a port is
-   * already in use, we also mark it in this bitmap.  So all the bits
-   * that are zero merely indicate ports that MIGHT be available for
-   * peers.
+   * Bitmap where each port that has already been reserved for some GNUnet peer
+   * is recorded.  Note that we make no distinction between TCP and UDP ports
+   * and test if a port is already in use before assigning it to a peer/service.
+   * If we detect that a port is already in use, we also mark it in this bitmap.
+   * So all the bits that are zero merely indicate ports that MIGHT be available
+   * for peers.
    */
-  uint32_t reserved_tcp_ports[65536 / 32];
-
-  /**
-   * Bitmap where each UDP port that has already been reserved for
-   * some GNUnet peer is recorded.  Note that we additionally need to
-   * test if a port is already in use by non-GNUnet components before
-   * assigning it to a peer/service.  If we detect that a port is
-   * already in use, we also mark it in this bitmap.  So all the bits
-   * that are zero merely indicate ports that MIGHT be available for
-   * peers.
-   */
-  uint32_t reserved_udp_ports[65536 / 32];
+  uint32_t reserved_ports[65536 / 32];
 
   /**
    * Counter we use to make service home paths unique on this system;
@@ -568,12 +556,10 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * Reserve a TCP or UDP port for a peer.
  *
  * @param system system to use for reservation tracking
- * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
  * @return 0 if no free port was available
  */
 uint16_t 
-GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
-			     int is_tcp)
+GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
 {
   struct GNUNET_NETWORK_Handle *socket;
   struct addrinfo hint;
@@ -597,15 +583,14 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
 	 open in the respective address family
   */
   hint.ai_family = AF_UNSPEC;	/* IPv4 and IPv6 */
-  hint.ai_socktype = (GNUNET_YES == is_tcp)? SOCK_STREAM : SOCK_DGRAM;
+  hint.ai_socktype = 0;
   hint.ai_protocol = 0;
   hint.ai_addrlen = 0;
   hint.ai_addr = NULL;
   hint.ai_canonname = NULL;
   hint.ai_next = NULL;
   hint.ai_flags = AI_PASSIVE | AI_NUMERICSERV;	/* Wild card address */
-  port_buckets = (GNUNET_YES == is_tcp) ?
-    system->reserved_tcp_ports : system->reserved_udp_ports;
+  port_buckets = system->reserved_ports;
   for (index = (system->lowport / 32) + 1; index < (system->highport / 32); index++)
   {
     xor_image = (UINT32_MAX ^ port_buckets[index]);
@@ -629,10 +614,17 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
       bind_status = GNUNET_NO;
       for (ai = ret; NULL != ai; ai = ai->ai_next)
       {
-        socket = GNUNET_NETWORK_socket_create (ai->ai_family,
-                                               (GNUNET_YES == is_tcp) ?
-                                               SOCK_STREAM : SOCK_DGRAM,
-                                               0);
+        socket = GNUNET_NETWORK_socket_create (ai->ai_family, SOCK_STREAM, 0);
+        if (NULL == socket)
+          continue;
+        bind_status = GNUNET_NETWORK_socket_bind (socket,
+                                                  ai->ai_addr,
+                                                  ai->ai_addrlen,
+                                                  0);
+        GNUNET_NETWORK_socket_close (socket);
+        if (GNUNET_OK != bind_status)
+          break;
+        socket = GNUNET_NETWORK_socket_create (ai->ai_family, SOCK_DGRAM, 0);
         if (NULL == socket)
           continue;
         bind_status = GNUNET_NETWORK_socket_bind (socket,
@@ -663,20 +655,17 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system,
  * (used during GNUNET_TESTING_peer_destroy).
  *
  * @param system system to use for reservation tracking
- * @param is_tcp GNUNET_YES for TCP ports, GNUNET_NO for UDP
  * @param port reserved port to release
  */
 void
 GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
-			     int is_tcp,
 			     uint16_t port)
 {
   uint32_t *port_buckets;
   uint16_t bucket;
   uint16_t pos;
 
-  port_buckets = (GNUNET_YES == is_tcp) ?
-    system->reserved_tcp_ports : system->reserved_udp_ports;
+  port_buckets = system->reserved_ports;
   bucket = port / 32;
   pos = port % 32;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Releasing port %u\n", port);
@@ -819,8 +808,7 @@ update_config (void *cls, const char *section, const char *option,
          GNUNET_CONFIGURATION_get_value_yesno (uc->cfg, "testing",
                                                single_variable)))
     {
-      /* FIXME: What about UDP? */
-      new_port = GNUNET_TESTING_reserve_port (uc->system, GNUNET_YES);
+      new_port = GNUNET_TESTING_reserve_port (uc->system);
       if (0 == new_port)
       {
         uc->status = GNUNET_SYSERR;
@@ -998,7 +986,7 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
     (void) GNUNET_asprintf (&service_home, "%s/shared/%s/%u",
                             system->tmppath, ss->sname, ss->n_instances);
     (void) GNUNET_asprintf (&i->unix_sock, "%s/sock", service_home);
-    port = GNUNET_TESTING_reserve_port (system, GNUNET_YES);
+    port = GNUNET_TESTING_reserve_port (system);
     if (0 == port)
     {
       GNUNET_free (service_home);
@@ -1589,9 +1577,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
   if (NULL != peer->ports)
   {
     for (cnt = 0; cnt < peer->nports; cnt++)
-      GNUNET_TESTING_release_port (peer->system, 
-                                   GNUNET_YES,
-                                   peer->ports[cnt]);
+      GNUNET_TESTING_release_port (peer->system, peer->ports[cnt]);
     GNUNET_free (peer->ports);
   }
   GNUNET_free (peer);
