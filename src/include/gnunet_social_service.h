@@ -454,8 +454,7 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const struct GNUNET_ENV_Environment *env,
                             size_t data_size,
                             const void *data,
-                            struct GNUNET_SOCIAL_Slicer *slicer,
-);
+                            struct GNUNET_SOCIAL_Slicer *slicer);
 
 
 struct GNUNET_SOCIAL_WatchHandle;
