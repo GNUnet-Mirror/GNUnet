@@ -77,7 +77,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
   void *cls;
 
   /**
-   * Cache a block in the datastore. Overwrites (older) existing blocks
+   * Cache a block in the datastore. Overwrites existing blocks
    * for the same zone and label.
    *
    * @param cls closure (internal context for the plugin)

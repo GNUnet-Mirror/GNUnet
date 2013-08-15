@@ -23,13 +23,6 @@
  * @brief namestore for the GNUnet naming system
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * TODO:
- * - private records can currently not be used for resolving
- *   our own queries as our lookup only goes for the encrypted
- *   records; we need a way to ensure that the records available
- *   in our own zone can actually always be used for our own
- *   resolutions! (#2993)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -163,8 +156,8 @@ struct ZoneMonitor
    * Offset of the zone iteration used to address next result of the zone
    * iteration in the store
    *
-   * Initialy set to 0 in handle_iteration_start
-   * Incremented with by every call to handle_iteration_next
+   * Initialy set to 0.
+   * Incremented with by every call to #handle_iteration_next
    */
   uint32_t offset;
 
@@ -443,7 +436,7 @@ handle_lookup_block (void *cls,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
@@ -507,7 +500,7 @@ handle_block_cache (void *cls,
  * @param request_id request ID to use
  * @param zone_key zone key of the zone
  * @param name name
- * @param rd_count number of records
+ * @param rd_count number of records in @a rd
  * @param rd array of records
  */
 static void
@@ -555,7 +548,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE message
  *
  * @param cls unused
  * @param client client sending the message
@@ -649,10 +642,25 @@ handle_record_store (void *cls,
     res = GSN_database->store_records (GSN_database->cls,
 				       &rp_msg->private_key,
 				       conv_name,				       
-				       rd_count, rd);
+				       rd_count, rd);    
     if (GNUNET_OK == res)
     {
       struct ZoneMonitor *zm;
+      struct GNUNET_NAMESTORE_Block *block;
+
+      block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
+					     GNUNET_TIME_UNIT_FOREVER_ABS,
+					     conv_name,
+					     rd, rd_count);
+      if (GNUNET_OK !=
+	  GSN_database->cache_block (GSN_database->cls,
+				     block))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to cache encrypted block of my own zone!\n"));
+	res = GNUNET_SYSERR;
+      }
+      GNUNET_free (block);
       
       for (zm = monitor_head; NULL != zm; zm = zm->next)    
 	if (0 == memcmp (&rp_msg->private_key,
@@ -684,8 +692,8 @@ handle_record_store (void *cls,
 
 
 /**
- * Context for record remove operations passed from 'handle_zone_to_name' to
- * 'handle_zone_to_name_it' as closure
+ * Context for record remove operations passed from #handle_zone_to_name to
+ * #handle_zone_to_name_it as closure
  */
 struct ZoneToNameCtx
 {
@@ -700,7 +708,7 @@ struct ZoneToNameCtx
   uint32_t rid;
 
   /**
-   * Set to GNUNET_OK on success, GNUNET_SYSERR on error.  Note that
+   * Set to #GNUNET_OK on success, #GNUNET_SYSERR on error.  Note that
    * not finding a name for the zone still counts as a 'success' here,
    * as this field is about the success of executing the IPC protocol.
    */
@@ -714,7 +722,7 @@ struct ZoneToNameCtx
  * @param cls struct ZoneToNameCtx *
  * @param zone_key the zone key
  * @param name name
- * @param rd_count number of records
+ * @param rd_count number of records in @a rd
  * @param rd record data
  */
 static void
@@ -769,10 +777,10 @@ handle_zone_to_name_it (void *cls,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME message
  *
  * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
+ * @param client client sending the message
  * @param message message of type 'struct ZoneToNameMessage'
  */
 static void
@@ -858,10 +866,10 @@ struct ZoneIterationProcResult
 
   /**
    * Iteration result: iteration done?
-   * IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
+   * #IT_SUCCESS_MORE_AVAILABLE:  if there may be more results overall but
    * we got one for now and have sent it to the client
-   * IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
-   * IT_ALL_RECORDS_FILTERED: if all results were filtered so far.
+   * #IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE: if there are no further results,
+   * #IT_START: if we are still trying to find a result.
    */
   int res_iteration_finished;
 
@@ -964,7 +972,7 @@ run_zone_iteration_round (struct ZoneIteration *zi)
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
@@ -999,7 +1007,7 @@ handle_iteration_start (void *cls,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
@@ -1042,7 +1050,7 @@ handle_iteration_stop (void *cls,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_NEXT message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
@@ -1112,12 +1120,12 @@ monitor_next (void *cls,
 
 
 /**
- * A 'GNUNET_NAMESTORE_RecordIterator' for monitors.
+ * A #GNUNET_NAMESTORE_RecordIterator for monitors.
  *
  * @param cls a 'struct ZoneMonitor *' with information about the monitor
  * @param zone_key zone key of the zone
  * @param name name
- * @param rd_count number of records
+ * @param rd_count number of records in @a rd
  * @param rd array of records
  */
 static void

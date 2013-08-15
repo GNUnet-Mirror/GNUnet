@@ -272,7 +272,7 @@ GNUNET_NETWORK_STRUCT_END
  * @param h handle to the namestore
  * @param block block to store
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
@@ -293,7 +293,7 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
  * @param rd_count number of records in the 'rd' array
  * @param rd array of records with data to store
  * @param cont continuation to call when done
- * @param cont_cls closure for 'cont'
+ * @param cont_cls closure for @a cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *
@@ -339,7 +339,7 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
  * @param cls closure
  * @param zone private key of the zone
  * @param label label of the records
- * @param rd_count number of entries in 'rd' array
+ * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
@@ -414,7 +414,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
- * Calls the record processor specified in GNUNET_NAMESTORE_zone_iteration_start
+ * Calls the record processor specified in #GNUNET_NAMESTORE_zone_iteration_start
  * for the next record.
  *
  * @param it the iterator
@@ -452,10 +452,10 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
 
 
 /**
- * Begin monitoring a zone for changes.  Will first call the 'monitor' function
- * on all existing records in the selected zone(s), then calls 'sync_cb',
- * and then calls the 'monitor' whenever a record changes.  If the namestore
- * disconnects, the 'monitor' function is called with a disconnect event; if
+ * Begin monitoring a zone for changes.  Will first call the @a monitor function
+ * on all existing records in the selected zone(s), then calls @a sync_cb,
+ * and then calls the @a monitor whenever a record changes.  If the namestore
+ * disconnects, the @a monitor function is called with a disconnect event; if
  * the connection is re-established, the process begins from the start (all
  * existing records, sync, then updates).
  *
@@ -463,7 +463,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  * @param zone zone to monitor
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
- * @param cls closure for 'monitor' and 'sync_cb'
+ * @param cls closure for @a monitor' and @a sync_cb
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
@@ -489,11 +489,9 @@ GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
  * Calculate how many bytes we will need to serialize the given
  * records.
  *
- * @param rd_count number of records in the rd array
+ * @param rd_count number of records in the @a rd array
  * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
- *
  * @return the required size to serialize
- *
  */
 size_t
 GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
@@ -503,9 +501,9 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
 /**
  * Serialize the given records to the given destination buffer.
  *
- * @param rd_count number of records in the rd array
+ * @param rd_count number of records in the @a rd array
  * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
- * @param dest_size size of the destination array
+ * @param dest_size size of the destination array @a dst
  * @param dest where to write the result
  * @return the size of serialized records, -1 if records do not fit
  */
@@ -521,10 +519,9 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
  *
  * @param len size of the serialized record data
  * @param src the serialized record data
- * @param rd_count number of records in the rd array
+ * @param rd_count number of records in the @a dest array
  * @param dest where to put the data
- *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_NAMESTORE_records_deserialize (size_t len,
@@ -534,11 +531,12 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 
 
 /**
- * Convert the 'value' of a record to a string.
+ * Convert the binary value @a data of a record of 
+ * type @a type to a human-readable string.
  *
  * @param type type of the record
  * @param data value in binary encoding
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
 char *
@@ -548,14 +546,14 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 
 
 /**
- * Convert human-readable version of a 'value' of a record to the binary
- * representation.
+ * Convert human-readable version of the value @a s of a record
+ * of type @a type to the respective binary representation.
  *
  * @param type type of the record
  * @param s human-readable string
  * @param data set to value in binary encoding (will be allocated)
- * @param data_size set to number of bytes in data
- * @return GNUNET_OK on success
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_NAMESTORE_string_to_value (uint32_t type,
@@ -649,7 +647,7 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey 
  * @param expire block expiration
  * @param label the name for the records
  * @param rd record data
- * @param rd_count number of records
+ * @param rd_count number of records in @a rd
  */
 struct GNUNET_NAMESTORE_Block *
 GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
@@ -706,8 +704,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  * expiration time is the expiration time of the block with smallest
  * expiration time.
  *
- * @param rd_count number of records given in 'rd'
- * @param rd array of records
+ * @param rd_count number of records given in @a rd
+ * @param rd array of records 
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
