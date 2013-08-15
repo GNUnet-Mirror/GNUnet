@@ -55,66 +55,6 @@ struct GNUNET_MULTICAST_Member;
  */
 struct GNUNET_MULTICAST_Origin;
 
-/** 
- * Policy flags for the group.
- */
-enum GNUNET_MULTICAST_GroupFlags
-{
-  /**
-   * Admission must be confirmed by the origin.
-   */
-  GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL = 1 << 0,
-
-  /**
-   * Past messages are only available to peers who were a member at the time
-   * they were sent to the group.
-   */
-  GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY = 1 << 1,
-};
-
-/** 
- * Group membership policies.
- */
-enum GNUNET_MULTICAST_GroupPolicy
-{
-  /**
-   * Anyone can join the group, without announcing his presence;
-   * all messages are always public and can be distributed freely.
-   * Joins may be announced, but this is not required.
-   */
-  GNUNET_MULTICAST_GROUP_ANONYMOUS = 0,
-
-  /** 
-   * Origin must approve membership to the group, messages must only be
-   * distributed to current group members.  This includes the group
-   * state as well as transient messages.
-   */
-  GNUNET_MULTICAST_GROUP_PRIVATE
-    = GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL
-    | GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY,
-
-#if IDEAS_FOR_FUTURE
-  /** 
-   * Anyone can freely join the group (no approval required);
-   * however, messages must only be distributed to current group
-   * members, so the origin must still acknowledge that the member
-   * joined before transient messages are delivered.  As approval is
-   * guaranteed, the presistent group state can be synchronized freely
-   * immediately, prior to origin confirmation.
-   */
-  GNUNET_MULTICAST_GROUP_OPEN
-    = GNUNET_MULTICAST_GROUP_RESTRICTED_HISTORY,
-
-  /**
-   * Origin must approve membership to the group, but past messages can be
-   * freely distributed to members.
-   */
-  GNUNET_MULTICAST_GROUP_CLOSED
-    = GNUNET_MULTICAST_GROUP_ADMISSION_CONTROL,
-,
-#endif
-
-};
 
 enum GNUNET_MULTICAST_MessageFlags
 {
@@ -544,21 +484,17 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * Will advertise the origin in the P2P overlay network under the respective
  * public key so that other peer can find this peer to join it.  Peers that
  * issue GNUNET_MULTICAST_member_join() can then transmit a join request to
- * either an existing group member (if the @a policy is permissive) or to
- * the origin.  If the joining is approved, the member is cleared for @e replay
- * and will begin to receive messages transmitted to the group.  If joining is
- * disapproved, the failed candidate will be given a response.  Members in the
- * group can send messages to the origin (one at a time).
+ * either an existing group member or to the origin.  If the joining is
+ * approved, the member is cleared for @e replay and will begin to receive
+ * messages transmitted to the group.  If joining is disapproved, the failed
+ * candidate will be given a response.  Members in the group can send messages
+ * to the origin (one at a time).
  *
  * @param cfg Configuration to use.
  * @param priv_key ECC key that will be used to sign messages for this
  *        multicast session; public key is used to identify the multicast group;
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
- * @param policy Group policy specifying join and history restrictions.
- *        FIXME: needed? Ít would be enough to have this on the PSYC layer, as
- *        access control to enforce the policy is done by the membership test
- *        and join request callbacks of the API.
  * @param last_fragment_id Last fragment ID to continue counting fragments from
  *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
@@ -574,7 +510,6 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
-                               enum GNUNET_MULTICAST_GroupPolicy policy,
                                uint64_t last_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
                                GNUNET_MULITCAST_MembershipTestCallback test_cb,

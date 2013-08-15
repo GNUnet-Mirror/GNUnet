@@ -210,7 +210,7 @@ typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
 struct GNUNET_SOCIAL_Home *
 GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const char *home_keyfile,
-                          enum GNUNET_MULTICAST_GroupPolicy policy,
+                          enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_IDENTITY_Ego *ego,
                           struct GNUNET_SOCIAL_Slicer *slicer,
                           GNUNET_SOCIAL_AnswerDoorCallback listener_cb,

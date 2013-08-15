@@ -96,6 +96,68 @@ extern "C"
 #define GNUNET_PSYC_VERSION 0x00000000
 
 
+/** 
+ * Policy flags for a channel.
+ */
+enum GNUNET_PSYC_ChannelFlags
+{
+  /**
+   * Admission must be confirmed by the master.
+   */
+  GNUNET_PSYC_CHANNEL_ADMISSION_CONTROL = 1 << 0,
+
+  /**
+   * Past messages are only available to slaves who were admitted at the time
+   * they were sent to the channel.
+   */
+  GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY = 1 << 1,
+};
+
+/** 
+ * PSYC channel policies.
+ */
+enum GNUNET_PSYC_Policy
+{
+  /**
+   * Anyone can join the channel, without announcing his presence;
+   * all messages are always public and can be distributed freely.
+   * Joins may be announced, but this is not required.
+   */
+  GNUNET_PSYC_CHANNEL_ANONYMOUS = 0,
+
+  /** 
+   * The master must approve membership to the channel, messages must only be
+   * distributed to current channel slaves.  This includes the channel
+   * state as well as transient messages.
+   */
+  GNUNET_PSYC_CHANNEL_PRIVATE
+    = GNUNET_PSYC_CHANNEL_ADMISSION_CONTROL
+    | GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY,
+
+#if IDEAS_FOR_FUTURE
+  /** 
+   * Anyone can freely join the channel (no approval required);
+   * however, messages must only be distributed to current channel
+   * slaves, so the master must still acknowledge that the slave
+   * joined before transient messages are delivered.  As approval is
+   * guaranteed, the presistent channel state can be synchronized freely
+   * immediately, prior to master confirmation.
+   */
+  GNUNET_PSYC_CHANNEL_OPEN
+    = GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY,
+
+  /**
+   * The master must approve joins to the channel, but past messages can be
+   * freely distributed to slaves.
+   */
+  GNUNET_PSYC_CHANNEL_CLOSED
+    = GNUNET_PSYC_CHANNEL_ADMISSION_CONTROL,
+,
+#endif
+
+};
+
+
 enum GNUNET_PSYC_MessageFlags
 {
   /**
@@ -246,8 +308,8 @@ struct GNUNET_PSYC_Master;
  *        a file with the private key(s) when setting up their own channels
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
- * @param policy Group policy specifying join and history restrictions.
- *        Used to automate group management decisions.
+ * @param policy Channel policy specifying join and history restrictions.
+ *        Used to automate join decisions.
  * @param method Function to invoke on messages received from slaves.
  * @param join_cb Function to invoke when a peer wants to join.
  * @param cls Closure for @a method and @a join_cb.
@@ -256,7 +318,7 @@ struct GNUNET_PSYC_Master;
 struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EccPrivateKey *channel_key,
-                          enum GNUNET_MULTICAST_GroupPolicy policy,
+                          enum GNUNET_PSYC_Policy policy,
                           GNUNET_PSYC_Method method,
                           GNUNET_PSYC_JoinCallback join_cb,
                           void *cls);
