@@ -54,6 +54,11 @@ struct GNUNET_NETWORK_Handle
   int af;
 
   /**
+   * Type of the socket
+   */
+  int type;
+
+  /**
    * Number of bytes in addr.
    */
   socklen_t addrlen;
@@ -290,6 +295,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 			   int af, int type)
 {
   h->af = af;
+  h->type = type;
   if (h->fd == INVALID_SOCKET)
   {
 #ifdef MINGW
@@ -398,8 +404,9 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   {
     const int on = 1;
   
-    /* This is required, and required here, but only on UNIX */
-    if (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)))
+    /* This is required here for TCP sockets, but only on UNIX */
+    if ((SOCK_STREAM == desc->type) 
+        && (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on))))
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
 #endif
