@@ -362,12 +362,9 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   struct Request *request;
   struct GNUNET_DNSPARSER_Packet *packet;
   char *name;
-  char *dot;
-  char *nname;
   size_t name_len;
   int type;
   int use_gns;
-  struct GNUNET_CRYPTO_ShortHashCode zone;
 
   packet = GNUNET_DNSPARSER_parse (udp_msg, udp_msg_size);
   if (NULL == packet)
@@ -414,74 +411,60 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   name = GNUNET_strdup (packet->queries[0].name);
   name_len = strlen (name);
   use_gns = GNUNET_NO;
-  if ( (name_len > strlen (dns_suffix)) &&
+
+  
+  if ( (name_len > strlen (fcfs_suffix)) &&
+       (0 == strcasecmp (fcfs_suffix,
+			 &name[name_len - strlen (fcfs_suffix)])) )
+  {
+    /* replace ".fcfs.zkey.eu" with ".gnu" */
+    strcpy (&name[name_len - strlen (fcfs_suffix)],
+	    ".gnu");
+    use_gns = GNUNET_YES;
+  } else if ( (name_len > strlen (dns_suffix)) &&
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
-    {
-      /* Test if '.zkey' was requested */
-      name[name_len - strlen (dns_suffix)] = '\0';
-      dot = strrchr (name, (int) '.');
-      /* FIXME: #2985 */
-      if ( (NULL != dot) &&
-	   (GNUNET_OK ==
-	    GNUNET_CRYPTO_short_hash_from_string (dot + 1, &zone)) )
-      {
-	/* valid '.zkey' name */
-	GNUNET_asprintf (&nname, 
-			 "%s.%s", 
-			 name, 
-			 GNUNET_GNS_TLD_ZKEY);
-	GNUNET_free (name);
-	name = nname;
-      }
-      else
-      {	
-	/* try '.gnu' name */
-	GNUNET_asprintf (&nname, 
-			 "%s.%s", 
-			 name, 
-			 GNUNET_GNS_TLD);
-	GNUNET_free (name);
-	name = nname;
-      }
-      name_len = strlen (name);
-    }
-  if ( (name_len >= strlen ((GNUNET_GNS_TLD))) &&
-       (0 == strcasecmp (GNUNET_GNS_TLD,
-                         &name[name_len - strlen (GNUNET_GNS_TLD)])) )
+  {
+    /* replace ".fcfs.zkey.eu" with ".zkey" */
+    strcpy (&name[name_len - strlen (dns_suffix)],
+	    ".zkey");
     use_gns = GNUNET_YES;
-
-  if ( (name_len > strlen (GNUNET_GNS_TLD_ZKEY)) &&
-       (0 == strcasecmp (GNUNET_GNS_TLD_ZKEY,
-                         &name[name_len - strlen (GNUNET_GNS_TLD_ZKEY)])) )
+  } else if ( (name_len > strlen (".gnu")) &&
+       (0 == strcasecmp (".gnu",
+			 &name[name_len - strlen (".gnu")])) )
+  {
+    /* name is in GNS */
     use_gns = GNUNET_YES;
-
+  }
   if (GNUNET_YES == use_gns)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		   "Calling GNS\n");
-      type = packet->queries[0].type;
-      request->lookup = GNUNET_GNS_lookup (gns,
-					   name,
-					   &my_zone,
-					   type,
-					   GNUNET_NO,
-					   NULL /* no shorten */,
-					   &result_processor,
-					   request);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Calling GNS on `%s'\n",
+		name);
+    type = packet->queries[0].type;
+    request->lookup = GNUNET_GNS_lookup (gns,
+					 name,
+					 &my_zone,
+					 type,
+					 GNUNET_NO,
+					 NULL /* no shorten */,
+					 &result_processor,
+					 request);
+  }
   else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		   "Calling DNS at %s\n", dns_ip);
-      GNUNET_DNSPARSER_free_packet (request->packet);
-      request->packet = NULL;
-      request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
-                                                     udp_msg,
-                                                     udp_msg_size,
-                                                     &dns_result_processor,
-                                                     request);
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Using DNS resolver IP `%s' to resolve `%s'\n", 
+		dns_ip,
+		name);
+    GNUNET_DNSPARSER_free_packet (request->packet);
+    request->packet = NULL;
+    request->dns_lookup = GNUNET_DNSSTUB_resolve2 (dns_stub,
+						   udp_msg,
+						   udp_msg_size,
+						   &dns_result_processor,
+						   request);
+  }
   GNUNET_free (name);
 }
 
