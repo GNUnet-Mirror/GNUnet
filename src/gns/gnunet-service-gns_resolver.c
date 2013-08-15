@@ -3360,7 +3360,7 @@ GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
 
   cfg = c;
   namestore_handle = nh;
-  dht_handle = dh;
+  dht_handle = dht;
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
