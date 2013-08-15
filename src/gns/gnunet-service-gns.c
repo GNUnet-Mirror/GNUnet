@@ -22,6 +22,10 @@
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - perform conversion of relative expiration times to absolute time
+ *   when going to DHT!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
