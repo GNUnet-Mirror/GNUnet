@@ -294,12 +294,17 @@ GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
  * Advertise @a home under @a name in the GADS zone of the @e ego.
  *
  * @param home The home to advertise.
- * @param name The name to put in the zone.
+ * @param name The name for the PLACE record to put in the zone.
+ * @param peer_count Number of elements in the @a peers array.
+ * @param peers List of peers in the PLACE record that can be used to send join
+ *        requests to.
  * @param expiration_time Expiration time of the record, use 0 to remove the record.
  */
 void
 GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
                               const char *name,
+                              size_t peer_count,
+                              const struct GNUNET_PeerIdentity *peers,
                               GNUNET_TIME_Relative expiration_time);
 
 
