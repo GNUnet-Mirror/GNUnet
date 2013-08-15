@@ -299,13 +299,15 @@ GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
  * @param peers List of peers in the PLACE record that can be used to send join
  *        requests to.
  * @param expiration_time Expiration time of the record, use 0 to remove the record.
+ * @param password Password used to encrypt the record.
  */
 void
 GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
                               const char *name,
                               size_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
-                              GNUNET_TIME_Relative expiration_time);
+                              GNUNET_TIME_Relative expiration_time,
+                              const char *password);
 
 
 /**

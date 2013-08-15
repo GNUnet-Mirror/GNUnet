@@ -518,6 +518,14 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                GNUNET_MULTICAST_MessageCallback message_cb,
                                void *cls);
 
+/**
+ * Function called to provide data for a transmission from the origin to all members.
+ */
+typedef int
+(*GNUNET_MULTICAST_OriginTransmitNotify)(void *cls,
+                                         size_t *data_size,
+                                         void *data);
+
 
 /** 
  * Handle for a request to send a message to all multicast group members
@@ -544,7 +552,7 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 uint64_t message_id,
                                 uint64_t group_generation,
                                 size_t size,
-                                GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                GNUNET_MULTICAST_OriginTransmitNotify notify,
                                 void *notify_cls);
 
 
@@ -684,6 +692,15 @@ void
 GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
 
 
+/**
+ * Function called to provide data for a transmission from a member to the origin.
+ */
+typedef int
+(*GNUNET_MULTICAST_MemberTransmitNotify)(void *cls,
+                                         size_t *data_size,
+                                         void *data);
+
+
 /** 
  * Handle for a message to be delivered from a member to the origin.
  */
@@ -704,7 +721,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
                                    uint64_t message_id,
                                    size_t size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                   GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls);
 
 

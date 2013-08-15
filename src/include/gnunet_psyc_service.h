@@ -343,10 +343,10 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int
-(*GNUNET_PSYC_MasterReadyNotify)(void *cls,
-                                 uint64_t message_id,
-                                 size_t *data_size,
-                                 void *data);
+(*GNUNET_PSYC_MasterTransmitNotify)(void *cls,
+                                    uint64_t message_id,
+                                    size_t *data_size,
+                                    void *data);
 
 
 
@@ -396,7 +396,7 @@ struct GNUNET_PSYC_MasterTransmitHandle *
 GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
-                             GNUNET_PSYC_MasterReadyNotify notify,
+                             GNUNET_PSYC_MasterTransmitNotify notify,
                              void *notify_cls,
                              enum GNUNET_PSYC_TransmitFlags flags);
 
@@ -499,9 +499,9 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
  *         #GNUNET_YES if this completes the transmission (all data supplied).
  */
 typedef int
-(*GNUNET_PSYC_SlaveReadyNotify) (void *cls,
-                                 size_t *data_size,
-                                 char *data);
+(*GNUNET_PSYC_SlaveTransmitNotify) (void *cls,
+                                    size_t *data_size,
+                                    char *data);
 
 
 /**
@@ -530,7 +530,7 @@ struct GNUNET_PSYC_SlaveTransmitHandle *
 GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
                             const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
-                            GNUNET_PSYC_SlaveReadyNotify notify,
+                            GNUNET_PSYC_SlaveTransmitNotify notify,
                             void *notify_cls,
                             enum GNUNET_PSYC_SlaveTransmitFlags flags);
 
