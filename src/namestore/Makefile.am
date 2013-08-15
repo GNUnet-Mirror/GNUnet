@@ -118,7 +118,7 @@ gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
   $(GN_LIBINTL)
 gnunet_namestore_fcfsd_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
+  libgnunetnamestore.la
 
 
 
