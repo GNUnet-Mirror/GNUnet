@@ -101,3 +101,13 @@ test_testing_sharedservices_LDADD = \
 
 EXTRA_DIST = \
   test_testing_defaults.conf
+
+
+noinst_PROGRAMS = \
+  bindfail bindok
+
+bindok_SOURCES = bindok.c
+
+bindfail_SOURCES = bindfail.c
+bindfail_LDADD = $(top_builddir)/src/util/libgnunetutil.la
+
