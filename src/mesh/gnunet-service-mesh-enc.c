@@ -525,6 +525,16 @@ struct MeshChannel
      * Only present (non-NULL) at the destination of a tunnel.
      */
   struct MeshChannelReliability *bck_rel;
+
+    /**
+     * Is the root prevented from sending more data? (We "owe" him an ACK).
+     */
+  int blocked_fwd;
+
+    /**
+     * Is the dest prevented from sending more data? (We "owe" him an ACK).
+     */
+  int blocked_bck;
 };
 
 
@@ -760,11 +770,6 @@ struct MeshClient
      * ID of the client, mainly for debug messages
      */
   unsigned int id;
-
-    /**
-     * Is this client prevented from sending more data? (We "owe" him an ACK).
-     */
-  int blocked;
 };
 
 
@@ -1470,6 +1475,10 @@ send_local_ack (struct MeshChannel *ch,
 {
   struct GNUNET_MESH_LocalAck msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "send local %s ack on %s:%X towards %p\n",
+              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid, c);
+
   if (NULL == c
       || ( fwd && (0 == ch->lid_root || c != ch->root))
       || (!fwd && (0 == ch->lid_dest || c != ch->dest)) )
@@ -1484,7 +1493,10 @@ send_local_ack (struct MeshChannel *ch,
                                               c->handle,
                                               &msg.header,
                                               GNUNET_NO);
-  c->blocked = GNUNET_NO;
+  if (fwd)
+    ch->blocked_fwd = GNUNET_NO;
+  else
+    ch->blocked_bck = GNUNET_NO;
 }
 
 
@@ -1637,22 +1649,46 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   memcpy (data, message, size);
   type = ntohs (message->type);
 
-  if (GNUNET_MESSAGE_TYPE_MESH_FWD == type ||
-      GNUNET_MESSAGE_TYPE_MESH_BCK == type)
+  switch (type)
   {
-    struct GNUNET_MESH_Encrypted *msg;
+    struct GNUNET_MESH_Encrypted *emsg;
+    struct GNUNET_MESH_ACK       *amsg;
+    struct GNUNET_MESH_Poll      *pmsg;
     uint32_t ttl;
 
-    msg = (struct GNUNET_MESH_Encrypted *) data;
-    ttl = ntohl (msg->ttl);
-    if (0 == ttl)
-    {
-      GNUNET_break_op (0);
-      return;
-    }
-    msg->ttl = htonl (ttl - 1);
-    msg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (msg->pid));
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      emsg = (struct GNUNET_MESH_Encrypted *) data;
+      ttl = ntohl (emsg->ttl);
+      if (0 == ttl)
+      {
+        GNUNET_break_op (0);
+        return;
+      }
+      emsg->tid = c->t->id;
+      emsg->cid = htonl (c->id);
+      emsg->ttl = htonl (ttl - 1);
+      emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      amsg = (struct GNUNET_MESH_ACK *) data;
+      amsg->tid = c->t->id;
+      amsg->cid = htonl (c->id);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      pmsg = (struct GNUNET_MESH_Poll *) data;
+      pmsg->tid = c->t->id;
+      pmsg->cid = htonl (c->id);
+      pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      break;
+
+    default:
+      GNUNET_break (0);
   }
 
   queue_add (data,
@@ -2631,7 +2667,6 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
-  msg.pid = htonl (fc->last_pid_sent);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
   send_prebuilt_message_connection (&msg.header, c, NULL, fc == &c->fwd_fc);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
@@ -3487,7 +3522,7 @@ channel_retransmit_message (void *cls,
 
 
 /**
- * Send an ACK to a client is needed.
+ * Send an ACK to a client if needed.
  *
  * @param ch Channel this is regarding.
  * @param fwd Is this about fwd traffic? (ACk goes the opposite direction).
@@ -3496,12 +3531,24 @@ static void
 channel_send_client_ack (struct MeshChannel *ch, int fwd)
 {
   struct MeshClient *c;
+  int blocked;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Channel send client %s ack on %s:%X\n",
+              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid);
+
+  /* Check for buffer space */
+  if (0 >= tunnel_get_buffer (ch->t, fwd))
+    return;
 
   /* Client to receive the ACK (fwd indicates traffic to be ACK'd) */
   c = fwd ? ch->root : ch->dest;
 
-  if (GNUNET_YES == c->blocked)
+  blocked = fwd ? ch->blocked_fwd : ch->blocked_bck;
+  if (GNUNET_YES == blocked)
     send_local_ack (ch, c, fwd);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client not blocked\n");
 }
 
 
@@ -3523,7 +3570,7 @@ channel_send_connection_ack (struct MeshChannel *ch, uint32_t buffer, int fwd)
   unsigned int cs;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Channel send %s ack on %s:%X\n",
+              "Channel send connection %s ack on %s:%X\n",
               fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid);
 
   /* Count connections, how many messages are already allowed */
@@ -3773,6 +3820,20 @@ tunnel_new (const struct GNUNET_HashCode *tid)
     tunnel_destroy (t);
     return NULL;
   }
+
+//   char salt[] = "salt";
+//   GNUNET_CRYPTO_kdf (&t->e_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      salt, sizeof (salt),
+//                      &t->e_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
+//                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
+//                      NULL);
+//   GNUNET_CRYPTO_kdf (&t->d_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      salt, sizeof (salt),
+//                      &t->d_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
+//                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
+//                      NULL);
 
   return t;
 }
@@ -4042,6 +4103,8 @@ channel_new (struct MeshTunnel2 *t,
   ch->root = owner;
   ch->lid_root = lid_root;
   ch->t = t;
+  ch->blocked_fwd = GNUNET_YES;
+  ch->blocked_bck = GNUNET_YES;
 
   GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, ch);
 
@@ -4427,9 +4490,6 @@ queue_send (void *cls, size_t size, void *buf)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "*   raw: %s\n",
                   GNUNET_MESH_DEBUG_M2S (queue->type));
-      /* Fall through */
-    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
-    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
       data_size = send_core_data_raw (queue->cls, size, buf);
       msg = (struct GNUNET_MessageHeader *) buf;
       type = ntohs (msg->type);
@@ -4447,6 +4507,13 @@ queue_send (void *cls, size_t size, void *buf)
         data_size = send_core_connection_ack (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
+      break;
+    case GNUNET_MESSAGE_TYPE_MESH_UNICAST:
+    case GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+      /* This should be encapsulted */
+      GNUNET_break (0);
       break;
     default:
       GNUNET_break (0);
@@ -6072,7 +6139,6 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
-  c->blocked = GNUNET_YES;
 
   msg = (struct GNUNET_MESH_LocalData *) message;
 
@@ -6109,6 +6175,11 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  if (fwd)
+    ch->blocked_fwd = GNUNET_YES;
+  else
+    ch->blocked_bck = GNUNET_YES;
 
   /* Ok, everything is correct, send the message
    * (pretend we got it from a mesh peer)
