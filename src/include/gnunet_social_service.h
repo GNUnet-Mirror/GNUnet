@@ -46,11 +46,6 @@ extern "C"
  */
 #define GNUNET_SOCIAL_VERSION 0x00000000
 
-/** 
- * Handle for our own presence in the network (we can of course have
- * alter-egos).
- */
-struct GNUNET_SOCIAL_Ego;
 
 /** 
  * Handle for another user (who is likely pseudonymous) in the network.
@@ -153,29 +148,6 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
 
 
 /** 
- * Create an ego using the given private key.
- *
- * The identity service is used to manage egos, the
- * GNUNET_IDENTITY_ego_get_key() function returns an ego's private key that can
- * be passed into this function.
- *
- * @param key Private key for the ego, NULL for ephemeral egos.
- * @return Handle to the ego, NULL on error.
- */
-struct GNUNET_SOCIAL_Ego *
-GNUNET_SOCIAL_ego_create (const struct GNUNET_CRYPTO_EccPrivateKey *key);
-
-
-/** 
- * Destroy a handle to an ego.
- *
- * @param ego Ego to destroy.
- */
-void
-GNUNET_SOCIAL_ego_destroy (struct GNUNET_SOCIAL_Ego *ego);
-
-
-/** 
  * Function called asking for nym to be admitted to the place.
  *
  * Should call either GNUNET_SOCIAL_home_admit() or
@@ -239,7 +211,7 @@ struct GNUNET_SOCIAL_Home *
 GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const char *home_keyfile,
                           enum GNUNET_MULTICAST_GroupPolicy policy,
-                          struct GNUNET_SOCIAL_Ego *ego,
+                          struct GNUNET_IDENTITY_Ego *ego,
                           struct GNUNET_SOCIAL_Slicer *slicer,
                           GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
@@ -437,7 +409,7 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  */
 struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           struct GNUNET_SOCIAL_Ego *ego,
+                           struct GNUNET_IDENTITY_Ego *ego,
                            char *address,
                            const struct GNUNET_ENV_Environment *env,
                            size_t data_size,
@@ -459,7 +431,7 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           struct GNUNET_SOCIAL_Ego *ego,
+                           struct GNUNET_IDENTITY_Ego *ego,
                            struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
                            struct GNUNET_PeerIdentity *peer,
                            struct GNUNET_SOCIAL_Slicer *slicer,
