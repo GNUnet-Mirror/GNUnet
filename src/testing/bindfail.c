@@ -7,10 +7,12 @@ int main()
   struct GNUNET_NETWORK_Handle *sock1;
   struct GNUNET_NETWORK_Handle *sock2;
   struct sockaddr_in addr;
+  int proto;
 
+  proto = SOCK_STREAM;
   (void) memset (&addr, 0, sizeof (struct sockaddr_in));
-  sock1 = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
-  sock2 = GNUNET_NETWORK_socket_create (AF_INET, SOCK_DGRAM, 0);
+  sock1 = GNUNET_NETWORK_socket_create (AF_INET, proto, 0);
+  sock2 = GNUNET_NETWORK_socket_create (AF_INET, proto, 0);
   
   addr.sin_port = htons (port);
   addr.sin_addr.s_addr = INADDR_ANY;
