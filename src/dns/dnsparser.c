@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+      (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -39,8 +39,8 @@
  * This can fail if the ASCII-conversion becomes longer than 63 characters.
  *
  * @param label label to check (UTF-8 string)
- * @return GNUNET_OK if the label can be converted to IDNA,
- *         GNUNET_SYSERR if the label is not valid for DNS names
+ * @return #GNUNET_OK if the label can be converted to IDNA,
+ *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
 GNUNET_DNSPARSER_check_label (const char *label)
@@ -51,7 +51,7 @@ GNUNET_DNSPARSER_check_label (const char *label)
   if (NULL != strchr (label, '.'))
     return GNUNET_SYSERR; /* not a label! Did you mean GNUNET_DNSPARSER_check_name? */
   if (IDNA_SUCCESS != 
-      idna_to_ascii_8z (label, &output, IDNA_USE_STD3_ASCII_RULES))
+      idna_to_ascii_8z (label, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen (output);
 #if WINDOWS
@@ -68,8 +68,8 @@ GNUNET_DNSPARSER_check_label (const char *label)
  * This can fail if the ASCII-conversion becomes longer than 253 characters.
  *
  * @param name name to check (UTF-8 string)
- * @return GNUNET_OK if the label can be converted to IDNA,
- *         GNUNET_SYSERR if the label is not valid for DNS names
+ * @return #GNUNET_OK if the label can be converted to IDNA,
+ *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
 GNUNET_DNSPARSER_check_name (const char *name)
@@ -89,7 +89,7 @@ GNUNET_DNSPARSER_check_name (const char *name)
     }
   GNUNET_free (ldup);
   if (IDNA_SUCCESS != 
-      idna_to_ascii_8z (name, &output, IDNA_USE_STD3_ASCII_RULES))
+      idna_to_ascii_8z (name, &output, IDNA_ALLOW_UNASSIGNED))
     return GNUNET_SYSERR;
   slen = strlen (output);
 #if WINDOWS
@@ -105,7 +105,7 @@ GNUNET_DNSPARSER_check_name (const char *name)
  * Parse name inside of a DNS query or record.
  *
  * @param udp_payload entire UDP payload
- * @param udp_payload_length length of udp_payload
+ * @param udp_payload_length length of @a udp_payload
  * @param off pointer to the offset of the name to parse in the udp_payload (to be
  *                    incremented by the size of the name)
  * @param depth current depth of our recursion (to prevent stack overflow)
@@ -146,7 +146,7 @@ parse_name (const char *udp_payload,
 		       (int) len,
 		       &udp_payload[*off + 1]);
       if (IDNA_SUCCESS !=
-	  (rc = idna_to_unicode_8z8z (tmp, &utf8, IDNA_USE_STD3_ASCII_RULES)))
+	  (rc = idna_to_unicode_8z8z (tmp, &utf8, IDNA_ALLOW_UNASSIGNED)))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Failed to convert DNS IDNA name `%s' to UTF-8: %s\n"),
@@ -222,11 +222,11 @@ parse_name (const char *udp_payload,
  * Parse a DNS query entry.
  *
  * @param udp_payload entire UDP payload
- * @param udp_payload_length length of udp_payload
+ * @param udp_payload_length length of @a udp_payload
  * @param off pointer to the offset of the query to parse in the udp_payload (to be
  *                    incremented by the size of the query)
  * @param q where to write the query information
- * @return GNUNET_OK on success, GNUNET_SYSERR if the query is malformed
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the query is malformed
  */
 static int
 parse_query (const char *udp_payload,
@@ -257,11 +257,11 @@ parse_query (const char *udp_payload,
  * Parse a DNS record entry.
  *
  * @param udp_payload entire UDP payload
- * @param udp_payload_length length of udp_payload
+ * @param udp_payload_length length of @a udp_payload
  * @param off pointer to the offset of the record to parse in the udp_payload (to be
  *                    incremented by the size of the record)
  * @param r where to write the record information
- * @return GNUNET_OK on success, GNUNET_SYSERR if the record is malformed
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the record is malformed
  */
 static int
 parse_record (const char *udp_payload,
@@ -406,7 +406,7 @@ parse_record (const char *udp_payload,
  * processing and manipulation.
  *
  * @param udp_payload wire-format of the DNS packet
- * @param udp_payload_length number of bytes in udp_payload 
+ * @param udp_payload_length number of bytes in @a udp_payload 
  * @return NULL on error, otherwise the parsed packet
  */
 struct GNUNET_DNSPARSER_Packet *
@@ -423,7 +423,7 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
     return NULL;
   dns = (const struct GNUNET_TUN_DnsHeader *) udp_payload;
   off = sizeof (struct GNUNET_TUN_DnsHeader);
-  p = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_Packet));
+  p = GNUNET_new (struct GNUNET_DNSPARSER_Packet);
   p->flags = dns->flags;
   p->id = dns->id;
   n = ntohs (dns->query_count);
@@ -594,13 +594,13 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
  * Add a DNS name to the UDP packet at the given location.
  *
  * @param dst where to write the name
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the name (increment by bytes used)
  *            must not be changed if there is an error
  * @param name name to write
- * @return GNUNET_SYSERR if 'name' is invalid
- *         GNUNET_NO if 'name' did not fit
- *         GNUNET_OK if 'name' was added to 'dst'
+ * @return #GNUNET_SYSERR if @a name is invalid
+ *         #GNUNET_NO if @a name did not fit
+ *         #GNUNET_OK if @a name was added to 'dst'
  */
 static int
 add_name (char *dst,
@@ -620,7 +620,7 @@ add_name (char *dst,
     return GNUNET_SYSERR;
 
   if (IDNA_SUCCESS != 
-      (rc = idna_to_ascii_8z (name, &idna_start, IDNA_USE_STD3_ASCII_RULES)))
+      (rc = idna_to_ascii_8z (name, &idna_start, IDNA_ALLOW_UNASSIGNED)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
@@ -674,9 +674,9 @@ add_name (char *dst,
  * @param off pointer to offset where to write the query (increment by bytes used)
  *            must not be changed if there is an error
  * @param query query to write
- * @return GNUNET_SYSERR if 'query' is invalid
- *         GNUNET_NO if 'query' did not fit
- *         GNUNET_OK if 'query' was added to 'dst'
+ * @return #GNUNET_SYSERR if 'query' is invalid
+ *         #GNUNET_NO if 'query' did not fit
+ *         #GNUNET_OK if 'query' was added to @a dst
  */
 static int
 add_query (char *dst,
@@ -706,9 +706,9 @@ add_query (char *dst,
  * @param off pointer to offset where to write the mx information (increment by bytes used);
  *            can also change if there was an error
  * @param mx mx information to write
- * @return GNUNET_SYSERR if 'mx' is invalid
- *         GNUNET_NO if 'mx' did not fit
- *         GNUNET_OK if 'mx' was added to 'dst'
+ * @return #GNUNET_SYSERR if @a mx is invalid
+ *         #GNUNET_NO if @a mx did not fit
+ *         #GNUNET_OK if @a mx was added to @a dst
  */
 static int
 add_mx (char *dst,
@@ -735,9 +735,9 @@ add_mx (char *dst,
  * @param off pointer to offset where to write the SOA information (increment by bytes used)
  *            can also change if there was an error
  * @param soa SOA information to write
- * @return GNUNET_SYSERR if 'soa' is invalid
- *         GNUNET_NO if 'soa' did not fit
- *         GNUNET_OK if 'soa' was added to 'dst'
+ * @return #GNUNET_SYSERR if @a soa is invalid
+ *         #GNUNET_NO if @a soa did not fit
+ *         #GNUNET_OK if @a soa was added to 'dst'
  */
 static int
 add_soa (char *dst,
@@ -778,9 +778,9 @@ add_soa (char *dst,
  * @param off pointer to offset where to write the SRV information (increment by bytes used)
  *            can also change if there was an error
  * @param srv SRV information to write
- * @return GNUNET_SYSERR if 'srv' is invalid
- *         GNUNET_NO if 'srv' did not fit
- *         GNUNET_OK if 'srv' was added to 'dst'
+ * @return #GNUNET_SYSERR if @a srv is invalid
+ *         #GNUNET_NO if @a srv did not fit
+ *         #GNUNET_OK if @a srv was added to 'dst'
  */
 static int
 add_srv (char *dst,
@@ -815,9 +815,9 @@ add_srv (char *dst,
  * @param off pointer to offset where to write the query (increment by bytes used)
  *            must not be changed if there is an error
  * @param record record to write
- * @return GNUNET_SYSERR if 'record' is invalid
- *         GNUNET_NO if 'record' did not fit
- *         GNUNET_OK if 'record' was added to 'dst'
+ * @return #GNUNET_SYSERR if 'record' is invalid
+ *         #GNUNET_NO if 'record' did not fit
+ *         #GNUNET_OK if 'record' was added to @a dst
  */
 static int
 add_record (char *dst,
@@ -908,10 +908,10 @@ add_record (char *dst,
  * @param p packet to pack
  * @param max maximum allowed size for the resulting UDP payload
  * @param buf set to a buffer with the packed message
- * @param buf_length set to the length of buf
- * @return GNUNET_SYSERR if 'p' is invalid
- *         GNUNET_NO if 'p' was truncated (but there is still a result in 'buf')
- *         GNUNET_OK if 'p' was packed completely into '*buf'
+ * @param buf_length set to the length of @a buf
+ * @return #GNUNET_SYSERR if @a p is invalid
+ *         #GNUNET_NO if @a p was truncated (but there is still a result in @a buf)
+ *         #GNUNET_OK if @a p was packed completely into @a buf
  */
 int
 GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
