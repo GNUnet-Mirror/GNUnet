@@ -39,9 +39,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_dnsparser_lib.h"
-#include "gns_protocol.h"
 #include "gnunet_gns_service.h"
-#include "gns_common.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet_vpn_service.h"
@@ -1168,7 +1166,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   struct RecordLookupHandle *rlh = rh->proc_cls;
   struct GNUNET_DNSPARSER_Query query;
   struct GNUNET_DNSPARSER_Packet packet;
-  struct GNUNET_DNSPARSER_Flags flags;
+  struct GNUNET_TUN_DnsFlags flags;
   struct in_addr dnsip;
   struct sockaddr_in addr;
   struct sockaddr *sa;
@@ -1242,7 +1240,7 @@ resolve_record_dns (struct ResolverHandle *rh,
   }
   query.name = rh->dns_name;
   query.type = rlh->record_type;
-  query.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+  query.class = GNUNET_TUN_DNS_CLASS_INTERNET;
   memset (&flags, 0, sizeof (flags));
   flags.recursion_desired = 1;
   flags.checking_disabled = 1;
@@ -1293,7 +1291,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
 {
   struct RecordLookupHandle *rlh = rh->proc_cls;
   struct GNUNET_HashCode serv_desc;
-  struct vpn_data* vpn;
+  struct GNUNET_TUN_GnsVpnRecord* vpn;
   int af;
   
   /* We cancel here as to not include the ns lookup in the timeout */
@@ -1313,7 +1311,7 @@ resolve_record_vpn (struct ResolverHandle *rh,
                    rh->priv_key);
   }
 
-  vpn = (struct vpn_data*)rd->data;
+  vpn = (struct GNUNET_TUN_GnsVpnRecord*)rd->data;
   GNUNET_CRYPTO_hash ((char*)&vpn[1],
                       strlen ((char*)&vpn[1]) + 1,
                       &serv_desc);
@@ -1788,10 +1786,10 @@ finish_lookup (struct ResolverHandle *rh,
   char new_mx_data[MAX_MX_LENGTH];
   char new_soa_data[MAX_SOA_LENGTH];
   char new_srv_data[MAX_SRV_LENGTH];
-  struct srv_data *old_srv;
-  struct srv_data *new_srv;
-  struct soa_data *old_soa;
-  struct soa_data *new_soa;
+  struct GNUNET_TUN_DnsSrvRecord *old_srv;
+  struct GNUNET_TUN_DnsSrvRecord *new_srv;
+  struct GNUNET_TUN_DnsSoaRecord *old_soa;
+  struct GNUNET_TUN_DnsSoaRecord *new_soa;
   struct GNUNET_NAMESTORE_RecordData p_rd[rd_count];
   char* repl_string;
   char* pos;
@@ -1853,8 +1851,8 @@ finish_lookup (struct ResolverHandle *rh,
       /*
        * Prio, weight and port
        */
-      new_srv = (struct srv_data*)new_srv_data;
-      old_srv = (struct srv_data*)rd[i].data;
+      new_srv = (struct GNUNET_TUN_DnsSrvRecord*)new_srv_data;
+      old_srv = (struct GNUNET_TUN_DnsSrvRecord*)rd[i].data;
       new_srv->prio = old_srv->prio;
       new_srv->weight = old_srv->weight;
       new_srv->port = old_srv->port;
@@ -1862,14 +1860,14 @@ finish_lookup (struct ResolverHandle *rh,
       expand_plus((char*)&new_srv[1], (char*)&old_srv[1],
                   repl_string);
       p_rd[i].data = new_srv_data;
-      p_rd[i].data_size = sizeof (struct srv_data) + strlen ((char*)&new_srv[1]) + 1;
+      p_rd[i].data_size = sizeof (struct GNUNET_TUN_DnsSrvRecord) + strlen ((char*)&new_srv[1]) + 1;
     }
     else if (GNUNET_DNSPARSER_TYPE_SOA == rd[i].record_type)
     {
       /* expand mname and rname */
-      old_soa = (struct soa_data*)rd[i].data;
-      new_soa = (struct soa_data*)new_soa_data;
-      memcpy (new_soa, old_soa, sizeof (struct soa_data));
+      old_soa = (struct GNUNET_TUN_DnsSoaRecord*)rd[i].data;
+      new_soa = (struct GNUNET_TUN_DnsSoaRecord*)new_soa_data;
+      memcpy (new_soa, old_soa, sizeof (struct GNUNET_TUN_DnsSoaRecord));
       // FIXME: how do we know that 'new_soa[1]' has enough space for the new name?
       expand_plus((char*)&new_soa[1], (char*)&old_soa[1], repl_string);
       offset = strlen ((char*)&new_soa[1]) + 1;
@@ -1877,7 +1875,7 @@ finish_lookup (struct ResolverHandle *rh,
       expand_plus((char*)&new_soa[1] + offset,
                   (char*)&old_soa[1] + strlen ((char*)&old_soa[1]) + 1,
                   repl_string);
-      p_rd[i].data_size = sizeof (struct soa_data)
+      p_rd[i].data_size = sizeof (struct GNUNET_TUN_DnsSoaRecord)
                           + offset
                           + strlen ((char*)&new_soa[1] + offset);
       p_rd[i].data = new_soa_data;
@@ -2889,13 +2887,13 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
   query = GNUNET_new (struct GNUNET_DNSPARSER_Query);
   query->name = GNUNET_strdup (ac->label);
   query->type = rh->record_type;
-  query->class = GNUNET_DNSPARSER_CLASS_INTERNET;
+  query->class = GNUNET_TUN_DNS_CLASS_INTERNET;
   p = GNUNET_new (struct GNUNET_DNSPARSER_Packet);
   p->queries = query;
   p->num_queries = 1;
   p->id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
 					       UINT16_MAX);
-  p->flags.opcode = GNUNET_DNSPARSER_OPCODE_QUERY;
+  p->flags.opcode = GNUNET_TUN_DNS_OPCODE_QUERY;
   p->flags.recursion_desired = 1;
   if (GNUNET_OK != 
       GNUNET_DNSPARSER_pack (p, 1024, &dns_request, &dns_request_length))

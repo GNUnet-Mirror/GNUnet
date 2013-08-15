@@ -835,7 +835,7 @@ handle_client_response (void *cls GNUNET_UNUSED,
       /* if query changed to answer, move past DNS resolution phase... */
       if ( (RP_QUERY == rr->phase) &&
 	   (rr->payload_length > sizeof (struct GNUNET_TUN_DnsHeader)) &&
-	   ((struct GNUNET_DNSPARSER_Flags*)&(((struct GNUNET_TUN_DnsHeader*) rr->payload)->flags))->query_or_response == 1)
+	   ((struct GNUNET_TUN_DnsFlags*)&(((struct GNUNET_TUN_DnsHeader*) rr->payload)->flags))->query_or_response == 1)
       {
 	rr->phase = RP_INTERNET_DNS;
 	GNUNET_array_grow (rr->client_wait_list,

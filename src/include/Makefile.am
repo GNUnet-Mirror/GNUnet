@@ -18,7 +18,6 @@ EXTRA_DIST = \
 
 gnunetinclude_HEADERS = \
   platform.h plibc.h $(WINPROC) gettext.h \
-  gns_protocol.h \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \

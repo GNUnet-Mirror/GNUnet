@@ -189,7 +189,7 @@ do_check (void *cls,
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   struct GNUNET_CRYPTO_EccSignature *sig;
   char* alice_keyfile;
-  struct srv_data *srv_data;
+  struct GNUNET_TUN_DnsSrvRecord *srv_data;
   struct GNUNET_TIME_Absolute et;
 
   cfg = ccfg;
@@ -222,7 +222,7 @@ do_check (void *cls,
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;
   struct in_addr *sipserver = GNUNET_malloc (sizeof (struct in_addr));
-  srv_data = GNUNET_malloc (sizeof (struct srv_data) + strlen (TEST_SRV_NAME) + 1);
+  srv_data = GNUNET_malloc (sizeof (struct GNUNET_TUN_DnsSrvRecord) + strlen (TEST_SRV_NAME) + 1);
   uint16_t srv_weight = 60;
   uint16_t srv_prio = 50;
   uint16_t srv_port = 5060;
@@ -263,7 +263,7 @@ do_check (void *cls,
                                NULL);
   GNUNET_free (sig);
   
-  rd.data_size = sizeof (struct srv_data)+strlen(TEST_SRV_NAME)+1;
+  rd.data_size = sizeof (struct GNUNET_TUN_DnsSrvRecord)+strlen(TEST_SRV_NAME)+1;
   srv_data->port = srv_port;
   srv_data->prio = srv_prio;
   srv_data->weight = srv_weight;

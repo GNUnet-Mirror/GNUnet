@@ -281,14 +281,14 @@ result_processor (void *cls,
   request->lookup = NULL;
   packet = request->packet;
   packet->flags.query_or_response = 1;
-  packet->flags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR;
+  packet->flags.return_code = GNUNET_TUN_DNS_RETURN_CODE_NO_ERROR;
   packet->flags.checking_disabled = 0;
   packet->flags.authenticated_data = 1;
   packet->flags.zero = 0;
   packet->flags.recursion_available = 1;
   packet->flags.message_truncated = 0;
   packet->flags.authoritative_answer = 0;
-  //packet->flags.opcode = GNUNET_DNSPARSER_OPCODE_STATUS; // ???
+  //packet->flags.opcode = GNUNET_TUN_DNS_OPCODE_STATUS; // ???
   for (i=0;i<rd_count;i++)
     {
       rec.expiration_time.abs_value_us = rd[i].expiration_time;
@@ -297,7 +297,7 @@ result_processor (void *cls,
 	case GNUNET_DNSPARSER_TYPE_A:
 	  GNUNET_assert (sizeof (struct in_addr) == rd[i].data_size);
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
-	  rec.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_A;
 	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in_addr));
 	  memcpy (rec.data.raw.data,
@@ -312,7 +312,7 @@ result_processor (void *cls,
 	  GNUNET_assert (sizeof (struct in6_addr) == rd[i].data_size);
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
 	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in6_addr));
-	  rec.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_AAAA;
 	  memcpy (rec.data.raw.data,
 		  rd[i].data,
@@ -325,7 +325,7 @@ result_processor (void *cls,
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
 	  rec.data.hostname = strdup (rd[i].data);
-	  rec.class = GNUNET_DNSPARSER_CLASS_INTERNET;
+	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_CNAME;
 	  memcpy (rec.data.hostname,
 		  rd[i].data,

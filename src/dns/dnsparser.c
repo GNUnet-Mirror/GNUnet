@@ -31,7 +31,7 @@
 #endif
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
-#include "dnsparser.h"
+#include "gnunet_tun_lib.h"
 
 
 /**
@@ -235,7 +235,7 @@ parse_query (const char *udp_payload,
 	     struct GNUNET_DNSPARSER_Query *q)
 {
   char *name;
-  struct query_line ql;
+  struct GNUNET_TUN_DnsQueryLine ql;
 
   name = parse_name (udp_payload, 
 		     udp_payload_length,
@@ -243,7 +243,7 @@ parse_query (const char *udp_payload,
   if (NULL == name)
     return GNUNET_SYSERR;
   q->name = name;
-  if (*off + sizeof (struct query_line) > udp_payload_length)
+  if (*off + sizeof (struct GNUNET_TUN_DnsQueryLine) > udp_payload_length)
     return GNUNET_SYSERR;
   memcpy (&ql, &udp_payload[*off], sizeof (ql));
   *off += sizeof (ql);
@@ -270,12 +270,12 @@ parse_record (const char *udp_payload,
 	      struct GNUNET_DNSPARSER_Record *r)
 {
   char *name;
-  struct record_line rl;
+  struct GNUNET_TUN_DnsRecordLine rl;
   size_t old_off;
-  struct soa_data soa;
+  struct GNUNET_TUN_DnsSoaRecord soa;
   uint16_t mxpref;
   uint16_t data_len;
-  struct srv_data srv;
+  struct GNUNET_TUN_DnsSrvRecord srv;
   char *ndup;
   char *tok;
 
@@ -285,7 +285,7 @@ parse_record (const char *udp_payload,
   if (NULL == name)
     return GNUNET_SYSERR;
   r->name = name;
-  if (*off + sizeof (struct record_line) > udp_payload_length)
+  if (*off + sizeof (struct GNUNET_TUN_DnsRecordLine) > udp_payload_length)
     return GNUNET_SYSERR;
   memcpy (&rl, &udp_payload[*off], sizeof (rl));
   (*off) += sizeof (rl);
@@ -320,15 +320,15 @@ parse_record (const char *udp_payload,
 				     off, 0);
     if ( (NULL == r->data.soa->mname) ||
 	 (NULL == r->data.soa->rname) ||
-	 (*off + sizeof (struct soa_data) > udp_payload_length) )
+	 (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length) )
       return GNUNET_SYSERR;
-    memcpy (&soa, &udp_payload[*off], sizeof (struct soa_data));
+    memcpy (&soa, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsSoaRecord));
     r->data.soa->serial = ntohl (soa.serial);
     r->data.soa->refresh = ntohl (soa.refresh);
     r->data.soa->retry = ntohl (soa.retry);
     r->data.soa->expire = ntohl (soa.expire);
     r->data.soa->minimum_ttl = ntohl (soa.minimum);
-    (*off) += sizeof (struct soa_data);
+    (*off) += sizeof (struct GNUNET_TUN_DnsSoaRecord);
     if (old_off + data_len != *off) 
       return GNUNET_SYSERR;
     return GNUNET_OK;
@@ -352,10 +352,10 @@ parse_record (const char *udp_payload,
     if (NULL == strstr (r->name, "._"))
       return GNUNET_SYSERR; /* necessary string from "._$PROTO" not present */
     old_off = *off;
-    if (*off + sizeof (struct srv_data) > udp_payload_length)
+    if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > udp_payload_length)
       return GNUNET_SYSERR;
-    memcpy (&srv, &udp_payload[*off], sizeof (struct srv_data));    
-    (*off) += sizeof (struct srv_data);
+    memcpy (&srv, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsSrvRecord));    
+    (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
     r->data.srv = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SrvRecord));
     r->data.srv->priority = ntohs (srv.prio);
     r->data.srv->weight = ntohs (srv.weight);
@@ -685,9 +685,9 @@ add_query (char *dst,
 	   const struct GNUNET_DNSPARSER_Query *query)
 {
   int ret;
-  struct query_line ql;
+  struct GNUNET_TUN_DnsQueryLine ql;
 
-  ret = add_name (dst, dst_len - sizeof (struct query_line), off, query->name);
+  ret = add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsQueryLine), off, query->name);
   if (ret != GNUNET_OK)
     return ret;
   ql.type = htons (query->type);
@@ -745,7 +745,7 @@ add_soa (char *dst,
 	 size_t *off,
 	 const struct GNUNET_DNSPARSER_SoaRecord *soa)
 {
-  struct soa_data sd;
+  struct GNUNET_TUN_DnsSoaRecord sd;
   int ret;
 
   if ( (GNUNET_OK != (ret = add_name (dst,
@@ -757,7 +757,7 @@ add_soa (char *dst,
 				      off,
 				      soa->rname)) ) )
     return ret;
-  if (*off + sizeof (struct soa_data) > dst_len)
+  if (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > dst_len)
     return GNUNET_NO;
   sd.serial = htonl (soa->serial);
   sd.refresh = htonl (soa->refresh);
@@ -788,10 +788,10 @@ add_srv (char *dst,
 	 size_t *off,
 	 const struct GNUNET_DNSPARSER_SrvRecord *srv)
 {
-  struct srv_data sd;
+  struct GNUNET_TUN_DnsSrvRecord sd;
   int ret;
 
-  if (*off + sizeof (struct srv_data) > dst_len)
+  if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > dst_len)
     return GNUNET_NO;
   sd.prio = htons (srv->priority);
   sd.weight = htons (srv->weight);
@@ -828,7 +828,7 @@ add_record (char *dst,
   int ret;
   size_t start;
   size_t pos;
-  struct record_line rl;
+  struct GNUNET_TUN_DnsRecordLine rl;
   char *name;
   
   start = *off;
@@ -842,14 +842,14 @@ add_record (char *dst,
 		     record->data.srv->service,
 		     record->data.srv->proto,
 		     record->data.srv->domain_name);
-  ret = add_name (dst, dst_len - sizeof (struct record_line), off, name);
+  ret = add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsRecordLine), off, name);
   if (name != record->name)
     GNUNET_free (name);
   if (GNUNET_OK != ret)
     return ret;
   /* '*off' is now the position where we will need to write the record line */
 
-  pos = *off + sizeof (struct record_line);
+  pos = *off + sizeof (struct GNUNET_TUN_DnsRecordLine);
   switch (record->type)
   { 
   case GNUNET_DNSPARSER_TYPE_MX:
@@ -883,7 +883,7 @@ add_record (char *dst,
     return GNUNET_NO;
   }
 
-  if (pos - (*off + sizeof (struct record_line)) > UINT16_MAX)
+  if (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine)) > UINT16_MAX)
   {
     /* record data too long */
     *off = start;
@@ -892,8 +892,8 @@ add_record (char *dst,
   rl.type = htons (record->type);
   rl.class = htons (record->class);
   rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL); /* in seconds */
-  rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct record_line))));
-  memcpy (&dst[*off], &rl, sizeof (struct record_line));
+  rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine))));
+  memcpy (&dst[*off], &rl, sizeof (struct GNUNET_TUN_DnsRecordLine));
   *off = pos;
   return GNUNET_OK;  
 }

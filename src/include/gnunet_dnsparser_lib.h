@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+      (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -28,6 +28,7 @@
 #define GNUNET_DNSPARSER_LIB_H
 
 #include "gnunet_common.h"
+#include "gnunet_tun_lib.h"
 
 /**
  * Maximum length of a label in DNS.
@@ -54,150 +55,6 @@
 #define GNUNET_DNSPARSER_TYPE_SRV 33
 #define GNUNET_DNSPARSER_TYPE_TLSA 52
 
-/**
- * A few common DNS classes (ok, only one is common, but I list a
- * couple more to make it clear what we're talking about here).
- */
-#define GNUNET_DNSPARSER_CLASS_INTERNET 1
-#define GNUNET_DNSPARSER_CLASS_CHAOS 3
-#define GNUNET_DNSPARSER_CLASS_HESIOD 4
-
-#define GNUNET_DNSPARSER_OPCODE_QUERY 0
-#define GNUNET_DNSPARSER_OPCODE_INVERSE_QUERY 1
-#define GNUNET_DNSPARSER_OPCODE_STATUS 2
-
-/**
- * RFC 1035 codes.
- */
-#define GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR 0
-#define GNUNET_DNSPARSER_RETURN_CODE_FORMAT_ERROR 1
-#define GNUNET_DNSPARSER_RETURN_CODE_SERVER_FAILURE 2
-#define GNUNET_DNSPARSER_RETURN_CODE_NAME_ERROR 3
-#define GNUNET_DNSPARSER_RETURN_CODE_NOT_IMPLEMENTED 4
-#define GNUNET_DNSPARSER_RETURN_CODE_REFUSED 5
-
-/**
- * RFC 2136 codes
- */
-#define GNUNET_DNSPARSER_RETURN_CODE_YXDOMAIN 6
-#define GNUNET_DNSPARSER_RETURN_CODE_YXRRSET 7
-#define GNUNET_DNSPARSER_RETURN_CODE_NXRRSET 8
-#define GNUNET_DNSPARSER_RETURN_CODE_NOT_AUTH 9
-#define GNUNET_DNSPARSER_RETURN_CODE_NOT_ZONE 10
-
-/**
- * DNS flags (largely RFC 1035 / RFC 2136).
- */
-struct GNUNET_DNSPARSER_Flags
-{
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-  /**
-   * Set to 1 if recursion is desired (client -> server)
-   */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
-  
-  /**
-   * Set to 1 if message is truncated
-   */
-  unsigned int message_truncated    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Set to 1 if this is an authoritative answer
-   */
-  unsigned int authoritative_answer : 1 GNUNET_PACKED;
-  
-  /**
-   * See GNUNET_DNSPARSER_OPCODE_ defines.
-   */
-  unsigned int opcode               : 4 GNUNET_PACKED;  
-  
-  /**
-   * query:0, response:1
-   */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;  
-  
-  /**
-   * See GNUNET_DNSPARSER_RETURN_CODE_ defines.
-   */
-  unsigned int return_code          : 4 GNUNET_PACKED; 
-  
-  /**
-   * See RFC 4035.
-   */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Response has been cryptographically verified, RFC 4035.
-   */
-  unsigned int authenticated_data   : 1 GNUNET_PACKED;
-  
-  /**
-   * Always zero.
-   */
-  unsigned int zero                 : 1 GNUNET_PACKED;
-  
-  /**
-   * Set to 1 if recursion is available (server -> client)
-   */
-  unsigned int recursion_available  : 1 GNUNET_PACKED; 
-#elif __BYTE_ORDER == __BIG_ENDIAN
-  
-  /**
-   * query:0, response:1
-   */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;  
-  
-  /**
-   * See GNUNET_DNSPARSER_OPCODE_ defines.
-   */
-  unsigned int opcode               : 4 GNUNET_PACKED;  
-  
-  /**
-   * Set to 1 if this is an authoritative answer
-   */
-  unsigned int authoritative_answer : 1 GNUNET_PACKED;
-  
-  /**
-   * Set to 1 if message is truncated
-   */
-  unsigned int message_truncated    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Set to 1 if recursion is desired (client -> server)
-   */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
-
- 
-  /**
-   * Set to 1 if recursion is available (server -> client)
-   */
-  unsigned int recursion_available  : 1 GNUNET_PACKED;
-  
-  /**
-   * Always zero.
-   */
-  unsigned int zero                 : 1 GNUNET_PACKED;
-  
-  /**
-   * Response has been cryptographically verified, RFC 4035.
-   */
-  unsigned int authenticated_data   : 1 GNUNET_PACKED;
-  
-  /**
-   * See RFC 4035.
-   */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
-  
-  /**
-   * See GNUNET_DNSPARSER_RETURN_CODE_ defines.
-   */  
-  unsigned int return_code          : 4 GNUNET_PACKED; 
-#else
-  #error byteorder undefined
-#endif
-  
-} GNUNET_GCC_STRUCT_LAYOUT;
-
 
 /**
  * A DNS query.
@@ -220,7 +77,7 @@ struct GNUNET_DNSPARSER_Query
   uint16_t type;
 
   /**
-   * See GNUNET_DNSPARSER_CLASS_*.
+   * See GNUNET_TUN_DNS_CLASS_*.
    */
   uint16_t class;
 
@@ -459,7 +316,7 @@ struct GNUNET_DNSPARSER_Record
   uint16_t type;
 
   /**
-   * See GNUNET_DNSPARSER_CLASS_*.
+   * See GNUNET_TUN_DNS_CLASS_*.
    */
   uint16_t class;
 
@@ -514,7 +371,7 @@ struct GNUNET_DNSPARSER_Packet
   /**
    * Bitfield of DNS flags.
    */ 
-  struct GNUNET_DNSPARSER_Flags flags;
+  struct GNUNET_TUN_DnsFlags flags;
 
   /**
    * DNS ID (to match replies to requests).

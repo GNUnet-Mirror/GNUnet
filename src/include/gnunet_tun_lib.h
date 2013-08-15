@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010, 2011, 2012 Christian Grothoff
+     (C) 2010-2013 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -183,7 +183,14 @@ struct GNUNET_TUN_IPv6Header
  */
 struct GNUNET_TUN_TcpHeader
 {
+  /**
+   * Source port (in NBO).
+   */
   uint16_t source_port GNUNET_PACKED;
+
+  /**
+   * Destination port (in NBO).
+   */
   uint16_t destination_port GNUNET_PACKED;
 
   /**
@@ -244,11 +251,175 @@ struct GNUNET_TUN_TcpHeader
  */
 struct GNUNET_TUN_UdpHeader
 {
+  /**
+   * Source port (in NBO).
+   */
   uint16_t source_port GNUNET_PACKED;
+
+  /**
+   * Destination port (in NBO).
+   */
   uint16_t destination_port GNUNET_PACKED;
+
+  /**
+   * Number of bytes of payload.
+   */
   uint16_t len GNUNET_PACKED;
+
+  /**
+   * Checksum.
+   */
   uint16_t crc GNUNET_PACKED;
 };
+
+
+
+/**
+ * A few common DNS classes (ok, only one is common, but I list a
+ * couple more to make it clear what we're talking about here).
+ */
+#define GNUNET_TUN_DNS_CLASS_INTERNET 1
+#define GNUNET_TUN_DNS_CLASS_CHAOS 3
+#define GNUNET_TUN_DNS_CLASS_HESIOD 4
+
+#define GNUNET_TUN_DNS_OPCODE_QUERY 0
+#define GNUNET_TUN_DNS_OPCODE_INVERSE_QUERY 1
+#define GNUNET_TUN_DNS_OPCODE_STATUS 2
+
+
+/**
+ * RFC 1035 codes.
+ */
+#define GNUNET_TUN_DNS_RETURN_CODE_NO_ERROR 0
+#define GNUNET_TUN_DNS_RETURN_CODE_FORMAT_ERROR 1
+#define GNUNET_TUN_DNS_RETURN_CODE_SERVER_FAILURE 2
+#define GNUNET_TUN_DNS_RETURN_CODE_NAME_ERROR 3
+#define GNUNET_TUN_DNS_RETURN_CODE_NOT_IMPLEMENTED 4
+#define GNUNET_TUN_DNS_RETURN_CODE_REFUSED 5
+
+/**
+ * RFC 2136 codes
+ */
+#define GNUNET_TUN_DNS_RETURN_CODE_YXDOMAIN 6
+#define GNUNET_TUN_DNS_RETURN_CODE_YXRRSET 7
+#define GNUNET_TUN_DNS_RETURN_CODE_NXRRSET 8
+#define GNUNET_TUN_DNS_RETURN_CODE_NOT_AUTH 9
+#define GNUNET_TUN_DNS_RETURN_CODE_NOT_ZONE 10
+
+
+/**
+ * DNS flags (largely RFC 1035 / RFC 2136).
+ */
+struct GNUNET_TUN_DnsFlags
+{
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  /**
+   * Set to 1 if recursion is desired (client -> server)
+   */
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
+  
+  /**
+   * Set to 1 if message is truncated
+   */
+  unsigned int message_truncated    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Set to 1 if this is an authoritative answer
+   */
+  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+  
+  /**
+   * See GNUNET_TUN_DNS_OPCODE_ defines.
+   */
+  unsigned int opcode               : 4 GNUNET_PACKED;  
+  
+  /**
+   * query:0, response:1
+   */
+  unsigned int query_or_response    : 1 GNUNET_PACKED;  
+  
+  /**
+   * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
+   */
+  unsigned int return_code          : 4 GNUNET_PACKED; 
+  
+  /**
+   * See RFC 4035.
+   */
+  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Response has been cryptographically verified, RFC 4035.
+   */
+  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  
+  /**
+   * Always zero.
+   */
+  unsigned int zero                 : 1 GNUNET_PACKED;
+  
+  /**
+   * Set to 1 if recursion is available (server -> client)
+   */
+  unsigned int recursion_available  : 1 GNUNET_PACKED; 
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  
+  /**
+   * query:0, response:1
+   */
+  unsigned int query_or_response    : 1 GNUNET_PACKED;  
+  
+  /**
+   * See GNUNET_TUN_DNS_OPCODE_ defines.
+   */
+  unsigned int opcode               : 4 GNUNET_PACKED;  
+  
+  /**
+   * Set to 1 if this is an authoritative answer
+   */
+  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+  
+  /**
+   * Set to 1 if message is truncated
+   */
+  unsigned int message_truncated    : 1 GNUNET_PACKED; 
+  
+  /**
+   * Set to 1 if recursion is desired (client -> server)
+   */
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
+
+ 
+  /**
+   * Set to 1 if recursion is available (server -> client)
+   */
+  unsigned int recursion_available  : 1 GNUNET_PACKED;
+  
+  /**
+   * Always zero.
+   */
+  unsigned int zero                 : 1 GNUNET_PACKED;
+  
+  /**
+   * Response has been cryptographically verified, RFC 4035.
+   */
+  unsigned int authenticated_data   : 1 GNUNET_PACKED;
+  
+  /**
+   * See RFC 4035.
+   */
+  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
+  
+  /**
+   * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
+   */  
+  unsigned int return_code          : 4 GNUNET_PACKED; 
+#else
+  #error byteorder undefined
+#endif
+  
+} GNUNET_GCC_STRUCT_LAYOUT;
+
 
 
 /**
@@ -256,13 +427,210 @@ struct GNUNET_TUN_UdpHeader
  */
 struct GNUNET_TUN_DnsHeader
 {
+  /**
+   * Unique identifier for the request/response.
+   */
   uint16_t id GNUNET_PACKED;
-  uint16_t flags GNUNET_PACKED;
-  uint16_t qdcount GNUNET_PACKED;
-  uint16_t ancount GNUNET_PACKED;
-  uint16_t nscount GNUNET_PACKED;
-  uint16_t arcount GNUNET_PACKED;
+
+  /**
+   * Flags.
+   */
+  struct GNUNET_TUN_DnsFlags flags;
+
+  /**
+   * Number of queries.
+   */
+  uint16_t query_count GNUNET_PACKED;
+
+  /**
+   * Number of answers.
+   */
+  uint16_t answer_rcount GNUNET_PACKED;
+
+  /**
+   * Number of authoritative answers.
+   */
+  uint16_t authority_rcount GNUNET_PACKED;
+
+  /**
+   * Number of additional records.
+   */
+  uint16_t additional_rcount GNUNET_PACKED;
 };
+
+
+/**
+ * Payload of DNS SOA record (header).
+ */
+struct GNUNET_TUN_DnsSoaRecord
+{
+  /**
+   * The version number of the original copy of the zone.   (NBO)
+   */
+  uint32_t serial GNUNET_PACKED;
+  
+  /**
+   * Time interval before the zone should be refreshed. (NBO)
+   */
+  uint32_t refresh GNUNET_PACKED;
+  
+  /**
+   * Time interval that should elapse before a failed refresh should
+   * be retried. (NBO)
+   */
+  uint32_t retry GNUNET_PACKED;
+ 
+  /**
+   * Time value that specifies the upper limit on the time interval
+   * that can elapse before the zone is no longer authoritative. (NBO)
+   */
+  uint32_t expire GNUNET_PACKED;
+
+  /**
+   * The bit minimum TTL field that should be exported with any RR
+   * from this zone. (NBO)
+   */
+  uint32_t minimum GNUNET_PACKED;
+};
+
+
+/**
+ * Payload of DNS SRV record (header).
+ */
+struct GNUNET_TUN_DnsSrvRecord
+{
+
+  /**
+   * Preference for this entry (lower value is higher preference).  Clients
+   * will contact hosts from the lowest-priority group first and fall back
+   * to higher priorities if the low-priority entries are unavailable. (NBO)
+   */
+  uint16_t prio GNUNET_PACKED;
+
+  /**
+   * Relative weight for records with the same priority.  Clients will use
+   * the hosts of the same (lowest) priority with a probability proportional
+   * to the weight given. (NBO)
+   */
+  uint16_t weight GNUNET_PACKED;
+
+  /**
+   * TCP or UDP port of the service. (NBO)
+   */
+  uint16_t port GNUNET_PACKED;
+
+  /* followed by 'target' name */
+};
+
+
+/**
+ * Payload of DNSSEC TLSA record.
+ * http://datatracker.ietf.org/doc/draft-ietf-dane-protocol/
+ */
+struct GNUNET_TUN_DnsTlsaRecord
+{
+
+  /**
+   * Certificate usage
+   * 0: CA cert
+   * 1: Entity cert
+   * 2: Trust anchor
+   * 3: domain-issued cert
+   */
+  uint8_t usage;
+
+  /**
+   * Selector
+   * What part will be matched against the cert
+   * presented by server
+   * 0: Full cert (in binary)
+   * 1: Full cert (in DER)
+   */
+  uint8_t selector;
+
+  /**
+   * Matching type (of selected content)
+   * 0: exact match
+   * 1: SHA-256 hash
+   * 2: SHA-512 hash
+   */
+  uint8_t matching_type;
+
+  /**
+   * followed by certificate association data
+   * The "certificate association data" to be matched.
+   * These bytes are either raw data (that is, the full certificate or
+   * its SubjectPublicKeyInfo, depending on the selector) for matching
+   * type 0, or the hash of the raw data for matching types 1 and 2.
+   * The data refers to the certificate in the association, not to the
+   * TLS ASN.1 Certificate object.
+   *
+   * The data is represented as a string of hex chars
+   */
+};
+
+
+/**
+ * Payload of GNS VPN record
+ */
+struct GNUNET_TUN_GnsVpnRecord
+{
+  /**
+   * The peer to contact
+   */
+  struct GNUNET_HashCode peer;
+
+  /**
+   * The protocol to use
+   */
+  uint16_t proto;
+
+  /* followed by the servicename */
+};
+
+/**
+ * DNS query prefix.
+ */
+struct GNUNET_TUN_DnsQueryLine
+{
+  /**
+   * Desired type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
+   */
+  uint16_t type GNUNET_PACKED;
+
+  /**
+   * Desired class (usually GNUNET_TUN_DNS_CLASS_INTERNET). (NBO)
+   */
+  uint16_t class GNUNET_PACKED;
+};
+
+
+/**
+ * General DNS record prefix.
+ */
+struct GNUNET_TUN_DnsRecordLine
+{
+  /**
+   * Record type (GNUNET_DNSPARSER_TYPE_XXX). (NBO)
+   */
+  uint16_t type GNUNET_PACKED;
+
+  /**
+   * Record class (usually GNUNET_TUN_DNS_CLASS_INTERNET). (NBO)
+   */
+  uint16_t class GNUNET_PACKED;
+
+  /**
+   * Expiration for the record (in seconds). (NBO)
+   */
+  uint32_t ttl GNUNET_PACKED;
+
+  /**
+   * Number of bytes of data that follow. (NBO)
+   */
+  uint16_t data_len GNUNET_PACKED;
+};
+
 
 #define	GNUNET_TUN_ICMPTYPE_ECHO_REPLY 0
 #define	GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE 3
@@ -364,7 +732,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
  * @param ip ipv4 header fully initialized
  * @param tcp TCP header (initialized except for CRC)
  * @param payload the TCP payload
- * @param payload_length number of bytes of TCP payload
+ * @param payload_length number of bytes of TCP @a payload
  */
 void
 GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
@@ -392,7 +760,7 @@ GNUNET_TUN_calculate_tcp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  * @param ip ipv4 header fully initialized
  * @param udp UDP header (initialized except for CRC)
  * @param payload the UDP payload
- * @param payload_length number of bytes of UDP payload
+ * @param payload_length number of bytes of UDP @a payload
  */
 void
 GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
@@ -430,11 +798,11 @@ GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
 
 
 /**
- * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
+ * Create a regex in @a rxstr from the given @a ip and @a netmask.
  *
  * @param ip IPv4 representation.
  * @param netmask netmask for the ip.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
+ * @param rxstr generated regex, must be at least #GNUNET_REGEX_IPV4_REGEXLEN
  *              bytes long.
  */
 void
@@ -443,11 +811,11 @@ GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
 
 
 /**
- * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
+ * Create a regex in @a rxstr from the given @a ipv6 and @a prefixlen.
  *
  * @param ipv6 IPv6 representation.
  * @param prefixlen length of the ipv6 prefix.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
+ * @param rxstr generated regex, must be at least #GNUNET_REGEX_IPV6_REGEXLEN
  *              bytes long.
  */
 void
@@ -459,7 +827,7 @@ GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv6 address strings as returned by 'GNUNET_TUN_ipv6toregexsearch'.
+ * IPv6 address strings as returned by #GNUNET_TUN_ipv6toregexsearch.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
@@ -472,7 +840,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy);
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
+ * IPv4 address strings as returned by #GNUNET_TUN_ipv4toregexsearch.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error

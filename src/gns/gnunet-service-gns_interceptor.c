@@ -148,7 +148,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	}
 	GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
 	answer_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
-	answer_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET;
+	answer_records[i].class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }
       else
       {
@@ -176,16 +176,16 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	}
 	GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
 	additional_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
-	additional_records[i].class = GNUNET_DNSPARSER_CLASS_INTERNET; 
+	additional_records[i].class = GNUNET_TUN_DNS_CLASS_INTERNET; 
       }
     }
     packet->num_answers = num_answers;
     packet->num_additional_records = rd_count - num_answers;
     packet->flags.authoritative_answer = 1;
     if (NULL == rd)
-      packet->flags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NAME_ERROR;
+      packet->flags.return_code = GNUNET_TUN_DNS_RETURN_CODE_NAME_ERROR;
     else
-      packet->flags.return_code = GNUNET_DNSPARSER_RETURN_CODE_NO_ERROR;
+      packet->flags.return_code = GNUNET_TUN_DNS_RETURN_CODE_NO_ERROR;
     packet->flags.query_or_response = 1;
     ret = GNUNET_DNSPARSER_pack (packet,
 				 1024, /* maximum allowed size for DNS reply */

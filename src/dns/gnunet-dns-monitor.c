@@ -94,9 +94,9 @@ get_class (uint16_t class)
   static char buf[6];
   switch (class)
   {
-  case GNUNET_DNSPARSER_CLASS_INTERNET: return "IN";
-  case GNUNET_DNSPARSER_CLASS_CHAOS: return "CHAOS";
-  case GNUNET_DNSPARSER_CLASS_HESIOD: return "HESIOD";
+  case GNUNET_TUN_DNS_CLASS_INTERNET: return "IN";
+  case GNUNET_TUN_DNS_CLASS_CHAOS: return "CHAOS";
+  case GNUNET_TUN_DNS_CLASS_HESIOD: return "HESIOD";
   }
   GNUNET_snprintf (buf, sizeof (buf), "%u", (unsigned int) class);
   return buf;

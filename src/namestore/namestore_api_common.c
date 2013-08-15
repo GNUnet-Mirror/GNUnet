@@ -25,7 +25,6 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -33,7 +32,7 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
-#include "gns_protocol.h"
+#include "gnunet_tun_lib.h"
 #include "namestore.h"
 
 
@@ -508,10 +507,10 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 				  size_t data_size)
 {
   uint16_t mx_pref;
-  const struct soa_data *soa;
-  const struct vpn_data *vpn;
-  const struct srv_data *srv;
-  const struct tlsa_data *tlsa;
+  const struct GNUNET_TUN_DnsSoaRecord *soa;
+  const struct GNUNET_TUN_GnsVpnRecord *vpn;
+  const struct GNUNET_TUN_DnsSrvRecord *srv;
+  const struct GNUNET_TUN_DnsTlsaRecord *tlsa;
   struct GNUNET_CRYPTO_HashAsciiEncoded s_peer;
   const char *cdata;
   char* vpn_str;
@@ -537,16 +536,16 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_CNAME:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_SOA:
-    if (data_size <= sizeof (struct soa_data))
+    if (data_size <= sizeof (struct GNUNET_TUN_DnsSoaRecord))
       return NULL;
     soa = data;
     soa_rname = (const char*) &soa[1];
-    soa_mname = memchr (soa_rname, 0, data_size - sizeof (struct soa_data) - 1);
+    soa_mname = memchr (soa_rname, 0, data_size - sizeof (struct GNUNET_TUN_DnsSoaRecord) - 1);
     if (NULL == soa_mname)
       return NULL;
     soa_mname++;
     if (NULL == memchr (soa_mname, 0, 
-			data_size - (sizeof (struct soa_data) + strlen (soa_rname) + 1)))
+			data_size - (sizeof (struct GNUNET_TUN_DnsSoaRecord) + strlen (soa_rname) + 1)))
       return NULL;
     GNUNET_asprintf (&result, 
 		     "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
@@ -587,7 +586,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_VPN:
     cdata = data;
-    if ( (data_size <= sizeof (struct vpn_data)) ||
+    if ( (data_size <= sizeof (struct GNUNET_TUN_GnsVpnRecord)) ||
 	 ('\0' != cdata[data_size - 1]) )
       return NULL; /* malformed */
     vpn = data;
@@ -603,7 +602,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     return vpn_str;
   case GNUNET_DNSPARSER_TYPE_SRV:
     cdata = data;
-    if ( (data_size <= sizeof (struct srv_data)) ||
+    if ( (data_size <= sizeof (struct GNUNET_TUN_DnsSrvRecord)) ||
 	 ('\0' != cdata[data_size - 1]) )
       return NULL; /* malformed */
     srv = data;
@@ -621,7 +620,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     return srv_str;
   case GNUNET_DNSPARSER_TYPE_TLSA:
     cdata = data;
-    if ( (data_size <= sizeof (struct tlsa_data)) ||
+    if ( (data_size <= sizeof (struct GNUNET_TUN_DnsTlsaRecord)) ||
 	 ('\0' != cdata[data_size - 1]) )
       return NULL; /* malformed */
     tlsa = data;
@@ -663,9 +662,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct in_addr value_a;
   struct in6_addr value_aaaa;
   struct GNUNET_CRYPTO_EccPublicKey pkey;
-  struct soa_data *soa;
-  struct vpn_data *vpn;
-  struct tlsa_data *tlsa;
+  struct GNUNET_TUN_DnsSoaRecord *soa;
+  struct GNUNET_TUN_GnsVpnRecord *vpn;
+  struct GNUNET_TUN_DnsTlsaRecord *tlsa;
   char result[253 + 1];
   char soa_rname[253 + 1];
   char soa_mname[253 + 1];
@@ -720,9 +719,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		  s);
       return GNUNET_SYSERR;
     }
-    *data_size = sizeof (struct soa_data)+strlen(soa_rname)+strlen(soa_mname)+2;
+    *data_size = sizeof (struct GNUNET_TUN_DnsSoaRecord)+strlen(soa_rname)+strlen(soa_mname)+2;
     *data = GNUNET_malloc (*data_size);
-    soa = (struct soa_data*)*data;
+    soa = (struct GNUNET_TUN_DnsSoaRecord*)*data;
     soa->serial = htonl(soa_serial);
     soa->refresh = htonl(soa_refresh);
     soa->retry = htonl(soa_retry);
@@ -795,7 +794,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		  s);
       return GNUNET_SYSERR;
     }
-    *data_size = sizeof (struct vpn_data) + strlen (s_serv) + 1;
+    *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
     *data = vpn = GNUNET_malloc (*data_size);
     if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer,
 						     &vpn->peer))
@@ -808,7 +807,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TLSA:
-    *data_size = sizeof (struct tlsa_data) + strlen (s) - 6;
+    *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (s) - 6;
     *data = tlsa = GNUNET_malloc (*data_size);
     if (4 != SSCANF (s, "%c %c %c %s",
 		     &tlsa->usage,
