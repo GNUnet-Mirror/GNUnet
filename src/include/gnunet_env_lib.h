@@ -40,8 +40,6 @@ enum GNUNET_ENV_Operator
    * Assign value for a persistent state variable.
    *
    * If an assigned value is NULL, the variable is deleted.
-   * If the variable name that comes with thi operator is empty,
-   * it means a full state reset, the channel state is zeroed.
    */
   GNUNET_ENV_OP_ASSIGN = '=',
 

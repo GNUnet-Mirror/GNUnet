@@ -304,6 +304,11 @@ enum GNUNET_PSYC_MasterTransmitFlags
    * transmitting this message.
    */
   GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN = 1 << 1,
+
+  /**
+   * Add PSYC header variable with the hash of the current channel state.
+   */
+  GNUNET_PSYC_MASTER_TRANSMIT_ADD_STATE_HASH = 1 << 2
 };
 
 
@@ -564,15 +569,25 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
  * Function called to inform a member about stored state values for a channel.
  *
  * @param cls Closure.
- * @param name Name of the state variable.
- * @param value Value of the state variable.
+ * @param name Name of the state variable.  A NULL value indicates that there
+ *        are no more state variables to be returned.
  * @param value_size Number of bytes in @a value.
+ * @param value Value of the state variable.
  */
 typedef void
 (*GNUNET_PSYC_StateCallback) (void *cls,
                               const char *name,
                               size_t value_size,
                               const void *value);
+
+
+/**
+ * Function called when a requested operation has finished.
+ *
+ * @param cls Closure.
+ */
+typedef void
+(*GNUNET_PSYC_FinishCallback) (void *cls);
 
 
 /** 
@@ -593,14 +608,13 @@ struct GNUNET_PSYC_Story;
  * @param start_message_id Earliest interesting point in history.
  * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
- * @param method_cls Closure for @a method.
  * @param finish_cb Function to call when the requested story has been fully
  *        told (counting message IDs might not suffice, as some messages
  *        might be secret and thus the listener would not know the story is
  *        finished without being told explicitly); once this function
  *        has been called, the client must not call
  *        GNUNET_PSYC_channel_story_tell_cancel() anymore.
- * @param finish_cb_cls Closure to finish_cb.
+ * @param cls Closure for the callbacks.
  * @return Handle to cancel story telling operation.
  */
 struct GNUNET_PSYC_Story *
@@ -608,9 +622,8 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t start_message_id,
                                 uint64_t end_message_id,
                                 GNUNET_PSYC_Method method,
-                                void *method_cls,
-                                void (*finish_cb)(void *),
-                                void *finish_cb_cls);
+                                GNUNET_PSYC_FinishCallback *finish_cb,
+                                void *cls);
 
 
 /** 
@@ -624,57 +637,61 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
 void
 GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 
+struct GNUNET_PSYC_StateQuery;
+
 
 /** 
- * Call the given callback on all matching values (including variables) in the
- * channel state.
+ * Return all channel state variables whose name matches a given prefix.
  *
- * The callback is invoked synchronously on all matching states (as the state is
- * fully replicated in the library in this process; channel states should be
- * small, large data is to be passed as streaming data to methods).
- *
- * A name matches if it includes the @a state_name prefix, thus requesting the
- * empty state ("") will match all values; requesting "_a_b" will also return
+ * A name matches if it starts with the given @a name_prefix, thus requesting the
+ * empty prefix ("") will match all values; requesting "_a_b" will also return
  * values stored under "_a_b_c".
  *
+ * The @a state_cb is invoked on all matching state variables asynchronously, as
+ * the state is stored in and retrieved from the PSYCstore,
+ *
  * @param channel Channel handle.
- * @param state_name Name of the state to query (full name
- *        might be longer, this is only the prefix that must match).
- * @param cb Function to call on the matching state values.
- * @param cb_cls Closure for @a cb.
- * @return Message ID for which the state was returned (last seen
- *         message ID).
+ * @param name_prefix Prefix of the state variable name to match.
+ * @param cb Function to call with the matching state variables.
+ * @param cb_cls Closure for the callbacks.
+ * @return Handle that can be used to cancel the query operation.
  */
-uint64_t
+struct GNUNET_PSYC_StateQuery *
 GNUNET_PSYC_channel_state_get_all (struct GNUNET_PSYC_Channel *channel,
-                                   const char *state_name,
+                                   const char *name_prefix,
                                    GNUNET_PSYC_StateCallback cb,
                                    void *cb_cls);
 
 
 /** 
- * Obtain the current value of the best-matching value in the state
- * (including variables).
+ * Retrieve the best matching channel state variable.
  *
- * Note that variables are only valid during a #GNUNET_PSYC_Method invocation, as
- * variables are only valid for the duration of a method invocation.
- *
- * If the requested variable name does not have an exact state in
- * the state, the nearest less-specific name is matched; for example,
- * requesting "_a_b" will match "_a" if "_a_b" does not exist.
+ * If the requested variable name is not present in the state, the nearest
+ * less-specific name is matched; for example, requesting "_a_b" will match "_a"
+ * if "_a_b" does not exist.
  *
  * @param channel Channel handle.
- * @param variable_name Name of the variable to query.
- * @param[out] return_value_size Set to number of bytes in variable,
- *        needed as variables might contain binary data and
- *        might also not be 0-terminated; set to 0 on errors.
- * @return NULL on error (no matching state or variable), pointer
- *         to the respective value otherwise.
+ * @param full_name Full name of the requested variable, the actual variable
+ *        returned might have a shorter name..
+ * @param cb Function called once when a matching state variable is found.
+ *        Not called if there's no matching state variable.
+ * @param cb_cls Closure for the callbacks.
+ * @return Handle that can be used to cancel the query operation.
  */
-const void *
+struct GNUNET_PSYC_StateQuery *
 GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
-                               const char *variable_name,
-                               size_t *return_value_size);
+                               const char *full_name,
+                               GNUNET_PSYC_StateCallback cb,
+                               void *cb_cls);
+
+
+/** 
+ * Cancel a state query operation.
+ *
+ * @param query Handle for the operation to cancel.
+ */
+void
+GNUNET_PSYC_channel_state_get_cancel (struct GNUNET_PSYC_StateQuery *query);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

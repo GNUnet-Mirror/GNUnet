@@ -300,7 +300,7 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
  * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
  *
  * @param nym Pseudonym to map to a cryptographic identifier.
- * @param[out] identity Set to the public key of the nym.
+ * @param[out] nym_key Set to the public key of the nym.
  */
 void
 GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
@@ -342,7 +342,7 @@ enum GNUNET_PSYC_AnnouncementFlags
    * New objects can be still added to the now empty home using the @e env
    * parameter of the same announcement.
    */
-  GNUNET_SOCIAL_ANNOUNCEMENT_CLEAR_OBJECTS = 1 << 0,
+  GNUNET_SOCIAL_ANNOUNCEMENT_CLEAR_OBJECTS = 1 << 0
 };
 
 

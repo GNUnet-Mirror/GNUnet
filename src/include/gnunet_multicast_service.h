@@ -394,7 +394,7 @@ struct GNUNET_MULTICAST_MembershipTestHandle;
 
 
 /** 
- * Call informing multicast about the decision taken for membership test.
+ * Call informing multicast about the decision taken for a membership test.
  *
  * @param mth Handle that was given for the query.
  * @param result #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
@@ -412,14 +412,18 @@ GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestH
  * message can be replayed.
  *
  * @param cls Closure.
- * @param member_id Identity of the member that we want to test.
- * @param fragment_id Message fragment ID for which we want to do the test.
+ * @param member_key Identity of the member that we want to test.
+ * @param message_id Message ID for which to perform the test.
+ * @param group_generation Group generation of the message. It has relevance if
+ *        the message consists of multiple fragments with different group
+ *        generations.
  * @param mth Handle to give to GNUNET_MULTICAST_membership_test_answer().
  */
 typedef void
 (*GNUNET_MULTICAST_MembershipTestCallback) (void *cls,
                                             const struct GNUNET_CRYPTO_EccPublicKey *member_key,
-                                            uint64_t fragment_id,
+                                            uint64_t message_id,
+                                            uint64_t group_generation,
                                             struct GNUNET_MULTICAST_MembershipTestHandle *mth);
 
 
@@ -472,13 +476,17 @@ struct GNUNET_MULTICAST_ReplayHandle;
  * group is left, the replay handle must no longer be used.
  *
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start()
- *            or GNUNET_MULTICAST_member_join()).
+ *        or GNUNET_MULTICAST_member_join()).
  * @param fragment_id Which message fragment should be replayed.
+ * @param message_id Which message should be replayed.
+ * @param flags Flags for the replay.
  * @param rh Handle to pass to message transmit function.
  */
 typedef void
 (*GNUNET_MULTICAST_ReplayCallback) (void *cls,
                                     uint64_t fragment_id,
+                                    uint64_t message_id,
+                                    uint64_t flags,
                                     struct GNUNET_MULTICAST_ReplayHandle *rh);
 
 
@@ -517,6 +525,9 @@ enum GNUNET_MULTICAST_ReplayErrorCode
 /** 
  * Replay a message from the multicast group.
  *
+ * FIXME: use notify callbacks here too (or in a replay2() function),
+ *        to be able to use the replay functionality for state sync as well.
+ *
  * @param rh Replay handle identifying which replay operation was requested.
  * @param msg Replayed message fragment, NULL if unknown/error.
  * @param ec Error code.
@@ -545,6 +556,9 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
  * @param policy Group policy specifying join and history restrictions.
+ *        FIXME: needed? Ít would be enough to have this on the PSYC layer, as
+ *        access control to enforce the policy is done by the membership test
+ *        and join request callbacks of the API.
  * @param last_fragment_id Last fragment ID to continue counting fragments from
  *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
@@ -689,14 +703,25 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
  * needed and not known to the client.
  *
  * @param member Membership handle.
- * @param message_id ID of a message that this client would like to see replayed.
+ * @param fragment_id ID of a message fragment that this client would like to
+          see replayed.
+ * @param message_id ID of a message that this client would like to see
+ *        replayed.  Typically only one of the @a fragment_id and @a message_id
+ *        is given.  Specifying a @a message_id would return the last fragment
+ *        of the message, which allows requesting the preceding fragments of the
+ *        message by looking at the @e fragment_delta header field.
+ * @param flags Additional flags for the replay request.  It is used & defined
+ *        by the replay callback.  E.g. the PSYC service would use this to
+ *        implement state synchronization.
  * @param message_cb Function to be called for the replayed message.
  * @param message_cb_cls Closure for @a message_cb.
  * @return Replay request handle, NULL on error.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_request_replay (struct GNUNET_MULTICAST_Member *member,
+                                        uint64_t fragment_id,
                                         uint64_t message_id,
+                                        uint64_t flags,
                                         GNUNET_MULTICAST_MessageCallback message_cb,
                                         void *message_cb_cls);
 
