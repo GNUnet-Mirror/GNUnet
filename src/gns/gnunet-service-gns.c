@@ -22,10 +22,6 @@
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
  * @author Christian Grothoff
- *
- * TODO:
- * - conversion of private to public records does NOT check if the
- *   records are actually public 
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -334,6 +330,9 @@ put_gns_record (void *cls,
   struct GNUNET_HashCode query;
   struct GNUNET_TIME_Absolute expire; 
   size_t block_size;
+  struct GNUNET_NAMESTORE_RecordData rd_public[rd_count];
+  unsigned int rd_public_count;
+  unsigned int i;
 
   if (NULL == name)
   {
@@ -385,22 +384,28 @@ put_gns_record (void *cls,
     return;
   }
 
-  /* FIXME: filter out records that are not public! */
+  /* filter out records that are not public! */
+  rd_public_count = 0;
+  for (i=0;i<rd_count;i++)
+    if (0 == (rd[i].flags & (GNUNET_NAMESTORE_RF_PRIVATE |
+			     GNUNET_NAMESTORE_RF_PENDING)))
+      rd_public[rd_public_count++] = rd[i];
+
 
   /* We got a set of records to publish */
-  if (0 == rd_count)
+  if (0 == rd_public_count)
   {
     zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_next,
                                                    NULL);
     return;
   }
-  expire = GNUNET_NAMESTORE_record_get_expiration_time (rd_count,
-							rd);
+  expire = GNUNET_NAMESTORE_record_get_expiration_time (rd_public_count,
+							rd_public);
   block = GNUNET_NAMESTORE_block_create (key,
 					 expire,
 					 name,
-					 rd,
-					 rd_count);
+					 rd_public,
+					 rd_public_count);
   block_size = ntohl (block->purpose.size) 
     + sizeof (struct GNUNET_CRYPTO_EccSignature) 
     + sizeof (struct GNUNET_CRYPTO_EccPublicKey);
