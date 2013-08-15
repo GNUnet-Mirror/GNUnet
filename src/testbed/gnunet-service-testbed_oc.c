@@ -1112,7 +1112,7 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
   rp2c = &occ->p2ctx.remote;
   rp2c->opc = NULL;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task);
-  if (GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION != ntohs (msg->type))
+  if (GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION != ntohs (msg->type))
   {
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
     occ->timeout_task =
@@ -1353,7 +1353,7 @@ p2_controller_connect_cb (void *cls, struct GNUNET_TESTBED_Controller *c)
   cmsg.header.size =
       htons (sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
   cmsg.header.type =
-      htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION);
+      htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION);
   cmsg.peer_id = htonl (occ->other_peer_id);
   cmsg.operation_id = GNUNET_htonll (occ->op_id);
   rp2c->opc =
@@ -1690,6 +1690,8 @@ GST_handle_remote_overlay_connect (void *cls,
   const struct GNUNET_TESTBED_RemoteOverlayConnectMessage *msg;
   struct RemoteOverlayConnectCtx *rocc;
   struct Peer *peer;
+  struct GNUNET_PeerIdentity pid;
+  static char pid_str[16];
   uint32_t peer_id;
   uint16_t msize;
   uint16_t hsize;
@@ -1740,13 +1742,15 @@ GST_handle_remote_overlay_connect (void *cls,
   GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
   memcpy (&rocc->a_id, &msg->peer_identity,
           sizeof (struct GNUNET_PeerIdentity));
-  LOG_DEBUG ("Received request for overlay connection with op_id: 0x%llx "
-             "from local peer %u to peer %4s with hello size: %u\n",
-             rocc->op_id, peer_id, GNUNET_i2s (&rocc->a_id), hsize);
+  GNUNET_TESTING_peer_get_identity (peer->details.local.peer, &pid);
+  (void) strncpy (pid_str, GNUNET_i2s (&pid), 15);
+  LOG_DEBUG ("0x%llx: Remote overlay connect %4s to peer %4s with hello size: %u\n",
+             rocc->op_id, pid_str, GNUNET_i2s (&rocc->a_id), hsize);
   rocc->peer = peer;
   rocc->peer->reference_cnt++;
   rocc->hello = GNUNET_malloc (hsize);
   memcpy (rocc->hello, msg->hello, hsize);
+  rocc->tcc.op_id = rocc->op_id;
   rocc->tcc.cgh_th =
       GST_cache_get_handle_transport (peer_id, rocc->peer->details.local.cfg,
                                       &rocc_cache_get_handle_transport_cb, rocc,

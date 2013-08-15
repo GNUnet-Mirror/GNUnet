@@ -1127,7 +1127,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                            msg);
 
     break;
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION:
     GNUNET_assert (msize >=
                    sizeof (struct
                            GNUNET_TESTBED_PeerConfigurationInformationMessage));
@@ -1875,7 +1875,7 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 /**
  * Generates configuration by uncompressing configuration in given message. The
  * given message should be of the following types:
- * GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION,
+ * GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION,
  * GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
  * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST,
  * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS,
@@ -1896,7 +1896,7 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
 
   switch (ntohs (msg->type))
   {
-  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION:
+  case GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION:
   {
     const struct GNUNET_TESTBED_PeerConfigurationInformationMessage *imsg;
 

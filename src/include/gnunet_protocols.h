@@ -1509,14 +1509,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS 475
 
 /**
- * Message to get the configuration of a peer
+ * Message to get a peer's information
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION 476
+#define GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION 476
 
 /**
- * Message containing the peer configuration
+ * Message containing the peer's information
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION 477
+#define GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION 477
 
 /**
  * Message to request a controller to make one of its peer to connect to another

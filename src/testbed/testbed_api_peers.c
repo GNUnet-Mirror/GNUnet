@@ -325,7 +325,7 @@ GNUNET_TESTBED_generate_peergetconfig_msg_ (uint32_t peer_id,
                      (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
   msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_PeerGetConfigurationMessage));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION);
   msg->peer_id = htonl (peer_id);
   msg->operation_id = GNUNET_htonll (operation_id);
   return msg;

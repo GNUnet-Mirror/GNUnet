@@ -614,7 +614,7 @@ struct GNUNET_TESTBED_PeerGetConfigurationMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_CONFIGURATION
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_GET_PEER_INFORMATION
    */
   struct GNUNET_MessageHeader header;
 
@@ -638,7 +638,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION
    */
   struct GNUNET_MessageHeader header;
 

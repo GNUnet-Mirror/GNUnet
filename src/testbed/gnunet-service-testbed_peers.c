@@ -721,7 +721,7 @@ GST_handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   reply = GNUNET_realloc (xconfig, msize);
   (void) memmove (&reply[1], reply, xc_size);
   reply->header.size = htons (msize);
-  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONFIGURATION);
+  reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION);
   reply->peer_id = msg->peer_id;
   reply->operation_id = msg->operation_id;
   GNUNET_TESTING_peer_get_identity (GST_peer_list[peer_id]->details.local.peer,
