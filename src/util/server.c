@@ -373,6 +373,12 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
 					void *ptr,
 					size_t size)
 {
+  if (NULL == ptr)
+  {
+    client->user_context_size = 0;
+    client->user_context = ptr;
+    return;
+  }
   client->user_context_size = size;
   client->user_context = ptr;
 }
