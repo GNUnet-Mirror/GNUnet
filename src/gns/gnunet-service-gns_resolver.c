@@ -489,7 +489,7 @@ is_srv (const char *name)
  * even though they consist of multiple labels.
  *
  * Examples:
- * a.b.gads  = not canonical
+ * a.b.gnu  = not canonical
  * a         = canonical
  * _foo._srv = canonical
  * _f.bar    = not canonical
@@ -1455,7 +1455,7 @@ process_pkey_revocation_result_ns (void *cls,
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "GNS_PHASE_DELEGATE_REV-%llu: Starting background lookup for %s type %d\n",
-        rh->id, "+.gads", GNUNET_NAMESTORE_TYPE_REV);
+        rh->id, "+.gnu", GNUNET_NAMESTORE_TYPE_REV);
 
       gns_resolver_lookup_record(rh->authority,
                                  rh->private_local_zone,
@@ -3199,7 +3199,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
 
   if ( ( (GNUNET_YES == is_canonical (name)) &&
 	 (0 != strcmp (GNUNET_GNS_TLD, name)) ) ||
-       ( (GNUNET_YES != is_gads_tld (name)) &&
+       ( (GNUNET_YES != is_gnu_tld (name)) &&
 	 (GNUNET_YES != is_zkey_tld (name)) ) )
   {
     /* use standard DNS lookup */

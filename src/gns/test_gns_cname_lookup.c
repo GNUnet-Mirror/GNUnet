@@ -38,13 +38,13 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /* test records to resolve */
-#define TEST_DOMAIN_PLUS "www.gads"
-#define TEST_DOMAIN_ZKEY "www2.gads"
-#define TEST_DOMAIN_DNS  "www3.gads"
+#define TEST_DOMAIN_PLUS "www.gnu"
+#define TEST_DOMAIN_ZKEY "www2.gnu"
+#define TEST_DOMAIN_DNS  "www3.gnu"
 #define TEST_IP_PLUS "127.0.0.1"
 #define TEST_IP_ZKEY "127.0.0.2"
 #define TEST_IP_DNS  "131.159.74.67"
-#define TEST_RECORD_CNAME_SERVER "server.gads"
+#define TEST_RECORD_CNAME_SERVER "server.gnu"
 #define TEST_RECORD_CNAME_PLUS "server.+"
 #define TEST_RECORD_CNAME_ZKEY "www.J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey"
 #define TEST_RECORD_CNAME_DNS "gnunet.org"

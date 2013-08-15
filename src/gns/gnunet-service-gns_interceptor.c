@@ -253,7 +253,7 @@ handle_dns_request (void *cls,
   }
 
   /* Check for GNS TLDs. */ 
-  if ( (GNUNET_YES == is_gads_tld (p->queries[0].name)) ||
+  if ( (GNUNET_YES == is_gnu_tld (p->queries[0].name)) ||
        (GNUNET_YES == is_zkey_tld (p->queries[0].name)) ||
        (0 == strcmp (p->queries[0].name, GNUNET_GNS_TLD)) )
   {

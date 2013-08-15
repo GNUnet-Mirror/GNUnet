@@ -37,8 +37,8 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.gads"
-#define TEST_DOMAIN_NACK "doesnotexist.bob.gads"
+#define TEST_DOMAIN "www.gnu"
+#define TEST_DOMAIN_NACK "doesnotexist.bob.gnu"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 #define TEST_ADDITIONAL_LOOKUPS 5
@@ -230,7 +230,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   {
     GNUNET_snprintf(lookup_name,
                     GNUNET_DNSPARSER_MAX_NAME_LENGTH,
-                    "www.doesnotexist-%d.bob.gads", i);
+                    "www.doesnotexist-%d.bob.gnu", i);
     lr = GNUNET_GNS_lookup (gns_handle, lookup_name, GNUNET_DNSPARSER_TYPE_A,
 			    GNUNET_NO,
 			    NULL,

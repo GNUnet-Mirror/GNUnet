@@ -36,14 +36,14 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.alice.bob.gads"
+#define TEST_DOMAIN "www.alice.bob.gnu"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 
 #define TEST_AUTHORITY_BOB "bob"
 #define TEST_AUTHORITY_ALICE "alice"
 #define TEST_ALICE_PSEU "carol"
-#define TEST_EXPECTED_RESULT "www.carol.gads"
+#define TEST_EXPECTED_RESULT "www.carol.gnu"
 
 #define KEYFILE_BOB "../namestore/zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey"
 #define KEYFILE_ALICE "../namestore/zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey"

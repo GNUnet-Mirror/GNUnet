@@ -24,7 +24,7 @@
  * topology:
  * alice <----> bob <-----> dave
  *
- * alice queries for www.buddy.bob.gads
+ * alice queries for www.buddy.bob.gnu
  *
  */
 #include "platform.h"
@@ -42,7 +42,7 @@
 
 #define ZONE_PUT_WAIT_TIME GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define TEST_DOMAIN "www.buddy.bob.gads"
+#define TEST_DOMAIN "www.buddy.bob.gnu"
 #define TEST_IP "1.1.1.1"
 #define TEST_DAVE_PSEU "hagbard"
 

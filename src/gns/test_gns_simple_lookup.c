@@ -38,7 +38,7 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 120)
 
 /* test records to resolve */
-#define TEST_DOMAIN "www.gads"
+#define TEST_DOMAIN "www.gnu"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "www"
 

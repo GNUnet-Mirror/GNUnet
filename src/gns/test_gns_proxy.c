@@ -32,7 +32,7 @@
 #include "gnunet_os_lib.h"
 
 #define PORT 8080
-#define TEST_DOMAIN "www.gads"
+#define TEST_DOMAIN "www.gnu"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 

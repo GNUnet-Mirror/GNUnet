@@ -38,25 +38,25 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
- * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * Name to resolve for testing.  NS record on 'homepage.gnu' redirects to
  * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
  * that target domain.
  */
-#define TEST_DOMAIN "www.homepage.gads"
+#define TEST_DOMAIN "www.homepage.gnu"
 
 /**
- * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * Name to resolve for testing.  NS record on 'homepage.gnu' redirects to
  * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
  * that target domain.
  */
-#define TEST_DOMAIN_ALT "homepage.gads"
+#define TEST_DOMAIN_ALT "homepage.gnu"
 
 /**
- * Name to resolve for testing.  NS record on 'homepage.gads' redirects to
+ * Name to resolve for testing.  NS record on 'homepage.gnu' redirects to
  * DNS 'TEST_RECORD_NS' domain and thus names should be resolved within
  * that target domain.
  */
-#define TEST_DOMAIN_ALT2 "uk.homepage.gads"
+#define TEST_DOMAIN_ALT2 "uk.homepage.gnu"
 
 /**
  * Expected test value (matching TEST_DOMAIN_ALT2).

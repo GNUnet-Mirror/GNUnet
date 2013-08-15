@@ -340,7 +340,7 @@ GNUNET_W32NSP_LookupServiceBegin (LPGUID lpProviderId, LPWSAQUERYSETW lpqsRestri
       if (len >= 4 && wcscmp (&s[len - 4], L"zkey") == 0)
       {
       }
-      else if (len >= 4 && wcscmp (&s[len - 4], L"gads") == 0)
+      else if (len >= 4 && wcscmp (&s[len - 4], L"gnu") == 0)
       {
       }
       else

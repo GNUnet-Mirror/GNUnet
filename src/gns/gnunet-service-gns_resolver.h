@@ -119,7 +119,7 @@ is_tld (const char *name,
 /**
  * Checks for gnu/zkey
  */
-#define is_gads_tld(name) is_tld(name, GNUNET_GNS_TLD)
+#define is_gnu_tld(name) is_tld(name, GNUNET_GNS_TLD)
 #define is_zkey_tld(name) is_tld(name, GNUNET_GNS_TLD_ZKEY)
 
 

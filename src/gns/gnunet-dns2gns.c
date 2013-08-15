@@ -436,7 +436,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
       }
       else
       {	
-	/* try '.gads' name */
+	/* try '.gnu' name */
 	GNUNET_asprintf (&nname, 
 			 "%s.%s", 
 			 name, 

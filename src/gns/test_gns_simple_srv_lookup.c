@@ -37,12 +37,12 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 20)
 
 /* test records to resolve */
-#define TEST_DOMAIN "_sip._tcp.bob.gads"
+#define TEST_DOMAIN "_sip._tcp.bob.gnu"
 #define TEST_IP "127.0.0.1"
 #define TEST_RECORD_NAME "sipserver"
 #define TEST_RECORD_NAME_SRV "_sip._tcp"
 #define TEST_SRV_NAME "sipserver.+"
-#define TEST_EXPECTED_SRV "sipserver.bob.gads"
+#define TEST_EXPECTED_SRV "sipserver.bob.gnu"
 
 #define TEST_AUTHORITY_NAME "bob"
 

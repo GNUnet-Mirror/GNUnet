@@ -402,7 +402,7 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
  * @param address GADS name of the place to enter.  Either in the form of
- *        'room.friend.gads', or 'NYMPUBKEY.zkey'.  This latter case refers to
+ *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
  *        the 'PLACE' record of the empty label ("+") in the GADS zone with the
  *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
  *        pseudonym's place directly.
