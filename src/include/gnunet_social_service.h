@@ -159,6 +159,7 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
  *
  * @param cls Closure.
  * @param nym Handle for the user who wants to enter.
+ * @param method_name Method name in the entry request.
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Variables present in the message.
  * @param data_size Number of bytes in @a data.
@@ -167,6 +168,7 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
 typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
                                                  struct GNUNET_SOCIAL_Nym *nym,
                                                  size_t variable_count,
+                                                 const char *method_name,
                                                  GNUNET_PSYC_Modifier *variables,
                                                  size_t data_size,
                                                  const void *data);
@@ -408,6 +410,7 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  *        the 'PLACE' record of the empty label ("+") in the GADS zone with the
  *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
  *        pseudonym's place directly.
+ * @param method_name Method name for the message.
  * @param env Environment containing variables for the message, or NULL.
  * @param data_size Number of bytes in @a data.
  * @param data Payload for the message to give to the enter callback.
@@ -418,6 +421,7 @@ struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_IDENTITY_Ego *ego,
                            char *address,
+                           const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
                            size_t data_size,
                            const void *data,
@@ -429,22 +433,29 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
  * @param crypto_address Public key of the place to enter.
- * @param peer Peer to send request to.
- * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param origin Peer identity of the origin of the underlying multicast group.
+ * @param relay_count Number of elements in the @a relays array.
+ * @param relays Relays for the underlying multicast group.
+ * @param method_name Method name for the message.
  * @param env Environment containing variables for the message, or NULL.
  * @param data_size Number of bytes in @a data.
  * @param data Payload for the message to give to the enter callback.
+ * @param slicer Slicer to use for processing incoming requests from guests.
  * @return NULL on errors, otherwise handle to the place.
  */
 struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           struct GNUNET_IDENTITY_Ego *ego,
-                           struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
-                           struct GNUNET_PeerIdentity *peer,
-                           struct GNUNET_SOCIAL_Slicer *slicer,
-                           const struct GNUNET_ENV_Environment *env,
-                           size_t data_size,
-                           const void *data);
+                            struct GNUNET_IDENTITY_Ego *ego,
+                            struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
+                            struct GNUNET_PeerIdentity *origin,
+                            size_t count_relays,
+                            struct GNUNET_PeerIdentity *relays,
+                            const char *method_name,
+                            const struct GNUNET_ENV_Environment *env,
+                            size_t data_size,
+                            const void *data,
+                            struct GNUNET_SOCIAL_Slicer *slicer,
+);
 
 
 struct GNUNET_SOCIAL_WatchHandle;
