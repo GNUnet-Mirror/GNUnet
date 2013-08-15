@@ -648,10 +648,16 @@ handle_record_store (void *cls,
       struct ZoneMonitor *zm;
       struct GNUNET_NAMESTORE_Block *block;
 
-      block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
-					     GNUNET_TIME_UNIT_FOREVER_ABS,
-					     conv_name,
-					     rd, rd_count);
+      if (0 == rd_count)
+	block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
+					       GNUNET_TIME_UNIT_ZERO_ABS,
+					       conv_name,
+					       rd, rd_count);
+      else
+	block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
+					       GNUNET_TIME_UNIT_FOREVER_ABS,
+					       conv_name,
+					       rd, rd_count);
       if (GNUNET_OK !=
 	  GSN_database->cache_block (GSN_database->cls,
 				     block))
