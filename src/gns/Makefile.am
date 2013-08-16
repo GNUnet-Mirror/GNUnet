@@ -51,7 +51,7 @@ if HAVE_GNUTLS
 if HAVE_LIBCURL
 # does not compile right now...
 if HAVE_EXPERIMENTAL
- DO_PROXY=gnunet-gns-proxy
+# DO_PROXY=gnunet-gns-proxy
 endif
 endif
 endif
@@ -98,14 +98,14 @@ gnunet_dns2gns_DEPENDENCIES = \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   libgnunetgns.la
 
-gnunet_gns_proxy_SOURCES = \
- gnunet-gns-proxy.c gns_proxy_proto.h 
-gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
-  $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
-gnunet_gns_proxy_DEPENDENCIES = \
-  libgnunetgns.la
+#gnunet_gns_proxy_SOURCES = \
+# gnunet-gns-proxy.c gns_proxy_proto.h 
+#gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
+#  $(top_builddir)/src/gns/libgnunetgns.la \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(GN_LIBINTL)
+#gnunet_gns_proxy_DEPENDENCIES = \
+#  libgnunetgns.la
 
 gnunet_gns_helper_service_w32_SOURCES = \
   gnunet-gns-helper-service-w32.c
