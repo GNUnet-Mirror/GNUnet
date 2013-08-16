@@ -64,6 +64,8 @@ static char *killLogFileName;
 #endif
 
 
+typedef void (*GNUNET_CLIENT_ShutdownTask) (void *cls, int reason);
+
 /**
  * Context for handling the shutdown of a service.
  */
