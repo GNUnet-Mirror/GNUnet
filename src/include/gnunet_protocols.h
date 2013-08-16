@@ -880,6 +880,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
+ * Confirm the creation of a channel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK            275
+
+/**
  * Encrypted data going forward.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_FWD                    280
