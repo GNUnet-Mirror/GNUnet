@@ -13,10 +13,10 @@ else:
   tmp = "/tmp"
 
 if os.name == 'nt':
-  st = 'gnunet-statistics.exe'
+  st = './gnunet-statistics.exe'
   arm = 'gnunet-arm.exe'
 else:
-  st = 'gnunet-statistics'
+  st = './gnunet-statistics'
   arm = 'gnunet-arm'
 
 run_st = [st, '-c', 'test_statistics_api_data.conf']

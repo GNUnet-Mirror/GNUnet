@@ -32,17 +32,17 @@ if gnunet_pyexpect_dir not in sys.path:
 from gnunet_pyexpect import pexpect
 
 if os.name == 'posix':
-  download = 'gnunet-download'
+  download = './gnunet-download'
   gnunetarm = 'gnunet-arm'
-  publish = 'gnunet-publish'
-  unindex = 'gnunet-unindex'
-  search = 'gnunet-search'
+  publish = './gnunet-publish'
+  unindex = './gnunet-unindex'
+  search = './gnunet-search'
 elif os.name == 'nt':
-  download = 'gnunet-download.exe'
+  download = './gnunet-download.exe'
   gnunetarm = 'gnunet-arm.exe'
-  publish = 'gnunet-publish.exe'
-  unindex = 'gnunet-unindex.exe'
-  search = 'gnunet-search.exe'
+  publish = './gnunet-publish.exe'
+  unindex = './gnunet-unindex.exe'
+  search = './gnunet-search.exe'
 
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-psd"), True)

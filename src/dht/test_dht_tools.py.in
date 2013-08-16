@@ -15,8 +15,8 @@ else:
 
 if os.name == 'nt':
   pif = 'gnunet-peerinfo.exe'
-  get = 'gnunet-dht-get.exe'
-  put = 'gnunet-dht-put.exe'
+  get = './gnunet-dht-get.exe'
+  put = './gnunet-dht-put.exe'
   arm = 'gnunet-arm.exe'
 else:
   pif = 'gnunet-peerinfo'

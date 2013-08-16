@@ -32,19 +32,19 @@ if gnunet_pyexpect_dir not in sys.path:
 from gnunet_pyexpect import pexpect
 
 if os.name == 'posix':
-  pseudonym = 'gnunet-pseudonym'
+  pseudonym = './gnunet-pseudonym'
   gnunetarm = 'gnunet-arm'
-  publish = 'gnunet-publish'
-  unindex = 'gnunet-unindex'
-  search = 'gnunet-search'
-  identity = 'gnunet-identity'
+  publish = './gnunet-publish'
+  unindex = './gnunet-unindex'
+  search = './gnunet-search'
+  identity = './gnunet-identity'
 elif os.name == 'nt':
-  pseudonym = 'gnunet-pseudonym.exe'
+  pseudonym = './gnunet-pseudonym.exe'
   gnunetarm = 'gnunet-arm.exe'
-  publish = 'gnunet-publish.exe'
-  unindex = 'gnunet-unindex.exe'
-  search = 'gnunet-search.exe'
-  identity = 'gnunet-identity.exe'
+  publish = './gnunet-publish.exe'
+  unindex = './gnunet-unindex.exe'
+  search = './gnunet-search.exe'
+  identity = './gnunet-identity.exe'
 
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)

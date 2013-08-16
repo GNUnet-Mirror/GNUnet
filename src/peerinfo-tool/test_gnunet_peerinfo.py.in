@@ -33,11 +33,11 @@ if gnunet_pyexpect_dir not in sys.path:
 from gnunet_pyexpect import pexpect
 
 if os.name == 'posix':
-  peerinfo = 'gnunet-peerinfo'
+  peerinfo = './gnunet-peerinfo'
   gnunetarm = 'gnunet-arm'
   gnunettesting = 'gnunet-testing'
 elif os.name == 'nt':
-  peerinfo = 'gnunet-peerinfo.exe'
+  peerinfo = './gnunet-peerinfo.exe'
   gnunetarm = 'gnunet-arm.exe'
   gnunettesting = 'gnunet-testing.exe'
 

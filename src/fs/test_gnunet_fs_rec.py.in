@@ -35,19 +35,19 @@ from gnunet_pyexpect import pexpect
 from pydiffer import dcdiff
 
 if os.name == 'posix':
-  download = 'gnunet-download'
+  download = './gnunet-download'
   gnunetarm = 'gnunet-arm'
-  publish = 'gnunet-publish'
-  unindex = 'gnunet-unindex'
-  search = 'gnunet-search'
-  directory = 'gnunet-directory'
+  publish = './gnunet-publish'
+  unindex = './gnunet-unindex'
+  search = './gnunet-search'
+  directory = './gnunet-directory'
 elif os.name == 'nt':
-  download = 'gnunet-download.exe'
+  download = './gnunet-download.exe'
   gnunetarm = 'gnunet-arm.exe'
-  publish = 'gnunet-publish.exe'
-  unindex = 'gnunet-unindex.exe'
-  search = 'gnunet-search.exe'
-  directory = 'gnunet-directory.exe'
+  publish = './gnunet-publish.exe'
+  unindex = './gnunet-unindex.exe'
+  search = './gnunet-search.exe'
+  directory = './gnunet-directory.exe'
 
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-rec"), True)

@@ -14,10 +14,10 @@ else:
 
 if os.name == 'nt':
   st = 'gnunet-statistics.exe'
-  arm = 'gnunet-arm.exe'
+  arm = './gnunet-arm.exe'
 else:
   st = 'gnunet-statistics'
-  arm = 'gnunet-arm'
+  arm = './gnunet-arm'
 
 run_arm = [arm, '-c', 'test_arm_api_data.conf', '--no-stdout', '--no-stderr']
 debug = os.getenv ('DEBUG')
