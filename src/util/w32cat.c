@@ -57,7 +57,7 @@ install_parent_control_handler ()
   if ((0 != errno) || (env_buf == env_buf_end))
     return;
   /* Gcc will issue a warning here. What to do with it? */
-  pipe_handle = (HANDLE) pipe_fd;
+  pipe_handle = (HANDLE) (uintptr_t) pipe_fd;
   CreateThread (NULL, 0, parent_control_thread, (LPVOID) pipe_handle, 0, NULL);
 }
 
