@@ -592,6 +592,7 @@ main (int argc, char *argv[])
   char *tmp_sep;
   char *test_name;
   char *conf_name;
+  char *dotexe;
   int c;
   
   peers = 0;
@@ -606,6 +607,9 @@ main (int argc, char *argv[])
   }
   tmp += strlen(TESTNAME_PREFIX);
   solver = GNUNET_strdup (tmp);
+  if (NULL != (dotexe = strstr (solver, ".exe")) &&
+      dotexe[4] == '\0')
+    dotexe[0] = '\0';
   tmp_sep = strchr (solver, '_');
   if (NULL == tmp_sep)
   {
