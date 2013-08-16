@@ -164,10 +164,10 @@ struct GNUNET_MESH_ChannelCreate
   uint32_t opt GNUNET_PACKED;
 };
 
-struct GNUNET_MESH_ChannelDestroy
+struct GNUNET_MESH_ChannelManage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_{ACK|DESTROY}
    */
   struct GNUNET_MessageHeader header;
 

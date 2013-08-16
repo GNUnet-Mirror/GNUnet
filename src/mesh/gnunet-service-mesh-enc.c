@@ -147,9 +147,36 @@ enum MeshConnectionState
   MESH_CONNECTION_SENT,
 
   /**
-   * Connection confirmed, ready to carry traffic..
+   * Connection ACK sent, waiting for ACK.
+   */
+  MESH_CONNECTION_ACK,
+
+  /**
+   * Connection confirmed, ready to carry traffic.
    */
   MESH_CONNECTION_READY,
+};
+
+
+/**
+ * All the states a connection can be in.
+ */
+enum MeshChannelState
+{
+  /**
+   * Uninitialized status, should never appear in operation.
+   */
+  MESH_CHANNEL_NEW,
+
+  /**
+   * Connection create message sent, waiting for ACK.
+   */
+  MESH_CHANNEL_SENT,
+
+  /**
+   * Connection confirmed, ready to carry traffic..
+   */
+  MESH_CHANNEL_READY,
 };
 
 
@@ -456,6 +483,11 @@ struct MeshChannel
      * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV or 0).
      */
   MESH_ChannelNumber lid_dest;
+
+    /**
+     * Channel state.
+     */
+  enum MeshChannelState state;
 
     /**
      * Next MID to use for fwd traffic.
@@ -3611,6 +3643,37 @@ channel_send_connection_ack (struct MeshChannel *ch, uint32_t buffer, int fwd)
 
 
 /**
+ * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
+ *
+ * @param ch Channel to mark as ready.
+ * @param fwd Was the CREATE message sent fwd?
+ */
+static void
+channel_confirm (struct MeshChannel *ch, int fwd)
+{
+  struct MeshChannelReliability *rel;
+  struct MeshReliableMessage *copy;
+  struct MeshReliableMessage *next;
+
+  ch->state = MESH_CHANNEL_READY;
+
+  rel = fwd ? ch->fwd_rel : ch->bck_rel;
+  for (copy = rel->head_sent; NULL != copy; copy = next)
+  {
+    struct GNUNET_MessageHeader *msg;
+
+    next = copy->next;
+    msg = (struct GNUNET_MessageHeader *) &copy[1];
+    if (ntohs (msg->type) == GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE)
+    {
+      rel_message_free (copy);
+      /* TODO return? */
+    }
+  }
+}
+
+
+/**
  * Send keepalive packets for a connection.
  *
  * @param c Connection to keep alive..
@@ -3754,6 +3817,29 @@ connection_send_destroy (struct MeshConnection *c)
 
 
 /**
+ * Confirm we got a channel create.
+ *
+ * @param ch The channel to confirm.
+ * @param fwd Should we send the ACK fwd?
+ */
+static void
+channel_send_ack (struct MeshChannel *ch, int fwd)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending channel destroy for channel %s:%X\n",
+              peer2s (ch->t->peer),
+              ch->gid);
+
+  msg.chid = htonl (ch->gid);
+  send_prebuilt_message_channel (&msg.header, ch, fwd);
+}
+
+
+/**
  * Send a message to all clients (local and remote) of this channel
  * notifying that the channel is no longer valid.
  *
@@ -3765,7 +3851,7 @@ connection_send_destroy (struct MeshConnection *c)
 static void
 channel_send_destroy (struct MeshChannel *ch)
 {
-  struct GNUNET_MESH_ChannelDestroy msg;
+  struct GNUNET_MESH_ChannelManage msg;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
@@ -5203,6 +5289,7 @@ handle_mesh_connection_destroy (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Handler for channel create messages.
  *
@@ -5267,7 +5354,49 @@ handle_channel_create (struct MeshTunnel2 *t,
   }
 
   send_local_channel_create (ch);
+  channel_send_ack (ch, !fwd);
 
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for channel ack messages.
+ *
+ * @param t Tunnel this channel is to be created in.
+ * @param msg Message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_channel_ack (struct MeshTunnel2 *t,
+                    struct GNUNET_MESH_ChannelManage *msg,
+                    int fwd)
+{
+  MESH_ChannelNumber chid;
+  struct MeshChannel *ch;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Channel ACK\n");
+  /* Check message size */
+  if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelManage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  /* Check if channel exists */
+  chid = ntohl (msg->chid);
+  ch = channel_get (t, chid);
+  if (NULL == ch)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   channel %u unknown!!\n", chid);
+    return GNUNET_OK;
+  }
+
+  channel_confirm (ch, !fwd);
   return GNUNET_OK;
 }
 
@@ -5284,14 +5413,14 @@ handle_channel_create (struct MeshTunnel2 *t,
  */
 static int
 handle_channel_destroy (struct MeshTunnel2 *t,
-                        struct GNUNET_MESH_ChannelDestroy *msg,
+                        struct GNUNET_MESH_ChannelManage *msg,
                         int fwd)
 {
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
 
   /* Check message size */
-  if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelDestroy))
+  if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelManage))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -5435,9 +5564,14 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                                       (struct GNUNET_MESH_ChannelCreate *) msgh,
                                       fwd);
         break;
+      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+        return handle_channel_ack (t,
+                                   (struct GNUNET_MESH_ChannelManage *) msgh,
+                                   fwd);
+        break;
       case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
         return handle_channel_destroy (t,
-                                       (struct GNUNET_MESH_ChannelDestroy *)
+                                       (struct GNUNET_MESH_ChannelManage *)
                                        msgh,
                                        fwd);
         break;
