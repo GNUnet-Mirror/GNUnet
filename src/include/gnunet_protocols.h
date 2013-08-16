@@ -817,6 +817,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_DATA                   260
 
 /**
+ * Confirm payload data end-to-end.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               261
+
+/**
  * Payload data origin->end DEPRECATED.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
@@ -827,12 +832,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
 /**
- * Confirm owner->dest data end-to-end (ack goes dest->owner).
+ * Confirm owner->dest data end-to-end (ack goes dest->owner). DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK            263
 
 /**
- * Confirm dest->owner data end-to-end (ack goes owner->dest).
+ * Confirm dest->owner data end-to-end (ack goes owner->dest). DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK            264
 
@@ -848,12 +853,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
 
 /**
- * ACK for a data packet.
+ * Hop-by-hop, connection dependent ACK.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_ACK                    268
 
 /**
- * Poll for an ACK.
+ * Poll for a hop-by-hop ACK.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
 
