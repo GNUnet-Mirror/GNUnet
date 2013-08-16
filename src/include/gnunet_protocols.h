@@ -789,19 +789,19 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
 
 /**
- * Request the creation of a connection
+ * Request the creation of a connection DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE            256
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE      256
 
 /**
- * Send origin an ACK that the connection is complete
+ * Send origin an ACK that the connection is complete DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               257
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK         257
 
 /**
- * Notify that a connection is no longer valid
+ * Notify that a connection is no longer valid DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN            258
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN      258
@@ -812,12 +812,17 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
 
 /**
- * Payload data origin->end.
+ * Payload data.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_DATA                   260
+
+/**
+ * Payload data origin->end DEPRECATED.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
 
 /**
- * Payload data end->origin.
+ * Payload data end->origin DEPRECATED.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
 
@@ -832,7 +837,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK            264
 
 /**
- * Request the destuction of a path
+ * Request the destuction of a path (PATH DEPRECATED)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           266
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     266
@@ -868,13 +873,13 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT          272
 
 /**
- * Ask the mesh service to create a new tunnel
+ * Ask the mesh service to create a new tunnel DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE         273
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE    273
 
 /**
- * Ask the mesh service to destroy a tunnel
+ * Ask the mesh service to destroy a tunnel DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY        274
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
@@ -905,13 +910,13 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
 
 /**
- * Local information about all tunnels of service.
+ * Local information about all tunnels of service. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     287
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS    287
 
 /**
- * Local information of service about a specific tunnel.
+ * Local information of service about a specific tunnel. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      288
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     288
