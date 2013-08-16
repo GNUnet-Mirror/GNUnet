@@ -61,7 +61,7 @@ struct request
  */
 static struct GNUNET_GNS_Handle *gns;
 
-static struct GNUNET_CRYPTO_ShortHashCode *zone = NULL;
+static struct GNUNET_CRYPTO_EccPublicKey *zone = NULL;
 static struct GNUNET_CRYPTO_ShortHashCode user_zone;
 struct GNUNET_CRYPTO_EccPrivateKey *shorten_key = NULL;
 
@@ -569,7 +569,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
               "Launching a lookup for client %p with rq %p\n",
               client, rq);
 
-  if (NULL != GNUNET_GNS_lookup_zone (gns, hostname, zone, rtype,
+  if (NULL != GNUNET_GNS_lookup (gns, hostname, zone, rtype,
       GNUNET_YES, shorten_key, &process_ip_lookup_result, rq))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -682,8 +682,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CRYPTO_short_hash(&pkey,
                          sizeof(struct GNUNET_CRYPTO_EccPublicKey),
                          &user_zone);
-      zone = &user_zone;
-      GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
+      GNUNET_CRYPTO_short_hash_to_enc (&user_zone, &zonename);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Using zone: %s!\n", &zonename);
       GNUNET_CRYPTO_ecc_key_free(key);
