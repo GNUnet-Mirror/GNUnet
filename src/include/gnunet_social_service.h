@@ -487,10 +487,12 @@ GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh);
 
 struct GNUNET_SOCIAL_LookHandle;
 
+
 /** 
- * Look at all objects in the place.
+ * Look at objects in the place with a matching name prefix.
  *
  * @param place The place to look its objects at.
+ * @param name_prefix Look at objects with names beginning with this value.
  * @param state_cb Function to call for each object found.
  * @param state_cb_cls Closure for callback function.
  * 
@@ -498,25 +500,9 @@ struct GNUNET_SOCIAL_LookHandle;
  */
 struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
+                          const char *name_prefix,
                           GNUNET_PSYC_StateCallback state_cb,
                           void *state_cb_cls);
-
-
-/** 
- * Look at matching objects in the place.
- *
- * @param place The place to look its objects at.
- * @param object_filter Only look at objects with names beginning with this filter value.
- * @param state_cb Function to call for each object found.
- * @param state_cb_cls Closure for callback function.
- * 
- * @return Handle that can be used to stop looking at objects.
- */
-struct GNUNET_SOCIAL_LookHandle *
-GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *place,
-                              const char *object_filter,
-                              GNUNET_PSYC_StateCallback state_cb,
-                              void *state_cb_cls);
 
 
 /** 
@@ -532,14 +518,17 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
 /** 
  * Look at a particular object in the place.
  *
+ * The best matching object is returned (its name might be less specific than
+ * what was requested).
+ *
  * @param place The place to look the object at.
- * @param object_name Full name of the object.
+ * @param full_name Full name of the object.
  * @param value_size Set to the size of the returned value.
  * @return NULL if there is no such object at this place.
  */
 const void *
 GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
-                             const char *object_name,
+                             const char *full_name,
                              size_t *value_size);
 
 
