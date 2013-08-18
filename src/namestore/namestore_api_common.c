@@ -590,7 +590,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	 ('\0' != cdata[data_size - 1]) )
       return NULL; /* malformed */
     vpn = data;
-    GNUNET_CRYPTO_hash_to_enc (&vpn->peer, &s_peer);
+    GNUNET_CRYPTO_hash_to_enc (&vpn->peer.hashPubKey, &s_peer);
     if (0 == GNUNET_asprintf (&vpn_str, "%u %s %s",
 			      (unsigned int) ntohs (vpn->proto),
 			      (const char*) &s_peer,
@@ -797,7 +797,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
     *data = vpn = GNUNET_malloc (*data_size);
     if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((char*)&s_peer,
-						     &vpn->peer))
+						     &vpn->peer.hashPubKey))
     {
       GNUNET_free (vpn);
       *data_size = 0;

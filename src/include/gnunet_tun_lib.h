@@ -578,7 +578,7 @@ struct GNUNET_TUN_GnsVpnRecord
   /**
    * The peer to contact
    */
-  struct GNUNET_HashCode peer;
+  struct GNUNET_PeerIdentity peer;
 
   /**
    * The protocol to use
