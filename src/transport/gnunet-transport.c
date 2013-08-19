@@ -487,7 +487,7 @@ transmit_data (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
-  if ((NULL == buf) && (0 == size))
+  if ((NULL == buf) || ((NULL == buf) && (0 == size)))
   {
     th = NULL;
     return 0;
