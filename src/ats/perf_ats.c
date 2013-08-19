@@ -277,7 +277,7 @@ controller_event_cb (void *cls,
     break;
   default:
     GNUNET_break (0);
-    result = GNUNET_SYSERR;
+    result = 2;
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
@@ -596,7 +596,7 @@ main (int argc, char *argv[])
   int c;
   
   peers = 0;
-  result = 1;
+  result = 0;
 
   /* figure out testname */
   tmp = strstr (argv[0], TESTNAME_PREFIX);
@@ -644,7 +644,6 @@ main (int argc, char *argv[])
   state.connected_PEERS = GNUNET_NO;
   /* Start topology */
   uint64_t event_mask;
-  result = GNUNET_SYSERR;
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
