@@ -28,7 +28,6 @@
 #include "gnunet_block_plugin.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_signatures.h"
-#include "gns_common.h"
 
 /**
  * Number of bits we set per entry in the bloomfilter.
