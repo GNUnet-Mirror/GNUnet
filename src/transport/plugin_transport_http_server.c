@@ -1424,7 +1424,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     response = MHD_create_response_from_data (strlen ("Thank you!"),
                                        "Thank you!",
                                        MHD_NO, MHD_NO);
-    res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+    MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return MHD_YES;
   }
@@ -1472,7 +1472,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       response = MHD_create_response_from_data (strlen ("Thank you!"),
                                          "Thank you!",
                                          MHD_NO, MHD_NO);
-      res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+      MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
       MHD_destroy_response (response);
       return MHD_YES;
     }

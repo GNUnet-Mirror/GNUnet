@@ -272,7 +272,7 @@ udp_ipv4_broadcast_send (void *cls,
   plugin->send_ipv4_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
 
   msg_size = prepare_beacon(plugin, (struct UDP_Beacon_Message *) &buf);
-  sent = 0;
+
   baddr = plugin->ipv4_broadcast_head;
   /* just IPv4 */
   while ((msg_size > 0) && (baddr != NULL) && (baddr->addrlen == sizeof (struct sockaddr_in)))
@@ -324,7 +324,6 @@ udp_ipv6_broadcast_send (void *cls,
   plugin->send_ipv6_broadcast_task = GNUNET_SCHEDULER_NO_TASK;
 
   msg_size = prepare_beacon(plugin, (struct UDP_Beacon_Message *) &buf);
-  sent = 0;
   sent = GNUNET_NETWORK_socket_sendto (plugin->sockv6, &buf, msg_size,
                                     (const struct sockaddr *)
                                     &plugin->ipv6_multicast_address,

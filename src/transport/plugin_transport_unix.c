@@ -610,7 +610,6 @@ unix_real_send (void *cls,
 
 resend:
   /* Send the data */
-  sent = 0;
   sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
 
   if (GNUNET_SYSERR == sent)
@@ -1440,7 +1439,7 @@ unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   address = NULL;
   plugin = NULL;
   optionstr = NULL;
-  options = 0;
+
   if ((NULL == addr) || (addrlen == 0))
   {
     GNUNET_break (0);

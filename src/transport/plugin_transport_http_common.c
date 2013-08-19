@@ -320,7 +320,6 @@ http_common_plugin_string_to_address (void *cls,
   address = NULL;
   plugin = NULL;
   optionstr = NULL;
-  options = 0;
   if ((NULL == addr) || (addrlen == 0))
   {
     GNUNET_break (0);
@@ -346,7 +345,7 @@ http_common_plugin_string_to_address (void *cls,
   }
   optionstr[0] = '\0';
   optionstr ++;
-  options = atol (optionstr);
+  options = atol (optionstr); /* 0 on conversion error, that's ok */
   address = strchr (optionstr, '.');
   if (NULL == address)
   {

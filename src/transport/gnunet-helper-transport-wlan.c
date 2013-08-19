@@ -1482,7 +1482,7 @@ linux_read (struct HardwareInfos *dev,
 	    if (PRISM_STATUS_OK == pv.status)
 	    {
 	      ri->ri_noise = pv.data;
-	      got_noise = 1;
+	      /* got_noise = 1; */
 	    }
 	    break;
 	  case PRISM_DID_RATE:
@@ -1504,7 +1504,7 @@ linux_read (struct HardwareInfos *dev,
 	    if (PRISM_STATUS_OK == pv.status)
 	    {
 	      ri->ri_power = pv.data;
-	      got_signal = 1;
+	      /* got_signal = 1; */
 	    }
 	    break;
 	  }

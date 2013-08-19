@@ -263,7 +263,7 @@ main (int argc, char *argv[])
     }
     if (NULL == (fpout = fopen (FIFO_FILE2, "w")))
     {
-      erg = mkfifo (FIFO_FILE2, 0666);
+      mkfifo (FIFO_FILE2, 0666);
       fpout = fopen (FIFO_FILE2, "w");
     }
     if (NULL == fpout)
@@ -277,7 +277,7 @@ main (int argc, char *argv[])
     first = 0;
     if (NULL == (fpout = fopen (FIFO_FILE1, "w")))
     {
-      erg = mkfifo (FIFO_FILE1, 0666);
+      mkfifo (FIFO_FILE1, 0666);
       fpout = fopen (FIFO_FILE1, "w");
     }
     if (NULL == fpout)

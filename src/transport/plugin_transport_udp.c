@@ -559,7 +559,6 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   uint16_t port;
   uint32_t options;
 
-  options = 0;
   if (addrlen == sizeof (struct IPv6UdpAddress))
   {
     t6 = addr;
@@ -622,7 +621,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   address = NULL;
   plugin = NULL;
   optionstr = NULL;
-  options = 0;
+
   if ((NULL == addr) || (addrlen == 0))
   {
     GNUNET_break (0);
@@ -795,7 +794,6 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   uint16_t port;
   uint32_t options;
 
-  options = 0;
   if (addrlen == sizeof (struct IPv6UdpAddress))
   {
     u6 = addr;
@@ -1256,7 +1254,6 @@ disconnect_session (struct Session *s)
       call_continuation(udpw, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
-    udpw = next;
   }
   plugin->env->session_end (plugin->env->cls, &s->target, s);
 
