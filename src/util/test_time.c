@@ -70,9 +70,9 @@ main (int argc, char *argv[])
   GNUNET_assert (last.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us);
   GNUNET_log_skip (0, GNUNET_YES);
 
-  /*check relative to absolute */
-  rel.rel_value_us = 0;
-  GNUNET_assert (GNUNET_TIME_absolute_get ().abs_value_us ==
+  /* check relative to absolute */
+  rel.rel_value_us = 1000000;
+  GNUNET_assert (GNUNET_TIME_absolute_get ().abs_value_us <
                  GNUNET_TIME_relative_to_absolute (rel).abs_value_us);
   /*check forever */
   rel.rel_value_us = UINT64_MAX;
