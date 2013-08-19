@@ -3437,17 +3437,19 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 
     num_edges = state_get_edges (s, edges);
     if ( ( (NULL != s->proof) && 
-	   (0 < strlen (s->proof)) ) || s->accepting)
+           (GNUNET_REGEX_INITIAL_BYTES <= strlen (s->proof)) ) || s->accepting)
       iterator (iterator_cls, &s->hash, s->proof, 
-		s->accepting,
-		num_edges, edges);
+                s->accepting,
+                num_edges, edges);
     s->marked = GNUNET_NO;
   }
 
-  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
-			GNUNET_REGEX_INITIAL_BYTES,
+  iterate_initial_edge (1,
+                        GNUNET_REGEX_INITIAL_BYTES,
                         NULL, a->start, 
-			iterator, iterator_cls);
+                        iterator, iterator_cls);
+
+
 }
 
 
