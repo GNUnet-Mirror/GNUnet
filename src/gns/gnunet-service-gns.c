@@ -37,7 +37,6 @@
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gns.h"
-#include "gns_common.h"
 #include "gnunet-service-gns_resolver.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gnunet_protocols.h"
