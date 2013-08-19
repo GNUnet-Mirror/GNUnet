@@ -311,7 +311,6 @@ recalculate_rel_preferences (struct PreferenceClient *c,
 				GNUNET_ATS_print_preference_type (kind),
 				p_cur->f_rel[kind]);
 
-		res = 0.0;
 		if (p_cur->f_rel[kind] != backup)
 		{
 			/* Value changed, recalculate */
@@ -774,7 +773,7 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addr
 	for (c1 = 0; c1 < atsi_count; c1++)
 	{
 		current_type = ntohl (atsi[c1].type);
-		current_val = ntohl (atsi[c1].value);
+
 		for (c2 = 0; c2 < GNUNET_ATS_QualityPropertiesCount; c2++)
 		{
 			/* Check if type is valid */

@@ -517,7 +517,8 @@ GAS_mlp_bulk_stop (void *solver);
 
 
 /**
- * Get the preferred address for a specific peer
+ * Get the preferred address for a specific peer until
+ * GAS_mlp_stop_get_preferred_address is called
  *
  * @param solver the MLP Handle
  * @param peer the peer
