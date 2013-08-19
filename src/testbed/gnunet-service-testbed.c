@@ -918,7 +918,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
                                                         "MAX_OPEN_FDS", &num));
-  GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_ ((unsigned int) num);
+  GST_opq_openfds = GNUNET_TESTBED_operation_queue_create_
+      (OPERATION_QUEUE_TYPE_FIXED, (unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
                                                       "OPERATION_TIMEOUT",

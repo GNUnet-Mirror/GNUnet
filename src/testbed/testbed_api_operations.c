@@ -27,6 +27,7 @@
 
 #include "platform.h"
 #include "testbed_api_operations.h"
+#include "testbed_api_sd.h"
 
 
 /**
@@ -53,6 +54,89 @@ struct QueueEntry
    * How many units of resources does the operation need
    */
   unsigned int nres;
+};
+
+
+/**
+ * Queue of operations where we can only support a certain
+ * number of concurrent operations of a particular type.
+ */
+struct OperationQueue;
+
+
+/**
+ * A slot to record time taken by an operation
+ */
+struct TimeSlot
+{
+  /**
+   * DLL next pointer
+   */
+  struct TimeSlot *next;
+
+  /**
+   * DLL prev pointer
+   */
+  struct TimeSlot *prev;
+
+  /**
+   * This operation queue to which this time slot belongs to
+   */
+  struct OperationQueue *queue;
+
+  /**
+   * The operation to which this timeslot is currently allocated to
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Accumulated time
+   */
+  struct GNUNET_TIME_Relative tsum;
+
+  /**
+   * Number of timing values accumulated
+   */
+  unsigned int nvals;
+};
+
+
+/**
+ * Context for operation queues of type OPERATION_QUEUE_TYPE_ADAPTIVE
+ */
+struct FeedbackCtx
+{
+  /**
+   * Handle for calculating standard deviation
+   */
+  struct SDHandle *sd;
+
+  /**
+   * Head for DLL of time slots which are free to be allocated to operations
+   */
+  struct TimeSlot *alloc_head;
+    
+  /**
+   * Tail for DLL of time slots which are free to be allocated to operations
+   */
+  struct TimeSlot *alloc_tail;
+
+  /**
+   * Pointer to the chunk of time slots.  Free all time slots at a time using
+   * this pointer.
+   */
+  struct TimeSlot *tslots_freeptr;
+
+  /**
+   * Number of time slots filled so far
+   */
+  unsigned int tslots_filled;
+  
+  /**
+   * Bound on the maximum number of operations which can be active
+   */
+  unsigned int max_active_bound;
+
 };
 
 
@@ -108,12 +192,26 @@ struct OperationQueue
   struct QueueEntry *nq_tail;
 
   /**
+   * Feedback context; only relevant for adaptive operation queues.  NULL for
+   * fixed operation queues
+   */
+  struct FeedbackCtx *fctx;
+
+  /**
+   * The type of this opeartion queue
+   */
+  enum OperationQueueType type;
+
+  /**
    * Number of operations that are currently active in this queue.
    */
   unsigned int active;
 
   /**
-   * Max number of operations which can be active at any time in this queue
+   * Max number of operations which can be active at any time in this queue.
+   * This value can be changed either by calling
+   * GNUNET_TESTBED_operation_queue_reset_max_active_() or by the adaptive
+   * algorithm if this operation queue is of type OPERATION_QUEUE_TYPE_ADAPTIVE
    */
   unsigned int max_active;
 
@@ -222,6 +320,21 @@ struct GNUNET_TESTBED_Operation
   struct ReadyQueueEntry *rq_entry;
 
   /**
+   * Head pointer for DLL of tslots allocated to this operation
+   */
+  struct TimeSlot *tslots_head;
+
+  /**
+   * Tail pointer for DLL of tslots allocated to this operation
+   */
+  struct TimeSlot *tslots_tail;
+
+  /**
+   * The time at which the operation is started
+   */
+  struct GNUNET_TIME_Absolute tstart;
+
+  /**
    * Number of queues in the operation queues array
    */
   unsigned int nqueues;
@@ -230,6 +343,11 @@ struct GNUNET_TESTBED_Operation
    * The state of the operation
    */
   enum OperationState state;
+
+  /**
+   * Is this a failed operation?
+   */
+  int failed;
 
 };
 
@@ -247,6 +365,29 @@ struct ReadyQueueEntry *rq_tail;
  * The id of the task to process the ready queue
  */
 GNUNET_SCHEDULER_TaskIdentifier process_rq_task_id;
+
+
+/**
+ * Assigns the given operation a time slot from the given operation queue
+ *
+ * @param op the operation
+ * @param queue the operation queue
+ * @return the timeslot
+ */
+static void
+assign_timeslot (struct GNUNET_TESTBED_Operation *op,
+                 struct OperationQueue *queue)
+{
+  struct FeedbackCtx *fctx = queue->fctx;
+  struct TimeSlot *tslot;
+
+  GNUNET_assert (OPERATION_QUEUE_TYPE_ADAPTIVE == queue->type);
+  tslot = fctx->alloc_head;
+  GNUNET_assert (NULL != tslot);
+  GNUNET_CONTAINER_DLL_remove (fctx->alloc_head, fctx->alloc_tail, tslot);
+  GNUNET_CONTAINER_DLL_insert_tail (op->tslots_head, op->tslots_tail, tslot);
+  tslot->op = op;
+}
 
 
 /**
@@ -378,6 +519,8 @@ static void
 process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTBED_Operation *op;
+  struct OperationQueue *queue;
+  unsigned int cnt;
 
   process_rq_task_id = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != rq_head);
@@ -386,8 +529,15 @@ process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != rq_head)
     process_rq_task_id = GNUNET_SCHEDULER_add_now (&process_rq_task, NULL);
   change_state (op, OP_STATE_ACTIVE);
+  for (cnt = 0; cnt < op->nqueues; cnt++)
+  {
+    queue = op->queues[cnt];
+    if (OPERATION_QUEUE_TYPE_ADAPTIVE == queue->type)
+      assign_timeslot (op, queue);
+  }
+  op->tstart = GNUNET_TIME_absolute_get ();
   if (NULL != op->start)
-    op->start (op->cb_cls);  
+    op->start (op->cb_cls);
 }
 
 
@@ -582,7 +732,7 @@ check_readiness (struct GNUNET_TESTBED_Operation *op)
   if (NULL != evict_ops)
   {
     for (i = 0; i < n_evict_ops; i++)
-      GNUNET_TESTBED_operation_release_ (evict_ops[i]);
+      GNUNET_TESTBED_operation_release_ (evict_ops[i]); 
     GNUNET_free (evict_ops);
     evict_ops = NULL;
     /* Evicting the operations should schedule this operation */
@@ -619,6 +769,162 @@ defer (struct GNUNET_TESTBED_Operation *op)
 
 
 /**
+ * Cleanups the array of timeslots of an operation queue.  For each time slot in
+ * the array, if it is allocated to an operation, it will be deallocated from
+ * the operation
+ *
+ * @param queue the operation queue
+ */
+static void
+cleanup_tslots (struct OperationQueue *queue)
+{
+  struct FeedbackCtx *fctx = queue->fctx;
+  struct TimeSlot *tslot;
+  struct GNUNET_TESTBED_Operation *op;
+  unsigned int cnt;
+
+  GNUNET_assert (NULL != fctx);
+  for (cnt = 0; cnt < queue->max_active; cnt++)
+  {
+    tslot = &fctx->tslots_freeptr[cnt];
+    op = tslot->op;
+    if (NULL == op)
+      continue;
+    GNUNET_CONTAINER_DLL_remove (op->tslots_head, op->tslots_tail, tslot);
+  }
+  GNUNET_free_non_null (fctx->tslots_freeptr);
+  fctx->tslots_freeptr = NULL;
+  fctx->alloc_head = NULL;
+  fctx->alloc_tail = NULL;
+  fctx->tslots_filled = 0;
+}
+
+
+/**
+ * Initializes the operation queue for parallel overlay connects
+ *
+ * @param h the host handle
+ * @param npoc the number of parallel overlay connects - the queue size
+ */
+static void
+adaptive_queue_set_max_active (struct OperationQueue *queue, unsigned int n)
+{
+  struct FeedbackCtx *fctx = queue->fctx;
+  struct TimeSlot *tslot;
+  unsigned int cnt;
+  
+  cleanup_tslots (queue);
+  n = GNUNET_MIN (n ,fctx->max_active_bound);
+  fctx->tslots_freeptr = GNUNET_malloc (n * sizeof (struct TimeSlot));
+  for (cnt = 0; cnt < n; cnt++)
+  {
+    tslot = &fctx->tslots_freeptr[cnt];
+    tslot->queue = queue;
+    GNUNET_CONTAINER_DLL_insert_tail (fctx->alloc_head, fctx->alloc_tail, tslot);
+  }
+  GNUNET_TESTBED_operation_queue_reset_max_active_ (queue, n);
+}
+
+
+/**
+ * Adapts parallelism in an adaptive queue by using the statistical data from
+ * the feedback context.
+ *
+ * @param queue the queue
+ * @param fail GNUNET_YES if the last operation failed; GNUNET_NO if not;
+ */
+static void
+adapt_parallelism (struct OperationQueue *queue, int fail)
+{
+  struct GNUNET_TIME_Relative avg;
+  struct FeedbackCtx *fctx;
+  struct TimeSlot *tslot;
+  int sd;
+  unsigned int nvals;
+  unsigned int cnt;
+
+  avg = GNUNET_TIME_UNIT_ZERO;
+  nvals = 0;
+  fctx = queue->fctx;
+  for (cnt = 0; cnt < queue->max_active; cnt++)
+  {
+    tslot = &fctx->tslots_freeptr[cnt];
+    avg = GNUNET_TIME_relative_add (avg, tslot->tsum);
+    nvals += tslot->nvals;
+  }
+  GNUNET_assert (nvals >= queue->max_active);
+  avg = GNUNET_TIME_relative_divide (avg, nvals);
+  sd = GNUNET_TESTBED_SD_deviation_factor_ (fctx->sd, (unsigned int)
+                                            avg.rel_value_us);
+  if ( (sd <= 5) ||
+       (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+				       queue->max_active)) )
+    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
+  if (GNUNET_SYSERR == sd)
+  {
+    adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
+    return;
+  }
+  GNUNET_assert (0 <= sd);
+  if ((0 == sd) && (! fail))
+  {
+    adaptive_queue_set_max_active (queue, queue->max_active * 2);
+    return;
+  }
+  if ((1 == sd) && (! fail))
+  {
+    adaptive_queue_set_max_active (queue, queue->max_active + 1);
+    return;
+  }
+  if (1 == queue->max_active)
+  {
+    adaptive_queue_set_max_active (queue, 1);
+    return;
+  }
+  if (((sd < 2) && (fail)) || (2 == sd))
+  {
+    adaptive_queue_set_max_active (queue, queue->max_active - 1);
+    return;
+  }
+  adaptive_queue_set_max_active (queue, queue->max_active / 2);
+}
+
+
+/**
+ * update tslots with the operation's completion time.  Additionally, if
+ * updating a timeslot makes all timeslots filled in an adaptive operation
+ * queue, call adapt_parallelism() for that queue.
+ *
+ * @param op the operation
+ */
+static void
+update_tslots (struct GNUNET_TESTBED_Operation *op)
+{
+  struct OperationQueue *queue;
+  struct GNUNET_TIME_Relative t;
+  struct TimeSlot *tslot;
+  struct FeedbackCtx *fctx;
+  
+  t = GNUNET_TIME_absolute_get_duration (op->tstart);
+  while (NULL != (tslot = op->tslots_head)) /* update time slots */
+  {
+    queue = tslot->queue;
+    fctx = queue->fctx;
+    tslot->tsum = GNUNET_TIME_relative_add (tslot->tsum, t);
+    GNUNET_CONTAINER_DLL_remove (op->tslots_head, op->tslots_tail, tslot);
+    tslot->op = NULL;    
+    GNUNET_CONTAINER_DLL_insert_tail (fctx->alloc_head, fctx->alloc_tail,
+  tslot);
+    if (0 != tslot->nvals++)
+      continue;
+    fctx->tslots_filled++;
+    if (queue->max_active == fctx->tslots_filled)
+      adapt_parallelism (queue, op->failed);
+  }
+}
+
+
+/**
  * Create an 'operation' to be performed.
  *
  * @param cls closure for the callbacks
@@ -644,17 +950,32 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
 /**
  * Create an operation queue.
  *
+ * @param type the type of operation queue
  * @param max_active maximum number of operations in this
  *        queue that can be active in parallel at the same time
  * @return handle to the queue
  */
 struct OperationQueue *
-GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
+GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
+                                        unsigned int max_active)
 {
   struct OperationQueue *queue;
+  struct FeedbackCtx *fctx;
 
   queue = GNUNET_malloc (sizeof (struct OperationQueue));
-  queue->max_active = max_active;
+  queue->type = type;
+  if (OPERATION_QUEUE_TYPE_FIXED == type)
+  {
+    queue->max_active = max_active;
+  }
+  else
+  {
+    fctx = GNUNET_malloc (sizeof (struct FeedbackCtx));
+    fctx->max_active_bound = max_active;
+    fctx->sd = GNUNET_TESTBED_SD_init_ (10); /* FIXME: Why 10? */
+    queue->fctx = fctx;
+    adaptive_queue_set_max_active (queue, 1); /* start with 1 */
+  }
   return queue;
 }
 
@@ -668,7 +989,16 @@ GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active)
 void
 GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
 {
+  struct FeedbackCtx *fctx;
+  
   GNUNET_break (GNUNET_YES == is_queue_empty (queue));
+  if (OPERATION_QUEUE_TYPE_ADAPTIVE == queue->type)
+  {
+    cleanup_tslots (queue);
+    fctx = queue->fctx;
+    GNUNET_TESTBED_SD_destroy_ (fctx->sd);
+    GNUNET_free (fctx);
+  }
   GNUNET_free (queue);
 }
 
@@ -867,8 +1197,10 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op)
     rq_remove (op);
   if (OP_STATE_INACTIVE == op->state) /* Activate the operation if inactive */
     GNUNET_TESTBED_operation_activate_ (op);
+  if (OP_STATE_ACTIVE == op->state)
+    update_tslots (op);
   GNUNET_assert (NULL != op->queues);
-  GNUNET_assert (NULL != op->qentries);
+  GNUNET_assert (NULL != op->qentries);  
   for (i = 0; i < op->nqueues; i++)
   {
     entry = op->qentries[i];
@@ -882,8 +1214,8 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op)
       break;
     case OP_STATE_WAITING:      
       break;
-    case OP_STATE_READY:
     case OP_STATE_ACTIVE:
+    case OP_STATE_READY:
       GNUNET_assert (0 != opq->active);
       GNUNET_assert (opq->active >= entry->nres);
       opq->active -= entry->nres;
@@ -898,6 +1230,18 @@ GNUNET_TESTBED_operation_release_ (struct GNUNET_TESTBED_Operation *op)
   if (NULL != op->release)
     op->release (op->cb_cls);
   GNUNET_free (op);
+}
+
+
+/**
+ * Marks an operation as failed
+ *
+ * @param op the operation to be marked as failed
+ */
+void
+GNUNET_TESTBED_operation_mark_failed (struct GNUNET_TESTBED_Operation *op)
+{
+  op->failed = GNUNET_YES;
 }
 
 

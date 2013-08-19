@@ -415,8 +415,8 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
   GNUNET_assert (NULL != proc);
   GNUNET_assert (NULL != cont);
   if (NULL == no_wait_queue)
-    no_wait_queue =
-        GNUNET_TESTBED_operation_queue_create_ (UINT_MAX);
+    no_wait_queue = GNUNET_TESTBED_operation_queue_create_ 
+        (OPERATION_QUEUE_TYPE_FIXED, UINT_MAX);
   sc = GNUNET_malloc (sizeof (struct GetStatsContext));
   sc->peers = peers;
   sc->subsystem = (NULL == subsystem) ? NULL : GNUNET_strdup (subsystem);

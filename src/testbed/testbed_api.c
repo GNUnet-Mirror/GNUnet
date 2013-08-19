@@ -860,7 +860,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
     struct OverlayConnectData *data;
 
     data = opc->data;
-    data->failed = GNUNET_YES;
+    GNUNET_TESTBED_operation_mark_failed (opc->op);
     if (NULL != data->cb)
       data->cb (data->cb_cls, opc->op, emsg);
   }
@@ -1486,13 +1486,15 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
   GNUNET_TESTBED_mark_host_registered_at_ (host, controller);
   controller->host = host;
   controller->opq_parallel_operations =
-      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
-                                              max_parallel_operations);
+      GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED,
+                                              (unsigned int) max_parallel_operations);
   controller->opq_parallel_service_connections =
-      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+      GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED,
+                                              (unsigned int)
                                               max_parallel_service_connections);
   controller->opq_parallel_topology_config_operations =
-      GNUNET_TESTBED_operation_queue_create_ ((unsigned int)
+      GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED,
+                                              (unsigned int)
                                               max_parallel_topology_config_operations);
   controller_hostname = GNUNET_TESTBED_host_get_hostname (host);
   if (NULL == controller_hostname)
@@ -1856,13 +1858,25 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
 
 
 /**
- * Signal that the information from an operation has been fully
- * processed.  This function MUST be called for each event
- * of type 'operation_finished' to fully remove the operation
- * from the operation queue.  After calling this function, the
- * 'op_result' becomes invalid (!).
+ * This function is used to signal that the event information (struct
+ * GNUNET_TESTBED_EventInformation) from an operation has been fully processed
+ * i.e. if the event callback is ever called for this operation. If the event
+ * callback for this operation has not yet been called, calling this function
+ * cancels the operation, frees its resources and ensures the no event is
+ * generated with respect to this operation. Note that however cancelling an
+ * operation does NOT guarantee that the operation will be fully undone (or that
+ * nothing ever happened). 
  *
- * @param operation operation to signal completion for
+ * This function MUST be called for every operation to fully remove the
+ * operation from the operation queue.  After calling this function, if
+ * operation is completed and its event information is of type
+ * GNUNET_TESTBED_ET_OPERATION_FINISHED, the 'op_result' becomes invalid (!).
+
+ * If the operation is generated from GNUNET_TESTBED_service_connect() then
+ * calling this function on such as operation calls the disconnect adapter if
+ * the connect adapter was ever called.
+ *
+ * @param operation operation to signal completion or cancellation
  */
 void
 GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)

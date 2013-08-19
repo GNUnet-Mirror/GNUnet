@@ -490,9 +490,9 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
-  q1 = GNUNET_TESTBED_operation_queue_create_ (1);
+  q1 = GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED, 1);
   GNUNET_assert (NULL != q1);
-  q2 = GNUNET_TESTBED_operation_queue_create_ (2);
+  q2 = GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_FIXED, 2);
   GNUNET_assert (NULL != q2);
   op1 = GNUNET_TESTBED_operation_create_ (&op1, start_cb, release_cb);
   GNUNET_assert (NULL != op1);

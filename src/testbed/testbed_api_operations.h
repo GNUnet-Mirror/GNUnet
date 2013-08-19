@@ -38,14 +38,35 @@ struct OperationQueue;
 
 
 /**
+ * The type of operation queue
+ */
+enum OperationQueueType
+{
+  /**
+   * Operation queue which permits a fixed maximum number of operations to be
+   * active at any time
+   */
+  OPERATION_QUEUE_TYPE_FIXED,
+
+  /**
+   * Operation queue which adapts the number of operations to be active based on
+   * the operation completion times of previously executed operation in it
+   */
+  OPERATION_QUEUE_TYPE_ADAPTIVE
+};
+
+
+/**
  * Create an operation queue.
  *
- * @param max_active maximum number of operations in this
- *        queue that can be active in parallel at the same time
+ * @param type the type of operation queue
+ * @param max_active maximum number of operations in this queue that can be
+ *   active in parallel at the same time.
  * @return handle to the queue
  */
 struct OperationQueue *
-GNUNET_TESTBED_operation_queue_create_ (unsigned int max_active);
+GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
+                                        unsigned int max_active);
 
 
 /**
@@ -197,6 +218,15 @@ GNUNET_TESTBED_operation_inactivate_ (struct GNUNET_TESTBED_Operation *op);
  */
 void
 GNUNET_TESTBED_operation_activate_ (struct GNUNET_TESTBED_Operation *op);
+
+
+/**
+ * Marks an operation as failed
+ *
+ * @param op the operation to be marked as failed
+ */
+void
+GNUNET_TESTBED_operation_mark_failed (struct GNUNET_TESTBED_Operation *op);
 
 
 #endif

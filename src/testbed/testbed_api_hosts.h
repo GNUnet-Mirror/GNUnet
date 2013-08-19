@@ -151,61 +151,6 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
 
 
 /**
- * (re)sets the operation queue for parallel overlay connects
- *
- * @param h the host handle
- * @param npoc the number of parallel overlay connects - the queue size
- */
-void
-GNUNET_TESTBED_set_num_parallel_overlay_connects_ (struct
-                                                   GNUNET_TESTBED_Host *h,
-                                                   unsigned int npoc);
-
-
-/**
- * Releases a time slot thus making it available for be used again
- *
- * @param h the host handle
- * @param index the index of the the time slot
- * @param key the key to prove ownership of the timeslot
- * @return GNUNET_YES if the time slot is successfully removed; GNUNET_NO if the
- *           time slot cannot be removed - this could be because of the index
- *           greater than existing number of time slots or `key' being different
- */
-int
-GNUNET_TESTBED_release_time_slot_ (struct GNUNET_TESTBED_Host *h,
-                                   unsigned int index, void *key);
-
-
-/**
- * Function to update a time slot
- *
- * @param h the host handle
- * @param index the index of the time slot to update
- * @param key the key to identify ownership of the slot
- * @param time the new time
- * @param failed should this reading be treated as coming from a fail event
- */
-void
-GNUNET_TESTBED_update_time_slot_ (struct GNUNET_TESTBED_Host *h,
-                                  unsigned int index, void *key,
-                                  struct GNUNET_TIME_Relative time, int failed);
-
-
-/**
- * Returns a timing slot which will be exclusively locked
- *
- * @param h the host handle
- * @param key a pointer which is associated to the returned slot; should not be
- *          NULL. It serves as a key to determine the correct owner of the slot
- * @return the time slot index in the array of time slots in the controller
- *           handle
- */
-unsigned int
-GNUNET_TESTBED_get_tslot_ (struct GNUNET_TESTBED_Host *h, void *key);
-
-
-/**
  * Queues the given operation in the queue for parallel overlay connects of the
  * given host
  *
