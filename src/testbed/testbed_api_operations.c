@@ -610,7 +610,10 @@ defer (struct GNUNET_TESTBED_Operation *op)
   GNUNET_assert (OP_STATE_READY == op->state);
   rq_remove (op);
   for (i = 0; i < op->nqueues; i++)
-    op->queues[i]->active--;
+  {
+    GNUNET_assert (op->queues[i]->active >= op->nres[i]);
+    op->queues[i]->active -= op->nres[i];    
+  }
   change_state (op, OP_STATE_WAITING);
 }
 
