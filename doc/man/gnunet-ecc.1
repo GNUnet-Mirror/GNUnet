@@ -17,13 +17,10 @@ gnunet\-ecc \- manipulate GNUnet ECC key files
 Create COUNT public-private key pairs and write them to FILENAME.  Used for creating a file for testing.
 .B
 .IP "\-p, \-\-print-public-key"
-Print the corresponding public key to stdout.
+Print the corresponding public key to stdout.  This is the value used for PKEY records in GNS.
 .B
 .IP "\-P, \-\-print-peer-identity"
 Print the corresponding peer identity (hash of the public key) to stdout.  This hash is used for the name of peers.
-.B
-.IP "\-s, \-\-print-short-identity"
-Print the corresponding short hash (256-bit hash of the public key) to stdout.  This hash is used for names in the zkey zone.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.

@@ -132,8 +132,8 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
   char *dn;
   char *ret;
   struct GNUNET_CRYPTO_EccPublicKey pub;
-  struct GNUNET_CRYPTO_ShortHashCode hc;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
+  struct GNUNET_HashCode hc;
+  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (h->cfg, "FS", "UPDATE_DIR",
@@ -144,13 +144,13 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
     return NULL;
   }
   GNUNET_CRYPTO_ecc_key_get_public (ns, &pub);
-  GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &hc);
-  GNUNET_CRYPTO_short_hash_to_enc (&hc,
-				   &enc);
+  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &hc);
+  GNUNET_CRYPTO_hash_to_enc (&hc,
+			     &enc);
   GNUNET_asprintf (&ret, "%s%s%s", 
 		   dn, 
 		   DIR_SEPARATOR_STR, 
-		   (const char *) enc.short_encoding);
+		   (const char *) enc.encoding);
   GNUNET_free (dn);
   return ret;
 }
