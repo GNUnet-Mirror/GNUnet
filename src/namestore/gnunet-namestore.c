@@ -30,6 +30,7 @@
 #include "platform.h"
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
+#include <gnunet_identity_service.h>
 #include <gnunet_namestore_service.h>
 
 
@@ -41,12 +42,17 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Private key for the our zone.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *zone_pkey;
+static struct GNUNET_CRYPTO_EccPrivateKey zone_pkey;
 
 /**
- * Keyfile to manipulate.  FIXME: change to ego's name!
+ * Handle to identity service.
  */
-static char *keyfile;	
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Name of the ego controlling the zone.
+ */
+static char *ego_name;	
 
 /**
  * Desired action is to add a record.
@@ -204,11 +210,7 @@ do_shutdown (void *cls,
     GNUNET_NAMESTORE_disconnect (ns);
     ns = NULL;
   }
-  if (NULL != zone_pkey)
-  {
-    GNUNET_CRYPTO_ecc_key_free (zone_pkey);
-    zone_pkey = NULL;
-  }
+  memset (&zone_pkey, 0, sizeof (zone_pkey));
   if (NULL != uri)
   {
     GNUNET_free (uri);
@@ -396,7 +398,7 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
   GNUNET_assert (NULL != name);
   add_qe = GNUNET_NAMESTORE_records_store (ns,
-					   zone_pkey,
+					   &zone_pkey,
 					   name,
 					   rd_count + 1,
 					   rde,
@@ -429,37 +431,14 @@ testservice_task (void *cls,
 	     "namestore");
     return;
   }
-  if (NULL == keyfile)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                              "ZONEKEY", &keyfile))
-    {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-				 "gns", "ZONEKEY");
-      return;
-    }
-    fprintf (stderr,
-             _("Using default zone file `%s'\n"),
-             keyfile);
-  }
-  zone_pkey = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-
   if (! (add|del|list|(NULL != uri)))
   {
     /* nothing more to be done */  
     fprintf (stderr,
              _("No options given\n"));
-    GNUNET_CRYPTO_ecc_key_free (zone_pkey);
-    zone_pkey = NULL;
     return; 
   }
-  if (NULL == zone_pkey)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to read or create private zone key\n"));
-    return;
-  }
-  GNUNET_CRYPTO_ecc_key_get_public (zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public (&zone_pkey,
                                     &pub);
 
   ns = GNUNET_NAMESTORE_connect (cfg);
@@ -557,7 +536,7 @@ testservice_task (void *cls,
       return;     
     }
     add_zit = GNUNET_NAMESTORE_zone_iteration_start (ns,
-						     zone_pkey,
+						     &zone_pkey,
 						     &get_existing_record,
 						     NULL);
   }
@@ -573,7 +552,7 @@ testservice_task (void *cls,
       return;     
     }
     del_qe = GNUNET_NAMESTORE_records_store (ns,
-					     zone_pkey,
+					     &zone_pkey,
 					     name,
 					     0, NULL,
 					     &del_continuation,
@@ -582,7 +561,7 @@ testservice_task (void *cls,
   if (list)
   {
     list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                     zone_pkey,
+                                                     &zone_pkey,
                                                      &display_record,
                                                      NULL);
   }
@@ -622,7 +601,7 @@ testservice_task (void *cls,
     if (1 != nonauthority)
       rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
-						 zone_pkey,
+						 &zone_pkey,
 						 sname,
 						 1,
 						 &rd,
@@ -632,10 +611,56 @@ testservice_task (void *cls,
   if (monitor)
   {
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
-					      zone_pkey,
+					      &zone_pkey,
 					      &display_record,
 					      &sync_cb,
 					      NULL);
+  }
+}
+
+
+/**
+ * Callback invoked from identity service with ego information.
+ * An @a ego of NULL and a @a name of NULL indicate the end of
+ * the initial iteration over known egos.
+ *
+ * @param cls closure with the configuration
+ * @param ego an ego known to identity service, or NULL 
+ * @param ctx per-ego user context (unused)
+ * @param name name of the ego, or NULL
+ */
+static void
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  if ( (NULL != ego_name) &&
+       (0 == strcmp (name,
+		     ego_name)) )
+  {
+    zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
+    GNUNET_free (ego_name);
+    ego_name = NULL;
+    GNUNET_CLIENT_service_test ("namestore", cfg,
+				GNUNET_TIME_UNIT_SECONDS,
+				&testservice_task,
+				(void *) cfg);
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
+  if ( (NULL != ego_name) &&
+       (NULL == name) &&
+       (NULL == ego) )
+  {
+    fprintf (stderr, 
+	     _("Ego `%s' not known to identity service\n"),
+	     ego_name);
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+    return;
   }
 }
 
@@ -652,14 +677,17 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
+  if (NULL == ego_name)
+  {
+    fprintf (stderr, 
+	     _("You must specify which zone should be accessed\n"));
+    return;
+  }
   if ( (NULL != args[0]) && (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
-
-  GNUNET_CLIENT_service_test ("namestore", cfg,
-			      GNUNET_TIME_UNIT_SECONDS,
-			      &testservice_task,
-			      (void *) cfg);
+  identity = GNUNET_IDENTITY_connect (cfg,
+				      &identity_cb,
+				      (void *) cfg);
 }
 
 
@@ -710,9 +738,9 @@ main (int argc, char *const *argv)
     {'N', "non-authority", NULL,
      gettext_noop ("create or list non-authority record"), 0,
      &GNUNET_GETOPT_set_one, &nonauthority},
-    {'z', "zonekey", "FILENAME",
-     gettext_noop ("filename with the zone key"), 1,
-     &GNUNET_GETOPT_set_string, &keyfile},   
+    {'z', "zone", "EGO",
+     gettext_noop ("name of the ego controlling the zone"), 1,
+     &GNUNET_GETOPT_set_string, &ego_name},   
     GNUNET_GETOPT_OPTION_END
   };
 

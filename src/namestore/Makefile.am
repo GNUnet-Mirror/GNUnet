@@ -103,9 +103,11 @@ gnunet_namestore_SOURCES = \
  gnunet-namestore.c 
 gnunet_namestore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_namestore_DEPENDENCIES = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
 
