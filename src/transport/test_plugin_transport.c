@@ -342,6 +342,7 @@ env_notify_address (void *cls,
                     const char *plugin)
 {
   struct AddressWrapper *w;
+  struct AddressWrapper *wtmp;
   void *s2a;
   size_t s2a_len;
 
@@ -350,6 +351,16 @@ env_notify_address (void *cls,
       addresses_reported ++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Adding address of length %u\n", addrlen);
+
+      for (wtmp = head; NULL != wtmp; wtmp = wtmp->next)
+      {
+      	if ((addrlen == wtmp->addrlen) && (0 == memcmp (addr, wtmp->addr, addrlen)))
+      	{
+          	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Duplicate address notification .... \n");
+      			return;
+      	}
+      }
 
       w = GNUNET_new (struct AddressWrapper);
       w->addr = GNUNET_malloc (addrlen);
