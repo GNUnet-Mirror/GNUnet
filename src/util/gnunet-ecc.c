@@ -40,11 +40,6 @@ static int print_public_key;
 static int print_peer_identity;
 
 /**
- * Flag for printing short hash of public key.
- */
-static int print_short_identity;
-
-/**
  * Option set to create a bunch of keys at once.
  */
 static unsigned int make_keys;
@@ -149,16 +144,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
     fprintf (stdout, "%s\n", enc.encoding);
   }
-  if (print_short_identity)
-  {
-    struct GNUNET_CRYPTO_ShortHashAsciiEncoded enc;
-    struct GNUNET_CRYPTO_ShortHashCode sh;
-
-    GNUNET_CRYPTO_ecc_key_get_public (pk, &pub);
-    GNUNET_CRYPTO_short_hash (&pub, sizeof (pub), &sh);
-    GNUNET_CRYPTO_short_hash_to_enc (&sh, &enc);
-    fprintf (stdout, "%s\n", enc.short_encoding);
-  }
   GNUNET_CRYPTO_ecc_key_free (pk);
 }
 
@@ -183,9 +168,6 @@ main (int argc, char *const *argv)
     { 'P', "print-peer-identity", NULL,
       gettext_noop ("print the hash of the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_peer_identity },
-    { 's', "print-short-identity", NULL,
-      gettext_noop ("print the short hash of the public key in ASCII format"),
-      0, &GNUNET_GETOPT_set_one, &print_short_identity },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

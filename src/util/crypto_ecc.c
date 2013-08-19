@@ -711,14 +711,14 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static gcry_sexp_t
 data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 {
-  struct GNUNET_CRYPTO_ShortHashCode hc;
+  struct GNUNET_HashCode hc;
   gcry_sexp_t data;
   int rc;
 
-  GNUNET_CRYPTO_short_hash (purpose, ntohl (purpose->size), &hc);
+  GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
 				  "(data(flags rfc6979)(hash %s %b))",
-				  "sha256",
+				  "sha512",
 				  sizeof (hc),
 				  &hc)))
   {

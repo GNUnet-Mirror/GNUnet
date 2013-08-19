@@ -114,16 +114,16 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
   struct sockaddr_un dummy;
   size_t slen;
   char *end;
-  struct GNUNET_CRYPTO_ShortHashCode sh;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded ae;
+  struct GNUNET_HashCode sh;
+  struct GNUNET_CRYPTO_HashAsciiEncoded ae;
   size_t upm;
 
   upm = sizeof (dummy.sun_path);   
   slen = strlen (unixpath);
   if (slen < upm)
     return unixpath; /* no shortening required */
-  GNUNET_CRYPTO_short_hash (unixpath, slen, &sh);
-  while (sizeof (struct GNUNET_CRYPTO_ShortHashAsciiEncoded) + 
+  GNUNET_CRYPTO_hash (unixpath, slen, &sh);
+  while (sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 
 	 strlen (unixpath) >= upm)
   {
     if (NULL == (end = strrchr (unixpath, '/')))
@@ -136,8 +136,8 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
     }
     *end = '\0';
   }
-  GNUNET_CRYPTO_short_hash_to_enc (&sh, &ae);
-  strcat (unixpath, (char*) ae.short_encoding);
+  GNUNET_CRYPTO_hash_to_enc (&sh, &ae);
+  strcat (unixpath, (char*) ae.encoding);
   return unixpath;
 }
 
