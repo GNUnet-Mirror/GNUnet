@@ -301,7 +301,7 @@ send_icmp_udp (const struct in_addr *my_ip, const struct in_addr *other)
   }
   else if (sizeof (packet) != (size_t) err)
   {
-    fprintf (stderr, "Error: partial send of ICMP message\n");
+    fprintf (stderr, "Error: partial send of ICMP message with size %lu\n", (unsigned long) off);
   }
 }
 
