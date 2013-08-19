@@ -1394,22 +1394,26 @@ GNUNET_CONTAINER_heap_update_cost (struct GNUNET_CONTAINER_Heap *heap,
 /**
  * Possible ways for how data stored in the linked list
  * might be allocated.
+ * @deprecated use DLL macros
  */
 enum GNUNET_CONTAINER_SListDisposition
 {
-    /**
-     * Single-linked list must copy the buffer.
-     */
+  /**
+   * Single-linked list must copy the buffer.
+   * @deprecated use DLL macros
+   */
   GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT = 0,
 
-    /**
-     * Data is static, no need to copy or free.
-     */
+  /**
+   * Data is static, no need to copy or free.
+   * @deprecated use DLL macros
+   */
   GNUNET_CONTAINER_SLIST_DISPOSITION_STATIC = 2,
 
-    /**
-     * Data is dynamic, do not copy but free when done.
-     */
+  /**
+   * Data is dynamic, do not copy but free when done.
+   * @deprecated use DLL macros
+   */
   GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC = 4
 };
 
@@ -1417,11 +1421,13 @@ enum GNUNET_CONTAINER_SListDisposition
 
 /**
  * Handle to a singly linked list
+ * @deprecated use DLL macros
  */
 struct GNUNET_CONTAINER_SList;
 
 /**
  * Handle to a singly linked list iterator
+ * @deprecated use DLL macros
  */
 struct GNUNET_CONTAINER_SList_Iterator
 {
@@ -1449,6 +1455,7 @@ struct GNUNET_CONTAINER_SList_Iterator
  * @param disp memory disposition
  * @param buf payload buffer
  * @param len length of the buffer
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
@@ -1462,6 +1469,7 @@ GNUNET_CONTAINER_slist_add (struct GNUNET_CONTAINER_SList *l,
  * @param disp memory disposition
  * @param buf payload buffer
  * @param len length of the buffer
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
@@ -1473,6 +1481,7 @@ GNUNET_CONTAINER_slist_add_end (struct GNUNET_CONTAINER_SList *l,
  * Append a singly linked list to another
  * @param dst list to append to
  * @param src source
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
@@ -1482,6 +1491,7 @@ GNUNET_CONTAINER_slist_append (struct GNUNET_CONTAINER_SList *dst,
 /**
  * Create a new singly linked list
  * @return the new list
+ * @deprecated use DLL macros
  */
 struct GNUNET_CONTAINER_SList *
 GNUNET_CONTAINER_slist_create (void);
@@ -1490,6 +1500,7 @@ GNUNET_CONTAINER_slist_create (void);
 /**
  * Destroy a singly linked list
  * @param l the list to be destroyed
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l);
@@ -1502,6 +1513,7 @@ GNUNET_CONTAINER_slist_destroy (struct GNUNET_CONTAINER_SList *l);
  * @return iterator pointing to the beginning (by value! Either allocate the
  *   structure on the stack, or use GNUNET_malloc() yourself! All other
  *   functions do take pointer to this struct though)
+ * @deprecated use DLL macros
  */
 struct GNUNET_CONTAINER_SList_Iterator
 GNUNET_CONTAINER_slist_begin (struct GNUNET_CONTAINER_SList *l);
@@ -1511,6 +1523,7 @@ GNUNET_CONTAINER_slist_begin (struct GNUNET_CONTAINER_SList *l);
  * Clear a list
  *
  * @param l list
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l);
@@ -1521,8 +1534,8 @@ GNUNET_CONTAINER_slist_clear (struct GNUNET_CONTAINER_SList *l);
  * @param l list
  * @param buf payload buffer to find
  * @param len length of the payload (number of bytes in buf)
- *
  * @return GNUNET_YES if found, GNUNET_NO otherwise
+ * @deprecated use DLL macros
  */
 int
 GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
@@ -1538,6 +1551,7 @@ GNUNET_CONTAINER_slist_contains (const struct GNUNET_CONTAINER_SList *l,
  *
  * @return NULL if the 'buf' could not be found, pointer to the
  *         list element, if found
+ * @deprecated use DLL macros
  */
 void *
 GNUNET_CONTAINER_slist_contains2 (const struct GNUNET_CONTAINER_SList *l,
@@ -1547,6 +1561,7 @@ GNUNET_CONTAINER_slist_contains2 (const struct GNUNET_CONTAINER_SList *l,
  * Count the elements of a list
  * @param l list
  * @return number of elements in the list
+ * @deprecated use DLL macros
  */
 int
 GNUNET_CONTAINER_slist_count (const struct GNUNET_CONTAINER_SList *l);
@@ -1555,6 +1570,7 @@ GNUNET_CONTAINER_slist_count (const struct GNUNET_CONTAINER_SList *l);
 /**
  * Remove an element from the list
  * @param i iterator that points to the element to be removed
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i);
@@ -1566,6 +1582,7 @@ GNUNET_CONTAINER_slist_erase (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param disp memory disposition
  * @param buf payload buffer
  * @param len length of the payload
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
@@ -1577,6 +1594,7 @@ GNUNET_CONTAINER_slist_insert (struct GNUNET_CONTAINER_SList_Iterator *before,
  * Advance an iterator to the next element
  * @param i iterator
  * @return GNUNET_YES on success, GNUNET_NO if the end has been reached
+ * @deprecated use DLL macros
  */
 int
 GNUNET_CONTAINER_slist_next (struct GNUNET_CONTAINER_SList_Iterator *i);
@@ -1587,6 +1605,7 @@ GNUNET_CONTAINER_slist_next (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param i iterator
  * @return GNUNET_YES if the end has been reached, GNUNET_NO if the iterator
  *         points to a valid element
+ * @deprecated use DLL macros
  */
 int
 GNUNET_CONTAINER_slist_end (struct GNUNET_CONTAINER_SList_Iterator *i);
@@ -1598,6 +1617,7 @@ GNUNET_CONTAINER_slist_end (struct GNUNET_CONTAINER_SList_Iterator *i);
  * @param i iterator
  * @param len set to the payload length
  * @return payload
+ * @deprecated use DLL macros
  */
 void *
 GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
@@ -1607,6 +1627,7 @@ GNUNET_CONTAINER_slist_get (const struct GNUNET_CONTAINER_SList_Iterator *i,
 /**
  * Release an iterator
  * @param i iterator
+ * @deprecated use DLL macros
  */
 void
 GNUNET_CONTAINER_slist_iter_destroy (struct GNUNET_CONTAINER_SList_Iterator *i);

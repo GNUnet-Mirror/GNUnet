@@ -96,15 +96,6 @@ struct GNUNET_CRYPTO_HashAsciiEncoded
 };
 
 
-/**
- * @brief 0-terminated ASCII encoding of a struct GNUNET_CRYPTO_ShortHashCode.
- */
-struct GNUNET_CRYPTO_ShortHashAsciiEncoded
-{
-  unsigned char short_encoding[53];
-};
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
@@ -406,19 +397,6 @@ GNUNET_CRYPTO_hash_to_enc (const struct GNUNET_HashCode * block,
 
 /**
  * @ingroup hash
- * Convert short hash to ASCII encoding.
- *
- * @param block the hash code
- * @param result where to store the encoding (struct GNUNET_CRYPTO_ShortHashAsciiEncoded can be
- *  safely cast to char*, a '\\0' termination is set).
- */
-void
-GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * block,
-				 struct GNUNET_CRYPTO_ShortHashAsciiEncoded *result);
-
-
-/**
- * @ingroup hash
  * Convert ASCII encoding back to a 'struct GNUNET_HashCode'
  *
  * @param enc the encoding
@@ -433,20 +411,6 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 /**
  * @ingroup hash
- * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
- *
- * @param enc the encoding
- * @param enclen number of characters in @a enc (without 0-terminator, which can be missing)
- * @param result where to store the hash code
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
- */
-int
-GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
-				       struct GNUNET_CRYPTO_ShortHashCode * result);
-
-
-/**
- * @ingroup hash
  * Convert ASCII encoding back to struct GNUNET_HashCode
  *
  * @param enc the encoding
@@ -456,31 +420,6 @@ GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
 #define GNUNET_CRYPTO_hash_from_string(enc, result) \
   GNUNET_CRYPTO_hash_from_string2 (enc, strlen(enc), result)
 
-
-/**
- * @ingroup hash
- * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
- *
- * @param enc the encoding
- * @param result where to store the GNUNET_CRYPTO_ShortHash 
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
- */
-#define GNUNET_CRYPTO_short_hash_from_string(enc, result) \
-  GNUNET_CRYPTO_short_hash_from_string2 (enc, strlen(enc), result)
-
-
-/**
- * @ingroup hash
- * Compare function for ShortHashCodes, producing a total ordering
- * of all hashcodes.
- *
- * @param h1 some hash code
- * @param h2 some hash code
- * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
- */
-int
-GNUNET_CRYPTO_short_hash_cmp (const struct GNUNET_CRYPTO_ShortHashCode * h1,
-                              const struct GNUNET_CRYPTO_ShortHashCode * h2);
 
 /**
  * @ingroup hash
@@ -509,45 +448,6 @@ GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode * a,
  */
 void
 GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret);
-
-
-/**
- * @ingroup hash
- * Compute short (256-bit) hash of a given block.
- *
- * @param block the data to hash
- * @param size size of the @a block
- * @param ret pointer to where to write the hashcode
- */
-void
-GNUNET_CRYPTO_short_hash (const void *block, size_t size, 
-			  struct GNUNET_CRYPTO_ShortHashCode * ret);
-
-
-/**
- * @ingroup hash
- * Double short (256-bit) hash to create a long hash.
- *
- * @param sh short hash to double
- * @param dh where to store the (doubled) long hash (not really a hash)
- */
-void
-GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
-				 struct GNUNET_HashCode *dh);
-
-
-/**
- * @ingroup hash
- * Truncate doubled short hash back to a short hash.
- *
- * @param dh doubled short hash to reduce again
- * @param sh where to store the short hash
- * @return GNUNET_OK on success, GNUNET_SYSERR if this was not a
- *         doubled short hash
- */
-int
-GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
-					  struct GNUNET_CRYPTO_ShortHashCode *sh);
 
 
 /**

@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -17,11 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 
-     SHA-512 code by Jean-Luc Cooke <jlcooke@certainkey.com>
-
-     Copyright (c) Jean-Luc Cooke <jlcooke@certainkey.com>
-     Copyright (c) Andrew McDonald <andrew@mcdonald.org.uk>
-     Copyright (c) 2003 Kyle McMartin <kyle@debian.org>
 */
 
 /**
@@ -52,21 +47,6 @@ void
 GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret)
 {
   gcry_md_hash_buffer (GCRY_MD_SHA512, ret, block, size);
-}
-
-
-/**
- * Compute short (256-bit) hash of a given block.
- *
- * @param block the data to GNUNET_CRYPTO_hash, length is given as a second argument
- * @param size the length of the data to GNUNET_CRYPTO_hash
- * @param ret pointer to where to write the hashcode
- */
-void
-GNUNET_CRYPTO_short_hash (const void *block, size_t size, 
-			  struct GNUNET_CRYPTO_ShortHashCode * ret)
-{
-  gcry_md_hash_buffer (GCRY_MD_SHA256, ret, block, size);
 }
 
 
@@ -589,120 +569,5 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
   gcry_md_close (md);
 }
 
-
-
-/**
- * Double short (256-bit) hash to create a long hash.
- *
- * @param sh short hash to double
- * @param dh where to store the (doubled) long hash (not really a hash)
- */
-void
-GNUNET_CRYPTO_short_hash_double (const struct GNUNET_CRYPTO_ShortHashCode *sh,
-				 struct GNUNET_HashCode *dh)
-{
-  char *ptr;
-
-  ptr = (char*) dh;
-  memcpy (ptr, sh, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-  memcpy (&ptr[sizeof (struct GNUNET_CRYPTO_ShortHashCode)], sh, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-}
-
-
-/**
- * Truncate doubled short hash back to a short hash.
- *
- * @param dh doubled short hash to reduce again
- * @param sh where to store the short hash
- * @return GNUNET_OK on success, GNUNET_SYSERR if this was not a
- *         doubled short hash
- */
-int
-GNUNET_CRYPTO_short_hash_from_truncation (const struct GNUNET_HashCode *dh,
-					  struct GNUNET_CRYPTO_ShortHashCode *sh)
-{
-  const struct GNUNET_CRYPTO_ShortHashCode *s;
-
-  s = (const struct GNUNET_CRYPTO_ShortHashCode *) dh;
-  if (0 != memcmp (&s[0],
-		   &s[1],
-		   sizeof (struct GNUNET_CRYPTO_ShortHashCode)))
-    return GNUNET_SYSERR;
-  *sh = *s;
-  return GNUNET_OK;
-}
-
-
-/**
- * Convert ASCII encoding back to a 'struct GNUNET_CRYPTO_ShortHash'
- *
- * @param enc the encoding
- * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
- * @param result where to store the GNUNET_CRYPTO_hash code
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
- */
-int
-GNUNET_CRYPTO_short_hash_from_string2 (const char *enc, size_t enclen,
-				       struct GNUNET_CRYPTO_ShortHashCode * result)
-{
-
-  char upper_enc[enclen];
-  char* up_ptr = upper_enc;
-
-  GNUNET_STRINGS_utf8_toupper(enc, &up_ptr);
-  return GNUNET_STRINGS_string_to_data (upper_enc, enclen,
-					(unsigned char*) result,
-					sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-}
-
-
-/**
- * Convert short hash to ASCII encoding.
- *
- * @param block the hash code
- * @param result where to store the encoding (struct GNUNET_CRYPTO_ShortHashAsciiEncoded can be
- *  safely cast to char*, a '\\0' termination is set).
- */
-void
-GNUNET_CRYPTO_short_hash_to_enc (const struct GNUNET_CRYPTO_ShortHashCode * block,
-				 struct GNUNET_CRYPTO_ShortHashAsciiEncoded *result)
-{
-  char *np;
-
-  np = GNUNET_STRINGS_data_to_string ((const unsigned char *) block,
-				      sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-				      (char*) result,
-				      sizeof (struct GNUNET_CRYPTO_ShortHashAsciiEncoded) - 1);
-  GNUNET_assert (NULL != np);
-  *np = '\0';
-}
-
-/**
- * Compare function for ShortHashCodes, producing a total ordering
- * of all hashcodes.
- *
- * @param h1 some hash code
- * @param h2 some hash code
- * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
- */
-int
-GNUNET_CRYPTO_short_hash_cmp (const struct GNUNET_CRYPTO_ShortHashCode * h1,
-                        const struct GNUNET_CRYPTO_ShortHashCode * h2)
-{
-  unsigned int *i1;
-  unsigned int *i2;
-  int i;
-
-  i1 = (unsigned int *) h1;
-  i2 = (unsigned int *) h2;
-  for (i = (sizeof (struct GNUNET_CRYPTO_ShortHashCode) / sizeof (unsigned int)) - 1; i >= 0; i--)
-  {
-    if (i1[i] > i2[i])
-      return 1;
-    if (i1[i] < i2[i])
-      return -1;
-  }
-  return 0;
-}
 
 /* end of crypto_hash.c */
