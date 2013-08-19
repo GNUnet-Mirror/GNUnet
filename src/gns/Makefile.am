@@ -42,8 +42,7 @@ pkgcfg_DATA = \
 
 lib_LTLIBRARIES = \
   $(DO_W32_NSP) \
-  libgnunetgns.la \
-  libgnunetgns_common.la
+  libgnunetgns.la
 
 
 if HAVE_MHD
@@ -136,7 +135,6 @@ gnunet_service_gns_LDADD = \
   -lm \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetgns_common.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
@@ -147,7 +145,6 @@ gnunet_service_gns_LDADD = \
 gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetgns_common.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
@@ -176,28 +173,16 @@ libgnunetgns_la_DEPENDENCIES = \
  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 
-libgnunetgns_common_la_SOURCES = \
- gns_common.c gns_common.h
-libgnunetgns_common_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)
-libgnunetgns_common_la_LIBADD = \
- $(top_builddir)/src/util/libgnunetutil.la 
-libgnunetgns_common_la_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la 
-
-
 libgnunet_plugin_block_gns_la_SOURCES = \
   plugin_block_gns.c
 libgnunet_plugin_block_gns_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/gns/libgnunetgns_common.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetgns_common.la \
   $(top_builddir)/src/block/libgnunetblock.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
