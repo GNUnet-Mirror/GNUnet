@@ -73,6 +73,7 @@ struct GNUNET_SOCIAL_Slicer;
  * to a @e method.
  *
  * @param cls Closure.
+ * @param nym The sender of the message. NULL for the ego's own messages to the home.
  * @param full_method_name Original method name from PSYC (may be more
  *        specific than the registered method name due to try-and-slice matching).
 
@@ -88,6 +89,7 @@ struct GNUNET_SOCIAL_Slicer;
  * @param flags Message flags indicating fragmentation status.
  */
 typedef int (*GNUNET_SOCIAL_Method)(void *cls,
+                                    struct GNUNET_SOCIAL_Nym *nym,
                                     const char *full_method_name,
                                     uint64_t message_id,
                                     size_t modifier_count,
