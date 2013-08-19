@@ -153,7 +153,6 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
       sizeof (struct InboundMessage) + msg_size;
   char buf[size] GNUNET_ALIGN;
 
-  ret = GNUNET_TIME_UNIT_ZERO;
   do_forward = GNUNET_SYSERR;
   ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
 
@@ -790,7 +789,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   max_fd_rlimit = 0;
   max_fd_cfg = 0;
-  max_fd = 0;
 #if HAVE_GETRLIMIT
   struct rlimit r_file;
   if (0 == getrlimit (RLIMIT_NOFILE, &r_file))

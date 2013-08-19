@@ -598,7 +598,6 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
   /* check if any other bc's are waiting for this blacklister */
-  bc = bc_head;
   for (bc = bc_head; bc != NULL; bc = bc->next)
     if ((bc->bl_pos == bl) && (GNUNET_SCHEDULER_NO_TASK == bc->task))
     {

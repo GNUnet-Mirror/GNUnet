@@ -500,7 +500,6 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 	{
 		ats_new[d] = ats[d];
 		m_tmp = UINT32_MAX;
-		g_tmp = UINT32_MAX;
 		if (NULL != tmp)
 			m_tmp = find_metric (tmp, ntohl(ats[d].type), TM_RECEIVE);
 		g_tmp = find_metric (&man_handle.general, ntohl(ats[d].type), TM_RECEIVE);
