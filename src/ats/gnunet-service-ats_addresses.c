@@ -429,7 +429,6 @@ disassemble_ats_information (struct ATS_Address *dest,
   		dest->atsi = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
   		dest->atsi_count = update_count;
   		memcpy (dest->atsi, update, update_count * sizeof (struct GNUNET_ATS_Information));
-  		delta_atsi_count = update_count;
   		(*delta_dest) = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
   		for (c1 = 0; c1 < update_count; c1 ++)
   		{
