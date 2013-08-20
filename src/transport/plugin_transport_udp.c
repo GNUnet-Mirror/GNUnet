@@ -1498,8 +1498,8 @@ session_cmp_it (void *cls,
       (s_addrlen == sizeof (struct sockaddr_in6)))
   {
     struct IPv6UdpAddress * u6 = NULL;
-    GNUNET_assert (NULL != u6);
     u6 = (struct IPv6UdpAddress *) address->address;
+    GNUNET_assert (NULL != u6);
     const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) s->sock_addr;
     if ((0 == memcmp (&u6->ipv6_addr, &s6->sin6_addr, sizeof (struct in6_addr))) &&
         (u6->u6_port == s6->sin6_port))
