@@ -137,7 +137,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_assert (0 == strcmp ("totakura", 
                                   GNUNET_TESTBED_host_get_username_
                                   (hosts[cnt])));
-      GNUNET_assert (0 == strcmp ("asgard",
+      GNUNET_assert (0 == strcmp ("asgard.realm",
                                   GNUNET_TESTBED_host_get_hostname
                                   (hosts[cnt])));
       GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));

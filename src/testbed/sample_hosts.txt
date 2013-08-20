@@ -2,6 +2,6 @@ totakura@192.168.0.1:22
 totakura@192.168.0.2:22
 totakura@opt01:22
 totakura@i19-n015:2022
-totakura@asgard
+totakura@asgard.realm
 rivendal
 rohan:561
