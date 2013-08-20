@@ -3880,7 +3880,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending channel destroy for channel %s:%X\n",
+              "  sending channel ack for channel %s:%X\n",
               peer2s (ch->t->peer),
               ch->gid);
 
