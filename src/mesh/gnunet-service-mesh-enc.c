@@ -603,9 +603,9 @@ struct MeshConnection
   struct MeshFlowControl bck_fc;
 
   /**
-   * Connection number.
+   * ID of the connection.
    */
-  uint32_t id;
+  struct GNUNET_HashCode id;
 
   /**
    * State of the connection.
@@ -678,11 +678,6 @@ struct MeshTunnel2
      * Endpoint of the tunnel.
      */
   struct MeshPeer *peer;
-
-    /**
-     * ID of the tunnel.
-     */
-  struct GNUNET_HashCode id;
 
     /**
      * State of the tunnel.
@@ -904,9 +899,9 @@ static struct MeshClient *clients_head;
 static struct MeshClient *clients_tail;
 
 /**
- * Tunnels known, indexed by MESH_TunnelID (MeshTunnel).
+ * Connections known, indexed by cid (MeshConnection).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *tunnels;
+static struct GNUNET_CONTAINER_MultiHashMap *connections;
 
 /**
  * Peers known, indexed by PeerIdentity (MeshPeer).
@@ -1124,11 +1119,10 @@ tunnel_destroy (struct MeshTunnel2 *t);
 /**
  * Create a connection.
  *
- * @param tid Tunnel ID.
  * @param cid Connection ID.
  */
 static struct MeshConnection *
-connection_new (struct GNUNET_HashCode *tid, uint32_t cid);
+connection_new (const struct GNUNET_HashCode *cid);
 
 /**
  * Connection is no longer needed: destroy it and remove from tunnel.
@@ -1515,7 +1509,7 @@ send_local_ack (struct MeshChannel *ch,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "send local %s ack on %s:%X towards %p\n",
-              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid, c);
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid, c);
 
   if (NULL == c
       || ( fwd && (0 == ch->lid_root || c != ch->root))
@@ -1679,8 +1673,8 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   size_t size;
   uint16_t type;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Connection %s[%X]\n",
-              GNUNET_h2s (&c->t->id), c->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Connection %s\n",
+              GNUNET_h2s (&c->id));
 
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
@@ -1703,8 +1697,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
         GNUNET_break_op (0);
         return;
       }
-      emsg->tid = c->t->id;
-      emsg->cid = htonl (c->id);
+      emsg->cid = c->id;
       emsg->ttl = htonl (ttl - 1);
       emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
@@ -1712,15 +1705,13 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
 
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
       amsg = (struct GNUNET_MESH_ACK *) data;
-      amsg->tid = c->t->id;
-      amsg->cid = htonl (c->id);
+      amsg->cid = c->id;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       pmsg = (struct GNUNET_MESH_Poll *) data;
-      pmsg->tid = c->t->id;
-      pmsg->cid = htonl (c->id);
+      pmsg->cid = c->id;
       pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
       break;
@@ -1756,7 +1747,7 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
   uint16_t type;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n",
-              GNUNET_h2s (&t->id));
+              peer2s (t->peer));
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
   {
@@ -1770,8 +1761,7 @@ send_prebuilt_message_tunnel (struct GNUNET_MESH_Encrypted *msg,
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-      msg->cid = htonl (c->id);
-      msg->tid = t->id;
+      msg->cid = c->id;
       msg->ttl = htonl (default_ttl);
       break;
     default:
@@ -1804,7 +1794,7 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
   uint64_t iv;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X\n",
-              GNUNET_h2s (&ch->t->id), ch->gid);
+              peer2s (ch->t->peer), ch->gid);
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD : GNUNET_MESSAGE_TYPE_MESH_BCK;
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
 
@@ -1886,12 +1876,11 @@ send_ack (struct MeshConnection *c, uint32_t ack, int fwd)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ACK);
   msg.ack = htonl (ack);
-  msg.tid = c->t->id;
-  msg.cid = htonl (c->id);
+  msg.cid = c->id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "connection send %s ack %u on %s[%X]\n",
-              fwd ? "FWD" : "BCK", ack, GNUNET_h2s (&c->t->id), c->id);
+              "connection send %s ack %u on %s\n",
+              fwd ? "FWD" : "BCK", ack, GNUNET_h2s (&c->id));
 
   send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
 }
@@ -1956,8 +1945,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
   msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
-  msg->cid = htonl (c->id);
-  msg->tid = c->t->id;
+  msg->cid = c->id;
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -1995,8 +1983,7 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
   }
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
-  msg->cid = htonl (c->id);
-  msg->tid = t->id;
+  msg->cid = c->id;
 
   /* TODO add signature */
 
@@ -2883,6 +2870,8 @@ channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid)
 static void
 tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
 {
+  if (NULL == t)
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s state was %s\n",
               peer2s (t->peer),
@@ -2934,8 +2923,8 @@ tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
   unsigned int room;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "tunnel_send_queued_data on %s\n",
-              GNUNET_h2s (&t->id));
+              "tunnel_send_queued_data on tunnel %s\n",
+              peer2s (t->peer));
   room = tunnel_get_buffer (t, fwd);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
@@ -3007,10 +2996,14 @@ static struct MeshConnection *
 tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
 {
   struct MeshConnection *c;
+  struct GNUNET_HashCode cid;
   struct MeshPeer *peer;
   unsigned int own_pos;
 
-  c = connection_new (&t->id, t->next_cid++);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
+
+  c = connection_new (&cid);
+  c->t = t;
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
     if (p->peers[own_pos] == myid)
@@ -3033,11 +3026,11 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   }
 
   peer = connection_get_next_hop (c);
-  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->t->id, c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   peer = connection_get_prev_hop (c);
-  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->t->id, c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   return c;
 }
 
@@ -3160,8 +3153,8 @@ connection_send_ack (struct MeshConnection *c, int fwd)
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "connection send %s ack on %s[%X]\n",
-              fwd ? "FWD" : "BCK", GNUNET_h2s (&c->t->id), c->id);
+              "connection send %s ack on %s\n",
+              fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
 
   /* Check if we need to transmit the ACK */
   if (prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3)
@@ -3578,7 +3571,7 @@ channel_send_client_ack (struct MeshChannel *ch, int fwd)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Channel send client %s ack on %s:%X\n",
-              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid);
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
 
   /* Check for buffer space */
   if (0 >= tunnel_get_buffer (ch->t, fwd))
@@ -3614,7 +3607,7 @@ channel_send_connection_ack (struct MeshChannel *ch, uint32_t buffer, int fwd)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Channel send connection %s ack on %s:%X\n",
-              fwd ? "FWD" : "BCK", GNUNET_h2s (&ch->t->id), ch->gid);
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
 
   /* Count connections, how many messages are already allowed */
   for (cs = 0, allowed = 0, c = t->connection_head; NULL != c; c = c->next)
@@ -3758,8 +3751,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
   msg->header.size = htons (size);
   msg->header.type = htons (type);
-  msg->cid = htonl (c->id);
-  msg->tid = c->t->id;
+  msg->cid = c->id;
 
   send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
 }
@@ -3862,8 +3854,7 @@ connection_send_destroy (struct MeshConnection *c)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
-  msg.cid = htonl (c->id);
-  msg.tid = c->t->id;
+  msg.cid = c->id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s[%X]\n",
               peer2s (c->t->peer),
@@ -3945,26 +3936,23 @@ channel_send_destroy (struct MeshChannel *ch)
 
 /**
  * Create a tunnel.
- *
- * @param tid Tunnel ID.
  */
 static struct MeshTunnel2 *
-tunnel_new (const struct GNUNET_HashCode *tid)
+tunnel_new (void)
 {
   struct MeshTunnel2 *t;
 
   t = GNUNET_new (struct MeshTunnel2);
-  t->id = *tid;
   t->next_chid = 0;
   t->next_local_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    GNUNET_break (0);
-    tunnel_destroy (t);
-    return NULL;
-  }
+//   if (GNUNET_OK !=
+//       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
+//                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+//   {
+//     GNUNET_break (0);
+//     tunnel_destroy (t);
+//     return NULL;
+//   }
 
 //   char salt[] = "salt";
 //   GNUNET_CRYPTO_kdf (&t->e_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
@@ -3981,18 +3969,6 @@ tunnel_new (const struct GNUNET_HashCode *tid)
 //                      NULL);
 
   return t;
-}
-
-
-/**
- * Find a tunnel.
- *
- * @param tid Tunnel ID.
- */
-static struct MeshTunnel2 *
-tunnel_get (const struct GNUNET_HashCode *tid)
-{
-  return GNUNET_CONTAINER_multihashmap_get (tunnels, tid);
 }
 
 
@@ -4031,29 +4007,16 @@ fc_init (struct MeshFlowControl *fc)
 
 
 static struct MeshConnection *
-connection_new (struct GNUNET_HashCode *tid, uint32_t cid)
+connection_new (const struct GNUNET_HashCode *cid)
 {
   struct MeshConnection *c;
-  struct MeshTunnel2 *t;
-
-  t = tunnel_get (tid);
-  if (NULL == t)
-  {
-    t = tunnel_new (tid);
-    if (NULL == t)
-    {
-      GNUNET_break (0);
-      return NULL;
-    }
-  }
 
   c = GNUNET_new (struct MeshConnection);
-  c->id = cid;
+  c->id = *cid;
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
   c->fwd_fc.c = c;
   c->bck_fc.c = c;
-  tunnel_add_connection (t, c);
 
   return c;
 }
@@ -4062,23 +4025,12 @@ connection_new (struct GNUNET_HashCode *tid, uint32_t cid)
 /**
  * Find a connection.
  *
- * @param tid Tunnel ID.
  * @param cid Connection ID.
  */
 static struct MeshConnection *
-connection_get (const struct GNUNET_HashCode *tid, uint32_t cid)
+connection_get (const struct GNUNET_HashCode *cid)
 {
-  struct MeshConnection *c;
-  struct MeshTunnel2 *t;
-
-  t = tunnel_get (tid);
-  if (NULL == t)
-    return NULL;
-  for (c = t->connection_head; NULL != c; c = c->next)
-    if (c->id == cid)
-      return c;
-
-  return NULL;
+  return GNUNET_CONTAINER_multihashmap_get (connections, cid);
 }
 
 
@@ -4107,10 +4059,10 @@ connection_destroy (struct MeshConnection *c)
   /* Deregister from neighbors */
   peer = connection_get_next_hop (c);
   if (NULL != peer)
-    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->t->id, c);
+    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
   peer = connection_get_prev_hop (c);
   if (NULL != peer)
-    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->t->id, c);
+    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
 
   /* Delete */
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
@@ -4131,8 +4083,8 @@ tunnel_destroy (struct MeshTunnel2 *t)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
               peer2s (t->peer));
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
-    GNUNET_break (0);
+//   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
+//     GNUNET_break (0);
 
   for (c = t->connection_head; NULL != c; c = next)
   {
@@ -4487,8 +4439,7 @@ connection_broken (void *cls,
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
-  msg.cid = htonl (c->id);
-  msg.tid = c->t->id;
+  msg.cid = c->id;
   msg.peer1 = my_full_id;
   msg.peer2 = *GNUNET_PEER_resolve2 (peer->id);
   send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
@@ -5077,13 +5028,12 @@ handle_mesh_connection_create (void *cls,
 {
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *id;
-  struct GNUNET_HashCode *tid;
+  struct GNUNET_HashCode *cid;
   struct MeshPeerPath *path;
   struct MeshPeer *dest_peer;
   struct MeshPeer *orig_peer;
   struct MeshConnection *c;
   unsigned int own_pos;
-  uint32_t cid;
   uint16_t size;
   uint16_t i;
 
@@ -5114,19 +5064,18 @@ handle_mesh_connection_create (void *cls,
 
   /* Get parameters */
   msg = (struct GNUNET_MESH_ConnectionCreate *) message;
-  cid = ntohl (msg->cid);
-  tid = &msg->tid;
+  cid = &msg->cid;
   id = (struct GNUNET_PeerIdentity *) &msg[1];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    connection %s[%X] (%s).\n",
-              GNUNET_h2s (tid), cid, GNUNET_i2s (id));
+              "    connection %s (%s).\n",
+              GNUNET_h2s (cid), GNUNET_i2s (id));
 
   /* Create connection */
-  c = connection_get (tid, cid);
+  c = connection_get (cid);
   if (NULL == c)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
-    c = connection_new (tid, cid);
+    c = connection_new (cid);
     if (NULL == c)
       return GNUNET_OK;
   }
@@ -5168,6 +5117,10 @@ handle_mesh_connection_create (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
+    if (NULL == orig_peer->tunnel)
+      orig_peer->tunnel = tunnel_new ();
+    tunnel_add_connection (orig_peer->tunnel, c);
+
     send_connection_ack (c, GNUNET_NO);
 
     /* Keep tunnel alive in direction dest->owner*/
@@ -5202,14 +5155,12 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_ConnectionACK *msg;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
-  uint32_t cid;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
   msg = (struct GNUNET_MESH_ConnectionACK *) message;
-  cid = ntohl(msg->cid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s[%X]\n",
-              GNUNET_h2s (&msg->tid), cid);
-  c = connection_get (&msg->tid, cid);
+              GNUNET_h2s (&msg->cid));
+  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# control on unknown connection",
@@ -5280,7 +5231,7 @@ handle_mesh_connection_broken (void *cls, const struct GNUNET_PeerIdentity *peer
               GNUNET_i2s (&msg->peer1));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer2));
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_break_op (0);
@@ -5318,9 +5269,9 @@ handle_mesh_connection_destroy (void *cls,
               "Got a CONNECTION DESTROY message from %s\n",
               GNUNET_i2s (peer));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  for connection %s[%X]\n",
-              GNUNET_h2s (&msg->tid), ntohl (msg->cid));
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+              "  for connection %s\n",
+              GNUNET_h2s (&msg->cid));
+  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     /* Probably already got the message from another path,
@@ -5538,7 +5489,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
               GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
 
   /* Check connection */
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
@@ -5715,7 +5666,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
 
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+  c = connection_get (&msg->cid);
 
   if (NULL == c)
   {
@@ -5786,7 +5737,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   msg = (struct GNUNET_MESH_Poll *) message;
 
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+  c = connection_get (&msg->cid);
 
   if (NULL == c)
   {
@@ -5848,7 +5799,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
               GNUNET_i2s (peer));
 
-  c = connection_get (&msg->tid, ntohl (msg->cid));
+  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# keepalive on unknown connection", 1,
@@ -6169,10 +6120,7 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   peer = peer_get (&msg->peer);
   if (NULL == peer->tunnel)
   {
-    struct GNUNET_HashCode tid;
-
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &tid);
-    peer->tunnel = tunnel_new (&tid);
+    peer->tunnel = tunnel_new ();
     peer->tunnel->peer = peer;
   }
   t = peer->tunnel;
@@ -6194,7 +6142,7 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   ch->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
-              GNUNET_h2s (&t->id), ch->gid, ch->port, ch->lid_root);
+              peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
   peer_connect (peer);
 
   /* Send create channel */
@@ -6459,28 +6407,28 @@ handle_local_ack (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @return GNUNET_YES, to keep iterating.
  */
-static int
-monitor_all_tunnels_iterator (void *cls,
-                              const struct GNUNET_HashCode * key,
-                              void *value)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  struct MeshChannel *ch = value;
-  struct GNUNET_MESH_LocalMonitor *msg;
-
-  msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor));
-  msg->channel_id = htonl (ch->gid);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "*  sending info about tunnel %s\n",
-              GNUNET_i2s (&msg->owner));
-
-  GNUNET_SERVER_notification_context_unicast (nc, client,
-                                              &msg->header, GNUNET_NO);
-  return GNUNET_YES;
-}
+// static int
+// monitor_all_tunnels_iterator (void *cls,
+//                               const struct GNUNET_HashCode * key,
+//                               void *value)
+// {
+//   struct GNUNET_SERVER_Client *client = cls;
+//   struct MeshChannel *ch = value;
+//   struct GNUNET_MESH_LocalMonitor *msg;
+// 
+//   msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor));
+//   msg->channel_id = htonl (ch->gid);
+//   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
+//   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+// 
+//   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+//               "*  sending info about tunnel %s\n",
+//               GNUNET_i2s (&msg->owner));
+// 
+//   GNUNET_SERVER_notification_context_unicast (nc, client,
+//                                               &msg->header, GNUNET_NO);
+//   return GNUNET_YES;
+// }
 
 
 /**
@@ -6507,9 +6455,9 @@ handle_local_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received get tunnels request from client %u\n",
               c->id);
-  GNUNET_CONTAINER_multihashmap_iterate (tunnels,
-                                         monitor_all_tunnels_iterator,
-                                         client);
+//   GNUNET_CONTAINER_multihashmap_iterate (tunnels,
+//                                          monitor_all_tunnels_iterator,
+//                                          client);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Get tunnels request from client %u completed\n",
               c->id);
@@ -6758,9 +6706,11 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
 static int
 shutdown_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct MeshTunnel2 *t = value;
+  struct MeshPeer *p = value;
+  struct MeshTunnel2 *t = p->tunnel;
 
-  tunnel_destroy (t);
+  if (NULL != t)
+    tunnel_destroy (t);
   return GNUNET_YES;
 }
 
@@ -6781,7 +6731,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (peers, &shutdown_tunnel, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
@@ -6937,7 +6887,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     dht_replication_level = 3;
   }
 
-  tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 

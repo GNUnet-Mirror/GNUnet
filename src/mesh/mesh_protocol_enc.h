@@ -62,14 +62,9 @@ struct GNUNET_MESH_ConnectionCreate
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of the connection for that tunnel.
+     * ID of the connection
      */
-  uint32_t cid GNUNET_PACKED;
-
-    /**
-     * ID of the tunnel
-     */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -89,14 +84,14 @@ struct GNUNET_MESH_ConnectionACK
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of the connection
+     * Always 0.
      */
-  uint32_t cid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
     /**
-     * ID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 
   /* TODO: signature */
 };
@@ -112,29 +107,29 @@ struct GNUNET_MESH_Encrypted
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the connection.
-   */
-  uint32_t cid GNUNET_PACKED;
-
-  /**
-   * ID of the tunnel.
-   */
-  struct GNUNET_HashCode tid;
-
-  /**
    * ID of the packet (hop by hop).
    */
   uint32_t pid GNUNET_PACKED;
 
   /**
-   * Number of hops to live.
+   * ID of the connection.
    */
-  uint32_t ttl GNUNET_PACKED;
+  struct GNUNET_HashCode cid;
 
   /**
    * Initialization Vector for payload encryption.
    */
   uint64_t iv;
+
+  /**
+   * Number of hops to live.
+   */
+  uint32_t ttl GNUNET_PACKED;
+ 
+  /**
+   * Always 0.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Encrypted content follows.
@@ -234,7 +229,7 @@ struct GNUNET_MESH_DataACK
 
 
 /**
- * Message to acknowledge mesh data traffic.
+ * Message to acknowledge mesh encrypted traffic.
  */
 struct GNUNET_MESH_ACK
 {
@@ -249,14 +244,9 @@ struct GNUNET_MESH_ACK
   uint32_t ack GNUNET_PACKED;
 
     /**
-     * ID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_HashCode tid;
-
-    /**
-     * ID of the connection
-     */
-  uint32_t cid GNUNET_PACKED;
+  struct GNUNET_HashCode cid;
 };
 
 
@@ -276,14 +266,10 @@ struct GNUNET_MESH_Poll
   uint32_t pid GNUNET_PACKED;
 
     /**
-     * ID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 
-    /**
-     * ID of the connection
-     */
-  uint32_t cid GNUNET_PACKED;
 };
 
 
@@ -298,14 +284,14 @@ struct GNUNET_MESH_ConnectionBroken
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of the connection.
+     * Always 0.
      */
-  uint32_t cid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
     /**
-     * ID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 
     /**
      * ID of the endpoint
@@ -332,14 +318,14 @@ struct GNUNET_MESH_ConnectionDestroy
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of the connection.
+     * Always 0.
      */
-  uint32_t cid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
     /**
-     * ID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 
   /* TODO: signature */
 };
@@ -356,14 +342,14 @@ struct GNUNET_MESH_ConnectionKeepAlive
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the connection
+   * Always 0.
    */
-  uint32_t cid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
-   * ID of the tunnel
+   * ID of the connection.
    */
-  struct GNUNET_HashCode tid;
+  struct GNUNET_HashCode cid;
 };
 
 
