@@ -559,7 +559,7 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
   uint16_t port;
   uint32_t options;
 
-  if (addrlen == sizeof (struct IPv6UdpAddress))
+  if ((NULL != addr) && (addrlen == sizeof (struct IPv6UdpAddress)))
   {
     t6 = addr;
     af = AF_INET6;
@@ -568,7 +568,7 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     memcpy (&a6, &t6->ipv6_addr, sizeof (a6));
     sb = &a6;
   }
-  else if (addrlen == sizeof (struct IPv4UdpAddress))
+  else if ((NULL != addr) && (addrlen == sizeof (struct IPv4UdpAddress)))
   {
     t4 = addr;
     af = AF_INET;
@@ -1391,6 +1391,12 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
   struct sockaddr_in *v4;
   struct sockaddr_in6 *v6;
   size_t len;
+
+  if (NULL == addr)
+  {
+  	GNUNET_break (0);
+  	return NULL;
+  }
 
   switch (addrlen)
   {
