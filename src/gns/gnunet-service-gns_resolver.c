@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - GNS: handle CNAME records (idea: manipulate rh->name)
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'.
  * - recursive DNS resolution
@@ -1507,6 +1506,16 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 
 
 /**
+ * Begin the resolution process from 'name', starting with
+ * the identification of the zone specified by 'name'.
+ *
+ * @param rh resolution to perform
+ */
+static void
+start_resolver_lookup (struct GNS_ResolverHandle *rh);
+
+
+/**
  * We encountered a CNAME record during our resolution.
  * Merge it into our chain.
  *
@@ -1518,10 +1527,40 @@ static void
 handle_gns_cname_result (struct GNS_ResolverHandle *rh,
 			 const char *cname)
 {
-  // FIXME: not implemented
-  GNUNET_break (0);
-  rh->proc (rh->proc_cls, 0, NULL);
-  GNS_resolver_lookup_cancel (rh);
+  size_t nlen;
+  char *res;
+
+  nlen = strlen (cname);
+  if ( (nlen > 2) &&
+       (0 == strcmp (".+",
+		     cname[nlen - 2])) )
+  {
+    /* CNAME resolution continues relative to current domain */
+    if (0 == rh->name_resolution_pos)
+    {
+      res = GNUNET_strndup (cname, nlen - 2);
+      rh->name_resolution_pos = nlen - 2;
+    }
+    else
+    {
+      GNUNET_asprintf (&res,
+		       "%.*s.%.*s",
+		       (int) rh->name_resolution_pos,
+		       rh->name,
+		       (int) (nlen - 2),
+		       cname);
+      rh->name_resolution_pos = strlen (res);
+    }
+    GNUNET_free (rh->name);
+    rh->name = res;
+    rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
+					    rh);
+    return;
+  }
+  /* name is absolute, start from the beginning */
+  GNUNET_free (rh->name);
+  rh->name = GNUNET_strdup (cname);
+  start_resolver_lookup (rh);
 }
 
 
@@ -2059,58 +2098,28 @@ recursive_resolution (void *cls,
 
 
 /**
- * Lookup of a record in a specific zone calls lookup result processor
- * on result.
+ * Begin the resolution process from 'name', starting with
+ * the identification of the zone specified by 'name'.
  *
- * @param zone the zone to perform the lookup in
- * @param record_type the record type to look up
- * @param name the name to look up
- * @param shorten_key a private key for use with PSEU import (can be NULL)
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
- * @param proc the processor to call on result
- * @param proc_cls the closure to pass to @a proc
- * @return handle to cancel operation
+ * @param rh resolution to perform
  */
-struct GNS_ResolverHandle *
-GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
-		     uint32_t record_type,
-		     const char *name,
-		     const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
-		     int only_cached,
-		     GNS_ResultProcessor proc, void *proc_cls)
+static void
+start_resolver_lookup (struct GNS_ResolverHandle *rh)
 {
-  struct GNS_ResolverHandle *rh;
   struct AuthorityChain *ac;
   char *x;
   char *y;
   char *pkey;
 
-  rh = GNUNET_new (struct GNS_ResolverHandle);
-  GNUNET_CONTAINER_DLL_insert (rlh_head,
-			       rlh_tail,
-			       rh);
-  rh->authority_zone = *zone;
-  rh->proc = proc;
-  rh->proc_cls = proc_cls;
-  rh->only_cached = only_cached;
-  rh->record_type = record_type;
-  rh->name = GNUNET_strdup (name);
-  rh->name_resolution_pos = strlen (name);
-  if (NULL != shorten_key)
-  {
-    rh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
-    *rh->shorten_key = *shorten_key;
-  }
-
-  if ( ( (GNUNET_YES == is_canonical (name)) &&
-	 (0 != strcmp (GNUNET_GNS_TLD, name)) ) ||
-       ( (GNUNET_YES != is_gnu_tld (name)) &&
-	 (GNUNET_YES != is_zkey_tld (name)) ) )
+  if ( ( (GNUNET_YES == is_canonical (rh->name)) &&
+	 (0 != strcmp (GNUNET_GNS_TLD, rh->name)) ) ||
+       ( (GNUNET_YES != is_gnu_tld (rh->name)) &&
+	 (GNUNET_YES != is_zkey_tld (rh->name)) ) )
   {
     /* use standard DNS lookup */
     int af;
 
-    switch (record_type)
+    switch (rh->record_type)
     {
     case GNUNET_DNSPARSER_TYPE_A:
       af = AF_INET;
@@ -2122,14 +2131,14 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
       af = AF_UNSPEC;
       break;
     }
-    rh->std_resolve = GNUNET_RESOLVER_ip_get (name, 
+    rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name, 
 					      af,
 					      DNS_LOOKUP_TIMEOUT,
 					      &handle_dns_result,
 					      rh);
-    return rh;
+    return;
   }
-  if (is_zkey_tld (name))
+  if (is_zkey_tld (rh->name))
   {
     /* Name ends with ".zkey", try to replace authority zone with zkey
        authority */
@@ -2148,7 +2157,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Hostname `%s' is not well-formed, resolution fails\n"),
-		  name);
+		  rh->name);
       rh->task_id = GNUNET_SCHEDULER_add_now (&fail_resolution, rh);
     }
     GNUNET_free_non_null (x);
@@ -2173,6 +2182,49 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
 				    ac);
   rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					  rh);
+}
+
+
+/**
+ * Lookup of a record in a specific zone calls lookup result processor
+ * on result.
+ *
+ * @param zone the zone to perform the lookup in
+ * @param record_type the record type to look up
+ * @param name the name to look up
+ * @param shorten_key a private key for use with PSEU import (can be NULL)
+ * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param proc the processor to call on result
+ * @param proc_cls the closure to pass to @a proc
+ * @return handle to cancel operation
+ */
+struct GNS_ResolverHandle *
+GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
+		     uint32_t record_type,
+		     const char *name,
+		     const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
+		     int only_cached,
+		     GNS_ResultProcessor proc, void *proc_cls)
+{
+  struct GNS_ResolverHandle *rh;
+
+  rh = GNUNET_new (struct GNS_ResolverHandle);
+  GNUNET_CONTAINER_DLL_insert (rlh_head,
+			       rlh_tail,
+			       rh);
+  rh->authority_zone = *zone;
+  rh->proc = proc;
+  rh->proc_cls = proc_cls;
+  rh->only_cached = only_cached;
+  rh->record_type = record_type;
+  rh->name = GNUNET_strdup (name);
+  rh->name_resolution_pos = strlen (name);
+  if (NULL != shorten_key)
+  {
+    rh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    *rh->shorten_key = *shorten_key;
+  }
+  start_resolver_lookup (rh);
   return rh;
 }
 
