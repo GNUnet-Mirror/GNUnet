@@ -588,6 +588,12 @@ send_ack (void *cls, uint32_t msg_id,
   size_t size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + msize;
   char buf[size];
 
+  if (NULL == endpoint)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
