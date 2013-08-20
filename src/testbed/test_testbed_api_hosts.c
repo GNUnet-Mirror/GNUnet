@@ -99,6 +99,8 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
+  unsigned int cnt;
+
   cfg = GNUNET_CONFIGURATION_dup (config);
   host = GNUNET_TESTBED_host_create ("localhost", NULL, cfg, 0);
   GNUNET_assert (NULL != host);
@@ -110,8 +112,53 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (host == GNUNET_TESTBED_host_lookup_by_id_ (0));
   hosts = NULL;
   num_hosts = GNUNET_TESTBED_hosts_load_from_file ("sample_hosts.txt", cfg, &hosts);
-  GNUNET_assert (17 == num_hosts);
+  GNUNET_assert (7 == num_hosts);
   GNUNET_assert (NULL != hosts);
+  for (cnt = 0; cnt < num_hosts; cnt++)
+  {
+    if (cnt < 3)
+    {
+      GNUNET_assert (0 == strcmp ("totakura", 
+                                  GNUNET_TESTBED_host_get_username_
+                                  (hosts[cnt])));
+      GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
+      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+    }
+    if (3 == cnt)
+    {
+      GNUNET_assert (0 == strcmp ("totakura", 
+                                  GNUNET_TESTBED_host_get_username_
+                                  (hosts[cnt])));
+      GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
+      GNUNET_assert (2022 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+    }
+    if (4 == cnt)
+    {
+      GNUNET_assert (0 == strcmp ("totakura", 
+                                  GNUNET_TESTBED_host_get_username_
+                                  (hosts[cnt])));
+      GNUNET_assert (0 == strcmp ("asgard",
+                                  GNUNET_TESTBED_host_get_hostname
+                                  (hosts[cnt])));
+      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+    }
+    if (5 == cnt)
+    {
+      GNUNET_assert (NULL == GNUNET_TESTBED_host_get_username_ (hosts[cnt]));
+      GNUNET_assert (0 == strcmp ("rivendal",
+                                  GNUNET_TESTBED_host_get_hostname
+                                  (hosts[cnt])));
+      GNUNET_assert (22 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+    }
+    if (6 == cnt)
+    {
+      GNUNET_assert (NULL == GNUNET_TESTBED_host_get_username_ (hosts[cnt]));
+      GNUNET_assert (0 == strcmp ("rohan",
+                                  GNUNET_TESTBED_host_get_hostname
+                                  (hosts[cnt])));
+      GNUNET_assert (561 == GNUNET_TESTBED_host_get_ssh_port_ (hosts[cnt]));
+    }
+  }
   status = GNUNET_YES;
   shutdown_id =
       GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (0), &do_shutdown, NULL);

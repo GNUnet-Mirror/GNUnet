@@ -37,6 +37,7 @@
 #include "testbed_api_operations.h"
 
 #include <zlib.h>
+#include <regex.h>
 
 /**
  * Generic logging shorthand
@@ -397,12 +398,13 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   //struct GNUNET_TESTBED_Host **host_array;
   struct GNUNET_TESTBED_Host *starting_host;
   char *data;
-  char *buf;
-  char username[256];
-  char hostname[256];
+  char *buf;  
+  char *username;
+  char *hostname;
+  regex_t rex;
+  regmatch_t pmatch[6];
   uint64_t fs;
   short int port;
-  int ret;
   unsigned int offset;
   unsigned int count;
 
@@ -415,12 +417,12 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   }
   if (GNUNET_OK !=
       GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
-    fs = 0;
+    fs = 0;  
   if (0 == fs)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s has no data\n"), filename);
     return 0;
-  }
+  }  
   data = GNUNET_malloc (fs);
   if (fs != GNUNET_DISK_fn_read (filename, data, fs))
   {
@@ -433,37 +435,67 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   offset = 0;
   starting_host = NULL;
   count = 0;
+  /* refer RFC 952 and RFC 1123 for valid hostnames */
+  GNUNET_assert (0 == regcomp (&rex,
+                               "^(([[:alnum:]]+)@)?" /* username */
+                               "([[:alnum:]]+[-[:alnum:]_\\.]+)" /* hostname */
+                               "(:([[:digit:]]{1,5}))?", /* port */
+                               REG_EXTENDED | REG_ICASE));  
   while (offset < (fs - 1))
-  {
+  {    
     offset++;
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
+      unsigned int size;
+
       data[offset] = '\0';
-      ret =
-          SSCANF (buf, "%255[a-zA-Z0-9_]@%255[.a-zA-Z0-9-]:%5hd", username,
-                  hostname, &port);
-      if (3 == ret)
+      username = NULL;
+      hostname = NULL;
+      port = 0;
+      if ((REG_NOMATCH == regexec (&rex, buf, 6, pmatch, 0))
+          || (-1 == pmatch[3].rm_so))
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Successfully read host %s, port %d and user %s from file\n",
-             hostname, port, username);
-        /* We store hosts in a static list; hence we only require the starting
-         * host pointer in that list to access the newly created list of hosts */
-        if (NULL == starting_host)
-          starting_host = GNUNET_TESTBED_host_create (hostname, username, cfg,
-                                                      port);
-        else
-          (void) GNUNET_TESTBED_host_create (hostname, username, cfg, port);
-        count++;
-      }
-      else
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                     "Error reading line `%s' in hostfile\n", buf);
+        buf = &data[offset + 1];
+        continue;
+      }
+      if (-1 != pmatch[2].rm_so)
+      {
+        size = pmatch[2].rm_eo - pmatch[2].rm_so;
+        username = GNUNET_malloc (size + 1);
+        username[size] = '\0';
+        GNUNET_assert (NULL != strncpy (username, buf + pmatch[2].rm_so, size));
+      }
+      if (-1 != pmatch[5].rm_so)
+      {
+        (void) SSCANF (buf + pmatch[5].rm_so, "%5hd", &port); 
+      }
+      size = pmatch[3].rm_eo - pmatch[3].rm_so;
+      hostname = GNUNET_malloc (size + 1);
+      hostname[size] = '\0';
+      GNUNET_assert (NULL != strncpy (hostname, buf + pmatch[3].rm_so, size));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Successfully read host %s, port %d and user %s from file\n",
+           (NULL == hostname) ? "NULL" : hostname,
+           port,
+           (NULL == username) ? "NULL" : username);
+      /* We store hosts in a static list; hence we only require the starting
+       * host pointer in that list to access the newly created list of hosts */
+      if (NULL == starting_host)
+        starting_host = GNUNET_TESTBED_host_create (hostname, username, cfg,
+                                                    port);
+      else
+        (void) GNUNET_TESTBED_host_create (hostname, username, cfg, port);
+      count++;
+      GNUNET_free_non_null (username);
+      GNUNET_free (hostname);        
       buf = &data[offset + 1];
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
       buf = &data[offset + 1];
   }
+  regfree (&rex);
   GNUNET_free (data);
   if (NULL == starting_host)
     return 0;
