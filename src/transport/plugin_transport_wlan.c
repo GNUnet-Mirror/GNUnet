@@ -812,6 +812,12 @@ transmit_fragment (void *cls,
   size_t size;
   uint16_t msize;
 
+  if (NULL == endpoint)
+  {
+  	GNUNET_break (0);
+  	return;
+  }
+
   msize = ntohs (hdr->size);
   size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + msize;
   {
