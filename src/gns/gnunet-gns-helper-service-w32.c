@@ -62,7 +62,7 @@ struct request
 static struct GNUNET_GNS_Handle *gns;
 
 static struct GNUNET_CRYPTO_EccPublicKey *zone = NULL;
-static struct GNUNET_CRYPTO_ShortHashCode user_zone;
+static struct GNUNET_HashCode user_zone;
 struct GNUNET_CRYPTO_EccPrivateKey *shorten_key = NULL;
 
 
@@ -664,7 +664,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key = NULL;
   struct GNUNET_CRYPTO_EccPublicKey pkey;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
+  struct GNUNET_CRYPTO_HashAsciiEncoded zonename;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                            "ZONEKEY", &keyfile))
@@ -679,10 +679,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {
       key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
       GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-      GNUNET_CRYPTO_short_hash(&pkey,
-                         sizeof(struct GNUNET_CRYPTO_EccPublicKey),
-                         &user_zone);
-      GNUNET_CRYPTO_short_hash_to_enc (&user_zone, &zonename);
+      GNUNET_CRYPTO_hash (&pkey, sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+                          &user_zone);
+      GNUNET_CRYPTO_hash_to_enc (&user_zone, &zonename);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Using zone: %s!\n", &zonename);
       GNUNET_CRYPTO_ecc_key_free(key);
