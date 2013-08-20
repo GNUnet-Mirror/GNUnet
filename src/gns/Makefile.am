@@ -22,9 +22,8 @@ if MINGW
   DO_W32_NSP = libw32nsp.la
   DO_W32_NSPTOOLS = w32nsp-install w32nsp-uninstall w32nsp-resolve
   DO_W32_HS_CONF = gns-helper-service-w32.conf
-else
-  USE_VPN = $(top_builddir)/src/vpn/libgnunetvpn.la
 endif
+USE_VPN = $(top_builddir)/src/vpn/libgnunetvpn.la
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
