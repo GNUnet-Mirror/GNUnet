@@ -27,6 +27,8 @@
  * TODO:
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'.
+ * - GNS: expand ".+" in returned values to the respective absolute
+ *        name using '.zkey'
  * - recursive DNS resolution
  * - shortening triggers
  * - revocation checks (make optional: privacy!)
@@ -1533,7 +1535,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
   nlen = strlen (cname);
   if ( (nlen > 2) &&
        (0 == strcmp (".+",
-		     cname[nlen - 2])) )
+		     &cname[nlen - 2])) )
   {
     /* CNAME resolution continues relative to current domain */
     if (0 == rh->name_resolution_pos)
@@ -1669,6 +1671,8 @@ handle_gns_resolution_result (void *cls,
   const char *vname;
   struct GNUNET_HashCode vhash;
   int af;
+  char **scratch;
+  unsigned int scratch_len;
    
   if (0 == rh->name_resolution_pos)
   {
@@ -1684,8 +1688,8 @@ handle_gns_resolution_result (void *cls,
       GNUNET_free (cname);
       return;     
     }
-    /* FIXME: if A/AAAA was requested, but we got a VPN
-       record, we should interact with GNUnet VPN here */
+    /* If A/AAAA was requested, but we got a VPN
+       record, we convert it to A/AAAA using GNUnet VPN */
     if ( (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ||
 	 (GNUNET_DNSPARSER_TYPE_AAAA == rh->record_type) )
     {
@@ -1737,10 +1741,45 @@ handle_gns_resolution_result (void *cls,
 	}
       }
     }
+    /* convert relative names in record values to absolute names,
+       using 'scratch' array for memory allocations */
+    scratch = NULL;
+    scratch_len = 0;
+    for (i=0;i<rd_count;i++)
+    {
+      /* Strategy: dnsparser should expose API to make it easier
+	 for us to parse all of these binary record values individually;
+	 then, we check if the embedded name(s) end in "+", and if so,
+	 replace the "+" with the zone at "ac_tail", changing the name
+	 to a ".zkey".  The name is allocated on the 'scratch' array,
+	 so we can free it afterwards. */
+      switch (rd[i].record_type)
+      {
+      case GNUNET_DNSPARSER_TYPE_CNAME:
+	GNUNET_break (0); // FIXME: not implemented
+	break;
+      case GNUNET_DNSPARSER_TYPE_SOA:
+	GNUNET_break (0); // FIXME: not implemented
+	break;
+      case GNUNET_DNSPARSER_TYPE_MX:
+	GNUNET_break (0); // FIXME: not implemented
+	break;
+      case GNUNET_DNSPARSER_TYPE_SRV:
+	GNUNET_break (0); // FIXME: not implemented
+	break;
+      default:
+	break;
+      }
+    }
     
     /* yes, we are done, return result */
     rh->proc (rh->proc_cls, rd_count, rd);
     GNS_resolver_lookup_cancel (rh);
+    for (i=0;i<scratch_len;i++)
+      GNUNET_free (scratch[i]);
+    GNUNET_array_grow (scratch, 
+		       scratch_len,
+		       0);
     return;         
   }
   /* need to recurse, check if we can */
@@ -2370,7 +2409,7 @@ GNS_resolver_done ()
 /* *************** common helper functions (do not really belong here) *********** */
 
 /**
- * Checks if "name" ends in ".tld"
+ * Checks if @a name ends in ".TLD"
  *
  * @param name the name to check
  * @param tld the TLD to check for
