@@ -362,8 +362,7 @@ try_combine_recent (void *cls, const struct GNUNET_HashCode * key, void *value)
   else
   {
     GNUNET_CONTAINER_bloomfilter_or2 (rr->reply_bf,
-				      in->reply_bf,
-				      GNUNET_CONTAINER_bloomfilter_get_size (in->reply_bf));
+				      in->reply_bf);
     GNUNET_CONTAINER_bloomfilter_free (in->reply_bf);
   }
   GNUNET_free (in);
