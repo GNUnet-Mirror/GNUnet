@@ -400,9 +400,11 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 			      &block->signature))
   {
     GNUNET_break (0);
+    GNUNET_free (dkey);
     GNUNET_free (block);
     return NULL;
   }
+  GNUNET_free (dkey);
   return block;
 }
 
