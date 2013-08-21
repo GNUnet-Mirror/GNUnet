@@ -41,28 +41,27 @@ if HAVE_EXPERIMENTAL
 
 if HAVE_TESTING
 TESTING_TESTS = \
- test_namestore_api \
- test_namestore_api_put \
- test_namestore_api_lookup \
- test_namestore_api_lookup_specific_type \
- test_namestore_api_create \
- test_namestore_api_create_update \
- test_namestore_api_remove \
- test_namestore_api_remove_not_existing_record \
- test_namestore_api_zone_to_name \
- test_namestore_api_monitoring \
- test_namestore_api_zone_iteration \
- test_namestore_api_zone_iteration_specific_zone \
- test_namestore_api_zone_iteration_stop
+ test_namestore_api
+ #test_namestore_api_lookup \
+ #test_namestore_api_lookup_specific_type \
+ #test_namestore_api_create \
+ #test_namestore_api_create_update \
+ #test_namestore_api_remove \
+ #test_namestore_api_remove_not_existing_record \
+ #test_namestore_api_zone_to_name \
+ #test_namestore_api_monitoring \
+ #test_namestore_api_zone_iteration \
+ #test_namestore_api_zone_iteration_specific_zone \
+ #test_namestore_api_zone_iteration_stop
 endif
 
 if HAVE_SQLITE
 check_PROGRAMS = \
+ test_namestore_record_serialization \
+ test_namestore_api_blocks \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
- $(TESTING_TESTS) \
- test_namestore_record_serialization \
- test_namestore_api_sign_verify
+ $(TESTING_TESTS)
 endif
 
 # end of 'HAVE_EXPERIMENTAL' for testcases 
@@ -173,9 +172,9 @@ libgnunet_plugin_namestore_postgres_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
 
-test_namestore_api_sign_verify_SOURCES = \
- test_namestore_api_sign_verify.c
-test_namestore_api_sign_verify_LDADD = \
+test_namestore_api_blocks_SOURCES = \
+ test_namestore_api_blocks.c
+test_namestore_api_blocks_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la

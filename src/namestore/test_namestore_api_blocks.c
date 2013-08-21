@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file namestore/test_namestore_api_sign_verify.c
- * @brief testcase for signing and verifying
+ * @file namestore/test_namestore_api_blocks.c
+ * @brief testcase for block creation, verification and decryption
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -43,8 +43,6 @@
 
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
-
-static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
@@ -73,10 +71,37 @@ create_record (int count)
 
 
 static void
+rd_decrypt_cb (void *cls,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  char rd_cmp_data[TEST_RECORD_DATALEN];
+
+  int c;
+
+  GNUNET_assert (RECORDS == rd_count);
+  GNUNET_assert (NULL != rd);
+
+  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
+
+  for (c = 0; c < rd_count; c++)
+  {
+  	GNUNET_assert (TEST_RECORD_TYPE == rd[c].record_type);
+  	GNUNET_assert (TEST_RECORD_DATALEN == rd[c].data_size);
+  	GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[c].data, TEST_RECORD_DATALEN));
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Block was decrypted successfully \n");
+  res = 0;
+
+}
+
+static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CRYPTO_EccSignature * signature;
+  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
   /* load privat key */
   char *hostkey_file;
@@ -90,35 +115,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* get public key */
   GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
 
-  int res_c;
-  int res_w;
-
   /* create record */
   s_name = "DUMMY.dummy.gnunet";
   s_rd = create_record (RECORDS);
 
-  signature = GNUNET_NAMESTORE_create_signature (privkey, expire, s_name, s_rd, RECORDS);
-  GNUNET_assert (signature != NULL);
+  /* Create block */
+  GNUNET_assert (NULL != (block = GNUNET_NAMESTORE_block_create (privkey, expire,s_name, s_rd, RECORDS)));
+  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_verify (block));
+  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt (block, &pubkey, s_name, &rd_decrypt_cb, s_name));
 
-  res_c = GNUNET_NAMESTORE_verify_signature(&pubkey, expire, s_name, RECORDS, s_rd, signature);
-  GNUNET_break (res == GNUNET_OK);
-
-  GNUNET_free (signature);
-
-  signature = GNUNET_NAMESTORE_create_signature (privkey, expire, s_name, s_rd, RECORDS);
-  GNUNET_break (signature != NULL);
-
-  GNUNET_log_skip(1, GNUNET_NO);
-  res_w = GNUNET_NAMESTORE_verify_signature(&pubkey, expire, s_name, RECORDS - 1, s_rd, signature);
-  GNUNET_break (res_w == GNUNET_SYSERR);
-
-  GNUNET_free (signature);
-
-  if ((res_c == GNUNET_OK) && (res_w == GNUNET_SYSERR))
-    res = 0;
-  else
-    res = 1;
-
+  GNUNET_free (block);
 }
 
 
@@ -140,4 +146,4 @@ main (int argc, char *argv[])
   return res;
 }
 
-/* end of test_namestore_api_sign_verify.c */
+/* end of test_namestore_api_blocks.c */
