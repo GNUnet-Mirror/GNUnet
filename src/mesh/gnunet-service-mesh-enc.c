@@ -1829,7 +1829,8 @@ send_connection_create (struct MeshConnection *connection)
              connection,
              NULL,
              GNUNET_YES);
-  if (MESH_TUNNEL_SEARCHING == t->state || MESH_TUNNEL_NEW == t->state)
+  if (NULL != t &&
+      (MESH_TUNNEL_SEARCHING == t->state || MESH_TUNNEL_NEW == t->state))
     tunnel_change_state (t, MESH_TUNNEL_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
@@ -2945,13 +2946,11 @@ connection_change_state (struct MeshConnection* c,
                          enum MeshConnectionState state)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s[%X] state was %s\n",
-              peer2s (c->t->peer), c->id,
-              GNUNET_MESH_DEBUG_CS2S (c->state));
+              "Connection %s state was %s\n",
+              GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (c->state));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s[%X] state is now %s\n",
-              peer2s (c->t->peer), c->id,
-              GNUNET_MESH_DEBUG_CS2S (state));
+              "Connection %s state is now %s\n",
+              GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (state));
   c->state = state;
 }
 
@@ -4013,6 +4012,8 @@ connection_new (const struct GNUNET_HashCode *cid)
 
   c = GNUNET_new (struct MeshConnection);
   c->id = *cid;
+  GNUNET_CONTAINER_multihashmap_put (connections, &c->id, c,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
   c->fwd_fc.c = c;
@@ -5158,7 +5159,7 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
   msg = (struct GNUNET_MESH_ConnectionACK *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s[%X]\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
               GNUNET_h2s (&msg->cid));
   c = connection_get (&msg->cid);
   if (NULL == c)
@@ -6884,7 +6885,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     dht_replication_level = 3;
   }
 
-  connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 
