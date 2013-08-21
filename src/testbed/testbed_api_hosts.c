@@ -945,11 +945,12 @@ free_argv (char **argv)
  * NoHostAuthenticationForLocalhost=yes'
  *
  * @param port the destination port number
- * @param dst the destination address
+ * @param hostname the hostname of the target host
+ * @param username the username to use while connecting to target host
  * @return NULL terminated list of arguments
  */
 static char **
-gen_rsh_args (const char *port, const char *dst)
+gen_rsh_args (const char *port, const char *hostname, const char *username)
 {
   static const char *default_ssh_args[] = {
     "ssh",
@@ -957,12 +958,15 @@ gen_rsh_args (const char *port, const char *dst)
     "BatchMode=yes",
     "-o",
     "NoHostAuthenticationForLocalhost=yes",
+    "%h",
     NULL
   };
   char **ssh_args;
   char *ssh_cmd;
   char *ssh_cmd_cp;
   char *arg;
+  const char *new_arg;
+  unsigned int size;
   unsigned int cnt;
 
   ssh_args = NULL;
@@ -970,20 +974,44 @@ gen_rsh_args (const char *port, const char *dst)
   {
     ssh_cmd = GNUNET_strdup (ssh_cmd);
     ssh_cmd_cp = ssh_cmd;
-    for (cnt = 0; NULL != (arg = strtok (ssh_cmd, " ")); ssh_cmd = NULL)
-      GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (arg));
+    for (size = 0; NULL != (arg = strtok (ssh_cmd, " ")); ssh_cmd = NULL)
+      GNUNET_array_append (ssh_args, size, GNUNET_strdup (arg));
     GNUNET_free (ssh_cmd_cp);
   }
   else
   {
     ssh_args = copy_argv (default_ssh_args);
-    cnt = (sizeof (default_ssh_args)) / (sizeof (const char *));
-    GNUNET_array_grow (ssh_args, cnt, cnt - 1);
+    size = (sizeof (default_ssh_args)) / (sizeof (const char *));
+    GNUNET_array_grow (ssh_args, size, size - 1);
   }
-  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup ("-p"));
-  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (port));
-  GNUNET_array_append (ssh_args, cnt, GNUNET_strdup (dst));
-  GNUNET_array_append (ssh_args, cnt, NULL);
+  for (cnt = 0; cnt < size; cnt++)
+  {
+    arg = ssh_args[cnt];
+    if ('%' != arg[0])
+      continue;
+    switch (arg[1])
+    {
+    case 'p':
+      new_arg = port;
+      break;
+
+    case 'u':
+      new_arg = username;
+      break;
+
+    case 'h':
+      new_arg = hostname;
+      break;
+
+    default:
+      continue;
+    }
+    if (NULL == new_arg)
+      continue;
+    GNUNET_free (arg);
+    ssh_args[cnt] = GNUNET_strdup (new_arg);
+  }
+  GNUNET_array_append (ssh_args, size, NULL);
   return ssh_args;
 }
 
@@ -1182,17 +1210,11 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     char **rsh_suffix_args;
     const char *username;
     char *port;
-    char *dst;
 
-    username = GNUNET_TESTBED_host_get_username_ (host);
-    hostname = GNUNET_TESTBED_host_get_hostname (host);
-    GNUNET_asprintf (&port, "%u", GNUNET_TESTBED_host_get_ssh_port_ (host));
-    if (NULL == username)
-      GNUNET_asprintf (&dst, "%s", hostname);
-    else
-      GNUNET_asprintf (&dst, "%s@%s", username, hostname);
-    LOG_DEBUG ("Starting SSH to destination %s\n", dst);
-
+    username = host->username;
+    hostname = host->hostname;
+    GNUNET_asprintf (&port, "%u", host->port);
+    LOG_DEBUG ("Starting remote connection to destination %s\n", hostname);
     if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                "HELPER_BINARY_PATH",
@@ -1200,14 +1222,13 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
       helper_binary_path_args[0] =
           GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
     helper_binary_path_args[1] = NULL;
-    rsh_args = gen_rsh_args (port, dst);
+    rsh_args = gen_rsh_args (port, hostname, username);
     rsh_suffix_args = gen_rsh_suffix_args ((const char **) helper_binary_path_args);
     cp->helper_argv =
         join_argv ((const char **) rsh_args, (const char **) rsh_suffix_args);
     free_argv (rsh_args);
     free_argv (rsh_suffix_args);
     GNUNET_free (port);
-    GNUNET_free (dst);
     cp->helper =
         GNUNET_HELPER_start (GNUNET_NO, cp->helper_argv[0], cp->helper_argv, &helper_mst,
                              &helper_exp_cb, cp);
@@ -1406,17 +1427,12 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   char *stat_args[3];
   const char *hostname;
   char *port;
-  char *dst;
 
   h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle));
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->host = host;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
-  if (NULL == host->username)
-    dst = GNUNET_strdup (hostname);
-  else
-    GNUNET_asprintf (&dst, "%s@%s", host->username, hostname);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (config, "testbed",
                                              "HELPER_BINARY_PATH",
@@ -1424,11 +1440,9 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
     stat_args[1] =
         GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);  
   GNUNET_asprintf (&port, "%u", host->port);
-  rsh_args = gen_rsh_args (port, dst);
+  rsh_args = gen_rsh_args (port, hostname, host->username);
   GNUNET_free (port);
-  GNUNET_free (dst);
   port = NULL;
-  dst = NULL;
   stat_args[0] = "stat";
   stat_args[2] = NULL;
   rsh_suffix_args = gen_rsh_suffix_args ((const char **) stat_args);
