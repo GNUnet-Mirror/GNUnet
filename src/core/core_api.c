@@ -354,7 +354,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls the 'struct GNUNET_CORE_Handle*'
  * @param key the peer identity (not used)
  * @param value the 'struct PeerRecord' to free.
- * @return GNUNET_YES (continue)
+ * @return #GNUNET_YES (continue)
  */
 static int
 disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
@@ -569,7 +569,7 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Transmit the next message to the core service.
  *
  * @param cls closure with the 'struct GNUNET_CORE_Handle'
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf 
  */
@@ -792,7 +792,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     /* fake 'connect to self' */
     pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &h->me.hashPubKey);
     GNUNET_assert (NULL == pr);
-    pr = GNUNET_malloc (sizeof (struct PeerRecord));
+    pr = GNUNET_new (struct PeerRecord);
     pr->peer = h->me;
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
@@ -833,7 +833,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect_later (h);
       return;
     }
-    pr = GNUNET_malloc (sizeof (struct PeerRecord));
+    pr = GNUNET_new (struct PeerRecord);
     pr->peer = cnm->peer;
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
@@ -1118,13 +1118,13 @@ reconnect (struct GNUNET_CORE_Handle *h)
  * @param connects function to call on peer connect, can be NULL
  * @param disconnects function to call on peer disconnect / timeout, can be NULL
  * @param inbound_notify function to call for all inbound messages, can be NULL
- * @param inbound_hdr_only set to GNUNET_YES if inbound_notify will only read the
+ * @param inbound_hdr_only set to #GNUNET_YES if inbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message;
- *                can be used to improve efficiency, ignored if inbound_notify is NULLL
+ *                can be used to improve efficiency, ignored if @a inbound_notify is NULLL
  * @param outbound_notify function to call for all outbound messages, can be NULL
- * @param outbound_hdr_only set to GNUNET_YES if outbound_notify will only read the
+ * @param outbound_hdr_only set to #GNUNET_YES if outbound_notify will only read the
  *                GNUNET_MessageHeader and hence we do not need to give it the full message
- *                can be used to improve efficiency, ignored if outbound_notify is NULLL
+ *                can be used to improve efficiency, ignored if @a outbound_notify is NULLL
  * @param handlers callbacks for messages we care about, NULL-terminated
  * @return handle to the core service (only useful for disconnect until 'init' is called);
  *                NULL on error (in this case, init is never called)
@@ -1143,7 +1143,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_CORE_Handle *h;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_CORE_Handle));
+  h = GNUNET_new (struct GNUNET_CORE_Handle);
   h->cfg = cfg;
   h->cls = cls;
   h->init = init;
@@ -1220,7 +1220,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 /**
  * Task that calls 'request_next_transmission'.
  *
- * @param cls the 'struct PeerRecord*'
+ * @param cls the 'struct PeerRecord *'
  * @param tc scheduler context
  */
 static void
@@ -1235,13 +1235,13 @@ run_request_next_transmission (void *cls,
 
 
 /**
- * Ask the core to call "notify" once it is ready to transmit the
- * given number of bytes to the specified "target".  Must only be
+ * Ask the core to call @a notify once it is ready to transmit the
+ * given number of bytes to the specified @a target.  Must only be
  * called after a connection to the respective peer has been
  * established (and the client has been informed about this).  You may
  * have one request of this type pending for each connected peer at
  * any time.  If a peer disconnects, the application MUST call
- * "GNUNET_CORE_notify_transmit_ready_cancel" on the respective
+ * #GNUNET_CORE_notify_transmit_ready_cancel on the respective
  * transmission request, if one such request is pending.
  *
  * @param handle connection to core service
@@ -1249,7 +1249,7 @@ run_request_next_transmission (void *cls,
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait?
  * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
- * @param notify_size how many bytes of buffer space does notify want?
+ * @param notify_size how many bytes of buffer space does @a notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout; clients MUST cancel
  *        all pending transmission requests DURING the disconnect
@@ -1257,7 +1257,7 @@ run_request_next_transmission (void *cls,
  * @param notify_cls closure for notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (request already pending);
- *         if NULL is returned, "notify" will NOT be called.
+ *         if NULL is returned, @a notify will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
