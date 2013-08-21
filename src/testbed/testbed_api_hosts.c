@@ -547,17 +547,6 @@ simple_resolve (const char *host)
   return hostip;
 }
 
-#if ENABLE_LL
-static int
-cmpstringp(const void *p1, const void *p2)
-{
-  /* The actual arguments to this function are "pointers to
-     pointers to char", but strcmp(3) arguments are "pointers
-     to char", hence the following cast plus dereference */
-  
-  return strcmp(* (char * const *) p1, * (char * const *) p2);
-}
-#endif
 
 /**
  * Loads the set of host allocated by the LoadLeveler Job Scheduler.  This
