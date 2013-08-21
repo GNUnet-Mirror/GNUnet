@@ -238,13 +238,13 @@ ats_performance_info_cb (void *cls,
 	struct BenchmarkPeer *p = cls;
 	int c_a;
 	char *peer_id;
-	if (p != &bp_slaves[0])
-		return; /* print only master peer */
+
 	peer_id = GNUNET_strdup (GNUNET_i2s (&p->id));
 	for (c_a = 0; c_a < ats_count; c_a++)
 	{
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("%s: %s %s %u\n"),
-			    peer_id, 
+		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("%c %03u: %s %s %u\n"),
+					(GNUNET_YES == p->master) ? 'M' : 'S',
+					p->no,
 			    GNUNET_i2s (&address->peer),
 			    GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
 			    ntohl(ats[c_a].value));
