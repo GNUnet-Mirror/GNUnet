@@ -583,120 +583,13 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
   GNUNET_assert (0);
 #else
   const char *hostfile;
-  char *buf;
-  char *hostname;
-  char **hostnames;
-  struct GNUNET_TESTBED_Host **host_list;
-  ssize_t rsize;
-  uint64_t size;
-  uint64_t offset;
-  enum {
-    SCAN,
-    SKIP,
-    TRIM,
-    READHOST
-  } pstep;
-  unsigned int host;
-  unsigned int nhosts;
   
   if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
   {
     GNUNET_break (0);
     return 0;
   }
-  if (GNUNET_SYSERR == GNUNET_DISK_file_size (hostfile, &size, GNUNET_YES,
-                                              GNUNET_YES))
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  if (0 == size)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-  buf = GNUNET_malloc (size + 1);
-  rsize = GNUNET_DISK_fn_read (hostfile, buf, (size_t) size);
-  if ( (GNUNET_SYSERR == rsize) || ((ssize_t) size != rsize) )
-  {
-    GNUNET_free (buf);
-    GNUNET_break (0);
-    return 0;
-  }
-  size++;
-  offset = 0;
-  pstep = SCAN;
-  hostname = NULL;
-  hostnames = NULL;
-  nhosts = 0;
-  while (offset < size)
-  {
-    switch (pstep)
-    {
-    case SCAN:
-      if ('!' == buf[offset])
-        pstep = SKIP;
-      else 
-        pstep = TRIM;
-      break;
-    case SKIP:
-      if ('\n' == buf[offset])
-        pstep = SCAN;
-      break;
-    case TRIM:
-      if ('!' == buf[offset])
-      {
-        pstep = SKIP;
-        break;
-      }
-      if ( (' ' == buf[offset]) 
-           || ('\t' == buf[offset])
-           || ('\r' == buf[offset]) )
-        pstep = TRIM;
-      else
-      {
-        pstep = READHOST;
-        hostname = &buf[offset];        
-      }
-      break;
-    case READHOST:
-      if (isspace (buf[offset]))
-      {
-        buf[offset] = '\0';
-        for (host = 0; host < nhosts; host++)
-          if (0 == strcmp (hostnames[host], hostname))
-            break;
-        if (host == nhosts)
-        {
-          LOG_DEBUG ("Adding host [%s]\n", hostname);
-          hostname = GNUNET_strdup (hostname);
-          GNUNET_array_append (hostnames, nhosts, hostname);
-        }
-        else
-          LOG_DEBUG ("Not adding host [%s] as it is already included\n", hostname);
-        hostname = NULL;
-        pstep = SCAN;
-      }
-      break;
-    }
-    offset++;
-  }
-  GNUNET_free_non_null (buf);
-  if (NULL == hostnames)
-    return 0;
-  if (NULL == hosts)
-    goto cleanup;
-  qsort (hostnames, nhosts, sizeof (hostnames[0]), cmpstringp);
-  host_list = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host *) * nhosts);
-  for (host = 0; host < nhosts; host++)
-    host_list[host] = GNUNET_TESTBED_host_create (hostnames[host], NULL, cfg, 0);
-  *hosts = host_list;
-
- cleanup:
-  for (host = 0; host < nhosts; host++)
-    GNUNET_free (hostnames[host]);
-  GNUNET_free(hostnames);
-  return nhosts;
+  return GNUNET_TESTBED_hosts_load_from_file (hostfile, cfg, hosts);
 #endif
 }
 
