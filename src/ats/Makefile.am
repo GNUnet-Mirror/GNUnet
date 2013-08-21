@@ -74,7 +74,7 @@ TESTING_TESTS = \
  test_ats_api_scheduling_block_and_reset \
  test_ats_normalization_update_quality \
  test_ats_change_preference \
- test_ats_perf_ats_proportional_bandwidthstic \
+ test_ats_simplistic \
  test_ats_simplistic_switch_networks \
  test_ats_simplistic_change_preference \
  test_ats_api_performance_list_addresses \
