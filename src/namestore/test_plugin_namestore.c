@@ -79,19 +79,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return ret;
 }
 
-/**
- * Function called by for each matching record.
- *
- * @param cls closure
- * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e. 
- *        because the user queried for a particular record type only)
- */
+
 static void 
 test_record (void *cls,
 						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
