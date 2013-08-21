@@ -43,8 +43,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey *privkey;
 
 static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
-static struct GNUNET_CRYPTO_ShortHashCode zone;
-
 static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
@@ -95,38 +93,75 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-name_lookup_proc (void *cls,
-		  const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-		  struct GNUNET_TIME_Absolute expire,
-		  const char *name,
-		  unsigned int rd_count,
-		  const struct GNUNET_NAMESTORE_RecordData *rd,
-		  const struct GNUNET_CRYPTO_EccSignature *signature)
+rd_decrypt_cb (void *cls,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  char rd_cmp_data[TEST_RECORD_DATALEN];
+
+  GNUNET_assert (1 == rd_count);
+  GNUNET_assert (NULL != rd);
+
+  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
+
+  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
+  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
+  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Block was decrypted successfully \n");
+
+	GNUNET_SCHEDULER_add_now (&end, NULL);
+}
+
+static void
+name_lookup_proc (void *cls,
+						 	 	 	const struct GNUNET_NAMESTORE_Block *block)
+{
+  const char *name = cls;
   nsqe = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Namestore lookup result %p `%s' %i %p %p\n",
-	      zone_key, name, rd_count, rd, signature);
+
+  GNUNET_assert (NULL != cls);
+
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_SCHEDULER_add_now (&end, NULL);
-}
 
+  if (NULL == block)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      "Namestore returned no block\n");
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+      endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Namestore returned block, decrypting \n");
+  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
+  		&pubkey, name, &rd_decrypt_cb, (void *) name));
+}
 
 static void 
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
+  struct GNUNET_HashCode derived_hash;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_assert (NULL != cls);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      "Name store added record for `%s': %s\n", 
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-  nsqe = GNUNET_NAMESTORE_lookup_record (nsh, &zone, name, 0, 
-					 &name_lookup_proc, NULL);
+
+  /* Create derived hash */
+  GNUNET_NAMESTORE_query_from_private_key (privkey, name, &derived_hash);
+
+  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
+					 &name_lookup_proc, (void *) name);
 }
 
 
@@ -135,7 +170,6 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_EccSignature signature;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
@@ -151,18 +185,18 @@ run (void *cls,
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecc_key_get_public (privkey, &pubkey);
-  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (pubkey), &zone);
-  memset (&signature, '\0', sizeof (signature));
+
+
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
+
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
-  nsqe = GNUNET_NAMESTORE_record_put (nsh, &pubkey, name,
-				      GNUNET_TIME_UNIT_FOREVER_ABS,
-				      1, &rd, &signature, &put_cont, (void*) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
+				      1, &rd, &put_cont, (void *) name);
   GNUNET_free ((void *)rd.data);
 }
 
