@@ -4,7 +4,7 @@
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
-      by the Free Software Foundation; either version 2, or (at your
+      by the Free Software Foundation; either version 3, or (at your
       option) any later version.
 
       GNUnet is distributed in the hope that it will be useful, but
@@ -26,8 +26,9 @@
  * @brief API to retrieve the current network size estimate,
  *        also to register for notifications whenever a new
  *        network size estimate is calculated.
- *
  * @author Nathan Evans
+ * @defgroup nse network size estimation service
+ * @{
  */
 
 #ifdef __cplusplus
@@ -80,8 +81,7 @@ typedef void (*GNUNET_NSE_Callback) (void *cls,
  *
  * @param cfg the configuration to use
  * @param func funtion to call with network size estimate
- * @param func_cls closure to pass for network size estimate callback
- *
+ * @param func_cls closure to pass to @a func
  * @return handle to use
  */
 struct GNUNET_NSE_Handle *
@@ -93,7 +93,6 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Disconnect from network size estimation service
  *
  * @param h handle to destroy
- *
  */
 void
 GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h);
@@ -105,5 +104,7 @@ GNUNET_NSE_disconnect (struct GNUNET_NSE_Handle *h);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group nse */
 
 #endif /* GNUNET_NSE_SERVICE_H_ */

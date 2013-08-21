@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -21,8 +21,9 @@
 /**
  * @file include/gnunet_getopt_lib.h
  * @brief command line parsing and --help formatting
- *
  * @author Christian Grothoff
+ * @defgroup getopt command-line parsing
+ * @{
  */
 
 #ifndef GNUNET_GETOPT_LIB_H
@@ -83,7 +84,7 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls specific closure (for this processor)
  * @param option long name of the option (i.e. "config" for --config)
  * @param value argument, NULL if none was given
- * @return GNUNET_OK to continue processing other options, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue processing other options, #GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
                                                          GNUNET_GETOPT_CommandLineProcessorContext
@@ -202,10 +203,10 @@ struct GNUNET_GETOPT_CommandLineOption
  *
  * @param binaryOptions Name of application with option summary
  * @param allOptions defined options and handlers
- * @param argc number of arguments
+ * @param argc number of arguments in @a argv
  * @param argv actual arguments
  * @return index into argv with first non-option
- *   argument, or GNUNET_SYSERR on error
+ *   argument, or #GNUNET_SYSERR on error
  */
 int
 GNUNET_GETOPT_run (const char *binaryOptions,
@@ -224,7 +225,7 @@ GNUNET_GETOPT_run (const char *binaryOptions,
  * @param scls additional closure (will point to the 'unsigned long long')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -242,7 +243,7 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -260,7 +261,7 @@ GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContex
  * @param scls additional closure (will point to the 'unsigned int')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -279,7 +280,7 @@ GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK
+ * @return #GNUNET_OK (always)
  */
 int
 GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -298,7 +299,7 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  *             which will be allocated)
  * @param option name of the option
  * @param value actual value of the option (a string)
- * @return GNUNET_OK
+ * @return #GNUNET_OK (always)
  */
 int
 GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -317,7 +318,7 @@ GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  *             which will be allocated)
  * @param option name of the option
  * @param value actual value of the option (a string)
- * @return GNUNET_OK
+ * @return #GNUNET_OK (always)
  */
 int
 GNUNET_GETOPT_set_filename (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -335,7 +336,7 @@ GNUNET_GETOPT_set_filename (struct GNUNET_GETOPT_CommandLineProcessorContext *ct
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK
+ * @return #GNUNET_OK (always)
  */
 int
 GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -352,7 +353,7 @@ GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to about text)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_NO (do not continue, not an error)
+ * @return #GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -366,7 +367,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to version string)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_NO (do not continue, not an error)
+ * @return #GNUNET_NO (do not continue, not an error)
  */
 int
 GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -380,6 +381,7 @@ GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
 }
 #endif
 
+/** @} */ /* end of group getopt */
 
 /* ifndef GNUNET_GETOPT_LIB_H */
 #endif

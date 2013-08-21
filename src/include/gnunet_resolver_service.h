@@ -22,6 +22,8 @@
  * @file include/gnunet_resolver_service.h
  * @brief functions related to doing DNS lookups
  * @author Christian Grothoff
+ * @defgroup resolver asynchronous standard DNS lookups
+ * @{
  */
 
 #ifndef GNUNET_RESOLVER_SERVICE_H
@@ -45,7 +47,7 @@ extern "C"
  *
  * @param cls closure
  * @param addr one of the addresses of the host, NULL for the last address
- * @param addrlen length of the address
+ * @param addrlen length of @a addr
  */
 typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
                                                  const struct sockaddr *addr,
@@ -80,7 +82,7 @@ GNUNET_RESOLVER_disconnect (void);
  * @param hostname the hostname to resolve
  * @param af AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
- * @param callback_cls closure for callback
+ * @param callback_cls closure for @a callback
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
@@ -96,7 +98,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int af,
  *
  * @param af AF_INET or AF_INET6; use AF_UNSPEC for "any"
  * @param callback function to call with addresses
- * @param cls closure for callback
+ * @param cls closure for @a callback
  * @param timeout how long to try resolving
  * @return handle that can be used to cancel the request, NULL on error
  */
@@ -130,11 +132,11 @@ GNUNET_RESOLVER_local_fqdn_get (void);
  * Perform a reverse DNS lookup.
  *
  * @param sa host address
- * @param salen length of host address
- * @param do_resolve use GNUNET_NO to return numeric hostname
+ * @param salen length of @a sa 
+ * @param do_resolve use #GNUNET_NO to return numeric hostname
  * @param timeout how long to try resolving
  * @param callback function to call with hostnames
- * @param cls closure for callback
+ * @param cls closure for @a callback
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
@@ -163,6 +165,8 @@ GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group resolver */
 
 /* ifndef GNUNET_RESOLVER_SERVICE_H */
 #endif

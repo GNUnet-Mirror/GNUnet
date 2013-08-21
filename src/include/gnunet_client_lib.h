@@ -22,6 +22,8 @@
  * @file include/gnunet_client_lib.h
  * @brief functions related to accessing services
  * @author Christian Grothoff
+ * @defgroup client Generic client-side communication with services
+ * @{
  */
 
 #ifndef GNUNET_CLIENT_LIB_H
@@ -92,7 +94,7 @@ typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
  *
  * @param client connection to the service
  * @param handler function to call with the message
- * @param handler_cls closure for handler
+ * @param handler_cls closure for @a handler
  * @param timeout how long to wait until timing out
  */
 void
@@ -115,17 +117,17 @@ struct GNUNET_CLIENT_TransmitHandle;
  * @param client connection to the service
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
- *        notify with buf NULL and size 0)?
+ *        @a notify with buf NULL and size 0)?
  * @param auto_retry if the connection to the service dies, should we
  *        automatically re-connect and retry (within the timeout period)
- *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        or should we immediately fail in this case?  Pass #GNUNET_YES
  *        if the caller does not care about temporary connection errors,
  *        for example because the protocol is stateless
  * @param notify function to call
- * @param notify_cls closure for notify
+ * @param notify_cls closure for @a notify
  * @return NULL if someone else is already waiting to be notified
  *         non-NULL if the notify callback was queued (can be used to cancel
- *         using GNUNET_CONNECTION_notify_transmit_ready_cancel)
+ *         using #GNUNET_CONNECTION_notify_transmit_ready_cancel)
  */
 struct GNUNET_CLIENT_TransmitHandle *
 GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
@@ -159,12 +161,12 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle
  *         and for waiting for a response)
  * @param auto_retry if the connection to the service dies, should we
  *        automatically re-connect and retry (within the timeout period)
- *        or should we immediately fail in this case?  Pass GNUNET_YES
+ *        or should we immediately fail in this case?  Pass #GNUNET_YES
  *        if the caller does not care about temporary connection errors,
  *        for example because the protocol is stateless
  * @param rn function to call with the response
- * @param rn_cls closure for rn
- * @return GNUNET_OK on success, GNUNET_SYSERR if a request
+ * @param rn_cls closure for @a rn
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if a request
  *         is already pending
  */
 int
@@ -185,9 +187,9 @@ struct GNUNET_CLIENT_TestHandle;
  * Function called with the result on the service test.
  *
  * @param cls closure
- * @param result GNUNET_YES if the service is running,
- *               GNUNET_NO if the service is not running
- *               GNUNET_SYSERR if the configuration is invalid
+ * @param result #GNUNET_YES if the service is running,
+ *               #GNUNET_NO if the service is not running
+ *               #GNUNET_SYSERR if the configuration is invalid
  */
 typedef void (*GNUNET_CLIENT_TestResultCallback)(void *cls,
 						 int result);
@@ -201,9 +203,9 @@ typedef void (*GNUNET_CLIENT_TestResultCallback)(void *cls,
  *
  * @param service name of the service to wait for
  * @param cfg configuration to use
- * @param timeout how long to wait at most in ms
+ * @param timeout how long to wait at most
  * @param cb function to call with the result
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  * @return handle to cancel the test
  */
 struct GNUNET_CLIENT_TestHandle *
@@ -228,6 +230,8 @@ GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group client */
 
 /* ifndef GNUNET_CLIENT_LIB_H */
 #endif

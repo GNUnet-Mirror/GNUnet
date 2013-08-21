@@ -55,23 +55,27 @@ extern "C"
 
 
 /**
- * Desired quality level for cryptographic operations.
+ * Desired quality level for random numbers.
+ * @ingroup crypto
  */
 enum GNUNET_CRYPTO_Quality
 {
   /**
    * No good quality of the operation is needed (i.e.,
    * random numbers can be pseudo-random).
+   * @ingroup crypto
    */
   GNUNET_CRYPTO_QUALITY_WEAK,
 
   /**
    * High-quality operations are desired.
+   * @ingroup crypto
    */
   GNUNET_CRYPTO_QUALITY_STRONG,
 
   /**
    * Randomness for IVs etc. is required.
+   * @ingroup crypto
    */
   GNUNET_CRYPTO_QUALITY_NONCE
 };

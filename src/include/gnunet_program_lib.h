@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -22,6 +22,8 @@
  * @file include/gnunet_program_lib.h
  * @brief functions related to starting programs
  * @author Christian Grothoff
+ * @defgroup program functions for writing command-line programs
+ * @{
  */
 
 #ifndef GNUNET_PROGRAM_LIB_H
@@ -57,16 +59,16 @@ typedef void (*GNUNET_PROGRAM_Main) (void *cls, char *const *args,
  * Run a standard GNUnet command startup sequence (initialize loggers
  * and configuration, parse options).
  *
- * @param argc number of command line arguments
+ * @param argc number of command line arguments in @a argv
  * @param argv command line arguments
  * @param binaryName our expected name
  * @param binaryHelp help text for the program
  * @param options command line options
  * @param task main function to run
- * @param task_cls closure for task
- * @param run_without_scheduler GNUNET_NO start the scheduler, GNUNET_YES do not
- *        start the scheduler just run the main task
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param task_cls closure for @a task
+ * @param run_without_scheduler #GNUNET_NO start the scheduler,
+ *        #GNUNET_YES do not start the scheduler just run the main task
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
@@ -85,8 +87,8 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
  * @param binaryHelp helptext for "-h" option (about the app)
  * @param options command line options
  * @param task main function to run
- * @param task_cls closure for task
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param task_cls closure for @a task
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
@@ -102,6 +104,8 @@ GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group program */
 
 /* ifndef GNUNET_PROGRAM_LIB_H */
 #endif

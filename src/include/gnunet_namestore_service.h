@@ -147,6 +147,7 @@ enum GNUNET_NAMESTORE_RecordFlags
    * This peer is the authority for this record; it must thus
    * not be deleted (other records can be deleted if we run
    * out of space).
+   * @deprecated
    */
   GNUNET_NAMESTORE_RF_AUTHORITY = 1,
 
@@ -157,8 +158,8 @@ enum GNUNET_NAMESTORE_RecordFlags
   GNUNET_NAMESTORE_RF_PRIVATE = 2,
 
   /**
-   * This record was added by the system
-   * and is pending user confimation
+   * This record was added automatically by the system
+   * and is pending user confimation.
    */
   GNUNET_NAMESTORE_RF_PENDING = 4,
 
@@ -196,20 +197,16 @@ struct GNUNET_NAMESTORE_RecordData
 {
 
   /**
-   * Binary value stored in the DNS record.
-   * FIXME: goofy API: sometimes 'data' is individually
-   * 'malloc'ed, sometimes it points into some existing
-   * data area (so sometimes this should be a 'void *',
-   * sometimes a 'const void *').  This is unclean.  We
-   * should go over the code and make sure that 'data'
-   * is NEVER individually alloc'ed here but always points
-   * to some "other" location.
+   * Binary value stored in the DNS record.  Note: "data" must never
+   * be individually 'malloc'ed, but instead always points into some
+   * existing data area.
    */
   const void *data;
 
   /**
    * Expiration time for the DNS record.  Can be relative
-   * or absolute, depending on 'flags'.
+   * or absolute, depending on 'flags'.  Measured in the same
+   * unit as GNUnet time (microseconds).
    */
   uint64_t expiration_time;
 

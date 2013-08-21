@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -22,6 +22,8 @@
  * @file include/gnunet_service_lib.h
  * @brief functions related to starting services
  * @author Christian Grothoff
+ * @defgroup service generic functions for implementing service processes
+ * @{
  */
 
 #ifndef GNUNET_SERVICE_LIB_H
@@ -49,21 +51,21 @@ extern "C"
  *              addresses the server should bind to and listen on; the
  *              array will be NULL-terminated (on success)
  * @param addr_lens set (call by reference) to an array of the lengths
- *              of the respective 'struct sockaddr' struct in the 'addrs'
+ *              of the respective 'struct sockaddr' struct in the @a addrs
  *              array (on success)
  * @return number of addresses found on success,
- *              GNUNET_SYSERR if the configuration
+ *              #GNUNET_SYSERR if the configuration
  *              did not specify reasonable finding information or
  *              if it specified a hostname that could not be resolved;
- *              GNUNET_NO if the number of addresses configured is
- *              zero (in this case, '*addrs' and '*addr_lens' will be
+ *              #GNUNET_NO if the number of addresses configured is
+ *              zero (in this case, '* @a addrs' and '* @a addr_lens' will be
  *              set to NULL).
  */
 int
 GNUNET_SERVICE_get_server_addresses (const char *service_name,
                                      const struct GNUNET_CONFIGURATION_Handle
                                      *cfg, struct sockaddr ***addrs,
-                                     socklen_t ** addr_lens);
+                                     socklen_t **addr_lens);
 
 
 /**
@@ -75,9 +77,8 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
  * @param cfg configuration to use
  */
 typedef void (*GNUNET_SERVICE_Main) (void *cls,
-                                     struct GNUNET_SERVER_Handle * server,
-                                     const struct GNUNET_CONFIGURATION_Handle *
-                                     cfg);
+                                     struct GNUNET_SERVER_Handle *server,
+                                     const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -108,25 +109,28 @@ enum GNUNET_SERVICE_Options
  * Run a standard GNUnet service startup sequence (initialize loggers
  * and configuration, parse options).
  *
- * @param argc number of command line arguments
+ * @param argc number of command line arguments in @a argv
  * @param argv command line arguments
  * @param service_name our service name
  * @param options service options
  * @param task main task of the service
- * @param task_cls closure for task
- * @return GNUNET_SYSERR on error, GNUNET_OK
+ * @param task_cls closure for @a task
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK
  *         if we shutdown nicely
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
+GNUNET_SERVICE_run (int argc, char *const *argv, 
+		    const char *service_name,
                     enum GNUNET_SERVICE_Options options, 
-		    GNUNET_SERVICE_Main task, void *task_cls);
+		    GNUNET_SERVICE_Main task, 
+		    void *task_cls);
 
 
 /**
  * Opaque handle for a service.
  */
 struct GNUNET_SERVICE_Context;
+
 
 /**
  * Run a service startup sequence within an existing
@@ -155,7 +159,7 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
 
 
 /**
- * Stop a service that was started with "GNUNET_SERVICE_start".
+ * Stop a service that was started with #GNUNET_SERVICE_start.
  *
  * @param sctx the service context returned from the start function
  */
@@ -169,6 +173,10 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 #ifdef __cplusplus
 }
 #endif
+
+
+/** @} */ /* end of group service */
+
 
 /* ifndef GNUNET_SERVICE_LIB_H */
 #endif

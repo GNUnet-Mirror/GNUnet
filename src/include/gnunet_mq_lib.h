@@ -1,10 +1,10 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 2, or (at your
+     by the Free Software Foundation; either version 3, or (at your
      option) any later version.
 
      GNUnet is distributed in the hope that it will be useful, but
@@ -22,6 +22,8 @@
  * @author Florian Dold
  * @file include/gnunet_mq_lib.h
  * @brief general purpose message queue
+ * @defgroup mq general purpose message queue
+ * @{
  */
 #ifndef GNUNET_MQ_H
 #define GNUNET_MQ_H
@@ -93,7 +95,7 @@
  * @param var pointer to a message struct, the type of the expression determines the base size,
  *        the space after the base size is the nested message
  * @return a 'struct GNUNET_MessageHeader *' that points at the nested message of the given message,
- *         or NULL if the given message in 'var' does not have any space after the message struct
+ *         or NULL if the given message in @a var does not have any space after the message struct
  */
 #define GNUNET_MQ_extract_nested_mh(var) GNUNET_MQ_extract_nested_mh_ ((struct GNUNET_MessageHeader *) (var), sizeof (*(var)))
 
@@ -140,10 +142,25 @@ struct GNUNET_MQ_Handle;
  */
 struct GNUNET_MQ_Envelope;
 
+
+/**
+ * Error codes for the queue.
+ */ 
 enum GNUNET_MQ_Error
 {
+  /**
+   * FIXME: document!
+   */ 
   GNUNET_MQ_ERROR_READ = 1,
+
+  /**
+   * FIXME: document!
+   */ 
   GNUNET_MQ_ERROR_WRITE = 2,
+
+  /**
+   * FIXME: document!
+   */ 
   GNUNET_MQ_ERROR_TIMEOUT = 4
 };
 
@@ -176,8 +193,8 @@ typedef void
 /**
  * Signature of functions implementing the
  * destruction of a message queue.
- * Implementations must not free 'mq', but should
- * take care of 'impl_state'.
+ * Implementations must not free @a mq, but should
+ * take care of @a impl_state.
  * 
  * @param mq the message queue to destroy
  * @param impl_state state of the implementation
@@ -277,12 +294,14 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev);
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, 
+		struct GNUNET_MQ_Envelope *ev);
 
 
 /**
- * Cancel sending the message. Message must have been sent with GNUNET_MQ_send before.
- * May not be called after the notify sent callback has been called
+ * Cancel sending the message. Message must have been sent with
+ * #GNUNET_MQ_send before.  May not be called after the notify sent
+ * callback has been called
  *
  * @param ev queued envelope to cancel
  */
@@ -340,7 +359,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
 
 
 /**
- * Create a message queue for a GNUNET_STREAM_Socket.
+ * Create a message queue for a GNUNET_SERVER_Client.
  *
  * @param client the client
  * @return the message queue
@@ -355,7 +374,7 @@ GNUNET_MQ_queue_for_server_client (struct GNUNET_SERVER_Client *client);
  * @param send function the implements sending messages
  * @param destroy function that implements destroying the queue
  * @param cancel function that implements canceling a message
- * @param impl_state for the queue, passed to 'send' and 'destroy'
+ * @param impl_state for the queue, passed to @a send, @a destroy and @a cancel
  * @param handlers array of message handlers
  * @param error_handler handler for read and write errors
  * @param cls closure for message handlers and error handler
@@ -496,5 +515,7 @@ GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
  */
 void
 GNUNET_MQ_impl_send_commit (struct GNUNET_MQ_Handle *mq);
+
+/** @} */ /* end of group mq */
 
 #endif

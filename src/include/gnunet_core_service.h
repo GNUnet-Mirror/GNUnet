@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,6 +23,8 @@
  * @brief core service; this is the main API for encrypted P2P
  *        communications
  * @author Christian Grothoff
+ * @defgroup core encrypted direct communication between peers
+ * @{
  */
 
 #ifndef GNUNET_CORE_SERVICE_H
@@ -58,8 +60,7 @@ struct GNUNET_CORE_Handle;
  * @param peer peer identity this notification is about
  */
 typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
-                                                 const struct
-                                                 GNUNET_PeerIdentity * peer);
+                                                 const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -69,8 +70,7 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
  * @param peer peer identity this notification is about
  */
 typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
-                                                    const struct
-                                                    GNUNET_PeerIdentity * peer);
+                                                    const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -133,8 +133,7 @@ struct GNUNET_CORE_MessageHandler
  */
 typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
                                              struct GNUNET_CORE_Handle * server,
-                                             const struct GNUNET_PeerIdentity *
-                                             my_identity);
+                                             const struct GNUNET_PeerIdentity *my_identity);
 
 
 /**
@@ -280,42 +279,6 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Handle to cancel 'is_peer_connected' test.
- */
-struct GNUNET_CORE_ConnectTestHandle;
-
-
-/**
- * Check if the given peer is currently connected and return information
- * about the session if so.  This function is for special cirumstances
- * (GNUNET_TESTING uses it), normal users of the CORE API are
- * expected to track which peers are connected based on the
- * connect/disconnect callbacks from GNUNET_CORE_connect.  This
- * function is NOT part of the 'versioned', 'official' API.
- *
- * @param cfg configuration to use
- * @param peer the specific peer to check for
- * @param peer_cb function to call with the peer information
- * @param cb_cls closure for @a peer_cb
- * @return handle to cancel the operation
- */
-struct GNUNET_CORE_ConnectTestHandle *
-GNUNET_CORE_is_peer_connected (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_PeerIdentity *peer,
-                               GNUNET_CORE_ConnectEventHandler peer_cb,
-                               void *cb_cls);
-
-
-/**
- * Abort 'is_connected' test operation.
- *
- * @param cth handle for operation to cancel
- */
-void
-GNUNET_CORE_is_peer_connected_cancel (struct GNUNET_CORE_ConnectTestHandle *cth);
-
-
-/**
  * Check if the given peer is currently connected. This function is for special
  * cirumstances (GNUNET_TESTBED uses it), normal users of the CORE API are
  * expected to track which peers are connected based on the connect/disconnect
@@ -341,6 +304,8 @@ GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group core */
 
 /* ifndef GNUNET_CORE_SERVICE_H */
 #endif
