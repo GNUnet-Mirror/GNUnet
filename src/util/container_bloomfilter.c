@@ -774,22 +774,27 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
  *
  * @param bf the filter
  * @param to_or the bloomfilter to or-in
- * @param size number of bytes in data
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
                                   const struct GNUNET_CONTAINER_BloomFilter
-                                  *to_or, size_t size)
+                                  *to_or)
 {
   unsigned int i;
   unsigned int n;
   unsigned long long *fc;
   const unsigned long long *dc;
+  size_t size;
 
   if (NULL == bf)
-    return GNUNET_YES;
-  if (bf->bitArraySize != size)
+    return GNUNET_OK;
+  if (bf->bitArraySize != to_or->bitArraySize)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+  size = bf->bitArraySize;
   fc = (unsigned long long *) bf->bitArray;
   dc = (const unsigned long long *) to_or->bitArray;
   n = size / sizeof (unsigned long long);
@@ -800,6 +805,7 @@ GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
     bf->bitArray[i] |= to_or->bitArray[i];
   return GNUNET_OK;
 }
+
 
 /**
  * Remove an element from the filter.
