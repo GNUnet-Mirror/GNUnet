@@ -21,6 +21,10 @@
  * @file gns/gnunet-service-gns_interceptor.c
  * @brief GNUnet GNS interceptor logic
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
+ *
+ * TODO:
+ * - implement RF_SHADOW_RECORD logic
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -120,6 +124,9 @@ reply_to_dns (void *cls, uint32_t rd_count,
     packet->answers = answer_records;
     packet->additional_records = additional_records;
 
+    /* FIXME: need to handle #GNUNET_NAMESTORE_RF_SHADOW_RECORD option
+       (by ignoring records where this flag is set if there is any
+       other record of that type in the result set) */
     for (i=0; i < rd_count; i++)
     {
       if (rd[i].record_type == query->type)

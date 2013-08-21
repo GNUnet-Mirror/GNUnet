@@ -261,11 +261,10 @@ dns_result_processor (void *cls,
 
 
 /**
- * Iterator called on obtained result for a GNS
- * lookup
+ * Iterator called on obtained result for a GNS lookup.
  *
  * @param cls closure
- * @param rd_count number of records
+ * @param rd_count number of records in @a rd
  * @param rd the records in reply
  */
 static void
@@ -291,6 +290,8 @@ result_processor (void *cls,
   //packet->flags.opcode = GNUNET_TUN_DNS_OPCODE_STATUS; // ???
   for (i=0;i<rd_count;i++)
     {
+      // FIXME: do we need to hanlde #GNUNET_NAMESTORE_RF_SHADOW_RECORD
+      // here? Or should we do this in libgnunetgns?
       rec.expiration_time.abs_value_us = rd[i].expiration_time;
       switch (rd[i].record_type)
 	{
@@ -299,7 +300,7 @@ result_processor (void *cls,
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
 	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_A;
-	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in_addr));
+	  rec.data.raw.data = GNUNET_new (struct in_addr);
 	  memcpy (rec.data.raw.data,
 		  rd[i].data,
 		  rd[i].data_size);
@@ -348,9 +349,9 @@ result_processor (void *cls,
  *
  * @param lsock socket to use for sending the reply
  * @param addr address to use for sending the reply
- * @param addr_len number of bytes in addr
+ * @param addr_len number of bytes in @a addr
  * @param udp_msg DNS request payload
- * @param udp_msg_size number of bytes in udp_msg 
+ * @param udp_msg_size number of bytes in @a udp_msg 
  */
 static void
 handle_request (struct GNUNET_NETWORK_Handle *lsock,
