@@ -37,7 +37,7 @@ if os.name == 'posix':
   publish = './gnunet-publish'
   unindex = './gnunet-unindex'
   search = './gnunet-search'
-  identity = './gnunet-identity'
+  identity = 'gnunet-identity'
 elif os.name == 'nt':
   pseudonym = './gnunet-pseudonym.exe'
   gnunetarm = 'gnunet-arm.exe'
