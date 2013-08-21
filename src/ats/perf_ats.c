@@ -31,7 +31,10 @@
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define TESTNAME_PREFIX "perf_ats_"
-#define DEFAULT_NUM 5
+#define DEFAULT_SLAVES_NUM 3
+#define DEFAULT_MASTERS_NUM 1
+
+
 
 /**
  * Information we track for a peer in the testbed.
@@ -44,6 +47,8 @@ struct BenchmarkPeer
   struct GNUNET_TESTBED_Peer *peer;
 
   int no;
+
+  int master; /* master: GNUNET_YES/NO */
 
   struct GNUNET_PeerIdentity id;
 
@@ -77,12 +82,33 @@ struct BenchmarkPeer
   int core_connections;
 };
 
-struct BenchmarkPeer *ph;
+
+static int c_master_peers;
+
+/**
+ * Array of master peers
+ * Preferences to be set for
+ */
+static struct BenchmarkPeer *bp_master;
+
+static int c_slave_peers;
+
+/**
+ * Array of slave peers
+ * Peer used for measurements
+ */
+static struct BenchmarkPeer *bp_slaves;
+
 
 struct BenchmarkState
 {
-	int connected_ATS_SRV;
-	int connected_CORE_SRV;
+	/* Are we connected to ATS service of all peers: GNUNET_YES/NO */
+	int connected_ATS_service;
+
+	/* Are we connected to CORE service of all peers: GNUNET_YES/NO */
+	int connected_CORE_service;
+
+	/* Are we connected to CORE service of all peers: GNUNET_YES/NO */
 	int connected_PEERS;
 	int connected_CORE;
 
@@ -100,7 +126,7 @@ static int result;
 static char *solver;
 static char *preference;
 
-static int peers;
+
 
 static void
 core_connect_completion_cb (void *cls,
@@ -121,32 +147,63 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
-  for (c_p = 0; c_p < peers; c_p++)
+
+  for (c_p = 0; c_p < c_master_peers; c_p++)
   {
-  	if (NULL != ph[c_p].ats_perf_op)
+  	if (NULL != bp_master[c_p].ats_perf_op)
   	{
-  		GNUNET_TESTBED_operation_done (ph[c_p].ats_perf_op);
-  		ph[c_p].ats_perf_op = NULL;
+  		GNUNET_TESTBED_operation_done (bp_master[c_p].ats_perf_op);
+  		bp_master[c_p].ats_perf_op = NULL;
   	}
 
-  	if (NULL != ph[c_p].core_op)
+  	if (NULL != bp_master[c_p].core_op)
   	{
-  		GNUNET_TESTBED_operation_done (ph[c_p].core_op);
-  		ph[c_p].core_op = NULL;
+  		GNUNET_TESTBED_operation_done (bp_master[c_p].core_op);
+  		bp_master[c_p].core_op = NULL;
   	}
 
-  	if (NULL != ph[c_p].info_op)
+  	if (NULL != bp_master[c_p].info_op)
   	{
   		GNUNET_break (0);
-  		GNUNET_TESTBED_operation_done (ph[c_p].info_op);
-  		ph[c_p].info_op = NULL;
+  		GNUNET_TESTBED_operation_done (bp_master[c_p].info_op);
+  		bp_master[c_p].info_op = NULL;
   	}
-  	if (NULL != ph[c_p].connect_op)
+  	if (NULL != bp_master[c_p].connect_op)
   	{
   		GNUNET_break (0);
   		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to connect peer 0 and %u\n"), c_p);
-  		GNUNET_TESTBED_operation_done (ph[c_p].connect_op);
-    	ph[c_p].connect_op = NULL;
+  		GNUNET_TESTBED_operation_done (bp_master[c_p].connect_op);
+  		bp_master[c_p].connect_op = NULL;
+    	result = 1;
+  	}
+  }
+
+  for (c_p = 0; c_p < c_slave_peers; c_p++)
+  {
+  	if (NULL != bp_slaves[c_p].ats_perf_op)
+  	{
+  		GNUNET_TESTBED_operation_done (bp_slaves[c_p].ats_perf_op);
+  		bp_slaves[c_p].ats_perf_op = NULL;
+  	}
+
+  	if (NULL != bp_slaves[c_p].core_op)
+  	{
+  		GNUNET_TESTBED_operation_done (bp_slaves[c_p].core_op);
+  		bp_slaves[c_p].core_op = NULL;
+  	}
+
+  	if (NULL != bp_slaves[c_p].info_op)
+  	{
+  		GNUNET_break (0);
+  		GNUNET_TESTBED_operation_done (bp_slaves[c_p].info_op);
+  		bp_slaves[c_p].info_op = NULL;
+  	}
+  	if (NULL != bp_slaves[c_p].connect_op)
+  	{
+  		GNUNET_break (0);
+  		GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to connect peer 0 and %u\n"), c_p);
+  		GNUNET_TESTBED_operation_done (bp_slaves[c_p].connect_op);
+    	bp_slaves[c_p].connect_op = NULL;
     	result = 1;
   	}
   }
@@ -167,7 +224,7 @@ ats_performance_info_cb (void *cls,
 	struct BenchmarkPeer *p = cls;
 	int c_a;
 	char *peer_id;
-	if (p != &ph[0])
+	if (p != &bp_slaves[0])
 		return; /* print only master peer */
 	peer_id = GNUNET_strdup (GNUNET_i2s (&p->id));
 	for (c_a = 0; c_a < ats_count; c_a++)
@@ -185,8 +242,8 @@ ats_performance_info_cb (void *cls,
 static void 
 do_benchmark ()
 {
-	if ((state.connected_ATS_SRV == GNUNET_NO) ||
-			(state.connected_CORE_SRV == GNUNET_NO) ||
+	if ((state.connected_ATS_service == GNUNET_NO) ||
+			(state.connected_CORE_service == GNUNET_NO) ||
 			(state.connected_PEERS == GNUNET_NO) ||
 			(state.connected_CORE == GNUNET_NO))
 		return;
@@ -221,7 +278,7 @@ connect_completion_callback (void *cls,
 	GNUNET_TESTBED_operation_done(op);
 	p->connect_op = NULL;
 	connections++;
-	if (connections == peers -1)
+	if (connections == c_slave_peers -1)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				"All peers connected, start benchmarking \n");
@@ -236,15 +293,15 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	int c_p;
 
-	if ((state.connected_ATS_SRV == GNUNET_NO) ||
-			(state.connected_CORE_SRV == GNUNET_NO))
+	if ((state.connected_ATS_service == GNUNET_NO) ||
+			(state.connected_CORE_service == GNUNET_NO))
 		return;
 
-	for (c_p = 1; c_p < peers; c_p ++)
+	for (c_p = 1; c_p < c_slave_peers; c_p ++)
 	{
-		ph[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
-				&connect_completion_callback, &ph[c_p], ph[0].peer, ph[c_p].peer);
-		if (NULL == ph[c_p].connect_op)
+		bp_slaves[c_p].connect_op = GNUNET_TESTBED_overlay_connect( NULL,
+				&connect_completion_callback, &bp_slaves[c_p], bp_slaves[0].peer, bp_slaves[c_p].peer);
+		if (NULL == bp_slaves[c_p].connect_op)
 		{
 			GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 					_("Could not connect peer 0 and peer %u\n"), c_p);
@@ -350,11 +407,11 @@ ats_connect_completion_cb (void *cls,
 	}
 
 	op_done ++;
-	if (op_done ==  peers)
+	if (op_done ==  c_slave_peers)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				_("Initialization done, connecting peers\n"));
-		state.connected_ATS_SRV = GNUNET_YES;
+		state.connected_ATS_service = GNUNET_YES;
 		GNUNET_SCHEDULER_add_now (&do_connect, NULL);
 	}
 }
@@ -377,13 +434,13 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "%s connected to %s \n",
 	      id, GNUNET_i2s (peer));
-  if (p->core_connections == peers)
+  if (p->core_connections == c_slave_peers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"%s connected all peers\n", 
 		id);
   }
-  if ((p->core_connections == peers) && (p == &ph[0]))
+  if ((p->core_connections == c_slave_peers) && (p == &bp_slaves[0]))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Master peer %s connected all peers on CORE level\n", id, GNUNET_i2s (peer));
@@ -466,11 +523,11 @@ core_connect_completion_cb (void *cls,
 		return;
 	}
 	core_done ++;
-	if (core_done == peers)
+	if (core_done == c_slave_peers)
 	{
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 				"Connected to all CORE services\n");
-		state.connected_CORE_SRV = GNUNET_YES;
+		state.connected_CORE_service = GNUNET_YES;
 		GNUNET_SCHEDULER_add_now (&do_connect, NULL);
 	}
 }
@@ -513,8 +570,8 @@ peerinformation_cb (void *cb_cls,
   {
     p->id = *pinfo->result.id;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"[%3u] Peers %s\n", 
-		p->no, GNUNET_i2s (&p->id));
+		"[%c %03u] Peers %s\n",
+		(p->master == GNUNET_YES) ? 'M' : 'S', p->no, GNUNET_i2s (&p->id));
   }
   else
   {
@@ -545,43 +602,72 @@ test_main (void *cls, unsigned int num_peers,
   int c_p;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Benchmarking solver `%s' on preference `%s' with %u peers\n"),
-	      solver, preference, peers);
+	      _("Benchmarking solver `%s' on preference `%s' with %u master and %u slave peers\n"),
+	      solver, preference, c_master_peers, c_slave_peers);
 
   shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
 
   GNUNET_assert (NULL == cls);
-  GNUNET_assert (peers == num_peers);
+  GNUNET_assert (c_slave_peers + c_master_peers == num_peers);
   GNUNET_assert (NULL != peers_);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Initializing... \n"));
 
-  for (c_p = 0; c_p < num_peers; c_p++)
+  for (c_p = 0; c_p < c_master_peers; c_p++)
   {
     GNUNET_assert (NULL != peers_[c_p]);
-    ph[c_p].no = c_p;
+    bp_master[c_p].no = c_p;
+    bp_master[c_p].master = GNUNET_YES;
     /* Connect to ATS performance service */
-    ph[c_p].peer = peers_[c_p];
-
-    ph[c_p].info_op = GNUNET_TESTBED_peer_get_information (ph[c_p].peer,
-							   GNUNET_TESTBED_PIT_IDENTITY, 
-							   &peerinformation_cb, &ph[c_p]);
-
-    ph[c_p].core_op = GNUNET_TESTBED_service_connect (NULL,
+    bp_master[c_p].peer = peers_[c_p];
+    bp_master[c_p].info_op = GNUNET_TESTBED_peer_get_information (bp_master[c_p].peer,
+							   GNUNET_TESTBED_PIT_IDENTITY,
+							   &peerinformation_cb, &bp_master[c_p]);
+/*
+    bp_master[c_p].core_op = GNUNET_TESTBED_service_connect (NULL,
 						      peers_[c_p], "ats",
 						      core_connect_completion_cb, NULL,
 						      &core_connect_adapter,
 						      &core_disconnect_adapter,
-						      &ph[c_p]);
+						      &bp_master[c_p]);
 
-    ph[c_p].ats_perf_op = GNUNET_TESTBED_service_connect (NULL,
+    bp_master[c_p].ats_perf_op = GNUNET_TESTBED_service_connect (NULL,
 							  peers_[c_p], "ats",
 							  ats_connect_completion_cb, NULL,
 							  &ats_perf_connect_adapter,
 							  &ats_perf_disconnect_adapter,
-							  &ph[c_p]);
+							  &bp_master[c_p]);
+*/
   }
+
+  for (c_p = 0; c_p < c_slave_peers; c_p++)
+  {
+    GNUNET_assert (NULL != peers_[c_p + c_master_peers]);
+    bp_slaves[c_p].no = c_p + c_master_peers;
+    bp_slaves[c_p].master = GNUNET_NO;
+    /* Connect to ATS performance service */
+    bp_slaves[c_p].peer = peers_[c_p + c_master_peers];
+    bp_slaves[c_p].info_op = GNUNET_TESTBED_peer_get_information (bp_slaves[c_p].peer,
+							   GNUNET_TESTBED_PIT_IDENTITY, 
+							   &peerinformation_cb, &bp_slaves[c_p]);
+/*
+    bp_slaves[c_p].core_op = GNUNET_TESTBED_service_connect (NULL,
+						      peers_[c_p], "ats",
+						      core_connect_completion_cb, NULL,
+						      &core_connect_adapter,
+						      &core_disconnect_adapter,
+						      &bp_slaves[c_p]);
+
+    bp_slaves[c_p].ats_perf_op = GNUNET_TESTBED_service_connect (NULL,
+							  peers_[c_p], "ats",
+							  ats_connect_completion_cb, NULL,
+							  &ats_perf_connect_adapter,
+							  &ats_perf_disconnect_adapter,
+							  &bp_slaves[c_p]);
+*/
+  }
+
 }
 
 
@@ -594,8 +680,7 @@ main (int argc, char *argv[])
   char *conf_name;
   char *dotexe;
   int c;
-  
-  peers = 0;
+
   result = 0;
 
   /* figure out testname */
@@ -625,30 +710,48 @@ main (int argc, char *argv[])
 
   for (c = 0; c < (argc -1); c++)
   {
-  	if (0 == strcmp(argv[c], "-c"))
+  	if (0 == strcmp(argv[c], "-s"))
   		break;
   }
   if (c < argc-1)
   {
-    if ((0L != (peers = strtol (argv[c + 1], NULL, 10))) && (peers >= 2))
-      fprintf (stderr, "Starting %u peers\n", peers);
+    if ((0L != (c_slave_peers = strtol (argv[c + 1], NULL, 10))) && (c_slave_peers >= 2))
+      fprintf (stderr, "Starting %u slave peers\n", c_slave_peers);
     else
-    	peers = DEFAULT_NUM;
+    	c_slave_peers = DEFAULT_SLAVES_NUM;
   }
   else
-  	peers = DEFAULT_NUM;
+  	c_slave_peers = DEFAULT_SLAVES_NUM;
 
-  ph = GNUNET_malloc (peers * sizeof (struct BenchmarkPeer));
-  state.connected_ATS_SRV = GNUNET_NO;
-  state.connected_CORE_SRV = GNUNET_NO;
+  for (c = 0; c < (argc -1); c++)
+  {
+  	if (0 == strcmp(argv[c], "-m"))
+  		break;
+  }
+  if (c < argc-1)
+  {
+    if ((0L != (c_slave_peers = strtol (argv[c + 1], NULL, 10))) && (c_slave_peers >= 2))
+      fprintf (stderr, "Starting %u master peers\n", c_slave_peers);
+    else
+    	c_master_peers = DEFAULT_MASTERS_NUM;
+  }
+  else
+  	c_master_peers = DEFAULT_MASTERS_NUM;
+
+  bp_slaves = GNUNET_malloc (c_slave_peers * sizeof (struct BenchmarkPeer));
+  bp_master = GNUNET_malloc (c_master_peers * sizeof (struct BenchmarkPeer));
+
+  state.connected_ATS_service = GNUNET_NO;
+  state.connected_CORE_service = GNUNET_NO;
   state.connected_PEERS = GNUNET_NO;
+
   /* Start topology */
   uint64_t event_mask;
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run (test_name,
-                                  conf_name, peers,
+                                  conf_name, c_slave_peers + c_master_peers,
                                   event_mask, &controller_event_cb, NULL,
                                   &test_main, NULL);
 
@@ -656,7 +759,7 @@ main (int argc, char *argv[])
   GNUNET_free (preference);
   GNUNET_free (conf_name);
   GNUNET_free (test_name);
-  GNUNET_free (ph);
+  GNUNET_free (bp_slaves);
 
   return result;
 }
