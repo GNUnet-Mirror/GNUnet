@@ -104,14 +104,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-init_notify (void *cls, struct GNUNET_CORE_Handle *server,
+init_notify (void *cls, 
              const struct GNUNET_PeerIdentity *my_identity)
 {
   struct PeerContext *p = cls;
 
-  GNUNET_assert (server != NULL);
-  GNUNET_assert (p->ch == server);
-  if (cls == &p1)
+  if (p == &p1)
   {
     /* connect p2 */
     p2.ch =
@@ -121,7 +119,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
   }
   else
   {
-    GNUNET_assert (cls == &p2);
+    GNUNET_assert (p == &p2);
     GNUNET_SCHEDULER_cancel (timeout_task_id);
     GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
   }

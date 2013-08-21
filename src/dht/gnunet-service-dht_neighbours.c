@@ -1518,14 +1518,12 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
  * To be called on core init/fail.
  *
  * @param cls service closure
- * @param server handle to the server for this service
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
-  GNUNET_assert (server != NULL);
   my_identity = *identity;
 }
 

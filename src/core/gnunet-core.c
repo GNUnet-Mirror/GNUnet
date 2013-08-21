@@ -72,7 +72,8 @@ shutdown_task (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer)
+connected_peer_callback (void *cls, 
+			 const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -82,11 +83,10 @@ connected_peer_callback (void *cls, const struct GNUNET_PeerIdentity *peer)
   printf (_("Peer `%s'\n"), (const char *) &enc);
 }
 
-void
+
+static void
 monitor_notify_startup (void *cls,
-                       struct GNUNET_CORE_Handle * server,
-                       const struct GNUNET_PeerIdentity *
-                       my_identity)
+			const struct GNUNET_PeerIdentity *my_identity)
 {
   my_id = (*my_identity);
 }
@@ -144,7 +144,6 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
              monitor_connections_counter);
   }
 }
-
 
 
 /**

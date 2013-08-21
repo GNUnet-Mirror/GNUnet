@@ -969,18 +969,17 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Function called after GNUNET_CORE_connect has succeeded
+ * Function called after #GNUNET_CORE_connect has succeeded
  * (or failed for good).
  *
  * @param cls closure
- * @param server handle to the server, NULL if we failed
  * @param my_id ID of this peer, NULL if we failed
  */
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls, 
            const struct GNUNET_PeerIdentity *my_id)
 {
-  if (server == NULL)
+  if (NULL == my_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
@@ -988,10 +987,12 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  handle = server;
   my_identity = *my_id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "I am peer `%s'\n", GNUNET_i2s (my_id));
-  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_peer, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "I am peer `%s'\n", 
+	      GNUNET_i2s (my_id));
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, 
+					    &process_peer, NULL);
 }
 
 

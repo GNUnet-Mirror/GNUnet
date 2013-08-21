@@ -607,11 +607,10 @@ oprelease_get_handle_transport (void *cls)
  * do this later).
  *
  * @param cls closure
- * @param server handle to the server, NULL if we failed
  * @param my_identity ID of this peer, NULL if we failed
  */
 static void
-core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
+core_startup_cb (void *cls, 
                  const struct GNUNET_PeerIdentity *my_identity)
 {
   struct CacheEntry *entry = cls;
@@ -622,9 +621,8 @@ core_startup_cb (void *cls, struct GNUNET_CORE_Handle *server,
     return;
   }
   GNUNET_assert (NULL == entry->peer_identity);
-  GNUNET_break (NULL != server);
-  entry->core_handle = server;
-  entry->peer_identity = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  // FIXME: why is this dynamically allocated?
+  entry->peer_identity = GNUNET_new (struct GNUNET_PeerIdentity);
   memcpy (entry->peer_identity, my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   if (0 == entry->demand)

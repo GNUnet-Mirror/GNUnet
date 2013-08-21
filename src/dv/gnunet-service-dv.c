@@ -1801,11 +1801,10 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
  * Called on core init.
  *
  * @param cls unused
- * @param server legacy
  * @param identity this peer's identity
  */
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -573,11 +573,10 @@ peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
  * directly (which should work if you are authorized...).
  *
  * @param cls closure
- * @param server handle to the server, NULL if we failed
  * @param my_identity ID of this peer, NULL if we failed
  */
 static void
-peer_init_handler (void *cls, struct GNUNET_CORE_Handle *server,
+peer_init_handler (void *cls,
                    const struct GNUNET_PeerIdentity *my_identity)
 {
   my_id = *my_identity;

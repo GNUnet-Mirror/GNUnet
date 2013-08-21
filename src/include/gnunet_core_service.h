@@ -127,12 +127,9 @@ struct GNUNET_CORE_MessageHandler
  * do this later).
  *
  * @param cls closure
- * @param server handle to the server, NULL if we failed;
- *        TODO: consider removing this argument, it is redundant...
  * @param my_identity ID of this peer, NULL if we failed
  */
 typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
-                                             struct GNUNET_CORE_Handle * server,
                                              const struct GNUNET_PeerIdentity *my_identity);
 
 

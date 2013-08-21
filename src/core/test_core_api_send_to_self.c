@@ -103,12 +103,12 @@ send_message (void *cls, size_t size, void *buf)
 
 
 static void
-init (void *cls, struct GNUNET_CORE_Handle *core,
+init (void *cls, 
       const struct GNUNET_PeerIdentity *my_identity)
 {
-  if (core == NULL)
+  if (NULL == my_identity)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could NOT connect to CORE;\n");
+    GNUNET_break (0);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

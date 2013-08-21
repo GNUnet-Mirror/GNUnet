@@ -782,7 +782,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       h->init = NULL;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to core service of peer `%s'.\n",
            GNUNET_i2s (&h->me));
-      init (h->cls, h, &h->me);
+      init (h->cls, &h->me);
     }
     else
     {

@@ -172,21 +172,21 @@ static int is_me (const struct GNUNET_PeerIdentity *id)
  * Core startup callback
  *
  * @param cls unused
- * @param server core service's server handle
  * @param my_identity my id
  */
 static void
 core_startup_handler (void *cls,
-											struct GNUNET_CORE_Handle *server,
                       const struct GNUNET_PeerIdentity *my_identity)
 {
-	me = *my_identity;
+  me = *my_identity;
 }
 
-void
+
+static void
 schedule_transmisson (struct NodeComCtx *e_ctx);
 
-size_t
+
+static size_t
 transmit_read_wrapper (void *cls, size_t bufsize, void *buf)
 {
 	struct NodeComCtx *e_ctx = cls;
@@ -207,7 +207,8 @@ transmit_read_wrapper (void *cls, size_t bufsize, void *buf)
 	return res;
 }
 
-void
+
+static void
 schedule_transmisson (struct NodeComCtx *e_ctx)
 {
 	if (NULL != e_ctx->n->cth)

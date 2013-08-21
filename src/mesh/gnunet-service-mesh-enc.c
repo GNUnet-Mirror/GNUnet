@@ -6649,20 +6649,17 @@ server_init (void)
  * To be called on core init/fail.
  *
  * @param cls Closure (config)
- * @param server handle to the server for this service
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls, 
            const struct GNUNET_PeerIdentity *identity)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
   static int i = 0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  GNUNET_break (core_handle == server);
-  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)) ||
-    NULL == server)
+  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

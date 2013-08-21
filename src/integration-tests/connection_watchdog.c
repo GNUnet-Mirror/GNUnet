@@ -948,8 +948,8 @@ core_disconnect_cb (void *cls,
 }
 
 static void
-core_init_cb (void *cls, struct GNUNET_CORE_Handle *server,
-                   const struct GNUNET_PeerIdentity *my_identity)
+core_init_cb (void *cls, 
+	      const struct GNUNET_PeerIdentity *my_identity)
 {
   my_peer_id = *my_identity;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connected to core service\n");

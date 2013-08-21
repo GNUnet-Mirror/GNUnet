@@ -1340,17 +1340,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Called on core init/fail.
  *
  * @param cls service closure
- * @param server handle to the server for this service
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls, 
            const struct GNUNET_PeerIdentity *identity)
 {
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_TIME_Absolute prev_time;
 
-  if (NULL == server)
+  if (NULL == identity)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Connection to core FAILED!\n");
     GNUNET_SCHEDULER_shutdown ();

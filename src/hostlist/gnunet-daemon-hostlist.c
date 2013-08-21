@@ -129,12 +129,14 @@ GNUNET_NETWORK_STRUCT_END
 
 static struct GNUNET_PeerIdentity me;
 
+
 static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *my_identity)
 {
   me = *my_identity;
 }
+
 
 /**
  * Core handler for p2p hostlist advertisements
@@ -142,7 +144,7 @@ core_init (void *cls, struct GNUNET_CORE_Handle *server,
  * @param cls closure
  * @param peer identity of the sender
  * @param message advertisement message we got
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,

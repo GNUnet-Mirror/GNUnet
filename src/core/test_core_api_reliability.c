@@ -358,7 +358,7 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 
 
 static void
-init_notify (void *cls, struct GNUNET_CORE_Handle *server,
+init_notify (void *cls, 
              const struct GNUNET_PeerIdentity *my_identity)
 {
   struct PeerContext *p = cls;
@@ -366,9 +366,7 @@ init_notify (void *cls, struct GNUNET_CORE_Handle *server,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection to CORE service of `%4s' established\n",
               GNUNET_i2s (my_identity));
-  GNUNET_assert (server != NULL);
   p->id = *my_identity;
-  p->ch = server;
   if (cls == &p1)
   {
     GNUNET_assert (ok == 2);
