@@ -266,7 +266,7 @@ do_check (void *cls,
 						   1, &rd,
 						   &commence_testing,
 						   NULL);
-  GNUNET_CRYPTO_ecc_key_free (alice_key);
+  GNUNET_free (alice_key);
 }
 
 

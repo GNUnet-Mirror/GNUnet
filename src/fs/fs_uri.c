@@ -936,7 +936,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecc_sign (my_private_key, &ass.purpose,
                                          &uri->data.loc.contentSignature));
-  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  GNUNET_free (my_private_key);
   return uri;
 }
 

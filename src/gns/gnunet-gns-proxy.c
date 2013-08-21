@@ -3219,7 +3219,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Using zone: %s!\n", &zonename);
-  GNUNET_CRYPTO_ecc_key_free(key);
+  GNUNET_free(key);
   GNUNET_free(keyfile);
   keyfile = NULL;
 
@@ -3247,7 +3247,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using private zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_ecc_key_free(key);
+    GNUNET_free(key);
     GNUNET_free(keyfile);
   }
   keyfile = NULL;
@@ -3276,7 +3276,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Using shorten zone: %s!\n", &zonename);
-    GNUNET_CRYPTO_ecc_key_free(key);
+    GNUNET_free(key);
     GNUNET_free(keyfile);
   }
 

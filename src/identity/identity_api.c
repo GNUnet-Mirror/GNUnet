@@ -368,7 +368,7 @@ message_handler (void *cls,
 		     GNUNET_CONTAINER_multihashmap_remove (h->egos,
 							   &ego->id,
 							   ego));
-      GNUNET_CRYPTO_ecc_key_free (ego->pk);
+      GNUNET_free (ego->pk);
       GNUNET_free (ego->name);
       GNUNET_free (ego);
     }
@@ -730,7 +730,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
   if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_CreateRequestMessage))
   {
     GNUNET_break (0);
-    GNUNET_CRYPTO_ecc_key_free (pk);
+    GNUNET_free (pk);
     return NULL;
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
@@ -753,7 +753,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 				    op);
   if (NULL == id->th)
     transmit_next (id);
-  GNUNET_CRYPTO_ecc_key_free (pk);
+  GNUNET_free (pk);
   return op;
 }
 
@@ -924,7 +924,7 @@ free_ego (void *cls,
 	 ego,
 	 &ego->ctx,
 	 NULL);
-  GNUNET_CRYPTO_ecc_key_free (ego->pk);
+  GNUNET_free (ego->pk);
   GNUNET_free (ego->name);
   GNUNET_free (ego);
   return GNUNET_OK;

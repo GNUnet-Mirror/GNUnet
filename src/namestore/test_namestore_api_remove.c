@@ -77,7 +77,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
   if (privkey != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
   privkey = NULL;
   GNUNET_free_non_null (s_name);
   res = 1;
@@ -98,7 +98,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free_non_null((void *) s_rd[c].data);
   GNUNET_free (s_rd);
   if (privkey != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
   privkey = NULL;
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);

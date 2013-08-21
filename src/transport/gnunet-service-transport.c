@@ -718,7 +718,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != GST_my_private_key)
   {
-    GNUNET_CRYPTO_ecc_key_free (GST_my_private_key);
+    GNUNET_free (GST_my_private_key);
     GST_my_private_key = NULL;
   }
   GST_server = NULL;

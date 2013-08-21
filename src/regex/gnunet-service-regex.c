@@ -120,7 +120,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   stats = NULL;
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
-  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  GNUNET_free (my_private_key);
   my_private_key = NULL;
 }
 
@@ -371,7 +371,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   dht = GNUNET_DHT_connect (cfg, 1024);
   if (NULL == dht)
   {
-    GNUNET_CRYPTO_ecc_key_free (my_private_key);
+    GNUNET_free (my_private_key);
     my_private_key = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;

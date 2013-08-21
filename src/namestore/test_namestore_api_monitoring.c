@@ -117,12 +117,12 @@ do_shutdown ()
 
   if (NULL != privkey)
   {
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
     privkey = NULL;
   }
   if (NULL != privkey2)
   {
-    GNUNET_CRYPTO_ecc_key_free (privkey2);
+    GNUNET_free (privkey2);
     privkey2 = NULL;
   }
 }

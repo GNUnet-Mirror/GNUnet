@@ -288,8 +288,8 @@ do_check (void *cls,
   GNUNET_free (srv_data);
   GNUNET_free (sipserver);
   GNUNET_free (sig);
-  GNUNET_CRYPTO_ecc_key_free (bob_key);
-  GNUNET_CRYPTO_ecc_key_free (alice_key);
+  GNUNET_free (bob_key);
+  GNUNET_free (alice_key);
 }
 
 

@@ -143,7 +143,7 @@ create_hostkeys (const unsigned int no)
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);
-  GNUNET_CRYPTO_ecc_key_free (pk);
+  GNUNET_free (pk);
   GNUNET_TESTING_system_destroy (system, GNUNET_YES);
   return 0;
 }

@@ -59,7 +59,7 @@ do_shutdown ()
   if (uri_next != NULL)
     GNUNET_FS_uri_destroy (uri_next);
   if (ns != NULL)
-    GNUNET_CRYPTO_ecc_key_free (ns);
+    GNUNET_free (ns);
   if (meta != NULL)
     GNUNET_CONTAINER_meta_data_destroy (meta);
 }

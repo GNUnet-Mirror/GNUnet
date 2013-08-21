@@ -160,7 +160,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != (e = ego_head))
   {
     GNUNET_CONTAINER_DLL_remove (ego_head, ego_tail, e);
-    GNUNET_CRYPTO_ecc_key_free (e->pk);
+    GNUNET_free (e->pk);
     GNUNET_free (e);
   }
 }
@@ -779,7 +779,7 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_free (ego->identifier);
       ego->identifier = NULL;
       notify_listeners (ego);
-      GNUNET_CRYPTO_ecc_key_free (ego->pk);
+      GNUNET_free (ego->pk);
       GNUNET_free (ego);
       send_result_code (client, 0, NULL);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);

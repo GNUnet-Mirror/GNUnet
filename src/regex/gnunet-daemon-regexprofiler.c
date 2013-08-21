@@ -124,7 +124,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
-  GNUNET_CRYPTO_ecc_key_free (my_private_key);
+  GNUNET_free (my_private_key);
   my_private_key = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

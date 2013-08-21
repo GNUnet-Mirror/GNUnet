@@ -86,7 +86,7 @@ create_pseu (struct GNUNET_CRYPTO_EccPublicKey *pseu)
 
   ph = GNUNET_CRYPTO_ecc_key_create ();
   GNUNET_CRYPTO_ecc_key_get_public (ph, pseu);
-  GNUNET_CRYPTO_ecc_key_free (ph);
+  GNUNET_free (ph);
 }
 
 

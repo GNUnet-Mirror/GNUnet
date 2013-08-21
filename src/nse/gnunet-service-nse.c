@@ -1325,7 +1325,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != my_private_key)
   {
-    GNUNET_CRYPTO_ecc_key_free (my_private_key);
+    GNUNET_free (my_private_key);
     my_private_key = NULL;
   }
 #if ENABLE_NSE_HISTOGRAM
@@ -1471,7 +1471,7 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
                 ("NSE service is lacking key configuration settings.  Exiting.\n"));
-    GNUNET_CRYPTO_ecc_key_free (my_private_key);
+    GNUNET_free (my_private_key);
     my_private_key = NULL;    
     GNUNET_SCHEDULER_shutdown ();
     return;

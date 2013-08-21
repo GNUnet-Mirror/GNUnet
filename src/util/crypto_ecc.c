@@ -53,18 +53,6 @@
 
 
 /**
- * Free memory occupied by ECC key
- *
- * @param priv pointer to the memory to free
- */
-void
-GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *priv)
-{
-  GNUNET_free (priv);
-}
-
-
-/**
  * Extract values from an S-expression.
  *
  * @param array where to store the result(s)
@@ -668,7 +656,7 @@ GNUNET_CRYPTO_ecc_setup_key (const char *cfg_name)
   (void) GNUNET_CONFIGURATION_load (cfg, cfg_name);
   priv = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
   if (NULL != priv)
-    GNUNET_CRYPTO_ecc_key_free (priv);
+    GNUNET_free (priv);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
 
@@ -695,7 +683,7 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_ecc_key_get_public (priv, &pub);
-  GNUNET_CRYPTO_ecc_key_free (priv);
+  GNUNET_free (priv);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &dst->hashPubKey);
   return GNUNET_OK;
 }

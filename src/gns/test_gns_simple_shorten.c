@@ -319,11 +319,11 @@ void do_check (void *cls,
 					    NULL);
 
   GNUNET_free(web);
-  GNUNET_CRYPTO_ecc_key_free(our_key);
-  GNUNET_CRYPTO_ecc_key_free(bob_key);
-  GNUNET_CRYPTO_ecc_key_free(alice_key);
-  GNUNET_CRYPTO_ecc_key_free(priv_key);
-  GNUNET_CRYPTO_ecc_key_free(short_key);
+  GNUNET_free(our_key);
+  GNUNET_free(bob_key);
+  GNUNET_free(alice_key);
+  GNUNET_free(priv_key);
+  GNUNET_free(short_key);
 
 }
 

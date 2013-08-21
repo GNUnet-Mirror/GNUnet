@@ -869,7 +869,7 @@ do_shutdown (void *cls,
   }
   if (NULL != fcfs_zone_pkey)
   {
-    GNUNET_CRYPTO_ecc_key_free (fcfs_zone_pkey);
+    GNUNET_free (fcfs_zone_pkey);
     fcfs_zone_pkey = NULL;
   }
 }

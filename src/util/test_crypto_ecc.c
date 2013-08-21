@@ -104,7 +104,7 @@ testDeriveSignVerify ()
   if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_sign (dpriv, &purp, &sig))
   {
     FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_sign returned SYSERR\n");
-    GNUNET_CRYPTO_ecc_key_free (dpriv);
+    GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
@@ -113,7 +113,7 @@ testDeriveSignVerify ()
 				&dpub))
   {
     printf ("GNUNET_CRYPTO_ecc_verify failed!\n");
-    GNUNET_CRYPTO_ecc_key_free (dpriv);
+    GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
@@ -122,7 +122,7 @@ testDeriveSignVerify ()
 				&pkey))
   {
     printf ("GNUNET_CRYPTO_ecc_verify failed to fail!\n");
-    GNUNET_CRYPTO_ecc_key_free (dpriv);
+    GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
@@ -130,10 +130,10 @@ testDeriveSignVerify ()
 				&purp, &sig, &dpub))
   {
     printf ("GNUNET_CRYPTO_ecc_verify failed to fail!\n");
-    GNUNET_CRYPTO_ecc_key_free (dpriv);
+    GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_ecc_key_free (dpriv);
+  GNUNET_free (dpriv);
   return GNUNET_OK;
 }
 
@@ -183,18 +183,18 @@ testCreateFromFile ()
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
   GNUNET_CRYPTO_ecc_key_get_public (key, &p1);
-  GNUNET_CRYPTO_ecc_key_free (key);
+  GNUNET_free (key);
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
   GNUNET_CRYPTO_ecc_key_get_public (key, &p2);
   GNUNET_assert (0 == memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_CRYPTO_ecc_key_free (key);
+  GNUNET_free (key);
   GNUNET_assert (0 == UNLINK (KEYFILE));
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
   GNUNET_CRYPTO_ecc_key_get_public (key, &p2);
   GNUNET_assert (0 != memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_CRYPTO_ecc_key_free (key);
+  GNUNET_free (key);
   return GNUNET_OK;
 }
 
@@ -217,8 +217,8 @@ test_ecdh ()
   GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
   GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
 			      sizeof (struct GNUNET_HashCode)));
-  GNUNET_CRYPTO_ecc_key_free (priv1);
-  GNUNET_CRYPTO_ecc_key_free (priv2);
+  GNUNET_free (priv1);
+  GNUNET_free (priv2);
 }
 
 
@@ -234,7 +234,7 @@ perf_keygen ()
   {
     fprintf (stderr, ".");
     pk = GNUNET_CRYPTO_ecc_key_create ();
-    GNUNET_CRYPTO_ecc_key_free (pk);
+    GNUNET_free (pk);
   }
   fprintf (stderr, "\n");
   printf ("Creating 10 ECC keys took %s\n",
@@ -270,7 +270,7 @@ main (int argc, char *argv[])
 #endif
   if (GNUNET_OK != testSignVerify ())
     failure_count++;
-  GNUNET_CRYPTO_ecc_key_free (key);
+  GNUNET_free (key);
   if (GNUNET_OK != testCreateFromFile ())
     failure_count++;
   GNUNET_assert (0 == UNLINK (KEYFILE));

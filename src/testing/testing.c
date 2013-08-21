@@ -1169,7 +1169,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     goto err_ret;
   }  
   if (NULL != pk)
-    GNUNET_CRYPTO_ecc_key_free (pk);
+    GNUNET_free (pk);
   if (GNUNET_NO == 
       GNUNET_CONFIGURATION_have_value (cfg, "PEER", "PRIVATE_KEY"))
   {
@@ -1288,7 +1288,7 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
     return;
   }
   peer->id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_CRYPTO_ecc_key_free (GNUNET_TESTING_hostkey_get (peer->system,
+  GNUNET_free (GNUNET_TESTING_hostkey_get (peer->system,
 							  peer->key_number,
 							  peer->id));
   memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));

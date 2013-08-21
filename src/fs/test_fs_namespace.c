@@ -259,7 +259,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri,
                          &bo, GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont, NULL);
   GNUNET_CONTAINER_meta_data_destroy (meta);
-  GNUNET_CRYPTO_ecc_key_free (ns);
+  GNUNET_free (ns);
 }
 
 
@@ -291,7 +291,7 @@ testNamespace ()
                                     NULL);
   GNUNET_FS_uri_destroy (ksk_uri);
   GNUNET_CONTAINER_meta_data_destroy (meta);
-  GNUNET_CRYPTO_ecc_key_free (ns);
+  GNUNET_free (ns);
 }
 
 

@@ -162,7 +162,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* FIXME: use identity service and/or allow user to specify public key! */
   key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  GNUNET_CRYPTO_ecc_key_free (key);  
+  GNUNET_free (key);  
   GNUNET_free (keyfile);
   
   if (GNUNET_OK != 
@@ -202,7 +202,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
   if (NULL != shorten_key)
-    GNUNET_CRYPTO_ecc_key_free (shorten_key);
+    GNUNET_free (shorten_key);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_shutdown, NULL);
 }

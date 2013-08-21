@@ -1518,7 +1518,7 @@ do_rekey (void *cls,
 					     &do_rekey,
 					     NULL);
   if (NULL != my_ephemeral_key)
-    GNUNET_CRYPTO_ecc_key_free (my_ephemeral_key);
+    GNUNET_free (my_ephemeral_key);
   my_ephemeral_key = GNUNET_CRYPTO_ecc_key_create ();
   GNUNET_assert (NULL != my_ephemeral_key);
   sign_ephemeral_key ();
@@ -1553,7 +1553,7 @@ GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk)
     if (NULL == my_ephemeral_key)
     {
       GNUNET_break (0);
-      GNUNET_CRYPTO_ecc_key_free (my_private_key);
+      GNUNET_free (my_private_key);
       my_private_key = NULL;
       return GNUNET_SYSERR;
     }
@@ -1586,12 +1586,12 @@ GSC_KX_done ()
   if ( (NULL != my_ephemeral_key) &&
        (my_ephemeral_key != my_private_key) )
   {
-    GNUNET_CRYPTO_ecc_key_free (my_ephemeral_key);
+    GNUNET_free (my_ephemeral_key);
     my_ephemeral_key = NULL;
   }
   if (NULL != my_private_key)
   {
-    GNUNET_CRYPTO_ecc_key_free (my_private_key);
+    GNUNET_free (my_private_key);
     my_private_key = NULL;
   }
   if (NULL != mst)

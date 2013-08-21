@@ -678,7 +678,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     GNUNET_free (fn);
     GNUNET_CRYPTO_ecc_key_get_public (priv, &my_public_key);
-    GNUNET_CRYPTO_ecc_key_free (priv);
+    GNUNET_free (priv);
     GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }
 

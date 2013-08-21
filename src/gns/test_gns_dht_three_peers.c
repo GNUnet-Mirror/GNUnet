@@ -339,7 +339,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[0])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_ecc_key_free (key);
+    GNUNET_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
@@ -370,7 +370,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 					    1, &rd, 
 					    &cont_ns, nh[0]);
 
-  GNUNET_CRYPTO_ecc_key_free(key);
+  GNUNET_free(key);
   GNUNET_free(keyfile);
   GNUNET_free(web);
   dave_is_setup = GNUNET_YES;
@@ -410,7 +410,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[1])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_ecc_key_free (key);
+    GNUNET_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
@@ -428,7 +428,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 					    1, &rd,
 					    &cont_ns, nh[1]);
 
-  GNUNET_CRYPTO_ecc_key_free(key);
+  GNUNET_free(key);
   GNUNET_free(keyfile);
   bob_is_setup = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob done\n");
@@ -465,7 +465,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == nh[2])
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to namestore\n");
-    GNUNET_CRYPTO_ecc_key_free (key);
+    GNUNET_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
@@ -485,12 +485,12 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   if (NULL == gh)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to connect to gns\n");
-    GNUNET_CRYPTO_ecc_key_free (key);
+    GNUNET_free (key);
     GNUNET_free (keyfile);
     return GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_ecc_key_free (key);
+  GNUNET_free (key);
   GNUNET_free (keyfile);
   alice_is_setup = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up alice  done\n");

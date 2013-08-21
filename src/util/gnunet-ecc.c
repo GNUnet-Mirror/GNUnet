@@ -82,10 +82,10 @@ create_keys (const char *fn)
 	       _("\nFailed to write to `%s': %s\n"),
 	       fn,
 	       STRERROR (errno));
-      GNUNET_CRYPTO_ecc_key_free (pk);
+      GNUNET_free (pk);
       break;
     }
-    GNUNET_CRYPTO_ecc_key_free (pk);
+    GNUNET_free (pk);
   }
   if (UINT_MAX == make_keys)
     fprintf (stderr,
@@ -144,7 +144,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
     fprintf (stdout, "%s\n", enc.encoding);
   }
-  GNUNET_CRYPTO_ecc_key_free (pk);
+  GNUNET_free (pk);
 }
 
 

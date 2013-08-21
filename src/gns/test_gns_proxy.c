@@ -438,7 +438,7 @@ run (void *cls,
 
   GNUNET_free ((void**)rd.data);
   GNUNET_free (zone_keyfile);
-  GNUNET_CRYPTO_ecc_key_free (host_key);
+  GNUNET_free (host_key);
 }
 
 int

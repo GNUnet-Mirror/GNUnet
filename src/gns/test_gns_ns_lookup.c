@@ -174,7 +174,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != alice_key)
   {
-    GNUNET_CRYPTO_ecc_key_free (alice_key);
+    GNUNET_free (alice_key);
     alice_key = NULL;
   }
   GNUNET_break (0);
@@ -229,7 +229,7 @@ end_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != alice_key)
   {
-    GNUNET_CRYPTO_ecc_key_free (alice_key);
+    GNUNET_free (alice_key);
     alice_key = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Shutting down peer!\n");

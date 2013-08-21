@@ -684,7 +684,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CRYPTO_hash_to_enc (&user_zone, &zonename);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Using zone: %s!\n", &zonename);
-      GNUNET_CRYPTO_ecc_key_free(key);
+      GNUNET_free(key);
     }
     GNUNET_free(keyfile);
   }

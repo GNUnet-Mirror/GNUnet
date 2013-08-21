@@ -66,7 +66,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (privkey != NULL)
   {
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
     privkey = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
@@ -85,7 +85,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (privkey != NULL)
   {
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
     privkey = NULL;
   }
   if (nsh != NULL)

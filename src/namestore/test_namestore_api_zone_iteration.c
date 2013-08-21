@@ -117,11 +117,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (privkey != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
   privkey = NULL;
 
   if (privkey2 != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey2);
+    GNUNET_free (privkey2);
   privkey2 = NULL;
   res = 1;
 }
@@ -143,11 +143,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   if (privkey != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey);
+    GNUNET_free (privkey);
   privkey = NULL;
 
   if (privkey2 != NULL)
-    GNUNET_CRYPTO_ecc_key_free (privkey2);
+    GNUNET_free (privkey2);
   privkey2 = NULL;
 
   GNUNET_free (sig_1);

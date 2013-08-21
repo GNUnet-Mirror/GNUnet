@@ -234,9 +234,9 @@ on_lookup_result (void *cls, uint32_t rd_count,
 static void
 commence_testing (void *cls, int success)
 {
-  GNUNET_CRYPTO_ecc_key_free(our_key);
-  GNUNET_CRYPTO_ecc_key_free(bob_key);
-  GNUNET_CRYPTO_ecc_key_free(alice_key);
+  GNUNET_free(our_key);
+  GNUNET_free(bob_key);
+  GNUNET_free(alice_key);
   GNUNET_NAMESTORE_disconnect (namestore_handle);
   namestore_handle = NULL;
   gns_handle = GNUNET_GNS_connect(cfg);
@@ -306,9 +306,9 @@ put_pseu_dht (void *cls, int success)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
     ok = 3;
-    GNUNET_CRYPTO_ecc_key_free(our_key);
-    GNUNET_CRYPTO_ecc_key_free(bob_key);
-    GNUNET_CRYPTO_ecc_key_free(alice_key);
+    GNUNET_free(our_key);
+    GNUNET_free(bob_key);
+    GNUNET_free(alice_key);
     GNUNET_free(sig);
     GNUNET_free (nrb);
     end_badly_now ();
@@ -394,9 +394,9 @@ put_www_dht (void *cls, int success)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
     ok = 3;
-    GNUNET_CRYPTO_ecc_key_free(our_key);
-    GNUNET_CRYPTO_ecc_key_free(bob_key);
-    GNUNET_CRYPTO_ecc_key_free(alice_key);
+    GNUNET_free(our_key);
+    GNUNET_free(bob_key);
+    GNUNET_free(alice_key);
     GNUNET_free (sig);
     GNUNET_free(web);
     GNUNET_free (nrb);
@@ -475,9 +475,9 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Record serialization failed!\n");
     ok = 3;
     
-    GNUNET_CRYPTO_ecc_key_free (our_key);
-    GNUNET_CRYPTO_ecc_key_free (bob_key);
-    GNUNET_CRYPTO_ecc_key_free (alice_key);
+    GNUNET_free (our_key);
+    GNUNET_free (bob_key);
+    GNUNET_free (alice_key);
     GNUNET_free (sig);
     GNUNET_free (nrb);
     end_badly_now ();

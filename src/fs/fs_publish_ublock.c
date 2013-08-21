@@ -252,7 +252,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   GNUNET_CRYPTO_hash (&ub_enc->verification_key,
 		      sizeof (ub_enc->verification_key),
 		      &query);
-  GNUNET_CRYPTO_ecc_key_free (nsd);
+  GNUNET_free (nsd);
 
   uc = GNUNET_new (struct GNUNET_FS_PublishUblockContext);
   uc->cont = cont;

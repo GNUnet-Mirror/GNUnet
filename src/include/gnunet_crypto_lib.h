@@ -759,16 +759,6 @@ typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
 
 /**
  * @ingroup crypto
- * Free memory occupied by ECC key
- *
- * @param priv pointer to the memory to free
- */
-void
-GNUNET_CRYPTO_ecc_key_free (struct GNUNET_CRYPTO_EccPrivateKey *priv);
-
-
-/**
- * @ingroup crypto
  * Extract the public key for the given private key.
  *
  * @param priv the private key
@@ -816,7 +806,7 @@ GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc,
  *
  * @param filename name of file to use to store the key
  * @return new private key, NULL on error (for example,
- *   permission denied)
+ *   permission denied); free using #GNUNET_free
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
@@ -828,7 +818,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
  * the file specified in the configuration.
  *
  * @return new private key, NULL on error (for example,
- *   permission denied)
+ *   permission denied); free using #GNUNET_free
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg);
@@ -838,7 +828,7 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
  * @ingroup crypto
  * Create a new private key. Caller must free return value.
  *
- * @return fresh private key
+ * @return fresh private key; free using #GNUNET_free
  */
 struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_create (void);
@@ -848,7 +838,7 @@ GNUNET_CRYPTO_ecc_key_create (void);
  * @ingroup crypto
  * Get the shared private key we use for anonymous users.
  *
- * @return "anonymous" private key
+ * @return "anonymous" private key; do not free
  */
 const struct GNUNET_CRYPTO_EccPrivateKey *
 GNUNET_CRYPTO_ecc_key_get_anonymous (void);
