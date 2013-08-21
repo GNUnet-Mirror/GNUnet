@@ -44,7 +44,7 @@ elif os.name == 'nt':
   publish = './gnunet-publish.exe'
   unindex = './gnunet-unindex.exe'
   search = './gnunet-search.exe'
-  identity = './gnunet-identity.exe'
+  identity = 'gnunet-identity.exe'
 
 if os.name == "nt":
   shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-fs-py-ns"), True)
