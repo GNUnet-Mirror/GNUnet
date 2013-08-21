@@ -22,10 +22,6 @@
  * @brief GNUnet GNS service
  * @author Martin Schanzenbach
  * @author Christian Grothoff
- *
- * TODO:
- * - perform conversion of relative expiration times to absolute time
- *   when going to DHT!
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -332,6 +328,7 @@ put_gns_record (void *cls,
   struct GNUNET_NAMESTORE_Block *block;
   struct GNUNET_HashCode query;
   struct GNUNET_TIME_Absolute expire; 
+  struct GNUNET_TIME_Absolute now;
   size_t block_size;
   struct GNUNET_NAMESTORE_RecordData rd_public[rd_count];
   unsigned int rd_public_count;
@@ -387,13 +384,22 @@ put_gns_record (void *cls,
     return;
   }
 
-  /* filter out records that are not public! */
+  /* filter out records that are not public, and convert to
+     absolute expiration time. */
   rd_public_count = 0;
+  now = GNUNET_TIME_absolute_get ();
   for (i=0;i<rd_count;i++)
     if (0 == (rd[i].flags & (GNUNET_NAMESTORE_RF_PRIVATE |
 			     GNUNET_NAMESTORE_RF_PENDING)))
-      rd_public[rd_public_count++] = rd[i];
-
+    {
+      rd_public[rd_public_count] = rd[i];
+      if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+      {
+	rd_public[rd_public_count].flags &= ~GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+	rd_public[rd_public_count].expiration_time += now.abs_value_us;
+      }
+      rd_public_count++;
+    }
 
   /* We got a set of records to publish */
   if (0 == rd_public_count)
