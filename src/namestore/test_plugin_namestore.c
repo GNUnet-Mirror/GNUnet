@@ -79,7 +79,6 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return ret;
 }
 
-
 /**
  * Function called by for each matching record.
  *
@@ -95,19 +94,16 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
  */
 static void 
 test_record (void *cls,
-	     const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
-	     struct GNUNET_TIME_Absolute expire,
-	     const char *name,
-	     unsigned int rd_count,
-	     const struct GNUNET_NAMESTORE_RecordData *rd,
-	     const struct GNUNET_CRYPTO_EccSignature *signature)
+						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
+						 const char *label,
+						 unsigned int rd_count,
+						 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int *idp = cls;
   int id = *idp;
-  struct GNUNET_CRYPTO_EccPublicKey tzone_key;
+  struct GNUNET_CRYPTO_EccPrivateKey tzone_private_key;
   char tname[64];
   unsigned int trd_count = 1 + (id % 1024);
-  struct GNUNET_CRYPTO_EccSignature tsignature;
   unsigned int i;
 
   GNUNET_snprintf (tname, sizeof (tname),
@@ -119,37 +115,32 @@ test_record (void *cls,
     GNUNET_assert (rd[i].record_type == 1 + (id % 13));
     GNUNET_assert (rd[i].flags == (id  % 7));
   }
-  memset (&tzone_key, (id % 241), sizeof (tzone_key));
-  memset (&tsignature, (id % 243), sizeof (tsignature));
-  GNUNET_assert (0 == strcmp (name, tname));
-  GNUNET_assert (0 == memcmp (&tzone_key, zone_key, sizeof (struct GNUNET_CRYPTO_EccPublicKey)));
-  GNUNET_assert (0 == memcmp (&tsignature, signature, sizeof (struct GNUNET_CRYPTO_EccSignature)));
+  memset (&tzone_private_key, (id % 241), sizeof (tzone_private_key));
+  GNUNET_assert (0 == strcmp (label, tname));
+  GNUNET_assert (0 == memcmp (&tzone_private_key, private_key, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)));
 }
 
 
 static void
 get_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
-  GNUNET_assert (1 == nsp->iterate_records (nsp->cls,
-					    NULL, NULL, 0,
-					    &test_record, &id));
+  GNUNET_assert (GNUNET_OK == nsp->iterate_records (nsp->cls,
+					    NULL, 0, &test_record, &id));
 }
 
 
 static void
 put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
-  struct GNUNET_CRYPTO_EccPublicKey zone_key;
-  struct GNUNET_TIME_Absolute expire;
-  char name[64];
+  struct GNUNET_CRYPTO_EccPrivateKey zone_private_key;
+  char label[64];
   unsigned int rd_count = 1 + (id % 1024);
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
   struct GNUNET_CRYPTO_EccSignature signature;
   unsigned int i;
 
-  GNUNET_snprintf (name, sizeof (name),
+  GNUNET_snprintf (label, sizeof (label),
 		   "a%u", (unsigned int ) id);
-  expire = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   for (i=0;i<rd_count;i++)
   {
     rd[i].data = "Hello World";
@@ -158,15 +149,13 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
     rd[i].record_type = 1 + (id % 13);
     rd[i].flags = (id  % 7);    
   }
-  memset (&zone_key, (id % 241), sizeof (zone_key));
+  memset (&zone_private_key, (id % 241), sizeof (zone_private_key));
   memset (&signature, (id % 243), sizeof (signature));
-  GNUNET_assert (GNUNET_OK == nsp->put_records (nsp->cls,
-						&zone_key,
-						expire,
-						name,
+  GNUNET_assert (GNUNET_OK == nsp->store_records (nsp->cls,
+						&zone_private_key,
+						label,
 						rd_count,
-						rd,
-						&signature));
+						rd));
 }
 
 
@@ -175,8 +164,6 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_PluginFunctions *nsp;  
-  struct GNUNET_CRYPTO_EccPublicKey zone_key;
-  struct GNUNET_CRYPTO_ShortHashCode zone;
   
   ok = 0;
   nsp = load_plugin (cfg);
@@ -190,9 +177,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   put_record (nsp, 1);
   get_record (nsp, 1);
 
-  memset (&zone_key, 1, sizeof (zone_key));
-  GNUNET_CRYPTO_short_hash (&zone_key, sizeof (zone_key), &zone);
-  nsp->delete_zone (nsp->cls, &zone);
   unload_plugin (nsp);
 }
 
