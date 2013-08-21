@@ -37,6 +37,7 @@ struct GNUNET_CORE_RequestContext
   struct GNUNET_CLIENT_Connection *client;
 
   /**
+
    * Handle for transmitting a request.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
@@ -120,7 +121,7 @@ receive_info (void *cls, const struct GNUNET_MessageHeader *msg)
  * NULL and "size" zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure
+ * @param cls closure, always NULL
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
@@ -129,30 +130,17 @@ static size_t
 transmit_request (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_PeerIdentity *peer = cls;
   int msize;
 
-  if (peer == NULL)
-    msize = sizeof (struct GNUNET_MessageHeader);
-  else
-    msize =
-        sizeof (struct GNUNET_MessageHeader) +
-        sizeof (struct GNUNET_PeerIdentity);
+  msize = sizeof (struct GNUNET_MessageHeader);
   if ((size < msize) || (buf == NULL))
     return 0;
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->size = htons (msize);
-  if (peer != NULL)
-  {
-    msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_PEER_CONNECTED);
-    memcpy (&msg[1], peer, sizeof (struct GNUNET_PeerIdentity));
-  }
-  else
-    msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS);
 
   return msize;
 }
-
 
 
 /**
@@ -163,9 +151,8 @@ transmit_request (void *cls, size_t size, void *buf)
  *
  * @param cfg configuration to use
  * @param peer_cb function to call with the peer information
- * @param cb_cls closure for peer_cb
- *
- * @return GNUNET_OK if iterating, GNUNET_SYSERR on error
+ * @param cb_cls closure for @a peer_cb
+ * @return #GNUNET_OK if iterating, #GNUNET_SYSERR on error
  */
 int
 GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -178,7 +165,7 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
   client = GNUNET_CLIENT_connect ("core", cfg);
   if (client == NULL)
     return GNUNET_SYSERR;
-  request_context = GNUNET_malloc (sizeof (struct GNUNET_CORE_RequestContext));
+  request_context = GNUNET_new (struct GNUNET_CORE_RequestContext);
   request_context->client = client;
   request_context->peer_cb = peer_cb;
   request_context->cb_cls = cb_cls;
