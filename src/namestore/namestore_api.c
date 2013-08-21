@@ -289,7 +289,7 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     return GNUNET_SYSERR;
   }
   if (NULL != qe->block_proc)
-    qe->block_proc (qe->proc_cls, block);  
+    qe->block_proc (qe->block_proc_cls, block);
   else
     GNUNET_break (0);
   return GNUNET_OK;
