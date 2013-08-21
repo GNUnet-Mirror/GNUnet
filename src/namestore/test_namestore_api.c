@@ -108,7 +108,7 @@ rd_decrypt_cb (void *cls,
   GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
   GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Block was decrypted successfully \n");
 
 	GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -152,7 +152,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
   GNUNET_assert (NULL != cls);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name store added record for `%s': %s\n", 
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
