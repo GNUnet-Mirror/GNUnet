@@ -100,7 +100,7 @@ main (int argc, char *argv[])
   if (cmdlen < 5 || wcscmp (&wargv[2][cmdlen - 4], L".exe") != 0)
   {
     non_const_filename = malloc (sizeof (wchar_t) * (cmdlen + 5));
-    _snwprintf (non_const_filename, cmdlen + 5, L"%s.exe", wargv[2]);
+    swprintf (non_const_filename, cmdlen + 5, L"%S.exe", wargv[2]);
   }
   else
   {
@@ -109,7 +109,7 @@ main (int argc, char *argv[])
 
   /* Check that this is the full path. If it isn't, search. */
   if (non_const_filename[1] == L':')
-    _snwprintf (wpath, sizeof (wpath) / sizeof (wchar_t), L"%s", non_const_filename);
+    swprintf (wpath, sizeof (wpath) / sizeof (wchar_t), L"%S", non_const_filename);
   else if (!SearchPathW
            (pathbuf, non_const_filename, NULL, sizeof (wpath) / sizeof (wchar_t),
             wpath, NULL))
@@ -134,16 +134,16 @@ main (int argc, char *argv[])
     wchar_t arg_lastchar = arg[wcslen (arg) - 1];
     if (wrote == 0)
     {
-      wrote += _snwprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%s%s\" ", wpath,
+      wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%S%S\" ", wpath,
           arg_lastchar == L'\\' ? L"\\" : L"");
     }
     else
     {
       if (wcschr (arg, L' ') != NULL)
-        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%s%s\"%s", arg,
+        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"\"%S%S\"%S", arg,
             arg_lastchar == L'\\' ? L"\\" : L"", i == wargc ? L"" : L" ");
       else
-        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"%s%s%s", arg,
+        wrote += swprintf (&wcmd[wrote], cmdlen + 1 - wrote, L"%S%S%S", arg,
             arg_lastchar == L'\\' ? L"\\" : L"", i == wargc ? L"" : L" ");
     }
   }
@@ -156,7 +156,7 @@ main (int argc, char *argv[])
   if (!CreateProcessW (wpath, wcmd, NULL, NULL, TRUE, CREATE_SUSPENDED,
        NULL, NULL, &start, &proc))
   {
-    wprintf (L"Failed to get spawn process `%s' with arguments `%s': %lu\n", wpath, wcmd, GetLastError ());
+    wprintf (L"Failed to get spawn process `%S' with arguments `%S': %lu\n", wpath, wcmd, GetLastError ());
     exit (6);
   }
 
