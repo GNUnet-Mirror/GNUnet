@@ -748,7 +748,6 @@ get_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *valu
           GNUNET_break (0);
           return GNUNET_NO;
       }
-      GNUNET_break (0);
       (*dest) = aa;
   }
   return GNUNET_OK;
