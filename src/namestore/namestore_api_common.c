@@ -967,8 +967,19 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey 
 const char *
 GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
 {
-  GNUNET_break (0); // not implemented
-  return NULL;
+  static char ret[256];
+  char *pkeys;
+  size_t slen;
+
+  pkeys = GNUNET_CRYPTO_ecc_public_key_to_string (pkey);
+  slen = strlen (pkeys);
+  GNUNET_snprintf (ret,
+		   sizeof (ret),
+		   "%s.%.*s.zkey",
+		   &pkeys[slen / 2],
+		   (int) (slen / 2),
+		   pkeys);
+  return ret;
 }
 
 
@@ -985,7 +996,41 @@ int
 GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
 			       struct GNUNET_CRYPTO_EccPublicKey *pkey)
 {
-  GNUNET_break (0); // not implemented
+  char *cpy;
+  char *dot;
+  const char *x;
+  const char *y;
+  char *pkeys;
+    
+  cpy = GNUNET_strdup (zkey);
+  y = cpy;
+  if (NULL == (dot = strchr (y, (int) '.')))
+    goto error;
+  *dot = '\0';
+  x = dot + 1;
+  if (NULL == (dot = strchr (x, (int) '.')))
+    goto error;
+  *dot = '\0';
+  if (0 != strcasecmp (dot + 1, 
+		       "zkey"))
+    goto error;
+  GNUNET_asprintf (&pkeys,
+		   "%s%s",
+		   x, y);
+  GNUNET_free (cpy);
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_public_key_from_string (pkeys,
+						strlen (pkeys),
+						pkey))
+  {
+    GNUNET_free (pkeys);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (pkeys);
+  return GNUNET_OK;
+ error:
+  GNUNET_break (0); 
+  GNUNET_free (cpy);
   return GNUNET_SYSERR;
 }
 
