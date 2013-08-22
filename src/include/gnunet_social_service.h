@@ -287,7 +287,7 @@ GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
  * Obtain the private-public key pair of the home.
  * 
  * @param home Home to get the key of.
- * @param[out] home_key Set to the private-public key pair of the home.  The public part is suitable for storing in GADS within a "PLACE" record, along with peer IDs to join at.
+ * @param[out] home_key Set to the private-public key pair of the home.  The public part is suitable for storing in GNS within a "PLACE" record, along with peer IDs to join at.
  */
 void
 GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
@@ -295,7 +295,7 @@ GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
 
 
 /** 
- * Advertise @a home under @a name in the GADS zone of the @e ego.
+ * Advertise @a home under @a name in the GNS zone of the @e ego.
  *
  * @param home The home to advertise.
  * @param name The name for the PLACE record to put in the zone.
@@ -407,9 +407,9 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  *
  * @param cfg Configuration to contact the social service.
  * @param ego Owner of the home (host).
- * @param address GADS name of the place to enter.  Either in the form of
+ * @param address GNS name of the place to enter.  Either in the form of
  *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
- *        the 'PLACE' record of the empty label ("+") in the GADS zone with the
+ *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
  *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
  *        pseudonym's place directly.
  * @param method_name Method name for the message.
@@ -450,7 +450,7 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_IDENTITY_Ego *ego,
                             struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
                             struct GNUNET_PeerIdentity *origin,
-                            size_t count_relays,
+                            size_t relay_count,
                             struct GNUNET_PeerIdentity *relays,
                             const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
