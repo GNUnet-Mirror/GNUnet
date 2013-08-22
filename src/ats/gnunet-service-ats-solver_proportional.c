@@ -735,19 +735,21 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
 static int
 get_active_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-  struct ATS_Address * dest = (struct ATS_Address *) (*(struct ATS_Address **)cls);
-  struct ATS_Address * aa = (struct ATS_Address *) value;
+	struct ATS_Address **dest = cls;
+  struct ATS_Address *aa = (struct ATS_Address *) value;
 
   if (GNUNET_YES == aa->active)
   {
-      if (dest != NULL)
+
+      if (NULL != (*dest))
       {
           /* should never happen */
           LOG (GNUNET_ERROR_TYPE_ERROR, "Multiple active addresses for peer `%s'\n", GNUNET_i2s (&aa->peer));
           GNUNET_break (0);
           return GNUNET_NO;
       }
-      dest = aa;
+      GNUNET_break (0);
+      (*dest) = aa;
   }
   return GNUNET_OK;
 }
