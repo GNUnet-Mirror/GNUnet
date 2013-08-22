@@ -29,9 +29,10 @@
  *        can likely be done in 'resolver_lookup_get_next_label'.
  * - GNS: expand ".+" in returned values to the respective absolute
  *        name using '.zkey'
- * - recursive DNS resolution
+ * - DNS: convert result format back to GNS
  * - shortening triggers
  * - revocation checks (make optional: privacy!)
+ * - DNAME support
  *
  * Issues:
  * - We currently go to the DHT simply if we find no local reply; this
@@ -861,6 +862,16 @@ recursive_resolution (void *cls,
 
 
 /**
+ * Begin the resolution process from 'name', starting with
+ * the identification of the zone specified by 'name'.
+ *
+ * @param rh resolution to perform
+ */
+static void
+start_resolver_lookup (struct GNS_ResolverHandle *rh);
+
+
+/**
  * Function called with the result of a DNS resolution.
  *
  * @param cls the request handle of the resolution that
@@ -891,10 +902,19 @@ dns_result_parser (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
-  // FIXME: 
-  // Check if the packet is the final answer, or
-  // just pointing us to another NS or another name (CNAME), or another domain (DNAME);
-  // then do the right thing (TM) -- possibly using "recursive_dns_resolution".
+
+  if ( (p->num_answers > 0) &&
+       (GNUNET_DNSPARSER_TYPE_CNAME == p->answers[0].type) &&
+       (GNUNET_DNSPARSER_TYPE_CNAME != rh->record_type) )
+    {
+      GNUNET_free (rh->name);
+      rh->name = GNUNET_strdup (p->answers[0].data.hostname);
+      start_resolver_lookup (rh);
+      return;     
+    }
+  /* FIXME: add DNAME support */
+
+  /* FIXME: convert from DNS to GNS format! */
   GNUNET_break (0);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	      _("NOT IMPLEMENTED\n"));
@@ -975,16 +995,6 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
   GNUNET_free (dns_request);
   GNUNET_DNSPARSER_free_packet (p);
 }
-
-
-/**
- * Begin the resolution process from 'name', starting with
- * the identification of the zone specified by 'name'.
- *
- * @param rh resolution to perform
- */
-static void
-start_resolver_lookup (struct GNS_ResolverHandle *rh);
 
 
 /**
