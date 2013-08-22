@@ -263,7 +263,7 @@ GNUNET_NETWORK_STRUCT_END
  * Handle that identifies a join request.
  *
  * Used to match calls to #GNUNET_MULTICAST_JoinCallback to the
- * corresponding calls to GNUNET_MULTICAST_join_decision().
+ * corresponding calls to #GNUNET_MULTICAST_join_decision().
  */
 struct GNUNET_MULTICAST_JoinHandle;
 
@@ -707,16 +707,16 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
  * @param member Membership handle.
  * @param fragment_id ID of a message fragment that this client would like to
           see replayed.
- * @param flags Additional flags for the replay request.  It is used & defined
- *        by the replay callback.
- * @param message_cb Function to be called for the replayed message.
- * @param message_cb_cls Closure for @a message_cb.
+ * @param flags Additional flags for the replay request.  It is used and defined
+ *        by the replay callback.  FIXME: which replay callback? FIXME: use enum?
+ *        FIXME: why not pass reply cb here?
  * @return Replay request handle, NULL on error.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
                                          uint64_t fragment_id,
-                                         uint64_t flags)
+                                         uint64_t flags);
+
 
 /** 
  * Request a message fr to be replayed.
@@ -763,7 +763,7 @@ GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandl
  * Disconnects from all group members and invalidates the @a member handle.
  *
  * An application-dependent part message can be transmitted beforehand using
- * GNUNET_MULTICAST_member_to_origin())
+ * #GNUNET_MULTICAST_member_to_origin())
  *
  * @param member Membership handle.
  */
@@ -773,6 +773,11 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
 
 /**
  * Function called to provide data for a transmission from a member to the origin.
+ *
+ * @param cls closure
+ * @param data_size number of bytes available in @a data
+ * @param data where to copy data for transmission
+ * @return number of bytes copied to data
  */
 typedef int
 (*GNUNET_MULTICAST_MemberTransmitNotify)(void *cls,
