@@ -1495,7 +1495,7 @@ send_local_channel_destroy (struct MeshChannel *ch, int fwd)
 
 /**
  * Build a local ACK message and send it to a local client.
- * 
+ *
  * @param ch Channel on which to send the ACK.
  * @param c Client to whom send the ACK.
  * @param fwd Set to GNUNET_YES for FWD ACK (dest->owner)
@@ -1567,6 +1567,8 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
   struct MeshFlowControl *fc;
   unsigned int lowest_q;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnl_get_connection %s\n",
+              peer2s (t->peer));
   best = NULL;
   lowest_q = UINT_MAX;
   for (c = t->connection_head; NULL != c; c = c->next)
@@ -2439,6 +2441,29 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "connection_unlock_queue %s on %s\n",
               fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
+
+  if (connection_is_origin (c, fwd))
+  {
+    struct MeshTunnel2 *t = c->t;
+    struct MeshChannel *ch;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " is origin!\n");
+    /* FIXME randomize channel selection, not always first channel */
+    for (ch = t->channel_head; NULL != ch; ch = ch->next)
+    {
+      int blocked = fwd ? ch->blocked_fwd : ch->blocked_bck;
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  channel %X - %s\n",
+                  ch->gid, blocked ? "blocked " : "not blocked");
+      if (blocked)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    blocked!\n");
+        send_local_ack (ch, fwd ? ch->root : ch->dest, fwd);
+        return; /* FIXME authorize all channels? */
+      }
+    }
+    return;
+  }
 
   peer = connection_get_hop (c, fwd);
 
@@ -3572,7 +3597,7 @@ channel_retransmit_message (void *cls,
  * Send an ACK to a client if needed.
  *
  * @param ch Channel this is regarding.
- * @param fwd Is this about fwd traffic? (ACk goes the opposite direction).
+ * @param fwd Is this about fwd traffic? (ACK goes the opposite direction).
  */
 static void
 channel_send_client_ack (struct MeshChannel *ch, int fwd)
