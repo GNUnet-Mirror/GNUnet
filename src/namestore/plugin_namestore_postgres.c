@@ -211,6 +211,9 @@ database_setup (struct Plugin *plugin)
   return GNUNET_OK;
 }
 
+#if 0
+
+TODO: removed
 
 /**
  * Removes any existing record in the given zone with the same name.
@@ -250,6 +253,7 @@ namestore_postgres_remove_records (void *cls,
   PQclear (ret);
   return GNUNET_OK;
 }
+
 
 
 /**
@@ -356,6 +360,7 @@ namestore_postgres_put_records (void *cls,
   }
   return GNUNET_OK;  
 }
+#endif
 
 
 /**
@@ -378,9 +383,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
 {
   unsigned int record_count;
   size_t data_size;
-  const struct GNUNET_CRYPTO_EccPublicKey *zone_key;
-  const struct GNUNET_CRYPTO_EccSignature *sig;
-  struct GNUNET_TIME_Absolute expiration;
+  /* const struct GNUNET_CRYPTO_EccPublicKey *zone_key; */
+  const struct GNUNET_CRYPTO_EccPrivateKey *zone_key;
+  /* const struct GNUNET_CRYPTO_EccSignature *sig; */
+  /* struct GNUNET_TIME_Absolute expiration; */
   const char *data;
   const char *name;
   unsigned int cnt;
@@ -401,7 +407,8 @@ get_record_and_call_iterator (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Ending iteration (no more results)\n");
     PQclear (res);
-    iter (iter_cls, NULL, GNUNET_TIME_UNIT_ZERO_ABS, NULL, 0, NULL, NULL);
+
+    iter (iter_cls, NULL, NULL, 0, NULL);
     return GNUNET_NO;
   }
   GNUNET_assert (1 == cnt);
@@ -415,15 +422,17 @@ get_record_and_call_iterator (struct Plugin *plugin,
     PQclear (res);
     return GNUNET_SYSERR;
   }
-  zone_key = (const struct GNUNET_CRYPTO_EccPublicKey *) PQgetvalue (res, 0, 0);
+  zone_key = (const struct GNUNET_CRYPTO_EccPrivateKey *) PQgetvalue (res, 0, 0);
+  /* zone_key = (const struct GNUNET_CRYPTO_EccPublicKey *) PQgetvalue (res, 0, 0); */
   name = PQgetvalue (res, 0, 1);
   name_len = PQgetlength (res, 0, 1);
   record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
   data_size = PQgetlength (res, 0, 3);
   data = PQgetvalue (res, 0, 3);
+  /*
   expiration.abs_value_us =
     GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
-  sig = (const struct GNUNET_CRYPTO_EccSignature*) PQgetvalue (res, 0, 5);
+  sig = (const struct GNUNET_CRYPTO_EccSignature*) PQgetvalue (res, 0, 5); */
   if (record_count > 64 * 1024)
   {
     /* sanity check, don't stack allocate far too much just
@@ -446,8 +455,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
       PQclear (res);
       return GNUNET_SYSERR;
     }
-    iter (iter_cls, zone_key, expiration, buf, 
-	  record_count, rd, sig);
+    iter (iter_cls, zone_key, buf, record_count, rd);
   }
   PQclear (res);
   return GNUNET_OK;
@@ -460,7 +468,6 @@ get_record_and_call_iterator (struct Plugin *plugin,
  *
  * @param cls closure (internal context for the plugin)
  * @param zone hash of public key of the zone, NULL to iterate over all zones
- * @param name name as string, NULL to iterate over all records of the zone
  * @param offset offset in the list of all matching records
  * @param iter function to call with the result
  * @param iter_cls closure for iter
@@ -469,11 +476,11 @@ get_record_and_call_iterator (struct Plugin *plugin,
  */
 static int 
 namestore_postgres_iterate_records (void *cls, 
-				  const struct GNUNET_CRYPTO_ShortHashCode *zone,
-				  const char *name,
+					const struct GNUNET_CRYPTO_EccPrivateKey *zone,
 				  uint64_t offset,
 				  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
+#if 0
   struct Plugin *plugin = cls;
   const char *stmt_name;
   struct GNUNET_CRYPTO_ShortHashCode name_hase;
@@ -506,7 +513,9 @@ namestore_postgres_iterate_records (void *cls,
     }
     else
     {
-      GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
+    	/* TODO Adapt to new API
+    	 * GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
+    	 */
       stmt_name = "iterate_by_name";
       num_params = 2;
       first_param = 1;
@@ -520,7 +529,9 @@ namestore_postgres_iterate_records (void *cls,
     }
     else
     {
-      GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
+    	/* TODO Adapt to new API
+    	 * GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
+    	 */
       stmt_name = "iterate_records";
       num_params = 3;
       first_param = 0;
@@ -531,6 +542,9 @@ namestore_postgres_iterate_records (void *cls,
 		      &paramLengths[first_param],
                       &paramFormats[first_param], 1);
   return get_record_and_call_iterator (plugin, stmt_name, res, iter, iter_cls);
+#endif
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
 }
 
 
@@ -548,10 +562,11 @@ namestore_postgres_iterate_records (void *cls,
  */
 static int
 namestore_postgres_zone_to_name (void *cls, 
-			       const struct GNUNET_CRYPTO_ShortHashCode *zone,
-			       const struct GNUNET_CRYPTO_ShortHashCode *value_zone,
+			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
 			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
+#if  0
   struct Plugin *plugin = cls;
   const char *paramValues[] = {
     (const char *) zone,
@@ -568,6 +583,9 @@ namestore_postgres_zone_to_name (void *cls,
     PQexecPrepared (plugin->dbh, "zone_to_name", 2,
 		    paramValues, paramLengths, paramFormats, 1);
   return get_record_and_call_iterator (plugin, "zone_to_name", res, iter, iter_cls);
+#endif
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
 }
 
 
@@ -602,6 +620,68 @@ namestore_postgres_delete_zone (void *cls,
     return;
   }
   PQclear (ret);
+}
+
+/**
+ * Cache a block in the datastore.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param block block to cache
+ * @return GNUNET_OK on success, else GNUNET_SYSERR
+ */
+static int
+namestore_postgres_cache_block (void *cls,
+			      const struct GNUNET_NAMESTORE_Block *block)
+{
+  // struct Plugin *plugin = cls;
+  GNUNET_break (0);
+  /* To be implemented */
+  return GNUNET_OK;
+}
+
+/**
+ * Get the block for a particular zone and label in the
+ * datastore.  Will return at most one result to the iterator.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param query hash of public key derived from the zone and the label
+ * @param iter function to call with the result
+ * @param iter_cls closure for iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+ */
+static int
+namestore_postgres_lookup_block (void *cls,
+			       const struct GNUNET_HashCode *query,
+			       GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls)
+{
+  // struct Plugin *plugin = cls;
+  GNUNET_break (0);
+  /* To be implemented */
+  return GNUNET_OK;
+}
+
+/**
+ * Store a record in the datastore.  Removes any existing record in the
+ * same zone with the same name.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone_key private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in 'rd' array
+ * @param rd array of records with data to store
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+namestore_postgres_store_records (void *cls,
+				const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+				const char *label,
+				unsigned int rd_count,
+				const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  //  struct Plugin *plugin = cls;
+  GNUNET_break (0);
+  /* To be implemented */
+  return GNUNET_OK;
 }
 
 
@@ -643,11 +723,14 @@ libgnunet_plugin_namestore_postgres_init (void *cls)
   }
   api = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_PluginFunctions));
   api->cls = &plugin;
-  api->put_records = &namestore_postgres_put_records;
-  api->remove_records = &namestore_postgres_remove_records;
+  /* api->put_records = &namestore_postgres_put_records; */
+  /* api->remove_records = &namestore_postgres_remove_records; */
+  api->cache_block = &namestore_postgres_cache_block;
+  api->lookup_block = &namestore_postgres_lookup_block;
+  api->store_records = &namestore_postgres_store_records;
   api->iterate_records = &namestore_postgres_iterate_records;
   api->zone_to_name = &namestore_postgres_zone_to_name;
-  api->delete_zone = &namestore_postgres_delete_zone;
+  /* api->delete_zone = &namestore_postgres_delete_zone; */
   LOG (GNUNET_ERROR_TYPE_INFO, 
        _("Postgres database running\n"));
   return api;
