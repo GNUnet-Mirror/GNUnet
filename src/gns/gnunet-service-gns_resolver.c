@@ -29,7 +29,7 @@
  *        can likely be done in 'resolver_lookup_get_next_label'.
  * - GNS: expand ".+" in returned values to the respective absolute
  *        name using '.zkey'
- * - DNS: convert result format back to GNS
+ * - DNS: convert additional record types to GNS
  * - shortening triggers
  * - revocation checks (make optional: privacy!)
  * - DNAME support
@@ -889,6 +889,9 @@ dns_result_parser (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
   struct GNUNET_DNSPARSER_Packet *p;
+  const struct GNUNET_DNSPARSER_Record *rec;
+  unsigned int rd_count;
+  unsigned int i;
 
   rh->dns_request = NULL;
   GNUNET_SCHEDULER_cancel (rh->task_id);
@@ -915,14 +918,94 @@ dns_result_parser (void *cls,
     }
   /* FIXME: add DNAME support */
 
-  /* FIXME: convert from DNS to GNS format! */
-  GNUNET_break (0);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	      _("NOT IMPLEMENTED\n"));
-  rh->proc (rh->proc_cls, 0, NULL);
-  GNS_resolver_lookup_cancel (rh);
+  /* convert from DNS to GNS format! */
+  rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
+  {
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    unsigned int skip;
 
-  
+    skip = 0;
+    memset (rd, 0, sizeof (rd));
+    for (i=0;i<rd_count;i++)
+    {
+      if (i < p->num_answers)
+	rec = &p->answers[i];
+      else if (i < p->num_answers + p->num_authority_records)
+	rec = &p->authority_records[i - p->num_answers];
+      else 
+	rec = &p->authority_records[i - p->num_answers - p->num_authority_records];
+      /* As we copied the full DNS name to 'rh->ac_tail->label', this
+	 should be the correct check to see if this record is actually
+	 a record for our label... */
+      if (0 != strcmp (rec->name,
+		       rh->ac_tail->label))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Dropping record `%s', does not match desired name `%s'\n",
+		    rec->name,
+		    rh->ac_tail->label);
+	skip++;
+	continue;
+      }
+      rd[i - skip].record_type = rec->type;
+      rd[i - skip].expiration_time = rec->expiration_time.abs_value_us;
+      switch (rec->type)
+      {
+      case GNUNET_DNSPARSER_TYPE_A:
+	if (rec->data.raw.data_len != sizeof (struct in_addr))
+	{
+	  GNUNET_break_op (0);
+	  skip++;
+	  continue;
+	}
+	rd[i - skip].data_size = rec->data.raw.data_len;
+	rd[i - skip].data = rec->data.raw.data;
+	break;
+      case GNUNET_DNSPARSER_TYPE_AAAA:
+	if (rec->data.raw.data_len != sizeof (struct in6_addr))
+	{
+	  GNUNET_break_op (0);
+	  skip++;
+	  continue;
+	}
+	rd[i - skip].data_size = rec->data.raw.data_len;
+	rd[i - skip].data = rec->data.raw.data;
+	break;
+      case GNUNET_DNSPARSER_TYPE_CNAME:
+      case GNUNET_DNSPARSER_TYPE_PTR:
+      case GNUNET_DNSPARSER_TYPE_NS:
+	rd[i - skip].data_size = strlen (rec->data.hostname) + 1;
+	rd[i - skip].data = rec->data.hostname;
+	break;
+      case GNUNET_DNSPARSER_TYPE_SOA:
+	// FIXME: not implemented
+	// NOTE: consider exporting implementation in DNSPARSER lib!
+	GNUNET_break (0);
+	skip++;
+	break;
+      case GNUNET_DNSPARSER_TYPE_MX:
+	// FIXME: not implemented
+	// NOTE: consider exporting implementation in DNSPARSER lib!
+	GNUNET_break (0);
+	skip++;
+	break;
+      case GNUNET_DNSPARSER_TYPE_SRV:
+	// FIXME: not implemented
+	// NOTE: consider exporting implementation in DNSPARSER lib!
+	GNUNET_break (0);
+	skip++;
+	break;
+      default:
+	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		    _("Skipping record of unsupported type %d\n"),
+		    rec->type);
+	skip++;
+	continue;
+      }
+    }
+    rh->proc (rh->proc_cls, rd_count - skip, rd);
+    GNS_resolver_lookup_cancel (rh);
+  }  
   GNUNET_DNSPARSER_free_packet (p);
 }
 
@@ -1512,7 +1595,7 @@ handle_dht_response (void *cls,
 /**
  * Process a record that was stored in the namestore.
  *
- * @param cls closure with the 'struct GNS_ResolverHandle'
+ * @param cls closure with the `struct GNS_ResolverHandle`
  * @param block block that was stored in the namestore
  */
 static void 
@@ -1591,7 +1674,7 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
 /**
  * Task scheduled to continue with the resolution process.
  *
- * @param cls the 'struct GNS_ResolverHandle' of the resolution
+ * @param cls the `struct GNS_ResolverHandle` of the resolution
  * @param tc task context
  */
 static void
@@ -1713,7 +1796,7 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param shorten_key a private key for use with PSEU import (can be NULL)
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param only_cached #GNUNET_NO to only check locally not DHT for performance
  * @param proc the processor to call on result
  * @param proc_cls the closure to pass to @a proc
  * @return handle to cancel operation

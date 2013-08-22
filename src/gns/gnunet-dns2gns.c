@@ -426,7 +426,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
        (0 == strcasecmp (dns_suffix,
 			 &name[name_len - strlen (dns_suffix)])) )
   {
-    /* replace ".fcfs.zkey.eu" with ".zkey" */
+    /* replace ".zkey.eu" with ".zkey" */
     strcpy (&name[name_len - strlen (dns_suffix)],
 	    ".zkey");
     use_gns = GNUNET_YES;
