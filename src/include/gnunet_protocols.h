@@ -1905,8 +1905,39 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_IDENTITY_DELETE 631
 
 
+/*******************************************************************************
+ * VECTORPRODUCT message types
+ ******************************************************************************/
+
 /**
- *  Next available: 640
+ * Client -> Vector-Product Service request message
+ */
+#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_ALICE 640
+
+/**
+ * Client -> Vector-Product Service request message
+ */
+#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_BOB 641
+
+/**
+ * Vector-Product Service request -> remote VP Service
+ */
+#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_ALICE_TO_BOB 642
+
+/**
+ * remote Vector-Product Service response -> requesting VP Service
+ */
+#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_BOB_TO_ALICE 643
+
+/**
+ * Vector-Product Service response -> Client
+ */
+#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_SERVICE_TO_CLIENT 644
+
+
+
+/**
+ * Next available: 650
  */
 
 

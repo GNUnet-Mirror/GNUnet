@@ -76,12 +76,15 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_CONSENSUS 18
 
-
 /**
  * Set. Used for two-peer set operations implemented using stream.
  */
 #define GNUNET_APPLICATION_TYPE_SET 19
 
+/**
+ * Vectorproduct. Used for two-peer vectorproduct operations
+ */
+#define GNUNET_APPLICATION_TYPE_VECTORPRODUCT 20
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

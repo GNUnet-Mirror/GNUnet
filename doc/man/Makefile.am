@@ -27,6 +27,7 @@ man_MANS = \
   gnunet-transport.1 \
   gnunet-unindex.1 \
   gnunet-uri.1 \
+  gnunet-vectorproduct.1 \
   gnunet-vpn.1
 
 EXTRA_DIST = ${man_MANS}

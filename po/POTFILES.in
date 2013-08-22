@@ -343,3 +343,6 @@ src/mesh/mesh_protocol.h
 src/mesh/mesh_protocol_enc.h
 src/testbed/testbed_api.h
 src/testbed/testbed_api_operations.h
+src/vectorproduct/vectorproduct_api.c
+src/vectorproduct/gnunet-service-vectorproduct.c
+src/vectorproduct/gnunet-vectorproduct.c
