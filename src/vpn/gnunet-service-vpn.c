@@ -1033,6 +1033,7 @@ route_packet (struct DestinationEntry *destination,
 		(unsigned int) protocol);
     return;
   }
+  alen = 0;
   if (! destination->is_service)
   {  
     switch (destination->details.exit_destination.af)
@@ -1044,7 +1045,6 @@ route_packet (struct DestinationEntry *destination,
       alen = sizeof (struct in6_addr);
       break;
     default:
-      alen = 0;
       GNUNET_assert (0);
     }
 
@@ -1068,8 +1068,6 @@ route_packet (struct DestinationEntry *destination,
   }
   else
   {
-    /* make compiler happy */
-    alen = 0;
     {
       char sbuf[INET6_ADDRSTRLEN];
       char dbuf[INET6_ADDRSTRLEN];
