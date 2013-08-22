@@ -34,6 +34,7 @@
 #include "gnunet_statistics_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
+#include "gnunet-service-gns_shorten.h"
 #include "gnunet-service-gns_interceptor.h"
 #include "gnunet_protocols.h"
 
@@ -214,6 +215,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNS_interceptor_done ();
   GNS_resolver_done ();
+  GNS_shorten_done ();
   if (NULL != statistics)
   {
     GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
@@ -718,11 +720,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       return;
     }
   }
-  /* FIXME: install client disconnect handle to clean up pending
-     lookups on client disconnect! */
   GNS_resolver_init (namestore_handle, dht_handle, 
 		     c,
 		     max_parallel_bg_queries);
+  GNS_shorten_init (namestore_handle, dht_handle);
   GNUNET_SERVER_disconnect_notify (server,
 				   &notify_client_disconnect,
 				   NULL);
