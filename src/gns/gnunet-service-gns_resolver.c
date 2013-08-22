@@ -679,8 +679,9 @@ fail_resolution (void *cls,
   GNS_resolver_lookup_cancel (rh);
 }
 
-#ifdef WINDOWS
-/* Don't have this on W32, here's a naive implementation */
+#if (defined WINDOWS) || (defined DARWIN)
+/* Don't have this on W32, here's a naive implementation
+ * Was somehow removed on OS X ...  */
 void *
 memrchr (const void *s, int c, size_t n)
 {
