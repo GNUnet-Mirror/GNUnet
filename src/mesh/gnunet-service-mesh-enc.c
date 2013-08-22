@@ -4735,12 +4735,11 @@ queue_add (void *cls, uint16_t type, size_t size,
 
   if (GNUNET_MESSAGE_TYPE_MESH_POLL == type ||
       GNUNET_MESSAGE_TYPE_MESH_ACK == type)
+  {
+    fc->queue_n--; /* We are going to do queue_n++ later, compensate*/
+    peer->queue_n--;
     priority = 100;
-
-  if (NULL != ch &&
-      ( (NULL != ch->root && GNUNET_MESSAGE_TYPE_MESH_FWD == type) ||
-        (NULL != ch->dest && GNUNET_MESSAGE_TYPE_MESH_BCK == type) ))
-    priority = 50;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "fc %p\n", fc);
