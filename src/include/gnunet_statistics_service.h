@@ -22,7 +22,7 @@
  * @file include/gnunet_statistics_service.h
  * @brief API to create, modify and access statistics about
  *        the operation of GNUnet; all statistical values
- *        must be of type "unsigned long long".
+ *        must be of type `unsigned long long`.
  * @author Christian Grothoff
  * @defgroup statistics track statistics or provide access to statistics
  * @{
@@ -124,8 +124,7 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Continuation called by the #GNUNET_STATISTICS_get_all
- * and #GNUNET_STATISTICS_get functions.
+ * Continuation called by #GNUNET_STATISTICS_get functions.
  *
  * @param cls closure
  * @param success #GNUNET_OK if statistics were
@@ -163,7 +162,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Cancel a #GNUNET_STATISICS_get request.  Must be called before the 'cont'
+ * Cancel a #GNUNET_STATISTICS_get request.  Must be called before the 'cont'
  * function is called.
  *
  * @param gh handle of the request to cancel
@@ -174,7 +173,7 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
 
 /**
  * Set statistic value for the peer.  Will always use our
- * subsystem (the argument used when "handle" was created).
+ * subsystem (the argument used when @a handle was created).
  *
  * @param handle identification of the statistics service
  * @param name name of the statistic value
@@ -188,7 +187,7 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
 
 /**
  * Set statistic value for the peer.  Will always use our
- * subsystem (the argument used when "handle" was created).
+ * subsystem (the argument used when @a handle was created).
  *
  * @param handle identification of the statistics service
  * @param name name of the statistic value

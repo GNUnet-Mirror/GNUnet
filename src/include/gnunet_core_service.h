@@ -155,7 +155,7 @@ typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
  *                messages if the client does not process them fast enough (for this
  *                notification type, a bounded queue is used)
  * @param inbound_hdr_only set to #GNUNET_YES if @a inbound_notify will only read the
- *                GNUNET_MessageHeader and hence we do not need to give it the full message;
+ *                `struct GNUNET_MessageHeader` and hence we do not need to give it the full message;
  *                can be used to improve efficiency, ignored if inbound_notify is NULL
  *                note that the core is allowed to drop notifications about inbound
  *                messages if the client does not process them fast enough (for this
@@ -165,7 +165,7 @@ typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
  *                messages if the client does not process them fast enough (for this
  *                notification type, a bounded queue is used)
  * @param outbound_hdr_only set to #GNUNET_YES if @a outbound_notify will only read the
- *                GNUNET_MessageHeader and hence we do not need to give it the full message
+ *                `struct GNUNET_MessageHeader` and hence we do not need to give it the full message
  *                can be used to improve efficiency, ignored if outbound_notify is NULL
  *                note that the core is allowed to drop notifications about outbound
  *                messages if the client does not process them fast enough (for this
@@ -280,11 +280,8 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * cirumstances (GNUNET_TESTBED uses it), normal users of the CORE API are
  * expected to track which peers are connected based on the connect/disconnect
  * callbacks from #GNUNET_CORE_connect.  This function is NOT part of the
- * 'versioned', 'official' API. The difference between this function and the
- * function #GNUNET_CORE_is_peer_connected is that this one returns
- * synchronously after looking in the CORE API cache. The function
- * #GNUNET_CORE_is_peer_connected sends a message to the CORE service and hence
- * its response is given asynchronously.
+ * 'versioned', 'official' API.  This function returns
+ * synchronously after looking in the CORE API cache. 
  *
  * @param h the core handle
  * @param pid the identity of the peer to check if it has been connected to us
