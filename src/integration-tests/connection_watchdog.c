@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2010, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -27,10 +27,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
@@ -70,7 +67,7 @@ static uint64_t statistics_transport_tcp_connections;
 static uint64_t statistics_core_neighbour_entries;
 static uint64_t statistics_core_entries_session_map;
 
-int stat_check_running;
+static int stat_check_running;
 
 static struct GNUNET_CONTAINER_MultiHashMap *peers;
 
@@ -116,8 +113,10 @@ struct TransportPlugin
   int protocol;
 };
 
-struct TransportPlugin *phead;
-struct TransportPlugin *ptail;
+
+static struct TransportPlugin *phead;
+static struct TransportPlugin *ptail;
+
 
 static int 
 map_check_it (void *cls,
@@ -201,6 +200,7 @@ map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static int
 check_lowlevel_connections (int port, int protocol)
@@ -401,56 +401,59 @@ GNUNET_NETWORK_STRUCT_END
 static size_t 
 send_transport_ping_cb (void *cls, size_t size, void *buf)
 {
- struct PeerContainer * pc = cls;
- struct PING ping;
- size_t mlen = sizeof (struct PING);
-
- if (size < mlen)
- {
-   GNUNET_break (0);
-   return 0;
- }
-
- GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
- ping.header.size = htons (mlen);
- ping.header.type = htons (1234);
- ping.src = htons (0);
-
- pc->th_ping = NULL;
-
- memcpy (buf, &ping, mlen);
- return mlen;
+  struct PeerContainer * pc = cls;
+  struct PING ping;
+  size_t mlen = sizeof (struct PING);
+  
+  if (size < mlen)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
+  ping.header.size = htons (mlen);
+  ping.header.type = htons (1234);
+  ping.src = htons (0);
+  
+  pc->th_ping = NULL;
+  
+  memcpy (buf, &ping, mlen);
+  return mlen;
 }
 
-size_t send_core_ping_cb (void *cls, size_t size, void *buf)
+
+static size_t 
+send_core_ping_cb (void *cls, size_t size, void *buf)
 {
-struct PeerContainer * pc = cls;
-struct PING ping;
-size_t mlen = sizeof (struct PING);
+  struct PeerContainer * pc = cls;
+  struct PING ping;
+  size_t mlen = sizeof (struct PING);
 
-if (size < mlen)
-{
-  GNUNET_break (0);
-  return 0;
+  if (size < mlen)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
+  ping.header.size = htons (mlen);
+  ping.header.type = htons (1234);
+  ping.src = htons (1);
+  
+  pc->ch_ping = NULL;
+  
+  memcpy (buf, &ping, mlen);
+  return mlen;
 }
 
-GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-     "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
-ping.header.size = htons (mlen);
-ping.header.type = htons (1234);
-ping.src = htons (1);
 
-pc->ch_ping = NULL;
-
-memcpy (buf, &ping, mlen);
-return mlen;
-}
-
-
-int map_ping_it (void *cls,
-                  const struct GNUNET_HashCode * key,
-                  void *value)
+static int 
+map_ping_it (void *cls,
+	     const struct GNUNET_HashCode * key,
+	     void *value)
 {
   struct PeerContainer *pc = value;
 
@@ -505,8 +508,8 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-size_t send_transport_pong_cb (void *cls, size_t size, void *buf)
+static size_t 
+send_transport_pong_cb (void *cls, size_t size, void *buf)
 {
  struct PeerContainer * pc = cls;
  struct PING ping;
@@ -530,29 +533,30 @@ size_t send_transport_pong_cb (void *cls, size_t size, void *buf)
  return mlen;
 }
 
+
 static size_t 
 send_core_pong_cb (void *cls, size_t size, void *buf)
 {
-struct PeerContainer * pc = cls;
-struct PING ping;
-size_t mlen = sizeof (struct PING);
-
-if (size < mlen)
-{
-  GNUNET_break (0);
-  return 0;
-}
-
-GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-     "Sending core pong to `%s'\n", GNUNET_i2s  (&pc->id));
-ping.header.size = htons (mlen);
-ping.header.type = htons (4321);
-ping.src = htons (1);
-
-pc->ch_pong = NULL;
-
-memcpy (buf, &ping, mlen);
-return mlen;
+  struct PeerContainer * pc = cls;
+  struct PING ping;
+  size_t mlen = sizeof (struct PING);
+  
+  if (size < mlen)
+    {
+      GNUNET_break (0);
+      return 0;
+    }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending core pong to `%s'\n", GNUNET_i2s  (&pc->id));
+  ping.header.size = htons (mlen);
+  ping.header.type = htons (4321);
+  ping.src = htons (1);
+  
+  pc->ch_pong = NULL;
+  
+  memcpy (buf, &ping, mlen);
+  return mlen;
 }
 
 
@@ -737,11 +741,12 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
 static void
 cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct TransportPlugin * cur = phead;
+  struct TransportPlugin *cur;
 
   if (NULL != th)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disconnecting from transport service\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Disconnecting from transport service\n");
     GNUNET_TRANSPORT_disconnect (th);
     th = NULL;
   }
@@ -749,7 +754,8 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Disconnecting from core service\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Disconnecting from core service\n");
     GNUNET_CORE_disconnect (ch);
     ch = NULL;
   }
@@ -766,7 +772,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     check_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  for (cur = phead; cur != NULL; cur = phead)
+  for (cur = phead; NULL != cur; cur = phead)
   {
     GNUNET_CONTAINER_DLL_remove(phead, ptail, cur);
     GNUNET_free (cur->short_name);
@@ -776,15 +782,19 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   check_task = GNUNET_SCHEDULER_add_now (&map_check, &map_cleanup);
 }
 
+
 static void
 transport_notify_connect_cb (void *cls,
-                const struct GNUNET_PeerIdentity* peer)
+			     const struct GNUNET_PeerIdentity* peer)
 {
   transport_connections ++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT connect for peer `%s' (%u total)\n",
-      GNUNET_i2s (peer), transport_connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "TRANSPORT connect for peer `%s' (%u total)\n",
+	      GNUNET_i2s (peer),
+	      transport_connections);
   map_connect (peer, th);
 }
+
 
 /**
  * Function called to notify transport users that another
@@ -795,16 +805,17 @@ transport_notify_connect_cb (void *cls,
  */
 static void
 transport_notify_disconnect_cb (void *cls,
-                               const struct
-                               GNUNET_PeerIdentity * peer)
+				const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (transport_connections > 0);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TRANSPORT disconnect for peer `%s' (%u total)\n",
-      GNUNET_i2s (peer), transport_connections) ;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "TRANSPORT disconnect for peer `%s' (%u total)\n",
+	      GNUNET_i2s (peer), 
+	      transport_connections);
   map_disconnect (peer, th);
   transport_connections --;
-
 }
+
 
 static void
 transport_notify_receive_cb (void *cls,
@@ -814,24 +825,23 @@ transport_notify_receive_cb (void *cls,
                             GNUNET_MessageHeader *
                             message)
 {
+  struct PeerContainer *pc;
 
-
-  struct PeerContainer *pc = NULL;
-
-  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
-
+  pc = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pc)
   {
     GNUNET_break (0);
     return;
   }
 
-  if ((message->size == ntohs (sizeof (struct PING))) && (message->type == ntohs (1234)))
+  if ((message->size == ntohs (sizeof (struct PING))) &&
+      (message->type == ntohs (1234)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received %s %s from peer `%s'\n",
-        "TRANSPORT",
-        "PING",
-        GNUNET_i2s (peer)) ;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"Received %s %s from peer `%s'\n",
+		"TRANSPORT",
+		"PING",
+		GNUNET_i2s (peer)) ;
     if (GNUNET_YES == ping)
     {
       if (NULL == pc->th_pong)
@@ -942,8 +952,8 @@ core_disconnect_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "CORE      disconnect for myself `%s' (%u total)\n",
       GNUNET_i2s (peer), core_connections);
   }
-
 }
+
 
 static void
 core_init_cb (void *cls, 
@@ -1023,6 +1033,7 @@ init ()
 
   GNUNET_free (plugs);
 }
+
 
 /**
  * Main function that will be run by the scheduler.
