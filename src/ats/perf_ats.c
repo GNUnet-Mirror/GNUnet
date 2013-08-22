@@ -30,6 +30,7 @@
 #include "gnunet_core_service.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 3
 #define DEFAULT_MASTERS_NUM 1
@@ -264,7 +265,12 @@ do_benchmark ()
 
 	state.benchmarking = GNUNET_YES;
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-			_("BENCHMARKING\n"));
+			_("Benchmarking start\n"));
+
+	if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+		GNUNET_SCHEDULER_cancel (shutdown_task);
+	shutdown_task = GNUNET_SCHEDULER_add_delayed (BENCHMARK_DURATION, &do_shutdown, NULL);
+
 }
 
 
@@ -773,7 +779,7 @@ test_main (void *cls, unsigned int num_peers,
 	      _("Benchmarking solver `%s' on preference `%s' with %u master and %u slave peers\n"),
 	      solver, preference, c_master_peers, c_slave_peers);
 
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(TEST_TIMEOUT, c_master_peers + c_slave_peers), &do_shutdown, NULL);
 
   GNUNET_assert (NULL == cls);
   GNUNET_assert (c_slave_peers + c_master_peers == num_peers);
