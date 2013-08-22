@@ -348,7 +348,6 @@ stats_check_cb (void *cls, const char *subsystem,
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                "%u transport tcp sessions <-> %i established tcp connections\n",
                statistics_transport_tcp_connections, low_level_connections_tcp);
-          fail = GNUNET_YES;
         }
         else if (low_level_connections_tcp != -1)
         {
@@ -362,7 +361,6 @@ stats_check_cb (void *cls, const char *subsystem,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
              "%u transport notifications <-> %u in statistics (statistics_transport_tcp_connections)\n",
              transport_connections, statistics_transport_tcp_connections);
-        fail = GNUNET_YES;
       }
       else
       {
