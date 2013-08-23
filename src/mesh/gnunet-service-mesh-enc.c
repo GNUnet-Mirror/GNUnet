@@ -1673,7 +1673,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s[%u] on connection %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
               GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
 
   switch (type)
@@ -5733,9 +5733,6 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  ack = ntohl (msg->ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
-
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
   if (connection_get_next_hop (c)->id == id)
@@ -5753,6 +5750,9 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+
+  ack = ntohl (msg->ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
 
   /* Cancel polling if the ACK is bigger than before. */
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
