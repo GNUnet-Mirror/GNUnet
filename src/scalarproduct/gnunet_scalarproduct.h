@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_scalarproduct.h
+ * @file scalarproduct/gnunet_scalarproduct.h
  * @brief API to the scalarproduct service
  * @author Christian M. Fuchs
  */
