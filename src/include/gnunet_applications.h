@@ -82,9 +82,9 @@ extern "C"
 #define GNUNET_APPLICATION_TYPE_SET 19
 
 /**
- * Vectorproduct. Used for two-peer vectorproduct operations
+ * Vectorproduct. Used for two-peer scalarproduct operations
  */
-#define GNUNET_APPLICATION_TYPE_VECTORPRODUCT 20
+#define GNUNET_APPLICATION_TYPE_SCALARPRODUCT 20
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

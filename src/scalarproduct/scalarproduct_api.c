@@ -19,8 +19,8 @@
  */
 
 /**
- * @file vectorproduct/vectorproduct_api.c
- * @brief API for the vectorproduct
+ * @file scalarproduct/scalarproduct_api.c
+ * @brief API for the scalarproduct
  * @author Christian Fuchs
  * @author Gaurav Kukreja
  * 
@@ -28,10 +28,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_vectorproduct_service.h"
+#include "gnunet_scalarproduct_service.h"
 #include "gnunet_protocols.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "vectorproduct-api",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct-api",__VA_ARGS__)
 
 /**************************************************************
  ***  Datatype Declarations                          **********
@@ -40,22 +40,22 @@
 /**
  * Entry in the request queue per client
  */
-struct GNUNET_VECTORPRODUCT_QueueEntry
+struct GNUNET_SCALARPRODUCT_QueueEntry
 {
   /**
    * This is a linked list.
    */
-  struct GNUNET_VECTORPRODUCT_QueueEntry *next;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *next;
 
   /**
    * This is a linked list.
    */
-  struct GNUNET_VECTORPRODUCT_QueueEntry *prev;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *prev;
 
   /**
    * Handle to the master context.
    */
-  struct GNUNET_VECTORPRODUCT_Handle *h;
+  struct GNUNET_SCALARPRODUCT_Handle *h;
 
   /**
    * Size of the message
@@ -63,21 +63,21 @@ struct GNUNET_VECTORPRODUCT_QueueEntry
   uint16_t message_size;
 
   /**
-   * Message to be sent to the vectorproduct service
+   * Message to be sent to the scalarproduct service
    */
-  struct GNUNET_VECTORPRODUCT_client_request* msg;
+  struct GNUNET_SCALARPRODUCT_client_request* msg;
 
   union
   {
     /**
      * Function to call after transmission of the request.
      */
-    GNUNET_VECTORPRODUCT_ContinuationWithStatus cont_status;
+    GNUNET_SCALARPRODUCT_ContinuationWithStatus cont_status;
 
     /**
      * Function to call after transmission of the request.
      */
-    GNUNET_VECTORPRODUCT_DatumProcessor cont_datum;
+    GNUNET_SCALARPRODUCT_DatumProcessor cont_datum;
   };
 
   /**
@@ -107,7 +107,7 @@ struct GNUNET_VECTORPRODUCT_QueueEntry
    * Response Processor for response from the service. This function calls the
    * continuation function provided by the client.
    */
-  GNUNET_VECTORPRODUCT_ResponseMessageHandler response_proc;
+  GNUNET_SCALARPRODUCT_ResponseMessageHandler response_proc;
 };
 
 /**************************************************************
@@ -121,16 +121,16 @@ struct GNUNET_VECTORPRODUCT_QueueEntry
  * 
  * @return pointer to the entry
  */
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
-make_queue_entry (struct GNUNET_VECTORPRODUCT_Handle *h);
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
+make_queue_entry (struct GNUNET_SCALARPRODUCT_Handle *h);
 
 /**
  * Removes the head entry from the queue
  * 
  * @param h Handle to the master context
  */
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
-free_queue_head_entry (struct GNUNET_VECTORPRODUCT_Handle * h);
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
+free_queue_head_entry (struct GNUNET_SCALARPRODUCT_Handle * h);
 
 /**
  * Triggered when timeout occurs for a request in queue
@@ -170,7 +170,7 @@ static size_t transmit_request (void *cls, size_t size,
  * @param h handle to the master context
  */
 static void
-process_queue (struct GNUNET_VECTORPRODUCT_Handle *h);
+process_queue (struct GNUNET_SCALARPRODUCT_Handle *h);
 
 /**************************************************************
  ***  Static Function Declarations                   **********
@@ -184,12 +184,12 @@ process_queue (struct GNUNET_VECTORPRODUCT_Handle *h);
  * 
  * @return pointer to the entry
  */
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
-make_queue_entry (struct GNUNET_VECTORPRODUCT_Handle *h)
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
+make_queue_entry (struct GNUNET_SCALARPRODUCT_Handle *h)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
 
-  qe = GNUNET_new (struct GNUNET_VECTORPRODUCT_QueueEntry);
+  qe = GNUNET_new (struct GNUNET_SCALARPRODUCT_QueueEntry);
 
   // if queue empty
   if (NULL == h->queue_head && NULL == h->queue_tail)
@@ -215,10 +215,10 @@ make_queue_entry (struct GNUNET_VECTORPRODUCT_Handle *h)
  * 
  * @param h Handle to the master context
  */
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
-free_queue_head_entry (struct GNUNET_VECTORPRODUCT_Handle * h)
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
+free_queue_head_entry (struct GNUNET_SCALARPRODUCT_Handle * h)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry * qe = NULL;
+  struct GNUNET_SCALARPRODUCT_QueueEntry * qe = NULL;
 
   GNUNET_assert (NULL != h);
   if (NULL == h->queue_head && NULL == h->queue_tail)
@@ -255,7 +255,7 @@ free_queue_head_entry (struct GNUNET_VECTORPRODUCT_Handle * h)
 static void
 timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry * qe = cls;
+  struct GNUNET_SCALARPRODUCT_QueueEntry * qe = cls;
 
   // Update Statistics
   GNUNET_STATISTICS_update (qe->h->stats,
@@ -273,7 +273,7 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   // remove the queue_entry for the queue
   GNUNET_CONTAINER_DLL_remove (qe->h->queue_head, qe->h->queue_tail, qe);
-  qe->response_proc (qe, NULL, GNUNET_VECTORPRODUCT_Status_Timeout);
+  qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_Timeout);
 }
 
 
@@ -287,9 +287,9 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 process_status_message (void *cls,
                         const struct GNUNET_MessageHeader *msg,
-                        enum GNUNET_VECTORPRODUCT_ResponseStatus status)
+                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe = cls;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe = cls;
 
   GNUNET_assert (qe != NULL);
 
@@ -308,9 +308,9 @@ process_status_message (void *cls,
 static void
 process_result_message (void *cls,
                         const struct GNUNET_MessageHeader *msg,
-                        enum GNUNET_VECTORPRODUCT_ResponseStatus status)
+                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe = cls;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe = cls;
 
   GNUNET_assert (qe != NULL);
 
@@ -320,7 +320,7 @@ process_result_message (void *cls,
     }
   if (qe->cont_datum != NULL)
     {
-      qe->cont_datum (qe->cont_cls, &qe->msg->key, &qe->msg->peer, status, (struct GNUNET_VECTORPRODUCT_client_response *) msg);
+      qe->cont_datum (qe->cont_cls, &qe->msg->key, &qe->msg->peer, status, (struct GNUNET_SCALARPRODUCT_client_response *) msg);
     }
 }
 
@@ -336,11 +336,11 @@ process_result_message (void *cls,
 static void
 receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_VECTORPRODUCT_Handle *h = cls;
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_Handle *h = cls;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   int16_t was_transmitted;
-  struct GNUNET_VECTORPRODUCT_client_response *message =
-          (struct GNUNET_VECTORPRODUCT_client_response *) msg;
+  struct GNUNET_SCALARPRODUCT_client_response *message =
+          (struct GNUNET_SCALARPRODUCT_client_response *) msg;
 
   h->in_receive = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received reply from VectorProduct\n");
@@ -376,12 +376,12 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Service responded with NULL!\n");
-      qe->response_proc (qe, NULL, GNUNET_VECTORPRODUCT_Status_Failure);
+      qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_Failure);
     }
-  else if ((ntohs (msg->type) != GNUNET_MESSAGE_TYPE_VECTORPRODUCT_SERVICE_TO_CLIENT))
+  else if ((ntohs (msg->type) != GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid Message Received\n");
-      qe->response_proc (qe, msg, GNUNET_VECTORPRODUCT_Status_InvalidResponse);
+      qe->response_proc (qe, msg, GNUNET_SCALARPRODUCT_Status_InvalidResponse);
     }
   else if (ntohl (message->product_length) == 0)
     {
@@ -391,7 +391,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
                                 GNUNET_NO);
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message from service without product attached.\n");
-      qe->response_proc (qe, msg, GNUNET_VECTORPRODUCT_Status_Success);
+      qe->response_proc (qe, msg, GNUNET_SCALARPRODUCT_Status_Success);
     }
   else if (ntohl (message->product_length) > 0)
     {
@@ -401,7 +401,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
                                 GNUNET_NO);
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message from requester service for requester client.\n");
-      qe->response_proc (qe, msg, GNUNET_VECTORPRODUCT_Status_Success);
+      qe->response_proc (qe, msg, GNUNET_SCALARPRODUCT_Status_Success);
     }
 
   GNUNET_free (qe);
@@ -422,8 +422,8 @@ static size_t
 transmit_request (void *cls, size_t size,
                   void *buf)
 {
-  struct GNUNET_VECTORPRODUCT_Handle *h = cls;
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_Handle *h = cls;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   size_t msize;
   
   if (NULL == (qe = h->queue_head))
@@ -440,11 +440,11 @@ transmit_request (void *cls, size_t size,
     return 0; /* no entry in queue */
   if (buf == NULL)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to transmit request to VECTORPRODUCT.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to transmit request to SCALARPRODUCT.\n");
       GNUNET_STATISTICS_update (h->stats,
                                 gettext_noop ("# transmission request failures"),
                                 1, GNUNET_NO);
-      GNUNET_VECTORPRODUCT_disconnect (h);
+      GNUNET_SCALARPRODUCT_disconnect (h);
       return 0;
     }
   if (size < (msize = qe->message_size))
@@ -452,7 +452,7 @@ transmit_request (void *cls, size_t size,
       process_queue (h);
       return 0;
     }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting %u byte request to VECTORPRODUCT\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting %u byte request to SCALARPRODUCT\n",
        msize);
 
   memcpy (buf, qe->msg, size);
@@ -467,7 +467,7 @@ transmit_request (void *cls, size_t size,
 
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# bytes sent to vectorproduct"), 1,
+                            gettext_noop ("# bytes sent to scalarproduct"), 1,
                             GNUNET_NO);
 #endif
   return size;
@@ -480,9 +480,9 @@ transmit_request (void *cls, size_t size,
  * @param h handle to the master context
  */
 static void
-process_queue (struct GNUNET_VECTORPRODUCT_Handle *h)
+process_queue (struct GNUNET_SCALARPRODUCT_Handle *h)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   
   if (NULL == (qe = h->queue_head))
     {
@@ -519,7 +519,7 @@ process_queue (struct GNUNET_VECTORPRODUCT_Handle *h)
   if (h->th == NULL)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _ ("Failed to send a message to the vectorproduct service\n"));
+           _ ("Failed to send a message to the scalarproduct service\n"));
       return;
     }
 
@@ -547,28 +547,28 @@ process_queue (struct GNUNET_VECTORPRODUCT_Handle *h)
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_VECTORPRODUCT_QueueEntry *
-GNUNET_VECTORPRODUCT_prepare_response (struct GNUNET_VECTORPRODUCT_Handle *h,
+struct GNUNET_SCALARPRODUCT_QueueEntry *
+GNUNET_SCALARPRODUCT_prepare_response (struct GNUNET_SCALARPRODUCT_Handle *h,
                                        const struct GNUNET_HashCode * key,
                                        uint16_t element_count,
                                        int32_t * elements,
                                        struct GNUNET_TIME_Relative timeout,
-                                       GNUNET_VECTORPRODUCT_ContinuationWithStatus cont,
+                                       GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
                                        void *cont_cls)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe = make_queue_entry (h);
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe = make_queue_entry (h);
   int32_t * vector;
   uint16_t size;
   unsigned int i;
   
-  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_VECTORPRODUCT_client_request)
+  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_client_request)
                  +element_count * sizeof (int32_t));
-  size = sizeof (struct GNUNET_VECTORPRODUCT_client_request) +element_count * sizeof (int32_t);
+  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t);
 
   qe->message_size = size;
   qe->msg = GNUNET_malloc (size);
   qe->msg->header.size = htons (size);
-  qe->msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_BOB);
+  qe->msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB);
   qe->msg->element_count = htons (element_count);
   qe->msg->mask_length = htons (0);
   memcpy (&qe->msg->key, key, sizeof (struct GNUNET_HashCode));
@@ -603,8 +603,8 @@ GNUNET_VECTORPRODUCT_prepare_response (struct GNUNET_VECTORPRODUCT_Handle *h,
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_VECTORPRODUCT_QueueEntry *
-GNUNET_VECTORPRODUCT_request (struct GNUNET_VECTORPRODUCT_Handle *h,
+struct GNUNET_SCALARPRODUCT_QueueEntry *
+GNUNET_SCALARPRODUCT_request (struct GNUNET_SCALARPRODUCT_Handle *h,
                               const struct GNUNET_HashCode * key,
                               const struct GNUNET_PeerIdentity * peer,
                               uint16_t element_count,
@@ -612,23 +612,23 @@ GNUNET_VECTORPRODUCT_request (struct GNUNET_VECTORPRODUCT_Handle *h,
                               int32_t * elements,
                               const unsigned char * mask,
                               struct GNUNET_TIME_Relative timeout,
-                              GNUNET_VECTORPRODUCT_DatumProcessor cont,
+                              GNUNET_SCALARPRODUCT_DatumProcessor cont,
                               void *cont_cls)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe = make_queue_entry (h);
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe = make_queue_entry (h);
   int32_t * vector;
   uint16_t size;
   unsigned int i;
   
-  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_VECTORPRODUCT_client_request)
+  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_client_request)
                  +element_count * sizeof (int32_t)
                  + mask_length);
-  size = sizeof (struct GNUNET_VECTORPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_length;
+  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_length;
 
   qe->message_size = size;
   qe->msg = GNUNET_malloc (size);
   qe->msg->header.size = htons (size);
-  qe->msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_ALICE);
+  qe->msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
   memcpy (&qe->msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   qe->msg->element_count = htons (element_count);
   qe->msg->mask_length = htons (mask_length);
@@ -654,44 +654,44 @@ GNUNET_VECTORPRODUCT_request (struct GNUNET_VECTORPRODUCT_Handle *h,
 
 
 /**
- * Connect to the vectorproduct service.
+ * Connect to the scalarproduct service.
  *
  * @param cfg configuration to use
  * @return handle to use to access the service
  */
-struct GNUNET_VECTORPRODUCT_Handle *
-GNUNET_VECTORPRODUCT_connect (const struct GNUNET_CONFIGURATION_Handle * cfg)
+struct GNUNET_SCALARPRODUCT_Handle *
+GNUNET_SCALARPRODUCT_connect (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   struct GNUNET_CLIENT_Connection *client;
-  struct GNUNET_VECTORPRODUCT_Handle *h;
+  struct GNUNET_SCALARPRODUCT_Handle *h;
 
-  client = GNUNET_CLIENT_connect ("vectorproduct", cfg);
+  client = GNUNET_CLIENT_connect ("scalarproduct", cfg);
 
   if (NULL == client)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _ ("Failed to connect to the vectorproduct service\n"));
+           _ ("Failed to connect to the scalarproduct service\n"));
       return NULL;
     }
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_VECTORPRODUCT_Handle) +
+  h = GNUNET_malloc (sizeof (struct GNUNET_SCALARPRODUCT_Handle) +
                      GNUNET_SERVER_MAX_MESSAGE_SIZE - 1);
   h->client = client;
   h->cfg = cfg;
-  h->stats = GNUNET_STATISTICS_create ("vectorproduct-api", cfg);
+  h->stats = GNUNET_STATISTICS_create ("scalarproduct-api", cfg);
   return h;
 }
 
 
 /**
- * Disconnect from the vectorproduct service.
+ * Disconnect from the scalarproduct service.
  * 
- * @param h handle to the vectorproduct
+ * @param h handle to the scalarproduct
  */
 void
-GNUNET_VECTORPRODUCT_disconnect (struct GNUNET_VECTORPRODUCT_Handle * h)
+GNUNET_SCALARPRODUCT_disconnect (struct GNUNET_SCALARPRODUCT_Handle * h)
 {
-  struct GNUNET_VECTORPRODUCT_QueueEntry * qe;
+  struct GNUNET_SCALARPRODUCT_QueueEntry * qe;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Disconnecting from VectorProduct\n");
@@ -699,7 +699,7 @@ GNUNET_VECTORPRODUCT_disconnect (struct GNUNET_VECTORPRODUCT_Handle * h)
   while (NULL != h->queue_head)
     {
       GNUNET_assert (NULL != (qe = free_queue_head_entry (h)));
-      qe->response_proc (qe, NULL, GNUNET_VECTORPRODUCT_Status_ServiceDisconnected);
+      qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_ServiceDisconnected);
     }
 
   if (h->client != NULL)

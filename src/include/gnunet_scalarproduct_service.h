@@ -19,13 +19,13 @@
  */
 
 /**
- * @file include/gnunet_vectorproduct_service.h
- * @brief API to the vectorproduct service
+ * @file include/gnunet_scalarproduct_service.h
+ * @brief API to the scalarproduct service
  * @author Christian M. Fuchs
  * @author Gaurav Kukreja
  */
-#ifndef GNUNET_VECTORPRODUCT_SERVICE_H
-#define GNUNET_VECTORPRODUCT_SERVICE_H
+#ifndef GNUNET_SCALARPRODUCT_SERVICE_H
+#define GNUNET_SCALARPRODUCT_SERVICE_H
 #define GCRYPT_NO_DEPRECATED
 // including gcrypt crashes netbeans after the next restart...
 #include <gcrypt.h>
@@ -38,15 +38,15 @@ extern "C" {
 #endif
 
 /**
- * Version of the vectorproduct API.
+ * Version of the scalarproduct API.
  */
-#define GNUNET_VECTORPRODUCT_VERSION 0x00000042
+#define GNUNET_SCALARPRODUCT_VERSION 0x00000042
 
 /**
  * Message type passed from client to service 
  * to initiate a request or responder role
  */
-struct GNUNET_VECTORPRODUCT_client_request {
+struct GNUNET_SCALARPRODUCT_client_request {
   /**
    * GNUNET message header
    */
@@ -81,7 +81,7 @@ struct GNUNET_VECTORPRODUCT_client_request {
  * Message type passed from service client
  * to finalize a session as requester or responder
  */
-struct GNUNET_VECTORPRODUCT_client_response {
+struct GNUNET_SCALARPRODUCT_client_response {
   /**
    * GNUNET message header
    */
@@ -107,22 +107,22 @@ struct GNUNET_VECTORPRODUCT_client_response {
    */
 };
 
-enum GNUNET_VECTORPRODUCT_ResponseStatus {
-  GNUNET_VECTORPRODUCT_Status_Success = 0,
-  GNUNET_VECTORPRODUCT_Status_Failure,
-  GNUNET_VECTORPRODUCT_Status_Timeout,
-  GNUNET_VECTORPRODUCT_Status_InvalidResponse,
-  GNUNET_VECTORPRODUCT_Status_ServiceDisconnected
+enum GNUNET_SCALARPRODUCT_ResponseStatus {
+  GNUNET_SCALARPRODUCT_Status_Success = 0,
+  GNUNET_SCALARPRODUCT_Status_Failure,
+  GNUNET_SCALARPRODUCT_Status_Timeout,
+  GNUNET_SCALARPRODUCT_Status_InvalidResponse,
+  GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
-struct GNUNET_VECTORPRODUCT_Handle {
+struct GNUNET_SCALARPRODUCT_Handle {
   /**
    * Our configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
-   * Current connection to the vectorproduct service.
+   * Current connection to the scalarproduct service.
    */
   struct GNUNET_CLIENT_Connection *client;
 
@@ -134,12 +134,12 @@ struct GNUNET_VECTORPRODUCT_Handle {
   /**
    * Current head of priority queue.
    */
-  struct GNUNET_VECTORPRODUCT_QueueEntry *queue_head;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *queue_head;
 
   /**
    * Current tail of priority queue.
    */
-  struct GNUNET_VECTORPRODUCT_QueueEntry *queue_tail;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *queue_tail;
 
   /**
    * Are we currently trying to receive from the service?
@@ -156,9 +156,9 @@ struct GNUNET_VECTORPRODUCT_Handle {
    */
 };
 
-typedef void (*GNUNET_VECTORPRODUCT_ResponseMessageHandler) (void *cls,
+typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
         const struct GNUNET_MessageHeader *msg,
-        enum GNUNET_VECTORPRODUCT_ResponseStatus status);
+        enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 
 /**
  * Continuation called to notify client about result of the
@@ -170,11 +170,11 @@ typedef void (*GNUNET_VECTORPRODUCT_ResponseMessageHandler) (void *cls,
  *                GNUNET_YES (or other positive value) on success
  * @param msg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_VECTORPRODUCT_ContinuationWithStatus) (void *cls,
+typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
         const struct GNUNET_HashCode * key,
-        enum GNUNET_VECTORPRODUCT_ResponseStatus status);
+        enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 /**
- * Process a datum that was stored in the vectorproduct.
+ * Process a datum that was stored in the scalarproduct.
  * 
  * @param cls closure
  * @param key Sessioon key
@@ -184,11 +184,11 @@ typedef void (*GNUNET_VECTORPRODUCT_ContinuationWithStatus) (void *cls,
  * @param data Pointer to the data
  * @param type Type of data
  */
-typedef void (*GNUNET_VECTORPRODUCT_DatumProcessor) (void *cls,
+typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
         const struct GNUNET_HashCode * key,
         const struct GNUNET_PeerIdentity * peer,
-        enum GNUNET_VECTORPRODUCT_ResponseStatus status,
-        const struct GNUNET_VECTORPRODUCT_client_response *msg);
+        enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+        const struct GNUNET_SCALARPRODUCT_client_response *msg);
 
 /**
  * Request the Scalar Product Evaluation
@@ -204,15 +204,15 @@ typedef void (*GNUNET_VECTORPRODUCT_DatumProcessor) (void *cls,
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_VECTORPRODUCT_QueueEntry *
-GNUNET_VECTORPRODUCT_request(struct GNUNET_VECTORPRODUCT_Handle *h,
+struct GNUNET_SCALARPRODUCT_QueueEntry *
+GNUNET_SCALARPRODUCT_request(struct GNUNET_SCALARPRODUCT_Handle *h,
         const struct GNUNET_HashCode * key,
         const struct GNUNET_PeerIdentity *peer,
         uint16_t element_count,
         uint16_t mask_bytes,
         int32_t * elements, const unsigned char * mask,
         struct GNUNET_TIME_Relative timeout,
-        GNUNET_VECTORPRODUCT_DatumProcessor cont,
+        GNUNET_SCALARPRODUCT_DatumProcessor cont,
         void *cont_cls);
 
 /**
@@ -228,31 +228,31 @@ GNUNET_VECTORPRODUCT_request(struct GNUNET_VECTORPRODUCT_Handle *h,
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_VECTORPRODUCT_QueueEntry *
-GNUNET_VECTORPRODUCT_prepare_response(struct GNUNET_VECTORPRODUCT_Handle *h,
+struct GNUNET_SCALARPRODUCT_QueueEntry *
+GNUNET_SCALARPRODUCT_prepare_response(struct GNUNET_SCALARPRODUCT_Handle *h,
         const struct GNUNET_HashCode * key,
         uint16_t element_count,
         int32_t* elements,
         struct GNUNET_TIME_Relative timeout,
-        GNUNET_VECTORPRODUCT_ContinuationWithStatus cont,
+        GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
         void *cont_cls);
 
 /**
- * Connect to the vectorproduct service.
+ * Connect to the scalarproduct service.
  *
  * @param cfg configuration to use
  * @return handle to use to access the service
  */
-struct GNUNET_VECTORPRODUCT_Handle *
-GNUNET_VECTORPRODUCT_connect(const struct GNUNET_CONFIGURATION_Handle * cfg);
+struct GNUNET_SCALARPRODUCT_Handle *
+GNUNET_SCALARPRODUCT_connect(const struct GNUNET_CONFIGURATION_Handle * cfg);
 
 /**
- * Disconnect from the vectorproduct service.
+ * Disconnect from the scalarproduct service.
  * 
- * @param h handle to the vectorproduct
+ * @param h handle to the scalarproduct
  */
 void
-GNUNET_VECTORPRODUCT_disconnect(struct GNUNET_VECTORPRODUCT_Handle * h);
+GNUNET_SCALARPRODUCT_disconnect(struct GNUNET_SCALARPRODUCT_Handle * h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

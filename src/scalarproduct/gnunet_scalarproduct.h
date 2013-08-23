@@ -19,13 +19,13 @@
  */
 
 /**
- * @file include/gnunet_vectorproduct.h
- * @brief API to the vectorproduct service
+ * @file include/gnunet_scalarproduct.h
+ * @brief API to the scalarproduct service
  * @author Christian M. Fuchs
  */
 
-#ifndef GNUNET_VECTORPRODUCT_H
-#define	GNUNET_VECTORPRODUCT_H
+#ifndef GNUNET_SCALARPRODUCT_H
+#define	GNUNET_SCALARPRODUCT_H
 
 ///////////////////////////////////////////////////////////////////////////////
 //                      Defines
@@ -57,7 +57,7 @@ extern "C"
  * Message type passed from requesting service Alice to responding service Bob
  * to initiate a request and make bob participate in our protocol
  */
-struct GNUNET_VECTORPRODUCT_service_request {
+struct GNUNET_SCALARPRODUCT_service_request {
   /**
    * GNUNET message header
    */
@@ -97,7 +97,7 @@ struct GNUNET_VECTORPRODUCT_service_request {
  * Message type passed from responding service Bob to responding service Alice
  * to complete a request and allow Alice to compute the result
  */
-struct GNUNET_VECTORPRODUCT_service_response {
+struct GNUNET_SCALARPRODUCT_service_response {
   /**
    * GNUNET message header
    */
@@ -148,7 +148,7 @@ enum PeerRole
     BOB
 };
 /**
- * A vectorproduct session which tracks:
+ * A scalarproduct session which tracks:
  * 
  * a request form the client to our final response.
  * or
@@ -270,5 +270,5 @@ struct MessageObject
 }
 #endif
 
-#endif	/* GNUNET_VECTORPRODUCT_H */
+#endif	/* GNUNET_SCALARPRODUCT_H */
 

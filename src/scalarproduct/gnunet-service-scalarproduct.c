@@ -19,8 +19,8 @@
  */
 
 /**
- * @file vectorproduct/gnunet-service-vectorproduct.c
- * @brief vectorproduct service implementation
+ * @file scalarproduct/gnunet-service-scalarproduct.c
+ * @brief scalarproduct service implementation
  * @author Christian M. Fuchs
  */
 #include <limits.h>
@@ -30,8 +30,8 @@
 #include "gnunet_mesh_service.h"
 #include "gnunet_applications.h"
 #include "gnunet_protocols.h"
-#include "gnunet_vectorproduct_service.h"
-#include "gnunet_vectorproduct.h"
+#include "gnunet_scalarproduct_service.h"
+#include "gnunet_scalarproduct.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //                      Global Variables
@@ -610,16 +610,16 @@ prepare_client_end_notification (void * cls,
                                  const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ServiceSession * session = cls;
-  struct GNUNET_VECTORPRODUCT_client_response * msg;
+  struct GNUNET_SCALARPRODUCT_client_response * msg;
   struct MessageObject * msg_obj;
 
   GNUNET_assert (NULL != session);
 
-  msg = GNUNET_new (struct GNUNET_VECTORPRODUCT_client_response);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_SERVICE_TO_CLIENT);
+  msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_client_response);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
-  msg->header.size = htons (sizeof (struct GNUNET_VECTORPRODUCT_client_response));
+  msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
   // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
   msg->product_length = htonl (0);
 
@@ -630,7 +630,7 @@ prepare_client_end_notification (void * cls,
   //transmit this message to our client
   session->client_transmit_handle =
           GNUNET_SERVER_notify_transmit_ready (session->client,
-                                               sizeof (struct GNUNET_VECTORPRODUCT_client_response),
+                                               sizeof (struct GNUNET_SCALARPRODUCT_client_response),
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &do_send_message,
                                                msg_obj);
@@ -679,7 +679,7 @@ prepare_service_response (gcry_mpi_t * kp,
                           struct ServiceSession * request,
                           struct ServiceSession * response)
 {
-  struct GNUNET_VECTORPRODUCT_service_response * msg;
+  struct GNUNET_SCALARPRODUCT_service_response * msg;
   uint16_t msg_length = 0;
   unsigned char * current = NULL;
   unsigned char * element_exported = NULL;
@@ -688,14 +688,14 @@ prepare_service_response (gcry_mpi_t * kp,
 
   GNUNET_assert (request);
 
-  msg_length = sizeof (struct GNUNET_VECTORPRODUCT_service_response)
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * request->used_element_count * PAILLIER_ELEMENT_LENGTH // kp, kq
           + 2 * PAILLIER_ELEMENT_LENGTH; // s, stick
 
   msg = GNUNET_malloc (msg_length);
   GNUNET_assert (msg);
 
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_BOB_TO_ALICE);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
   msg->header.size = htons (msg_length);
   msg->element_count = htons (request->element_count);
   msg->used_element_count = htons (request->used_element_count);
@@ -1033,7 +1033,7 @@ prepare_service_request (void *cls,
 {
   struct ServiceSession * session = cls;
   unsigned char * current;
-  struct GNUNET_VECTORPRODUCT_service_request * msg;
+  struct GNUNET_SCALARPRODUCT_service_request * msg;
   struct MessageObject * msg_obj;
   unsigned int i;
   unsigned int j;
@@ -1047,12 +1047,12 @@ prepare_service_request (void *cls,
   GNUNET_assert (NULL != peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (peer));
 
-  msg_length = sizeof (struct GNUNET_VECTORPRODUCT_service_request)
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
           + session->used_element_count * PAILLIER_ELEMENT_LENGTH
           + session->mask_length
           + my_pubkey_external_length;
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (struct GNUNET_VECTORPRODUCT_service_request)
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (struct GNUNET_SCALARPRODUCT_service_request)
       + session->used_element_count * PAILLIER_ELEMENT_LENGTH
       + session->mask_length
       + my_pubkey_external_length)
@@ -1067,7 +1067,7 @@ prepare_service_request (void *cls,
     }
   msg = GNUNET_malloc (msg_length);
 
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_ALICE_TO_BOB);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   msg->mask_length = htons (session->mask_length);
   msg->pk_length = htons (my_pubkey_external_length);
@@ -1207,7 +1207,7 @@ handle_client_request (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_VECTORPRODUCT_client_request * msg = (struct GNUNET_VECTORPRODUCT_client_request *) message;
+  struct GNUNET_SCALARPRODUCT_client_request * msg = (struct GNUNET_SCALARPRODUCT_client_request *) message;
   struct ServiceSession * session;
   uint16_t element_count;
   uint16_t mask_length;
@@ -1218,7 +1218,7 @@ handle_client_request (void *cls,
   GNUNET_assert (message);
 
   //we need at least a peer and one message id to compare
-  if (sizeof (struct GNUNET_VECTORPRODUCT_client_request) > ntohs (msg->header.size))
+  if (sizeof (struct GNUNET_SCALARPRODUCT_client_request) > ntohs (msg->header.size))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from client!\n"));
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -1230,7 +1230,7 @@ handle_client_request (void *cls,
   mask_length = ntohs (msg->mask_length);
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if (( ntohs (msg->header.size) != (sizeof (struct GNUNET_VECTORPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_length))
+  if (( ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_length))
       || (0 == element_count))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Invalid message received from client, session information incorrect!\n"));
@@ -1259,7 +1259,7 @@ handle_client_request (void *cls,
   session->vector = GNUNET_malloc (sizeof (int32_t) * element_count);
   vector = (int32_t *) & msg[1];
 
-  if (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_ALICE == msg_type)
+  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Got client-request-session with key %s, preparing tunnel to remote service.\n"), GNUNET_h2s (&session->key));
 
@@ -1537,7 +1537,7 @@ prepare_client_response (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceSession * session = cls;
-  struct GNUNET_VECTORPRODUCT_client_response * msg;
+  struct GNUNET_SCALARPRODUCT_client_response * msg;
   unsigned char * product_exported = NULL;
   size_t product_length = 0;
   uint16_t msg_length = 0;
@@ -1556,11 +1556,11 @@ prepare_client_response (void *cls,
       session->product = NULL;
     }
 
-  msg_length = sizeof (struct GNUNET_VECTORPRODUCT_client_response) +product_length;
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) +product_length;
   msg = GNUNET_malloc (msg_length);
   memcpy (&msg[1], product_exported, product_length);
   GNUNET_free_non_null (product_exported);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_VECTORPRODUCT_SERVICE_TO_CLIENT);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
   msg->header.size = htons (msg_length);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
@@ -1593,7 +1593,7 @@ prepare_client_response (void *cls,
 
 
 /**
- * Handle a request from another service to calculate a vectorproduct with us.
+ * Handle a request from another service to calculate a scalarproduct with us.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
@@ -1613,7 +1613,7 @@ handle_service_request (void *cls,
                         const struct GNUNET_ATS_Information * atsi)
 {
   struct ServiceSession * session;
-  struct GNUNET_VECTORPRODUCT_service_request * msg = (struct GNUNET_VECTORPRODUCT_service_request *) message;
+  struct GNUNET_SCALARPRODUCT_service_request * msg = (struct GNUNET_SCALARPRODUCT_service_request *) message;
   uint16_t mask_length;
   uint16_t pk_length;
   uint16_t used_elements;
@@ -1651,7 +1651,7 @@ handle_service_request (void *cls,
     }
 
   //we need at least a peer and one message id to compare
-  if (ntohs (msg->header.size) < sizeof (struct GNUNET_VECTORPRODUCT_service_request))
+  if (ntohs (msg->header.size) < sizeof (struct GNUNET_SCALARPRODUCT_service_request))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from peer!\n"));
       GNUNET_free (session);
@@ -1661,7 +1661,7 @@ handle_service_request (void *cls,
   pk_length = ntohs (msg->pk_length);
   used_elements = ntohs (msg->used_element_count);
   element_count = ntohs (msg->element_count);
-  msg_length = sizeof (struct GNUNET_VECTORPRODUCT_service_request)
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
                + mask_length + pk_length + used_elements * PAILLIER_ELEMENT_LENGTH;
 
   //sanity check: is the message as long as the message_count fields suggests?
@@ -1720,7 +1720,7 @@ handle_service_request (void *cls,
 
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_VECTORPRODUCT_service_request)
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_service_request)
       +pk_length
       + mask_length
       + used_elements * PAILLIER_ELEMENT_LENGTH)
@@ -1788,7 +1788,7 @@ except:
 
 
 /**
- * Handle a response we got from another service we wanted to calculate a vectorproduct with.
+ * Handle a response we got from another service we wanted to calculate a scalarproduct with.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end
@@ -1809,7 +1809,7 @@ handle_service_response (void *cls,
 {
 
   struct ServiceSession * session;
-  struct GNUNET_VECTORPRODUCT_service_response * msg = (struct GNUNET_VECTORPRODUCT_service_response *) message;
+  struct GNUNET_SCALARPRODUCT_service_response * msg = (struct GNUNET_SCALARPRODUCT_service_response *) message;
   unsigned char * current;
   uint16_t count;
   gcry_mpi_t s = NULL;
@@ -1835,13 +1835,13 @@ handle_service_response (void *cls,
       goto invalid_msg;
     }
   //we need at least a peer and one message id to compare
-  if (sizeof (struct GNUNET_VECTORPRODUCT_service_response) > ntohs (msg->header.size))
+  if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from peer!\n"));
       goto invalid_msg;
     }
   used_element_count = ntohs (msg->used_element_count);
-  msg_size = sizeof (struct GNUNET_VECTORPRODUCT_service_response)
+  msg_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * used_element_count * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
@@ -1997,20 +1997,20 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_ALICE, 0},
-    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_BOB, 0},
+    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE, 0},
+    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB, 0},
     {NULL, NULL, 0, 0}
   };
   static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    { &handle_service_request, GNUNET_MESSAGE_TYPE_VECTORPRODUCT_ALICE_TO_BOB, 0},
-    { &handle_service_response, GNUNET_MESSAGE_TYPE_VECTORPRODUCT_BOB_TO_ALICE, 0},
+    { &handle_service_request, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB, 0},
+    { &handle_service_response, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE, 0},
     {NULL, 0, 0}
   };
   static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {NULL, 0, 0}
   };
   static GNUNET_MESH_ApplicationType mesh_types[] = {
-    GNUNET_APPLICATION_TYPE_VECTORPRODUCT,
+    GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
     GNUNET_APPLICATION_TYPE_END
   };
 
@@ -2048,7 +2048,7 @@ run (void *cls,
 
 
 /**
- * The main function for the vectorproduct service.
+ * The main function for the scalarproduct service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -2059,7 +2059,7 @@ main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv,
-                              "vectorproduct",
+                              "scalarproduct",
                               GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }

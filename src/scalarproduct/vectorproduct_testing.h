@@ -1,18 +1,18 @@
 /* 
- * File:   vectorproduct_testing.h
+ * File:   scalarproduct_testing.h
  * Author: gnunet
  *
  * Created on June 29, 2013, 7:39 PM
  */
 
-#ifndef VECTORPRODUCT_TESTING_H
-#define	VECTORPRODUCT_TESTING_H
+#ifndef SCALARPRODUCT_TESTING_H
+#define	SCALARPRODUCT_TESTING_H
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
     
-struct GNUNET_VECTORPRODUCT_TESTING_handle
+struct GNUNET_SCALARPRODUCT_TESTING_handle
 {
   /**
    * Testing library system handle
@@ -60,7 +60,7 @@ struct PeerContext
   /**
    * Pointer to Vector Product Handle
    */
-  struct GNUNET_VECTORPRODUCT_Handle *vh;
+  struct GNUNET_SCALARPRODUCT_Handle *vh;
   
   /**
    * Closure for the callbacks
@@ -80,7 +80,7 @@ struct PeerContext
   /**
    * Pointer to the master testing handle
    */
-  struct GNUNET_VECTORPRODUCT_TESTING_handle * vth;
+  struct GNUNET_SCALARPRODUCT_TESTING_handle * vth;
   
   /**
     * Callback when two peers are connected and both have called the connect callback
@@ -91,31 +91,31 @@ struct PeerContext
 //  /**
 //   * Pointer to function where the test occurs
 //   */
-//  GNUNET_VECTORPRODUCT_TESTING_start_cb start_cb;
+//  GNUNET_SCALARPRODUCT_TESTING_start_cb start_cb;
 };
 
 /**
  * Callback when two peers are connected and both have called the connect callback
  * to notify clients about a new peer
  */
-typedef void (*GNUNET_VECTORPRODUCT_TESTING_start_cb) (struct PeerContext * p,
+typedef void (*GNUNET_SCALARPRODUCT_TESTING_start_cb) (struct PeerContext * p,
                                                    void *cls);
 
-struct GNUNET_VECTORPRODUCT_TESTING_handle *
-GNUNET_VECTORPRODUCT_TESTING_init();
+struct GNUNET_SCALARPRODUCT_TESTING_handle *
+GNUNET_SCALARPRODUCT_TESTING_init();
 
 static void
-GNUNET_VECTORPRODUCT_TESTING_done(struct GNUNET_VECTORPRODUCT_TESTING_handle * vth);
+GNUNET_SCALARPRODUCT_TESTING_done(struct GNUNET_SCALARPRODUCT_TESTING_handle * vth);
 
 struct PeerContext *
-GNUNET_VECTORPRODUCT_TESTING_start_peer (struct GNUNET_VECTORPRODUCT_TESTING_handle * vth,
+GNUNET_SCALARPRODUCT_TESTING_start_peer (struct GNUNET_SCALARPRODUCT_TESTING_handle * vth,
                                      const char *cfgname, int peer_id,
-                                     GNUNET_VECTORPRODUCT_TESTING_start_cb start_cb,
+                                     GNUNET_SCALARPRODUCT_TESTING_start_cb start_cb,
                                      void *cb_cls);
 
 static void
-GNUNET_VECTORPRODUCT_TESTING_stop_peer
-        (struct GNUNET_VECTORPRODUCT_TESTING_handle * vth,
+GNUNET_SCALARPRODUCT_TESTING_stop_peer
+        (struct GNUNET_SCALARPRODUCT_TESTING_handle * vth,
         struct PeerContext *p);
 
 
@@ -125,5 +125,5 @@ GNUNET_VECTORPRODUCT_TESTING_stop_peer
 }
 #endif
 
-#endif	/* VECTORPRODUCT_TESTING_H */
+#endif	/* SCALARPRODUCT_TESTING_H */
 

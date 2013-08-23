@@ -28,7 +28,7 @@
  * 
  * To test this, we create 4 peers. peer1 and peer2 are designated responders, 
  * and peer3 and peer4 are designated as requesters. Each peer calls API for the
- * vectorproduct service accordingly.
+ * scalarproduct service accordingly.
  * 
  * * peer1 tells the service to prepare response for requests with keys 
  *   input_key_p1_p3(shared key b/w peer1 and peer3) and input_key_p1_p4. 
@@ -45,7 +45,7 @@
 
 
 /**
- * @file vectorproduct/test_vectorproduct_api_4peers.c
+ * @file scalarproduct/test_scalarproduct_api_4peers.c
  * @brief Vectorproduct API testing between 4 peers using testing API
  * @author Gaurav Kukreja
  * @author Christian Fuchs
@@ -58,10 +58,10 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_common.h"
-#include "gnunet_vectorproduct_service.h"
+#include "gnunet_scalarproduct_service.h"
 #include "gnunet_protocols.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "test-vectorproduct-api-4peers",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "test-scalarproduct-api-4peers",__VA_ARGS__)
 
 #define NUM_PEERS 4
 
@@ -88,7 +88,7 @@ struct PeerData
   /**
    * Pointer to Vector Product Handle
    */
-  struct GNUNET_VECTORPRODUCT_Handle *vh;
+  struct GNUNET_SCALARPRODUCT_Handle *vh;
 
   /**
    * Input elements for peer
@@ -151,22 +151,22 @@ enum SetupState
   /**
    * Connect to stream service of peer 1
    */
-  PEER1_VECTORPRODUCT_CONNECT,
+  PEER1_SCALARPRODUCT_CONNECT,
 
   /**
    * Connect to stream service of peer 2
    */
-  PEER2_VECTORPRODUCT_CONNECT,
+  PEER2_SCALARPRODUCT_CONNECT,
 
   /**
    * Connect to stream service of peer 3
    */
-  PEER3_VECTORPRODUCT_CONNECT,
+  PEER3_SCALARPRODUCT_CONNECT,
 
   /**
    * Connect to stream service of peer 4
    */
-  PEER4_VECTORPRODUCT_CONNECT
+  PEER4_SCALARPRODUCT_CONNECT
 
 };
 
@@ -335,7 +335,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down Peer 4!!! \n");
 
   // peer->op contains handle to the TESTBED_connect_service operation
-  // calling operation done, leads to call to vectorproduct_da
+  // calling operation done, leads to call to scalarproduct_da
   GNUNET_TESTBED_operation_done (peer->op);
   peer->op = NULL;
 
@@ -372,8 +372,8 @@ controller_event_cb (void *cls,
     case GNUNET_TESTBED_ET_OPERATION_FINISHED:
       switch (setup_state)
         {
-        case PEER1_VECTORPRODUCT_CONNECT:
-        case PEER2_VECTORPRODUCT_CONNECT:
+        case PEER1_SCALARPRODUCT_CONNECT:
+        case PEER2_SCALARPRODUCT_CONNECT:
           GNUNET_assert (NULL == event->details.operation_finished.emsg);
           break;
         default:
@@ -389,7 +389,7 @@ controller_event_cb (void *cls,
 static void
 responder_callback (void *cls,
                     const struct GNUNET_HashCode * key,
-                    enum GNUNET_VECTORPRODUCT_ResponseStatus status)
+                    enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
   struct PeerData * peer = cls;
 
@@ -407,27 +407,27 @@ responder_callback (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR, "Requester callback received, but peer is neither peer1 nor peer2!!!\n");
 
 
-  if (status == GNUNET_VECTORPRODUCT_Status_Failure)
+  if (status == GNUNET_SCALARPRODUCT_Status_Failure)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Responder Client received status failure\n");
       ok = -1;
     }
-  else if (status == GNUNET_VECTORPRODUCT_Status_InvalidResponse)
+  else if (status == GNUNET_SCALARPRODUCT_Status_InvalidResponse)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Responder Client received status invalid response\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_Timeout == status)
+  else if (GNUNET_SCALARPRODUCT_Status_Timeout == status)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Responder Client received timeout occured\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_ServiceDisconnected == status)
+  else if (GNUNET_SCALARPRODUCT_Status_ServiceDisconnected == status)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Responder Client received service disconnected!!\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_Success == status)
+  else if (GNUNET_SCALARPRODUCT_Status_Success == status)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Responder Client expected response received!\n");
       ok = 1;
@@ -448,8 +448,8 @@ static void
 requester_callback (void *cls,
                     const struct GNUNET_HashCode * key,
                     const struct GNUNET_PeerIdentity * peer,
-                    enum GNUNET_VECTORPRODUCT_ResponseStatus status,
-                    const struct GNUNET_VECTORPRODUCT_client_response *msg)
+                    enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+                    const struct GNUNET_SCALARPRODUCT_client_response *msg)
 {
   struct PeerData * peer_ = cls;
   uint32_t product_len;
@@ -468,32 +468,32 @@ requester_callback (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR, "Requester callback received, but peer is neither peer3 nor peer4!!!\n");
 
 
-  if (status == GNUNET_VECTORPRODUCT_Status_Failure)
+  if (status == GNUNET_SCALARPRODUCT_Status_Failure)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Requester Client received status failure\n");
       ok = -1;
     }
-  else if (status == GNUNET_VECTORPRODUCT_Status_InvalidResponse)
+  else if (status == GNUNET_SCALARPRODUCT_Status_InvalidResponse)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Requester Client received status invalid response\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_Timeout == status)
+  else if (GNUNET_SCALARPRODUCT_Status_Timeout == status)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Requester Client timeout occured\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_ServiceDisconnected == status)
+  else if (GNUNET_SCALARPRODUCT_Status_ServiceDisconnected == status)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Requester Client service disconnected!!\n");
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_Success != status)
+  else if (GNUNET_SCALARPRODUCT_Status_Success != status)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Requester Client Status = %d\n", (int) status);
       ok = -1;
     }
-  else if (GNUNET_VECTORPRODUCT_Status_Success == status)
+  else if (GNUNET_SCALARPRODUCT_Status_Success == status)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Requester client received status successful!\n");
       product_len = ntohl (msg->product_length);
@@ -529,7 +529,7 @@ requester_callback (void *cls,
 }
 
 
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
 requester_request (char * input_elements,
                    char * input_mask,
                    char * input_key,
@@ -544,7 +544,7 @@ requester_request (char * input_elements,
   uint16_t mask_length = 0;
   unsigned char * mask = NULL;
   int32_t element;
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   struct GNUNET_HashCode key;
   int exit_loop;
   char * begin = input_elements;
@@ -633,7 +633,7 @@ requester_request (char * input_elements,
         mask[i] = UCHAR_MAX; // all 1's
     }
   
-  qe = GNUNET_VECTORPRODUCT_request (peer->vh,
+  qe = GNUNET_SCALARPRODUCT_request (peer->vh,
                                      &key,
                                      &to_peer->our_id,
                                      element_count,
@@ -645,7 +645,7 @@ requester_request (char * input_elements,
 
   if (qe == NULL)
     {
-      LOG(GNUNET_ERROR_TYPE_WARNING, "Could not send request to vectorproduct service! Exitting!");
+      LOG(GNUNET_ERROR_TYPE_WARNING, "Could not send request to scalarproduct service! Exitting!");
       ok = -1;
       return NULL;
     }
@@ -655,10 +655,10 @@ requester_request (char * input_elements,
 
 
 /**
- * Function prepares the message to be sent by peer1 to its vectorproduct service
+ * Function prepares the message to be sent by peer1 to its scalarproduct service
  * to prepare response, and wait for a request session to be initiated by peer1
  */
-static struct GNUNET_VECTORPRODUCT_QueueEntry *
+static struct GNUNET_SCALARPRODUCT_QueueEntry *
 responder_prepare_response (char * input_elements,
                             char * input_mask,
                             char * input_key,
@@ -672,7 +672,7 @@ responder_prepare_response (char * input_elements,
   unsigned short mask_length = 0;
   unsigned char * mask = NULL;
   int32_t element;
-  struct GNUNET_VECTORPRODUCT_QueueEntry *qe;
+  struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   struct GNUNET_HashCode key;
   int exit_loop;
   char * begin;
@@ -758,7 +758,7 @@ responder_prepare_response (char * input_elements,
         mask[i] = UCHAR_MAX; // all 1's
     }
 
-  qe = GNUNET_VECTORPRODUCT_prepare_response (peer->vh,
+  qe = GNUNET_SCALARPRODUCT_prepare_response (peer->vh,
                                               &key,
                                               element_count,
                                               elements,
@@ -768,7 +768,7 @@ responder_prepare_response (char * input_elements,
 
   if (qe == NULL)
     {
-      LOG(GNUNET_ERROR_TYPE_ERROR, "Could not send request to vectorproduct service! Exitting!");
+      LOG(GNUNET_ERROR_TYPE_ERROR, "Could not send request to scalarproduct service! Exitting!");
       ok = -1;
       return NULL;
     }
@@ -813,11 +813,11 @@ prepare_response_task (void *cls,
  * @param op_result service handle returned from the connect adapter
  */
 static void
-vectorproduct_da (void *cls, void *op_result)
+scalarproduct_da (void *cls, void *op_result)
 {
   struct PeerData* peer = (struct PeerData*) cls;
 
-  GNUNET_VECTORPRODUCT_disconnect (peer->vh);
+  GNUNET_SCALARPRODUCT_disconnect (peer->vh);
   return;
 
   GNUNET_assert (0);
@@ -835,7 +835,7 @@ vectorproduct_da (void *cls, void *op_result)
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-vectorproduct_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+scalarproduct_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct PeerData *p = cls;
 
@@ -844,44 +844,44 @@ vectorproduct_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   switch (setup_state)
     {
-    case PEER1_VECTORPRODUCT_CONNECT:
-      /* Connect peer 2 to vectorproduct service */
+    case PEER1_SCALARPRODUCT_CONNECT:
+      /* Connect peer 2 to scalarproduct service */
       {
-        peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "vectorproduct",
-                                                   NULL, NULL, vectorproduct_ca,
-                                                   vectorproduct_da, &peer2);
-        setup_state = PEER2_VECTORPRODUCT_CONNECT;
+        peer2.op = GNUNET_TESTBED_service_connect (&peer2, peer2.peer, "scalarproduct",
+                                                   NULL, NULL, scalarproduct_ca,
+                                                   scalarproduct_da, &peer2);
+        setup_state = PEER2_SCALARPRODUCT_CONNECT;
       }
 
-      peer1.vh = GNUNET_VECTORPRODUCT_connect (cfg);
+      peer1.vh = GNUNET_SCALARPRODUCT_connect (cfg);
       return peer1.vh;
 
-    case PEER2_VECTORPRODUCT_CONNECT:
-      /* Connect peer 3 to vectorproduct service */
+    case PEER2_SCALARPRODUCT_CONNECT:
+      /* Connect peer 3 to scalarproduct service */
       {
-        peer3.op = GNUNET_TESTBED_service_connect (&peer3, peer3.peer, "vectorproduct",
-                                                   NULL, NULL, vectorproduct_ca,
-                                                   vectorproduct_da, &peer3);
-        setup_state = PEER3_VECTORPRODUCT_CONNECT;
+        peer3.op = GNUNET_TESTBED_service_connect (&peer3, peer3.peer, "scalarproduct",
+                                                   NULL, NULL, scalarproduct_ca,
+                                                   scalarproduct_da, &peer3);
+        setup_state = PEER3_SCALARPRODUCT_CONNECT;
       }
 
-      peer2.vh = GNUNET_VECTORPRODUCT_connect (cfg);
+      peer2.vh = GNUNET_SCALARPRODUCT_connect (cfg);
       return peer2.vh;
 
-    case PEER3_VECTORPRODUCT_CONNECT:
-      /* Connect peer 4 to vectorproduct service */
+    case PEER3_SCALARPRODUCT_CONNECT:
+      /* Connect peer 4 to scalarproduct service */
       {
-        peer4.op = GNUNET_TESTBED_service_connect (&peer4, peer4.peer, "vectorproduct",
-                                                   NULL, NULL, vectorproduct_ca,
-                                                   vectorproduct_da, &peer4);
-        setup_state = PEER4_VECTORPRODUCT_CONNECT;
+        peer4.op = GNUNET_TESTBED_service_connect (&peer4, peer4.peer, "scalarproduct",
+                                                   NULL, NULL, scalarproduct_ca,
+                                                   scalarproduct_da, &peer4);
+        setup_state = PEER4_SCALARPRODUCT_CONNECT;
       }
 
-      peer3.vh = GNUNET_VECTORPRODUCT_connect (cfg);
+      peer3.vh = GNUNET_SCALARPRODUCT_connect (cfg);
       return peer3.vh;
 
-    case PEER4_VECTORPRODUCT_CONNECT:
-      peer4.vh = GNUNET_VECTORPRODUCT_connect (cfg);
+    case PEER4_SCALARPRODUCT_CONNECT:
+      peer4.vh = GNUNET_SCALARPRODUCT_connect (cfg);
 
       /* Schedule the tasks to issue prepare_response calls from peer1 and peer2
        * for peer3 and peer4.
@@ -982,11 +982,11 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op_,
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 2 id: %s\n", GNUNET_i2s_full
                     (&peer2.our_id));
 
-        /* Connect peer 1 to vectorproduct service */
-        peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "vectorproduct",
-                                                   NULL, NULL, vectorproduct_ca,
-                                                   vectorproduct_da, &peer1);
-        setup_state = PEER1_VECTORPRODUCT_CONNECT;
+        /* Connect peer 1 to scalarproduct service */
+        peer1.op = GNUNET_TESTBED_service_connect (&peer1, peer1.peer, "scalarproduct",
+                                                   NULL, NULL, scalarproduct_ca,
+                                                   scalarproduct_da, &peer1);
+        setup_state = PEER1_SCALARPRODUCT_CONNECT;
       }
       break;
     default:
@@ -1073,8 +1073,8 @@ main (int argc, char **argv)
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   max_mids = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_MessageHeader))
           / sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) - 1;
-  (void) GNUNET_TESTBED_test_run ("test_vectorproduct_api_4peers",
-                                  "test_vectorproduct_api_data.conf",
+  (void) GNUNET_TESTBED_test_run ("test_scalarproduct_api_4peers",
+                                  "test_scalarproduct_api_data.conf",
                                   NUM_PEERS, event_mask, &controller_event_cb,
                                   NULL,
                                   &test_master, NULL);

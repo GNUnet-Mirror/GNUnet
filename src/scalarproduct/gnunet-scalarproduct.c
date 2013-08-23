@@ -19,8 +19,8 @@
  */
 
 /**
- * @file vectorproduct/gnunet-vectorproduct.c
- * @brief vectorproduct client
+ * @file scalarproduct/gnunet-scalarproduct.c
+ * @brief scalarproduct client
  * @author Christian M. Fuchs
  */
 #define GCRYPT_NO_DEPRECATED
@@ -29,10 +29,10 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_vectorproduct_service.h"
+#include "gnunet_scalarproduct_service.h"
 #include "gnunet_protocols.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "gnunet-vectorproduct",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "gnunet-scalarproduct",__VA_ARGS__)
 /**
  * Option -p: destination peer identity for checking message-ids with
  */
@@ -44,12 +44,12 @@ static char *input_peer_id = NULL;
 static char *input_key = NULL;
 
 /**
- * Option -e: vector to calculate a vectorproduct with
+ * Option -e: vector to calculate a scalarproduct with
  */
 static char *input_elements = NULL;
 
 /**
- * Option -m: message-ids to calculate a vectorproduct with
+ * Option -m: message-ids to calculate a scalarproduct with
  */
 static char *input_mask = NULL;
 
@@ -89,21 +89,21 @@ struct GNUNET_PeerIdentity peer;
 struct GNUNET_HashCode key;
 
 /**
- * Pointer to the GNUNET_VECTORPRODUCT_Handle
+ * Pointer to the GNUNET_SCALARPRODUCT_Handle
  */
-struct GNUNET_VECTORPRODUCT_Handle *handle;
+struct GNUNET_SCALARPRODUCT_Handle *handle;
 
 /**
  * Global return value
  */
 static int ret;
 
-struct GNUNET_VECTORPRODUCT_TestCls
+struct GNUNET_SCALARPRODUCT_TestCls
 {
-  struct GNUNET_VECTORPRODUCT_Handle * h;
+  struct GNUNET_SCALARPRODUCT_Handle * h;
 };
 
-struct GNUNET_VECTORPRODUCT_TestCls test_cls;
+struct GNUNET_SCALARPRODUCT_TestCls test_cls;
 
 
 /**
@@ -115,32 +115,32 @@ struct GNUNET_VECTORPRODUCT_TestCls test_cls;
 static void
 responder_callback (void *cls,
                     const struct GNUNET_HashCode * key,
-                    enum GNUNET_VECTORPRODUCT_ResponseStatus status)
+                    enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
   ret = -1;
 
   switch (status)
     {
-    case GNUNET_VECTORPRODUCT_Status_Success:
+    case GNUNET_SCALARPRODUCT_Status_Success:
       ret = 0;
       LOG (GNUNET_ERROR_TYPE_INFO, "Session %s concluded.\n", GNUNET_h2s (key));
       break;
-    case GNUNET_VECTORPRODUCT_Status_InvalidResponse:
+    case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: invalid response\n", GNUNET_h2s (key));
       break;
-    case GNUNET_VECTORPRODUCT_Status_Timeout:
+    case GNUNET_SCALARPRODUCT_Status_Timeout:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: timeout\n", GNUNET_h2s (key));
       break;
-    case GNUNET_VECTORPRODUCT_Status_Failure:
+    case GNUNET_SCALARPRODUCT_Status_Failure:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: service failure\n", GNUNET_h2s (key));
-    case GNUNET_VECTORPRODUCT_Status_ServiceDisconnected:
+    case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: service disconnect!!\n", GNUNET_h2s (key));
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (key), (int) status);
     }
 
-  GNUNET_VECTORPRODUCT_disconnect (handle);
+  GNUNET_SCALARPRODUCT_disconnect (handle);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -160,15 +160,15 @@ static void
 requester_callback (void *cls,
         const struct GNUNET_HashCode * key,
         const struct GNUNET_PeerIdentity * peer,
-        enum GNUNET_VECTORPRODUCT_ResponseStatus status,
-        const struct GNUNET_VECTORPRODUCT_client_response *msg)
+        enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+        const struct GNUNET_SCALARPRODUCT_client_response *msg)
 {
   uint32_t product_len;
   ret = -1;
 
   switch (status)
     {
-    case GNUNET_VECTORPRODUCT_Status_Success:
+    case GNUNET_SCALARPRODUCT_Status_Success:
       product_len = ntohl (msg->product_length);
 
       LOG (GNUNET_ERROR_TYPE_INFO, "Session %s concluded.\n", GNUNET_h2s (key));
@@ -194,21 +194,21 @@ requester_callback (void *cls,
           LOG (GNUNET_ERROR_TYPE_ERROR, "Service-side error in session %s, return code: %d\n", GNUNET_h2s (key), product_len);
         }
       break;
-    case GNUNET_VECTORPRODUCT_Status_InvalidResponse:
+    case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: invalid response\n", GNUNET_h2s (key));
       break;
-    case GNUNET_VECTORPRODUCT_Status_Timeout:
+    case GNUNET_SCALARPRODUCT_Status_Timeout:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: timeout\n", GNUNET_h2s (key));
       break;
-    case GNUNET_VECTORPRODUCT_Status_Failure:
+    case GNUNET_SCALARPRODUCT_Status_Failure:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: service failure\n", GNUNET_h2s (key));
-    case GNUNET_VECTORPRODUCT_Status_ServiceDisconnected:
+    case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Disconnected from service.\n", GNUNET_h2s (key));
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (key), (int) status);
     }
-  GNUNET_VECTORPRODUCT_disconnect (handle);
+  GNUNET_SCALARPRODUCT_disconnect (handle);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -342,7 +342,7 @@ run (void *cls,
         mask[i] = UCHAR_MAX; // all 1's
     }
 
-  handle = GNUNET_VECTORPRODUCT_connect (cfg);
+  handle = GNUNET_SCALARPRODUCT_connect (cfg);
   if (handle == NULL)
     {
       FPRINTF (stderr, _ ("Could not connect to the GNUNET Vector Product Service\n"));
@@ -351,7 +351,7 @@ run (void *cls,
 
   test_cls.h = handle;
 
-  if (input_peer_id && !GNUNET_VECTORPRODUCT_request (handle,
+  if (input_peer_id && !GNUNET_SCALARPRODUCT_request (handle,
                                                       &key,
                                                       &peer,
                                                       element_count,
@@ -361,7 +361,7 @@ run (void *cls,
                                                       &requester_callback,
                                                       (void *) &test_cls))
     return;
-  if ( !input_peer_id && !GNUNET_VECTORPRODUCT_prepare_response (handle,
+  if ( !input_peer_id && !GNUNET_SCALARPRODUCT_prepare_response (handle,
                                                    &key,
                                                    element_count,
                                                    elements,
@@ -375,7 +375,7 @@ run (void *cls,
 
 
 /**
- * The main function to the vectorproduct client.
+ * The main function to the scalarproduct client.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -392,7 +392,7 @@ main (int argc, char *const *argv)
       gettext_noop ("A comma separated mask to select which elements should actually be compared."),
       1, &GNUNET_GETOPT_set_string, &input_mask},
     {'p', "peer", "PEERID",
-      gettext_noop ("[Optional] peer to calculate our vectorproduct with. If this parameter is not given, the service will wait for a remote peer to compute the request."),
+      gettext_noop ("[Optional] peer to calculate our scalarproduct with. If this parameter is not given, the service will wait for a remote peer to compute the request."),
       1, &GNUNET_GETOPT_set_string, &input_peer_id},
     {'k', "key", "TRANSACTION_ID",
       gettext_noop ("Transaction ID shared with peer."),
@@ -403,7 +403,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc,
                               argv,
-                              "gnunet-vectorproduct",
+                              "gnunet-scalarproduct",
                               gettext_noop ("Calculate the Vectorproduct with a GNUnet peer."),
                               options, &run, NULL)) ? ret : 1;
 }

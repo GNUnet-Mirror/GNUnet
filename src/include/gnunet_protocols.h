@@ -1906,33 +1906,33 @@ extern "C"
 
 
 /*******************************************************************************
- * VECTORPRODUCT message types
+ * SCALARPRODUCT message types
  ******************************************************************************/
 
 /**
  * Client -> Vector-Product Service request message
  */
-#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_ALICE 640
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE 640
 
 /**
  * Client -> Vector-Product Service request message
  */
-#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_CLIENT_TO_BOB 641
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB 641
 
 /**
  * Vector-Product Service request -> remote VP Service
  */
-#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_ALICE_TO_BOB 642
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB 642
 
 /**
  * remote Vector-Product Service response -> requesting VP Service
  */
-#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_BOB_TO_ALICE 643
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE 643
 
 /**
  * Vector-Product Service response -> Client
  */
-#define GNUNET_MESSAGE_TYPE_VECTORPRODUCT_SERVICE_TO_CLIENT 644
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT 644
 
 
 
