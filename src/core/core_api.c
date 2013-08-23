@@ -1143,6 +1143,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_CORE_Handle *h;
 
+  GNUNET_assert (NULL != cfg);
   h = GNUNET_new (struct GNUNET_CORE_Handle);
   h->cfg = cfg;
   h->cls = cls;
@@ -1180,6 +1181,8 @@ void
 GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
 {
   struct ControlMessage *cm;
+
+  GNUNET_assert (NULL != handle);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting from CORE service\n");
   if (NULL != handle->cth)
@@ -1271,6 +1274,9 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
 
+  GNUNET_assert (NULL != handle);
+  GNUNET_assert (NULL != target);
+
   if (notify_size > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
      GNUNET_break (0);
@@ -1324,6 +1330,7 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
   struct PeerRecord *pr = th->peer;
   struct GNUNET_CORE_Handle *h;
 
+  GNUNET_assert (NULL != th);
   GNUNET_assert (NULL != pr);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Aborting transmission request to core for %u bytes to `%s'\n",
