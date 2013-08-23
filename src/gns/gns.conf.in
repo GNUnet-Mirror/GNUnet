@@ -8,12 +8,6 @@ UNIXPATH = /tmp/gnunet-service-gns.sock
 
 ZONE_DIR = $SERVICEHOME/gns/
 
-# Where to store the key for the Master zone
-ZONEKEY = $SERVICEHOME/gns/zonekey.zkey
-
-# Where to store the key for the Private zone
-PRIVATE_ZONEKEY = $SERVICEHOME/gns/zonekey_priv.zkey
-
 # Where to store the key for the Shorten zone
 SHORTEN_ZONEKEY = $SERVICEHOME/gns/zonekey_short.zkey
 

@@ -21,13 +21,18 @@
  * @file gnunet-gns.c
  * @brief command line tool to access distributed GNS
  * @author Christian Grothoff
- *
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
+#include <gnunet_identity_service.h>
 #include <gnunet_namestore_service.h>
 #include <gnunet_gns_service.h>
+
+/**
+ * Configuration we are using.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Handle to GNS service.
@@ -45,6 +50,16 @@ static char *lookup_name;
 static char *lookup_type;
 
 /**
+ * Identity of the zone to use for the lookup (-z option)
+ */
+static char *zone_ego_name;
+
+/**
+ * Public key of the zone to use for the lookup (-p option)
+ */
+static char *public_key;
+
+/**
  * raw output
  */
 static int raw;
@@ -59,6 +74,11 @@ static int rtype;
  */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
 
+/**
+ * Handle to the identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -70,6 +90,11 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
   if (NULL != lookup_request)
   {
     GNUNET_GNS_lookup_cancel (lookup_request);
@@ -128,43 +153,17 @@ process_lookup_result (void *cls, uint32_t rd_count,
 
 
 /**
- * Main function that will be run.
+ * Perform the actual resolution, starting with the zone
+ * identified by the given public key.
  *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * @param pkey public key to use for the zone
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
   struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
 
-  gns = GNUNET_GNS_connect (cfg);
-  if (NULL == gns)
-  {
-    fprintf (stderr,
-	     _("Failed to connect to GNS\n"));
-    return;
-  }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                           "ZONEKEY", &keyfile))
-  {
-    fprintf (stderr,
-	     "Need zone to perform lookup in!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  /* FIXME: use identity service and/or allow user to specify public key! */
-  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
-  GNUNET_free (key);  
-  GNUNET_free (keyfile);
-  
   if (GNUNET_OK != 
       GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
 					       "SHORTEN_ZONEKEY", &keyfile))
@@ -187,7 +186,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     lookup_request = GNUNET_GNS_lookup (gns, 
 					lookup_name,
-					&pkey,
+					pkey,
 					rtype,
 					GNUNET_NO, /* Use DHT */
 					shorten_key,
@@ -201,10 +200,135 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  if (NULL != shorten_key)
-    GNUNET_free (shorten_key);
+  GNUNET_free_non_null (shorten_key);
+}
+
+
+/** 
+ * Method called to inform about the egos of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_connect, this function is
+ * initially called for all egos and then again whenever a
+ * ego's name changes or if it is deleted.  At the end of
+ * the initial pass over all egos, the function is once called
+ * with 'NULL' for @a ego. That does NOT mean that the callback won't
+ * be invoked in the future or that there was an error.
+ *
+ * If the @a name matches the `zone_ego_name`, we found the zone
+ * for our computation and will begin resolving against that zone.
+ * If we have iterated over all egos and not found the name, we
+ * terminate the program with an error message.
+ *
+ * @param cls closure (NULL, unused)
+ * @param ego ego handle
+ * @param ego_ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void 
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  
+  if ( (NULL != zone_ego_name) &&
+       (NULL != name) &&
+       (0 == strcmp (name,
+		     zone_ego_name)) )
+  {
+    GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
+    lookup_with_public_key (&pkey);
+    GNUNET_free (zone_ego_name);
+    zone_ego_name = NULL;
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+    return;
+  }
+  if ( (NULL == ego) &&
+       (NULL != identity) &&
+       (NULL != zone_ego_name) )
+  {
+    fprintf (stderr,
+	     _("Ego `%s' not found\n"),
+	     zone_ego_name);
+    GNUNET_free (zone_ego_name);
+    zone_ego_name = NULL;
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+}
+
+
+/**
+ * Main function that will be run.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
+
+  cfg = c;
+  gns = GNUNET_GNS_connect (cfg);
+  if (NULL == gns)
+  {
+    fprintf (stderr,
+	     _("Failed to connect to GNS\n"));
+    return;
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_shutdown, NULL);
+  if (NULL != public_key)
+  {
+    if (GNUNET_OK !=
+	GNUNET_CRYPTO_ecc_public_key_from_string (public_key,
+						  strlen (public_key),
+						  &pkey))
+    {
+      fprintf (stderr, 
+	       _("Public key `%s' is not well-formed\n"),
+	       public_key);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    lookup_with_public_key (&pkey);
+    return;
+  }
+  if (NULL != zone_ego_name)
+  {
+    identity = GNUNET_IDENTITY_connect (cfg, 
+					&identity_cb,
+					NULL);
+    return;
+  }
+  if ( (NULL != lookup_name) &&
+       (strlen (lookup_name) > 4) &&
+       (0 == strcmp (".zkey",
+		     &lookup_name[strlen (lookup_name) - 4])) )
+  {
+    /* no zone required, use 'anonymous' zone */
+    GNUNET_CRYPTO_ecc_key_get_public (GNUNET_CRYPTO_ecc_key_get_anonymous (),
+				      &pkey);
+    lookup_with_public_key (&pkey);
+  }
+  else
+  {
+    fprintf (stderr,
+	     _("I need a zone (`-p' or `-z' option) to resolve this name\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 
@@ -228,6 +352,12 @@ main (int argc, char *const *argv)
     {'r', "raw", NULL,
       gettext_noop ("No unneeded output"), 0,
       &GNUNET_GETOPT_set_one, &raw},
+    {'p', "public-key", "PKEY",
+      gettext_noop ("Specify the public key of the zone to lookup the record in"), 1,
+      &GNUNET_GETOPT_set_string, &public_key},
+    {'z', "zone", "NAME",
+      gettext_noop ("Specify the name of the ego of the zone to lookup the record in"), 1,
+      &GNUNET_GETOPT_set_string, &zone_ego_name},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;

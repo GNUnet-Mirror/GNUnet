@@ -1,4 +1,4 @@
-.TH GNUNET\-GNS 1 "Aug 8, 2013" "GNUnet"
+.TH GNUNET\-GNS 1 "Aug 23, 2013" "GNUnet"
 
 .SH NAME
 gnunet\-gns \- Access to GNUnet Name Service
@@ -22,9 +22,9 @@ This is a quiet mode where only important information is displayed.
 For example a lookup for an IP address will only yield the IP address, no
 descriptive text.
 .B
-.IP "\-t RRTYPE, \-\-type=RRTYPE"
-Resource Record Type (RRTYPE) to look for.
-Supported RRTYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
+.IP "\-t TYPE, \-\-type=TYPE"
+Resource Record Type (TYPE) to look for.
+Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
 
 Defaults to "A".
 .B
@@ -38,6 +38,12 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 Name to lookup.
 Resolve the specified name using the GNUnet Name System.
 .B
+.IP "\-p PKEY, \-\-public-key=PKEY"
+Public key of the zone to perform the lookup in.  This option should be used if the lookup is to be performed against a zone not controlled by this peer (alternatively, you could pass a ".zkey" for the name).
+.B
+.IP "\-z NAME, \-\-zone=NAME"
+Name of the ego of the zone to lookup the record in.  The public key associated with the ego will be used for the zone.
+.B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
 .B
@@ -48,4 +54,4 @@ Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic 
 
 
 .SH "SEE ALSO"
-\fBgnunet\-namestore\fP(1)
+\fBgnunet\-namestore\fP(1), \fBgnunet\-identity\fP(1) 
