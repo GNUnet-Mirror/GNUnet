@@ -1865,7 +1865,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
  * 
  * @param c Which connection to send the hop-by-hop ACK.
  * @param ack Value of the ACK.
- * @param fwd Is this fwd?
+ * @param fwd Is this a fwd ACK? (will go dest->root)
  */
 static void
 send_ack (struct MeshConnection *c, uint32_t ack, int fwd)
@@ -1881,7 +1881,7 @@ send_ack (struct MeshConnection *c, uint32_t ack, int fwd)
               "send %s ack %u on %s\n",
               fwd ? "FWD" : "BCK", ack, GNUNET_h2s (&c->id));
 
-  send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
+  send_prebuilt_message_connection (&msg.header, c, NULL, !fwd);
 }
 
 
