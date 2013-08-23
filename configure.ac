@@ -1329,6 +1329,8 @@ src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
+src/vectorproduct/Makefile
+src/vectorproduct/vectorproduct.conf
 src/integration-tests/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetats.pc
