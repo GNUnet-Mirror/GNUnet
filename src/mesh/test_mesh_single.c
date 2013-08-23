@@ -20,7 +20,7 @@
 
 /**
  * @file mesh/test_mesh_local.c
- * @brief test mesh local: test of mesh tunnels with just one peer
+ * @brief test mesh local: test of mesh channels with just one peer
  * @author Bartlomiej Polot
  */
 
@@ -28,7 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_mesh_service_enc.h"
 
 #define REPETITIONS 5
 #define DATA_SIZE 35000
@@ -37,9 +37,9 @@ struct GNUNET_TESTING_Peer *me;
 
 static struct GNUNET_MESH_Handle *mesh;
 
-static struct GNUNET_MESH_Tunnel *t1;
+static struct GNUNET_MESH_Channel *ch1;
 
-static struct GNUNET_MESH_Tunnel *t2;
+static struct GNUNET_MESH_Channel *ch2;
 
 static int result = GNUNET_OK;
 
@@ -66,9 +66,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
-  if (NULL != t1)
+  if (NULL != ch1)
   {
-    GNUNET_MESH_tunnel_destroy (t1);
+    GNUNET_MESH_channel_destroy (ch1);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
@@ -101,15 +101,16 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function is called whenever a message is received.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * 
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
+data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
+               void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Repetition %u\n", repetition);
@@ -117,16 +118,16 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   repetition = repetition + 1;
   if (repetition < REPETITIONS)
   {
-    struct GNUNET_MESH_Tunnel *my_tunnel;
+    struct GNUNET_MESH_Channel *my_channel;
     if (repetition % 2 == 0)
-      my_tunnel = t1;
+      my_channel = ch1;
     else
-      my_tunnel = t2;
-    GNUNET_MESH_notify_transmit_ready (my_tunnel, GNUNET_NO,
+      my_channel = ch2;
+    GNUNET_MESH_notify_transmit_ready (my_channel, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
                                        sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
                                        &do_send, NULL);
-    GNUNET_MESH_receive_done (tunnel);
+    GNUNET_MESH_receive_done (channel);
     return GNUNET_OK;
   }
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
@@ -134,51 +135,51 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
   shutdown_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
                                   NULL);
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
 
 /**
- * Method called whenever another peer has added us to a tunnel
+ * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  *
  * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
  * @param port port number
- * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
+ * @return initial channel context for the channel (can be NULL -- that's not an error)
  */
 static void *
-inbound_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
                 uint32_t port)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "received incoming tunnel on port %u\n",
+              "received incoming channel on port %u\n",
               port);
-  t2 = tunnel;
+    ch2 = channel;
   return NULL;
 }
 
 
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
-inbound_end (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
-             void *tunnel_ctx)
+inbound_end (void *cls, const struct GNUNET_MESH_Channel *channel,
+             void *channel_ctx)
 {
   long id = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "incoming tunnel closed at peer %ld\n",
+              "incoming channel closed at peer %ld\n",
               id);
 }
 
@@ -232,8 +233,8 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  t1 = GNUNET_MESH_tunnel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
-  GNUNET_MESH_notify_transmit_ready (t1, GNUNET_NO,
+    ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
+  GNUNET_MESH_notify_transmit_ready (ch1, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
                                      &do_send, NULL);
@@ -261,7 +262,7 @@ run (void *cls,
                                     NULL);
   mesh = GNUNET_MESH_connect (cfg,       /* configuration */
                               (void *) 1L,     /* cls */
-                              &inbound_tunnel,   /* inbound new hndlr */
+                              &inbound_channel,   /* inbound new hndlr */
                               &inbound_end,      /* inbound end hndlr */
                               handlers1, /* traffic handlers */
                               ports);     /* ports offered */

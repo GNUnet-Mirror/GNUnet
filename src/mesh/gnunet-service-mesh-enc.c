@@ -1675,7 +1675,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
   type = ntohs (message->type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s[%u] on connection %s\n",
               GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
-  
+
   switch (type)
   {
     struct GNUNET_MESH_Encrypted *emsg;

@@ -159,7 +159,6 @@ ld_mesh_test_lib = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmeshenc.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la
 
 dep_mesh_test_lib = \

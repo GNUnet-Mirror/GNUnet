@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "mesh_test_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_mesh_service_enc.h"
 
 /**
  * Test context for a MESH Test.
@@ -65,12 +65,12 @@ struct GNUNET_MESH_TEST_Context
   /**
    * Handler for incoming tunnels.
    */
-  GNUNET_MESH_InboundTunnelNotificationHandler *new_tunnel;
+  GNUNET_MESH_InboundChannelNotificationHandler *new_channel;
 
   /**
    * Cleaner for destroyed incoming tunnels.
    */
-  GNUNET_MESH_TunnelEndHandler *cleaner;
+  GNUNET_MESH_ChannelEndHandler *cleaner;
 
   /**
    * Message handlers.
@@ -122,7 +122,7 @@ mesh_connect_adapter (void *cls,
 
   h = GNUNET_MESH_connect (cfg,
                            (void *) (long) actx->peer,
-                           ctx->new_tunnel,
+                           ctx->new_channel,
                            ctx->cleaner,
                            ctx->handlers,
                            ctx->ports);
@@ -256,8 +256,8 @@ GNUNET_MESH_TEST_run (const char *testname,
                       unsigned int num_peers,
                       GNUNET_MESH_TEST_AppMain tmain,
                       void *tmain_cls,
-                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
-                      GNUNET_MESH_TunnelEndHandler cleaner,
+                      GNUNET_MESH_InboundChannelNotificationHandler new_channel,
+                      GNUNET_MESH_ChannelEndHandler cleaner,
                       struct GNUNET_MESH_MessageHandler* handlers,
                       const uint32_t *ports)
 {
@@ -269,7 +269,7 @@ GNUNET_MESH_TEST_run (const char *testname,
   ctx->meshes = GNUNET_malloc (num_peers * sizeof (struct GNUNET_MESH_Handle *));
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
-  ctx->new_tunnel = new_tunnel;
+  ctx->new_channel = new_channel;
   ctx->cleaner = cleaner;
   ctx->handlers = handlers;
   ctx->ports = ports;

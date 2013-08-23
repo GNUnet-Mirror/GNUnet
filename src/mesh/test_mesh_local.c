@@ -20,7 +20,7 @@
 
 /**
  * @file mesh/test_mesh_local.c
- * @brief test mesh local: test of mesh tunnels with just one peer
+ * @brief test mesh local: test of mesh channels with just one peer
  * @author Bartlomiej Polot
  */
 
@@ -130,14 +130,14 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
  *         (can be NULL -- that's not an error)
  */
 static void *
-inbound_tunnel (void *cls, struct GNUNET_MESH_Channel *channel,
+inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
                 uint32_t port)
 {
   long id = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "received incoming tunnel on peer %d, port %u\n",
+              "received incoming channel on peer %d, port %u\n",
               id, port);
   if (id != 2L)
   {
@@ -257,14 +257,14 @@ run (void *cls,
                                     NULL);
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      (void *) 1L,     /* cls */
-                                     &inbound_tunnel,   /* inbound new hndlr */
+                                     &inbound_channel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
                                      handlers1, /* traffic handlers */
                                      NULL);     /* ports offered */
 
   mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
-                                     &inbound_tunnel,   /* inbound new hndlr */
+                                     &inbound_channel,   /* inbound new hndlr */
                                      &inbound_end,      /* inbound end hndlr */
                                      handlers2, /* traffic handlers */
                                      ports);     /* ports offered */

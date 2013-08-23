@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include "platform.h"
 #include "mesh_test_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_mesh_service_enc.h"
 #include <gauger.h>
 
 
@@ -77,11 +77,11 @@ static int ok;
 
  /**
   * Each peer is supposed to generate the following callbacks:
-  * 1 incoming tunnel (@dest)
+  * 1 incoming channel (@dest)
   * 1 connected peer (@orig)
   * 1 received data packet (@dest)
   * 1 received data packet (@orig)
-  * 1 received tunnel destroy (@dest)
+  * 1 received channel destroy (@dest)
   * _________________________________
   * 5 x ok expected per peer
   */
@@ -164,17 +164,17 @@ static struct GNUNET_MESH_Handle *h1;
 static struct GNUNET_MESH_Handle *h2;
 
 /**
- * Tunnel handle for the root peer
+ * Channel handle for the root peer
  */
-static struct GNUNET_MESH_Tunnel *t;
+static struct GNUNET_MESH_Channel *ch;
 
 /**
- * Tunnel handle for the first leaf peer
+ * Channel handle for the dest peer
  */
-static struct GNUNET_MESH_Tunnel *incoming_t;
+static struct GNUNET_MESH_Channel *incoming_ch;
 
 /**
- * Time we started the data transmission (after tunnel has been established
+ * Time we started the data transmission (after channel has been established
  * and initilized).
  */
 static struct GNUNET_TIME_Absolute start_time;
@@ -239,15 +239,15 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_TESTBED_operation_done (t_op[i]);
   }
-  if (NULL != t)
+  if (NULL != ch)
   {
-    GNUNET_MESH_tunnel_destroy (t);
-    t = NULL;
+    GNUNET_MESH_channel_destroy (ch);
+    ch = NULL;
   }
-  if (NULL != incoming_t)
+  if (NULL != incoming_ch)
   {
-    GNUNET_MESH_tunnel_destroy (incoming_t);
-    incoming_t = NULL;
+    GNUNET_MESH_channel_destroy (incoming_ch);
+    incoming_ch = NULL;
   }
   GNUNET_MESH_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
@@ -297,7 +297,7 @@ static void
 data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_MESH_Channel *channel;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -305,13 +305,13 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
   if (GNUNET_YES == test_backwards)
   {
-    tunnel = incoming_t;
+    channel = incoming_ch;
   }
   else
   {
-    tunnel = t;
+    channel = ch;
   }
-  th = GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+  th = GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           size_payload, &tmt_rdy, (void *) 1L);
   if (NULL == th)
@@ -388,14 +388,15 @@ tmt_rdy (void *cls, size_t size, void *buf)
  * Function is called whenever a message is received.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
+data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
+               void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
   long client = (long) cls;
@@ -404,7 +405,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
 
   ok++;
 
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
 
   if ((ok % 20) == 0)
   {
@@ -462,7 +463,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
                 " received data %u\n", data_received);
     if (SPEED != test || (ok_goal - 2) == ok)
     {
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          size_payload, &tmt_rdy, (void *) 1L);
       return GNUNET_OK;
@@ -480,7 +481,7 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
       data_ack++;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               " received ack %u\n", data_ack);
-      GNUNET_MESH_notify_transmit_ready (tunnel, GNUNET_NO,
+      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          size_payload, &tmt_rdy, (void *) 1L);
       if (data_ack < TOTAL_PACKETS && SPEED != test)
@@ -491,13 +492,13 @@ data_callback (void *cls, struct GNUNET_MESH_Tunnel *tunnel, void **tunnel_ctx,
     }
     if (test == P2P_SIGNAL)
     {
-      GNUNET_MESH_tunnel_destroy (incoming_t);
-      incoming_t = NULL;
+      GNUNET_MESH_channel_destroy (incoming_ch);
+      incoming_ch = NULL;
     }
     else
     {
-      GNUNET_MESH_tunnel_destroy (t);
-      t = NULL;
+      GNUNET_MESH_channel_destroy (ch);
+      ch = NULL;
     }
   }
 
@@ -523,32 +524,32 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
 
 
 /**
- * Method called whenever another peer has added us to a tunnel
+ * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  *
  * @param cls Closure.
- * @param tunnel New handle to the tunnel.
- * @param initiator Peer that started the tunnel.
- * @param port Port this tunnels is connected to.
- * @return Initial tunnel context for the tunnel
+ * @param channel New handle to the channel.
+ * @param initiator Peer that started the channel.
+ * @param port Port this channel is connected to.
+ * @return Initial channel context for the channel
  *         (can be NULL -- that's not an error).
  */
 static void *
-incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
                  uint32_t port)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming tunnel from %s to peer %d\n",
+              "Incoming channel from %s to peer %d\n",
               GNUNET_i2s (initiator), (long) cls);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
   if ((long) cls == 4L)
-    incoming_t = tunnel;
+    incoming_ch = channel;
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Incoming tunnel for unknown client %lu\n", (long) cls);
+                "Incoming channel for unknown client %lu\n", (long) cls);
     GNUNET_break(0);
   }
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -563,32 +564,32 @@ incoming_tunnel (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 }
 
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
-tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel,
-                void *tunnel_ctx)
+channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
+                 void *channel_ctx)
 {
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming tunnel disconnected at peer %d\n",
+              "Incoming channel disconnected at peer %d\n",
               i);
   if (4L == i)
   {
     ok++;
-    incoming_t = NULL;
+    incoming_ch = NULL;
   }
   else if (0L == i && P2P_SIGNAL == test)
   {
     ok ++;
-    t = NULL;
+    ch = NULL;
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -645,7 +646,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
     rel = GNUNET_NO;
-  t = GNUNET_MESH_tunnel_create (h1, NULL, p_id[1], 1, nobuf, rel);
+  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, nobuf, rel);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
@@ -655,7 +656,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   data_ack = 0;
   data_received = 0;
   data_sent = 0;
-  GNUNET_MESH_notify_transmit_ready (t, GNUNET_NO,
+  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL, 
                                      size_payload, &tmt_rdy, (void *) 1L);
 }
@@ -763,10 +764,10 @@ main (int argc, char *argv[])
   else if (strstr (argv[0], "_small_speed_ack") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
-    * 1 incoming tunnel (@dest)
+    * 1 incoming channel (@dest)
     * TOTAL_PACKETS received data packet (@dest)
     * TOTAL_PACKETS received data packet (@orig)
-    * 1 received tunnel destroy (@dest)
+    * 1 received channel destroy (@dest)
     * _________________________________
     * 5 x ok expected per peer
     */
@@ -778,11 +779,11 @@ main (int argc, char *argv[])
   else if (strstr (argv[0], "_small_speed") != NULL)
   {
    /* Each peer is supposed to generate the following callbacks:
-    * 1 incoming tunnel (@dest)
+    * 1 incoming channel (@dest)
     * 1 initial packet (@dest)
     * TOTAL_PACKETS received data packet (@dest)
     * 1 received data packet (@orig)
-    * 1 received tunnel destroy (@dest)
+    * 1 received channel destroy (@dest)
     * _________________________________
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
@@ -830,8 +831,8 @@ main (int argc, char *argv[])
                         5,
                         &tmain,
                         NULL, /* tmain cls */
-                        &incoming_tunnel,
-                        &tunnel_cleaner,
+                        &incoming_channel,
+                        &channel_cleaner,
                         handlers,
                         ports);
 

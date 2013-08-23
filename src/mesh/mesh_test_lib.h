@@ -34,7 +34,7 @@ extern "C"
 #endif
 
 #include "gnunet_testbed_service.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_mesh_service_enc.h"
 
 /**
  * Test context for a MESH Test.
@@ -79,8 +79,8 @@ GNUNET_MESH_TEST_run (const char *testname,
                       unsigned int num_peers,
                       GNUNET_MESH_TEST_AppMain tmain,
                       void *tmain_cls,
-                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
-                      GNUNET_MESH_TunnelEndHandler cleaner,
+                      GNUNET_MESH_InboundChannelNotificationHandler new_channel,
+                      GNUNET_MESH_ChannelEndHandler cleaner,
                       struct GNUNET_MESH_MessageHandler* handlers,
                       const uint32_t* ports);
 
