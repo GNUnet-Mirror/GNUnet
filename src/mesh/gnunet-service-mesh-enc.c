@@ -3001,7 +3001,7 @@ channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
 
   if (NULL != ch->dest)
   {
-    GNUNET_break(0);
+    GNUNET_break (0);
     return;
   }
 
@@ -3020,6 +3020,12 @@ channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
     GNUNET_break (0);
     return;
   }
+
+  GNUNET_break (NULL == ch->bck_rel);
+  ch->bck_rel = GNUNET_new (struct MeshChannelReliability);
+  ch->bck_rel->ch = ch;
+  ch->bck_rel->expected_delay = MESH_RETRANSMIT_TIME;
+
   ch->dest = c;
 }
 
@@ -3113,6 +3119,8 @@ tunnel_notify_connection_broken (struct MeshTunnel2* t,
 /**
  * Send an end-to-end FWD ACK message for the most recent in-sequence payload.
  *
+ * If channel is not reliable, do nothing.
+ *
  * @param ch Channel this is about.
  * @param fwd Is for FWD traffic? (ACK dest->owner)
  */
@@ -3129,7 +3137,6 @@ channel_send_data_ack (struct MeshChannel *ch, int fwd)
 
   if (GNUNET_NO == ch->reliable)
   {
-    GNUNET_break (0);
     return;
   }
   rel = fwd ? ch->bck_rel       : ch->fwd_rel;
@@ -4707,7 +4714,7 @@ queue_send (void *cls, size_t size, void *buf)
     }
     if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "*   %s starting poll timeout\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   starting poll timeout\n");
       fc->poll_task =
           GNUNET_SCHEDULER_add_delayed (fc->poll_time, &connection_poll, fc);
     }
@@ -5078,6 +5085,7 @@ handle_mesh_connection_create (void *cls,
   uint16_t size;
   uint16_t i;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
 
   /* Check size */
@@ -5197,6 +5205,7 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeerPath *p;
   struct MeshConnection *c;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
   msg = (struct GNUNET_MESH_ConnectionACK *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
@@ -5375,6 +5384,12 @@ handle_channel_create (struct MeshTunnel2 *t,
   {
     /* Probably a retransmission, safe to ignore */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
+    if (NULL != ch->dest)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   duplicate CC!!\n");
+      channel_send_ack (ch, !fwd);
+      return GNUNET_OK;
+    }
   }
   else
   {
@@ -5522,10 +5537,11 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
       sizeof (struct GNUNET_MESH_Encrypted) +
       sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_OK;
   }
   type = ntohs (msg->header.type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
               GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
 
@@ -5588,12 +5604,12 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     msgh = (struct GNUNET_MessageHeader *) cbuf;
     switch (ntohs (msgh->type))
     {
+      case GNUNET_MESSAGE_TYPE_MESH_DATA:
+        /* Don't send hop ACK, wait for client to ACK */
+        return handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
+
       case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
         r = handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
-        break;
-
-      case GNUNET_MESSAGE_TYPE_MESH_DATA:
-        r = handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
         break;
 
       case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
@@ -5703,6 +5719,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_Id id;
   uint32_t ack;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
@@ -5774,6 +5791,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_Id id;
   uint32_t pid;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
               GNUNET_i2s (peer));
 
@@ -6179,7 +6197,7 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   channel_set_options (ch, ntohl (msg->opt));
 
   /* In unreliable channels, we'll use the DLL to buffer data for the root */
-  ch->fwd_rel = GNUNET_malloc (sizeof (struct MeshChannelReliability));
+  ch->fwd_rel = GNUNET_new (struct MeshChannelReliability);
   ch->fwd_rel->ch = ch;
   ch->fwd_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
