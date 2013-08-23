@@ -18,6 +18,7 @@ splines = true;
   fs -> mesh;
   fs -> ats;
   fs -> block [style=dotted,color=blue];
+  fs -> identity;
   exit [shape=box];
   exit -> mesh;
   exit -> tun;
@@ -35,6 +36,8 @@ splines = true;
   gns -> dns;
   gns -> dht;
   gns -> block [style=dotted,color=blue];
+  gns -> identity;
+  namestore -> identity;
   dht -> core;
   dht -> nse;
   dht -> block;
@@ -70,14 +73,14 @@ splines = true;
   dv -> set;
   consensus -> set;
   consensus -> mesh;
+  scalarproduct -> set;
+  scalarproduct -> mesh;
   set -> mesh;
   peerinfo -> hello;
   fragmentation [shape=diamond];
   hello [shape=diamond];
   nat [shape=diamond];
   tun [shape=diamond];
-
-
 }
 
 // this is what might happen...
