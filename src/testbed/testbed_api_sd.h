@@ -68,13 +68,14 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount);
  *
  * @param h the SDhandle
  * @param amount the value for which the deviation is returned
-
+ * @param factor the factor by which the given amont differs
  * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
  *           be calculated OR 0 if the deviation is less than the average; a
  *           maximum of 4 is returned for deviations equal to or larger than 4
  */
 int
-GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount);
+GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount,
+                                     int *factor);
 
 #endif
 /* end of testbed_api.h */

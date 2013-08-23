@@ -48,24 +48,26 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   struct SDHandle *h = GNUNET_TESTBED_SD_init_ (20);
+  int sd;
 
   ret = 0;
   GNUNET_TESTBED_SD_add_data_ (h, 40);
-  if (GNUNET_SYSERR != GNUNET_TESTBED_SD_deviation_factor_ (h, 10))
+  if (GNUNET_SYSERR != GNUNET_TESTBED_SD_deviation_factor_ (h, 10, &sd))
   {
     GNUNET_break (0);
     ret = 1;
     goto err;
   }
   GNUNET_TESTBED_SD_add_data_ (h, 30); 
-  if (GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 80))
+  if (GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 80, &sd))
   {
     GNUNET_break (0);
     ret = 1;
     goto err;
   }
   GNUNET_TESTBED_SD_add_data_ (h, 40);
-  if (0 != GNUNET_TESTBED_SD_deviation_factor_ (h, 10))
+  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 30, &sd))
+      || (-2 != sd))
   {
     GNUNET_break (0);
     ret = 1;
@@ -73,7 +75,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   GNUNET_TESTBED_SD_add_data_ (h, 10);
   GNUNET_TESTBED_SD_add_data_ (h, 30);
-  if (3 != GNUNET_TESTBED_SD_deviation_factor_ (h, 60))
+  if ((GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 60, &sd))
+      || (3 != sd))
   {
     GNUNET_break (0);
     ret = 1;

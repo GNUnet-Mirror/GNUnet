@@ -173,33 +173,40 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
 
 
 /**
- * Returns the factor by which the given amount differs from the standard deviation
+ * Calculates the factor by which the given amount differs
  *
  * @param h the SDhandle
  * @param amount the value for which the deviation is returned
-
- * @return the deviation from the average; GNUNET_SYSERR if the deviation cannot
- *           be calculated OR 0 if the given amount is less than or equal to the
- *           average; a maximum of 4 is returned for deviations equal to or
- *           larger than 4
+ * @param factor the factor by which the given amont differs
+ * @return GNUNET_SYSERR if the deviation cannot
+ *   be calculated; GNUNET_OK if the deviation is returned through factor
  */
 int
-GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount)
+GNUNET_TESTBED_SD_deviation_factor_ (struct SDHandle *h, unsigned int amount,
+                                     int *factor)
 {
   double diff;
-  unsigned int n;
+  int f;
+  int n;
 
   if (h->cnt < 2)
     return GNUNET_SYSERR;
   if (((float) amount) > h->avg)
+  {
     diff = ((float) amount) - h->avg;
+    f = 1;
+  }
   else
-    return 0;                   //diff = h->avg - ((float) amount);
+  {
+    diff = h->avg - ((float) amount);
+    f = -1;
+  }
   diff *= diff;
   for (n = 1; n < 4; n++)
     if (diff < (((double) (n * n)) * h->vr))
       break;
-  return n;
+  *factor = f * n;
+  return GNUNET_OK;
 }
 
 /* end of testbed_api_sd.c */

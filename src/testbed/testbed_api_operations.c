@@ -854,17 +854,19 @@ adapt_parallelism (struct OperationQueue *queue, int fail)
   }
   GNUNET_assert (nvals >= queue->max_active);
   avg = GNUNET_TIME_relative_divide (avg, nvals);
-  sd = GNUNET_TESTBED_SD_deviation_factor_ (fctx->sd, (unsigned int)
-                                            avg.rel_value_us);
-  if ( (sd <= 5) ||
-       (0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-				       queue->max_active)) )
-    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
-  if (GNUNET_SYSERR == sd)
+  if (GNUNET_SYSERR == 
+      GNUNET_TESTBED_SD_deviation_factor_ (fctx->sd,
+                                           (unsigned int) avg.rel_value_us,
+                                           &sd))
   {
+    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
+  if ((0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, queue->max_active)))
+    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
+  if (sd < 0)
+    sd = 0;
   GNUNET_assert (0 <= sd);
   if ((0 == sd) && (! fail))
   {
