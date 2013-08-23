@@ -1315,7 +1315,7 @@ src/pt/Makefile
 src/regex/Makefile
 src/regex/regex.conf
 src/scalarproduct/Makefile
-src/scalarproduct/vectorproduct.conf
+src/scalarproduct/scalarproduct.conf
 src/set/Makefile
 src/set/set.conf
 src/statistics/Makefile
