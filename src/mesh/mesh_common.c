@@ -146,6 +146,11 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 274: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY";
 
       /**
+       * Confirm the creation of a channel
+       */
+    case 275: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK";
+
+      /**
        * Ask the mesh service to create a new tunnel
        */
     case 280: return "GNUNET_MESSAGE_TYPE_MESH_FWD";
