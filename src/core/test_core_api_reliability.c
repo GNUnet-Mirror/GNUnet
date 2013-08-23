@@ -372,9 +372,9 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    GNUNET_CORE_connect (p2.cfg, &p2, &init_notify, &connect_notify,
+    GNUNET_assert (NULL != (p2.ch = GNUNET_CORE_connect (p2.cfg, &p2, &init_notify, &connect_notify,
                          &disconnect_notify, &inbound_notify, GNUNET_YES,
-                         &outbound_notify, GNUNET_YES, handlers);
+                         &outbound_notify, GNUNET_YES, handlers)));
   }
   else
   {
@@ -439,9 +439,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   setup_peer (&p2, "test_core_api_peer2.conf");
   err_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
-  GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
+
+  GNUNET_assert (NULL != (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
                        &disconnect_notify, &inbound_notify, GNUNET_YES,
-                       &outbound_notify, GNUNET_YES, handlers);
+                       &outbound_notify, GNUNET_YES, handlers)));
 }
 
 
