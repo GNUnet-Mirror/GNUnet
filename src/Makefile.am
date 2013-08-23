@@ -7,12 +7,12 @@ if HAVE_TESTING
  TESTBED = testbed
  CONSENSUS = consensus
  EXPERIMENTATION = experimentation
- VECTORPRODUCT = vectorproduct
+ SCALARPRODUCT = scalarproduct
 endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION) 
-#note: vectorproduct is not being listed here yet as the crypto is being reworked at the moment
+#note: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
 endif
 
 if HAVE_MYSQL

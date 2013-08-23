@@ -1291,10 +1291,11 @@ src/gns/Makefile
 src/gns/gns.conf
 src/gns/nss/Makefile
 src/hello/Makefile
-src/include/Makefile
-src/include/gnunet_directories.h
 src/identity/Makefile
 src/identity/identity.conf
+src/include/Makefile
+src/include/gnunet_directories.h
+src/integration-tests/Makefile
 src/hostlist/Makefile
 src/lockmanager/Makefile
 src/lockmanager/lockmanager.conf
@@ -1313,6 +1314,8 @@ src/postgres/Makefile
 src/pt/Makefile
 src/regex/Makefile
 src/regex/regex.conf
+src/scalarproduct/Makefile
+src/scalarproduct/vectorproduct.conf
 src/set/Makefile
 src/set/set.conf
 src/statistics/Makefile
@@ -1329,9 +1332,6 @@ src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
-src/vectorproduct/Makefile
-src/vectorproduct/vectorproduct.conf
-src/integration-tests/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetats.pc
 pkgconfig/gnunetarm.pc
