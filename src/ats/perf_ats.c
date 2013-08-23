@@ -51,12 +51,24 @@ struct BenchmarkPeer
    */
   struct GNUNET_TESTBED_Peer *peer;
 
+  /**
+   * Unique identifier
+   */
   int no;
 
-  int master; /* master: GNUNET_YES/NO */
+  /**
+   *  master: GNUNET_YES/NO
+   */
+  int master;
 
+  /**
+   *  Peer ID
+   */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   *  Core handle
+   */
   struct GNUNET_CORE_Handle *ch;
 
   /**
@@ -79,19 +91,48 @@ struct BenchmarkPeer
    */
   struct GNUNET_ATS_PerformanceHandle *p_handle;
 
+  /**
+   * Testbed connecect operation
+   */
   struct ConnectOperation *connect_ops;
 
+	/**
+	 * ATS Measurement Partner
+	 */
+  struct BenchmarkPeer *destination;
+
+  GNUNET_SCHEDULER_TaskIdentifier ats_task;
+
   /* Message exchange */
+
+  /**
+   * Core transmit handle
+   */
   struct GNUNET_CORE_TransmitHandle *cth;
 
+  /**
+   * DLL for pending messages: head
+   */
 	struct PendingMessages *p_head;
+
+  /**
+   * DLL for pending messages: tail
+   */
 	struct PendingMessages *p_tail;
 
-	/* Bit-mask for next partner selection */
+	/**
+	 *  Bit-mask for next partner selection
+	 */
 	uint32_t send_mask;
 
+	/**
+	 * Number of core connections
+	 */
   int core_connections;
 
+	/**
+	 * Number of slave connections
+	 */
   int slave_connections;
 
   /**
@@ -137,6 +178,8 @@ struct BenchmarkState
 	int benchmarking;
 
 	int *core_connections;
+
+	uint32_t partner_map;
 };
 
 static struct BenchmarkState state;
@@ -224,6 +267,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   		next = cur->next;
   		GNUNET_CONTAINER_DLL_remove (bp_master[c_p].p_head, bp_master[c_p].p_tail, cur);
   		GNUNET_free (cur);
+  	}
+
+  	if (GNUNET_SCHEDULER_NO_TASK != bp_master[c_p].ats_task)
+  	{
+  		GNUNET_SCHEDULER_cancel (bp_master[c_p].ats_task);
+  		bp_master[c_p].ats_task = GNUNET_SCHEDULER_NO_TASK;
   	}
 
   	if (NULL != bp_master[c_p].cth)
@@ -433,6 +482,20 @@ get_next (struct BenchmarkPeer *p)
 }
 
 
+static void
+ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+	struct BenchmarkPeer *bp = cls;
+
+	bp->ats_task = GNUNET_SCHEDULER_NO_TASK;
+
+	GNUNET_break (0);
+
+	bp->ats_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+			&ats_pref_task, bp);
+}
+
+
 static void 
 do_benchmark ()
 {
@@ -461,6 +524,8 @@ do_benchmark ()
 					GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES,
 					&s->id,
 					TEST_MESSAGE_SIZE, &core_send_ready, &bp_master[c_m]);
+		bp_master[c_m].ats_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+				&ats_pref_task, &bp_master[c_m]);
 	}
 
 
@@ -1073,6 +1138,7 @@ test_main (void *cls, unsigned int num_peers,
 	   unsigned int links_failed)
 {
   int c_p;
+  uint32_t partner_map;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Benchmarking solver `%s' on preference `%s' with %u master and %u slave peers\n"),
@@ -1097,6 +1163,9 @@ test_main (void *cls, unsigned int num_peers,
     bp_master[c_p].info_op = GNUNET_TESTBED_peer_get_information (bp_master[c_p].peer,
 							   GNUNET_TESTBED_PIT_IDENTITY,
 							   &peerinformation_cb, &bp_master[c_p]);
+
+    /* Select ATS measurement partner */
+    bp_master[c_p].destination = &bp_slaves[c_p];
   }
 
   for (c_p = 0; c_p < c_slave_peers; c_p++)
