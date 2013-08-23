@@ -656,15 +656,15 @@ prepare_client_end_notification (void * cls,
  * Bob executes:
  * generates the response message to be sent to alice after computing 
  * the values (1), (2), S and S'
- *  (1)[]: $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- *  (2)[]: $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- *      S: $S := E_A(\sum (r_i + b_i)^2)$
- *     S': $S' := E_A(\sum r_i^2)$
+ *  (1)[]: $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
+ *  (2)[]: $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
+ *      S: $S := E_A(sum (r_i + b_i)^2)$
+ *     S': $S' := E_A(sum r_i^2)$
  * 
- * @param kp    (1)[]: $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- * @param kq    (2)[]: $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- * @param s         S: $S := E_A(\sum (r_i + b_i)^2)$
- * @param stick    S': $S' := E_A(\sum r_i^2)$
+ * @param kp    (1)[]: $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
+ * @param kq    (2)[]: $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
+ * @param s         S: $S := E_A(sum (r_i + b_i)^2)$
+ * @param stick    S': $S' := E_A(sum r_i^2)$
  * @param request  the associated requesting session with alice
  * @param response the associated responder session with bob's client
  * @return GNUNET_SYSERR if the function was called with NULL parameters or if there was an error
@@ -802,10 +802,10 @@ prepare_service_response (gcry_mpi_t * kp,
 /**
  * executed by bob: 
  * compute the values 
- *  (1)[]: $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- *  (2)[]: $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- *      S: $S := E_A(\sum (r_i + b_i)^2)$
- *     S': $S' := E_A(\sum r_i^2)$
+ *  (1)[]: $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
+ *  (2)[]: $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
+ *      S: $S := E_A(sum (r_i + b_i)^2)$
+ *     S': $S' := E_A(sum r_i^2)$
  * 
  * @param request the requesting session + bob's requesting peer
  * @param response the responding session + bob's client handle
@@ -1439,13 +1439,13 @@ tunnel_destruction_handler (void *cls,
  * 
  * @param session - the session associated with this computation
  * @param kp - (1) from the protocol definition: 
- *             $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
+ *             $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
  * @param kq - (2) from the protocol definition: 
- *             $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
+ *             $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
  * @param s - S from the protocol definition: 
- *            $S := E_A(\sum (r_i + b_i)^2)$
+ *            $S := E_A(sum (r_i + b_i)^2)$
  * @param stick - S' from the protocol definition: 
- *                $S' := E_A(\sum r_i^2)$
+ *                $S' := E_A(sum r_i^2)$
  * @return product as MPI, never NULL
  */
 static gcry_mpi_t
