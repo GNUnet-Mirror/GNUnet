@@ -113,8 +113,9 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Repetition %u\n", repetition);
-  printf ("rep %u\n", repetition);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Data callback! Repetition %u/%u\n",
+              repetition, REPETITIONS);
   repetition = repetition + 1;
   if (repetition < REPETITIONS)
   {
@@ -158,7 +159,7 @@ inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "received incoming channel on port %u\n",
               port);
-    ch2 = channel;
+  ch2 = channel;
   return NULL;
 }
 
@@ -233,7 +234,7 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-    ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
+  ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
   GNUNET_MESH_notify_transmit_ready (ch1, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
@@ -289,7 +290,7 @@ main (int argc, char *argv[])
 {
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
                                     "test_mesh.conf",
-                                &run, NULL))
+                                    &run, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
     return 2;
