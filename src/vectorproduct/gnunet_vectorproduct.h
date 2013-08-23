@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_vectorproduct.h
+ * @file vectorproduct/gnunet_vectorproduct.h
  * @brief API to the vectorproduct service
  * @author Christian M. Fuchs
  */
