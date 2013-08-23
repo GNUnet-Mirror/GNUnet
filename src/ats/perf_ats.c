@@ -87,7 +87,8 @@ struct BenchmarkPeer
 	struct PendingMessages *p_head;
 	struct PendingMessages *p_tail;
 
-  int last_slave;
+	/* Bit-mask for next partner selection */
+	uint32_t send_mask;
 
   int core_connections;
 
@@ -397,11 +398,46 @@ core_send_ready (void *cls, size_t size, void *buf)
 	return TEST_MESSAGE_SIZE;
 }
 
+static struct BenchmarkPeer *
+get_next (struct BenchmarkPeer *p)
+{
+	uint32_t b_index;
+	uint32_t index;
+	int counter;
+
+	if (0 == p->send_mask)
+		p->send_mask = (1 << c_slave_peers) - 1; /* Next round */
+
+	GNUNET_assert (p->send_mask <= (1 << c_slave_peers) - 1);
+	counter = 0;
+	do
+	{
+		index = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, c_slave_peers);
+		b_index = 1 << index;
+		counter++;
+	}
+	while	((b_index != (p->send_mask & b_index)) && (counter < c_slave_peers));
+	if ((b_index != (p->send_mask & b_index)) && (counter == c_slave_peers))
+	{
+		/* To many random attempts use fcfs */
+		for (index = 0; index < c_slave_peers - 1; index ++)
+		{
+			b_index = 1 << index;
+			if (b_index == (p->send_mask & b_index))
+				break;
+		}
+	}
+	p->send_mask ^= b_index; /* Remove bit */
+	return &bp_slaves[index];
+
+}
+
 
 static void 
 do_benchmark ()
 {
 	int c_m;
+	struct BenchmarkPeer *s;
 
 	if ((state.connected_ATS_service == GNUNET_NO) ||
 			(state.connected_CORE_service == GNUNET_NO) ||
@@ -420,10 +456,10 @@ do_benchmark ()
 	/* Start sending test messages */
 	for (c_m = 0; c_m < c_master_peers; c_m ++)
 	{
-		bp_master[c_m].last_slave = 0;
+		s = get_next (&bp_master[c_m]);
 		bp_master[c_m].cth = GNUNET_CORE_notify_transmit_ready (bp_master[c_m].ch,
 					GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES,
-					&bp_slaves[bp_master[c_m].last_slave].id,
+					&s->id,
 					TEST_MESSAGE_SIZE, &core_send_ready, &bp_master[c_m]);
 	}
 
@@ -725,6 +761,7 @@ core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
 {
 	struct BenchmarkPeer *me = cls;
 	struct BenchmarkPeer *remote;
+	struct BenchmarkPeer *next;
 
 	remote = find_peer (other);
 
@@ -746,12 +783,10 @@ core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
 		return GNUNET_OK;
 	}
 	me->messages_received ++;
-	me->last_slave++;
-	if (me->last_slave == c_slave_peers)
-		me->last_slave = 0;
+	next = get_next (me);
 	me->cth = GNUNET_CORE_notify_transmit_ready (me->ch,
 				GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES,
-				&bp_slaves[me->last_slave].id,
+				&next->id,
 				TEST_MESSAGE_SIZE, &core_send_ready, me);
 
 	return GNUNET_OK;
@@ -1056,6 +1091,7 @@ test_main (void *cls, unsigned int num_peers,
   {
     GNUNET_assert (NULL != peers_[c_p]);
     bp_master[c_p].no = c_p;
+    bp_master[c_p].send_mask = (1 << c_slave_peers) - 1;
     bp_master[c_p].master = GNUNET_YES;
     bp_master[c_p].peer = peers_[c_p];
     bp_master[c_p].info_op = GNUNET_TESTBED_peer_get_information (bp_master[c_p].peer,
@@ -1121,7 +1157,7 @@ main (int argc, char *argv[])
   }
   if (c < argc-1)
   {
-    if ((0L != (c_slave_peers = strtol (argv[c + 1], NULL, 10))) && (c_slave_peers >= 2))
+    if ((0L != (c_slave_peers = strtol (argv[c + 1], NULL, 10))) && (c_slave_peers >= 1))
       fprintf (stderr, "Starting %u slave peers\n", c_slave_peers);
     else
     	c_slave_peers = DEFAULT_SLAVES_NUM;
