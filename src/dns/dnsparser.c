@@ -102,6 +102,87 @@ GNUNET_DNSPARSER_check_name (const char *name)
 
 
 /**
+ * Free SOA information record.
+ *
+ * @param soa record to free
+ */
+static void
+free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
+{
+  if (NULL == soa)
+    return;
+  GNUNET_free_non_null (soa->mname);
+  GNUNET_free_non_null (soa->rname);
+  GNUNET_free (soa);      
+}
+
+
+/**
+ * Free SRV information record.
+ *
+ * @param srv record to free
+ */
+static void
+free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
+{
+  if (NULL == srv)
+    return;
+  GNUNET_free_non_null (srv->target);
+  GNUNET_free_non_null (srv->domain_name);
+  GNUNET_free_non_null (srv->proto);
+  GNUNET_free_non_null (srv->service);
+  GNUNET_free (srv);      
+}
+
+
+/**
+ * Free MX information record.
+ *
+ * @param mx record to free
+ */
+static void
+free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
+{
+  if (NULL == mx)
+    return;
+  GNUNET_free_non_null (mx->mxhost);
+  GNUNET_free (mx);      
+}
+
+
+/**
+ * Free the given DNS record.
+ * 
+ * @param r record to free
+ */
+static void
+free_record (struct GNUNET_DNSPARSER_Record *r)
+{
+  GNUNET_free_non_null (r->name);
+  switch (r->type)
+  {
+  case GNUNET_DNSPARSER_TYPE_MX:
+    free_mx (r->data.mx);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SOA:
+    free_soa (r->data.soa);
+    break;
+  case GNUNET_DNSPARSER_TYPE_SRV:
+    free_srv (r->data.srv);
+    break;
+  case GNUNET_DNSPARSER_TYPE_NS:
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+  case GNUNET_DNSPARSER_TYPE_PTR:
+    GNUNET_free_non_null (r->data.hostname);
+    break;
+  default:
+    GNUNET_free_non_null (r->data.raw.data);
+    break;
+  }
+}
+
+
+/**
  * Parse name inside of a DNS query or record.
  *
  * @param udp_payload entire UDP payload
@@ -219,6 +300,24 @@ parse_name (const char *udp_payload,
 
 
 /**
+ * Parse name inside of a DNS query or record.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the name to parse in the udp_payload (to be
+ *                    incremented by the size of the name)
+ * @return name as 0-terminated C string on success, NULL if the payload is malformed
+ */
+char *
+GNUNET_DNSPARSER_parse_name (const char *udp_payload,
+			     size_t udp_payload_length,
+			     size_t *off)
+{
+  return parse_name (udp_payload, udp_payload_length, off, 0);
+}
+
+
+/**
  * Parse a DNS query entry.
  *
  * @param udp_payload entire UDP payload
@@ -228,18 +327,18 @@ parse_name (const char *udp_payload,
  * @param q where to write the query information
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the query is malformed
  */
-static int
-parse_query (const char *udp_payload,
-	     size_t udp_payload_length,
-	     size_t *off,
-	     struct GNUNET_DNSPARSER_Query *q)
+int
+GNUNET_DNSPARSER_parse_query (const char *udp_payload,
+			      size_t udp_payload_length,
+			      size_t *off,
+			      struct GNUNET_DNSPARSER_Query *q)
 {
   char *name;
   struct GNUNET_TUN_DnsQueryLine ql;
 
-  name = parse_name (udp_payload, 
-		     udp_payload_length,
-		     off, 0);
+  name = GNUNET_DNSPARSER_parse_name (udp_payload, 
+				      udp_payload_length,
+				      off);
   if (NULL == name)
     return GNUNET_SYSERR;
   q->name = name;
@@ -254,6 +353,168 @@ parse_query (const char *udp_payload,
 
 
 /**
+ * Parse a DNS SOA record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the SOA record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed SOA record, NULL on error
+ */
+struct GNUNET_DNSPARSER_SoaRecord *
+GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
+			    size_t udp_payload_length,
+			    size_t *off)
+{
+  struct GNUNET_DNSPARSER_SoaRecord *soa;
+  struct GNUNET_TUN_DnsSoaRecord soa_bin;
+  size_t old_off;
+
+  old_off = *off;
+  soa = GNUNET_new (struct GNUNET_DNSPARSER_SoaRecord);
+  soa->mname = GNUNET_DNSPARSER_parse_name (udp_payload,
+					    udp_payload_length,
+					    off);
+  soa->rname = GNUNET_DNSPARSER_parse_name (udp_payload,
+					    udp_payload_length,
+					    off);
+  if ( (NULL == soa->mname) ||
+       (NULL == soa->rname) ||
+       (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length) )
+  {
+    free_soa (soa);
+    *off = old_off;
+    return NULL;
+  }
+  memcpy (&soa_bin,
+	  &udp_payload[*off], 
+	  sizeof (struct GNUNET_TUN_DnsSoaRecord));
+  soa->serial = ntohl (soa_bin.serial);
+  soa->refresh = ntohl (soa_bin.refresh);
+  soa->retry = ntohl (soa_bin.retry);
+  soa->expire = ntohl (soa_bin.expire);
+  soa->minimum_ttl = ntohl (soa_bin.minimum);
+  (*off) += sizeof (struct GNUNET_TUN_DnsSoaRecord);
+  return soa;
+}
+
+
+/**
+ * Parse a DNS MX record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the MX record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed MX record, NULL on error
+ */
+struct GNUNET_DNSPARSER_MxRecord *
+GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
+			   size_t udp_payload_length,
+			   size_t *off)
+{
+  struct GNUNET_DNSPARSER_MxRecord *mx;
+  uint16_t mxpref;
+  size_t old_off;
+
+  old_off = *off;
+  if (*off + sizeof (uint16_t) > udp_payload_length)
+    return NULL;
+  memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));    
+  (*off) += sizeof (uint16_t);
+  mx = GNUNET_new (struct GNUNET_DNSPARSER_MxRecord);
+  mx->preference = ntohs (mxpref);
+  mx->mxhost = GNUNET_DNSPARSER_parse_name (udp_payload,
+					    udp_payload_length,
+					    off);
+  if (NULL == mx->mxhost)
+  {
+    free_mx (mx);
+    *off = old_off;
+    return NULL;
+  }
+  *off = old_off;
+  return mx;
+}
+
+
+/**
+ * Parse a DNS SRV record.
+ *
+ * @param r_name name of the SRV record
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the SRV record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed SRV record, NULL on error
+ */
+struct GNUNET_DNSPARSER_SrvRecord *
+GNUNET_DNSPARSER_parse_srv (const char *r_name,
+			    const char *udp_payload,
+			    size_t udp_payload_length,
+			    size_t *off)
+{
+  struct GNUNET_DNSPARSER_SrvRecord *srv;
+  struct GNUNET_TUN_DnsSrvRecord srv_bin;
+  size_t old_off;
+  char *ndup;
+  char *tok;
+
+  if ('_' != *r_name)
+    return NULL; /* all valid srv names must start with "_" */
+  if (NULL == strstr (r_name, "._"))
+    return NULL; /* necessary string from "._$PROTO" not present */
+  old_off = *off;
+  if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > udp_payload_length)
+    return NULL;
+  memcpy (&srv_bin,
+	  &udp_payload[*off], 
+	  sizeof (struct GNUNET_TUN_DnsSrvRecord));    
+  (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
+  srv = GNUNET_new (struct GNUNET_DNSPARSER_SrvRecord);
+  srv->priority = ntohs (srv_bin.prio);
+  srv->weight = ntohs (srv_bin.weight);
+  srv->port = ntohs (srv_bin.port);
+  /* parse 'data.hostname' into components, which are
+     "_$SERVICE._$PROTO.$DOMAIN_NAME" */
+  ndup = GNUNET_strdup (r_name);
+  tok = strtok (ndup, ".");
+  GNUNET_assert (NULL != tok);
+  GNUNET_assert ('_' == *tok);
+  srv->service = GNUNET_strdup (&tok[1]);
+  tok = strtok (NULL, ".");
+  if ( (NULL == tok) || ('_' != *tok) )
+  {
+    free_srv (srv);
+    GNUNET_free (ndup);
+    *off = old_off;
+    return NULL;
+  }
+  srv->proto = GNUNET_strdup (&tok[1]);
+  tok = strtok (NULL, ".");
+  if (NULL == tok)
+  {
+    free_srv (srv);
+    GNUNET_free (ndup);
+    *off = old_off;
+    return NULL;
+  }
+  srv->domain_name = GNUNET_strdup (tok);
+  GNUNET_free (ndup);
+  srv->target = GNUNET_DNSPARSER_parse_name (udp_payload,
+					     udp_payload_length,
+					     off);
+  if (NULL == srv->target)
+  {
+    free_srv (srv);
+    *off = old_off;
+    return NULL;
+  }
+  return srv;
+}
+
+
+/**
  * Parse a DNS record entry.
  *
  * @param udp_payload entire UDP payload
@@ -263,25 +524,20 @@ parse_query (const char *udp_payload,
  * @param r where to write the record information
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the record is malformed
  */
-static int
-parse_record (const char *udp_payload,
-	      size_t udp_payload_length,
-	      size_t *off,
-	      struct GNUNET_DNSPARSER_Record *r)
+int
+GNUNET_DNSPARSER_parse_record (const char *udp_payload,
+			       size_t udp_payload_length,
+			       size_t *off,
+			       struct GNUNET_DNSPARSER_Record *r)
 {
   char *name;
   struct GNUNET_TUN_DnsRecordLine rl;
   size_t old_off;
-  struct GNUNET_TUN_DnsSoaRecord soa;
-  uint16_t mxpref;
   uint16_t data_len;
-  struct GNUNET_TUN_DnsSrvRecord srv;
-  char *ndup;
-  char *tok;
 
-  name = parse_name (udp_payload, 
-		     udp_payload_length,
-		     off, 0);
+  name = GNUNET_DNSPARSER_parse_name (udp_payload, 
+				      udp_payload_length,
+				      off);
   if (NULL == name)
     return GNUNET_SYSERR;
   r->name = name;
@@ -296,98 +552,42 @@ parse_record (const char *udp_payload,
   data_len = ntohs (rl.data_len);
   if (*off + data_len > udp_payload_length)
     return GNUNET_SYSERR;
+  old_off = *off;
   switch (r->type)
   {
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
-    old_off = *off;
-    r->data.hostname = parse_name (udp_payload,
-				   udp_payload_length,
-				   off, 0);    
+    r->data.hostname = GNUNET_DNSPARSER_parse_name (udp_payload,
+						    udp_payload_length,
+						    off);    
     if ( (NULL == r->data.hostname) ||
 	 (old_off + data_len != *off) )
       return GNUNET_SYSERR;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    old_off = *off;
-    r->data.soa = GNUNET_new (struct GNUNET_DNSPARSER_SoaRecord);
-    r->data.soa->mname = parse_name (udp_payload,
-				     udp_payload_length,
-				     off, 0);
-    r->data.soa->rname = parse_name (udp_payload,
-				     udp_payload_length,
-				     off, 0);
-    if ( (NULL == r->data.soa->mname) ||
-	 (NULL == r->data.soa->rname) ||
-	 (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length) )
-      return GNUNET_SYSERR;
-    memcpy (&soa, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsSoaRecord));
-    r->data.soa->serial = ntohl (soa.serial);
-    r->data.soa->refresh = ntohl (soa.refresh);
-    r->data.soa->retry = ntohl (soa.retry);
-    r->data.soa->expire = ntohl (soa.expire);
-    r->data.soa->minimum_ttl = ntohl (soa.minimum);
-    (*off) += sizeof (struct GNUNET_TUN_DnsSoaRecord);
-    if (old_off + data_len != *off) 
+    r->data.soa = GNUNET_DNSPARSER_parse_soa (udp_payload,
+					      udp_payload_length,
+					      off);
+    if ( (NULL == r->data.soa) ||
+	 (old_off + data_len != *off) )
       return GNUNET_SYSERR;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_MX:
-    old_off = *off;
-    if (*off + sizeof (uint16_t) > udp_payload_length)
-      return GNUNET_SYSERR;
-    memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));    
-    (*off) += sizeof (uint16_t);
-    r->data.mx = GNUNET_new (struct GNUNET_DNSPARSER_MxRecord);
-    r->data.mx->preference = ntohs (mxpref);
-    r->data.mx->mxhost = parse_name (udp_payload,
-				     udp_payload_length,
-				     off, 0);
-    if (old_off + data_len != *off) 
+    r->data.mx = GNUNET_DNSPARSER_parse_mx (udp_payload,
+					    udp_payload_length,
+					    off);
+    if ( (NULL == r->data.mx) ||
+	 (old_off + data_len != *off) )
       return GNUNET_SYSERR;
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    if ('_' != *r->name)
-      return GNUNET_SYSERR; /* all valid srv names must start with "_" */
-    if (NULL == strstr (r->name, "._"))
-      return GNUNET_SYSERR; /* necessary string from "._$PROTO" not present */
-    old_off = *off;
-    if (*off + sizeof (struct GNUNET_TUN_DnsSrvRecord) > udp_payload_length)
-      return GNUNET_SYSERR;
-    memcpy (&srv, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsSrvRecord));    
-    (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
-    r->data.srv = GNUNET_new (struct GNUNET_DNSPARSER_SrvRecord);
-    r->data.srv->priority = ntohs (srv.prio);
-    r->data.srv->weight = ntohs (srv.weight);
-    r->data.srv->port = ntohs (srv.port);
-    /* parse 'data.hostname' into components, which are
-       "_$SERVICE._$PROTO.$DOMAIN_NAME" */
-    ndup = GNUNET_strdup (r->name);
-    tok = strtok (ndup, ".");
-    GNUNET_assert (NULL != tok);
-    GNUNET_assert ('_' == *tok);
-    r->data.srv->service = GNUNET_strdup (&tok[1]);
-    tok = strtok (NULL, ".");
-    if ( (NULL == tok) || ('_' != *tok) )
-    {
-      GNUNET_free (r->data.srv);
-      GNUNET_free (ndup);
-      return GNUNET_SYSERR;
-    }
-    r->data.srv->proto = GNUNET_strdup (&tok[1]);
-    tok = strtok (NULL, ".");
-    if (NULL == tok)
-    {
-      GNUNET_free (r->data.srv);
-      GNUNET_free (ndup);
-      return GNUNET_SYSERR;
-    }
-    r->data.srv->domain_name = GNUNET_strdup (tok);
-    GNUNET_free (ndup);
-    r->data.srv->target = parse_name (udp_payload,
-				      udp_payload_length,
-				      off, 0);
-    if (old_off + data_len != *off) 
+    r->data.srv = GNUNET_DNSPARSER_parse_srv (r->name,
+					      udp_payload,
+					      udp_payload_length,
+					      off);
+    if ( (NULL == r->data.srv) ||
+	 (old_off + data_len != *off) )
       return GNUNET_SYSERR;
     return GNUNET_OK;
   default:
@@ -433,10 +633,10 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
     p->num_queries = n;
     for (i=0;i<n;i++)
       if (GNUNET_OK !=
-	  parse_query (udp_payload,
-		       udp_payload_length,
-		       &off,
-		       &p->queries[i]))
+	  GNUNET_DNSPARSER_parse_query (udp_payload,
+					udp_payload_length,
+					&off,
+					&p->queries[i]))
 	goto error;
   }
   n = ntohs (dns->answer_rcount);
@@ -446,10 +646,10 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
     p->num_answers = n;
     for (i=0;i<n;i++)
       if (GNUNET_OK !=
-	  parse_record (udp_payload,
-			udp_payload_length,
-			&off,
-			&p->answers[i]))
+	  GNUNET_DNSPARSER_parse_record (udp_payload,
+					 udp_payload_length,
+					 &off,
+					 &p->answers[i]))
 	goto error;
   }
   n = ntohs (dns->authority_rcount);
@@ -459,10 +659,10 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
     p->num_authority_records = n;
     for (i=0;i<n;i++)
       if (GNUNET_OK !=
-	  parse_record (udp_payload,
-			udp_payload_length,
-			&off,
-			&p->authority_records[i]))
+	  GNUNET_DNSPARSER_parse_record (udp_payload,
+					 udp_payload_length,
+					 &off,
+					 &p->authority_records[i]))
 	goto error;  
   }
   n = ntohs (dns->additional_rcount);
@@ -472,97 +672,16 @@ GNUNET_DNSPARSER_parse (const char *udp_payload,
     p->num_additional_records = n;
     for (i=0;i<n;i++)
       if (GNUNET_OK !=
-	  parse_record (udp_payload,
-			udp_payload_length,
-			&off,
-			&p->additional_records[i]))
+	  GNUNET_DNSPARSER_parse_record (udp_payload,
+					 udp_payload_length,
+					 &off,
+					 &p->additional_records[i]))
 	goto error;   
   }
   return p;
  error:
   GNUNET_DNSPARSER_free_packet (p);
   return NULL;
-}
-
-
-/**
- * Free SOA information record.
- *
- * @param soa record to free
- */
-static void
-free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
-{
-  if (NULL == soa)
-    return;
-  GNUNET_free_non_null (soa->mname);
-  GNUNET_free_non_null (soa->rname);
-  GNUNET_free (soa);      
-}
-
-
-/**
- * Free SRV information record.
- *
- * @param srv record to free
- */
-static void
-free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
-{
-  if (NULL == srv)
-    return;
-  GNUNET_free_non_null (srv->target);
-  GNUNET_free_non_null (srv->domain_name);
-  GNUNET_free_non_null (srv->proto);
-  GNUNET_free_non_null (srv->service);
-  GNUNET_free (srv);      
-}
-
-
-/**
- * Free MX information record.
- *
- * @param mx record to free
- */
-static void
-free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
-{
-  if (NULL == mx)
-    return;
-  GNUNET_free_non_null (mx->mxhost);
-  GNUNET_free (mx);      
-}
-
-
-/**
- * Free the given DNS record.
- * 
- * @param r record to free
- */
-static void
-free_record (struct GNUNET_DNSPARSER_Record *r)
-{
-  GNUNET_free_non_null (r->name);
-  switch (r->type)
-  {
-  case GNUNET_DNSPARSER_TYPE_MX:
-    free_mx (r->data.mx);
-    break;
-  case GNUNET_DNSPARSER_TYPE_SOA:
-    free_soa (r->data.soa);
-    break;
-  case GNUNET_DNSPARSER_TYPE_SRV:
-    free_srv (r->data.srv);
-    break;
-  case GNUNET_DNSPARSER_TYPE_NS:
-  case GNUNET_DNSPARSER_TYPE_CNAME:
-  case GNUNET_DNSPARSER_TYPE_PTR:
-    GNUNET_free_non_null (r->data.hostname);
-    break;
-  default:
-    GNUNET_free_non_null (r->data.raw.data);
-    break;
-  }
 }
 
 

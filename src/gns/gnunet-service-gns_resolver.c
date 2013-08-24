@@ -792,7 +792,7 @@ dns_result_parser (void *cls,
     }
   /* FIXME: add DNAME support */
 
-  /* convert from DNS to GNS format! */
+  /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];

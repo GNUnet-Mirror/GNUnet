@@ -545,5 +545,101 @@ GNUNET_DNSPARSER_builder_add_srv (char *dst,
 				  size_t *off,
 				  const struct GNUNET_DNSPARSER_SrvRecord *srv);
 
+/* ***************** low-level parsing API ******************** */
+
+/**
+ * Parse a DNS record entry.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the record to parse in the udp_payload (to be
+ *                    incremented by the size of the record)
+ * @param r where to write the record information
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the record is malformed
+ */
+int
+GNUNET_DNSPARSER_parse_record (const char *udp_payload,
+			       size_t udp_payload_length,
+			       size_t *off,
+			       struct GNUNET_DNSPARSER_Record *r);
+
+
+/**
+ * Parse name inside of a DNS query or record.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the name to parse in the udp_payload (to be
+ *                    incremented by the size of the name)
+ * @return name as 0-terminated C string on success, NULL if the payload is malformed
+ */
+char *
+GNUNET_DNSPARSER_parse_name (const char *udp_payload,
+			     size_t udp_payload_length,
+			     size_t *off);
+
+
+/**
+ * Parse a DNS query entry.
+ *
+ * @param udp_payload entire UDP payload
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the udp_payload (to be
+ *                    incremented by the size of the query)
+ * @param q where to write the query information
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the query is malformed
+ */
+int
+GNUNET_DNSPARSER_parse_query (const char *udp_payload,
+			      size_t udp_payload_length,
+			      size_t *off,
+			      struct GNUNET_DNSPARSER_Query *q);
+
+/**
+ * Parse a DNS SOA record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the SOA record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed SOA record, NULL on error
+ */
+struct GNUNET_DNSPARSER_SoaRecord *
+GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
+			    size_t udp_payload_length,
+			    size_t *off);
+
+
+/**
+ * Parse a DNS MX record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the MX record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed MX record, NULL on error
+ */
+struct GNUNET_DNSPARSER_MxRecord *
+GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
+			   size_t udp_payload_length,
+			   size_t *off);
+
+
+/**
+ * Parse a DNS SRV record.
+ *
+ * @param r_name name of the SRV record
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the SRV record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed SRV record, NULL on error
+ */
+struct GNUNET_DNSPARSER_SrvRecord *
+GNUNET_DNSPARSER_parse_srv (const char *r_name,
+			    const char *udp_payload,
+			    size_t udp_payload_length,
+			    size_t *off);
+
 
 #endif
