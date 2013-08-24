@@ -258,7 +258,6 @@ typedef int
  * @param jh Join request handle.
  * @param is_admitted #GNUNET_YES if joining is approved,
  *        #GNUNET_NO if it is disapproved.
- * @param admitted_since Message ID the member is admitted since.
  * @param relay_count Number of relays given.
  * @param relays Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
@@ -275,7 +274,6 @@ typedef int
 void
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
-                           uint64_t admitted_since,
                            unsigned int relay_count,
                            const struct GNUNET_PeerIdentity *relays,
                            const char *method_name,
@@ -625,8 +623,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-                                  uint64_t announced_at,
-                                  uint64_t effective_since);
+                                  uint64_t announced_at);
 
 
 /** 

@@ -372,23 +372,12 @@ GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
  * Convert our home to a place so we can access it via the place API.
  *
  * @param home Handle for the home.
+ * @param keep_active Keep home active after last application disconnected.
  * @return Place handle for the same home, valid as long as @a home is valid;
  *         do NOT try to GNUNET_SOCIAL_place_leave() this place, it's your home!
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home);
-
-
-/** 
- * Leave a home temporarily, visitors can stay.
- *
- * After leaving, handling of incoming messages are left to other clients of the
- * social service, and stops after the last client exits.
- *
- * @param home Home to leave temporarily (handle becomes invalid).
- */
-void
-GNUNET_SOCIAL_home_away (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home, int keep_active);
 
 
 /** 
@@ -627,22 +616,10 @@ GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist
  * Notifies the owner of the place about leaving, and destroys the place handle.
  * 
  * @param place Place to leave permanently.
+ * @param keep_active Keep place active after last application disconnected.
  */
 void
-GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place);
-
-
-/** 
- * Leave a place temporarily.
- *
- * Stop following the conversation for the @a place and destroy the @a place
- * handle.  Only affects the application calling this function, other clients of
- * the service continue receiving the messages.
- *
- * @param place Place to leave temporarily.
- */
-void
-GNUNET_SOCIAL_place_away (struct GNUNET_SOCIAL_Place *place);
+GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place, int keep_active);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

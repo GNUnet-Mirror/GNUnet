@@ -134,6 +134,7 @@ typedef void
  * @param did_join #GNUNET_YES on join, #GNUNET_NO on part.
  * @param announced_at ID of the message that announced the membership change.
  * @param effective_since Message ID this membership change is in effect since.
+ *        For joins it is <= announced_at, for parts it is always 0.
  * @param group_generation In case of a part, the last group generation the
  *        slave has access to.  It has relevance when a larger message have
  *        fragments with different group generations.

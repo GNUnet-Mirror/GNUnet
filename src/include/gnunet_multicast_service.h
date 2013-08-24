@@ -277,7 +277,6 @@ struct GNUNET_MULTICAST_JoinHandle;
  * @param jh Join request handle.
  * @param is_admitted #GNUNET_YES if joining is approved,
  *        #GNUNET_NO if it is disapproved
- * @param admitted_since Message ID the member is admitted since.
  * @param relay_count Number of relays given.
  * @param relays Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
@@ -291,10 +290,9 @@ struct GNUNET_MULTICAST_JoinHandle;
  *        application layer; this response is to be transmitted to the
  *        peer that issued the request even if admission is denied.
  */
-void
+struct GNUNET_MULTICAST_ReplayHandle *
 GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
                                 int is_admitted,
-                                uint64_t admitted_since,
                                 unsigned int relay_count,
                                 const struct GNUNET_PeerIdentity *relays,
                                 const struct GNUNET_MessageHeader *join_response);
@@ -514,6 +512,17 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
                          const struct GNUNET_MessageHeader *msg,
                          enum GNUNET_MULTICAST_ReplayErrorCode ec);
 
+
+/** 
+ * Indicate the end of the replay session.
+ *
+ * Invalidates the replay handle.
+ *
+ * @param rh Replay session to end.
+ */
+void
+GNUNET_MULTICAST_replay_end (struct GNUNET_MULTICAST_ReplayHandle *rh);
+
 /**
  * Function called to provide data for a transmission for a replay.
  *
@@ -684,7 +693,6 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               size_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_request,
-                              uint64_t max_known_fragment_id,
                               GNUNET_MULTICAST_JoinCallback join_cb,
                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
                               GNUNET_MULITCAST_ReplayCallback replay_cb,
