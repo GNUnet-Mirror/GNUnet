@@ -25,11 +25,9 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - shortening triggers
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'.
- * - GNS: expand ".+" in returned values to the respective absolute
- *        name using '.zkey'
- * - shortening triggers
  * - revocation checks (make optional: privacy!)
  * - DNAME support
  *
@@ -394,6 +392,7 @@ static struct GNS_ResolverHandle *rlh_head;
  */
 static struct GNS_ResolverHandle *rlh_tail;
 
+
 /**
  * Global configuration.
  */
@@ -404,7 +403,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  * Check if name is in srv format (_x._y.xxx)
  *
  * @param name
- * @return GNUNET_YES if true
+ * @return #GNUNET_YES if true
  */
 static int
 is_srv (const char *name)
@@ -443,7 +442,7 @@ is_srv (const char *name)
  * _f.bar    = not canonical
  *
  * @param name the name to test
- * @return GNUNET_YES if canonical
+ * @return #GNUNET_YES if canonical
  */
 static int
 is_canonical (const char *name)
@@ -464,76 +463,34 @@ is_canonical (const char *name)
   return GNUNET_YES;
 }
 
-
-
 /* ************************** Resolution **************************** */
-
-#if 0
-
-
-//FIXME maybe define somewhere else?
-#define MAX_SOA_LENGTH sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)+sizeof(uint32_t)\
-                        +(GNUNET_DNSPARSER_MAX_NAME_LENGTH*2)
-#define MAX_MX_LENGTH sizeof(uint16_t)+GNUNET_DNSPARSER_MAX_NAME_LENGTH
-#define MAX_SRV_LENGTH (sizeof(uint16_t)*3)+GNUNET_DNSPARSER_MAX_NAME_LENGTH
-
 
 /**
  * Exands a name ending in .+ with the zone of origin.
- * FIXME: funky api: 'dest' must be large enough to hold
- * the result; this is a bit yucky...
  *
- * @param dest destination buffer
- * @param src the .+ name
- * @param repl the string to replace the + with
+ * @param rh resolution context
+ * @param name name to modify (to be free'd or returned)
+ * @return updated name
  */
-static void
-expand_plus (char* dest, 
-	     const char* src, 
-	     const char* repl)
+static char *
+translate_dot_plus (struct GNS_ResolverHandle *rh,
+		    char *name)
 {
-  char* pos;
-  size_t s_len = strlen (src) + 1;
+  char *ret;
+  size_t s_len = strlen (name);
 
-  //Eh? I guess this is at least strlen ('x.+') == 3 FIXME
-  if (3 > s_len)
-  {
-    /* no postprocessing */
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_POSTPROCESS: %s too short\n", src);
-    memcpy (dest, src, s_len);
-    return;
-  }
-  if (0 == strcmp (src + s_len - 3, ".+"))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"GNS_POSTPROCESS: Expanding .+ in %s\n", 
-		src);
-    memset (dest, 0, s_len + strlen (repl) + strlen(GNUNET_GNS_TLD));
-    strcpy (dest, src);
-    pos = dest + s_len - 2;
-    strcpy (pos, repl);
-    pos += strlen (repl);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"GNS_POSTPROCESS: Expanded to %s\n", 
-		dest);
-  }
-  else
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "GNS_POSTPROCESS: No postprocessing for %s\n", src);
-    memcpy (dest, src, s_len);
-  }
+  if (0 != strcmp (&name[s_len - 2],
+		   ".+"))
+    return name; /* did not end in ".+" */
+  GNUNET_assert (GNUNET_YES == rh->ac_tail->gns_authority);
+  GNUNET_asprintf (&ret,
+		   "%.*s.%s",
+		   (int) (s_len - 2),
+		   name,
+		   GNUNET_NAMESTORE_pkey_to_zkey (&rh->ac_tail->authority_info.gns_authority));
+  GNUNET_free (name);
+  return ret;
 }
-
-
-#endif
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 /**
@@ -1240,8 +1197,7 @@ handle_gns_resolution_result (void *cls,
 	  }
 	  else
 	  {
-	    // FIXME: do 'cname' transformation here!
-	    // cname = translate_dot_plus (rh, cname);
+	    cname = translate_dot_plus (rh, cname);
 	    scratch_start = scratch_off;
 	    if (GNUNET_OK !=
 		GNUNET_DNSPARSER_builder_add_name (scratch,
@@ -1262,13 +1218,114 @@ handle_gns_resolution_result (void *cls,
 	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
-	GNUNET_break (0); // FIXME: not implemented
+	{
+	  struct GNUNET_DNSPARSER_SoaRecord *soa;
+
+	  off = 0;
+	  soa = GNUNET_DNSPARSER_parse_soa (rd[i].data,
+					    rd[i].data_size,
+					    &off);
+	  if ( (NULL == soa) ||
+	       (off != rd[i].data_size) )
+	  {
+	    GNUNET_break_op (0); /* record not well-formed */
+	  }
+	  else
+	  {
+	    soa->mname = translate_dot_plus (rh, soa->mname);
+	    soa->rname = translate_dot_plus (rh, soa->rname);
+	    scratch_start = scratch_off;
+	    if (GNUNET_OK !=
+		GNUNET_DNSPARSER_builder_add_soa (scratch,
+						  sizeof (scratch),
+						  &scratch_off,
+						  soa))
+	    {
+	      GNUNET_break (0);
+	    }
+	    else
+	    {
+	      rd_new[rd_off].data = &scratch[scratch_start];
+	      rd_new[rd_off].data_size = scratch_off - scratch_start;
+	      rd_off++;
+	    }
+	    GNUNET_DNSPARSER_free_soa (soa);
+	  }
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
-	GNUNET_break (0); // FIXME: not implemented
+	{
+	  struct GNUNET_DNSPARSER_MxRecord *mx;
+
+	  off = 0;
+	  mx = GNUNET_DNSPARSER_parse_mx (rd[i].data,
+					  rd[i].data_size,
+					  &off);
+	  if ( (NULL == mx) ||
+	       (off != rd[i].data_size) )
+	  {
+	    GNUNET_break_op (0); /* record not well-formed */
+	  }
+	  else
+	  {
+	    mx->mxhost = translate_dot_plus (rh, mx->mxhost);
+	    scratch_start = scratch_off;
+	    if (GNUNET_OK !=
+		GNUNET_DNSPARSER_builder_add_mx (scratch,
+						 sizeof (scratch),
+						 &scratch_off,
+						 mx))
+	    {
+	      GNUNET_break (0);
+	    }
+	    else
+	    {
+	      rd_new[rd_off].data = &scratch[scratch_start];
+	      rd_new[rd_off].data_size = scratch_off - scratch_start;
+	      rd_off++;
+	    }
+	    GNUNET_DNSPARSER_free_mx (mx);
+	  }
+	}	
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
-	GNUNET_break (0); // FIXME: not implemented
+	{
+	  struct GNUNET_DNSPARSER_SrvRecord *srv;
+
+	  off = 0;
+	  /* FIXME: passing rh->name here is is not necessarily what we want 
+	     (SRV support not finished) */
+	  srv = GNUNET_DNSPARSER_parse_srv (rh->name,
+					    rd[i].data,
+					    rd[i].data_size,
+					    &off);
+	  if ( (NULL == srv) ||
+	       (off != rd[i].data_size) )
+	  {
+	    GNUNET_break_op (0); /* record not well-formed */
+	  }
+	  else
+	  {
+	    srv->domain_name = translate_dot_plus (rh, srv->domain_name);
+	    srv->target = translate_dot_plus (rh, srv->target);
+	    scratch_start = scratch_off;
+	    if (GNUNET_OK !=
+		GNUNET_DNSPARSER_builder_add_srv (scratch,
+						  sizeof (scratch),
+						  &scratch_off,
+						  srv))
+	    {
+	      GNUNET_break (0);
+	    }
+	    else
+	    {
+	      rd_new[rd_off].data = &scratch[scratch_start];
+	      rd_new[rd_off].data_size = scratch_off - scratch_start;
+	      rd_off++;
+	    }
+	    GNUNET_DNSPARSER_free_srv (srv);
+	  }
+	}
 	break;
       default:
 	break;
