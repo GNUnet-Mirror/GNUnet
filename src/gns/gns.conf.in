@@ -8,8 +8,8 @@ UNIXPATH = /tmp/gnunet-service-gns.sock
 
 ZONE_DIR = $SERVICEHOME/gns/
 
-# Where to store the key for the Shorten zone
-SHORTEN_ZONEKEY = $SERVICEHOME/gns/zonekey_short.zkey
+# What is the name of the ego that we use for the shorten zone
+SHORTEN_ZONE = shorten
 
 # Should we hijack DNS queries using the Linux firewall? 
 # (this only works on GNU/Linux systems)
@@ -27,7 +27,7 @@ UNIX_MATCH_GID = YES
 
 # When we automatically import PKEYs into shorten zone, require confirmation
 # before they become active? (Not useful right now as the GUI to confirm
-# doesn't exist)
+# doesn't exist -- and neither does the API...)
 AUTO_IMPORT_CONFIRMATION_REQ = NO
 
 # How many queries is GADS allowed to perform in the background at the same time?

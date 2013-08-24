@@ -75,9 +75,9 @@ static int rtype;
 static struct GNUNET_GNS_LookupRequest *lookup_request;
 
 /**
- * Handle to the identity service.
+ * Lookup an ego with the identity service.
  */
-static struct GNUNET_IDENTITY_Handle *identity;
+static struct GNUNET_IDENTITY_EgoLookup *el;
 
 
 /**
@@ -90,10 +90,10 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (NULL != identity)
+  if (NULL != el)
   {
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
+    GNUNET_IDENTITY_ego_lookup_cancel (el);
+    el = NULL;
   }
   if (NULL != lookup_request)
   {
@@ -154,29 +154,15 @@ process_lookup_result (void *cls, uint32_t rd_count,
 
 /**
  * Perform the actual resolution, starting with the zone
- * identified by the given public key.
+ * identified by the given public key and the shorten zone.
  *
- * @param pkey public key to use for the zone
+ * @param pkey public key to use for the zone, can be NULL
+ * @param shorten_key private key used for shortening, can be NULL
  */
 static void
-lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
+lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicKey *pkey,
+		  const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key)
 {
-  char *keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
-
-  if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-					       "SHORTEN_ZONEKEY", &keyfile))
-  {
-    shorten_key = NULL;
-  }
-  else
-  {
-    // FIXME: use identity service!
-    shorten_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_free (keyfile);
-  }
-    
   if (NULL != lookup_type)
     rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
   else
@@ -200,68 +186,101 @@ lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  GNUNET_free_non_null (shorten_key);
 }
 
 
 /** 
- * Method called to inform about the egos of this peer.
+ * Method called to with the ego we are to use for the lookup.
  *
- * When used with #GNUNET_IDENTITY_connect, this function is
- * initially called for all egos and then again whenever a
- * ego's name changes or if it is deleted.  At the end of
- * the initial pass over all egos, the function is once called
- * with 'NULL' for @a ego. That does NOT mean that the callback won't
- * be invoked in the future or that there was an error.
+ * @param cls closure with the `struct GNUNET_CRYPTO_EccPublicKey`
+ * @param ego ego handle, NULL if not found
+ */
+static void 
+shorten_cb (void *cls,
+	    const struct GNUNET_IDENTITY_Ego *ego)
+{
+  struct GNUNET_CRYPTO_EccPublicKey *pkey = cls;
+  const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
+
+  el = NULL;
+  if (NULL == ego) 
+  {
+    fprintf (stderr,
+	     _("Shorten zone not found (looking up without shortening)\n"));
+    shorten_key = NULL;
+  }
+  else
+  {
+    shorten_key = GNUNET_IDENTITY_ego_get_private_key (ego);
+  }
+  lookup_with_keys (pkey, shorten_key);
+  GNUNET_free_non_null (pkey);
+}
+
+
+/**
+ * Perform the actual resolution, starting with the zone
+ * identified by the given public key.
  *
- * If the @a name matches the `zone_ego_name`, we found the zone
- * for our computation and will begin resolving against that zone.
- * If we have iterated over all egos and not found the name, we
- * terminate the program with an error message.
+ * @param pkey public key to use for the zone
+ */
+static void
+lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
+{
+  struct GNUNET_CRYPTO_EccPublicKey *pkeym;
+  char *szone;
+
+  if (GNUNET_OK != 
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
+					       "SHORTEN_ZONE", &szone))
+  {
+    lookup_with_keys (pkey, NULL);
+    return;
+  }
+  if (NULL == pkey)
+  {
+    pkeym = NULL;
+  }
+  else
+  {
+    pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicKey);
+    *pkeym = *pkey;
+  }
+  el = GNUNET_IDENTITY_ego_lookup (cfg, 
+				   szone,
+				   &shorten_cb,
+				   pkeym);
+  GNUNET_free (szone);
+}
+
+
+/** 
+ * Method called to with the ego we are to use for the lookup.
  *
  * @param cls closure (NULL, unused)
- * @param ego ego handle
- * @param ego_ctx context for application to store data for this ego
- *                 (during the lifetime of this process, initially NULL)
- * @param name name assigned by the user for this ego,
- *                   NULL if the user just deleted the ego and it
- *                   must thus no longer be used
+ * @param ego ego handle, NULL if not found
  */
 static void 
 identity_cb (void *cls,
-	     struct GNUNET_IDENTITY_Ego *ego,
-	     void **ctx,
-	     const char *name)
+	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_CRYPTO_EccPublicKey pkey;
-  
-  if ( (NULL != zone_ego_name) &&
-       (NULL != name) &&
-       (0 == strcmp (name,
-		     zone_ego_name)) )
-  {
-    GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
-    lookup_with_public_key (&pkey);
-    GNUNET_free (zone_ego_name);
-    zone_ego_name = NULL;
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
-    return;
-  }
-  if ( (NULL == ego) &&
-       (NULL != identity) &&
-       (NULL != zone_ego_name) )
+
+  el = NULL;
+  if (NULL == ego) 
   {
     fprintf (stderr,
 	     _("Ego `%s' not found\n"),
 	     zone_ego_name);
     GNUNET_free (zone_ego_name);
     zone_ego_name = NULL;
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
+  lookup_with_public_key (&pkey);
+  GNUNET_free (zone_ego_name);
+  zone_ego_name = NULL;
 }
 
 
@@ -307,9 +326,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (NULL != zone_ego_name)
   {
-    identity = GNUNET_IDENTITY_connect (cfg, 
-					&identity_cb,
-					NULL);
+    el = GNUNET_IDENTITY_ego_lookup (cfg, 
+				     zone_ego_name,
+				     &identity_cb,
+				     NULL);
     return;
   }
   if ( (NULL != lookup_name) &&
