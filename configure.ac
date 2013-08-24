@@ -421,19 +421,7 @@ else
 	AC_DEFINE([HAVE_LIBGLPK],[1],[Have GLPK])
 fi
 
-# test for glib
-# Minimum required version for glibtop is 2.6.0
-AM_PATH_GLIB_2_0(2.6.0, [glib2=true] , [glib2=false] ,)
-if test x$glib2 = xfalse
-then
-	AM_CONDITIONAL(HAVE_GLIB2, false)
-	AC_MSG_WARN([GNUnet requires GLIB >= 2.6.0])
-else
-	AM_CONDITIONAL(HAVE_GLIB2, true)
-	AC_DEFINE([HAVE_GLIB2],[1],[Have glib2])
-	LIBS="$LIBS $GLIB_LIBS"
-	CFLAGS="$CFLAGS $GLIB_CFLAGS"
-fi
+
 
 AC_CHECK_HEADERS([nss.h],[nss=true],[nss=false])
 if test x$nss = xfalse
