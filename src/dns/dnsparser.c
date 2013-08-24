@@ -106,8 +106,8 @@ GNUNET_DNSPARSER_check_name (const char *name)
  *
  * @param soa record to free
  */
-static void
-free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
+void
+GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
 {
   if (NULL == soa)
     return;
@@ -122,8 +122,8 @@ free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
  *
  * @param srv record to free
  */
-static void
-free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
+void
+GNUNET_DNSPARSER_free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
 {
   if (NULL == srv)
     return;
@@ -140,8 +140,8 @@ free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv)
  *
  * @param mx record to free
  */
-static void
-free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
+void
+GNUNET_DNSPARSER_free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
 {
   if (NULL == mx)
     return;
@@ -155,20 +155,20 @@ free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
  * 
  * @param r record to free
  */
-static void
-free_record (struct GNUNET_DNSPARSER_Record *r)
+void
+GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r)
 {
   GNUNET_free_non_null (r->name);
   switch (r->type)
   {
   case GNUNET_DNSPARSER_TYPE_MX:
-    free_mx (r->data.mx);
+    GNUNET_DNSPARSER_free_mx (r->data.mx);
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    free_soa (r->data.soa);
+    GNUNET_DNSPARSER_free_soa (r->data.soa);
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    free_srv (r->data.srv);
+    GNUNET_DNSPARSER_free_srv (r->data.srv);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -382,7 +382,7 @@ GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
        (NULL == soa->rname) ||
        (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > udp_payload_length) )
   {
-    free_soa (soa);
+    GNUNET_DNSPARSER_free_soa (soa);
     *off = old_off;
     return NULL;
   }
@@ -429,7 +429,7 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
 					    off);
   if (NULL == mx->mxhost)
   {
-    free_mx (mx);
+    GNUNET_DNSPARSER_free_mx (mx);
     *off = old_off;
     return NULL;
   }
@@ -485,7 +485,7 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
   tok = strtok (NULL, ".");
   if ( (NULL == tok) || ('_' != *tok) )
   {
-    free_srv (srv);
+    GNUNET_DNSPARSER_free_srv (srv);
     GNUNET_free (ndup);
     *off = old_off;
     return NULL;
@@ -494,7 +494,7 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
   tok = strtok (NULL, ".");
   if (NULL == tok)
   {
-    free_srv (srv);
+    GNUNET_DNSPARSER_free_srv (srv);
     GNUNET_free (ndup);
     *off = old_off;
     return NULL;
@@ -506,7 +506,7 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
 					     off);
   if (NULL == srv->target)
   {
-    free_srv (srv);
+    GNUNET_DNSPARSER_free_srv (srv);
     *off = old_off;
     return NULL;
   }
@@ -699,13 +699,13 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
     GNUNET_free_non_null (p->queries[i].name);
   GNUNET_free_non_null (p->queries);
   for (i=0;i<p->num_answers;i++)
-    free_record (&p->answers[i]);
+    GNUNET_DNSPARSER_free_record (&p->answers[i]);
   GNUNET_free_non_null (p->answers);
   for (i=0;i<p->num_authority_records;i++)
-    free_record (&p->authority_records[i]);
+    GNUNET_DNSPARSER_free_record (&p->authority_records[i]);
   GNUNET_free_non_null (p->authority_records);
   for (i=0;i<p->num_additional_records;i++)
-    free_record (&p->additional_records[i]);
+    GNUNET_DNSPARSER_free_record (&p->additional_records[i]);
   GNUNET_free_non_null (p->additional_records);
   GNUNET_free (p);
 }

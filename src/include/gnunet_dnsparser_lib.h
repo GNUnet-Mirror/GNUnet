@@ -641,5 +641,42 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
 			    size_t udp_payload_length,
 			    size_t *off);
 
+/* ***************** low-level deallocation API ******************** */
+
+/**
+ * Free the given DNS record.
+ * 
+ * @param r record to free
+ */
+void
+GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r);
+
+
+/**
+ * Free MX information record.
+ *
+ * @param mx record to free
+ */
+void
+GNUNET_DNSPARSER_free_mx (struct GNUNET_DNSPARSER_MxRecord *mx);
+
+
+/**
+ * Free SRV information record.
+ *
+ * @param srv record to free
+ */
+void
+GNUNET_DNSPARSER_free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv);
+
+
+/**
+ * Free SOA information record.
+ *
+ * @param soa record to free
+ */
+void
+GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa);
+
 
 #endif
