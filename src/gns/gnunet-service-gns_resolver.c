@@ -1138,9 +1138,13 @@ handle_gns_resolution_result (void *cls,
   const char *vname;
   struct GNUNET_HashCode vhash;
   int af;
-  char **scratch;
-  unsigned int scratch_len;
-   
+  char scratch[UINT16_MAX];
+  size_t scratch_off;
+  size_t scratch_start;
+  size_t off;
+  struct GNUNET_NAMESTORE_RecordData rd_new[rd_count];
+  unsigned int rd_off;
+  
   if (0 == rh->name_resolution_pos)
   {
     /* top-level match, are we done yet? */
@@ -1210,20 +1214,52 @@ handle_gns_resolution_result (void *cls,
     }
     /* convert relative names in record values to absolute names,
        using 'scratch' array for memory allocations */
-    scratch = NULL;
-    scratch_len = 0;
+    scratch_off = 0;
+    rd_off = 0;
     for (i=0;i<rd_count;i++)
     {
-      /* Strategy: dnsparser should expose API to make it easier
-	 for us to parse all of these binary record values individually;
-	 then, we check if the embedded name(s) end in "+", and if so,
+      rd_new[rd_off] = rd[i];
+      /* Check if the embedded name(s) end in "+", and if so,
 	 replace the "+" with the zone at "ac_tail", changing the name
 	 to a ".zkey".  The name is allocated on the 'scratch' array,
 	 so we can free it afterwards. */
       switch (rd[i].record_type)
       {
       case GNUNET_DNSPARSER_TYPE_CNAME:
-	GNUNET_break (0); // FIXME: not implemented
+	{
+	  char *cname;
+
+	  off = 0;
+	  cname = GNUNET_DNSPARSER_parse_name (rd[i].data,
+					       rd[i].data_size,
+					       &off);
+	  if ( (NULL == cname) ||
+	       (off != rd[i].data_size) )
+	  {
+	    GNUNET_break_op (0); /* record not well-formed */
+	  }
+	  else
+	  {
+	    // FIXME: do 'cname' transformation here!
+	    // cname = translate_dot_plus (rh, cname);
+	    scratch_start = scratch_off;
+	    if (GNUNET_OK !=
+		GNUNET_DNSPARSER_builder_add_name (scratch,
+						   sizeof (scratch),
+						   &scratch_off,
+						   cname))
+	    {
+	      GNUNET_break (0);
+	    }
+	    else
+	    {
+	      rd_new[rd_off].data = &scratch[scratch_start];
+	      rd_new[rd_off].data_size = scratch_off - scratch_start;
+	      rd_off++;
+	    }
+	    GNUNET_free (cname);
+	  }
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
 	GNUNET_break (0); // FIXME: not implemented
@@ -1240,13 +1276,8 @@ handle_gns_resolution_result (void *cls,
     }
     
     /* yes, we are done, return result */
-    rh->proc (rh->proc_cls, rd_count, rd);
+    rh->proc (rh->proc_cls, rd_off, rd_new);
     GNS_resolver_lookup_cancel (rh);
-    for (i=0;i<scratch_len;i++)
-      GNUNET_free (scratch[i]);
-    GNUNET_array_grow (scratch, 
-		       scratch_len,
-		       0);
     return;         
   }
   /* need to recurse, check if we can */
