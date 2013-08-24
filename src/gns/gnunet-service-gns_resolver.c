@@ -29,7 +29,6 @@
  *        can likely be done in 'resolver_lookup_get_next_label'.
  * - GNS: expand ".+" in returned values to the respective absolute
  *        name using '.zkey'
- * - DNS: convert additional record types to GNS
  * - shortening triggers
  * - revocation checks (make optional: privacy!)
  * - DNAME support
@@ -923,7 +922,10 @@ dns_result_parser (void *cls,
   {
     struct GNUNET_NAMESTORE_RecordData rd[rd_count];
     unsigned int skip;
+    char buf[UINT16_MAX];
+    size_t buf_off;
 
+    buf_off = 0;
     skip = 0;
     memset (rd, 0, sizeof (rd));
     for (i=0;i<rd_count;i++)
@@ -974,26 +976,52 @@ dns_result_parser (void *cls,
       case GNUNET_DNSPARSER_TYPE_CNAME:
       case GNUNET_DNSPARSER_TYPE_PTR:
       case GNUNET_DNSPARSER_TYPE_NS:
-	rd[i - skip].data_size = strlen (rec->data.hostname) + 1;
-	rd[i - skip].data = rec->data.hostname;
+	if (GNUNET_OK !=
+	    GNUNET_DNSPARSER_builder_add_name (buf,
+					       sizeof (buf),
+					       &buf_off,
+					       rec->data.hostname))
+	{
+	  GNUNET_break (0);
+	  skip++;
+	  continue;
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
-	// FIXME: not implemented
-	// NOTE: consider exporting implementation in DNSPARSER lib!
-	GNUNET_break (0);
-	skip++;
+	if (GNUNET_OK !=
+	    GNUNET_DNSPARSER_builder_add_soa (buf,
+					       sizeof (buf),
+					       &buf_off,
+					       rec->data.soa))
+	{
+	  GNUNET_break (0);
+	  skip++;
+	  continue;
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
-	// FIXME: not implemented
-	// NOTE: consider exporting implementation in DNSPARSER lib!
-	GNUNET_break (0);
-	skip++;
+	if (GNUNET_OK !=
+	    GNUNET_DNSPARSER_builder_add_mx (buf,
+					     sizeof (buf),
+					     &buf_off,
+					     rec->data.mx))
+	{
+	  GNUNET_break (0);
+	  skip++;
+	  continue;
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
-	// FIXME: not implemented
-	// NOTE: consider exporting implementation in DNSPARSER lib!
-	GNUNET_break (0);
-	skip++;
+	if (GNUNET_OK !=
+	    GNUNET_DNSPARSER_builder_add_srv (buf,
+					      sizeof (buf),
+					      &buf_off,
+					      rec->data.srv))
+	{
+	  GNUNET_break (0);
+	  skip++;
+	  continue;
+	}
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
