@@ -311,7 +311,7 @@ parse_record (const char *udp_payload,
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_SOA:
     old_off = *off;
-    r->data.soa = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SoaRecord));
+    r->data.soa = GNUNET_new (struct GNUNET_DNSPARSER_SoaRecord);
     r->data.soa->mname = parse_name (udp_payload,
 				     udp_payload_length,
 				     off, 0);
@@ -338,7 +338,7 @@ parse_record (const char *udp_payload,
       return GNUNET_SYSERR;
     memcpy (&mxpref, &udp_payload[*off], sizeof (uint16_t));    
     (*off) += sizeof (uint16_t);
-    r->data.mx = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_MxRecord));
+    r->data.mx = GNUNET_new (struct GNUNET_DNSPARSER_MxRecord);
     r->data.mx->preference = ntohs (mxpref);
     r->data.mx->mxhost = parse_name (udp_payload,
 				     udp_payload_length,
@@ -356,7 +356,7 @@ parse_record (const char *udp_payload,
       return GNUNET_SYSERR;
     memcpy (&srv, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsSrvRecord));    
     (*off) += sizeof (struct GNUNET_TUN_DnsSrvRecord);
-    r->data.srv = GNUNET_malloc (sizeof (struct GNUNET_DNSPARSER_SrvRecord));
+    r->data.srv = GNUNET_new (struct GNUNET_DNSPARSER_SrvRecord);
     r->data.srv->priority = ntohs (srv.prio);
     r->data.srv->weight = ntohs (srv.weight);
     r->data.srv->port = ntohs (srv.port);
@@ -534,6 +534,11 @@ free_mx (struct GNUNET_DNSPARSER_MxRecord *mx)
 }
 
 
+/**
+ * Free the given DNS record.
+ * 
+ * @param r record to free
+ */
 static void
 free_record (struct GNUNET_DNSPARSER_Record *r)
 {
@@ -591,22 +596,23 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p)
 
 
 /**
- * Add a DNS name to the UDP packet at the given location.
+ * Add a DNS name to the UDP packet at the given location, converting
+ * the name to IDNA notation as necessary.
  *
- * @param dst where to write the name
+ * @param dst where to write the name (UDP packet)
  * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the name (increment by bytes used)
  *            must not be changed if there is an error
  * @param name name to write
  * @return #GNUNET_SYSERR if @a name is invalid
  *         #GNUNET_NO if @a name did not fit
- *         #GNUNET_OK if @a name was added to 'dst'
+ *         #GNUNET_OK if @a name was added to @a dst
  */
-static int
-add_name (char *dst,
-	  size_t dst_len,
-	  size_t *off,
-	  const char *name)
+int
+GNUNET_DNSPARSER_builder_add_name (char *dst,
+				   size_t dst_len,
+				   size_t *off,
+				   const char *name)
 {
   const char *dot;
   const char *idna_name;
@@ -670,24 +676,24 @@ add_name (char *dst,
  * Add a DNS query to the UDP packet at the given location.
  *
  * @param dst where to write the query
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the query (increment by bytes used)
  *            must not be changed if there is an error
  * @param query query to write
- * @return #GNUNET_SYSERR if 'query' is invalid
- *         #GNUNET_NO if 'query' did not fit
- *         #GNUNET_OK if 'query' was added to @a dst
+ * @return #GNUNET_SYSERR if @a query is invalid
+ *         #GNUNET_NO if @a query did not fit
+ *         #GNUNET_OK if @a query was added to @a dst
  */
-static int
-add_query (char *dst,
-	   size_t dst_len,
-	   size_t *off,
-	   const struct GNUNET_DNSPARSER_Query *query)
+int
+GNUNET_DNSPARSER_builder_add_query (char *dst,
+				    size_t dst_len,
+				    size_t *off,
+				    const struct GNUNET_DNSPARSER_Query *query)
 {
   int ret;
   struct GNUNET_TUN_DnsQueryLine ql;
 
-  ret = add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsQueryLine), off, query->name);
+  ret = GNUNET_DNSPARSER_builder_add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsQueryLine), off, query->name);
   if (ret != GNUNET_OK)
     return ret;
   ql.type = htons (query->type);
@@ -702,7 +708,7 @@ add_query (char *dst,
  * Add an MX record to the UDP packet at the given location.
  *
  * @param dst where to write the mx record
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the mx information (increment by bytes used);
  *            can also change if there was an error
  * @param mx mx information to write
@@ -710,11 +716,11 @@ add_query (char *dst,
  *         #GNUNET_NO if @a mx did not fit
  *         #GNUNET_OK if @a mx was added to @a dst
  */
-static int
-add_mx (char *dst,
-	size_t dst_len,
-	size_t *off,
-	const struct GNUNET_DNSPARSER_MxRecord *mx)
+int
+GNUNET_DNSPARSER_builder_add_mx (char *dst,
+				 size_t dst_len,
+				 size_t *off,
+				 const struct GNUNET_DNSPARSER_MxRecord *mx)
 {
   uint16_t mxpref;
 
@@ -723,7 +729,7 @@ add_mx (char *dst,
   mxpref = htons (mx->preference);
   memcpy (&dst[*off], &mxpref, sizeof (mxpref));
   (*off) += sizeof (mxpref);
-  return add_name (dst, dst_len, off, mx->mxhost);
+  return GNUNET_DNSPARSER_builder_add_name (dst, dst_len, off, mx->mxhost);
 }
 
 
@@ -731,28 +737,28 @@ add_mx (char *dst,
  * Add an SOA record to the UDP packet at the given location.
  *
  * @param dst where to write the SOA record
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the SOA information (increment by bytes used)
  *            can also change if there was an error
  * @param soa SOA information to write
  * @return #GNUNET_SYSERR if @a soa is invalid
  *         #GNUNET_NO if @a soa did not fit
- *         #GNUNET_OK if @a soa was added to 'dst'
+ *         #GNUNET_OK if @a soa was added to @a dst
  */
-static int
-add_soa (char *dst,
-	 size_t dst_len,
-	 size_t *off,
-	 const struct GNUNET_DNSPARSER_SoaRecord *soa)
+int
+GNUNET_DNSPARSER_builder_add_soa (char *dst,
+				  size_t dst_len,
+				  size_t *off,
+				  const struct GNUNET_DNSPARSER_SoaRecord *soa)
 {
   struct GNUNET_TUN_DnsSoaRecord sd;
   int ret;
 
-  if ( (GNUNET_OK != (ret = add_name (dst,
+  if ( (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
 				      dst_len,
 				      off,
 				      soa->mname))) ||
-       (GNUNET_OK != (ret = add_name (dst,
+       (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
 				      dst_len,
 				      off,
 				      soa->rname)) ) )
@@ -774,19 +780,19 @@ add_soa (char *dst,
  * Add an SRV record to the UDP packet at the given location.
  *
  * @param dst where to write the SRV record
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the SRV information (increment by bytes used)
  *            can also change if there was an error
  * @param srv SRV information to write
  * @return #GNUNET_SYSERR if @a srv is invalid
  *         #GNUNET_NO if @a srv did not fit
- *         #GNUNET_OK if @a srv was added to 'dst'
+ *         #GNUNET_OK if @a srv was added to @a dst
  */
-static int
-add_srv (char *dst,
-	 size_t dst_len,
-	 size_t *off,
-	 const struct GNUNET_DNSPARSER_SrvRecord *srv)
+int
+GNUNET_DNSPARSER_builder_add_srv (char *dst,
+				  size_t dst_len,
+				  size_t *off,
+				  const struct GNUNET_DNSPARSER_SrvRecord *srv)
 {
   struct GNUNET_TUN_DnsSrvRecord sd;
   int ret;
@@ -798,7 +804,7 @@ add_srv (char *dst,
   sd.port = htons (srv->port);
   memcpy (&dst[*off], &sd, sizeof (sd));
   (*off) += sizeof (sd);
-  if (GNUNET_OK != (ret = add_name (dst,
+  if (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
 				    dst_len,
 				    off,
 				    srv->target)))
@@ -811,13 +817,13 @@ add_srv (char *dst,
  * Add a DNS record to the UDP packet at the given location.
  *
  * @param dst where to write the query
- * @param dst_len number of bytes in dst
+ * @param dst_len number of bytes in @a dst
  * @param off pointer to offset where to write the query (increment by bytes used)
  *            must not be changed if there is an error
  * @param record record to write
- * @return #GNUNET_SYSERR if 'record' is invalid
- *         #GNUNET_NO if 'record' did not fit
- *         #GNUNET_OK if 'record' was added to @a dst
+ * @return #GNUNET_SYSERR if @a record is invalid
+ *         #GNUNET_NO if @a record did not fit
+ *         #GNUNET_OK if @a record was added to @a dst
  */
 static int
 add_record (char *dst,
@@ -842,7 +848,7 @@ add_record (char *dst,
 		     record->data.srv->service,
 		     record->data.srv->proto,
 		     record->data.srv->domain_name);
-  ret = add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsRecordLine), off, name);
+  ret = GNUNET_DNSPARSER_builder_add_name (dst, dst_len - sizeof (struct GNUNET_TUN_DnsRecordLine), off, name);
   if (name != record->name)
     GNUNET_free (name);
   if (GNUNET_OK != ret)
@@ -853,18 +859,18 @@ add_record (char *dst,
   switch (record->type)
   { 
   case GNUNET_DNSPARSER_TYPE_MX:
-    ret = add_mx (dst, dst_len, &pos, record->data.mx);    
+    ret = GNUNET_DNSPARSER_builder_add_mx (dst, dst_len, &pos, record->data.mx);    
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
-    ret = add_soa (dst, dst_len, &pos, record->data.soa);
+    ret = GNUNET_DNSPARSER_builder_add_soa (dst, dst_len, &pos, record->data.soa);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
   case GNUNET_DNSPARSER_TYPE_PTR:
-    ret = add_name (dst, dst_len, &pos, record->data.hostname);
+    ret = GNUNET_DNSPARSER_builder_add_name (dst, dst_len, &pos, record->data.hostname);
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
-    ret = add_srv (dst, dst_len, &pos, record->data.srv);
+    ret = GNUNET_DNSPARSER_builder_add_srv (dst, dst_len, &pos, record->data.srv);
     break;
   default:
     if (pos + record->data.raw.data_len > dst_len)
@@ -900,7 +906,7 @@ add_record (char *dst,
 
 
 /**
- * Given a DNS packet, generate the corresponding UDP payload.
+ * Given a DNS packet @a p, generate the corresponding UDP payload.
  * Note that we do not attempt to pack the strings with pointers
  * as this would complicate the code and this is about being 
  * simple and secure, not fast, fancy and broken like bind.
@@ -942,7 +948,7 @@ GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
   trc = GNUNET_NO;
   for (i=0;i<p->num_queries;i++)
   {
-    ret = add_query (tmp, sizeof (tmp), &off, &p->queries[i]);  
+    ret = GNUNET_DNSPARSER_builder_add_query (tmp, sizeof (tmp), &off, &p->queries[i]);  
     if (GNUNET_SYSERR == ret)
       return GNUNET_SYSERR;
     if (GNUNET_NO == ret)

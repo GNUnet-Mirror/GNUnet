@@ -429,21 +429,121 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
 
 
 /**
- * Given a DNS packet, generate the corresponding UDP payload.
+ * Given a DNS packet @a p, generate the corresponding UDP payload.
+ * Note that we do not attempt to pack the strings with pointers
+ * as this would complicate the code and this is about being 
+ * simple and secure, not fast, fancy and broken like bind.
  *
  * @param p packet to pack
  * @param max maximum allowed size for the resulting UDP payload
  * @param buf set to a buffer with the packed message
- * @param buf_length set to the length of buf
- * @return GNUNET_SYSERR if 'p' is invalid
- *         GNUNET_NO if 'p' was truncated (but there is still a result in 'buf')
- *         GNUNET_OK if 'p' was packed completely into '*buf'
+ * @param buf_length set to the length of @a buf
+ * @return #GNUNET_SYSERR if @a p is invalid
+ *         #GNUNET_NO if @a p was truncated (but there is still a result in @a buf)
+ *         #GNUNET_OK if @a p was packed completely into @a buf
  */
 int
 GNUNET_DNSPARSER_pack (const struct GNUNET_DNSPARSER_Packet *p,
 		       uint16_t max,
 		       char **buf,
 		       size_t *buf_length);
+
+/* ***************** low-level packing API ******************** */
+
+/**
+ * Add a DNS name to the UDP packet at the given location, converting
+ * the name to IDNA notation as necessary.
+ *
+ * @param dst where to write the name (UDP packet)
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the name (increment by bytes used)
+ *            must not be changed if there is an error
+ * @param name name to write
+ * @return #GNUNET_SYSERR if @a name is invalid
+ *         #GNUNET_NO if @a name did not fit
+ *         #GNUNET_OK if @a name was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_name (char *dst,
+				   size_t dst_len,
+				   size_t *off,
+				   const char *name);
+
+
+/**
+ * Add a DNS query to the UDP packet at the given location.
+ *
+ * @param dst where to write the query
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the query (increment by bytes used)
+ *            must not be changed if there is an error
+ * @param query query to write
+ * @return #GNUNET_SYSERR if @a query is invalid
+ *         #GNUNET_NO if @a query did not fit
+ *         #GNUNET_OK if @a query was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_query (char *dst,
+				    size_t dst_len,
+				    size_t *off,
+				    const struct GNUNET_DNSPARSER_Query *query);
+
+
+/**
+ * Add an MX record to the UDP packet at the given location.
+ *
+ * @param dst where to write the mx record
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the mx information (increment by bytes used);
+ *            can also change if there was an error
+ * @param mx mx information to write
+ * @return #GNUNET_SYSERR if @a mx is invalid
+ *         #GNUNET_NO if @a mx did not fit
+ *         #GNUNET_OK if @a mx was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_mx (char *dst,
+				 size_t dst_len,
+				 size_t *off,
+				 const struct GNUNET_DNSPARSER_MxRecord *mx);
+
+
+/**
+ * Add an SOA record to the UDP packet at the given location.
+ *
+ * @param dst where to write the SOA record
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the SOA information (increment by bytes used)
+ *            can also change if there was an error
+ * @param soa SOA information to write
+ * @return #GNUNET_SYSERR if @a soa is invalid
+ *         #GNUNET_NO if @a soa did not fit
+ *         #GNUNET_OK if @a soa was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_soa (char *dst,
+				  size_t dst_len,
+				  size_t *off,
+				  const struct GNUNET_DNSPARSER_SoaRecord *soa);
+
+
+/**
+ * Add an SRV record to the UDP packet at the given location.
+ *
+ * @param dst where to write the SRV record
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the SRV information (increment by bytes used)
+ *            can also change if there was an error
+ * @param srv SRV information to write
+ * @return #GNUNET_SYSERR if @a srv is invalid
+ *         #GNUNET_NO if @a srv did not fit
+ *         #GNUNET_OK if @a srv was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_srv (char *dst,
+				  size_t dst_len,
+				  size_t *off,
+				  const struct GNUNET_DNSPARSER_SrvRecord *srv);
 
 
 #endif
