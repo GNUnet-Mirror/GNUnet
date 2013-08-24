@@ -24,14 +24,8 @@
  * @author Martin Schanzenbach
  * @author Christian Grothoff
  *
- * TODO:
+ * URGENT:
  * - shortening triggers
- * - GNS: handle special SRV names --- no delegation, direct lookup;
- *        can likely be done in 'resolver_lookup_get_next_label'.
- * - revocation checks (make optional: privacy!)
- * - DNAME support
- *
- * Issues:
  * - We currently go to the DHT simply if we find no local reply; this
  *   is incorrect; the correct rules for going to DHT are:
  *
@@ -44,10 +38,12 @@
  *    would already have an entry in the NS for the record)
  * 5. We are not in cache only mode
  *
- * - We currently never look "into" the records; for example,
- *   MX, SRV and SOA records may include ".+" that need to be
- *   handled
  *
+ * TODO:
+ * - GNS: handle special SRV names --- no delegation, direct lookup;
+ *        can likely be done in 'resolver_lookup_get_next_label'. (#3003)
+ * - revocation checks (make optional: privacy!), (#3004)
+ * - DNAME support (#3005)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
