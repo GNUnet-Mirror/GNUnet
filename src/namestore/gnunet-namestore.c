@@ -1,3 +1,4 @@
+
 /*
      This file is part of GNUnet.
      (C) 2012, 2013 Christian Grothoff (and other contributing authors)
@@ -45,9 +46,9 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 static struct GNUNET_CRYPTO_EccPrivateKey zone_pkey;
 
 /**
- * Handle to identity service.
+ * Handle to identity lookup.
  */
-static struct GNUNET_IDENTITY_Handle *identity;
+static struct GNUNET_IDENTITY_EgoLookup *el;
 
 /**
  * Name of the ego controlling the zone.
@@ -185,6 +186,11 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != el)
+  {
+    GNUNET_IDENTITY_ego_lookup_cancel (el);
+    el = NULL;
+  }
   if (NULL != list_it)
   {
     GNUNET_NAMESTORE_zone_iteration_stop (list_it);
@@ -448,8 +454,6 @@ testservice_task (void *cls,
                 _("Failed to connect to namestore\n"));
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
   if (add)
   {
     if (NULL == name)
@@ -621,47 +625,32 @@ testservice_task (void *cls,
 
 /**
  * Callback invoked from identity service with ego information.
- * An @a ego of NULL and a @a name of NULL indicate the end of
- * the initial iteration over known egos.
+ * An @a ego of NULL means the ego was not found.
  *
  * @param cls closure with the configuration
  * @param ego an ego known to identity service, or NULL 
- * @param ctx per-ego user context (unused)
- * @param name name of the ego, or NULL
  */
 static void
 identity_cb (void *cls,
-	     struct GNUNET_IDENTITY_Ego *ego,
-	     void **ctx,
-	     const char *name)
+	     const struct GNUNET_IDENTITY_Ego *ego)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
-  if ( (NULL != ego_name) &&
-       (0 == strcmp (name,
-		     ego_name)) )
-  {
-    zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-    GNUNET_free (ego_name);
-    ego_name = NULL;
-    GNUNET_CLIENT_service_test ("namestore", cfg,
-				GNUNET_TIME_UNIT_SECONDS,
-				&testservice_task,
-				(void *) cfg);
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
-  }
-  if ( (NULL != ego_name) &&
-       (NULL == name) &&
-       (NULL == ego) )
+  el = NULL;
+  if (NULL == ego)
   {
     fprintf (stderr, 
 	     _("Ego `%s' not known to identity service\n"),
 	     ego_name);
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
     return;
   }
+  zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  GNUNET_free (ego_name);
+  ego_name = NULL;
+  GNUNET_CLIENT_service_test ("namestore", cfg,
+			      GNUNET_TIME_UNIT_SECONDS,
+			      &testservice_task,
+			      (void *) cfg);
 }
 
 
@@ -685,9 +674,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if ( (NULL != args[0]) && (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
-  identity = GNUNET_IDENTITY_connect (cfg,
-				      &identity_cb,
-				      (void *) cfg);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &do_shutdown, NULL);
+  el = GNUNET_IDENTITY_ego_lookup (cfg,
+				   ego_name,
+				   &identity_cb,
+				   (void *) cfg);
 }
 
 
