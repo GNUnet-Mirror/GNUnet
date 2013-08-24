@@ -272,6 +272,48 @@ void
 GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
 
 
+/* ************* convenience API to lookup an ego ***************** */
+
+/**
+ * Function called with the result.
+ *
+ * @param cls closure
+ * @param ego NULL on error / ego not found
+ */ 
+typedef void (*GNUNET_IDENTITY_EgoCallback)(void *cls,
+					    const struct GNUNET_IDENTITY_Ego *ego);
+
+/**
+ * Handle for ego lookup.
+ */ 
+struct GNUNET_IDENTITY_EgoLookup;
+
+
+/**
+ * Lookup an ego by name.
+ *
+ * @param cfg configuration to use
+ * @param name name to look up
+ * @param cb callback to invoke with the result
+ * @param cb_cls closure for @a cb
+ * @return NULL on error
+ */
+struct GNUNET_IDENTITY_EgoLookup *
+GNUNET_IDENTITY_ego_lookup (const struct GNUNET_CONFIGURATION_Handle *cfg,
+			    const char *name,
+			    GNUNET_IDENTITY_EgoCallback cb,
+			    void *cb_cls);
+
+
+/**
+ * Abort ego lookup attempt.
+ *
+ * @param el handle for lookup to abort
+ */
+void
+GNUNET_IDENTITY_ego_lookup_cancel (struct GNUNET_IDENTITY_EgoLookup *el);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

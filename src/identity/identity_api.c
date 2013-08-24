@@ -24,14 +24,9 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_client_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_arm_service.h"
-#include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
 #include "gnunet_identity_service.h"
 #include "identity.h"
 
@@ -292,6 +287,8 @@ message_handler (void *cls,
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
+    GNUNET_CLIENT_receive (h->client, &message_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
     if (NULL != op->cont)
       op->cont (op->cls,
 		str);
@@ -321,6 +318,8 @@ message_handler (void *cls,
     if (GNUNET_YES == ntohs (um->end_of_list))
     {
       /* end of initial list of data */
+      GNUNET_CLIENT_receive (h->client, &message_handler, h,
+			     GNUNET_TIME_UNIT_FOREVER_REL);
       if (NULL != h->cb)
 	h->cb (h->cb_cls, NULL, NULL, NULL);
       break;
@@ -355,6 +354,22 @@ message_handler (void *cls,
 							ego,
 							GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     }
+    if (NULL == str)
+    {
+      /* ego was deleted */
+      GNUNET_assert (GNUNET_YES ==
+		     GNUNET_CONTAINER_multihashmap_remove (h->egos,
+							   &ego->id,
+							   ego));
+    }
+    else
+    {
+      /* ego changed name */
+      GNUNET_free (ego->name);
+      ego->name = GNUNET_strdup (str);
+    }    
+    GNUNET_CLIENT_receive (h->client, &message_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
     /* inform application about change */
     if (NULL != h->cb)
       h->cb (h->cb_cls,
@@ -363,21 +378,10 @@ message_handler (void *cls,
 	     str);
     if (NULL == str)
     {
-      /* ego was deleted */
-      GNUNET_assert (GNUNET_YES ==
-		     GNUNET_CONTAINER_multihashmap_remove (h->egos,
-							   &ego->id,
-							   ego));
       GNUNET_free (ego->pk);
       GNUNET_free (ego->name);
       GNUNET_free (ego);
     }
-    else
-      {
-      /* ego changed name */
-      GNUNET_free (ego->name);
-      ego->name = GNUNET_strdup (str);
-    }    
     break;
   case GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT:
     if (size < sizeof (struct GNUNET_IDENTITY_SetDefaultMessage))
@@ -416,6 +420,8 @@ message_handler (void *cls,
 				 h->op_tail,
 				 op);
     GNUNET_free (ego->name);
+    GNUNET_CLIENT_receive (h->client, &message_handler, h,
+			   GNUNET_TIME_UNIT_FOREVER_REL);
     if (NULL != op->cb)
       op->cb (op->cls,
 	      ego,
@@ -428,8 +434,6 @@ message_handler (void *cls,
     reschedule_connect (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->client, &message_handler, h,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -565,7 +569,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_IDENTITY_Handle *h;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Handle));
+  h = GNUNET_new (struct GNUNET_IDENTITY_Handle);
   h->cfg = cfg;
   h->cb = cb;
   h->cb_cls = cb_cls;
@@ -821,7 +825,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
  * @param id identity service to use
  * @param name name of the identity to delete
  * @param cb function to call with the result (will only be called once)
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
@@ -910,7 +914,7 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
  * @param cls identity service handle
  * @param key unused
  * @param value ego to free
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 free_ego (void *cls,
