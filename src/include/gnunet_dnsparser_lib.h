@@ -184,7 +184,7 @@ struct GNUNET_DNSPARSER_SoaRecord
 {
   
   /**
-   *The domainname of the name server that was the
+   * The domainname of the name server that was the
    * original or primary source of data for this zone.
    * In UTF-8 format.  The library will convert from and to DNS-IDNA 
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an

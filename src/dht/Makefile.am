@@ -214,8 +214,10 @@ EXTRA_DIST = \
   test_dht_tools.py.in \
   test_dht_multipeer_topology.dat
 
+if HAVE_PYTHON
 check_SCRIPTS = \
   test_dht_tools.py
+endif
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 

@@ -64,8 +64,10 @@ check_PROGRAMS = \
  test_exponential_backoff \
  test_gnunet_service_arm
 
+if HAVE_PYTHON
 check_SCRIPTS = \
  test_gnunet_arm.py
+endif
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)

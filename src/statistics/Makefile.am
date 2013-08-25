@@ -85,8 +85,10 @@ test_statistics_api_watch_zero_value_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+if HAVE_PYTHON
 check_SCRIPTS = \
   test_gnunet_statistics.py
+endif
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
