@@ -66,4 +66,3 @@ SUBDIRS = \
   integration-tests \
   $(EXP_DIR) 
 
-# note: namestore, gns are not listed right now as they are being reworked to use the new crypto
