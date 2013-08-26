@@ -149,7 +149,7 @@ def run ():
 	success = False
 	
 	test = Test ('test_integration_disconnect', verbose)
-	
+	cleanup ()
 	server = Peer(test, './confs/c_bootstrap_server.conf');
 	server.start();
 	

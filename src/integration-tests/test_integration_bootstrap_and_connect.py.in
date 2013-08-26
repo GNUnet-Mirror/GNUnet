@@ -48,7 +48,7 @@ from gnunet_testing import *
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = Verbose
+verbose = True
 check_timeout = 180
 
 if os.name == "nt":
@@ -116,6 +116,7 @@ def run ():
 	
 	success = False  
 	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
+	cleanup ()
 	
 	server = Peer(test, './confs/c_bootstrap_server.conf');
 	client = Peer(test, './confs/c_no_nat_client.conf');
