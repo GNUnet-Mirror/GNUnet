@@ -48,7 +48,7 @@ from gnunet_testing import *
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = False
+verbose = Verbose
 check_timeout = 180
 
 if os.name == "nt":
