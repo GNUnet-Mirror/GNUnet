@@ -1586,6 +1586,92 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 }
 
 
+
+
+/**
+ * Is this peer the first one on the connection?
+ *
+ * @param c Connection.
+ * @param fwd Is this about fwd traffic?
+ *
+ * @return GNUNET_YES if origin, GNUNET_NO if relay/terminal.
+ */
+static int
+connection_is_origin (struct MeshConnection *c, int fwd)
+{
+  if (!fwd && c->own_pos == c->path->length - 1)
+    return GNUNET_YES;
+  if (fwd && c->own_pos == 0)
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Is this peer the last one on the connection?
+ *
+ * @param c Connection.
+ * @param fwd Is this about fwd traffic?
+ *            Note that the ROOT is the terminal for BCK traffic!
+ *
+ * @return GNUNET_YES if terminal, GNUNET_NO if relay/origin.
+ */
+static int
+connection_is_terminal (struct MeshConnection *c, int fwd)
+{
+  if (fwd && c->own_pos == c->path->length - 1)
+    return GNUNET_YES;
+  if (!fwd && c->own_pos == 0)
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Get free buffer space towards the client on a specific channel.
+ *
+ * @param ch Channel.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Free buffer space [0 - 64]
+ */
+static unsigned int
+channel_get_buffer (struct MeshChannel *ch, int fwd)
+{
+  struct MeshChannelReliability *rel;
+  
+  rel = fwd ? ch->dest_rel : ch->root_rel;
+
+  /* If rel is NULL it means that the end is not yet created,
+   * most probably is a loopback channel at the point of sending
+   * the ChannelCreate to itself.
+   */
+  if (NULL == rel)
+    return 64;
+
+  return (64 - rel->n_recv);
+}
+
+
+/**
+ * Get free buffer space in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Free buffer space [0 - max_msgs_queue/max_connections]
+ */
+static unsigned int
+connection_get_buffer (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+  
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  
+  return (fc->queue_max - fc->queue_n);
+}
+
+
 /**
  * Get the total buffer space for a tunnel.
  */
@@ -1596,13 +1682,42 @@ tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
   struct MeshFlowControl *fc;
   unsigned int buffer;
 
-  for (buffer = 0, c = t->connection_head; NULL != c; c = c->next)
+  c = t->connection_head;
+  buffer = 0;
+
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+
+  /* If terminal, return biggest channel buffer */
+  if (connection_is_terminal (c, fwd))
+  {
+    struct MeshChannel *ch;
+    unsigned int ch_buf;
+
+    if (NULL == t->channel_head)
+      return 64;
+
+    for (ch = t->channel_head; NULL != ch; ch = ch->next)
+    {
+      ch_buf = channel_get_buffer (ch, fwd);
+      if (ch_buf > buffer)
+        buffer = ch_buf;
+    }
+    return buffer;
+  }
+
+  /* If not terminal, return sum of connection buffers */
+  while (NULL != c)
   {
     if (c->state != MESH_CONNECTION_READY)
       continue;
 
     fc = fwd ? &c->fwd_fc : &c->bck_fc;
     buffer += fc->last_ack_recv - fc->last_pid_sent;
+    c = c->next;
   }
 
   return buffer;
@@ -2348,45 +2463,6 @@ connection_get_first_message (struct MeshConnection *c, int fwd)
   }
 
   return NULL;
-}
-
-
-/**
- * Is this peer the first one on the connection?
- *
- * @param c Connection.
- * @param fwd Is this about fwd traffic?
- *
- * @return GNUNET_YES if origin, GNUNET_NO if relay/terminal.
- */
-static int
-connection_is_origin (struct MeshConnection *c, int fwd)
-{
-  if (!fwd && c->own_pos == c->path->length - 1)
-    return GNUNET_YES;
-  if (fwd && c->own_pos == 0)
-    return GNUNET_YES;
-  return GNUNET_NO;
-}
-
-
-/**
- * Is this peer the last one on the connection?
- *
- * @param c Connection.
- * @param fwd Is this about fwd traffic?
- *            Note that the ROOT is the terminal for BCK traffic!
- *
- * @return GNUNET_YES if terminal, GNUNET_NO if relay/origin.
- */
-static int
-connection_is_terminal (struct MeshConnection *c, int fwd)
-{
-  if (fwd && c->own_pos == c->path->length - 1)
-    return GNUNET_YES;
-  if (!fwd && c->own_pos == 0)
-    return GNUNET_YES;
-  return GNUNET_NO;
 }
 
 
@@ -3657,44 +3733,6 @@ channel_send_connections_ack (struct MeshChannel *ch,
 
 
 /**
- * Get free buffer space towards the client on a specific channel.
- *
- * @param ch Channel.
- * @param fwd Is query about FWD traffic?
- *
- * @return Free buffer space [0 - 64]
- */
-static unsigned int
-channel_get_buffer (struct MeshChannel *ch, int fwd)
-{
-  struct MeshChannelReliability *rel;
-
-  rel = fwd ? ch->dest_rel : ch->root_rel;
-
-  return (64 - rel->n_recv);
-}
-
-
-/**
- * Get free buffer space in a connection.
- *
- * @param c Connection.
- * @param fwd Is query about FWD traffic?
- *
- * @return Free buffer space [0 - max_msgs_queue/max_connections]
- */
-static unsigned int
-connection_get_buffer (struct MeshConnection *c, int fwd)
-{
-  struct MeshFlowControl *fc;
-
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-
-  return (fc->queue_max - fc->queue_n);
-}
-
-
-/**
  * Send an ACK on the appropriate connection/channel, depending on
  * the direction and the position of the peer.
  *
@@ -3710,7 +3748,7 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   if (NULL == c || connection_is_terminal (c, fwd))
   {
     GNUNET_assert (NULL != ch);
-    buffer = channel_get_buffer (ch, fwd);
+    buffer = tunnel_get_buffer (ch->t, fwd);
   }
   else
   {
@@ -3752,8 +3790,8 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   struct MeshReliableMessage *next;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  channel confirm %s:%X\n",
-              peer2s (ch->t->peer), ch->gid);
+              "  channel confirm %s %s:%X\n",
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
   ch->state = MESH_CHANNEL_READY;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
@@ -3769,6 +3807,8 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
+  if (GNUNET_NO == rel->client_ready)
+    send_local_ack (ch, fwd);
 }
 
 
@@ -5695,7 +5735,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    connection_send_ack (c, connection_get_buffer (c, fwd), fwd);
+    send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
@@ -5881,7 +5921,7 @@ handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
               pid, fc->last_pid_recv);
   fc->last_pid_recv = pid;
   fwd = fc == &c->fwd_fc;
-  connection_send_ack (c, connection_get_buffer(c, fwd), fwd);
+  send_ack (c, NULL, fwd);
 
   return GNUNET_OK;
 }

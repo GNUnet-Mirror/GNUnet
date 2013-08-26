@@ -119,7 +119,7 @@ struct GNUNET_MESH_Encrypted
   /**
    * Initialization Vector for payload encryption.
    */
-  uint64_t iv;
+  uint64_t iv GNUNET_PACKED;
 
   /**
    * Number of hops to live.
