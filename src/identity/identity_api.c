@@ -33,7 +33,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
 
 /** 
- * Handle for a ego.
+ * Handle for an ego.
  */
 struct GNUNET_IDENTITY_Ego
 {
@@ -190,9 +190,9 @@ GNUNET_IDENTITY_ego_get_anonymous ()
 
 
 /**
- * Try again to connect to network size estimation service.
+ * Try again to connect to the identity service.
  *
- * @param cls the handle to the transport service
+ * @param cls handle to the identity service.
  * @param tc scheduler context
  */
 static void
@@ -521,9 +521,9 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h)
 
 
 /**
- * Try again to connect to network size estimation service.
+ * Try again to connect to the identity service.
  *
- * @param cls the handle to the transport service
+ * @param cls handle to the identity service.
  * @param tc scheduler context
  */
 static void
