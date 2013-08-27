@@ -28,18 +28,61 @@
 #include "gnunet_testing_lib.h"
 
 
+#define LOG(kind,...)                                           \
+  GNUNET_log_from (kind, "gnunet-testing", __VA_ARGS__)
+
+
 /**
  * Final status code.
  */
 static int ret;
 
+/**
+ * Filename of the hostkey file we should write,
+ * null if we should not write a hostkey file.
+ */
 static char *create_hostkey;
 
+/**
+ * Non-zero if we should create config files.
+ */
 static int create_cfg;
 
+/**
+ * Number of config files to create.
+ */
 static unsigned int create_no;
 
+/**
+ * Filename of the config template to be written.
+ */
 static char *create_cfg_template;
+
+/**
+ * Service we are supposed to run.
+ */
+static char *run_service_name;
+
+/**
+ * File handle to STDIN, for reading restart/quit commands.
+ */
+static struct GNUNET_DISK_FileHandle *fh;
+
+/**
+ * Temporary filename, used with '-r' to write the configuration to.
+ */
+static char *tmpfilename;
+
+/**
+ * Task identifier of the task that waits for stdin.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier tid;
+
+/**
+ * Peer started for '-r'.
+ */
+static struct GNUNET_TESTING_Peer *my_peer;
+
 
 
 static int
@@ -150,7 +193,114 @@ create_hostkeys (const unsigned int no)
 
 
 /**
- * Main function that will be run by the scheduler.
+ * Cleanup called by signal handlers and when stdin is closed.
+ * Removes the temporary file.
+ *
+ * @param cls unused
+ * @param tc scheduler context 
+ */
+static void
+cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != tmpfilename)
+  {
+    if (0 != UNLINK (tmpfilename))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", tmpfilename);
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != tid)
+  {
+    GNUNET_SCHEDULER_cancel (tid);
+    tid = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != fh)
+  {
+    GNUNET_DISK_file_close (fh);
+    fh = NULL;
+  }
+}
+
+
+/**
+ * Called whenever we can read stdin non-blocking 
+ *
+ * @param cls unused
+ * @param tc scheduler context 
+ */
+static void
+stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int c;
+
+  tid = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_assert (0 != (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason));
+  c = getchar ();
+  switch (c)
+  {
+  case EOF:
+  case 'q':
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  case 'r':
+    if (GNUNET_OK != GNUNET_TESTING_peer_stop (my_peer))
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to stop the peer\n");
+    if (GNUNET_OK != GNUNET_TESTING_peer_start (my_peer))
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start the peer\n");
+    printf ("restarted\n");
+    fflush (stdout);
+    break;
+  case '\n':
+  case '\r':
+    /* ignore whitespace */
+    break;
+  default:
+    fprintf (stderr, _("Unknown command, use 'q' to quit or 'r' to restart peer\n"));
+    break;
+  }
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+                                        &stdin_cb, NULL);    
+}
+
+
+/**
+ * Main function called by the testing library.
+ * Executed inside a running scheduler.
+ *
+ * @param cls unused
+ * @param cfg configuration of the peer that was started
+ * @param peer handle to the peer
+ */
+static void
+testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+              struct GNUNET_TESTING_Peer *peer)
+{
+  my_peer = peer;
+  if (NULL == (tmpfilename = GNUNET_DISK_mktemp ("gnunet-testing")))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_SYSERR == 
+      GNUNET_CONFIGURATION_write ((struct GNUNET_CONFIGURATION_Handle *) cfg,
+                                  tmpfilename))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  printf("ok\n%s\n", tmpfilename);
+  fflush(stdout);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, NULL);
+  fh = GNUNET_DISK_get_handle_from_native (stdin);
+  tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
+                                        &stdin_cb, NULL);
+}
+
+
+
+/**
+ * Main function that will be running without scheduler.
  *
  * @param cls closure
  * @param args remaining command-line arguments
@@ -158,10 +308,17 @@ create_hostkeys (const unsigned int no)
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run_no_scheduler (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  /* main code here */
+  if (NULL != run_service_name)
+  {
+    printf ("testing run\n");
+    ret = GNUNET_TESTING_service_run ("gnunet_service_test", run_service_name,
+                                      cfgfile, &testing_main, NULL);
+    return;
+  }
+
   if (GNUNET_YES == create_cfg)
   {
     if (create_no > 0)
@@ -204,15 +361,21 @@ main (int argc, char *const *argv)
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &create_no},
     {'t', "template", "FILENAME", gettext_noop ("configuration template"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &create_cfg_template},
+    {'r', "run", "SERVICE", gettext_noop ("run the given service, wait on stdin for 'r' (restart) or 'q' (quit)"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &run_service_name},
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
+  /* Run without scheduler, because we may want to call
+   * GNUNET_TESTING_service_run, which starts the scheduler on its own.
+   * Furthermore, the other functionality currently does not require the scheduler, too,
+   * but beware when extending gnunet-testing. */
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-testing",
-			     gettext_noop ("Command line tool to access the testing library"), options, &run,
-			     NULL)) ? ret : 1;
+	 GNUNET_PROGRAM_run2 (argc, argv, "gnunet-testing",
+			     gettext_noop ("Command line tool to access the testing library"), options, &run_no_scheduler,
+			     NULL, GNUNET_YES)) ? ret : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }
