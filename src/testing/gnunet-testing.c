@@ -315,6 +315,10 @@ run_no_scheduler (void *cls, char *const *args, const char *cfgfile,
   {
     ret = GNUNET_TESTING_service_run ("gnunet_service_test", run_service_name,
                                       cfgfile, &testing_main, NULL);
+    if (0 != ret)
+      printf ("error\n");
+    else 
+      printf ("bye\n");
     return;
   }
 
