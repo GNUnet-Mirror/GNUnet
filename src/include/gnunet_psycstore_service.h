@@ -37,6 +37,8 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
+#include "gnunet_multicast_service.h"
+#include "gnunet_psyc_service.h"
 
 /** 
  * Version number of GNUnet PSYCstore API.
@@ -107,7 +109,7 @@ typedef void
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
-                               GNUNET_CRYPTO_EccPublicKey *channel_key,
+                               struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                                GNUNET_PSYCSTORE_CountersCallback *cb,
                                void *cb_cls);
 

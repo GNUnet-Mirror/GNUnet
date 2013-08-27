@@ -86,7 +86,7 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-#include "gnunet_psyc_lib.h"
+#include "gnunet_env_lib.h"
 #include "gnunet_multicast_service.h"
 
 
@@ -219,7 +219,7 @@ typedef int
                        uint64_t message_id,
                        const char *method_name,
                        size_t modifier_count,
-                       const GNUNET_ENV_Modifier *modifiers,
+                       const struct GNUNET_ENV_Modifier *modifiers,
                        uint64_t data_offset,
                        size_t data_size,
                        const void *data,
@@ -243,7 +243,7 @@ typedef int
                              const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
                              const char *method_name,
                              size_t variable_count,
-                             const GNUNET_ENV_Modifier *variables,
+                             const struct GNUNET_ENV_Modifier *variables,
                              size_t data_size,
                              const void *data,
                              struct GNUNET_PSYC_JoinHandle *jh);
@@ -398,7 +398,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_MasterTransmitNotify notify,
                              void *notify_cls,
-                             enum GNUNET_PSYC_TransmitFlags flags);
+                             enum GNUNET_PSYC_MasterTransmitFlags flags);
 
 
 /** 

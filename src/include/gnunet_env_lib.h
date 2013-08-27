@@ -26,6 +26,18 @@
  */
 
 
+#ifndef GNUNET_ENV_LIB_H
+#define GNUNET_ENV_LIB_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
+
 /** 
  * Possible operations on PSYC state (persistent) and transient variables (per message).
  */
@@ -85,7 +97,7 @@ struct GNUNET_ENV_Modifier {
   /** 
    * State operation.
    */
-  GNUNET_ENV_Operator oper;
+  enum GNUNET_ENV_Operator oper;
 
   /** 
    * Variable name.
@@ -213,7 +225,7 @@ GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_ENV_value_to_list (size_t size, const void *value, GNUNET_CONTAINER_SList **list);
+GNUNET_ENV_value_to_list (size_t size, const void *value, struct GNUNET_CONTAINER_SList **list);
 
 
 /** 
@@ -226,7 +238,7 @@ GNUNET_ENV_value_to_list (size_t size, const void *value, GNUNET_CONTAINER_SList
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_ENV_value_to_dict (size_t size, const void *value, GNUNET_CONTAINER_MultiHashMap **dict);
+GNUNET_ENV_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINER_MultiHashMap **dict);
 
 
 /** 
@@ -250,7 +262,7 @@ GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_ENV_value_from_list (GNUNET_CONTAINER_SList *list, size_t *value_size);
+GNUNET_ENV_value_from_list (struct GNUNET_CONTAINER_SList *list, size_t *value_size);
 
 
 /** 
@@ -262,4 +274,16 @@ GNUNET_ENV_value_from_list (GNUNET_CONTAINER_SList *list, size_t *value_size);
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_ENV_value_from_dict (GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);
+GNUNET_ENV_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);
+
+
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
+
+/* ifndef GNUNET_ENV_LIB_H */
+#endif
+/* end of gnunet_env_lib.h */

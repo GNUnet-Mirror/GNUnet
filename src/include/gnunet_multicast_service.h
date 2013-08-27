@@ -314,7 +314,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  */
 typedef void
 (*GNUNET_MULTICAST_JoinCallback) (void *cls,
-                                  const struct GNUNET_EccPublicKey *member_key,
+                                  const struct GNUNET_CRYPTO_EccPublicKey *member_key,
                                   const struct GNUNET_MessageHeader *join_req,
                                   struct GNUNET_MULTICAST_JoinHandle *jh);
 
@@ -370,7 +370,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_RequestCallback) (void *cls,
-                                     const struct GNUNET_EccPublicKey *member_key,
+                                     const struct GNUNET_CRYPTO_EccPublicKey *member_key,
                                      const struct GNUNET_MessageHeader *req,
                                      enum GNUNET_MULTICAST_MessageFlags flags);
 
@@ -580,8 +580,9 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
                                uint64_t last_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
-                               GNUNET_MULITCAST_MembershipTestCallback test_cb,
-                               GNUNET_MULITCAST_ReplayCallback replay_cb,
+                               GNUNET_MULTICAST_MembershipTestCallback test_cb,
+                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
+                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
                                GNUNET_MULTICAST_MessageCallback message_cb,
                                void *cls);
@@ -694,8 +695,9 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_request,
                               GNUNET_MULTICAST_JoinCallback join_cb,
-                              GNUNET_MULITCAST_MembershipTestCallback test_cb,
-                              GNUNET_MULITCAST_ReplayCallback replay_cb,
+                              GNUNET_MULTICAST_MembershipTestCallback test_cb,
+                              GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
+                              GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,
                               void *cls);
 
