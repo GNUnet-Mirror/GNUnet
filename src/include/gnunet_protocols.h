@@ -1935,10 +1935,20 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT 644
 
 
+/*******************************************************************************
+ * PSYCSTORE message types
+ ******************************************************************************/
 
 /**
- * Next available: 650
+ * Generic response from PSYCstore service with success and/or error message.
  */
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE 650
+
+
+/**
+ * Next available: 670
+ */
+
 
 
 /* WIP: no numbers assigned yet */

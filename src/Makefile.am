@@ -60,6 +60,7 @@ SUBDIRS = \
   namestore \
   vpn \
   gns \
+  psycstore \
   fs \
   exit \
   pt \

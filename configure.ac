@@ -1281,6 +1281,7 @@ src/gns/nss/Makefile
 src/hello/Makefile
 src/identity/Makefile
 src/identity/identity.conf
+src/psycstore/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/integration-tests/Makefile

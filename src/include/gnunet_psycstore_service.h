@@ -123,7 +123,8 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 typedef void
 (*GNUNET_PSYCSTORE_ResultCallback) (void *cls,
-                                    int result);
+                                    int result,
+                                    const char *err_msg);
 
 
 /** 
