@@ -1215,7 +1215,7 @@ union_set_create (void)
  * Add the element from the given element message to the set.
  *
  * @param set_state state of the set want to add to
- * @param element the element to add to the set
+ * @param ee the element to add to the set
  */
 static void
 union_add (struct SetState *set_state, struct ElementEntry *ee)
