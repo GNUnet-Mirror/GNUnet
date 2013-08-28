@@ -661,6 +661,7 @@ queue_connect_message (void *cls, const struct GNUNET_HashCode * key, void *valu
   /* FIXME: code duplication with clients... */
   cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
   cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+  cnm.reserved = htonl (0);
   cnm.peer = session->peer;
   GNUNET_SERVER_transmit_context_append_message (tc, &cnm.header);
   return GNUNET_OK;

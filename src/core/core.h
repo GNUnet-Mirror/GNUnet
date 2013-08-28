@@ -111,6 +111,11 @@ struct ConnectNotifyMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
    * Identity of the connecting peer.
    */
   struct GNUNET_PeerIdentity peer;

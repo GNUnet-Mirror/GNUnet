@@ -721,6 +721,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm = (struct ConnectNotifyMessage *) buf;
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
+    cnm->reserved = htonl (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");
     cnm->peer = *neighbour;
