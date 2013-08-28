@@ -120,52 +120,6 @@ struct ConnectNotifyMessage
 
 /**
  * Message sent by the service to clients to notify them
- * about a peer changing status.
- */
-struct PeerStatusNotifyMessage
-{
-  /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_PEER_STATUS
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of ATS key-value pairs that follow this struct
-   * (excluding the 0-terminator).
-   */
-  uint32_t ats_count GNUNET_PACKED;
-
-  /**
-   * When the peer would time out (unless we see activity)
-   */
-  struct GNUNET_TIME_AbsoluteNBO timeout;
-
-  /**
-   * Available bandwidth from the peer.
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-
-  /**
-   * Available bandwidth to the peer.
-   */
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-
-  /**
-   * Identity of the peer.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * First of the ATS information blocks (we must have at least
-   * one due to the 0-termination requirement).
-   */
-  struct GNUNET_ATS_Information ats;
-
-};
-
-
-/**
- * Message sent by the service to clients to notify them
  * about a peer disconnecting.
  */
 struct DisconnectNotifyMessage
