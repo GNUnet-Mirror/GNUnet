@@ -1148,6 +1148,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE 355
 
+/**
+ * Type of the 'struct ChangePreferenceMessage' sent by clients to ATS
+ * to ask for allocation preference changes.
+ */
+#define GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK 356
 
 
 /*******************************************************************************
