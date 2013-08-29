@@ -2920,6 +2920,38 @@ channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
   return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
 }
 
+
+static void
+channel_debug (struct MeshChannel *ch)
+{
+  if (NULL == ch)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %X\n", ch->gid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
+              ch->root, ch->root_rel);
+  if (NULL != ch->root)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->root->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
+                ch->root_rel->client_ready ? "YES" : "NO");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
+              ch->dest, ch->dest_rel);
+  if (NULL != ch->dest)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->dest->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
+                ch->dest_rel->client_ready ? "YES" : "NO");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
+  }
+
+}
+
+
 /**
  * Search for a tunnel by global ID using full PeerIdentities.
  *
@@ -3747,8 +3779,7 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 
   if (NULL == c || connection_is_terminal (c, fwd))
   {
-    GNUNET_assert (NULL != ch);
-    buffer = tunnel_get_buffer (ch->t, fwd);
+    buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
   }
   else
   {
