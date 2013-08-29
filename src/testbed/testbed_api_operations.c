@@ -137,6 +137,11 @@ struct FeedbackCtx
    */
   unsigned int max_active_bound;
 
+  /**
+   * Number of operations that have failed
+   */
+  unsigned int nfailed;
+
 };
 
 
@@ -816,6 +821,7 @@ adaptive_queue_set_max_active (struct OperationQueue *queue, unsigned int n)
   cleanup_tslots (queue);
   n = GNUNET_MIN (n ,fctx->max_active_bound);
   fctx->tslots_freeptr = GNUNET_malloc (n * sizeof (struct TimeSlot));
+  fctx->nfailed = 0;
   for (cnt = 0; cnt < n; cnt++)
   {
     tslot = &fctx->tslots_freeptr[cnt];
@@ -831,10 +837,9 @@ adaptive_queue_set_max_active (struct OperationQueue *queue, unsigned int n)
  * the feedback context.
  *
  * @param queue the queue
- * @param fail GNUNET_YES if the last operation failed; GNUNET_NO if not;
  */
 static void
-adapt_parallelism (struct OperationQueue *queue, int fail)
+adapt_parallelism (struct OperationQueue *queue)
 {
   struct GNUNET_TIME_Relative avg;
   struct FeedbackCtx *fctx;
@@ -853,6 +858,16 @@ adapt_parallelism (struct OperationQueue *queue, int fail)
     nvals += tslot->nvals;
   }
   GNUNET_assert (nvals >= queue->max_active);
+  GNUNET_assert (fctx->nfailed <= nvals);
+  nvals -= fctx->nfailed;
+  if (0 == nvals)
+  {
+    if (1 == queue->max_active)
+      adaptive_queue_set_max_active (queue, 1);
+    else
+      adaptive_queue_set_max_active (queue, queue->max_active / 2);
+    return;
+  }
   avg = GNUNET_TIME_relative_divide (avg, nvals);
   if (GNUNET_SYSERR == 
       GNUNET_TESTBED_SD_deviation_factor_ (fctx->sd,
@@ -863,17 +878,16 @@ adapt_parallelism (struct OperationQueue *queue, int fail)
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
-  if ((0 == GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, queue->max_active)))
-    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
   if (sd < 0)
     sd = 0;
   GNUNET_assert (0 <= sd);
-  if ((0 == sd) && (! fail))
+  GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
+  if (0 == sd)
   {
     adaptive_queue_set_max_active (queue, queue->max_active * 2);
     return;
   }
-  if ((1 == sd) && (! fail))
+  if (1 == sd)
   {
     adaptive_queue_set_max_active (queue, queue->max_active + 1);
     return;
@@ -883,7 +897,7 @@ adapt_parallelism (struct OperationQueue *queue, int fail)
     adaptive_queue_set_max_active (queue, 1);
     return;
   }
-  if (((sd < 2) && (fail)) || (2 == sd))
+  if (2 == sd)
   {
     adaptive_queue_set_max_active (queue, queue->max_active - 1);
     return;
@@ -912,16 +926,18 @@ update_tslots (struct GNUNET_TESTBED_Operation *op)
   {
     queue = tslot->queue;
     fctx = queue->fctx;
-    tslot->tsum = GNUNET_TIME_relative_add (tslot->tsum, t);
     GNUNET_CONTAINER_DLL_remove (op->tslots_head, op->tslots_tail, tslot);
     tslot->op = NULL;    
     GNUNET_CONTAINER_DLL_insert_tail (fctx->alloc_head, fctx->alloc_tail,
-  tslot);
+                                      tslot);
+    if (op->failed)
+      fctx->nfailed++;
+    tslot->tsum = GNUNET_TIME_relative_add (tslot->tsum, t);
     if (0 != tslot->nvals++)
       continue;
     fctx->tslots_filled++;
     if (queue->max_active == fctx->tslots_filled)
-      adapt_parallelism (queue, op->failed);
+      adapt_parallelism (queue);
   }
 }
 
