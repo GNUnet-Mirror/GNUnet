@@ -500,7 +500,7 @@ update_core_preference (void *cls,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# Preference updates given to core"),
                             1, GNUNET_NO);
-  GNUNET_ATS_change_preference (atsAPI, &peer->id,
+  GNUNET_ATS_performance_change_preference (atsAPI, &peer->id,
                                 GNUNET_ATS_PREFERENCE_BANDWIDTH,
                                 (double) preference, GNUNET_ATS_PREFERENCE_END);
   peer->preference_task =

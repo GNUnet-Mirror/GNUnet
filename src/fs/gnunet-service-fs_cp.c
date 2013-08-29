@@ -414,7 +414,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 
   if (0 != cp->inc_preference)
   {
-    GNUNET_ATS_change_preference (GSF_ats, &target, GNUNET_ATS_PREFERENCE_BANDWIDTH,
+    GNUNET_ATS_performance_change_preference (GSF_ats, &target, GNUNET_ATS_PREFERENCE_BANDWIDTH,
                                   (double) cp->inc_preference,
                                   GNUNET_ATS_PREFERENCE_END);
     cp->inc_preference = 0;

@@ -772,7 +772,6 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              GNUNET_ATS_AddressInformationCallback addr_info_cb,
                              void *addr_info_cb_cls);
 
-
 /**
  * Get information about addresses known to the ATS subsystem.
  *
@@ -929,10 +928,21 @@ GNUNET_ATS_print_preference_type (uint32_t type);
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
-                              const struct GNUNET_PeerIdentity *peer, ...);
+GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
+                              						const struct GNUNET_PeerIdentity *peer, ...);
 
 
+/**
+ * Send feedback to ATS on how good a the requirements for a peer and a
+ * preference is satisfied by ATS
+ *
+ * @param ph performance handle
+ * @param peer identifies the peer
+ * @param ... 0-terminated specification of the desired changes
+ */
+void
+GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
+																			const struct GNUNET_PeerIdentity *peer, ...);
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

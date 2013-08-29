@@ -454,7 +454,7 @@ testservice_ats (void *cls,
             if (NULL == ph)
               fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
 
-            GNUNET_ATS_change_preference (ph, &pid, type, (double) value, GNUNET_ATS_PREFERENCE_END);
+            GNUNET_ATS_performance_change_preference (ph, &pid, type, (double) value, GNUNET_ATS_PREFERENCE_END);
 
             end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
     }
