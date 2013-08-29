@@ -448,6 +448,23 @@ typedef void
 																				 enum GNUNET_ATS_PreferenceKind kind,
 																				 double pref_rel);
 
+
+/**
+ * Give feedback about the current assignment
+ *
+ * @param handle the solver handle
+ * @param application the application sending this request
+ * @param peer the peer id
+ * @param kind the preference kind for this feedback
+ * @param score the feedback score
+ */
+typedef void
+(*GAS_solver_address_feedback_preference) (void *solver,
+																				 void *application,
+																				 const struct GNUNET_PeerIdentity *peer,
+																				 enum GNUNET_ATS_PreferenceKind kind,
+																				 double score);
+
 /**
  * Notify the solver about a bulk operation changing possibly a lot of values
  * Solver will not resolve until all bulk operations are marked as done
@@ -773,6 +790,23 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score_abs);
+
+
+/**
+ * Change the preference for a peer
+ *
+ * @param handle the address handle
+ * @param client the client sending this request
+ * @param peer the peer id
+ * @param kind the preference kind to change
+ * @param score_abs the new preference score
+ */
+void
+GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
+																		void *client,
+																		const struct GNUNET_PeerIdentity *peer,
+																		enum GNUNET_ATS_PreferenceKind kind,
+																		float score_abs);
 
 
 /**

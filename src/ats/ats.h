@@ -261,6 +261,19 @@ struct ChangePreferenceMessage
   /* followed by 'num_preferences'
    * struct PreferenceInformation values */
 };
+
+struct FeedbackPreferenceMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t num_preferences GNUNET_PACKED;
+
+  struct GNUNET_PeerIdentity peer;
+
+  /* followed by 'num_preferences'
+   * struct PreferenceInformation values */
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 

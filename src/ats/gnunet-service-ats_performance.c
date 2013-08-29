@@ -649,6 +649,58 @@ GAS_handle_preference_change (void *cls,
 
 
 /**
+ * Handle 'preference feedback' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_preference_feedback (void *cls,
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message)
+{
+  const struct FeedbackPreferenceMessage *msg;
+  const struct PreferenceInformation *pi;
+  uint16_t msize;
+  uint32_t nump;
+  uint32_t i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+              "PREFERENCE_FEEDBACK");
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct FeedbackPreferenceMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct FeedbackPreferenceMessage *) message;
+  nump = ntohl (msg->num_preferences);
+  if (msize !=
+      sizeof (struct FeedbackPreferenceMessage) +
+      nump * sizeof (struct PreferenceInformation))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_STATISTICS_update (GSA_stats, "# preference feedbacks requests processed",
+                            1, GNUNET_NO);
+  pi = (const struct PreferenceInformation *) &msg[1];
+  for (i = 0; i < nump; i++)
+    GAS_addresses_preference_feedback (GSA_addresses,
+                                     client,
+                                     &msg->peer,
+                                     (enum GNUNET_ATS_PreferenceKind)
+                                     ntohl (pi[i].preference_kind),
+                                     pi[i].preference_value);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+
+/**
  * Initialize performance subsystem.
  *
  * @param server handle to our server

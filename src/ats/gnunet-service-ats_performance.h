@@ -132,6 +132,19 @@ GAS_handle_preference_change (void *cls,
                               const struct GNUNET_MessageHeader *message);
 
 
+/**
+ * Handle 'preference feedback' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_preference_feedback (void *cls,
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message);
+
+
 void
 GAS_handle_monitor (void *cls,
 													struct GNUNET_SERVER_Client *client,

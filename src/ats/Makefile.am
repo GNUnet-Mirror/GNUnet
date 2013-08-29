@@ -79,6 +79,7 @@ TESTING_TESTS = \
  test_ats_simplistic_change_preference \
  test_ats_api_performance_list_addresses \
  test_ats_api_performance_address_info \
+ test_ats_api_performance_feedback \
  perf_ats_proportional_bandwidth \
  perf_ats_proportional_delay
 endif
@@ -164,6 +165,16 @@ test_ats_api_scheduling_block_and_reset_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la
+
+
+
+test_ats_api_performance_feedback_SOURCES = \
+ test_ats_api_performance_feedback.c
+test_ats_api_performance_feedback_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la    
 
 test_ats_api_performance_list_addresses_SOURCES = \
  test_ats_api_performance_list_addresses.c

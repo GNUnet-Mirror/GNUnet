@@ -368,6 +368,11 @@ struct GAS_Addresses_Handle
   GAS_solver_address_change_preference s_pref;
 
   /**
+   * Give feedback about the current assignment
+   */
+  GAS_solver_address_feedback_preference s_feedback;
+
+  /**
    * Start a bulk operation
    */
   GAS_solver_bulk_start s_bulk_start;
@@ -1481,6 +1486,48 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   handle->s_bulk_stop (handle->solver);
 }
 
+/**
+ * Change the preference for a peer
+ *
+ * @param handle the address handle
+ * @param application the client sending this request
+ * @param peer the peer id
+ * @param kind the preference kind to change
+ * @param score_abs the new preference score
+ */
+void
+GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
+																		void *application,
+																		const struct GNUNET_PeerIdentity *peer,
+																		enum GNUNET_ATS_PreferenceKind kind,
+																		float score_abs)
+{
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s' for client %p\n",
+              "PREFERENCE FEEDBACK",
+              GNUNET_i2s (peer), application);
+
+  if (GNUNET_NO == handle->running)
+    return;
+
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->addresses,
+                                                          &peer->hashPubKey))
+  {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Received `%s' for unknown peer `%s' from client %p\n",
+                  "PREFERENCE FEEDBACK",
+                  GNUNET_i2s (peer), application);
+      return;
+  }
+
+  GNUNET_break (0);
+
+  //handle->s_bulk_start (handle->solver);
+  /* Tell normalization about change, normalization will call callback if preference changed */
+  //GAS_normalization_normalize_preference (client, peer, kind, score_abs);
+  //handle->s_bulk_stop (handle->solver);
+}
+
 
 /**
  * Load quotas for networks from configuration
@@ -1732,6 +1779,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_address_update_network = &GAS_proportional_address_change_network;
       ah->s_get = &GAS_proportional_get_preferred_address;
       ah->s_get_stop = &GAS_proportional_stop_get_preferred_address;
+      ah->s_pref = &GAS_proportional_address_change_preference;
       ah->s_pref = &GAS_proportional_address_change_preference;
       ah->s_del  = &GAS_proportional_address_delete;
       ah->s_bulk_start = &GAS_proportional_bulk_start;

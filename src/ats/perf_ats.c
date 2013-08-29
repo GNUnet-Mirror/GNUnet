@@ -518,7 +518,7 @@ ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set preference for master %u: %f\n",
 			bp->no, last);
-	GNUNET_ATS_change_preference (bp->p_handle, &bp->destination->id,
+	GNUNET_ATS_performance_change_preference (bp->p_handle, &bp->destination->id,
 			GNUNET_ATS_PREFERENCE_BANDWIDTH, (double) last,
 			GNUNET_ATS_PREFERENCE_END);
 	last++;

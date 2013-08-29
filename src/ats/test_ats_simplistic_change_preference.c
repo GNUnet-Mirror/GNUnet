@@ -384,20 +384,20 @@ run (void *cls,
 
 
   /* Change bandwidth preference */
-  GNUNET_ATS_change_preference (perf_ats,
+  GNUNET_ATS_performance_change_preference (perf_ats,
       &p[0].id,
       GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
-  GNUNET_ATS_change_preference (perf_ats,
+  GNUNET_ATS_performance_change_preference (perf_ats,
       &p[1].id,
       GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
 
 
   /* Change latency preference */
 
-  GNUNET_ATS_change_preference (perf_ats,
+  GNUNET_ATS_performance_change_preference (perf_ats,
       &p[0].id,
       GNUNET_ATS_PREFERENCE_LATENCY,(double) 10, GNUNET_ATS_PREFERENCE_END);
-  GNUNET_ATS_change_preference (perf_ats,
+  GNUNET_ATS_performance_change_preference (perf_ats,
       &p[1].id,
       GNUNET_ATS_PREFERENCE_LATENCY,(double) 100, GNUNET_ATS_PREFERENCE_END);
   GNUNET_SCHEDULER_add_delayed (SLEEP, &sleep_task, NULL);

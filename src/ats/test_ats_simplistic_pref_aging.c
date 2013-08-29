@@ -193,7 +193,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		{
   		  /* Changing preference for peer 0 */
   			stage ++;
-  			GNUNET_ATS_change_preference (perf_ats, &p[0].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
+  			GNUNET_ATS_performance_change_preference (perf_ats, &p[0].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
 				sug_p0 = GNUNET_NO;
 				sug_p1 = GNUNET_NO;
   			return;

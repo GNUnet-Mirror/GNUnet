@@ -866,7 +866,7 @@ GNUNET_ATS_print_preference_type (uint32_t type)
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
+GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
                               const struct GNUNET_PeerIdentity *peer, ...)
 {
   struct PendingMessage *p;
@@ -907,6 +907,87 @@ GNUNET_ATS_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
   p->is_init = GNUNET_NO;
   m = (struct ChangePreferenceMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE);
+  m->header.size = htons (msize);
+  m->num_preferences = htonl (count);
+  m->peer = *peer;
+  pi = (struct PreferenceInformation *) &m[1];
+  count = 0;
+  va_start (ap, peer);
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  {
+    pi[count].preference_kind = htonl (kind);
+    switch (kind)
+    {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      pi[count].preference_value = (float) va_arg (ap, double);
+
+      count++;
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      pi[count].preference_value = (float) va_arg (ap, double);
+
+      count++;
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+  }
+  va_end (ap);
+  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head, ph->pending_tail, p);
+  do_transmit (ph);
+}
+
+/**
+ * Send feedback to ATS on how good a the requirements for a peer and a
+ * preference is satisfied by ATS
+ *
+ * @param ph performance handle
+ * @param peer identifies the peer
+ * @param ... 0-terminated specification of the desired changes
+ */
+void
+GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
+																			const struct GNUNET_PeerIdentity *peer, ...)
+{
+  struct PendingMessage *p;
+  struct FeedbackPreferenceMessage *m;
+  size_t msize;
+  uint32_t count;
+  struct PreferenceInformation *pi;
+  va_list ap;
+  enum GNUNET_ATS_PreferenceKind kind;
+
+  count = 0;
+  va_start (ap, peer);
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind)))
+  {
+    switch (kind)
+    {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      count++;
+      (void) va_arg (ap, double);
+
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      count++;
+      (void) va_arg (ap, double);
+
+      break;
+    default:
+      GNUNET_assert (0);
+    }
+  }
+  va_end (ap);
+  msize =
+      count * sizeof (struct PreferenceInformation) +
+      sizeof (struct FeedbackPreferenceMessage);
+  p = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  p->size = msize;
+  p->is_init = GNUNET_NO;
+  m = (struct FeedbackPreferenceMessage *) &p[1];
+  m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK);
   m->header.size = htons (msize);
   m->num_preferences = htonl (count);
   m->peer = *peer;
