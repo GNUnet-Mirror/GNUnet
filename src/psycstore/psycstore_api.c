@@ -340,22 +340,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == h->client);
   h->client = GNUNET_CLIENT_connect ("psycstore", h->cfg);
   GNUNET_assert (NULL != h->client);
-/*
-  struct GNUNET_PSYCSTORE_OperationHandle *op;
-  struct GNUNET_MessageHeader msg;
-  op = GNUNET_malloc (sizeof (struct GNUNET_PSYCSTORE_OperationHandle) + 
-		      sizeof (struct GNUNET_MessageHeader));
-  op->h = h;
-  op->msg = (const struct GNUNET_MessageHeader *) &op[1];
-  msg.size = htons (sizeof (msg));
-  msg.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_START);
-  memcpy (&op[1], &msg, sizeof (msg));
-  GNUNET_CONTAINER_DLL_insert (h->op_head,
-			       h->op_tail,
-			       op);
   transmit_next (h);
   GNUNET_assert (NULL != h->th);
-*/
 }
 
 
@@ -375,6 +361,35 @@ GNUNET_PSYCSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
   return h;
+}
+
+
+/**
+ * Disconnect from PSYCstore service
+ *
+ * @param h handle to destroy
+ */
+void
+GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h)
+{
+  GNUNET_assert (NULL != h);
+  GNUNET_assert (h->op_head == h->op_tail);
+  if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (h->reconnect_task);
+    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
+  if (NULL != h->client)
+  {
+    GNUNET_CLIENT_disconnect (h->client);
+    h->client = NULL;
+  }
+  GNUNET_free (h);
 }
 
 
@@ -419,33 +434,5 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
   op->state_cb = NULL;
 }
 
-
-/**
- * Disconnect from PSYCstore service
- *
- * @param h handle to destroy
- */
-void
-GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h)
-{
-  GNUNET_assert (NULL != h);
-  GNUNET_assert (h->op_head == h->op_tail);
-  if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (NULL != h->th)
-  {
-    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
-    h->th = NULL;
-  }
-  if (NULL != h->client)
-  {
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
-  }
-  GNUNET_free (h);
-}
 
 /* end of psycstore_api.c */

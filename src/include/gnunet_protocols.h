@@ -1944,6 +1944,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE 650
 
+/**
+ * Store a membership event.
+ */
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_STORE 651
+
+/**
+ * Test for membership of a member at a particular point in time.
+ */
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_TEST 652
+
 
 /**
  * Next available: 670

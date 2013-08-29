@@ -78,43 +78,6 @@ struct GNUNET_PSYCSTORE_OperationHandle;
 
 
 /** 
- * Callback used to return the latest value of counters of a channel.
- *
- * @see GNUNET_PSYCSTORE_counters_get()
- *
- * @param *cls Closure.
- * @param fragment_id Latest message fragment ID, used by multicast.
- * @param message_id Latest message ID, used by PSYC.
- * @param group_generation Latest group generation, used by PSYC.
- */
-typedef void
-(*GNUNET_PSYCSTORE_CountersCallback) (void *cls,
-                                      uint64_t fragment_id,
-                                      uint64_t message_id,
-                                      uint64_t group_generation);
-
-
-/** 
- * Retrieve latest values of counters for a channel.
- *
- * The current value of counters are needed when a channel master is restarted,
- * so that it can continue incrementing the counters from their last value.
- *
- * @param h Handle for the PSYCstore.
- * @param channel_key Public key that identifies the channel.
- * @param cb Callback to call with the result.
- * @param cb_cls Closure for the callback.
- * 
- * @return 
- */
-struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
-                               struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-                               GNUNET_PSYCSTORE_CountersCallback *cb,
-                               void *cb_cls);
-
-
-/** 
  * Function called with the result of an asynchronous operation.
  * 
  * @param result #GNUNET_SYSERR on error,
@@ -159,9 +122,12 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
- * Test if a peer was a member of the channel during the given period specified by the group generation.
+ * Test if a member was admitted to the channel at the given message ID.
  *
- * This is useful when relaying and replaying messages to check if a particular slave has access to the message fragment with a given group generation.  It is also used when handling join requests to determine whether the slave is currently admitted to the channel.
+ * This is useful when relaying and replaying messages to check if a particular
+ * slave has access to the message fragment with a given group generation.  It
+ * is also used when handling join requests to determine whether the slave is
+ * currently admitted to the channel.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
@@ -239,7 +205,7 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
- * Retrieve a message by ID.
+ * Retrieve all fragments of a message.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
@@ -255,6 +221,97 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               uint64_t message_id,
                               GNUNET_PSYCSTORE_FragmentCallback cb,
                               void *cb_cls);
+
+
+/** 
+ * Retrieve a fragment of message specified by its message ID and fragment offset.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_key The channel we are interested in.
+ * @param message_id Message ID to check.  Use 0 to get the latest message.
+ * @param fragment_offset Offset of the fragment to retrieve.
+ * @param cb Callback to call with the retrieved fragments.
+ * @param cb_cls Closure for the callback.
+ * 
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
+                                       const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                                       uint64_t message_id,
+                                       uint64_t fragment_offset,
+                                       GNUNET_PSYCSTORE_FragmentCallback cb,
+                                       void *cb_cls);
+
+
+/** 
+ * Callback used to return the latest value of counters for the channel master.
+ *
+ * @see GNUNET_PSYCSTORE_counters_get_master()
+ *
+ * @param cls Closure.
+ * @param fragment_id Latest message fragment ID, used by multicast.
+ * @param message_id Latest message ID, used by PSYC.
+ * @param group_generation Latest group generation, used by PSYC.
+ */
+typedef void
+(*GNUNET_PSYCSTORE_MasterCountersCallback) (void *cls,
+                                            uint64_t fragment_id,
+                                            uint64_t message_id,
+                                            uint64_t group_generation);
+
+
+/** 
+ * Callback used to return the latest value of counters for a channel slave.
+ *
+ * @see GNUNET_PSYCSTORE_counters_get_slave()
+ *
+ * @param cls Closure.
+ * @param max_state_msg_id Latest message ID containing state modifiers that was applied to the state store.  Used for the state sync process.
+ */
+typedef void
+(*GNUNET_PSYCSTORE_SlaveCountersCallback) (void *cls,
+                                           uint64_t max_state_msg_id);
+
+
+/** 
+ * Retrieve latest values of counters for a channel master.
+ *
+ * The current value of counters are needed when a channel master is restarted,
+ * so that it can continue incrementing the counters from their last value.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_key Public key that identifies the channel.
+ * @param cb Callback to call with the result.
+ * @param cb_cls Closure for the callback.
+ * 
+ * @return 
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_counters_get_master (struct GNUNET_PSYCSTORE_Handle *h,
+                                      struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                                      GNUNET_PSYCSTORE_MasterCountersCallback *cb,
+                                      void *cb_cls);
+
+
+/** 
+ * Retrieve latest values of counters for a channel slave.
+ *
+ * The current value of counters are needed when a channel slave rejoins
+ * and starts the state synchronization process.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_key Public key that identifies the channel.
+ * @param cb Callback to call with the result.
+ * @param cb_cls Closure for the callback.
+ * 
+ * @return 
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_counters_get_slave (struct GNUNET_PSYCSTORE_Handle *h,
+                                     struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                                     GNUNET_PSYCSTORE_SlaveCountersCallback *cb,
+                                     void *cb_cls);
 
 
 /** 

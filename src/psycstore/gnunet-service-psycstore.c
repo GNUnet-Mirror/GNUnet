@@ -34,6 +34,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_psycstore_service.h"
+#include "gnunet_psycstore_plugin.h"
 #include "psycstore.h"
 
 
@@ -53,9 +54,14 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
- * Database file.
+ * Database handle
  */
-static char *db_file;
+static struct GNUNET_PSYCSTORE_PluginFunctions *db;
+
+/**
+ * Name of the database plugin
+ */
+static char *db_lib_name;
 
 
 /**
@@ -77,8 +83,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-  GNUNET_free (db_file);
-  db_file = NULL;
+  GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, db));
+  GNUNET_free (db_lib_name);
+  db_lib_name = NULL;
 }
 
 
@@ -123,7 +130,7 @@ send_result_code (struct GNUNET_SERVER_Client *client,
  * @param c configuration to use
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -132,15 +139,30 @@ run (void *cls,
   };
 
   cfg = c;
+
+  /* Loading database plugin */
+  char *database;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "psycstore",
-					       "DB_FILE",
-					       &db_file))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "psycstore", "database",
+                                             &database))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "psycstore", "DB_FILE");
-    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+  }
+  else
+  {
+    GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_psycstore_%s", database);
+    db = GNUNET_PLUGIN_load (db_lib_name, (void *) cfg);
+    GNUNET_free (database);
+  }
+  if (NULL == db)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Could not load database backend `%s'\n",
+		db_lib_name);
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
+
   stats = GNUNET_STATISTICS_create ("psycstore", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
@@ -160,7 +182,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "psycstore", 
+          GNUNET_SERVICE_run (argc, argv, "psycstore",
 			      GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
