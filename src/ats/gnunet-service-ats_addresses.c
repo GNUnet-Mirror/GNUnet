@@ -1520,12 +1520,7 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
       return;
   }
 
-  GNUNET_break (0);
-
-  //handle->s_bulk_start (handle->solver);
-  /* Tell normalization about change, normalization will call callback if preference changed */
-  //GAS_normalization_normalize_preference (client, peer, kind, score_abs);
-  //handle->s_bulk_stop (handle->solver);
+  handle->s_feedback (handle->solver, application, peer, kind, score_abs);
 }
 
 
@@ -1759,6 +1754,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_get = &GAS_mlp_get_preferred_address;
       ah->s_get_stop = &GAS_mlp_stop_get_preferred_address;
       ah->s_pref = &GAS_mlp_address_change_preference;
+      ah->s_feedback = &GAS_mlp_address_preference_feedback;
       ah->s_del =  &GAS_mlp_address_delete;
       ah->s_bulk_start = &GAS_mlp_bulk_start;
       ah->s_bulk_stop = &GAS_mlp_bulk_stop;
@@ -1780,7 +1776,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_get = &GAS_proportional_get_preferred_address;
       ah->s_get_stop = &GAS_proportional_stop_get_preferred_address;
       ah->s_pref = &GAS_proportional_address_change_preference;
-      ah->s_pref = &GAS_proportional_address_change_preference;
+      ah->s_feedback = &GAS_proportional_address_preference_feedback;
       ah->s_del  = &GAS_proportional_address_delete;
       ah->s_bulk_start = &GAS_proportional_bulk_start;
       ah->s_bulk_stop = &GAS_proportional_bulk_stop;
@@ -1801,6 +1797,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != ah->s_get);
   GNUNET_assert (NULL != ah->s_get_stop);
   GNUNET_assert (NULL != ah->s_pref);
+  GNUNET_assert (NULL != ah->s_feedback);
   GNUNET_assert (NULL != ah->s_del);
   GNUNET_assert (NULL != ah->s_done);
   GNUNET_assert (NULL != ah->s_bulk_start);
