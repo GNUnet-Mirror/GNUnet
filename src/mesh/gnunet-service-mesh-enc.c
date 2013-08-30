@@ -4154,10 +4154,13 @@ channel_send_destroy (struct MeshChannel *ch)
               peer2s (ch->t->peer),
               ch->gid);
 
-  if (NULL != ch->root)
+  if (channel_is_terminal (ch, GNUNET_NO))
   {
-    msg.chid = htonl (ch->lid_root);
-    send_local_channel_destroy (ch, GNUNET_NO);
+    if (NULL != ch->root)
+    {
+      msg.chid = htonl (ch->lid_root);
+      send_local_channel_destroy (ch, GNUNET_NO);
+    }
   }
   else
   {
@@ -4165,10 +4168,13 @@ channel_send_destroy (struct MeshChannel *ch)
     send_prebuilt_message_channel (&msg.header, ch, GNUNET_NO);
   }
 
-  if (NULL != ch->dest)
+  if (channel_is_terminal (ch, GNUNET_YES))
   {
-    msg.chid = htonl (ch->lid_dest);
-    send_local_channel_destroy (ch, GNUNET_YES);
+    if (NULL != ch->dest)
+    {
+      msg.chid = htonl (ch->lid_dest);
+      send_local_channel_destroy (ch, GNUNET_YES);
+    }
   }
   else
   {
