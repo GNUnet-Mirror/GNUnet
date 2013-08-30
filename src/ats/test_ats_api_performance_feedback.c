@@ -167,11 +167,15 @@ void ats_suggest_cb (void *cls,
 		res_suggest_cb_p0 = GNUNET_YES;
 		stage = 1;
 		GNUNET_ATS_address_update (sh, &addr[1], NULL, atsi, ATS_COUNT);
-		GNUNET_ATS_performance_give_feedback (ph, &addr[0].peer, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
+		GNUNET_ATS_performance_give_feedback (ph, &addr[0].peer,
+				GNUNET_TIME_UNIT_SECONDS, GNUNET_ATS_PREFERENCE_BANDWIDTH,
+				(double) 1000, GNUNET_ATS_PREFERENCE_END);
 	}
 	if (0 == memcmp (&addr[1].peer, &address->peer, sizeof (address->peer)))
 	{
-		GNUNET_ATS_performance_give_feedback (ph, &addr[1].peer, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
+		GNUNET_ATS_performance_give_feedback (ph, &addr[1].peer,
+				GNUNET_TIME_UNIT_SECONDS, GNUNET_ATS_PREFERENCE_BANDWIDTH,
+				GNUNET_ATS_PREFERENCE_END);
 		res_suggest_cb_p1 = GNUNET_YES;
 	}
 }

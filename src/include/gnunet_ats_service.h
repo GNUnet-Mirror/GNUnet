@@ -937,12 +937,14 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
  * preference is satisfied by ATS
  *
  * @param ph performance handle
+ * @param scope the time interval this valid for: [now - scope .. now]
  * @param peer identifies the peer
  * @param ... 0-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
-																			const struct GNUNET_PeerIdentity *peer, ...);
+																			const struct GNUNET_PeerIdentity *peer,
+																			const struct GNUNET_TIME_Relative scope, ...);
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

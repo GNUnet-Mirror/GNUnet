@@ -676,7 +676,7 @@ GAS_handle_preference_feedback (void *cls,
     return;
   }
   msg = (const struct FeedbackPreferenceMessage *) message;
-  nump = ntohl (msg->num_preferences);
+  nump = ntohl (msg->num_feedback);
   if (msize !=
       sizeof (struct FeedbackPreferenceMessage) +
       nump * sizeof (struct PreferenceInformation))
@@ -692,6 +692,7 @@ GAS_handle_preference_feedback (void *cls,
     GAS_addresses_preference_feedback (GSA_addresses,
                                      client,
                                      &msg->peer,
+                                     GNUNET_TIME_relative_ntoh(msg->scope),
                                      (enum GNUNET_ATS_PreferenceKind)
                                      ntohl (pi[i].preference_kind),
                                      pi[i].preference_value);

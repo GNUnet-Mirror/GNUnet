@@ -1486,12 +1486,14 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   handle->s_bulk_stop (handle->solver);
 }
 
+
 /**
  * Change the preference for a peer
  *
  * @param handle the address handle
  * @param application the client sending this request
  * @param peer the peer id
+ * @param scope the time interval for this feedback: [now - scope .. now]
  * @param kind the preference kind to change
  * @param score_abs the new preference score
  */
@@ -1499,6 +1501,7 @@ void
 GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
 																		void *application,
 																		const struct GNUNET_PeerIdentity *peer,
+																		const struct GNUNET_TIME_Relative scope,
 																		enum GNUNET_ATS_PreferenceKind kind,
 																		float score_abs)
 {
@@ -1520,7 +1523,7 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
       return;
   }
 
-  handle->s_feedback (handle->solver, application, peer, kind, score_abs);
+  handle->s_feedback (handle->solver, application, peer, scope, kind, score_abs);
 }
 
 

@@ -94,7 +94,7 @@ struct ExperimentationPeer
 };
 
 
-struct ExperimentationPeer ph[NUM_PEERS];
+struct ExperimentationPeer bp_slaves[NUM_PEERS];
 
 /**
  * Shutdown nicely
@@ -110,9 +110,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (peer = 0; peer < NUM_PEERS; peer++)
   {
-  	if (NULL != ph[peer].stat_op)
-  		GNUNET_TESTBED_operation_done (ph[peer].stat_op);
-  	ph[peer].stat_op = NULL;
+  	if (NULL != bp_slaves[peer].stat_op)
+  		GNUNET_TESTBED_operation_done (bp_slaves[peer].stat_op);
+  	bp_slaves[peer].stat_op = NULL;
   }
 
   if (NULL != op)
@@ -173,12 +173,12 @@ check_end ()
 
 	for (peer = 0; peer < NUM_PEERS; peer++)
 	{
-			total_active += ph[peer].active_nodes;
-			total_requested += ph[peer].requested_nodes;
-			total_inactive += ph[peer].inactive_nodes;
-			if (NUM_ISSUER == ph[peer].issuer)
+			total_active += bp_slaves[peer].active_nodes;
+			total_requested += bp_slaves[peer].requested_nodes;
+			total_inactive += bp_slaves[peer].inactive_nodes;
+			if (NUM_ISSUER == bp_slaves[peer].issuer)
 				issuer ++;
-			if (NUM_EXPERIMENTS == ph[peer].experiments)
+			if (NUM_EXPERIMENTS == bp_slaves[peer].experiments)
 				experiments ++;
 	}
 	if ((last_issuer_value < issuer) && (issuer == NUM_PEERS))
@@ -367,12 +367,12 @@ test_master (void *cls, unsigned int num_peers,
   {
     GNUNET_assert (NULL != peers_[peer]);
     /* Connect to peer's statistic service */
-    ph[peer].stat_op = GNUNET_TESTBED_service_connect (NULL,
+    bp_slaves[peer].stat_op = GNUNET_TESTBED_service_connect (NULL,
     																peers_[peer], "statistics",
-    																&stat_comp_cb, &ph[peer],
+    																&stat_comp_cb, &bp_slaves[peer],
                                     &stat_connect_adapter,
                                     &stat_disconnect_adapter,
-                                    &ph[peer]);
+                                    &bp_slaves[peer]);
 
   }
   peers = peers_;

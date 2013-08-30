@@ -506,6 +506,7 @@ GAS_mlp_address_change_preference (void *solver,
  * @param solver the solver handle
  * @param application the application
  * @param peer the peer to change the preference for
+ * @param scope the time interval for this feedback: [now - scope .. now]
  * @param kind the kind to change the preference
  * @param score the score
  */
@@ -513,6 +514,7 @@ void
 GAS_mlp_address_preference_feedback (void *solver,
 											void *application,
 								 	 	 	const struct GNUNET_PeerIdentity *peer,
+								 	 	 	const struct GNUNET_TIME_Relative scope,
 								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
 								 	 	 	double score);
 

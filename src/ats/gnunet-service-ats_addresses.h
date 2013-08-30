@@ -455,6 +455,7 @@ typedef void
  * @param handle the solver handle
  * @param application the application sending this request
  * @param peer the peer id
+ * @param scope the time interval for this feedback: [now - scope .. now]
  * @param kind the preference kind for this feedback
  * @param score the feedback score
  */
@@ -462,6 +463,7 @@ typedef void
 (*GAS_solver_address_feedback_preference) (void *solver,
 																				 void *application,
 																				 const struct GNUNET_PeerIdentity *peer,
+																				 const struct GNUNET_TIME_Relative scope,
 																				 enum GNUNET_ATS_PreferenceKind kind,
 																				 double score);
 
@@ -796,15 +798,17 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
  * Change the preference for a peer
  *
  * @param handle the address handle
- * @param client the client sending this request
+ * @param application the client sending this request
  * @param peer the peer id
+ * @param scope the time interval this valid for: [now - scope .. now]
  * @param kind the preference kind to change
  * @param score_abs the new preference score
  */
 void
 GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
-																		void *client,
+																		void *application,
 																		const struct GNUNET_PeerIdentity *peer,
+																		const struct GNUNET_TIME_Relative scope,
 																		enum GNUNET_ATS_PreferenceKind kind,
 																		float score_abs);
 
