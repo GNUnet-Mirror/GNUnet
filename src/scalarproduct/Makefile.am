@@ -38,7 +38,6 @@ gnunet_service_scalarproduct_SOURCES = \
   gnunet-service-scalarproduct.c
 gnunet_service_scalarproduct_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/set/libgnunetset.la \
   -lgcrypt \

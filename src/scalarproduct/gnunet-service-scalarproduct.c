@@ -33,14 +33,22 @@
 #include "gnunet_scalarproduct_service.h"
 #include "gnunet_scalarproduct.h"
 
+
+#define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct", __VA_ARGS__)
+
+/**
+ * Log an error message at log-level 'level' that indicates
+ * a failure of the command 'cmd' with the message given
+ * by gcry_strerror(rc).
+ */
+#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
+
+
+
 ///////////////////////////////////////////////////////////////////////////////
 //                      Global Variables
 ///////////////////////////////////////////////////////////////////////////////
 
-/**
- * Handle to the core service (NULL until we've connected to it).
- */
-static struct GNUNET_CORE_Handle *my_core;
 
 /**
  * Handle to the core service (NULL until we've connected to it).
@@ -383,7 +391,9 @@ do_send_message (void *cls, size_t size, void *buf)
   if (info->transmit_handle)
     *info->transmit_handle = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Sent a message of type %hu.\n"), ntohs (msg->type));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Sent a message of type %hu.\n", 
+	      ntohs (msg->type));
   GNUNET_free(msg);
   GNUNET_free(info);
   return written;
@@ -479,7 +489,7 @@ generate_random_vector (uint16_t length)
  */
 static struct ServiceSession *
 find_matching_session (struct ServiceSession * tail,
-                       struct GNUNET_HashCode * key,
+                       const struct GNUNET_HashCode * key,
                        uint16_t element_count,
                        enum SessionState * state,
                        const struct GNUNET_PeerIdentity * peerid)
@@ -527,7 +537,7 @@ destroy_tunnel (void *cls,
 static void
 free_session (struct ServiceSession * session)
 {
-  int i;
+  unsigned int i;
 
   if (FINALIZED != session->state)
     {
@@ -613,8 +623,6 @@ prepare_client_end_notification (void * cls,
   struct GNUNET_SCALARPRODUCT_client_response * msg;
   struct MessageObject * msg_obj;
 
-  GNUNET_assert (NULL != session);
-
   msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_client_response);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
@@ -623,8 +631,8 @@ prepare_client_end_notification (void * cls,
   // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
   msg->product_length = htonl (0);
 
-  msg_obj = GNUNET_malloc (sizeof (struct MessageObject));
-  msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
+  msg_obj = GNUNET_new (struct MessageObject);
+  msg_obj->msg = &msg->header;
   msg_obj->transmit_handle = NULL; // do not reset the transmit handle, please
 
   //transmit this message to our client
@@ -686,14 +694,11 @@ prepare_service_response (gcry_mpi_t * kp,
   size_t element_length = 0;
   int i;
 
-  GNUNET_assert (request);
-
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * request->used_element_count * PAILLIER_ELEMENT_LENGTH // kp, kq
           + 2 * PAILLIER_ELEMENT_LENGTH; // s, stick
 
   msg = GNUNET_malloc (msg_length);
-  GNUNET_assert (msg);
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
   msg->header.size = htons (msg_length);
@@ -838,7 +843,6 @@ compute_service_response (struct ServiceSession * request,
   gcry_sexp_t tmp_exp;
   uint32_t value;
 
-  GNUNET_assert (request != NULL && response != NULL);
   count = request->used_element_count;
 
   b = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
@@ -990,7 +994,8 @@ compute_service_response (struct ServiceSession * request,
 
   // copy the Kp[], Kq[], S and Stick into a new message
   if (GNUNET_YES != prepare_service_response (kp, kq, s, stick, request, response))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Computation of values for alice failed!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to communicate with `%s', scalar product calculation aborted.\n"),
+		GNUNET_i2s (&request->peer));
   else
     ret = GNUNET_OK;
 
@@ -1022,9 +1027,9 @@ except:
  * Executed by Alice, fills in a service-request message and sends it to the given peer
  * 
  * @param session the session associated with this request, then also holds the CORE-handle
- * @return GNUNET_SYSERR if we could not send the message
- *         GNUNET_NO if the message was too large
- *         GNUNET_OK if we sent it
+ * @return #GNUNET_SYSERR if we could not send the message
+ *         #GNUNET_NO if the message was too large
+ *         #GNUNET_OK if we sent it
  */
 static void
 prepare_service_request (void *cls,
@@ -1128,7 +1133,7 @@ prepare_service_request (void *cls,
   gcry_mpi_release (a);
   gcry_mpi_release (r);
 
-  msg_obj = GNUNET_malloc (sizeof (struct MessageObject));
+  msg_obj = GNUNET_new (struct MessageObject);
   msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
   msg_obj->transmit_handle = (void *) &session->service_transmit_handle; //and reset the transmit handle
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transmitting service request.\n"));
@@ -1158,9 +1163,9 @@ prepare_service_request (void *cls,
 /**
  * Method called whenever a peer has disconnected from the tunnel.
  * Implementations of this callback must NOT call
- * GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
+ * #GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
  * to run in some other task later.  However, calling 
- * "GNUNET_MESH_notify_transmit_ready_cancel" is allowed.
+ * #GNUNET_MESH_notify_transmit_ready_cancel is allowed.
  *
  * @param cls closure
  * @param peer peer identity the tunnel stopped working with
@@ -1171,8 +1176,10 @@ tunnel_peer_disconnect_handler (void *cls, const struct GNUNET_PeerIdentity * pe
   // as we have only one peer connected in each session, just remove the session and say good bye
   struct ServiceSession * session = cls;
   struct ServiceSession * curr;
-  GNUNET_assert(cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Peer (%s) disconnected from our tunnel!\n"), GNUNET_i2s (peer));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Peer (%s) disconnected from our tunnel!\n",
+	      GNUNET_i2s (peer));
 
   if ((session->role == ALICE) && (FINALIZED != session->state) && ( ! do_shutdown))
     {
@@ -1182,12 +1189,12 @@ tunnel_peer_disconnect_handler (void *cls, const struct GNUNET_PeerIdentity * pe
             GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
             break;
           }
+      // FIXME: dangling tasks, code duplication, use-after-free, fun...
       GNUNET_SCHEDULER_add_now (&destroy_tunnel,
                                 session);
       // if this happened before we received the answer, we must terminate the session
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    session);
+      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+				session);
     }
 }
 
@@ -1207,7 +1214,7 @@ handle_client_request (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_SCALARPRODUCT_client_request * msg = (struct GNUNET_SCALARPRODUCT_client_request *) message;
+  const struct GNUNET_SCALARPRODUCT_client_request * msg = (const struct GNUNET_SCALARPRODUCT_client_request *) message;
   struct ServiceSession * session;
   uint16_t element_count;
   uint16_t mask_length;
@@ -1220,7 +1227,8 @@ handle_client_request (void *cls,
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_client_request) > ntohs (msg->header.size))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from client!\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _ ("Too short message received from client!\n"));
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -1233,7 +1241,8 @@ handle_client_request (void *cls,
   if (( ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_length))
       || (0 == element_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Invalid message received from client, session information incorrect!\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _ ("Invalid message received from client, session information incorrect!\n"));
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
@@ -1249,7 +1258,7 @@ handle_client_request (void *cls,
       return;
     }
 
-  session = GNUNET_malloc (sizeof (struct ServiceSession));
+  session = GNUNET_new (struct ServiceSession);
   session->client = client;
   session->element_count = element_count;
   session->mask_length = mask_length;
@@ -1387,7 +1396,7 @@ tunnel_incoming_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
  * Function called whenever an inbound tunnel is destroyed.  Should clean up
  * any associated state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored (our 'struct TunnelState')
@@ -1543,11 +1552,9 @@ prepare_client_response (void *cls,
   uint16_t msg_length = 0;
   struct MessageObject * msg_obj;
 
-  GNUNET_assert (session);
-  
   if (session->product)
     {
-      // get representation as string
+      // get representation as string // FIXME: just log (& survive!)
       GNUNET_assert ( ! gcry_mpi_aprint (GCRYMPI_FMT_USG,
                                            &product_exported,
                                            &product_length,
@@ -1556,7 +1563,7 @@ prepare_client_response (void *cls,
       session->product = NULL;
     }
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) +product_length;
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) + product_length;
   msg = GNUNET_malloc (msg_length);
   memcpy (&msg[1], product_exported, product_length);
   GNUNET_free_non_null (product_exported);
@@ -1566,13 +1573,13 @@ prepare_client_response (void *cls,
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
   msg->product_length = htonl (product_length);
   
-  msg_obj = GNUNET_malloc (sizeof (struct MessageObject));
+  msg_obj = GNUNET_new (struct MessageObject);
   msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
   msg_obj->transmit_handle = NULL; // don't reset the transmit handle
 
   //transmit this message to our client
   session->client_transmit_handle =
-          GNUNET_SERVER_notify_transmit_ready (session->client,
+    GNUNET_SERVER_notify_transmit_ready (session->client, // FIXME: use after free possibility during shutdown
                                                msg_length,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &do_send_message,
@@ -1595,14 +1602,14 @@ prepare_client_response (void *cls,
 /**
  * Handle a request from another service to calculate a scalarproduct with us.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
  * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_service_request (void *cls,
@@ -1613,7 +1620,7 @@ handle_service_request (void *cls,
                         const struct GNUNET_ATS_Information * atsi)
 {
   struct ServiceSession * session;
-  struct GNUNET_SCALARPRODUCT_service_request * msg = (struct GNUNET_SCALARPRODUCT_service_request *) message;
+  const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
   uint16_t mask_length;
   uint16_t pk_length;
   uint16_t used_elements;
@@ -1624,9 +1631,6 @@ handle_service_request (void *cls,
   int32_t i = -1;
   enum SessionState needed_state;
 
-  GNUNET_assert (NULL != message);
-  GNUNET_assert (NULL != sender);
-  GNUNET_assert (NULL != tunnel_ctx);
   session = (struct ServiceSession *) * tunnel_ctx;
   // is this tunnel already in use?
   if ( (session->next) || (from_service_head == session))
@@ -1790,14 +1794,14 @@ except:
 /**
  * Handle a response we got from another service we wanted to calculate a scalarproduct with.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end
  * @param tunnel_ctx place to store local state associated with the tunnel
  * @param sender who sent the message
  * @param message the actual message
  * @param atsi performance data for the connection
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_service_response (void *cls,
@@ -1820,6 +1824,7 @@ handle_service_response (void *cls,
   size_t msg_size;
   gcry_mpi_t * kp = NULL;
   gcry_mpi_t * kq = NULL;
+  int rc;
 
   GNUNET_assert (NULL != message);
   GNUNET_assert (NULL != sender);
@@ -1837,7 +1842,7 @@ handle_service_response (void *cls,
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from peer!\n"));
+      GNUNET_break_op (0);
       goto invalid_msg;
     }
   used_element_count = ntohs (msg->used_element_count);
@@ -1847,29 +1852,26 @@ handle_service_response (void *cls,
   //sanity check: is the message as long as the message_count fields suggests?
   if ((ntohs (msg->header.size) != msg_size) || (count != used_element_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Invalid message received from peer!\n"));
-      goto invalid_msg;
-    }
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < msg_size)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
+      GNUNET_break_op (0);
       goto invalid_msg;
     }
 
   //convert s
   current = (unsigned char *) &msg[1];
-  if (gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current, 
-                     PAILLIER_ELEMENT_LENGTH, &read))
+  if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current, 
+				PAILLIER_ELEMENT_LENGTH, &read)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate s to an MPI value!\n"));
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
       goto invalid_msg;
     }
   current += PAILLIER_ELEMENT_LENGTH;
   //convert stick
-  if (gcry_mpi_scan (&stick, GCRYMPI_FMT_USG, current,
-                       PAILLIER_ELEMENT_LENGTH, &read))
+  if (0 != (rc = gcry_mpi_scan (&stick, GCRYMPI_FMT_USG, current,
+				PAILLIER_ELEMENT_LENGTH, &read)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate s' to an MPI value!\n"));
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
       goto invalid_msg;
     }
   current += PAILLIER_ELEMENT_LENGTH;
@@ -1878,24 +1880,26 @@ handle_service_response (void *cls,
   // Convert each kp[] to its MPI_value
   for (i = 0; i < count; i++)
     {
-      if (gcry_mpi_scan (&kp[i], GCRYMPI_FMT_USG, current,
-                           PAILLIER_ELEMENT_LENGTH, &read))
+      if (0 != (rc = gcry_mpi_scan (&kp[i], GCRYMPI_FMT_USG, current,
+				    PAILLIER_ELEMENT_LENGTH, &read)))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate Kp[%d]to an MPI value!\n"), i);
+	  LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+	  GNUNET_break_op (0);
           goto invalid_msg;
         }
       current += PAILLIER_ELEMENT_LENGTH;
     }
 
-
+  
   kq = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   // Convert each kq[] to its MPI_value
   for (i = 0; i < count; i++)
     {
-      if (gcry_mpi_scan (&kq[i], GCRYMPI_FMT_USG, current,
-                           PAILLIER_ELEMENT_LENGTH, &read))
+      if (0 != (rc = gcry_mpi_scan (&kq[i], GCRYMPI_FMT_USG, current,
+				    PAILLIER_ELEMENT_LENGTH, &read)))
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate Kq[%d]to an MPI value!\n"), i);
+	  LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+	  GNUNET_break_op (0);
           goto invalid_msg;
         }
       current += PAILLIER_ELEMENT_LENGTH;
@@ -1919,10 +1923,9 @@ invalid_msg:
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-  GNUNET_SCHEDULER_add_now (&destroy_tunnel, session);
+  GNUNET_SCHEDULER_add_now (&destroy_tunnel, session); // FIXME: use after free!
   // send message with product to client
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                &prepare_client_response, session);
+  /* session->current_task = */ GNUNET_SCHEDULER_add_now (&prepare_client_response, session); // FIXME: dangling task!
   return GNUNET_OK;
   // if success: terminate the session gracefully, else terminate with error
 }
@@ -1953,34 +1956,11 @@ shutdown_task (void *cls,
           curr->state = FINALIZED;
         }
     }
-
-  if (my_core)
-    {
-      GNUNET_CORE_disconnect (my_core);
-      my_core = NULL;
-    }
-
   if (my_mesh)
     {
       GNUNET_MESH_disconnect (my_mesh);
       my_mesh = NULL;
     }
-}
-
-
-/**
- * To be called on core init/fail.
- *
- * @param cls closure, NULL
- * @param server handle to the server for this service
- * @param my_identity the public identity of this peer
- */
-static void
-core_init (void *cls, struct GNUNET_CORE_Handle *server,
-           const struct GNUNET_PeerIdentity *my_identity)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Core initialized\n"));
-  me = *my_identity;
 }
 
 
@@ -2006,9 +1986,6 @@ run (void *cls,
     { &handle_service_response, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE, 0},
     {NULL, 0, 0}
   };
-  static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    {NULL, 0, 0}
-  };
   static GNUNET_MESH_ApplicationType mesh_types[] = {
     GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
     GNUNET_APPLICATION_TYPE_END
@@ -2022,14 +1999,9 @@ run (void *cls,
   GNUNET_SERVER_disconnect_notify (server,
                                    &handle_client_disconnect,
                                    NULL);
-
-  my_core = GNUNET_CORE_connect (c, NULL, &core_init, NULL, NULL, NULL,
-                                 GNUNET_NO, NULL, GNUNET_NO, core_handlers);
-  if (!my_core)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to CORE failed\n"));
-      return;
-    }
+  GNUNET_break (GNUNET_OK ==
+		GNUNET_CRYPTO_get_host_identity (c,
+						 &me));
   my_mesh = GNUNET_MESH_connect (c, NULL,
                                  &tunnel_incoming_handler,
                                  &tunnel_destruction_handler,

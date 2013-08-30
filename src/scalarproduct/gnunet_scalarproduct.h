@@ -147,6 +147,8 @@ enum PeerRole
     ALICE,
     BOB
 };
+
+
 /**
  * A scalarproduct session which tracks:
  * 
