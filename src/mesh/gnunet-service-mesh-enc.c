@@ -3241,9 +3241,19 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   }
 
   peer = connection_get_next_hop (c);
+  if (NULL == peer->connections)
+  {
+    connection_destroy (c);
+    return NULL;
+  }
   GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   peer = connection_get_prev_hop (c);
+  if (NULL == peer->connections)
+  {
+    connection_destroy (c);
+    return NULL;
+  }
   GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   return c;
