@@ -806,10 +806,13 @@ cleanup_tslots (struct OperationQueue *queue)
 
 
 /**
- * Initializes the operation queue for parallel overlay connects
+ * Cleansup the existing timing slots and sets new timing slots in the given
+ * queue to accommodate given number of max active operations.
  *
- * @param h the host handle
- * @param npoc the number of parallel overlay connects - the queue size
+ * @param queue the queue 
+ * @param n the number of maximum active operations.  If n is greater than the
+ *   maximum limit set while creating the queue, then the minimum of these two
+ *   will be selected as n
  */
 static void
 adaptive_queue_set_max_active (struct OperationQueue *queue, unsigned int n)
