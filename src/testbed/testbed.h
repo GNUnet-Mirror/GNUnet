@@ -768,6 +768,84 @@ struct GNUNET_TESTBED_ManagePeerServiceMessage
 };
 
 
+/**
+ * Message to initialise a barrier
+ */
+struct GNUNET_TESTBED_BarrierInit
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unused.  Only of alignment.
+   */
+  uint32_t unused;
+  
+  /**
+   * The operation id
+   */
+  uint64_t op_id;
+  
+  /**
+   * The quorum percentage needed for crossing the barrier
+   */
+  uint8_t quorum;
+
+  /**
+   * name of the barrier.  Non NULL-terminated.
+   */
+  char name[0];
+};
+
+
+/**
+ * Message for signalling status changes of a barrier
+ */
+struct GNUNET_TESTBED_BarrierStatus
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /**
+   * status.  0 to signal success (barrier is crossed).  1 for error.
+   */
+  uint16_t status;
+
+  /**
+   * strlen of the barrier name
+   */
+  uint16_t name_len;
+  
+  /**
+   * the barrier name (NULL terminated) concatenated with an error message (NULL
+   * terminated) if the status were to indicate an error
+   */
+  char data[0];
+};
+
+
+/**
+ * Message sent from peers to the testbed-barrier service to indicate that they
+ * have reached a barrier and are waiting for it to be crossed
+ */
+struct GNUNET_TESTBED_BarrierWait
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The name of the barrier they have reached.  Non-NULL terminated.
+   */
+  char name[0];
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 #endif
 /* end of testbed.h */

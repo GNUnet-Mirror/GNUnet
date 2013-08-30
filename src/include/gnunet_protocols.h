@@ -1566,10 +1566,27 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE 483
 
 /**
+ * Message to initialise a barrier.  Messages of these type are flooded to all
+ * sub-controllers
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT 484
+
+/**
+ * Message for signalling status of a barrier
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS 485
+
+/**
+ * Message sent by a peer when it has reached a barrier and is waiting for it to
+ * be crossed
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT 486
+
+/**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 484
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 487
 
 /**
  * The initialization message towards gnunet-testbed-helper

@@ -412,7 +412,7 @@ struct HandlerContext_ShutdownPeers
 /**
  * Our configuration
  */
-extern struct GNUNET_CONFIGURATION_Handle *our_config;
+extern struct GNUNET_CONFIGURATION_Handle *GST_config;
 
 /**
  * The master context; generated with the first INIT message
@@ -453,6 +453,11 @@ const extern struct GNUNET_TIME_Relative GST_timeout;
  * The size of the peer list
  */
 extern unsigned int GST_peer_list_size;
+
+/**
+ * The current number of peers running locally under this controller
+ */
+extern unsigned int GST_num_local_peers;
 
 /**
  * The size of the host list

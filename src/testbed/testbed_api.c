@@ -1159,6 +1159,13 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                                          GNUNET_TESTBED_ControllerLinkResponse
                                          *) msg);
     break;
+  case GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS:
+    status =
+        GNUNET_TESTBED_handle_barrier_status_ (c,
+                                               (const struct
+                                                GNUNET_TESTBED_BarrierStatus *)
+                                               msg);
+    break;
   default:
     GNUNET_assert (0);
   }

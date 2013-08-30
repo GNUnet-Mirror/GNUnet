@@ -1471,6 +1471,63 @@ GNUNET_TESTBED_test_run (const char *testname,
                          void *test_master_cls);
 
 
+/**
+ * Opaque handle for barrier
+ */
+struct GNUNET_TESTBED_Barrier;
+
+
+/**
+ * Functions of this type are to be given as callback argument to
+ * GNUNET_TESTBED_barrier_init().  The callback will be called when status
+ * information is available for the barrier.
+ *
+ * @param cls the closure given to GNUNET_TESTBED_barrier_init()
+ * @param name the name of the barrier
+ * @param barrier the barrier handle
+ * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
+ *   GNUNET_SYSERR upon error
+ * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
+ *   error messsage
+ */
+typedef void (*GNUNET_TESTBED_barrier_status_cb) (void *cls,
+                                                  const char *name,
+                                                  struct GNUNET_TESTBED_Barrier
+                                                  *barrier,
+                                                  int status,
+                                                  const char *emsg);
+
+
+/**
+ * Initialise a barrier and call the given callback when the required percentage
+ * of peers (quorum) reach the barrier.  
+ *
+ * @param controller the handle to the controller
+ * @param name identification name of the barrier
+ * @param quorum the percentage of peers that is required to reach the barrier.
+ *   Peers signal reaching a barrier by calling
+ *   GNUNET_TESTBED_barrier_reached().
+ * @param cb the callback to call when the barrier is reached or upon error.
+ *   Cannot be NULL.
+ * @param cls closure for the above callback
+ * @return barrier handle
+ */
+struct GNUNET_TESTBED_Barrier *
+GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
+                             const char *name,
+                             unsigned int quorum,
+                             GNUNET_TESTBED_barrier_status_cb cb, void *cls);
+
+
+/**
+ * Cancel a barrier.
+ *
+ * @param barrier the barrier handle
+ */
+void
+GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

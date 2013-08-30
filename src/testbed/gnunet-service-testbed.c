@@ -34,7 +34,7 @@
 /**
  * Our configuration
  */
-struct GNUNET_CONFIGURATION_Handle *our_config;
+struct GNUNET_CONFIGURATION_Handle *GST_config;
 
 /**
  * The master context; generated with the first INIT message
@@ -516,11 +516,11 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   }
   ss_str = NULL;
   ss = NULL;
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (our_config, "TESTBED",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GST_config, "TESTBED",
                                                           "SHARED_SERVICES",
                                                           &ss_str))
   {
-    ss = parse_shared_services (ss_str, our_config);
+    ss = parse_shared_services (ss_str, GST_config);
     GNUNET_free (ss_str);
     ss_str = NULL;
   }
@@ -546,7 +546,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
   host =
       GNUNET_TESTBED_host_create_with_id (GST_context->host_id,
                                           GST_context->master_ip, NULL,
-                                          our_config, 0);
+                                          GST_config, 0);
   host_list_add (host);
   LOG_DEBUG ("Created master context with host ID: %u\n", GST_context->host_id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -824,7 +824,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (mq_entry);
   }
   GNUNET_free_non_null (hostname);
-  GNUNET_CONFIGURATION_destroy (our_config);
+  GNUNET_CONFIGURATION_destroy (GST_config);
   /* Free hello cache */
   GST_cache_clear ();
   GNUNET_TESTBED_operation_queue_destroy_ (GST_opq_openfds);
@@ -929,7 +929,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
                                                         "HOSTNAME", &hostname));
-  our_config = GNUNET_CONFIGURATION_dup (cfg);
+  GST_config = GNUNET_CONFIGURATION_dup (cfg);
   GNUNET_SERVER_add_handlers (server, message_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_cb, NULL);
   shutdown_task_id =
@@ -937,7 +937,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                   GNUNET_SCHEDULER_PRIORITY_IDLE,
                                                   &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
-  GST_stats_init (our_config);
+  GST_stats_init (GST_config);
 }
 
 

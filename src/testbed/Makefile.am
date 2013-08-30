@@ -39,7 +39,8 @@ gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed_oc.c \
   gnunet-service-testbed_cpustatus.c \
   gnunet-service-testbed_meminfo.c \
-  gnunet-service-testbed_meminfo.h
+  gnunet-service-testbed_meminfo.h \
+  gnunet-service-testbed_barriers.c
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \
@@ -98,7 +99,8 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_testbed.c \
   testbed_api_test.c \
   testbed_api_topology.c testbed_api_topology.h \
-  testbed_api_sd.c testbed_api_sd.h
+  testbed_api_sd.c testbed_api_sd.h \
+  testbed_api_barriers.c 
 libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \

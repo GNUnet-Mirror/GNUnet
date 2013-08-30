@@ -35,6 +35,11 @@
  */
 struct Peer **GST_peer_list;
 
+/**
+ * The current number of peers running locally under this controller
+ */
+unsigned int GST_num_local_peers;
+
 
 /**
  * Context information to manage peers' services
@@ -162,6 +167,8 @@ peer_list_add (struct Peer *peer)
     GST_array_grow_large_enough (GST_peer_list, GST_peer_list_size, peer->id);
   GNUNET_assert (NULL == GST_peer_list[peer->id]);
   GST_peer_list[peer->id] = peer;
+  if (GNUNET_NO == peer->is_remote)
+    GST_num_local_peers++;
 }
 
 
@@ -176,6 +183,8 @@ peer_list_remove (struct Peer *peer)
   unsigned int orig_size;
   uint32_t id;
 
+  if (GNUNET_NO == peer->is_remote)
+    GST_num_local_peers--;
   GST_peer_list[peer->id] = NULL;
   orig_size = GST_peer_list_size;
   while (GST_peer_list_size >= LIST_GROW_STEP)
