@@ -1037,6 +1037,18 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed);
 static struct MeshChannel *
 channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid);
 
+/**
+ * Modify the data message ID from global to local and send to client.
+ * 
+ * @param ch Channel on which to send the message.
+ * @param msg Message to modify and send.
+ * @param fwd Forward?
+ */
+static void
+channel_send_client_data (struct MeshChannel *ch,
+                          const struct GNUNET_MESH_Data *msg,
+                          int fwd);
+
 
 /**
  * Change the tunnel state.
@@ -1191,6 +1203,20 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
  */
 static size_t
 queue_send (void *cls, size_t size, void *buf);
+
+
+/**
+ * Demultiplex by message type and call appropriate handler for a message
+ * towards a channel of a local tunnel.
+ *
+ * @param t Tunnel this message came on.
+ * @param msgh Message header.
+ * @param fwd Is this message fwd?
+ */
+static void
+handle_decrypted (struct MeshTunnel2 *t,
+                  const struct GNUNET_MessageHeader *msgh,
+                  int fwd);
 
 
 /**
@@ -1586,8 +1612,6 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 }
 
 
-
-
 /**
  * Is this peer the first one on the connection?
  *
@@ -1624,6 +1648,26 @@ connection_is_terminal (struct MeshConnection *c, int fwd)
   if (!fwd && c->own_pos == 0)
     return GNUNET_YES;
   return GNUNET_NO;
+}
+
+
+/**
+ * Is the recipient client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+static int
+channel_is_terminal (struct MeshChannel *ch, int fwd)
+{
+  if (NULL == ch->t || NULL == ch->t->connection_head)
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+  return connection_is_terminal (ch->t->connection_head, fwd);
 }
 
 
@@ -1908,6 +1952,13 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
               peer2s (ch->t->peer), ch->gid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
+
+  if (channel_is_terminal (ch, fwd))
+  {
+    handle_decrypted (ch->t, message, fwd);
+    return;
+  }
+  
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD : GNUNET_MESSAGE_TYPE_MESH_BCK;
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
 
@@ -1916,7 +1967,6 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
   msg->iv = GNUNET_htonll (iv);
   tunnel_encrypt (ch->t, &msg[1], message, size, iv, fwd);
-
   send_prebuilt_message_tunnel (msg, ch->t, ch, fwd);
 }
 
@@ -2773,6 +2823,8 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection %s[%X]\n", 
               peer2s (c->t->peer), c->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n", 
+              fc == &c->fwd_fc ? "FWD" : "BCK");
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
@@ -2920,6 +2972,7 @@ channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
   return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
 }
 
+#if 0
 
 static void
 channel_debug (struct MeshChannel *ch)
@@ -2929,7 +2982,8 @@ channel_debug (struct MeshChannel *ch)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %X\n", ch->gid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X\n",
+              peer2s (ch->t->peer), ch->gid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
               ch->root, ch->root_rel);
   if (NULL != ch->root)
@@ -2948,18 +3002,39 @@ channel_debug (struct MeshChannel *ch)
                 ch->dest_rel->client_ready ? "YES" : "NO");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
   }
-
 }
 
+static void
+fc_debug (struct MeshFlowControl *fc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    IN: %u/%u\n",
+              fc->last_pid_recv, fc->last_ack_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    OUT: %u/%u\n",
+              fc->last_pid_sent, fc->last_ack_recv);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    QUEUE: %u/%u\n",
+              fc->queue_n, fc->queue_max);
+}
 
-/**
- * Search for a tunnel by global ID using full PeerIdentities.
- *
- * @param t Tunnel containing the channel.
- * @param chid Public channel number.
- *
- * @return channel handler, NULL if doesn't exist
- */
+static void
+connection_debug (struct MeshConnection *c)
+{
+  if (NULL == c)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CONNECTION ***\n");
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection %s:%X\n",
+              peer2s (c->t->peer), GNUNET_h2s (&c->id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  state: %u, pending msgs: %u\n", 
+              c->state, c->pending_messages);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
+  fc_debug (&c->fwd_fc);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
+  fc_debug (&c->bck_fc);
+}
+
+#endif
+
 static struct MeshChannel *
 channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid)
 {
@@ -3399,13 +3474,6 @@ channel_rel_add_buffered_data (const struct GNUNET_MESH_Data *msg,
 }
 
 
-/**
- * Modify the data message ID from global to local and send to client.
- * 
- * @param ch Channel on which to send the message.
- * @param msg Message to modify and send.
- * @param fwd Forward?
- */
 static void
 channel_send_client_data (struct MeshChannel *ch,
                           const struct GNUNET_MESH_Data *msg,
@@ -3777,31 +3845,41 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 {
   unsigned int buffer;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "send ack %s on %p %p\n",
+              fwd ? "FWD" : "BCK", c, ch);
   if (NULL == c || connection_is_terminal (c, fwd))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from Channel\n");
     buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from Connection\n");
     GNUNET_assert (NULL != c);
     buffer = connection_get_buffer (c, fwd);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
   if (NULL == c)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
     GNUNET_assert (NULL != ch);
     channel_send_connections_ack (ch, buffer, fwd);
   }
   else if (connection_is_origin (c, fwd))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
     if (0 < buffer)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
       GNUNET_assert (NULL != ch);
       send_local_ack (ch, fwd);
     }
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
     connection_send_ack (c, buffer, fwd);
   }
 }
@@ -4921,10 +4999,11 @@ queue_add (void *cls, uint16_t type, size_t size,
     return; /* Drop this message */
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", fc->last_pid_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ack %u\n", fc->last_ack_recv);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
   if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv) &&
-      GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
+      GNUNET_SCHEDULER_NO_TASK == fc->poll_task &&
+      GNUNET_MESSAGE_TYPE_MESH_POLL != type)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "no buffer space (%u > %u): starting poll\n",
@@ -4991,10 +5070,8 @@ queue_add (void *cls, uint16_t type, size_t size,
  * @param t Tunnel on which we got this message.
  * @param message Unencryted data message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return channel which this message was on.
  */
-static struct MeshChannel *
+static void
 handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
 {
   struct MeshChannelReliability *rel;
@@ -5011,7 +5088,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
       sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
-    return NULL;
+    return;
   }
   type = ntohs (msg->header.type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message\n",
@@ -5025,7 +5102,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel", 1, GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel unknown\n");
-    return NULL;
+    return;
   }
 
   /*  Initialize FWD/BCK data */
@@ -5035,7 +5112,7 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   if (NULL == c)
   {
     GNUNET_break (0);
-    return NULL;
+    return;
   }
 
   tunnel_change_state (t, MESH_TUNNEL_READY);
@@ -5082,7 +5159,6 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   }
 
   channel_send_data_ack (ch, fwd);
-  return ch;
 }
 
 /**
@@ -5091,10 +5167,8 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
  * @param t Tunnel on which we got this message.
  * @param message Data message.
  * @param fwd Is this a fwd ACK? (dest->orig)
- *
- * @return channel this message was on.
  */
-static struct MeshChannel *
+static void
 handle_data_ack (struct MeshTunnel2 *t,
                  const struct GNUNET_MESH_DataACK *msg, int fwd)
 {
@@ -5113,7 +5187,7 @@ handle_data_ack (struct MeshTunnel2 *t,
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# ack on unknown channel", 1, GNUNET_NO);
-    return NULL;
+    return;
   }
   ack = ntohl (msg->mid);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
@@ -5130,7 +5204,7 @@ handle_data_ack (struct MeshTunnel2 *t,
   if (NULL == rel)
   {
     GNUNET_break (0);
-    return NULL;
+    return;
   }
 
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
@@ -5178,7 +5252,6 @@ handle_data_ack (struct MeshTunnel2 *t,
     else
       GNUNET_break (0);
   }
-  return ch;
 }
 
 
@@ -5478,10 +5551,8 @@ handle_mesh_connection_destroy (void *cls,
  * @param t Tunnel this channel is to be created in.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return channel this message was on.
  */
-static struct MeshChannel *
+static void
 handle_channel_create (struct MeshTunnel2 *t,
                        struct GNUNET_MESH_ChannelCreate *msg,
                        int fwd)
@@ -5496,7 +5567,7 @@ handle_channel_create (struct MeshTunnel2 *t,
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelCreate))
   {
     GNUNET_break_op (0);
-    return NULL;
+    return;
   }
 
   /* Check if channel exists */
@@ -5510,7 +5581,7 @@ handle_channel_create (struct MeshTunnel2 *t,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   duplicate CC!!\n");
       channel_send_ack (ch, !fwd);
-      return NULL;
+      return;
     }
   }
   else
@@ -5529,7 +5600,7 @@ handle_channel_create (struct MeshTunnel2 *t,
     /* TODO send reject */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
     /* TODO free ch */
-    return NULL;
+    return;
   }
 
   channel_add_client (ch, c);
@@ -5538,8 +5609,7 @@ handle_channel_create (struct MeshTunnel2 *t,
 
   send_local_channel_create (ch);
   channel_send_ack (ch, !fwd);
-
-  return ch;
+  send_local_ack (ch, !fwd);
 }
 
 
@@ -5549,10 +5619,8 @@ handle_channel_create (struct MeshTunnel2 *t,
  * @param t Tunnel this channel is to be created in.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return channel this message was on.
  */
-static struct MeshChannel *
+static void
 handle_channel_ack (struct MeshTunnel2 *t,
                     struct GNUNET_MESH_ChannelManage *msg,
                     int fwd)
@@ -5565,7 +5633,7 @@ handle_channel_ack (struct MeshTunnel2 *t,
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelManage))
   {
     GNUNET_break_op (0);
-    return NULL;
+    return;
   }
 
   /* Check if channel exists */
@@ -5575,11 +5643,10 @@ handle_channel_ack (struct MeshTunnel2 *t,
   {
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   channel %u unknown!!\n", chid);
-    return NULL;
+    return;
   }
 
   channel_confirm (ch, !fwd);
-  return ch;
 }
 
 
@@ -5589,10 +5656,8 @@ handle_channel_ack (struct MeshTunnel2 *t,
  * @param t Tunnel this channel is to be destroyed of.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return channel this message was on.
  */
-static struct MeshChannel *
+static void
 handle_channel_destroy (struct MeshTunnel2 *t,
                         struct GNUNET_MESH_ChannelManage *msg,
                         int fwd)
@@ -5604,7 +5669,7 @@ handle_channel_destroy (struct MeshTunnel2 *t,
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelManage))
   {
     GNUNET_break_op (0);
-    return NULL;
+    return;
   }
 
   /* Check if channel exists */
@@ -5613,13 +5678,53 @@ handle_channel_destroy (struct MeshTunnel2 *t,
   if (NULL == ch)
   {
     /* Probably a retransmission, safe to ignore */
-    return NULL;
+    return;
   }
 
   send_local_channel_destroy (ch, fwd);
   channel_destroy (ch);
+}
 
-  return ch;
+
+static void
+handle_decrypted (struct MeshTunnel2 *t,
+                  const struct GNUNET_MessageHeader *msgh,
+                  int fwd)
+{
+  switch (ntohs (msgh->type))
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+      /* Don't send hop ACK, wait for client to ACK */
+      handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+      handle_channel_create (t,
+                             (struct GNUNET_MESH_ChannelCreate *) msgh,
+                             fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+      handle_channel_ack (t,
+                          (struct GNUNET_MESH_ChannelManage *) msgh,
+                          fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+      handle_channel_destroy (t,
+                              (struct GNUNET_MESH_ChannelManage *) msgh,
+                              fwd);
+      break;
+
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "end-to-end message not known (%u)\n",
+                  ntohs (msgh->type));
+  }
 }
 
 
@@ -5709,7 +5814,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
     char cbuf[dsize];
     struct GNUNET_MessageHeader *msgh;
-    struct MeshChannel *ch;
+    unsigned int off;
 
     /* TODO signature verification */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
@@ -5717,44 +5822,14 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
 
     fc->last_pid_recv = pid;
     tunnel_decrypt (t, cbuf, &msg[1], dsize, msg->iv, fwd);
-    msgh = (struct GNUNET_MessageHeader *) cbuf;
-    switch (ntohs (msgh->type))
+    off = 0;
+    while (off < dsize)
     {
-      case GNUNET_MESSAGE_TYPE_MESH_DATA:
-        /* Don't send hop ACK, wait for client to ACK */
-        ch = handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
-        break;
-
-      case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-        ch = handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
-        break;
-
-      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-        ch = handle_channel_create (t,
-                                    (struct GNUNET_MESH_ChannelCreate *) msgh,
-                                    fwd);
-        break;
-
-      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-        ch = handle_channel_ack (t,
-                                 (struct GNUNET_MESH_ChannelManage *) msgh,
-                                 fwd);
-        break;
-
-      case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-        ch = handle_channel_destroy (t,
-                                     (struct GNUNET_MESH_ChannelManage *) msgh,
-                                     fwd);
-        break;
-
-      default:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "end-to-end message not known (%u)\n",
-                    ntohs (msgh->type));
-        ch = NULL;
+      msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
+      handle_decrypted (t, msgh, fwd);
+      off += ntohs (msgh->size);
     }
-
-    send_ack (c, ch, fwd);
+    send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
 
