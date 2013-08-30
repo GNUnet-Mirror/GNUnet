@@ -126,8 +126,8 @@ EXTRA_DIST = \
    test_integration_restart.py.in \
    test_integration_clique.py.in \
    test_integration_clique_nat.py.in \
+   confs/test_defaults.conf \
    confs/c_bootstrap_server.conf \
-   confs/c_bootstrap_server_w_massif.conf \
    confs/c_nat_client.conf \
    confs/c_no_nat_client_2.conf \
    confs/c_no_nat_client.conf \
