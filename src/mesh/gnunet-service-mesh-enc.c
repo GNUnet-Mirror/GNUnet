@@ -1841,6 +1841,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_ACK       *amsg;
     struct GNUNET_MESH_Poll      *pmsg;
     struct GNUNET_MESH_ConnectionDestroy *dmsg;
+    struct GNUNET_MESH_ConnectionBroken  *bmsg;
     uint32_t ttl;
 
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -1875,6 +1876,12 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
       dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
       dmsg->cid = c->id;
       dmsg->reserved = 0;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+      bmsg = (struct GNUNET_MESH_ConnectionBroken *) data;
+      bmsg->cid = c->id;
+      bmsg->reserved = 0;
       break;
 
     default:
@@ -2800,6 +2807,8 @@ static void
 peer_add_path_to_origin (struct MeshPeer *peer_info,
                          struct MeshPeerPath *path, int trusted)
 {
+  if (NULL == path)
+    return;
   path_invert (path);
   peer_add_path (peer_info, path, trusted);
 }
@@ -4111,8 +4120,10 @@ connection_send_destroy (struct MeshConnection *c)
               peer2s (c->t->peer),
               c->id);
 
-  send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
-  send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_NO);
+  if (GNUNET_NO == connection_is_terminal (c, GNUNET_YES))
+    send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
+  if (GNUNET_NO == connection_is_terminal (c, GNUNET_NO))
+    send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_NO);
   c->destroy = GNUNET_YES;
 }
 
@@ -4238,7 +4249,11 @@ tunnel_new (void)
 static void
 tunnel_add_connection (struct MeshTunnel2 *t, struct MeshConnection *c)
 {
+  struct MeshConnection *aux;
   c->t = t;
+  for (aux = t->connection_head; aux != NULL; aux = aux->next)
+    if (aux == c)
+      return;
   GNUNET_CONTAINER_DLL_insert_tail (t->connection_head, t->connection_tail, c);
 }
 
@@ -4690,6 +4705,13 @@ connection_broken (void *cls,
   int fwd;
 
   fwd = peer == connection_get_prev_hop (c);
+
+  if (connection_is_terminal (c, fwd))
+  {
+    /* Local shutdown: no point in iterating anymore */
+    connection_destroy (c);
+    return GNUNET_NO;
+  }
   connection_cancel_queues (c, !fwd);
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
@@ -4743,6 +4765,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
         GNUNET_free_non_null (queue->cls);
         break;
@@ -5333,42 +5356,45 @@ handle_mesh_connection_create (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = connection_new (cid);
     if (NULL == c)
+      return GNUNET_OK;  connection_reset_timeout (c, GNUNET_YES);
+    tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
+
+    /* Create path */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
+    path = path_new (size);
+    own_pos = 0;
+    for (i = 0; i < size; i++)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
+                  GNUNET_i2s (&id[i]));
+      path->peers[i] = GNUNET_PEER_intern (&id[i]);
+      if (path->peers[i] == myid)
+        own_pos = i;
+    }
+    if (own_pos == 0 && path->peers[own_pos] != myid)
+    {
+      /* create path: self not found in path through self */
+      GNUNET_break_op (0);
+      path_destroy (path);
+      connection_destroy (c);
       return GNUNET_OK;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
+    path_add_to_peers (path, GNUNET_NO);
+    c->path = path_duplicate (path);
+    c->own_pos = own_pos;
   }
-  connection_reset_timeout (c, GNUNET_YES);
-  tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
+  else
+  {
+    path = NULL;
+  }
 
   /* Remember peers */
   dest_peer = peer_get (&id[size - 1]);
   orig_peer = peer_get (&id[0]);
 
-  /* Create path */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
-  path = path_new (size);
-  own_pos = 0;
-  for (i = 0; i < size; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
-                GNUNET_i2s (&id[i]));
-    path->peers[i] = GNUNET_PEER_intern (&id[i]);
-    if (path->peers[i] == myid)
-      own_pos = i;
-  }
-  if (own_pos == 0 && path->peers[own_pos] != myid)
-  {
-    /* create path: self not found in path through self */
-    GNUNET_break_op (0);
-    path_destroy (path);
-    connection_destroy (c);
-    return GNUNET_OK;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-  path_add_to_peers (path, GNUNET_NO);
-  c->path = path_duplicate (path);
-  c->own_pos = own_pos;
-
   /* Is it a connection to us? */
-  if (own_pos == size - 1)
+  if (c->own_pos == size - 1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
