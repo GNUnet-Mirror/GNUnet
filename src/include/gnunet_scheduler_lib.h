@@ -327,8 +327,14 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
 
 
 /**
- * Schedule a new task to be run as soon as possible. The task
- * will be run with the DEFAULT priority.
+ * Schedule a new task to be run as soon as possible. Note that this
+ * does not guarantee that this will be the next task that is being
+ * run, as other tasks with higher priority (or that are already ready
+ * to run) might get to run first.  Just as with delays, clients must
+ * not rely on any particular order of execution between tasks
+ * scheduled concurrently.
+ *
+ * The task will be run with the DEFAULT priority.
  *
  * @param task main function of the task
  * @param task_cls closure of @a task

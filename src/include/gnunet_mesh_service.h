@@ -96,11 +96,11 @@ enum MeshTunnelOption
  * Functions with this signature are called whenever a message is
  * received.
  * 
- * Each time the function must call GNUNET_MESH_receive_done on the tunnel
+ * Each time the function must call #GNUNET_MESH_receive_done on the tunnel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
  *
- * @param cls Closure (set from GNUNET_MESH_connect).
+ * @param cls Closure (set from #GNUNET_MESH_connect).
  * @param tunnel Connection to the other end.
  * @param tunnel_ctx Place to store local state associated with the tunnel.
  * @param message The actual message.
@@ -193,7 +193,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *                It is NOT called if GNUNET_MESH_tunnel_destroy is called on
  *                the tunnel.
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
- *                 one must call GNUNET_MESH_receive_done on the tunnel to
+ *                 one must call #GNUNET_MESH_receive_done on the tunnel to
  *                 receive the next message.  Messages of a type that is not
  *                 in the handlers array are ignored if received. 
  * @param ports NULL or 0-terminated array of port numbers for incoming tunnels.
