@@ -1840,6 +1840,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_Encrypted *emsg;
     struct GNUNET_MESH_ACK       *amsg;
     struct GNUNET_MESH_Poll      *pmsg;
+    struct GNUNET_MESH_ConnectionDestroy *dmsg;
     uint32_t ttl;
 
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -1868,6 +1869,12 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
       pmsg->cid = c->id;
       pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+      dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
+      dmsg->cid = c->id;
+      dmsg->reserved = 0;
       break;
 
     default:
@@ -4156,7 +4163,7 @@ channel_send_destroy (struct MeshChannel *ch)
 
   if (channel_is_terminal (ch, GNUNET_NO))
   {
-    if (NULL != ch->root)
+    if (NULL != ch->root && GNUNET_NO == ch->root->shutting_down)
     {
       msg.chid = htonl (ch->lid_root);
       send_local_channel_destroy (ch, GNUNET_NO);
@@ -4170,7 +4177,7 @@ channel_send_destroy (struct MeshChannel *ch)
 
   if (channel_is_terminal (ch, GNUNET_YES))
   {
-    if (NULL != ch->dest)
+    if (NULL != ch->dest && GNUNET_NO == ch->dest->shutting_down)
     {
       msg.chid = htonl (ch->lid_dest);
       send_local_channel_destroy (ch, GNUNET_YES);
@@ -4520,12 +4527,10 @@ channel_destroy_iterator (void *cls,
   if (c == ch->dest)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
-    ch->dest = NULL;
   }
   if (c == ch->root)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
-    ch->root = NULL;
   }
 
   t = ch->t;
