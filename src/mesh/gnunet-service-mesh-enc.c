@@ -1884,6 +1884,9 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
       bmsg->reserved = 0;
       break;
 
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+      break;
+
     default:
       GNUNET_break (0);
   }
@@ -5089,7 +5092,8 @@ queue_add (void *cls, uint16_t type, size_t size,
 
   }
   c->pending_messages++;
-  c->t->pending_messages++;
+  if (NULL != c->t)
+    c->t->pending_messages++;
 }
 
 
