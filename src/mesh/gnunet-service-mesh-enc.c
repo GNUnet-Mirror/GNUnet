@@ -1885,6 +1885,7 @@ send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       break;
 
     default:
@@ -2476,6 +2477,21 @@ peer_connect (struct MeshPeer *peer)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
       c = tunnel_use_path (t, p);
+      if (NULL == c)
+      {
+        /* This case can happen when the path includes a first hop that is
+         * not yet known to be connected.
+         * 
+         * This happens quite often during testing when running mesh
+         * under valgrind: core connect notifications come very late and the
+         * DHT result has already come and created a valid path.
+         * In this case, the peer->connections hashmap will be NULL and
+         * tunnel_use_path will not be able to create a connection from that
+         * path.
+         */
+        GNUNET_break(0);
+        return;
+      }
       send_connection_create (c);
     }
   }
@@ -3220,6 +3236,7 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
 
   c = connection_new (&cid);
   c->t = t;
+  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, c);
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
     if (p->peers[own_pos] == myid)
@@ -4346,10 +4363,10 @@ connection_destroy (struct MeshConnection *c)
 
   /* Deregister from neighbors */
   peer = connection_get_next_hop (c);
-  if (NULL != peer)
+  if (NULL != peer && NULL != peer->connections)
     GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
   peer = connection_get_prev_hop (c);
-  if (NULL != peer)
+  if (NULL != peer && NULL != peer->connections)
     GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
 
   /* Delete */
@@ -5482,14 +5499,14 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   connection_change_state (c, MESH_CONNECTION_READY);
   connection_reset_timeout (c, GNUNET_NO);
-  if (MESH_TUNNEL_READY != c->t->state)
-    tunnel_change_state (c->t, MESH_TUNNEL_READY);
-  tunnel_send_queued_data (c->t, GNUNET_YES);
 
   /* Message for us? */
   if (connection_is_terminal (c, GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
+    if (MESH_TUNNEL_READY != c->t->state)
+      tunnel_change_state (c->t, MESH_TUNNEL_READY);
+    tunnel_send_queued_data (c->t, GNUNET_YES);
     if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
     {
       GNUNET_DHT_get_stop (c->t->peer->dhtget);
@@ -5830,7 +5847,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
   /* Check if origin is as expected */
-  neighbor = connection_get_hop (c, fwd);
+  neighbor = connection_get_hop (c, !fwd);
   if (peer_get (peer)->id != neighbor->id)
   {
     GNUNET_break_op (0);
