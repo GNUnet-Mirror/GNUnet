@@ -154,110 +154,6 @@ struct GNUNET_MULTICAST_MessageHeader
 
 GNUNET_NETWORK_STRUCT_END
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/** 
- * Header of a request from a member to the origin.
- *
- * FIXME: this struct is going to be internal.
- */
-struct GNUNET_MULTICAST_RequestHeader
-{
-  /** 
-   * Header for all requests from a member to the origin.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Public key of the sending member.
-   */
-  struct GNUNET_CRYPTO_EccPublicKey member_key;
-
-  /** 
-   * ECC signature of the request fragment.
-   *
-   * Signature must match the public key of the multicast group.
-   */
-  struct GNUNET_CRYPTO_EccSignature signature;
-
-  /** 
-   * Purpose for the signature and size of the signed data.
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /** 
-   * Number of the request fragment, monotonically increasing.
-   */
-  uint64_t fragment_id GNUNET_PACKED;
-
-  /** 
-   * Byte offset of this @e fragment of the @e request.
-   */
-  uint64_t fragment_offset GNUNET_PACKED;
-
-  /** 
-   * Number of the request this fragment belongs to.
-   *
-   * Set in GNUNET_MULTICAST_origin_to_all().
-   */
-  uint64_t request_id GNUNET_PACKED;
-
-  /**
-   * Flags for this request.
-   */
-  enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
-
-  /* Followed by request body. */
-};
-
-GNUNET_NETWORK_STRUCT_END
-
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/** 
- * Header of a join request sent to the origin or another member.
- *
- * FIXME: this struct is going to be internal.
- */
-struct GNUNET_MULTICAST_JoinRequest {
-  /** 
-   * Header for the join request.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /** 
-   * ECC signature of the rest of the fields of the join request.
-   *
-   * Signature must match the public key of the joining member.
-   */
-  struct GNUNET_CRYPTO_EccSignature signature;
-
-  /** 
-   * Purpose for the signature and size of the signed data.
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * Public key of the target group.
-   */
-  struct GNUNET_CRYPTO_EccPublicKey group_key;
-
-  /**
-   * Public key of the joining member.
-   */
-  struct GNUNET_CRYPTO_EccPublicKey member_key;
-
-  /**
-   * Peer identity of the joining member.
-   */
-  struct GNUNET_PeerIdentity member_peer;
-
-  /* Followed by request body. */
-};
-
-GNUNET_NETWORK_STRUCT_END
-
 
 /** 
  * Handle that identifies a join request.
@@ -523,6 +419,7 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
 void
 GNUNET_MULTICAST_replay_end (struct GNUNET_MULTICAST_ReplayHandle *rh);
 
+
 /**
  * Function called to provide data for a transmission for a replay.
  *
@@ -532,6 +429,7 @@ typedef int
 (*GNUNET_MULTICAST_ReplayTransmitNotify)(void *cls,
                                          size_t *data_size,
                                          void *data);
+
 
 /** 
  * Replay a message for the multicast group.
