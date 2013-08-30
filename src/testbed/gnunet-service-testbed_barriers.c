@@ -210,7 +210,6 @@ transmit_ready_cb (void *cls, size_t size, void *buf)
  *
  * @param ctx the context associated with the client
  * @param msg the message to queue.  Will be consumed
- * @param suspended is the client suspended at the time of calling queue_message
  */
 static void
 queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
