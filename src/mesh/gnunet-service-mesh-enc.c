@@ -2464,11 +2464,15 @@ peer_connect (struct MeshPeer *peer)
   struct MeshTunnel2 *t;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
+  int rerun_dhtget;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "peer_connect towards %s\n",
               peer2s (peer));
   t = peer->tunnel;
+  c = NULL;
+  rerun_dhtget = GNUNET_NO;
+
   if (NULL != peer->path_head)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
@@ -2488,14 +2492,29 @@ peer_connect (struct MeshPeer *peer)
          * In this case, the peer->connections hashmap will be NULL and
          * tunnel_use_path will not be able to create a connection from that
          * path.
+         *
+         * Re-running the DHT GET should give core time to callback.
          */
         GNUNET_break(0);
+        rerun_dhtget = GNUNET_YES;
+      }
+      else
+      {
+        send_connection_create (c);
         return;
       }
-      send_connection_create (c);
     }
   }
-  else if (NULL == peer->dhtget)
+
+  if (NULL != peer->dhtget && GNUNET_YES == rerun_dhtget)
+  {
+    GNUNET_DHT_get_stop (peer->dhtget);
+    peer->dhtget = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  Stopping DHT GET for peer %s\n", peer2s (peer));
+  }
+
+  if (NULL == peer->dhtget)
   {
     const struct GNUNET_PeerIdentity *id;
 
@@ -2513,11 +2532,6 @@ peer_connect (struct MeshPeer *peer)
                                          &dht_get_id_handler, peer);
     if (MESH_TUNNEL_NEW == t->state)
       tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "There is no path but the DHT GET is already started.\n");
   }
 }
 
@@ -2680,8 +2694,8 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
  * @param p1 GNUNET_PEER_Id of one peer.
  * @param p2 GNUNET_PEER_Id of another peer that was connected to the first and
  *           no longer is.
- *
- * TODO: optimize (see below)
+ * 
+ * FIXME use peer->connections!!!
  */
 static void
 peer_remove_path (struct MeshPeer *peer, GNUNET_PEER_Id p1,
@@ -2713,7 +2727,6 @@ peer_remove_path (struct MeshPeer *peer, GNUNET_PEER_Id p1,
   }
   if (0 == destroyed)
     return;
-
 
   d = tunnel_notify_connection_broken (peer->tunnel, p1, p2);
 
@@ -5432,7 +5445,10 @@ handle_mesh_connection_create (void *cls,
     peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
     if (NULL == orig_peer->tunnel)
+    {
       orig_peer->tunnel = tunnel_new ();
+      orig_peer->tunnel->peer = orig_peer;
+    }
     tunnel_add_connection (orig_peer->tunnel, c);
 
     send_connection_ack (c, GNUNET_NO);
