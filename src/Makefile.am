@@ -11,7 +11,7 @@ if HAVE_TESTING
 endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = dv $(CONSENSUS) $(EXPERIMENTATION) 
+ EXP_DIR = dv multicast $(CONSENSUS) $(EXPERIMENTATION) 
 #note: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
 endif
 

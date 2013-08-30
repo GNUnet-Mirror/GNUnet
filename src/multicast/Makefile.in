@@ -16,6 +16,7 @@
 @SET_MAKE@
 
 
+
 VPATH = @srcdir@
 am__make_dryrun = \
   { \
@@ -53,12 +54,12 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = gnunet-template$(EXEEXT)
-libexec_PROGRAMS = gnunet-service-template$(EXEEXT)
-check_PROGRAMS = test_template_api$(EXEEXT)
-subdir = src/template
-DIST_COMMON = $(dist_pkgcfg_DATA) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in
+bin_PROGRAMS = gnunet-multicast$(EXEEXT)
+libexec_PROGRAMS = gnunet-service-multicast$(EXEEXT)
+check_PROGRAMS = test_multicast_api$(EXEEXT)
+subdir = src/multicast
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/multicast.conf.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
 	$(top_srcdir)/m4/align.m4 $(top_srcdir)/m4/argz.m4 \
@@ -76,66 +77,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/gnunet_config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = multicast.conf
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
-	"$(DESTDIR)$(pkgcfgdir)"
-PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
-am_gnunet_service_template_OBJECTS =  \
-	gnunet-service-template.$(OBJEXT)
-gnunet_service_template_OBJECTS =  \
-	$(am_gnunet_service_template_OBJECTS)
-am__DEPENDENCIES_1 =
-gnunet_service_template_DEPENDENCIES =  \
-	$(top_builddir)/src/util/libgnunetutil.la \
-	$(am__DEPENDENCIES_1)
-AM_V_lt = $(am__v_lt_@AM_V@)
-am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
-am__v_lt_0 = --silent
-am_gnunet_template_OBJECTS = gnunet-template.$(OBJEXT)
-gnunet_template_OBJECTS = $(am_gnunet_template_OBJECTS)
-gnunet_template_DEPENDENCIES =  \
-	$(top_builddir)/src/util/libgnunetutil.la \
-	$(am__DEPENDENCIES_1)
-am_test_template_api_OBJECTS = test_template_api.$(OBJEXT)
-test_template_api_OBJECTS = $(am_test_template_api_OBJECTS)
-test_template_api_DEPENDENCIES =  \
-	$(top_builddir)/src/util/libgnunetutil.la
-DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
-depcomp = $(SHELL) $(top_srcdir)/depcomp
-am__depfiles_maybe = depfiles
-am__mv = mv -f
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(CFLAGS)
-AM_V_CC = $(am__v_CC_@AM_V@)
-am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
-am__v_CC_0 = @echo "  CC    " $@;
-AM_V_at = $(am__v_at_@AM_V@)
-am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
-am__v_at_0 = @
-CCLD = $(CC)
-LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-AM_V_CCLD = $(am__v_CCLD_@AM_V@)
-am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
-am__v_CCLD_0 = @echo "  CCLD  " $@;
-AM_V_GEN = $(am__v_GEN_@AM_V@)
-am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
-am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(gnunet_service_template_SOURCES) \
-	$(gnunet_template_SOURCES) $(test_template_api_SOURCES)
-DIST_SOURCES = $(gnunet_service_template_SOURCES) \
-	$(gnunet_template_SOURCES) $(test_template_api_SOURCES)
-am__can_run_installinfo = \
-  case $$AM_UPDATE_INFO_DIR in \
-    n|no|NO) false;; \
-    *) (install-info --version) >/dev/null 2>&1;; \
-  esac
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -163,7 +106,78 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-DATA = $(dist_pkgcfg_DATA)
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
+	"$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(pkgcfgdir)"
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am__DEPENDENCIES_1 =
+libgnunetmulticast_la_DEPENDENCIES =  \
+	$(top_builddir)/src/util/libgnunetutil.la \
+	$(am__DEPENDENCIES_1)
+am_libgnunetmulticast_la_OBJECTS = multicast_api.lo
+libgnunetmulticast_la_OBJECTS = $(am_libgnunetmulticast_la_OBJECTS)
+AM_V_lt = $(am__v_lt_@AM_V@)
+am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
+am__v_lt_0 = --silent
+libgnunetmulticast_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libgnunetmulticast_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
+am_gnunet_multicast_OBJECTS = gnunet-multicast.$(OBJEXT)
+gnunet_multicast_OBJECTS = $(am_gnunet_multicast_OBJECTS)
+gnunet_multicast_DEPENDENCIES =  \
+	$(top_builddir)/src/util/libgnunetutil.la \
+	$(am__DEPENDENCIES_1)
+am_gnunet_service_multicast_OBJECTS =  \
+	gnunet-service-multicast.$(OBJEXT)
+gnunet_service_multicast_OBJECTS =  \
+	$(am_gnunet_service_multicast_OBJECTS)
+gnunet_service_multicast_DEPENDENCIES =  \
+	$(top_builddir)/src/util/libgnunetutil.la \
+	$(am__DEPENDENCIES_1)
+am_test_multicast_api_OBJECTS = test_multicast_api.$(OBJEXT)
+test_multicast_api_OBJECTS = $(am_test_multicast_api_OBJECTS)
+test_multicast_api_DEPENDENCIES =  \
+	$(top_builddir)/src/util/libgnunetutil.la
+DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
+depcomp = $(SHELL) $(top_srcdir)/depcomp
+am__depfiles_maybe = depfiles
+am__mv = mv -f
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_@AM_V@)
+am__v_CC_ = $(am__v_CC_@AM_DEFAULT_V@)
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_@AM_V@)
+am__v_at_ = $(am__v_at_@AM_DEFAULT_V@)
+am__v_at_0 = @
+CCLD = $(CC)
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_@AM_V@)
+am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_@AM_V@)
+am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
+am__v_GEN_0 = @echo "  GEN   " $@;
+SOURCES = $(libgnunetmulticast_la_SOURCES) $(gnunet_multicast_SOURCES) \
+	$(gnunet_service_multicast_SOURCES) \
+	$(test_multicast_api_SOURCES)
+DIST_SOURCES = $(libgnunetmulticast_la_SOURCES) \
+	$(gnunet_multicast_SOURCES) \
+	$(gnunet_service_multicast_SOURCES) \
+	$(test_multicast_api_SOURCES)
+am__can_run_installinfo = \
+  case $$AM_UPDATE_INFO_DIR in \
+    n|no|NO) false;; \
+    *) (install-info --version) >/dev/null 2>&1;; \
+  esac
+DATA = $(pkgcfg_DATA)
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
@@ -383,30 +397,43 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 INCLUDES = -I$(top_srcdir)/src/include
 pkgcfgdir = $(pkgdatadir)/config.d/
-dist_pkgcfg_DATA = \
-  template.conf
+pkgcfg_DATA = \
+  multicast.conf
 
 @MINGW_TRUE@WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
 @USE_COVERAGE_TRUE@AM_CFLAGS = -fprofile-arcs -ftest-coverage
-gnunet_template_SOURCES = \
- gnunet-template.c         
+lib_LTLIBRARIES = libgnunetmulticast.la
+libgnunetmulticast_la_SOURCES = \
+  multicast_api.c 
 
-gnunet_template_LDADD = \
+# multicast.h
+libgnunetmulticast_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) $(XLIB)
+
+libgnunetmulticast_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+gnunet_multicast_SOURCES = \
+ gnunet-multicast.c         
+
+gnunet_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
-gnunet_service_template_SOURCES = \
- gnunet-service-template.c         
+gnunet_service_multicast_SOURCES = \
+ gnunet-service-multicast.c         
 
-gnunet_service_template_LDADD = \
+gnunet_service_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 @ENABLE_TEST_RUN_TRUE@TESTS = $(check_PROGRAMS)
-test_template_api_SOURCES = \
- test_template_api.c
+test_multicast_api_SOURCES = \
+ test_multicast_api.c
 
-test_template_api_LDADD = \
+test_multicast_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 all: all-am
@@ -422,9 +449,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/template/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/multicast/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/template/Makefile
+	  $(AUTOMAKE) --gnu src/multicast/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -443,6 +470,42 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+multicast.conf: $(top_builddir)/config.status $(srcdir)/multicast.conf.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" != "$$p" || dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
+libgnunetmulticast.la: $(libgnunetmulticast_la_OBJECTS) $(libgnunetmulticast_la_DEPENDENCIES) $(EXTRA_libgnunetmulticast_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libgnunetmulticast_la_LINK) -rpath $(libdir) $(libgnunetmulticast_la_OBJECTS) $(libgnunetmulticast_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -544,15 +607,15 @@ clean-libexecPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-gnunet-service-template$(EXEEXT): $(gnunet_service_template_OBJECTS) $(gnunet_service_template_DEPENDENCIES) $(EXTRA_gnunet_service_template_DEPENDENCIES) 
-	@rm -f gnunet-service-template$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(gnunet_service_template_OBJECTS) $(gnunet_service_template_LDADD) $(LIBS)
-gnunet-template$(EXEEXT): $(gnunet_template_OBJECTS) $(gnunet_template_DEPENDENCIES) $(EXTRA_gnunet_template_DEPENDENCIES) 
-	@rm -f gnunet-template$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(gnunet_template_OBJECTS) $(gnunet_template_LDADD) $(LIBS)
-test_template_api$(EXEEXT): $(test_template_api_OBJECTS) $(test_template_api_DEPENDENCIES) $(EXTRA_test_template_api_DEPENDENCIES) 
-	@rm -f test_template_api$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_template_api_OBJECTS) $(test_template_api_LDADD) $(LIBS)
+gnunet-multicast$(EXEEXT): $(gnunet_multicast_OBJECTS) $(gnunet_multicast_DEPENDENCIES) $(EXTRA_gnunet_multicast_DEPENDENCIES) 
+	@rm -f gnunet-multicast$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(gnunet_multicast_OBJECTS) $(gnunet_multicast_LDADD) $(LIBS)
+gnunet-service-multicast$(EXEEXT): $(gnunet_service_multicast_OBJECTS) $(gnunet_service_multicast_DEPENDENCIES) $(EXTRA_gnunet_service_multicast_DEPENDENCIES) 
+	@rm -f gnunet-service-multicast$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(gnunet_service_multicast_OBJECTS) $(gnunet_service_multicast_LDADD) $(LIBS)
+test_multicast_api$(EXEEXT): $(test_multicast_api_OBJECTS) $(test_multicast_api_DEPENDENCIES) $(EXTRA_test_multicast_api_DEPENDENCIES) 
+	@rm -f test_multicast_api$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(test_multicast_api_OBJECTS) $(test_multicast_api_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -560,9 +623,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnunet-service-template.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnunet-template.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_template_api.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnunet-multicast.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gnunet-service-multicast.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/multicast_api.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_multicast_api.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -590,9 +654,9 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-dist_pkgcfgDATA: $(dist_pkgcfg_DATA)
+install-pkgcfgDATA: $(pkgcfg_DATA)
 	@$(NORMAL_INSTALL)
-	@list='$(dist_pkgcfg_DATA)'; test -n "$(pkgcfgdir)" || list=; \
+	@list='$(pkgcfg_DATA)'; test -n "$(pkgcfgdir)" || list=; \
 	if test -n "$$list"; then \
 	  echo " $(MKDIR_P) '$(DESTDIR)$(pkgcfgdir)'"; \
 	  $(MKDIR_P) "$(DESTDIR)$(pkgcfgdir)" || exit 1; \
@@ -606,9 +670,9 @@ install-dist_pkgcfgDATA: $(dist_pkgcfg_DATA)
 	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkgcfgdir)" || exit $$?; \
 	done
 
-uninstall-dist_pkgcfgDATA:
+uninstall-pkgcfgDATA:
 	@$(NORMAL_UNINSTALL)
-	@list='$(dist_pkgcfg_DATA)'; test -n "$(pkgcfgdir)" || list=; \
+	@list='$(pkgcfg_DATA)'; test -n "$(pkgcfgdir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(pkgcfgdir)'; $(am__uninstall_files_from_dir)
 
@@ -791,9 +855,11 @@ check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: check-am
-all-am: Makefile $(PROGRAMS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(DATA)
+install-binPROGRAMS: install-libLTLIBRARIES
+
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(pkgcfgdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" "$(DESTDIR)$(pkgcfgdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -829,7 +895,8 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-libexecPROGRAMS clean-libtool mostlyclean-am
+	clean-libLTLIBRARIES clean-libexecPROGRAMS clean-libtool \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -849,13 +916,14 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_pkgcfgDATA
+install-data-am: install-pkgcfgDATA
 
 install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-libexecPROGRAMS
+install-exec-am: install-binPROGRAMS install-libLTLIBRARIES \
+	install-libexecPROGRAMS
 
 install-html: install-html-am
 
@@ -895,27 +963,28 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-dist_pkgcfgDATA \
-	uninstall-libexecPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
+	uninstall-libexecPROGRAMS uninstall-pkgcfgDATA
 
 .MAKE: check-am install-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
 	clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-libexecPROGRAMS clean-libtool ctags distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dist_pkgcfgDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am \
+	clean-libLTLIBRARIES clean-libexecPROGRAMS clean-libtool ctags \
+	distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-libLTLIBRARIES \
 	install-libexecPROGRAMS install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-pkgcfgDATA install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-dist_pkgcfgDATA uninstall-libexecPROGRAMS
+	uninstall-libLTLIBRARIES uninstall-libexecPROGRAMS \
+	uninstall-pkgcfgDATA
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

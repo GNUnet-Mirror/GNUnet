@@ -20,9 +20,6 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
-EXP_LIBEXEC = \
- gnunet-service-mesh-enc
-
 EXP_LIB = \
  libgnunetmeshenc.la
 

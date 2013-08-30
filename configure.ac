@@ -1290,6 +1290,8 @@ src/lockmanager/Makefile
 src/lockmanager/lockmanager.conf
 src/mesh/Makefile
 src/mesh/mesh.conf
+src/multicast/Makefile
+src/multicast/multicast.conf
 src/mysql/Makefile
 src/namestore/Makefile
 src/namestore/namestore.conf
