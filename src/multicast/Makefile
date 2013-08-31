@@ -62,12 +62,11 @@ DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/multicast.conf.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
-	$(top_srcdir)/m4/align.m4 $(top_srcdir)/m4/argz.m4 \
-	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/iconv.m4 \
-	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
-	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libcurl.m4 \
-	$(top_srcdir)/m4/libgcrypt.m4 $(top_srcdir)/m4/libtool.m4 \
-	$(top_srcdir)/m4/libunistring.m4 $(top_srcdir)/m4/ltdl.m4 \
+	$(top_srcdir)/m4/align.m4 $(top_srcdir)/m4/gettext.m4 \
+	$(top_srcdir)/m4/iconv.m4 $(top_srcdir)/m4/lib-ld.m4 \
+	$(top_srcdir)/m4/lib-link.m4 $(top_srcdir)/m4/lib-prefix.m4 \
+	$(top_srcdir)/m4/libcurl.m4 $(top_srcdir)/m4/libgcrypt.m4 \
+	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/libunistring.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
 	$(top_srcdir)/m4/nls.m4 $(top_srcdir)/m4/po.m4 \
@@ -187,7 +186,6 @@ ACLOCAL = ${SHELL} /home/grothoff/svn/gnunet/missing --run aclocal-1.11
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 0
 AR = ar
-ARGZ_H = 
 AS = as
 AUTOCONF = ${SHELL} /home/grothoff/svn/gnunet/missing --run autoconf
 AUTOHEADER = ${SHELL} /home/grothoff/svn/gnunet/missing --run autoheader
@@ -195,13 +193,13 @@ AUTOMAKE = ${SHELL} /home/grothoff/svn/gnunet/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -fno-strict-aliasing -Wall -g -O0 -Wall -I/home/grothoff/include
+CFLAGS = -fno-strict-aliasing -Wall -g -Wall -O0 -I/home/grothoff/include
 CPP = gcc -E
 CPPFLAGS = -I/home/grothoff//include -I/home/grothoff//include 
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -g -O0 -Wall
+CXXFLAGS = -g -Wall -O0
 CYGPATH_W = echo
 DEFAULT_INTERFACE = "eth0"
 DEFS = -DHAVE_CONFIG_H
@@ -230,7 +228,6 @@ GN_PLUGIN_LDFLAGS = -export-dynamic -avoid-version -module -no-undefined
 GN_USER_HOME_DIR = ~/.gnunet
 GREP = /bin/grep
 HAVE_LIBUNISTRING = yes
-INCLTDL = 
 INSTALL = /usr/bin/install -c
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
@@ -241,35 +238,24 @@ INTL_MACOSX_LIBS =
 JAVAPORT = #
 LD = /usr/bin/ld -m elf_x86_64
 LDFLAGS = -L/home/grothoff//lib -L/home/grothoff//lib 
-LIBADD_DL = -ldl 
-LIBADD_DLD_LINK = 
-LIBADD_DLOPEN = -ldl
-LIBADD_SHL_LOAD = 
-LIBCURL = -L/home/grothoff/lib -lcurl -L/usr/lib
-LIBCURL_CPPFLAGS = -I/home/grothoff/include
+LIBCURL = -L/usr/lib/x86_64-linux-gnu -lcurl
+LIBCURL_CPPFLAGS = 
 LIBGCRYPT_CFLAGS = -I/home/grothoff/include
-LIBGCRYPT_CONFIG = /home/grothoff/bin//libgcrypt-config
+LIBGCRYPT_CONFIG = /home/grothoff/bin/libgcrypt-config
 LIBGCRYPT_LIBS = -L/home/grothoff/lib -lgcrypt -lgpg-error
 LIBICONV = 
 LIBINTL = 
-LIBLTDL = -lltdl
 LIBOBJS = 
 LIBPREFIX = 
-LIBS = -lm -ldl 
+LIBS = -lm 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LIBUNISTRING = -lunistring
 LIPO = 
 LN_S = ln -s
-LTDLDEPS = 
-LTDLINCL = 
-LTDLOPEN = libltdl
 LTLIBICONV = 
 LTLIBINTL = 
 LTLIBOBJS = 
 LTLIBUNISTRING = -lunistring
-LT_CONFIG_H = gnunet_config.h
-LT_DLLOADERS =  libltdl/dlopen.la
-LT_DLPREOPEN = -dlpreopen libltdl/dlopen.la 
 MAKEINFO = ${SHELL} /home/grothoff/svn/gnunet/missing --run makeinfo
 MANIFEST_TOOL = :
 MKDIR_P = /bin/mkdir -p
@@ -367,8 +353,6 @@ libdir = ${exec_prefix}/lib
 libexecdir = $(pkglibdir)/libexec/
 localedir = ${datarootdir}/locale
 localstatedir = ${prefix}/var
-ltdl_LIBOBJS =  lt__strl.o
-ltdl_LTLIBOBJS =  lt__strl.lo
 mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
@@ -383,9 +367,7 @@ pythondir = ${prefix}/lib/python2.7/site-packages
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 srcdir = .
-subdirs =  libltdl
 svnversioncommand = /usr/bin/svnversion
-sys_symbol_underscore = no
 sysconfdir = ${prefix}/etc
 target = x86_64-unknown-linux-gnu
 target_alias = 

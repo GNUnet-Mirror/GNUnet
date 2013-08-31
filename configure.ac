@@ -43,10 +43,6 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AM_PROG_CC_C_O
 LT_INIT([disable-static dlopen win32-dll])
-LT_CONFIG_LTDL_DIR([libltdl])
-LTDL_INIT
-AC_SUBST(LTDLINCL)
-AC_SUBST(LIBLTDL)
 AC_SUBST(MKDIR_P)
 
 # large file support
@@ -473,6 +469,41 @@ fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
+# Check for libltdl header (#2999)
+ltdl=0
+AC_MSG_CHECKING(for libltdl)
+AC_ARG_WITH(ltdl,
+   [  --with-ltdl=PFX    base of libltdl installation],
+   [AC_MSG_RESULT([$with_ltdl])
+    case $with_ltdl in
+      no)
+        ;;
+      yes)
+        AC_CHECK_HEADERS(ltdl.h,
+          AC_CHECK_LIB([ltdl], [lt_dlopenext],
+            ltdl=1))
+        ;;
+      *)
+        LDFLAGS="-L$with_ltdl/lib $LDFLAGS"
+        CPPFLAGS="-I$with_ltdl/include $CPPFLAGS"
+        AC_CHECK_HEADERS(ltdl.h,
+          AC_CHECK_LIB([ltdl], [lt_dlopenext],
+            EXT_LIB_PATH="-L$with_ltdl/lib $EXT_LIB_PATH"
+            ltdl=1))
+        ;;
+    esac
+   ],
+   [AC_MSG_RESULT([--with-ltdl not specified])
+    AC_CHECK_HEADERS(ltdl.h,
+     AC_CHECK_LIB([ltdl], [lt_dlopenext],
+      ltdl=1))])
+if test "$ltdl" != 1
+then
+ AC_MSG_ERROR([GNUnet requires libltdl (from GNU libtool), try installing libltdl-dev])
+fi
+# restore LIBS
+LIBS=$SAVE_LIBS
+
 # test for libunistring
 gl_LIBUNISTRING
 if test $HAVE_LIBUNISTRING != yes; then
@@ -494,8 +525,6 @@ AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h math.h errno.h ctype.h limits.h stdio.h stdlib.h string.h unistd.h stdarg.h signal.h locale.h sys/stat.h sys/types.h],,AC_MSG_ERROR([Compiling GNUnet requires standard UNIX headers files]))
 
 
-# Check for libltdl header (#2999)
-AC_CHECK_HEADERS([ltdl.h],,AC_MSG_ERROR([Compiling GNUnet requires libltdl headers (try installing libltdl-dev)]))
 
 # Checks for headers that are only required on some systems or opional (and where we do NOT abort if they are not there)
 AC_CHECK_HEADERS([malloc.h malloc/malloc.h langinfo.h sys/param.h sys/mount.h sys/statvfs.h sys/select.h sockLib.h sys/mman.h sys/msg.h sys/vfs.h arpa/inet.h fcntl.h libintl.h netdb.h netinet/in.h netinet/in_systm.h netinet/ip.h sys/ioctl.h sys/socket.h sys/time.h unistd.h kstat.h sys/sysinfo.h kvm.h sys/file.h sys/resource.h ifaddrs.h mach/mach.h stddef.h sys/timeb.h terminos.h argz.h ucred.h endian.h sys/endian.h execinfo.h])

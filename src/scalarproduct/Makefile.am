@@ -64,13 +64,6 @@ if ENABLE_TEST_RUN
   TESTS = $(check_PROGRAMS)
 endif
 
-test_consensus_api_SOURCES = \
- test_consensus_api.c
-test_consensus_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/consensus/libgnunetconsensus.la
-
 test_scalarproduct_api_SOURCES = \
   test_scalarproduct_api.c
 test_scalarproduct_api_LDADD = \
