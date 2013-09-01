@@ -34,6 +34,13 @@
 
 
 /**
+ * Test to see if local peers have reached the required quorum of a barrier
+ */
+#define LOCAL_QUORUM_REACHED(barrier)           \
+  ((barrier->quorum * GST_num_local_peers) <= (barrier->nreached * 100))
+
+
+/**
  * Barrier
  */
 struct Barrier;
@@ -59,6 +66,7 @@ struct MessageQueue
    */
   struct GNUNET_MessageHeader *msg;
 };
+
 
 /**
  * Context to be associated with each client
@@ -103,6 +111,38 @@ struct ClientCtx
 
 
 /**
+ * Wrapper around Barrier handle
+ */
+struct WBarrier
+{
+  /**
+   * DLL next pointer
+   */
+  struct WBarrier *next;
+
+  /**
+   * DLL prev pointer
+   */
+  struct WBarrier *prev;
+
+  /**
+   * The local barrier associated with the creation of this wrapper
+   */
+  struct Barrier *barrier;
+
+  /**
+   * The barrier handle from API
+   */
+  struct GNUNET_TESTBED_Barrier *hbarrier;
+
+  /**
+   * Has this barrier been crossed?
+   */
+  uint8_t reached;
+};
+
+
+/**
  * Barrier
  */
 struct Barrier
@@ -126,6 +166,26 @@ struct Barrier
    * DLL tail for the list of clients waiting for this barrier
    */
   struct ClientCtx *tail;
+
+  /**
+   * DLL head for the list of barrier handles
+   */
+  struct WBarrier *whead;
+
+  /**
+   * DLL tail for the list of barrier handles
+   */
+  struct WBarrier *wtail;
+
+  /**
+   * Number of barriers wrapped in the above DLL
+   */
+  unsigned int num_wbarriers;
+
+  /**
+   * Number of wrapped barriers reached so far
+   */
+  unsigned int num_wbarriers_reached;
 
   /**
    * Number of peers which have reached this barrier
@@ -364,7 +424,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
     client_ctx->barrier = barrier;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->head, barrier->tail, client_ctx);
     barrier->nreached++;
-    if ((barrier->quorum * GST_num_local_peers) <= (barrier->nreached * 100))
+    if (LOCAL_QUORUM_REACHED (barrier))
       notify_task_cb (barrier, NULL);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -423,8 +483,60 @@ GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GST_barriers_stop ()
 {
+  GNUNET_assert (NULL != barrier_map);
+  GNUNET_CONTAINER_multihashmap_destroy (barrier_map);
   GNUNET_assert (NULL != ctx);
   GNUNET_SERVICE_stop (ctx);
+}
+
+
+/**
+ * Functions of this type are to be given as callback argument to
+ * GNUNET_TESTBED_barrier_init().  The callback will be called when status
+ * information is available for the barrier.
+ *
+ * @param cls the closure given to GNUNET_TESTBED_barrier_init()
+ * @param name the name of the barrier
+ * @param barrier the barrier handle
+ * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
+ *   GNUNET_SYSERR upon error
+ * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
+ *   error messsage
+ */
+static void 
+wbarrier_status_cb (void *cls, const char *name,
+                   struct GNUNET_TESTBED_Barrier *b_,
+                   int status, const char *emsg)
+{
+  struct WBarrier *wrapper = cls;
+  struct Barrier *barrier = wrapper->barrier;
+
+  GNUNET_assert (b_ == wrapper->hbarrier);
+  wrapper->hbarrier = NULL;
+  GNUNET_CONTAINER_DLL_remove (barrier->whead, barrier->wtail, wrapper);
+  GNUNET_free (wrapper);
+  if (GNUNET_SYSERR == status)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Initialising barrier (%s) failed at a sub-controller: %s\n",
+         barrier->name, (NULL != emsg) ? emsg : "NULL");
+    while (NULL != (wrapper = barrier->whead))
+    {
+      GNUNET_TESTBED_barrier_cancel (wrapper->hbarrier);
+      GNUNET_CONTAINER_DLL_remove (barrier->whead, barrier->wtail, wrapper);
+      GNUNET_free (wrapper);
+    }
+    /* Send parent controller failure message */
+    GNUNET_break (0);
+  }
+  barrier->num_wbarriers_reached++;
+  if ((barrier->num_wbarriers_reached == barrier->num_wbarriers)
+      && (LOCAL_QUORUM_REACHED (barrier)))
+  {
+    /* Send parent controller success status message */
+    GNUNET_break (0);    
+  }
+  return;
 }
 
 
@@ -448,6 +560,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   const char *name;
   struct Barrier *barrier;
   struct Slave *slave;
+  struct WBarrier *wrapper;
   struct GNUNET_HashCode hash;
   size_t name_len;
   uint64_t op_id;
@@ -506,6 +619,12 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_break (0);/* May happen when we are connecting to the controller */
       continue;
     }    
-    GNUNET_break (0);           /* FIXME */
+    wrapper = GNUNET_malloc (sizeof (struct WBarrier));
+    wrapper->barrier = barrier;
+    wrapper->hbarrier = GNUNET_TESTBED_barrier_init (slave->controller,
+                                                     barrier->name,
+                                                     barrier->quorum,
+                                                     &wbarrier_status_cb,
+                                                     wrapper);
   }
 }
