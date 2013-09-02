@@ -42,78 +42,6 @@ extern "C" {
  */
 #define GNUNET_SCALARPRODUCT_VERSION 0x00000042
 
-/**
- * Message type passed from client to service 
- * to initiate a request or responder role
- */
-struct GNUNET_SCALARPRODUCT_client_request
-{
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * how many elements the vector in payload contains
-   */
-  uint16_t element_count GNUNET_PACKED;
-
-  /**
-   * how many bytes the mask has
-   */
-  uint16_t mask_length GNUNET_PACKED;
-
-  /**
-   * the transaction/session key used to identify a session
-   */
-  struct GNUNET_HashCode key;
-
-  /**
-   * the identity of a remote peer we want to communicate with
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * followed by long vector[element_count] | [unsigned char mask[mask_bytes]]
-   */
-};
-
-/**
- * Message type passed from service client
- * to finalize a session as requester or responder
- */
-struct GNUNET_SCALARPRODUCT_client_response
-{
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * 0 if no product attached
-   */
-  uint32_t product_length GNUNET_PACKED;
-
-  /**
-   * the transaction/session key used to identify a session
-   */
-  struct GNUNET_HashCode key;
-
-  /**
-   * the identity of a remote peer we want to communicate with
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Workaround for libgcrypt: -1 if negative, 0 if zero, else 1
-   */
-  int8_t range;
-
-  /**
-   * followed by product of length product_length (or nothing)
-   */
-};
-
 enum GNUNET_SCALARPRODUCT_ResponseStatus
 {
   GNUNET_SCALARPRODUCT_Status_Success = 0,
@@ -194,10 +122,7 @@ typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
- * @param msg NULL on success, otherwise an error message
+ * @param status Status of the request
  */
 typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
                                                              enum GNUNET_SCALARPRODUCT_ResponseStatus status);
@@ -205,12 +130,8 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
  * Process a datum that was stored in the scalarproduct.
  * 
  * @param cls closure
- * @param key Sessioon key
- * @param peer PeerID of the peer with whom the scalar product was calculated.
  * @param status Status of the request
- * @param size Size of the received message
- * @param data Pointer to the data
- * @param type Type of data
+ * @param type result of the computation
  */
 typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
                                                      enum GNUNET_SCALARPRODUCT_ResponseStatus status,
