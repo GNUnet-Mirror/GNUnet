@@ -31,6 +31,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_scalarproduct_service.h"
 #include "gnunet_protocols.h"
+#include "scalarproduct.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnunet-scalarproduct",__VA_ARGS__)
 /**

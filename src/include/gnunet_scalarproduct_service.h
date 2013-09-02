@@ -27,7 +27,6 @@
 #ifndef GNUNET_SCALARPRODUCT_SERVICE_H
 #define GNUNET_SCALARPRODUCT_SERVICE_H
 #define GCRYPT_NO_DEPRECATED
-// including gcrypt crashes netbeans after the next restart...
 #include <gcrypt.h>
 
 #ifdef __cplusplus
