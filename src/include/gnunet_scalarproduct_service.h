@@ -50,67 +50,7 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
-struct GNUNET_SCALARPRODUCT_Handle
-{
-  /**
-   * Our configuration.
-   */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-  /**
-   * Current connection to the scalarproduct service.
-   */
-  struct GNUNET_CLIENT_Connection *client;
-
-  /**
-   * Handle for statistics.
-   */
-  struct GNUNET_STATISTICS_Handle *stats;
-
-  /**
-   * Current transmit handle.
-   */
-  struct GNUNET_CLIENT_TransmitHandle *th;
-  
-  /**
-   * Handle to the master context.
-   */
-  struct GNUNET_SCALARPRODUCT_Handle *h;
-  
-  /**
-   * The shared session key identifying this computation
-   */
-  struct GNUNET_HashCode * key;
-  
-  /**
-   * The message to be transmitted
-   */
-  void * msg;
-
-  union
-  {
-    /**
-     * Function to call after transmission of the request.
-     */
-    GNUNET_SCALARPRODUCT_ContinuationWithStatus cont_status;
-
-    /**
-     * Function to call after transmission of the request.
-     */
-    GNUNET_SCALARPRODUCT_DatumProcessor cont_datum;
-  };
-
-  /**
-   * Closure for 'cont'.
-   */
-  void *cont_cls;
-
-  /**
-   * Response Processor for response from the service. This function calls the
-   * continuation function provided by the client.
-   */
-  GNUNET_SCALARPRODUCT_ResponseMessageHandler response_proc;
-};
+struct GNUNET_SCALARPRODUCT_Handle;
 
 typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
                                                              const struct GNUNET_MessageHeader *msg,
