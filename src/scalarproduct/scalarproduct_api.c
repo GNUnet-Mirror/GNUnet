@@ -30,6 +30,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_scalarproduct_service.h"
 #include "gnunet_protocols.h"
+#include "scalarproduct.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct-api",__VA_ARGS__)
 

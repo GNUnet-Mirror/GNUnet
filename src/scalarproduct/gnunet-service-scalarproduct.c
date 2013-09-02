@@ -32,7 +32,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_scalarproduct_service.h"
 #include "gnunet_scalarproduct.h"
-
+#include "scalarproduct.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct", __VA_ARGS__)
 
@@ -42,6 +42,151 @@
  * by gcry_strerror(rc).
  */
 #define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
+
+///////////////////////////////////////////////////////////////////////////////
+//                     Service Structure Definitions
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * state a session can be in
+ */
+enum SessionState
+{
+    WAITING_FOR_BOBS_CONNECT,
+    MESSAGE_FROM_RESPONDING_CLIENT_RECEIVED,
+    WAITING_FOR_RESPONSE_FROM_SERVICE,
+    REQUEST_FROM_SERVICE_RECEIVED,
+    FINALIZED
+};
+
+/**
+ * role a peer in a session can assume
+ */
+enum PeerRole
+{
+    ALICE,
+    BOB
+};
+
+
+/**
+ * A scalarproduct session which tracks:
+ * 
+ * a request form the client to our final response.
+ * or
+ * a request from a service to us(service).
+ */
+struct ServiceSession
+{
+    /**
+     * the role this peer has
+     */
+    enum PeerRole role;
+
+    /**
+     * session information is kept in a DLL
+     */
+    struct ServiceSession *next;
+
+    /**
+     * session information is kept in a DLL
+     */
+    struct ServiceSession *prev;
+
+    /**
+     * (hopefully) unique transaction ID
+     */
+    struct GNUNET_HashCode key;
+
+    /** 
+     * state of the session
+     */
+    enum SessionState state;
+
+    /**
+     * Alice or Bob's peerID
+     */
+    struct GNUNET_PeerIdentity peer;
+
+    /**
+     * the client this request is related to
+     */
+    struct GNUNET_SERVER_Client * client;
+
+    /**
+     * how many elements we were supplied with from the client
+     */
+    uint16_t element_count;
+
+    /**
+     * how many elements actually are used after applying the mask
+     */
+    uint16_t used_element_count;
+
+    /**
+     * how many bytes the mask is long. 
+     * just for convenience so we don't have to re-re-re calculate it each time
+     */
+    uint16_t mask_length;
+
+    /**
+     * all the vector elements we received
+     */
+    int32_t * vector;
+
+    /**
+     * mask of which elements to check
+     */
+    unsigned char * mask;
+
+    /**
+     * Public key of the remote service, only used by bob
+     */
+    gcry_sexp_t remote_pubkey;
+
+    /**
+     * E(ai)(Bob) or ai(Alice) after applying the mask
+     */
+    gcry_mpi_t * a;
+
+    /**
+     * The computed scalar 
+     */
+    gcry_mpi_t product;
+
+    /**
+     * My transmit handle for the current message to a alice/bob
+     */
+    struct GNUNET_MESH_TransmitHandle * service_transmit_handle;
+
+    /**
+     * My transmit handle for the current message to the client
+     */
+    struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
+
+    /**
+     * tunnel-handle associated with our mesh handle
+     */
+    struct GNUNET_MESH_Tunnel * tunnel;
+
+};
+
+/**
+ * We need to do a minimum of bookkeeping to maintain track of our transmit handles.
+ * each msg is associated with a session and handle. using this information we can determine which msg was sent.
+ */
+struct MessageObject
+{
+    /**
+     * The handle used to transmit with this request
+     */
+    void ** transmit_handle;
+
+    /**
+     * The message to send
+     */
+    struct GNUNET_MessageHeader * msg;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 //                      Global Variables
