@@ -141,7 +141,7 @@ responder_callback (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (key), (int) status);
     }
 
-  GNUNET_SCALARPRODUCT_disconnect (handle);
+  GNUNET_SCALARPRODUCT_cancel (handle);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -209,7 +209,7 @@ requester_callback (void *cls,
     default:
       LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (key), (int) status);
     }
-  GNUNET_SCALARPRODUCT_disconnect (handle);
+  GNUNET_SCALARPRODUCT_cancel (handle);
   GNUNET_SCHEDULER_shutdown ();
 }
 

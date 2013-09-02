@@ -52,7 +52,7 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
    * This is a linked list.
    */
   struct GNUNET_SCALARPRODUCT_ComputationHandle *prev;
-  
+
   /**
    * Our configuration.
    */
@@ -72,7 +72,7 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
    * The shared session key identifying this computation
    */
   struct GNUNET_HashCode * key;
-    
+
   /**
    * Current transmit handle.
    */
@@ -129,32 +129,13 @@ static struct GNUNET_SCALARPRODUCT_ComputationHandle *tail;
  ***  Function Declarations                          **********
  **************************************************************/
 
-/**
- * Called when a response is received from the service. After basic check
- * handler in qe->response_proc is called. This functions handles the response
- * to the client which used the API.
- * 
- * @param cls Pointer to the Master Context
- * @param msg Pointer to the data received in response
- */
-static void
-receive_cb (void *cls, const struct GNUNET_MessageHeader *msg);
-
-/**
- * Transmits the request to the VectorProduct Sevice
- * 
- * @param cls Closure
- * @param size Size of the buffer
- * @param buf Pointer to the buffer
- * 
- * @return Size of the message sent
- */
-static size_t transmit_request (void *cls, size_t size,
-                                void *buf);
+void
+GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
 
 /**************************************************************
  ***  Static Function Declarations                   **********
  **************************************************************/
+
 
 /**
  * Handles the RESULT received in reply of prepare_response from the 
@@ -194,31 +175,32 @@ process_result_message (void *cls,
   if (GNUNET_SCALARPRODUCT_Status_Success == status
       && qe->cont_datum != NULL)
     {
-      size_t product_len = ntohl(message->product_length);
-      result = gcry_mpi_new(0);
-      
+      size_t product_len = ntohl (message->product_length);
+      result = gcry_mpi_new (0);
+
       if (0 < product_len)
         {
           gcry_mpi_t num;
           size_t read = 0;
 
-          if (0 != gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read)){
+          if (0 != gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read))
+            {
               LOG (GNUNET_ERROR_TYPE_ERROR, "Could not convert to mpi to value!\n");
-              gcry_mpi_release(result);
+              gcry_mpi_release (result);
               result = NULL;
               status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
             }
           else
             {
               if (message->range > 0)
-                gcry_mpi_add(result, result, num);
+                gcry_mpi_add (result, result, num);
               else
-                gcry_mpi_sub(result, result, num);
-              gcry_mpi_release(num);
+                gcry_mpi_sub (result, result, num);
+              gcry_mpi_release (num);
             }
         }
     }
-    qe->cont_datum (qe->cont_cls, status, result);
+  qe->cont_datum (qe->cont_cls, status, result);
 }
 
 
@@ -243,7 +225,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
       LOG (GNUNET_ERROR_TYPE_WARNING, "Disconnected by Service.\n");
       status = GNUNET_SCALARPRODUCT_Status_ServiceDisconnected;
     }
-  else if ( GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT != ntohs (msg->type))
+  else if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT != ntohs (msg->type))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid message type received\n");
     }
@@ -256,7 +238,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
       status = GNUNET_SCALARPRODUCT_Status_Success;
     }
-  
+
   if (qe->cont_datum != NULL)
     qe->response_proc (qe, msg, status);
 
@@ -278,22 +260,22 @@ transmit_request (void *cls, size_t size,
                   void *buf)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *qe = cls;
-  
+
   if (NULL == buf)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to transmit request to SCALARPRODUCT.\n");
       GNUNET_STATISTICS_update (qe->stats,
                                 gettext_noop ("# transmission request failures"),
                                 1, GNUNET_NO);
-      
+
       // notify caller about the error, done here.
       if (qe->cont_datum != NULL)
         qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_Failure);
-      GNUNET_SCALARPRODUCT_cancel(cls);
+      GNUNET_SCALARPRODUCT_cancel (cls);
       return 0;
     }
   memcpy (buf, qe->msg, size);
-  
+
   GNUNET_free (qe->msg);
   qe->msg = NULL;
   qe->th = NULL;
@@ -338,52 +320,53 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int32_t * vector;
   uint16_t size;
   uint64_t i;
-  
-  GNUNET_assert(key);
-  GNUNET_assert(elements);
-  GNUNET_assert(cont);
-  GNUNET_assert(element_count > 1);
+
+  GNUNET_assert (key);
+  GNUNET_assert (elements);
+  GNUNET_assert (cont);
+  GNUNET_assert (element_count > 1);
   GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_client_request)
-                                                   + element_count * sizeof (int32_t));
+                 +element_count * sizeof (int32_t));
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   h->client = GNUNET_CLIENT_connect ("scalarproduct", cfg);
   if (!h->client)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to connect to the scalarproduct service\n"));
-      GNUNET_free(h);
+      GNUNET_free (h);
       return NULL;
     }
   h->stats = GNUNET_STATISTICS_create ("scalarproduct-api", cfg);
-  if (!h->th){
+  if (!h->th)
+    {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Failed to send a message to the statistics service\n"));
-      GNUNET_CLIENT_disconnect(h->client);
-      GNUNET_free(h);
+           _ ("Failed to send a message to the statistics service\n"));
+      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_free (h);
       return NULL;
-  }
-  
-  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t);
-  
+    }
+
+  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t);
+
   h->cont_status = cont;
   h->cont_cls = cont_cls;
   h->response_proc = &process_result_message;
   h->cfg = cfg;
   h->msg = GNUNET_malloc (size);
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-  
+
   msg = (struct GNUNET_SCALARPRODUCT_client_request*) h->msg;
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
   msg->element_count = htonl (element_count);
-  
-  vector = (int32_t*) &msg[1];
+
+  vector = (int32_t*) & msg[1];
   // copy each element over to the message
   for (i = 0; i < element_count; i++)
-    vector[i] = htonl(elements[i]);
+    vector[i] = htonl (elements[i]);
 
   memcpy (&msg->key, key, sizeof (struct GNUNET_HashCode));
-  
+
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                GNUNET_YES, // retry is OK in the initial stage
@@ -392,10 +375,10 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to send a message to the scalarproduct service\n"));
-      GNUNET_STATISTICS_destroy(h->stats, GNUNET_YES);
-      GNUNET_CLIENT_disconnect(h->client);
-      GNUNET_free(h->msg);
-      GNUNET_free(h);
+      GNUNET_STATISTICS_destroy (h->stats, GNUNET_YES);
+      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_free (h->msg);
+      GNUNET_free (h);
       return NULL;
     }
   GNUNET_CONTAINER_DLL_insert (head, tail, h);
@@ -432,53 +415,54 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   int32_t * vector;
   uint16_t size;
   uint64_t i;
-  
+
   GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_client_request)
-                                                   + element_count * sizeof (int32_t)
-                                                   + mask_bytes);
-  
+                 +element_count * sizeof (int32_t)
+                 + mask_bytes);
+
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   h->client = GNUNET_CLIENT_connect ("scalarproduct", cfg);
   if (!h->client)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to connect to the scalarproduct service\n"));
-      GNUNET_free(h);
+      GNUNET_free (h);
       return NULL;
     }
   h->stats = GNUNET_STATISTICS_create ("scalarproduct-api", cfg);
-  if (!h->th){
+  if (!h->th)
+    {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Failed to send a message to the statistics service\n"));
-      GNUNET_CLIENT_disconnect(h->client);
-      GNUNET_free(h);
+           _ ("Failed to send a message to the statistics service\n"));
+      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_free (h);
       return NULL;
-  }
-  
-  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_bytes;
-  
+    }
+
+  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_bytes;
+
   h->cont_datum = cont;
   h->cont_cls = cont_cls;
   h->response_proc = &process_status_message;
   h->cfg = cfg;
   h->msg = GNUNET_malloc (size);
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-  
+
   msg = (struct GNUNET_SCALARPRODUCT_client_request*) h->msg;
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
   msg->element_count = htons (element_count);
   msg->mask_length = htons (mask_bytes);
-  
-  vector = (int32_t*) &msg[1];
+
+  vector = (int32_t*) & msg[1];
   // copy each element over to the message
   for (i = 0; i < element_count; i++)
-    vector[i] = htonl(elements[i]);
+    vector[i] = htonl (elements[i]);
 
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&msg->key, key, sizeof (struct GNUNET_HashCode));
   memcpy (&vector[element_count], mask, mask_bytes);
-  
+
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                GNUNET_YES, // retry is OK in the initial stage
@@ -487,15 +471,16 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to send a message to the scalarproduct service\n"));
-      GNUNET_STATISTICS_destroy(h->stats, GNUNET_YES);
-      GNUNET_CLIENT_disconnect(h->client);
-      GNUNET_free(h->msg);
-      GNUNET_free(h);
+      GNUNET_STATISTICS_destroy (h->stats, GNUNET_YES);
+      GNUNET_CLIENT_disconnect (h->client);
+      GNUNET_free (h->msg);
+      GNUNET_free (h);
       return NULL;
     }
   GNUNET_CONTAINER_DLL_insert (head, tail, h);
   return h;
 }
+
 
 /**
  * Disconnect from the scalarproduct service.

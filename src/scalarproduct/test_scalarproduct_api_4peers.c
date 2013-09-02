@@ -817,7 +817,7 @@ scalarproduct_da (void *cls, void *op_result)
 {
   struct PeerData* peer = (struct PeerData*) cls;
 
-  GNUNET_SCALARPRODUCT_disconnect (peer->vh);
+  GNUNET_SCALARPRODUCT_cancel (peer->vh);
   return;
 
   GNUNET_assert (0);
