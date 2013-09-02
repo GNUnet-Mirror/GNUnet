@@ -310,6 +310,29 @@ queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
 
 
 /**
+ * Function to cleanup client context data structure
+ *
+ * @param ctx the client context data structure
+ */
+static void
+cleanup_clientctx (struct ClientCtx *ctx)
+{
+  struct MessageQueue *mq;
+  
+  GNUNET_SERVER_client_drop (ctx->client);
+  if (NULL != ctx->tx)
+    GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
+  if (NULL != (mq = ctx->mq_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (ctx->mq_head, ctx->mq_tail, mq);
+    GNUNET_free (mq->msg);
+    GNUNET_free (mq);
+  }
+  GNUNET_free (ctx);
+}
+
+
+/**
  * Function to remove a barrier from the barrier map and cleanup resources
  * occupied by a barrier
  *
@@ -318,9 +341,16 @@ queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
 static void
 remove_barrier (struct Barrier *barrier)
 {
+  struct ClientCtx *ctx;
+  
   GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (barrier_map,
                                                                     &barrier->hash,
                                                                     barrier));
+  while (NULL != (ctx = barrier->head))
+  {
+    GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, ctx);
+    cleanup_clientctx (ctx);
+  }
   GNUNET_free (barrier->name);
   GNUNET_SERVER_client_drop (barrier->client);
   GNUNET_free (barrier);
@@ -511,15 +541,12 @@ static void
 disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct ClientCtx *client_ctx;
-  struct Barrier *barrier;
   
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
   if (NULL == client_ctx)
-    return;
-  barrier = client_ctx->barrier;
-  GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, client_ctx);
-  if (NULL != client_ctx->tx)
-    GNUNET_SERVER_notify_transmit_ready_cancel (client_ctx->tx);
+    return;                     /* We only set user context for locally
+                                   connected clients */
+  cleanup_clientctx (client_ctx);
 }
 
 
@@ -702,7 +729,6 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   name_len = (size_t) msize - sizeof (struct GNUNET_TESTBED_BarrierInit);
   name = GNUNET_malloc (name_len + 1);
   (void) memcpy (name, msg->name, name_len);
-  name[name_len] = '\0';
   GNUNET_CRYPTO_hash (name, name_len, &hash);
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
   {
@@ -771,7 +797,48 @@ void
 GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_break (0);
+  const struct GNUNET_TESTBED_BarrierCancel *msg;
+  char *name;
+  struct Barrier *barrier;
+  struct GNUNET_HashCode hash;
+  size_t name_len;
+  uint16_t msize;
+
+  if (NULL == GST_context)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }  
+  if (client != GST_context->client)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_BarrierCancel))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_BarrierCancel *) message;
+  name_len = msize - sizeof (struct GNUNET_TESTBED_BarrierCancel);
+  name = GNUNET_malloc (name_len + 1);
+  (void) memcpy (name, msg->name, name_len);
+  GNUNET_CRYPTO_hash (name, name_len, &hash);
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  barrier = GNUNET_CONTAINER_multihashmap_get (barrier_map, &hash);
+  GNUNET_assert (NULL != barrier);
+  cancel_wrappers (barrier);
+  remove_barrier (barrier);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
 }
 
 /* end of gnunet-service-testbed_barriers.c */
