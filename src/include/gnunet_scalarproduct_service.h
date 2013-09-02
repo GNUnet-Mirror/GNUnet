@@ -46,7 +46,8 @@ extern "C" {
  * Message type passed from client to service 
  * to initiate a request or responder role
  */
-struct GNUNET_SCALARPRODUCT_client_request {
+struct GNUNET_SCALARPRODUCT_client_request
+{
   /**
    * GNUNET message header
    */
@@ -55,13 +56,13 @@ struct GNUNET_SCALARPRODUCT_client_request {
   /**
    * how many elements the vector in payload contains
    */
-  uint16_t element_count GNUNET_PACKED; 
+  uint16_t element_count GNUNET_PACKED;
 
   /**
    * how many bytes the mask has
    */
   uint16_t mask_length GNUNET_PACKED;
-  
+
   /**
    * the transaction/session key used to identify a session
    */
@@ -81,7 +82,8 @@ struct GNUNET_SCALARPRODUCT_client_request {
  * Message type passed from service client
  * to finalize a session as requester or responder
  */
-struct GNUNET_SCALARPRODUCT_client_response {
+struct GNUNET_SCALARPRODUCT_client_response
+{
   /**
    * GNUNET message header
    */
@@ -103,11 +105,17 @@ struct GNUNET_SCALARPRODUCT_client_response {
   struct GNUNET_PeerIdentity peer;
 
   /**
+   * Workaround for libgcrypt: -1 if negative, 0 if zero, else 1
+   */
+  int8_t range;
+
+  /**
    * followed by product of length product_length (or nothing)
    */
 };
 
-enum GNUNET_SCALARPRODUCT_ResponseStatus {
+enum GNUNET_SCALARPRODUCT_ResponseStatus
+{
   GNUNET_SCALARPRODUCT_Status_Success = 0,
   GNUNET_SCALARPRODUCT_Status_Failure,
   GNUNET_SCALARPRODUCT_Status_Timeout,
@@ -115,7 +123,8 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus {
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
-struct GNUNET_SCALARPRODUCT_Handle {
+struct GNUNET_SCALARPRODUCT_Handle
+{
   /**
    * Our configuration.
    */
@@ -132,33 +141,53 @@ struct GNUNET_SCALARPRODUCT_Handle {
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
-   * Current head of priority queue.
-   */
-  struct GNUNET_SCALARPRODUCT_QueueEntry *queue_head;
-
-  /**
-   * Current tail of priority queue.
-   */
-  struct GNUNET_SCALARPRODUCT_QueueEntry *queue_tail;
-
-  /**
-   * Are we currently trying to receive from the service?
-   */
-  int in_receive;
-
-  /**
    * Current transmit handle.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
+  
+  /**
+   * Handle to the master context.
+   */
+  struct GNUNET_SCALARPRODUCT_Handle *h;
+  
+  /**
+   * The shared session key identifying this computation
+   */
+  struct GNUNET_HashCode * key;
+  
+  /**
+   * The message to be transmitted
+   */
+  void * msg;
+
+  union
+  {
+    /**
+     * Function to call after transmission of the request.
+     */
+    GNUNET_SCALARPRODUCT_ContinuationWithStatus cont_status;
+
+    /**
+     * Function to call after transmission of the request.
+     */
+    GNUNET_SCALARPRODUCT_DatumProcessor cont_datum;
+  };
 
   /**
-   * TODO: What else should/could go here?
+   * Closure for 'cont'.
    */
+  void *cont_cls;
+
+  /**
+   * Response Processor for response from the service. This function calls the
+   * continuation function provided by the client.
+   */
+  GNUNET_SCALARPRODUCT_ResponseMessageHandler response_proc;
 };
 
 typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
-        const struct GNUNET_MessageHeader *msg,
-        enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+                                                             const struct GNUNET_MessageHeader *msg,
+                                                             enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 
 /**
  * Continuation called to notify client about result of the
@@ -171,8 +200,7 @@ typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
  * @param msg NULL on success, otherwise an error message
  */
 typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
-        const struct GNUNET_HashCode * key,
-        enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+                                                             enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 /**
  * Process a datum that was stored in the scalarproduct.
  * 
@@ -185,75 +213,58 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
  * @param type Type of data
  */
 typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
-        const struct GNUNET_HashCode * key,
-        const struct GNUNET_PeerIdentity * peer,
-        enum GNUNET_SCALARPRODUCT_ResponseStatus status,
-        const struct GNUNET_SCALARPRODUCT_client_response *msg);
+                                                     enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+                                                     gcry_mpi_t result);
 
 /**
- * Request the Scalar Product Evaluation
+ * Request by Alice's client for computing a scalar product
  * 
  * @param h handle to the master context
  * @param key Session key - unique to the requesting client
  * @param peer PeerID of the other peer
- * @param element_count Number of elements in the vector
- * @param mask_bytes number of bytes in the mask
  * @param elements Array of elements of the vector
+ * @param element_count Number of elements in the vector
  * @param mask Array of the mask
- * @param timeout Relative timeout for the operation
+ * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_SCALARPRODUCT_QueueEntry *
-GNUNET_SCALARPRODUCT_request(struct GNUNET_SCALARPRODUCT_Handle *h,
-        const struct GNUNET_HashCode * key,
-        const struct GNUNET_PeerIdentity *peer,
-        uint16_t element_count,
-        uint16_t mask_bytes,
-        int32_t * elements, const unsigned char * mask,
-        struct GNUNET_TIME_Relative timeout,
-        GNUNET_SCALARPRODUCT_DatumProcessor cont,
-        void *cont_cls);
+struct GNUNET_SCALARPRODUCT_Handle *
+GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *h,
+                              const struct GNUNET_HashCode * key,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const int32_t * elements,
+                              uint32_t element_count,
+                              const unsigned char * mask,
+                              uint32_t mask_bytes,
+                              GNUNET_SCALARPRODUCT_DatumProcessor cont,
+                              void *cont_cls);
 
 /**
- * Called by the responder client to prepare response
+ * Used by Bob's client to cooperate with Alice, 
  * 
  * @param h handle to the master context
  * @param key Session key - unique to the requesting client
- * @param element_count Number of elements in the vector
- * @param mask_bytes number of bytes in the mask
  * @param elements Array of elements of the vector
- * @param mask Array of the mask
- * @param timeout Relative timeout for the operation
+ * @param element_count Number of elements in the vector
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_SCALARPRODUCT_QueueEntry *
-GNUNET_SCALARPRODUCT_prepare_response(struct GNUNET_SCALARPRODUCT_Handle *h,
-        const struct GNUNET_HashCode * key,
-        uint16_t element_count,
-        int32_t* elements,
-        struct GNUNET_TIME_Relative timeout,
-        GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-        void *cont_cls);
-
-/**
- * Connect to the scalarproduct service.
- *
- * @param cfg configuration to use
- * @return handle to use to access the service
- */
 struct GNUNET_SCALARPRODUCT_Handle *
-GNUNET_SCALARPRODUCT_connect(const struct GNUNET_CONFIGURATION_Handle * cfg);
-
+GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *h,
+                               const struct GNUNET_HashCode * key,
+                               const int32_t * elements,
+                               uint32_t element_count,
+                               GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
+                               void *cont_cls);
 /**
- * Disconnect from the scalarproduct service.
+ * Cancel an ongoing computation or revoke our collaboration offer.
+ * Closes the connection to the service
  * 
- * @param h handle to the scalarproduct
+ * @param h handel to terminate
  */
-void
-GNUNET_SCALARPRODUCT_disconnect(struct GNUNET_SCALARPRODUCT_Handle * h);
-
+void 
+GNUNET_SCALARPRODUCT_cancel (const struct GNUNET_SCALARPRODUCT_Handle *h);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
