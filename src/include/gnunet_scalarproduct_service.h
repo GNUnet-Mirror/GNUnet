@@ -45,7 +45,6 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
 {
   GNUNET_SCALARPRODUCT_Status_Success = 0,
   GNUNET_SCALARPRODUCT_Status_Failure,
-  GNUNET_SCALARPRODUCT_Status_Timeout,
   GNUNET_SCALARPRODUCT_Status_InvalidResponse,
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
@@ -89,8 +88,8 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_SCALARPRODUCT_Handle *
-GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *h,
+struct GNUNET_SCALARPRODUCT_ComputationHandle *
+GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_HashCode * key,
                               const struct GNUNET_PeerIdentity *peer,
                               const int32_t * elements,
@@ -103,15 +102,15 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *h,
 /**
  * Used by Bob's client to cooperate with Alice, 
  * 
- * @param h handle to the master context
+ * @param h handle to our configuration
  * @param key Session key - unique to the requesting client
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
  */
-struct GNUNET_SCALARPRODUCT_Handle *
-GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *h,
+struct GNUNET_SCALARPRODUCT_ComputationHandle *
+GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_HashCode * key,
                                const int32_t * elements,
                                uint32_t element_count,
