@@ -1478,6 +1478,29 @@ struct GNUNET_TESTBED_Barrier;
 
 
 /**
+ * Status of a barrier
+ */
+enum GNUNET_TESTBED_BarrierStatus
+{
+  /**
+   * Barrier initialised successfully
+   */
+  BARRIER_STATUS_INITIALISED = 1,
+
+  /**
+   * Barrier is crossed
+   */
+  BARRIER_STATUS_CROSSED,
+
+  /**
+   * Error status
+   */
+  BARRIER_STATUS_ERROR,
+  
+};
+
+
+/**
  * Functions of this type are to be given as callback argument to
  * GNUNET_TESTBED_barrier_init().  The callback will be called when status
  * information is available for the barrier.
@@ -1494,7 +1517,7 @@ typedef void (*GNUNET_TESTBED_barrier_status_cb) (void *cls,
                                                   const char *name,
                                                   struct GNUNET_TESTBED_Barrier
                                                   *barrier,
-                                                  int status,
+                                                  enum GNUNET_TESTBED_BarrierStatus status,
                                                   const char *emsg);
 
 
