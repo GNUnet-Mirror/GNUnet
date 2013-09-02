@@ -768,6 +768,11 @@ struct GNUNET_TESTBED_ManagePeerServiceMessage
 };
 
 
+/**************************************/
+/* Barriers IPC messages and protocol */
+/**************************************/
+
+
 /**
  * Message to initialise a barrier
  */
@@ -803,7 +808,7 @@ struct GNUNET_TESTBED_BarrierInit
 /**
  * Message for signalling status changes of a barrier
  */
-struct GNUNET_TESTBED_BarrierStatus
+struct GNUNET_TESTBED_BarrierStatusMsg
 {
   /**
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS
@@ -811,7 +816,7 @@ struct GNUNET_TESTBED_BarrierStatus
   struct GNUNET_MessageHeader header;
   
   /**
-   * status.  0 to signal success (barrier is crossed).  1 for error.
+   * status.  Use enumerated values of enum BarrierStatus
    */
   uint16_t status;
 

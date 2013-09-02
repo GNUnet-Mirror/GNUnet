@@ -1163,7 +1163,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     status =
         GNUNET_TESTBED_handle_barrier_status_ (c,
                                                (const struct
-                                                GNUNET_TESTBED_BarrierStatus *)
+                                                GNUNET_TESTBED_BarrierStatusMsg *)
                                                msg);
     break;
   default:

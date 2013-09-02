@@ -102,7 +102,7 @@ barrier_remove (struct GNUNET_TESTBED_Barrier *barrier)
  */
 int
 GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                                       const struct GNUNET_TESTBED_BarrierStatus
+                                       const struct GNUNET_TESTBED_BarrierStatusMsg
                                        *msg)
 {
   struct GNUNET_TESTBED_Barrier *barrier;
@@ -119,17 +119,17 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
   msize = ntohs (msg->header.size);  
   name = msg->data;
   name_len = ntohs (msg->name_len);
-  if (  (sizeof (struct GNUNET_TESTBED_BarrierStatus) + name_len + 1 > msize)
+  if (  (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
         || ('\0' != name[name_len])  )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   status = ntohs (msg->status);
-  if (0 != status)
+  if (BARRIER_STATUS_ERROR == status)
   {
     status = -1;
-    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatus) + name_len
+    emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
                         + 1);
     if (0 == emsg_len)
     {
@@ -150,6 +150,8 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     goto cleanup;
   GNUNET_assert (NULL != barrier->cb);
   barrier->cb (barrier->cls, name, barrier, status, emsg);
+  if (BARRIER_STATUS_INITIALISED == status)
+    return GNUNET_OK;           /* just initialised; skip cleanup */
 
  cleanup:
   GNUNET_free_non_null (emsg);
@@ -219,3 +221,5 @@ GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier)
 {
   barrier_remove (barrier);
 }
+
+/* end of testbed_api_barriers.c */

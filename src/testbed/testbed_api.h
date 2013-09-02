@@ -508,7 +508,7 @@ GNUNET_TESTBED_controller_link_ (void *op_cls,
  */
 int
 GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
-                                       const struct GNUNET_TESTBED_BarrierStatus
+                                       const struct GNUNET_TESTBED_BarrierStatusMsg
                                        *msg);
 
 
