@@ -100,27 +100,27 @@ static gcry_mpi_t my_offset;
 
 /**
  * Head of our double linked list for client-requests sent to us. 
- * for all of these elements we calculate a vector product with a remote peer
+ * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_client_head;
 /**
  * Tail of our double linked list for client-requests sent to us. 
- * for all of these elements we calculate a vector product with a remote peer
+ * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_client_tail;
 
 /**
  * Head of our double linked list for service-requests sent to us. 
- * for all of these elements we help the requesting service in calculating a vector product
+ * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_service_head;
 
 /**
  * Tail of our double linked list for service-requests sent to us. 
- * for all of these elements we help the requesting service in calculating a vector product
+ * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_service_tail;
