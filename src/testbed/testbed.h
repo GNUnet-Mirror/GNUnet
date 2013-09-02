@@ -784,22 +784,29 @@ struct GNUNET_TESTBED_BarrierInit
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unused.  Only of alignment.
-   */
-  uint32_t unused;
-  
-  /**
-   * The operation id
-   */
-  uint64_t op_id;
-  
-  /**
    * The quorum percentage needed for crossing the barrier
    */
   uint8_t quorum;
 
   /**
    * name of the barrier.  Non NULL-terminated.
+   */
+  char name[0];
+};
+
+
+/**
+ * Message to cancel a barrier
+ */
+struct GNUNET_TESTBED_BarrierCancel
+{
+  /**
+   * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * The barrier name.  Non NULL terminated
    */
   char name[0];
 };

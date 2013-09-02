@@ -1572,21 +1572,26 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT 484
 
 /**
+ * Message to cancel a barrier.  This message is flooded to all sub-controllers
+ */
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL 485
+
+/**
  * Message for signalling status of a barrier
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS 485
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS 486
 
 /**
  * Message sent by a peer when it has reached a barrier and is waiting for it to
  * be crossed
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT 486
+#define GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT 487
 
 /**
  * Not really a message, but for careful checks on the testbed messages; Should
  * always be the maximum and never be used to send messages with this type
  */
-#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 487
+#define GNUNET_MESSAGE_TYPE_TESTBED_MAX 488
 
 /**
  * The initialization message towards gnunet-testbed-helper

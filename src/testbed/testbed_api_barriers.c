@@ -181,9 +181,11 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
                              unsigned int quorum,
                              GNUNET_TESTBED_barrier_status_cb cb, void *cls)
 {
+  struct GNUNET_TESTBED_BarrierInit *msg;
   struct GNUNET_TESTBED_Barrier *barrier;
   struct GNUNET_HashCode key;
   size_t name_len;
+  uint16_t msize;
   
   GNUNET_assert (quorum <= 100);
   GNUNET_assert (NULL != cb);
@@ -199,6 +201,7 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
     return NULL;
   }
   barrier = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Barrier));
+  barrier->c = controller;
   barrier->name = GNUNET_strdup (name);
   barrier->cb = cb;
   barrier->cls = cls;
@@ -207,6 +210,13 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
                  GNUNET_CONTAINER_multihashmap_put (barrier_map, &barrier->key,
                                                     barrier,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  msize = name_len + sizeof (struct GNUNET_TESTBED_BarrierInit);
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT);
+  msg->quorum = (uint8_t) quorum;
+  (void) memcpy (msg->name, barrier->name, name_len);
+  GNUNET_TESTBED_queue_message_ (barrier->c, &msg->header);
   return barrier;
 }
 
@@ -219,6 +229,15 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
 void
 GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier)
 {
+  struct GNUNET_TESTBED_BarrierCancel *msg;
+  uint16_t msize;
+
+  msize = sizeof (struct GNUNET_TESTBED_BarrierCancel) + strlen (barrier->name);
+  msg = GNUNET_malloc (msize);
+  msg->header.size = htons (msize);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL);
+  (void) memcpy (msg->name, barrier->name, strlen (barrier->name));
+  GNUNET_TESTBED_queue_message_ (barrier->c, &msg->header);
   barrier_remove (barrier);
 }
 

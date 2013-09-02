@@ -25,7 +25,7 @@
  */
 
 #include "gnunet-service-testbed.h"
-
+#include "gnunet-service-testbed_barriers.h"
 
 /***********/
 /* Globals */
@@ -896,8 +896,12 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_SlaveGetConfigurationMessage)},
     {&GST_handle_shutdown_peers, NULL, GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS,
      sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage)},
-    {&GST_handle_peer_reconfigure, NULL, 
+    {&GST_handle_peer_reconfigure, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER, 0},
+    {&GST_handle_barrier_init, NULL, 
+     GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT, 0},
+    {&GST_handle_barrier_cancel, NULL, 
+     GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL, 0},
     {NULL, NULL, 0, 0}
   };
   char *logfile;
