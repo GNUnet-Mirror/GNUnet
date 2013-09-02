@@ -4937,6 +4937,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
       /* This should be encapsulted */
       GNUNET_break (0);
+      data_size = 0;
       break;
     default:
       GNUNET_break (0);
@@ -4964,6 +4965,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
       pid = ntohl ( ((struct GNUNET_MESH_Encrypted *) buf)->pid );
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   accounting pid %u\n", pid);
       fc->last_pid_sent = pid;
       send_ack (c, ch, fwd);
       break;
