@@ -5860,7 +5860,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   t = c->t;
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   /* Check if origin is as expected */
   neighbor = connection_get_hop (c, !fwd);
