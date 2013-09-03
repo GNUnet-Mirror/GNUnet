@@ -99,6 +99,8 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    *
    * They are OR'd with any existing flags set.
    *
+   * @param cls Closure.
+   * @param channel_key Public key of the channel.
    * @param message_id ID of the message.
    * @param psycstore_flags OR'd GNUNET_PSYCSTORE_MessageFlags.
    *

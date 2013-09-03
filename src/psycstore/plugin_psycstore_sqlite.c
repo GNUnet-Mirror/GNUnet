@@ -842,11 +842,6 @@ fragment_store (void *cls,
  * Set additional flags for a given message.
  *
  * They are OR'd with any existing flags set.
- *
- * @param plugin Plugin handle. 
- * @param channel_key Public key of the channel.
- * @param message_id ID of the message.
- * @param psycstore_flags OR'd GNUNET_PSYCSTORE_MessageFlags.
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
