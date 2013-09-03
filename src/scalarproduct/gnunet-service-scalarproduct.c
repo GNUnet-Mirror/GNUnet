@@ -35,13 +35,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct", __VA_ARGS__)
 
-/**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' with the message given
- * by gcry_strerror(rc).
- */
-#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
-
 ///////////////////////////////////////////////////////////////////////////////
 //                     Service Structure Definitions
 ///////////////////////////////////////////////////////////////////////////////

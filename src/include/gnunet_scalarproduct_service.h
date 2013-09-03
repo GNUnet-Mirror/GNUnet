@@ -122,8 +122,16 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * 
  * @param h handel to terminate
  */
-void 
-GNUNET_SCALARPRODUCT_cancel (const struct GNUNET_SCALARPRODUCT_Handle *h);
+void
+GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
+
+/**
+ * Cancel ALL ongoing computation or revoke our collaboration offer.
+ * Closes ALL connections to the service
+ * 
+ */
+void
+GNUNET_SCALARPRODUCT_disconnect ();
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -171,6 +171,7 @@ process_result_message (void *cls,
   const struct GNUNET_SCALARPRODUCT_client_response *message =
           (const struct GNUNET_SCALARPRODUCT_client_response *) msg;
   gcry_mpi_t result = NULL;
+  gcry_error_t rc;
 
   if (GNUNET_SCALARPRODUCT_Status_Success == status
       && qe->cont_datum != NULL)
@@ -183,9 +184,9 @@ process_result_message (void *cls,
           gcry_mpi_t num;
           size_t read = 0;
 
-          if (0 != gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read))
+          if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read)))
             {
-              LOG (GNUNET_ERROR_TYPE_ERROR, "Could not convert to mpi to value!\n");
+              LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
               gcry_mpi_release (result);
               result = NULL;
               status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
@@ -497,16 +498,35 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h)
       if (qe == h)
         {
           GNUNET_CONTAINER_DLL_remove (head, tail, qe);
-          LOG (GNUNET_ERROR_TYPE_INFO,
-               "Disconnecting from VectorProduct\n");
           if (NULL == qe->th)
             GNUNET_CLIENT_notify_transmit_ready_cancel (qe->th);
-          GNUNET_CLIENT_disconnect (h->client);
-          GNUNET_STATISTICS_destroy (h->stats, GNUNET_YES);
+          GNUNET_CLIENT_disconnect (qe->client);
+          GNUNET_STATISTICS_destroy (qe->stats, GNUNET_YES);
           GNUNET_free (qe->msg);
           GNUNET_free (qe);
           break;
         }
+    }
+}
+/**
+ * Cancel ALL our ongoing scalar product computations and collaboration offers.
+ * Closes ALL connections to the service
+ */
+void
+GNUNET_SCALARPRODUCT_disconnect ()
+{
+    struct GNUNET_SCALARPRODUCT_ComputationHandle * qe;
+
+    LOG (GNUNET_ERROR_TYPE_INFO, "Disconnecting from VectorProduct\n");
+    for (qe = head; head != NULL; qe = head)
+    {
+        GNUNET_CONTAINER_DLL_remove (head, tail, qe);
+        if (NULL == qe->th)
+            GNUNET_CLIENT_notify_transmit_ready_cancel (qe->th);
+        GNUNET_CLIENT_disconnect (qe->client);
+        GNUNET_STATISTICS_destroy (qe->stats, GNUNET_YES);
+        GNUNET_free (qe->msg);
+        GNUNET_free (qe);
     }
 }
 
