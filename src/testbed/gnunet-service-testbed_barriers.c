@@ -224,10 +224,6 @@ struct Barrier
    */
   uint8_t quorum;
   
-  /**
-   * Was there a timeout while propagating initialisation
-   */
-  uint8_t timedout;
 };
 
 
@@ -610,8 +606,9 @@ wbarrier_status_cb (void *cls, const char *name,
   wrapper->hbarrier = NULL;
   GNUNET_CONTAINER_DLL_remove (barrier->whead, barrier->wtail, wrapper);
   GNUNET_free (wrapper);
-  if (BARRIER_STATUS_ERROR == status)
+  switch (status)
   {
+  case BARRIER_STATUS_ERROR:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Initialising barrier `%s' failed at a sub-controller: %s\n",
          barrier->name, (NULL != emsg) ? emsg : "NULL");
@@ -621,9 +618,6 @@ wbarrier_status_cb (void *cls, const char *name,
     barrier->status = BARRIER_STATUS_ERROR;
     send_barrier_status_msg (barrier, emsg);
     return;
-  }
-  switch (status)
-  {
   case BARRIER_STATUS_CROSSED:
     if (BARRIER_STATUS_INITIALISED != barrier->status)
     {
@@ -637,7 +631,7 @@ wbarrier_status_cb (void *cls, const char *name,
       barrier->status = BARRIER_STATUS_CROSSED;
       send_barrier_status_msg (barrier, NULL);
     }
-    break;
+    return;
   case BARRIER_STATUS_INITIALISED:
     if (0 != barrier->status)
     {
@@ -650,11 +644,8 @@ wbarrier_status_cb (void *cls, const char *name,
       barrier->status = BARRIER_STATUS_INITIALISED;
       send_barrier_status_msg (barrier, NULL);
     }
-    break;
-  case BARRIER_STATUS_ERROR:
-    GNUNET_assert (0);
+    return;
   }
-  return;
 }
 
 
@@ -670,8 +661,6 @@ fwd_tout_barrier_init (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Barrier *barrier = cls;
   
-  barrier->nslaves--;
-  barrier->timedout = GNUNET_YES;
   cancel_wrappers (barrier);
   barrier->status = BARRIER_STATUS_ERROR;
   send_barrier_status_msg (barrier,

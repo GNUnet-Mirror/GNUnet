@@ -1551,6 +1551,53 @@ void
 GNUNET_TESTBED_barrier_cancel (struct GNUNET_TESTBED_Barrier *barrier);
 
 
+/**
+ * Opaque handle for barrier wait
+ */
+struct GNUNET_TESTBED_BarrierWaitHandle;
+
+
+/**
+ * Functions of this type are to be given as acallback argumetn to
+ * GNUNET_TESTBED_barrier_wait().  The callback will be called when the barrier
+ * corresponding given in GNUNET_TESTBED_barrier_wait() is crossed or cancelled.
+ *
+ * @param cls closure pointer given to GNUNET_TESTBED_barrier_wait()
+ * @param name the barrier name
+ * @param status GNUNET_SYSERR in case of error while waiting for the barrier;
+ *   GNUNET_OK if the barrier is crossed
+ */
+typedef void (*GNUNET_TESTBED_barrier_wait_cb) (void *cls,
+                                                const char *name,
+                                                int estatus);
+
+
+/**
+ * Wait for a barrier to be crossed.  This function should be called by the
+ * peers which have been started by the testbed.  If the peer is not started by
+ * testbed this function may return error
+ *
+ * @param name the name of the barrier
+ * @param cb the barrier wait callback
+ * @param cls the closure for the above callback
+ * @return barrier wait handle which can be used to cancel the waiting at
+ *   anytime before the callback is called.  NULL upon error.
+ */
+struct GNUNET_TESTBED_BarrierWaitHandle *
+GNUNET_TESTBED_barrier_wait (const char *name,
+                             GNUNET_TESTBED_barrier_wait_cb cb,
+                             void *cls);
+
+
+/**
+ * Cancel a barrier wait handle
+ *
+ * @param h the barrier wait handle
+ */
+void
+GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

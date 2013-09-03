@@ -421,6 +421,8 @@ tokenizer_cb (void *cls, void *client,
   }
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
+  /* expose testbed configuration through env variable */
+  GNUNET_assert (0 == setenv (ENV_TESTBED_CONFIG, config, 1));
   testbed =
       GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,

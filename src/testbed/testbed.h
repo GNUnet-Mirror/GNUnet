@@ -774,6 +774,13 @@ struct GNUNET_TESTBED_ManagePeerServiceMessage
 
 
 /**
+ * The environmental variable which when available refers to the configuration
+ * file the local testbed controller is using
+ */
+#define ENV_TESTBED_CONFIG "GNUNET_TESTBED_CONTROLLER_CONFIG"
+
+
+/**
  * Message to initialise a barrier
  */
 struct GNUNET_TESTBED_BarrierInit
