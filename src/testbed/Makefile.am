@@ -30,6 +30,15 @@ bin_PROGRAMS = \
   $(ll_binaries) \
   gnunet-testbed-profiler
 
+noinst_SCRIPTS = \
+  buildvars.py
+
+CLEANFILES = $(noinst_SCRIPTS) \
+  buildvars.pyc
+
+noinst_PROGRAMS = \
+  gnunet-service-test-barriers
+
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.h \
   gnunet-service-testbed.c \
@@ -150,7 +159,8 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
   test_testbed_api_testbed_run_waitforever \
-  test_testbed_api_statistics
+  test_testbed_api_statistics \
+  test_testbed_api_barriers
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -179,7 +189,8 @@ if ENABLE_TEST_RUN
   test_testbed_api_testbed_run_topologysmallworld \
   test_testbed_api_testbed_run_topologysmallworldring \
   test_testbed_api_testbed_run_topologyfromfile \
-  test_testbed_api_testbed_run_topologyscalefree
+  test_testbed_api_testbed_run_topologyscalefree \
+  test_testbed_api_barriers.py
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -350,6 +361,23 @@ test_testbed_api_peer_reconfiguration_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
+test_testbed_api_barriers_SOURCES = \
+ test_testbed_api_barriers.c
+test_testbed_api_barriers_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
+do_subst = sed -e 's,[@]libexecdir[@],$(libexecdir),g'
+
+buildvars.py: buildvars.py.in Makefile
+	$(do_subst) < $(srcdir)/buildvars.py.in > $@
+
+gnunet_service_test_barriers_SOURCES = \
+  gnunet-service-test-barriers.c
+gnunet_service_test_barriers_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
 EXTRA_DIST = \
   test_testbed_api.conf \
   test_testbed_api_test_timeout.conf \
@@ -364,4 +392,6 @@ EXTRA_DIST = \
   test_testbed_api_testbed_run_topologyscalefree.conf \
   overlay_topology.txt \
   sample_hosts.txt \
-  sample.job
+  sample.job \
+  buildvars.py.in \
+  test_testbed_api_barriers.py
