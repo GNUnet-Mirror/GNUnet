@@ -903,7 +903,6 @@ prepare_service_response (gcry_mpi_t * r,
               GNUNET_MESH_notify_transmit_ready (request->tunnel,
                                                  GNUNET_YES,
                                                  GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 &request->peer, //must be specified, we are a slave/participant/non-owner
                                                  msg_length,
                                                  &do_send_message,
                                                  msg_obj);
@@ -1155,8 +1154,7 @@ except:
  */
 static void
 prepare_service_request (void *cls,
-                         const struct GNUNET_PeerIdentity * peer,
-                         const struct GNUNET_ATS_Information * atsi)
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceSession * session = cls;
   unsigned char * current;
@@ -1170,8 +1168,7 @@ prepare_service_request (void *cls,
   uint32_t value;
 
   GNUNET_assert (NULL != cls);
-  GNUNET_assert (NULL != peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
           + session->used_element_count * PAILLIER_ELEMENT_LENGTH
@@ -1259,7 +1256,6 @@ prepare_service_request (void *cls,
   session->state = WAITING_FOR_RESPONSE_FROM_SERVICE;
   session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                        peer, //multicast to all targets, maybe useful in the future
                                                                         msg_length,
                                                                         &do_send_message,
                                                                         msg_obj);
@@ -1274,46 +1270,6 @@ prepare_service_request (void *cls,
                                     session);
     }
 }
-
-
-/**
- * Method called whenever a peer has disconnected from the tunnel.
- * Implementations of this callback must NOT call
- * #GNUNET_MESH_tunnel_destroy immediately, but instead schedule those
- * to run in some other task later.  However, calling 
- * #GNUNET_MESH_notify_transmit_ready_cancel is allowed.
- *
- * @param cls closure
- * @param peer peer identity the tunnel stopped working with
- */
-static void
-tunnel_peer_disconnect_handler (void *cls, const struct GNUNET_PeerIdentity * peer)
-{
-  // as we have only one peer connected in each session, just remove the session and say good bye
-  struct ServiceSession * session = cls;
-  struct ServiceSession * curr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Peer (%s) disconnected from our tunnel!\n",
-	      GNUNET_i2s (peer));
-
-  if ((session->role == ALICE) && (FINALIZED != session->state) && ( ! do_shutdown))
-    {
-      for (curr = from_client_head; NULL != curr; curr = curr->next)
-        if (curr == session)
-          {
-            GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-            break;
-          }
-      // FIXME: dangling tasks, code duplication, use-after-free, fun...
-      GNUNET_SCHEDULER_add_now (&destroy_tunnel,
-                                session);
-      // if this happened before we received the answer, we must terminate the session
-      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-				session);
-    }
-}
-
 
 /**
  * Handler for a client request message. 
@@ -1428,9 +1384,11 @@ handle_client_request (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Creating new tunnel to for session with key %s.\n"), GNUNET_h2s (&session->key));
       GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
       session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
-                                                   prepare_service_request,
-                                                   tunnel_peer_disconnect_handler,
-                                                   session);
+                                                   &session->peer,
+                                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
+                                                   GNUNET_NO,
+                                                   GNUNET_YES);
+      //prepare_service_request, tunnel_peer_disconnect_handler,
       if ( ! session->tunnel)
         {
           GNUNET_break (0);
@@ -1440,9 +1398,9 @@ handle_client_request (void *cls,
           GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
           return;
         }
-      GNUNET_MESH_peer_request_connect_add (session->tunnel, &session->peer);
-      GNUNET_SERVER_receive_done (client, GNUNET_YES);
       session->state = WAITING_FOR_BOBS_CONNECT;
+      GNUNET_SCHEDULER_add_now(&prepare_service_request, (void*) session);
+      GNUNET_SERVER_receive_done (client, GNUNET_YES);
     }
   else
     {
@@ -1470,9 +1428,7 @@ handle_client_request (void *cls,
           if (GNUNET_OK != compute_service_response (requesting_session, session))
             {
               GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-              GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                            &prepare_client_end_notification,
-                                            session);
+              GNUNET_SCHEDULER_add_now(&prepare_client_end_notification, session);
             }
         }
       else
@@ -1494,9 +1450,10 @@ handle_client_request (void *cls,
  *         (can be NULL -- that's not an error)
  */
 static void *
-tunnel_incoming_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
+tunnel_incoming_handler (void *cls, 
+                         struct GNUNET_MESH_Tunnel *tunnel,
                          const struct GNUNET_PeerIdentity *initiator,
-                         const struct GNUNET_ATS_Information *atsi)
+                         uint32_t port)
 {
 
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
@@ -1507,55 +1464,74 @@ tunnel_incoming_handler (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
   return c;
 }
 
-
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
- * any associated state.
+ * Function called whenever a tunnel is destroyed.  Should clean up
+ * any associated state. 
+ * 
+ * It must NOT call GNUNET_MESH_tunnel_destroy on the tunnel.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored (our 'struct TunnelState')
+ *                   with the tunnel is stored
  */
 static void
 tunnel_destruction_handler (void *cls,
                             const struct GNUNET_MESH_Tunnel *tunnel,
                             void *tunnel_ctx)
 {
-  struct ServiceSession * service_session = tunnel_ctx;
+  struct ServiceSession * session = tunnel_ctx;
   struct ServiceSession * client_session;
   struct ServiceSession * curr;
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Peer disconnected, terminating session %s with peer (%s)\n"), GNUNET_h2s (&session->key), GNUNET_i2s (&session->peer));
+  if (ALICE == session->role) {
+    // as we have only one peer connected in each session, just remove the session
 
-  GNUNET_assert (service_session);
-  if (!memcmp (&service_session->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Tunnel destroyed, terminating session with peer (%s)\n"), GNUNET_i2s (&service_session->peer));
-  // remove the session, unless it has already been dequeued, but somehow still active
-  // this could bug without the IF in case the queue is empty and the service session was the only one know to the service
-  for (curr = from_service_head; NULL != curr; curr = curr->next)
-        if (curr == service_session)
-          {
-            GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, curr);
-            break;
-          }
-  // there is a client waiting for this service session, terminate it, too!
-  // i assume the tupel of key and element count is unique. if it was not the rest of the code would not work either.
-  client_session = find_matching_session (from_client_tail,
-                                          &service_session->key,
-                                          service_session->element_count,
-                                          NULL, NULL);
-  free_session (service_session);
+    if ((FINALIZED != session->state) && (!do_shutdown))
+    {
+      for (curr = from_client_head; NULL != curr; curr = curr->next)
+        if (curr == session)
+        {
+          GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
+          break;
+        }
+      // FIXME: dangling tasks, code duplication, use-after-free, fun...
+      GNUNET_SCHEDULER_add_now (&destroy_tunnel,
+                                session);
+      // if this happened before we received the answer, we must terminate the session
+      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                session);
+    }
+  }
+  else { //(BOB == session->role)
 
-  // the client has to check if it was waiting for a result 
-  // or if it was a responder, no point in adding more statefulness
-  if (client_session && ( ! do_shutdown))
+    // remove the session, unless it has already been dequeued, but somehow still active
+    // this could bug without the IF in case the queue is empty and the service session was the only one know to the service
+    for (curr = from_service_head; NULL != curr; curr = curr->next)
+      if (curr == session)
+      {
+        GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, curr);
+        break;
+      }
+    // there is a client waiting for this service session, terminate it, too!
+    // i assume the tupel of key and element count is unique. if it was not the rest of the code would not work either.
+    client_session = find_matching_session (from_client_tail,
+                                            &session->key,
+                                            session->element_count,
+                                            NULL, NULL);
+    free_session (session);
+
+    // the client has to check if it was waiting for a result 
+    // or if it was a responder, no point in adding more statefulness
+    if (client_session && (!do_shutdown))
     {
       // remove the session, we just found it in the queue, so it must be there
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, client_session);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    client_session);
+      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                client_session);
     }
+  }
 }
 
 
@@ -1752,9 +1728,7 @@ static int
 handle_service_request (void *cls,
                         struct GNUNET_MESH_Tunnel * tunnel,
                         void **tunnel_ctx,
-                        const struct GNUNET_PeerIdentity * sender,
-                        const struct GNUNET_MessageHeader * message,
-                        const struct GNUNET_ATS_Information * atsi)
+                        const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
@@ -1769,22 +1743,18 @@ handle_service_request (void *cls,
   enum SessionState needed_state;
 
   session = (struct ServiceSession *) * tunnel_ctx;
+  if (BOB != session->role){
+    GNUNET_break_op(0);
+    return GNUNET_SYSERR;
+  }
   // is this tunnel already in use?
   if ( (session->next) || (from_service_head == session))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Got a service request over a tunnel that is already in use, ignoring!\n"));
+      GNUNET_break_op(0);
       return GNUNET_SYSERR;
     }
   // Check if message was sent by me, which would be bad!
-  if ( ! memcmp (sender, &me, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_break (0);
-      GNUNET_free (session);
-      return GNUNET_SYSERR;
-    }
-  // this protocol can at best be 1:N, but never M:N!
-  // Check if the sender is not the peer, I am connected to, which would be bad!
-  if (memcmp (sender, &session->peer, sizeof (struct GNUNET_PeerIdentity)))
+  if ( ! memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
     {
       GNUNET_break (0);
       GNUNET_free (session);
@@ -1819,14 +1789,14 @@ handle_service_request (void *cls,
                              &msg->key,
                              element_count,
                              NULL,
-                             sender))
+                             NULL))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"), (const char *) &(msg->key));
       GNUNET_free (session);
       return GNUNET_SYSERR;
     }
   
-  memcpy (&session->peer, sender, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
   session->state = REQUEST_FROM_SERVICE_RECEIVED;
   session->element_count = ntohs (msg->element_count);
   session->used_element_count = used_elements;
@@ -1944,9 +1914,7 @@ static int
 handle_service_response (void *cls,
                          struct GNUNET_MESH_Tunnel * tunnel,
                          void **tunnel_ctx,
-                         const struct GNUNET_PeerIdentity * sender,
-                         const struct GNUNET_MessageHeader * message,
-                         const struct GNUNET_ATS_Information * atsi)
+                         const struct GNUNET_MessageHeader * message)
 {
 
   struct ServiceSession * session;
@@ -1964,18 +1932,15 @@ handle_service_response (void *cls,
   int rc;
 
   GNUNET_assert (NULL != message);
-  GNUNET_assert (NULL != sender);
-  GNUNET_assert (NULL != tunnel_ctx);
   session = (struct ServiceSession *) * tunnel_ctx;
-  GNUNET_assert (NULL != session);
+  if (ALICE != session->role){
+    GNUNET_break_op(0);
+    return GNUNET_SYSERR;
+  }
+  
   count = session->used_element_count;
   session->product = NULL;
 
-  if (memcmp (&session->peer, sender, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_break_op (0);
-      goto invalid_msg;
-    }
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size))
     {
@@ -2123,11 +2088,10 @@ run (void *cls,
     { &handle_service_response, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE, 0},
     {NULL, 0, 0}
   };
-  static GNUNET_MESH_ApplicationType mesh_types[] = {
+  static const uint32_t ports[] = {
     GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-    GNUNET_APPLICATION_TYPE_END
+    0
   };
-
   //generate private/public key set
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Generating Paillier-Keyset.\n"));
   generate_keyset ();
@@ -2142,7 +2106,7 @@ run (void *cls,
   my_mesh = GNUNET_MESH_connect (c, NULL,
                                  &tunnel_incoming_handler,
                                  &tunnel_destruction_handler,
-                                 mesh_handlers, mesh_types);
+                                 mesh_handlers, ports);
   if (!my_mesh)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to MESH failed\n"));
