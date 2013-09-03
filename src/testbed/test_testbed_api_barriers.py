@@ -23,9 +23,10 @@
 # author:   Sree Harsha Totakura
 
 
-import subprocess as sp
+import subprocess
 import shutil
 import os
+import sys
 from buildvars import libexecdir
 
 
@@ -35,7 +36,7 @@ service = 'gnunet-service-test-barriers'
 shutil.copy (service, libexecdir)
 
 # start the testcase binary
-ret = subprocess.call ('test_testbed_api_barriers', shell=False)
+ret = subprocess.call ('./test_testbed_api_barriers', shell=False)
 
 # remove the installed gnunet-service-test-barriers copy
 os.unlink (os.path.join (libexecdir, service))

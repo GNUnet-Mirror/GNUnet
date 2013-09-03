@@ -30,10 +30,10 @@ bin_PROGRAMS = \
   $(ll_binaries) \
   gnunet-testbed-profiler
 
-noinst_SCRIPTS = \
+check_SCRIPTS = \
   buildvars.py
 
-CLEANFILES = $(noinst_SCRIPTS) \
+CLEANFILES = $(check_SCRIPTS) \
   buildvars.pyc
 
 noinst_PROGRAMS = \
