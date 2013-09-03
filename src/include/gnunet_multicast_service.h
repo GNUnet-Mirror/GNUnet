@@ -309,7 +309,7 @@ struct GNUNET_MULTICAST_ReplayHandle;
 
 /** 
  * Functions with this signature are called whenever the multicast service needs
- * a message fragemnt to be replayed by fragment_id.
+ * a message fragment to be replayed by fragment_id.
  *
  * Implementations of this function MUST call GNUNET_MULTICAST_replay() ONCE
  * (with a message or an error); however, if the origin is destroyed or the
@@ -597,8 +597,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,
-                              void *cls)
-;
+                              void *cls);
 
 /** 
  * Handle for a replay request.

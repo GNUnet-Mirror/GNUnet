@@ -222,11 +222,11 @@ struct GNUNET_MULTICAST_ReplayHandle
  * @param ec Error code.
  */
 void
-GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
-                         const struct GNUNET_MessageHeader *msg,
-                         enum GNUNET_MULTICAST_ReplayErrorCode ec)
+GNUNET_MULTICAST_replay_response (struct GNUNET_MULTICAST_ReplayHandle *rh,
+                                  const struct GNUNET_MessageHeader *msg,
+                                  enum GNUNET_MULTICAST_ReplayErrorCode ec)
 {
-};
+}
 
 
 /** 
@@ -237,7 +237,7 @@ GNUNET_MULTICAST_replay (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param rh Replay session to end.
  */
 void
-GNUNET_MULTICAST_replay_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
+GNUNET_MULTICAST_replay_response_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
 }
 
@@ -250,9 +250,9 @@ GNUNET_MULTICAST_replay_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
  * @param notify_cls Closure for @a notify.
  */
 void
-GNUNET_MULTICAST_replay2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
-                          GNUNET_MULTICAST_ReplayTransmitNotify notify,
-                          void *notify_cls)
+GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
+                                   GNUNET_MULTICAST_ReplayTransmitNotify notify,
+                                   void *notify_cls)
 {
 }
 
@@ -278,7 +278,8 @@ GNUNET_MULTICAST_replay2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
  * @param test_cb Function multicast can use to test group membership.
- * @param replay_cb Function that can be called to replay a message.
+ * @param replay_frag_cb Function that can be called to replay a message fragment.
+ * @param replay_msg_cb Function that can be called to replay a message.
  * @param request_cb Function called with message fragments from group members.
  * @param message_cb Function called with the message fragments sent to the
  *        network by GNUNET_MULTICAST_origin_to_all().  These message fragments
@@ -385,15 +386,13 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin)
  *        @a relay (might, for example, contain a user, bind user
  *        identity/pseudonym to peer identity, application-level message to
  *        origin, etc.).
- * @param max_known_fragment_id Largest known message fragment ID to the replay
- *        service; all messages with IDs larger than this ID will be replayed if
- *        possible (lower IDs will be considered known and thus only
- *        be replayed upon explicit request).
- *        FIXME: needed? can be optional or moved to a separate function.
  * @param join_cb Function called to approve / disapprove joining of a peer.
  * @param test_cb Function multicast can use to test group membership.
- * @param replay_cb Function that can be called to replay messages
- *        this peer already knows from this group; NULL if this
+ * @param replay_frag_cb Function that can be called to replay message fragments
+ *        this peer already knows from this group. NULL if this
+ *        client is unable to support replay.
+ * @param replay_msg_cb Function that can be called to replay message fragments
+ *        this peer already knows from this group. NULL if this
  *        client is unable to support replay.
  * @param message_cb Function to be called for all message fragments we
  *        receive from the group, excluding those our @a replay_cb
@@ -458,16 +457,10 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
  * needed and not known to the client.
  *
  * @param member Membership handle.
- * @param fragment_id ID of a message fragment that this client would like to
-          see replayed.
- * @param message_id ID of a message that this client would like to see
- *        replayed.  Typically only one of the @a fragment_id and @a message_id
- *        is given.  Specifying a @a message_id would return the last fragment
- *        of the message, which allows requesting the preceding fragments of the
- *        message by looking at the @e fragment_delta header field.
+ * @param message_id ID of the message this client would like to see replayed.
+ * @param fragment_offset Offset of the fragment within the message to replay.
  * @param flags Additional flags for the replay request.  It is used & defined
- *        by the replay callback.  E.g. the PSYC service would use this to
- *        implement state synchronization.
+ *        by the replay callback.
  * @param result_cb Function to be called for the replayed message.
  * @param result_cb_cls Closure for @a message_cb.
  * @return Replay request handle, NULL on error.
