@@ -187,7 +187,7 @@ message_handler (void *cls,
 {
   struct GNUNET_PSYCSTORE_Handle *h = cls;
   struct GNUNET_PSYCSTORE_OperationHandle *op;
-  const struct GNUNET_PSYCSTORE_ResultCodeMessage *rcm;
+  const struct ResultCodeMessage *rcm;
   const char *str;
   uint16_t size;
 
@@ -203,22 +203,22 @@ message_handler (void *cls,
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE:
-    if (size < sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage))
+    if (size < sizeof (struct ResultCodeMessage))
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    rcm = (const struct GNUNET_PSYCSTORE_ResultCodeMessage *) msg;
+    rcm = (const struct ResultCodeMessage *) msg;
     str = (const char *) &rcm[1];
-    if ( (size > sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage)) &&
-	 ('\0' != str[size - sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage) - 1]) )
+    if ( (size > sizeof (struct ResultCodeMessage)) &&
+	 ('\0' != str[size - sizeof (struct ResultCodeMessage) - 1]) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if (size == sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage))
+    if (size == sizeof (struct ResultCodeMessage))
       str = NULL;
 
     op = h->op_head;
@@ -341,7 +341,6 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h->client = GNUNET_CLIENT_connect ("psycstore", h->cfg);
   GNUNET_assert (NULL != h->client);
   transmit_next (h);
-  GNUNET_assert (NULL != h->th);
 }
 
 
@@ -399,7 +398,7 @@ GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h)
  * was already transmitted, the service may still choose to complete
  * the operation.
  *
- * @param op operation to cancel
+ * @param op Operation to cancel.
  */
 void
 GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
@@ -434,5 +433,34 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
   op->state_cb = NULL;
 }
 
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_membership_store (
+  struct GNUNET_PSYCSTORE_Handle *h,
+  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+  int did_join,
+  uint64_t announced_at,
+  uint64_t effective_since,
+  uint64_t group_generation,
+  GNUNET_PSYCSTORE_ResultCallback rcb,
+  void *rcb_cls)
+{
+  
+}
+
+
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_membership_test (
+  struct GNUNET_PSYCSTORE_Handle *h,
+  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+  uint64_t message_id,
+  uint64_t group_generation,
+  GNUNET_PSYCSTORE_ResultCallback rcb,
+  void *rcb_cls)
+{
+
+}
 
 /* end of psycstore_api.c */

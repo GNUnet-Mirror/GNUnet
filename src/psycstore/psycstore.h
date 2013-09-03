@@ -35,7 +35,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Answer from service to client about last operation.
  */
-struct GNUNET_PSYCSTORE_ResultCodeMessage
+struct ResultCodeMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE
@@ -50,6 +50,32 @@ struct GNUNET_PSYCSTORE_ResultCodeMessage
 
   /* followed by 0-terminated error message (on error) */
 
+};
+
+
+/**
+ * @see GNUNET_PSYCSTORE_membership_store()
+ */
+struct MembershipStoreMessage
+{
+  const struct GNUNET_CRYPTO_EccPublicKey *channel_key;
+  const struct GNUNET_CRYPTO_EccPublicKey *slave_key;
+  int did_join;
+  uint64_t announced_at;
+  uint64_t effective_since;
+  uint64_t group_generation;
+};
+
+
+/**
+ * @see GNUNET_PSYCSTORE_membership_test()
+ */
+struct MembershipTestMessage
+{
+  const struct GNUNET_CRYPTO_EccPublicKey *channel_key;
+  const struct GNUNET_CRYPTO_EccPublicKey *slave_key;
+  uint64_t message_id;
+  uint64_t group_generation;
 };
 
 GNUNET_NETWORK_STRUCT_END

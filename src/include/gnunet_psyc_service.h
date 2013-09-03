@@ -208,9 +208,9 @@ struct GNUNET_PSYC_JoinHandle;
  * @param modifier_count Number of elements in the @a modifiers array.
  * @param modifiers State modifiers and transient variables for the message.
  * @param data_offset Byte offset of @a data in the overall data of the method.
- * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
+ * @param data_size Number of bytes in @a data.
  * @param frag Fragmentation status for the data.
  */
 typedef int
@@ -221,8 +221,8 @@ typedef int
                        size_t modifier_count,
                        const struct GNUNET_ENV_Modifier *modifiers,
                        uint64_t data_offset,
-                       size_t data_size,
                        const void *data,
+                       size_t data_size,
                        enum GNUNET_PSYC_MessageFlags flags);
 
 
@@ -234,9 +234,10 @@ typedef int
  * @param method_name Method name in the join request.
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Transient variables for the join request.
- * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
+ * @param data_size Number of bytes in @a data.
+ * @param jh Join handle to use with GNUNET_PSYC_join_decision()
  */
 typedef int
 (*GNUNET_PSYC_JoinCallback) (void *cls,
@@ -244,8 +245,8 @@ typedef int
                              const char *method_name,
                              size_t variable_count,
                              const struct GNUNET_ENV_Modifier *variables,
-                             size_t data_size,
                              const void *data,
+                             size_t data_size,
                              struct GNUNET_PSYC_JoinHandle *jh);
 
 
@@ -268,8 +269,8 @@ typedef int
  *        peer identity in this array.
  * @param method_name Method name for the message transmitted with the response.
  * @param env Environment containing transient variables for the message, or NULL.
- * @param data_size Size of @a data.
  * @param data Data of the message.
+ * @param data_size Size of @a data.
  */
 void
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
@@ -278,8 +279,8 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            const struct GNUNET_PeerIdentity *relays,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
-                           size_t data_size,
-                           const void *data);
+                           const void *data,
+                           size_t data_size);
 
 
 /** 
@@ -333,21 +334,20 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cls Closure.
  * @param message_id Set to the unique message ID that was generated for
  *        this message.
- * @param[in,out] data_size Initially set to the number of bytes available in @a data,
- *        should be set to the number of bytes written to data (IN/OUT).
- * @param[out] data Where to write the body of the message to give to the method;
- *        function must copy at most @a *data_size bytes to @a data.
+ * @param[in,out] data_size Initially set to the number of bytes available in
+ *        @a data, should be set to the number of bytes written to data.
+ * @param[out] data Where to write the body of the message to give to the
+ *         method. The function must copy at most @a data_size bytes to @a data.
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
  *         #GNUNET_NO on success, if more data is to be transmitted later
- *         (should be used if @a *data_size was not big enough to take all the data)
+ *         (should be used if @a data_size was not big enough to take all the data)
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int
-(*GNUNET_PSYC_MasterTransmitNotify)(void *cls,
-                                    uint64_t message_id,
-                                    size_t *data_size,
-                                    void *data);
-
+(*GNUNET_PSYC_MasterTransmitNotify) (void *cls,
+                                     uint64_t message_id,
+                                     size_t *data_size,
+                                     void *data);
 
 
 /**
@@ -450,8 +450,8 @@ struct GNUNET_PSYC_Slave;
  * @param cls Closure for @a method_cb and @a join_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
- * @param data_size Number of bytes in @a data.
  * @param data Payload for the join message.
+ * @param data_size Number of bytes in @a data.
  * @return Handle for the slave, NULL on error.
  */
 struct GNUNET_PSYC_Slave *
@@ -466,8 +466,8 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         void *cls,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,
-                        size_t data_size,
-                        const void *data);
+                        const void *data,
+                        size_t data_size);
 
 
 /** 
@@ -618,7 +618,6 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  * @param channel Channel handle.
  * @param slave_key Identity of channel slave to remove.
  * @param announced_at ID of the message that announced the membership change.
- * @param effective_since Removal of slave is in effect since this message ID.
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
@@ -632,14 +631,14 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
  * @param cls Closure.
  * @param name Name of the state variable.  A NULL value indicates that there
  *        are no more state variables to be returned.
- * @param value_size Number of bytes in @a value.
  * @param value Value of the state variable.
+ * @param value_size Number of bytes in @a value.
  */
 typedef void
 (*GNUNET_PSYC_StateCallback) (void *cls,
                               const char *name,
-                              size_t value_size,
-                              const void *value);
+                              const void *value,
+                              size_t value_size);
 
 
 /**

@@ -48,13 +48,18 @@ static struct GNUNET_PSYCSTORE_Handle *h;
 /**
  * Handle to PSYCstore operation.
  */
-static struct GNUNET_PSYCSTORE_Operation *op;
+static struct GNUNET_PSYCSTORE_OperationHandle *op;
 
 /**
  * Handle for task for timeout termination.
  */ 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
+static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
+
+static struct GNUNET_CRYPTO_EccPublicKey channel_pub_key;
+static struct GNUNET_CRYPTO_EccPublicKey slave_pub_key;
 
 /**
  * Clean up all resources used.
@@ -71,6 +76,16 @@ cleanup ()
   {
     GNUNET_PSYCSTORE_disconnect (h);
     h = NULL;
+  }
+  if (NULL != channel_key)
+  {
+    GNUNET_free (channel_key);
+    channel_key = NULL;
+  }
+  if (NULL != slave_key)
+  {
+    GNUNET_free (slave_key);
+    slave_key = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -119,6 +134,11 @@ end ()
 				&end_normally, NULL);
 }
 
+void
+membership_store_result (void *cls, int result, const char *err_msg)
+{
+
+}
 
 /**
  * Main function of the test, run from scheduler.
@@ -136,6 +156,17 @@ run (void *cls,
 						&endbadly, NULL); 
   h = GNUNET_PSYCSTORE_connect (cfg);
   GNUNET_assert (NULL != h);
+
+  channel_key = GNUNET_CRYPTO_ecc_key_create ();
+  slave_key = GNUNET_CRYPTO_ecc_key_create ();
+
+  GNUNET_CRYPTO_ecc_key_get_public (channel_key, &channel_pub_key);
+  GNUNET_CRYPTO_ecc_key_get_public (slave_key, &slave_pub_key);
+
+  op = GNUNET_PSYCSTORE_membership_store (h, &channel_pub_key, &slave_pub_key,
+                                          GNUNET_YES, 2, 2, 1,
+                                          &membership_store_result, NULL);
+
   end ();
 }
 

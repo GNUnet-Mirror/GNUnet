@@ -1997,7 +1997,7 @@ extern "C"
 /**
  * Multicast message from the origin to all members.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 700
 
 /**
  * A unicast message from a group member to the origin.

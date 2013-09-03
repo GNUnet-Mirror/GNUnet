@@ -25,9 +25,16 @@ t  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * @author Christian Grothoff
  */
 
+/*
+ * FIXME: SQLite3 only supports signed 64-bit integers natively,
+ *        thus it can only store 63 bits of the uint64_t's.
+ */
+
 #include "platform.h"
 #include "gnunet_psycstore_plugin.h"
 #include "gnunet_psycstore_service.h"
+#include "gnunet_multicast_service.h"
+#include "gnunet_crypto_lib.h"
 #include "psycstore.h"
 #include <sqlite3.h>
 
@@ -43,13 +50,14 @@ t  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  */
 #define BUSY_TIMEOUT_MS 1000
 
+#define DEBUG_PSYCSTORE GNUNET_EXTRA_LOGGING
 
 /**
  * Log an error message at log-level 'level' that indicates
  * a failure of the command 'cmd' on file 'filename'
  * with the message given by strerror(errno).
  */
-#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "psycstore-sqlite", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh)); } while(0)
+#define LOG_SQLITE(db, level, cmd) do { GNUNET_log_from (level, "psycstore-sqlite", _("`%s' failed at %s:%d with error: %s (%d)\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db->dbh), sqlite3_errcode(db->dbh)); } while(0)
 
 #define LOG(kind,...) GNUNET_log_from (kind, "psycstore-sqlite", __VA_ARGS__)
 
@@ -100,9 +108,9 @@ struct Plugin
   sqlite3_stmt *insert_fragment;
 
   /**
-   * Precompiled SQL for fragment_add_flags()
+   * Precompiled SQL for message_add_flags()
    */
-  sqlite3_stmt *update_fragment_flags;
+  sqlite3_stmt *update_message_flags;
 
   /**
    * Precompiled SQL for fragment_get()
@@ -122,23 +130,18 @@ struct Plugin
   /**
    * Precompiled SQL for counters_get_master()
    */
-  sqlite3_stmt *select_master_counters;
+  sqlite3_stmt *select_counters_master;
 
   /**
    * Precompiled SQL for counters_get_slave()
    */
-  sqlite3_stmt *select_slave_counters;
+  sqlite3_stmt *select_counters_slave;
 
 
   /**
    * Precompiled SQL for state_set()
    */
   sqlite3_stmt *insert_state_current;
-
-  /**
-   * Precompiled SQL for state_set()
-   */
-  sqlite3_stmt *update_state_current;
 
   /**
    * Precompiled SQL for state_set_signed()
@@ -166,6 +169,11 @@ struct Plugin
   sqlite3_stmt *delete_state_sync;
 
   /**
+   * Precompiled SQL for state_get_signed()
+   */
+  sqlite3_stmt *select_state_signed;
+
+  /**
    * Precompiled SQL for state_get()
    */
   sqlite3_stmt *select_state_one;
@@ -177,6 +185,15 @@ struct Plugin
 
 };
 
+#if DEBUG_PSYCSTORE
+
+static void
+sql_trace (void *cls, const char *sql)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "SQL query:\n%s\n", sql);
+}
+
+#endif
 
 /**
  * @brief Prepare a SQL statement
@@ -208,8 +225,7 @@ sql_prepare (sqlite3 *dbh, const char *sql, sqlite3_stmt **stmt)
  * @brief Prepare a SQL statement
  *
  * @param dbh handle to the database
- * @param zSql SQL statement, UTF-8 encoded
- * @param ppStmt set to the prepared statement
+ * @param sql SQL statement, UTF-8 encoded
  * @return 0 on success
  */
 static int
@@ -262,13 +278,17 @@ database_setup (struct Plugin *plugin)
   plugin->fn = filename;
 
   /* Open database and precompile statements */
-  if (sqlite3_open (plugin->fn, &plugin->dbh) != SQLITE_OK)
+  if (SQLITE_OK != sqlite3_open (plugin->fn, &plugin->dbh))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Unable to initialize SQLite: %s.\n"),
 	 sqlite3_errmsg (plugin->dbh));
     return GNUNET_SYSERR;
   }
+
+#if DEBUG_PSYCSTORE
+  sqlite3_trace (plugin->dbh, &sql_trace, NULL);
+#endif
 
   sql_exec (plugin->dbh, "PRAGMA temp_store=MEMORY");
   sql_exec (plugin->dbh, "PRAGMA synchronous=NORMAL");
@@ -284,62 +304,62 @@ database_setup (struct Plugin *plugin)
   /* Create tables */
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS channels ("
-            "  id INTEGER PRIMARY KEY,"
-            "  pub_key BLOB UNIQUE"
+            "CREATE TABLE IF NOT EXISTS channels (\n"
+            "  id INTEGER PRIMARY KEY,\n"
+            "  pub_key BLOB UNIQUE\n"
             ");");
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS slaves ("
-            "  id INTEGER PRIMARY KEY,"
-            "  pub_key BLOB UNIQUE"
+            "CREATE TABLE IF NOT EXISTS slaves (\n"
+            "  id INTEGER PRIMARY KEY,\n"
+            "  pub_key BLOB UNIQUE\n"
             ");");
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS membership ("
-            "  channel_id INTEGER NOT NULL REFERENCES channels(id),"
-            "  slave_id INTEGER NOT NULL REFERENCES slaves(id),"
-            "  did_join INTEGER NOT NULL,"
-            "  announced_at INTEGER NOT NULL,"
-            "  effective_since INTEGER NOT NULL,"
-            "  group_generation INTEGER NOT NULL"
+            "CREATE TABLE IF NOT EXISTS membership (\n"
+            "  channel_id INTEGER NOT NULL REFERENCES channels(id),\n"
+            "  slave_id INTEGER NOT NULL REFERENCES slaves(id),\n"
+            "  did_join INTEGER NOT NULL,\n"
+            "  announced_at INTEGER NOT NULL,\n"
+            "  effective_since INTEGER NOT NULL,\n"
+            "  group_generation INTEGER NOT NULL\n"
             ");");
   sql_exec (plugin->dbh,
             "CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
             "ON membership (channel_id, slave_id);");
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS messages ("
-            "  channel_id INTEGER NOT NULL,"
-            "  hop_counter INTEGER NOT NULL,"
-            "  signature BLOB,"
-            "  purpose BLOB,"
-            "  fragment_id INTEGER NOT NULL,"
-            "  fragment_offset INTEGER NOT NULL,"
-            "  message_id INTEGER NOT NULL,"
-            "  group_generation INTEGER NOT NULL,"
-            "  multicast_flags INTEGER NOT NULL,"
-            "  psyc_flags INTEGER NOT NULL,"
-            "  data BLOB,"
-            "  PRIMARY KEY (channel_id, fragment_id),"
-            "  UNIQUE (channel_id, message_id, fragment_offset)"
+            "CREATE TABLE IF NOT EXISTS messages (\n"
+            "  channel_id INTEGER NOT NULL REFERENCES channels(id),\n"
+            "  hop_counter INTEGER NOT NULL,\n"
+            "  signature BLOB,\n"
+            "  purpose BLOB,\n"
+            "  fragment_id INTEGER NOT NULL,\n"
+            "  fragment_offset INTEGER NOT NULL,\n"
+            "  message_id INTEGER NOT NULL,\n"
+            "  group_generation INTEGER NOT NULL,\n"
+            "  multicast_flags INTEGER NOT NULL,\n"
+            "  psycstore_flags INTEGER NOT NULL,\n"
+            "  data BLOB,\n"
+            "  PRIMARY KEY (channel_id, fragment_id),\n"
+            "  UNIQUE (channel_id, message_id, fragment_offset)\n"
             ");");
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS state ("
-            "  channel_id INTEGER NOT NULL,"
-            "  name TEXT NOT NULL,"
-            "  value_current BLOB, "
-            "  value_signed BLOB, "
-            "  PRIMARY KEY (channel_id, name)"
+            "CREATE TABLE IF NOT EXISTS state (\n"
+            "  channel_id INTEGER NOT NULL REFERENCES channels(id),\n"
+            "  name TEXT NOT NULL,\n"
+            "  value_current BLOB,\n"
+            "  value_signed BLOB,\n"
+            "  PRIMARY KEY (channel_id, name)\n"
             ");");
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS state_sync ("
-            "  channel_id INTEGER NOT NULL,"
-            "  name TEXT NOT NULL,"
-            "  value BLOB, "
-            "  PRIMARY KEY (channel_id, name)"
+            "CREATE TABLE IF NOT EXISTS state_sync (\n"
+            "  channel_id INTEGER NOT NULL REFERENCES channels(id),\n"
+            "  name TEXT NOT NULL,\n"
+            "  value BLOB,\n"
+            "  PRIMARY KEY (channel_id, name)\n"
             ");");
 
   /* Prepare statements */
@@ -353,131 +373,142 @@ database_setup (struct Plugin *plugin)
                &plugin->insert_slave_key);
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO membership "
-               " (channel_id, slave_id, did_join, announced_at, "
-               "  effective_since, group_generation) "
-               "VALUES ((SELECT id FROM channels WHERE pub_key = ?), "
-               "        (SELECT id FROM slaves WHERE pub_key = ?), "
+               "INSERT INTO membership\n"
+               " (channel_id, slave_id, did_join, announced_at,\n"
+               "  effective_since, group_generation)\n"
+               "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
+               "        (SELECT id FROM slaves WHERE pub_key = ?),\n"
                "        ?, ?, ?, ?);",
                &plugin->insert_membership);
 
   sql_prepare (plugin->dbh,
-               "SELECT did_join FROM membership "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
-               "      AND slave_id = ? AND effective_since <= ? "
+               "SELECT did_join FROM membership\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND slave_id = (SELECT id FROM slaves WHERE pub_key = ?)\n"
+               "      AND effective_since <= ? AND did_join = 1\n"
                "ORDER BY announced_at DESC LIMIT 1;",
                &plugin->select_membership);
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO messages "
-               " (channel_id, hop_counter, signature, purpose, "
-               "  fragment_id, fragment_offset, message_id, "
-               "  group_generation, multicast_flags, psyc_flags, data) "
-               "VALUES ((SELECT id FROM channels WHERE pub_key = ?), "
+               "INSERT INTO messages\n"
+               " (channel_id, hop_counter, signature, purpose,\n"
+               "  fragment_id, fragment_offset, message_id,\n"
+               "  group_generation, multicast_flags, psycstore_flags, data)\n"
+               "VALUES ((SELECT id FROM channels WHERE pub_key = ?),\n"
                "        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                &plugin->insert_fragment);
 
   sql_prepare (plugin->dbh,
-               "UPDATE messages "
-               "SET multicast_flags = multicast_flags | ?, "
-               "    psyc_flags = psyc_flags | ? "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
-               "      AND message_id = ?;",
-               &plugin->update_fragment_flags);
+               "UPDATE messages\n"
+               "SET psycstore_flags = psycstore_flags | ?\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND message_id = ? AND fragment_offset = 0;",
+               &plugin->update_message_flags);
 
   sql_prepare (plugin->dbh,
-               "SELECT hop_counter, signature, purpose, "
-               "       fragment_offset, message_id, group_generation, "
-               "       multicast_flags, psyc_flags, data "
-               "FROM messages "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
+               "SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "       fragment_offset, message_id, group_generation,\n"
+               "       multicast_flags, psycstore_flags, data\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "      AND fragment_id = ?;",
                &plugin->select_fragment);
 
   sql_prepare (plugin->dbh,
-               "SELECT hop_counter, signature, purpose, "
-               "       fragment_id, fragment_offset, group_generation, "
-               "       multicast_flags, psyc_flags, data "
-               "FROM messages "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
+               "SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "       fragment_offset, message_id, group_generation,\n"
+               "       multicast_flags, psycstore_flags, data\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "      AND message_id = ?;",
                &plugin->select_message);
 
   sql_prepare (plugin->dbh,
-               "SELECT hop_counter, signature, purpose, "
-               "       fragment_id, message_id, group_generation, "
-               "       multicast_flags, psyc_flags, data "
-               "FROM messages "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
+               "SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "       fragment_offset, message_id, group_generation,\n"
+               "       multicast_flags, psycstore_flags, data\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "      AND message_id = ? AND fragment_offset = ?;",
                &plugin->select_message_fragment);
 
   sql_prepare (plugin->dbh,
-               "SELECT max(fragment_id), max(message_id), max(group_generation) "
-               "FROM messages "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
-               &plugin->select_master_counters);
+               "SELECT fragment_id, message_id, group_generation\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "ORDER BY fragment_id DESC LIMIT 1;",
+               &plugin->select_counters_master);
 
   sql_prepare (plugin->dbh,
-               "SELECT max(message_id) "
-               "FROM messages "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
-               "      AND psyc_flags & ?;",
-               &plugin->select_slave_counters);
+               "SELECT message_id\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND psycstore_flags & ?\n"
+               "ORDER BY message_id DESC LIMIT 1",
+               &plugin->select_counters_slave);
 
   sql_prepare (plugin->dbh,
-               "INSERT OR REPLACE INTO state (channel_id, name, value_current) "
-               "VALUES ((SELECT id FROM channels WHERE pub_key = ?), ?, ?);",
+               "INSERT OR REPLACE INTO state\n"
+               "  (channel_id, name, value_current, value_signed)\n"
+               "SELECT new.channel_id, new.name,\n"
+               "       new.value_current, old.value_signed\n"
+               "FROM (SELECT (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "             AS channel_id,\n"
+               "             ? AS name, ? AS value_current) AS new\n"
+               "LEFT JOIN (SELECT channel_id, name, value_signed\n"
+               "           FROM state) AS old\n"
+               "ON new.channel_id = old.channel_id AND new.name = old.name;",
                &plugin->insert_state_current);
 
   sql_prepare (plugin->dbh,
-               "UPDATE state "
-               "SET value_current = ? "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
-               "      AND name = ?;",
-               &plugin->update_state_current);
-
-  sql_prepare (plugin->dbh,
-               "UPDATE state "
-               "SET value_signed = value_current "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) ",
+               "UPDATE state\n"
+               "SET value_signed = value_current\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
                &plugin->update_state_signed);
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO state_sync (channel_id, name, value) "
+               "INSERT INTO state_sync (channel_id, name, value)\n"
                "VALUES ((SELECT id FROM channels WHERE pub_key = ?), ?, ?);",
                &plugin->insert_state_sync);
 
   sql_prepare (plugin->dbh,
-               "DELETE FROM state "
+               "DELETE FROM state\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
                &plugin->delete_state);
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO state "
-               " (channel_id, name, value_current, value_signed) "
-               "SELECT channel_id, name, value, value "
-               "FROM state_sync "
+               "INSERT INTO state\n"
+               " (channel_id, name, value_current, value_signed)\n"
+               "SELECT channel_id, name, value, value\n"
+               "FROM state_sync\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
                &plugin->insert_state_from_sync);
 
   sql_prepare (plugin->dbh,
-               "DELETE FROM state_sync "
+               "DELETE FROM state_sync\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?);",
                &plugin->delete_state_sync);
 
   sql_prepare (plugin->dbh,
-               "SELECT value_current "
-               "FROM state "
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?) "
+               "SELECT value_current\n"
+               "FROM state\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "      AND name = ?;",
                &plugin->select_state_one);
 
   sql_prepare (plugin->dbh,
-               "SELECT value_current "
-               "FROM state "
-               "WHERE name LIKE ? OR name LIKE ?;",
+               "SELECT name, value_current\n"
+               "FROM state\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND name = ? OR name LIKE ?;",
                &plugin->select_state_prefix);
+
+  sql_prepare (plugin->dbh,
+               "SELECT name, value_signed\n"
+               "FROM state\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)"
+               "      AND value_signed IS NOT NULL;",
+               &plugin->select_state_signed);
 
   return GNUNET_OK;
 }
@@ -509,8 +540,8 @@ database_shutdown (struct Plugin *plugin)
   if (NULL != plugin->insert_fragment)
     sqlite3_finalize (plugin->insert_fragment);
 
-  if (NULL != plugin->update_fragment_flags)
-    sqlite3_finalize (plugin->update_fragment_flags);
+  if (NULL != plugin->update_message_flags)
+    sqlite3_finalize (plugin->update_message_flags);
 
   if (NULL != plugin->select_fragment)
     sqlite3_finalize (plugin->select_fragment);
@@ -521,17 +552,14 @@ database_shutdown (struct Plugin *plugin)
   if (NULL != plugin->select_message_fragment)
     sqlite3_finalize (plugin->select_message_fragment);
 
-  if (NULL != plugin->select_master_counters)
-    sqlite3_finalize (plugin->select_master_counters);
+  if (NULL != plugin->select_counters_master)
+    sqlite3_finalize (plugin->select_counters_master);
 
-  if (NULL != plugin->select_slave_counters)
-    sqlite3_finalize (plugin->select_slave_counters);
+  if (NULL != plugin->select_counters_slave)
+    sqlite3_finalize (plugin->select_counters_slave);
 
   if (NULL != plugin->insert_state_current)
     sqlite3_finalize (plugin->insert_state_current);
-
-  if (NULL != plugin->update_state_current)
-    sqlite3_finalize (plugin->update_state_current);
 
   if (NULL != plugin->update_state_signed)
     sqlite3_finalize (plugin->update_state_signed);
@@ -579,6 +607,65 @@ database_shutdown (struct Plugin *plugin)
 }
 
 
+static int
+channel_key_store (struct Plugin *plugin,
+                   const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+{
+  sqlite3_stmt *stmt = plugin->insert_channel_key;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_channel_key (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_channel_key (step)");
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_channel_key (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
+
+static int
+slave_key_store (struct Plugin *plugin,
+                 const struct GNUNET_CRYPTO_EccPublicKey *slave_key)
+{
+  sqlite3_stmt *stmt = plugin->insert_slave_key;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, slave_key,
+                                      sizeof (*slave_key), SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_slave_key (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_slave_key (step)");
+  }
+
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_slave_key (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
+
 /** 
  * Store join/leave events for a PSYC channel in order to be able to answer
  * membership test queries later.
@@ -587,17 +674,56 @@ database_shutdown (struct Plugin *plugin)
  *
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_membership_store
- (void *cls, 
-  const struct GNUNET_HashCode *channel_key,
-  const struct GNUNET_HashCode *slave_key,
-  int did_join,
-  uint64_t announced_at,
-  uint64_t effective_since,
-  uint64_t group_generation) {
+static int
+membership_store (void *cls,
+                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+                  int did_join,
+                  uint64_t announced_at,
+                  uint64_t effective_since,
+                  uint64_t group_generation)
+{
+  if (announced_at > INT64_MAX ||
+      effective_since > INT64_MAX ||
+      group_generation > INT64_MAX)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->insert_membership;
 
+  if (GNUNET_OK != channel_key_store (plugin, channel_key) ||
+      GNUNET_OK != slave_key_store (plugin, slave_key))
+    return GNUNET_SYSERR;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 2, slave_key,
+                                      sizeof (*slave_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int (stmt, 3, did_join) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 4, announced_at) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 5, effective_since) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 6, group_generation))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_membership (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_membership (step)");
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_membership (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
 }
 
 /** 
@@ -608,14 +734,44 @@ libgnunet_plugin_psycstore_sqlite_membership_store
  * @return #GNUNET_YES if the member was admitted, #GNUNET_NO if not,
  *         #GNUNET_SYSERR if there was en error.
  */
-int
-libgnunet_plugin_psycstore_sqlite_membership_test
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-  uint64_t message_id,
-  uint64_t group_generation) {
+static int
+membership_test (void *cls,
+                 const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                 const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+                 uint64_t message_id)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_membership;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 2, slave_key,
+                                      sizeof (*slave_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 3, message_id))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_membership (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      ret = GNUNET_YES;
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_membership (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -625,30 +781,141 @@ libgnunet_plugin_psycstore_sqlite_membership_test
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_fragment_store
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const struct GNUNET_MULTICAST_MessageHeader *message) {
+static int
+fragment_store (void *cls,
+                const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                const struct GNUNET_MULTICAST_MessageHeader *msg,
+                uint32_t psycstore_flags)
+{
+  if (msg->fragment_id > INT64_MAX ||
+      msg->fragment_offset > INT64_MAX ||
+      msg->message_id > INT64_MAX ||
+      msg->group_generation > INT64_MAX)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->insert_fragment;
+
+  if (GNUNET_OK != channel_key_store (plugin, channel_key))
+    return GNUNET_SYSERR;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 2, msg->hop_counter ) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 3, (const void *) &msg->signature,
+                                      sizeof (msg->signature), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 4, (const void *) &msg->purpose,
+                                      sizeof (msg->purpose), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 5, msg->fragment_id) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 6, msg->fragment_offset) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 7, msg->message_id) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 8, msg->group_generation) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 9, msg->flags) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 10, psycstore_flags) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 11, (const void *) &msg[1],
+                                      ntohs (msg->header.size) - sizeof (*msg),
+                                      SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_fragment (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_fragment (step)");
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_fragment (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
 }
 
 /** 
  * Set additional flags for a given message.
  *
+ * They are OR'd with any existing flags set.
+ *
+ * @param plugin Plugin handle. 
+ * @param channel_key Public key of the channel.
  * @param message_id ID of the message.
- * @param flags Flags to add.
+ * @param psycstore_flags OR'd GNUNET_PSYCSTORE_MessageFlags.
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_fragment_add_flags
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t message_id,
-  uint64_t multicast_flags,
-  uint64_t psyc_flags) {
+static int
+message_add_flags (void *cls,
+                   const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                   uint64_t message_id,
+                   uint64_t psycstore_flags)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->update_message_flags;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_int64 (stmt, 1, psycstore_flags) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 2, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 3, message_id))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "update_message_flags (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = sqlite3_total_changes (plugin->dbh) > 0 ? GNUNET_OK : GNUNET_NO;
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "update_message_flags (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "update_message_flags (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return ret;
+}
+
+static int
+fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
+              void *cb_cls)
+{
+  int data_size = sqlite3_column_bytes (stmt, 9);
+  struct GNUNET_MULTICAST_MessageHeader *msg
+    = GNUNET_malloc (sizeof (*msg) + data_size);
+
+  msg->header.size = htons (sizeof (*msg) + data_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
+  msg->hop_counter = (uint32_t) sqlite3_column_int64 (stmt, 0);
+  memcpy (&msg->signature,
+          sqlite3_column_blob (stmt, 1),
+          sqlite3_column_bytes (stmt, 1));
+  memcpy (&msg->purpose,
+          sqlite3_column_blob (stmt, 2),
+          sqlite3_column_bytes (stmt, 2));
+  msg->fragment_id = sqlite3_column_int64 (stmt, 3);
+  msg->fragment_offset = sqlite3_column_int64 (stmt, 4);
+  msg->message_id = sqlite3_column_int64 (stmt, 5);
+  msg->group_generation = sqlite3_column_int64 (stmt, 6);
+  msg->flags = sqlite3_column_int64 (stmt, 7);
+  memcpy (&msg[1], sqlite3_column_blob (stmt, 9), data_size);
+
+  return cb (cb_cls, (void *) msg, sqlite3_column_int64 (stmt, 8));
 }
 
 /** 
@@ -658,14 +925,49 @@ libgnunet_plugin_psycstore_sqlite_fragment_add_flags
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_fragment_get
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t fragment_id,
-  GNUNET_PSYCSTORE_FragmentCallback cb,
-  void *cb_cls) {
+static int
+fragment_get (void *cls,
+              const struct
+              GNUNET_CRYPTO_EccPublicKey *channel_key,
+              uint64_t fragment_id,
+              GNUNET_PSYCSTORE_FragmentCallback cb,
+              void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_fragment;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 2, fragment_id))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_fragment (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      ret = fragment_row (stmt, cb, cb_cls);
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "select_fragment (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_fragment (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -675,14 +977,57 @@ libgnunet_plugin_psycstore_sqlite_fragment_get
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_message_get
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t message_id,
-  GNUNET_PSYCSTORE_FragmentCallback cb,
-  void *cb_cls) {
+static int
+message_get (void *cls,
+             const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+             uint64_t message_id,
+             GNUNET_PSYCSTORE_FragmentCallback cb,
+             void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_message;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 2, message_id))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_message (bind)");
+  }
+  else
+  {
+    int sql_ret;
+    do
+    {
+      sql_ret = sqlite3_step (stmt);
+      switch (sql_ret)
+      {
+      case SQLITE_DONE:
+        if (ret != GNUNET_OK)
+          ret = GNUNET_NO;
+        break;
+      case SQLITE_ROW:
+        ret = fragment_row (stmt, cb, cb_cls);
+        if (ret != GNUNET_YES)
+          sql_ret = SQLITE_DONE;
+        break;
+      default:
+        LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "select_message (step)");
+      }
+    }
+    while (sql_ret == SQLITE_ROW);
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_message (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -693,16 +1038,51 @@ libgnunet_plugin_psycstore_sqlite_message_get
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_message_get_fragment
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t message_id,
-  uint64_t fragment_offset,
-  GNUNET_PSYCSTORE_FragmentCallback cb,
-  void *cb_cls)
+static int
+message_get_fragment (void *cls,
+                      const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                      uint64_t message_id,
+                      uint64_t fragment_offset,
+                      GNUNET_PSYCSTORE_FragmentCallback cb,
+                      void *cb_cls)
 {
+  struct Plugin *plugin = cls;
+  int ret = GNUNET_SYSERR;
 
+  sqlite3_stmt *stmt = plugin->select_message_fragment;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 2, message_id) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 3, fragment_offset))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_message_fragment (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      ret = fragment_row (stmt, cb, cb_cls);
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "select_message_fragment (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_message_fragment (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -712,15 +1092,50 @@ libgnunet_plugin_psycstore_sqlite_message_get_fragment
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_counters_get_master
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t *fragment_id,
-  uint64_t *message_id,
-  uint64_t *group_generation)
+static int
+counters_get_master (void *cls,
+                     const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                     uint64_t *fragment_id,
+                     uint64_t *message_id,
+                     uint64_t *group_generation)
 {
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_counters_master;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_counters_master (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      *fragment_id = sqlite3_column_int64 (stmt, 0);
+      *message_id = sqlite3_column_int64 (stmt, 1);
+      *group_generation = sqlite3_column_int64 (stmt, 2);
+      ret = GNUNET_OK;
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "select_counters_master (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_counters_master (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -730,12 +1145,48 @@ libgnunet_plugin_psycstore_sqlite_counters_get_master
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_counters_get_slave
- (void *cls,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  uint64_t *max_state_msg_id) {
+static int
+counters_get_slave (void *cls,
+                    const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                    uint64_t *max_state_msg_id)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_counters_slave;
+  int ret = GNUNET_SYSERR;
 
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_int64 (stmt, 2,
+                                       GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_counters_slave (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      *max_state_msg_id = sqlite3_column_int64 (stmt, 0);
+      ret = GNUNET_OK;
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "select_counters_slave (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_counters_slave (reset)");
+  }
+
+  return ret;
 }
 
 /** 
@@ -745,34 +1196,173 @@ libgnunet_plugin_psycstore_sqlite_counters_get_slave
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_state_set
- (struct GNUNET_PSYCSTORE_Handle *h,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const char *name,
-  size_t value_size,
-  const void *value) {
+static int
+state_set (void *cls,
+           const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+           const char *name, const void *value, size_t value_size)
+{
+  struct Plugin *plugin = cls;
+  int ret = GNUNET_SYSERR;
 
+  sqlite3_stmt *stmt = plugin->insert_state_current;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_text (stmt, 2, name, -1, SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_blob (stmt, 3, value, value_size,
+                                      SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_state_current (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = sqlite3_total_changes (plugin->dbh) > 0 ? GNUNET_OK : GNUNET_NO;
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "insert_state_current (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "insert_state_current (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return ret;
 }
+
+
+/** 
+ * Reset the state of a channel.
+ *
+ * @see GNUNET_PSYCSTORE_state_reset()
+ * 
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+state_reset (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->delete_state;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "delete_state (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "delete_state (step)");
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "delete_state (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
+
+/** 
+ * Update signed values of state variables in the state store.
+ *
+ * @see GNUNET_PSYCSTORE_state_hash_update()
+ * 
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+state_update_signed (void *cls,
+                     const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->update_state_signed;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "update_state_signed (bind)");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "update_state_signed (step)");
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "update_state_signed (reset)");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
 
 /** 
  * Retrieve a state variable by name.
  *
- * @param name Name of the variable to retrieve.
- * @param[out] value_size Size of value.
- * @param[out] value Returned value.
+ * @see GNUNET_PSYCSTORE_state_get()
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_state_get
- (struct GNUNET_PSYCSTORE_Handle *h,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const char *name,
-  GNUNET_PSYCSTORE_StateCallback cb,
-  void *cb_cls) {
+static int
+state_get (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+           const char *name, GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  int ret = GNUNET_SYSERR;
 
+  sqlite3_stmt *stmt = plugin->select_state_one;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_text (stmt, 2, name, -1, SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_one (bind)");
+  }
+  else
+  {
+    switch (sqlite3_step (stmt))
+    {
+    case SQLITE_DONE:
+      ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      ret = cb (cb_cls, name, sqlite3_column_blob (stmt, 0),
+                sqlite3_column_bytes (stmt, 0));
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "select_state_one (step)");
+    }
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_one (reset)");
+  }
+  
+
+  return ret;
 }
+
 
 /** 
  * Retrieve all state variables for a channel with the given prefix.
@@ -781,21 +1371,130 @@ libgnunet_plugin_psycstore_sqlite_state_get
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
-int
-libgnunet_plugin_psycstore_sqlite_state_get_all
- (struct GNUNET_PSYCSTORE_Handle *h,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const char *name,
-  GNUNET_PSYCSTORE_StateCallback cb,
-  void *cb_cls) {
+static int
+state_get_all (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+               const char *name, GNUNET_PSYCSTORE_StateCallback cb,
+               void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  int ret = GNUNET_SYSERR;
 
+  sqlite3_stmt *stmt = plugin->select_state_prefix;
+  size_t name_len = strlen (name);
+  char *name_prefix = GNUNET_malloc (name_len + 2);
+  memcpy (name_prefix, name, name_len);
+  memcpy (name_prefix + name_len, "_%", 2);
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_text (stmt, 2, name, name_len, SQLITE_STATIC) ||
+      SQLITE_OK != sqlite3_bind_text (stmt, 3, name_prefix, name_len + 2,
+                                      SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_prefix (bind)");
+  }
+  else
+  {
+    int sql_ret;
+    do
+    {
+      sql_ret = sqlite3_step (stmt);
+      switch (sql_ret)
+      {
+      case SQLITE_DONE:
+        if (ret != GNUNET_OK)
+          ret = GNUNET_NO;
+        break;
+      case SQLITE_ROW:
+        ret = cb (cb_cls, (const char *) sqlite3_column_text (stmt, 0),
+                  sqlite3_column_blob (stmt, 1),
+                  sqlite3_column_bytes (stmt, 1));
+        if (ret != GNUNET_YES)
+          sql_ret = SQLITE_DONE;
+        break;
+      default:
+        LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "select_state_prefix (step)");
+      }
+    }
+    while (sql_ret == SQLITE_ROW);
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_prefix (reset)");
+  }
+
+  return ret;
 }
 
 
-/**
+/** 
+ * Retrieve all signed state variables for a channel.
+ *
+ * @see GNUNET_PSYCSTORE_state_get_signed()
+ * 
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+state_get_signed (void *cls,
+                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                  GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  int ret = GNUNET_SYSERR;
+
+  sqlite3_stmt *stmt = plugin->select_state_signed;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key), SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_signed (bind)");
+  }
+  else
+  {
+    int sql_ret;
+    do
+    {
+      sql_ret = sqlite3_step (stmt);
+      switch (sql_ret)
+      {
+      case SQLITE_DONE:
+        if (ret != GNUNET_OK)
+          ret = GNUNET_NO;
+        break;
+      case SQLITE_ROW:
+        ret = cb (cb_cls, (const char *) sqlite3_column_text (stmt, 0),
+                  sqlite3_column_blob (stmt, 1),
+                  sqlite3_column_bytes (stmt, 1));
+        if (ret != GNUNET_YES)
+          sql_ret = SQLITE_DONE;
+        break;
+      default:
+        LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "select_state_signed (step)");
+      }
+    }
+    while (sql_ret == SQLITE_ROW);
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "select_state_signed (reset)");
+  }
+
+  return ret;
+}
+
+
+/** 
  * Entry point for the plugin.
  *
- * @param cls the "struct GNUNET_PSYCSTORE_PluginEnvironment*"
+ * @param cls The struct GNUNET_CONFIGURATION_Handle.
  * @return NULL on error, otherwise the plugin context
  */
 void *
@@ -816,21 +1515,23 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_PSYCSTORE_PluginFunctions);
   api->cls = &plugin;
-  api->membership_store = &libgnunet_plugin_psycstore_sqlite_membership_store;
-  api->membership_test = &libgnunet_plugin_psycstore_sqlite_membership_test;
-  api->fragment_store = &libgnunet_plugin_psycstore_sqlite_fragment_store;
-  api->fragment_add_flags = &libgnunet_plugin_psycstore_sqlite_fragment_add_flags;
-  api->fragment_get = &libgnunet_plugin_psycstore_sqlite_fragment_get;
-  api->message_get = &libgnunet_plugin_psycstore_sqlite_message_get;
-  api->message_get_fragment = &libgnunet_plugin_psycstore_sqlite_message_get_fragment;
-  api->counters_get_master = &libgnunet_plugin_psycstore_sqlite_counters_get_master;
-  api->counters_get_slave = &libgnunet_plugin_psycstore_sqlite_counters_get_slave;
-  api->state_set = &libgnunet_plugin_psycstore_sqlite_state_set;
-  api->state_get = &libgnunet_plugin_psycstore_sqlite_state_get;
-  api->state_get_all = &libgnunet_plugin_psycstore_sqlite_state_get_all;
+  api->membership_store = &membership_store;
+  api->membership_test = &membership_test;
+  api->fragment_store = &fragment_store;
+  api->message_add_flags = &message_add_flags;
+  api->fragment_get = &fragment_get;
+  api->message_get = &message_get;
+  api->message_get_fragment = &message_get_fragment;
+  api->counters_get_master = &counters_get_master;
+  api->counters_get_slave = &counters_get_slave;
+  api->state_set = &state_set;
+  api->state_reset = &state_reset;
+  api->state_update_signed = &state_update_signed;
+  api->state_get = &state_get;
+  api->state_get_all = &state_get_all;
+  api->state_get_signed = &state_get_signed;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, 
-       _("Sqlite database running\n"));
+  LOG (GNUNET_ERROR_TYPE_INFO, _("SQLite database running\n"));
   return api;
 }
 
@@ -838,8 +1539,8 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
 /**
  * Exit point from the plugin.
  *
- * @param cls the plugin context (as returned by "init")
- * @return always NULL
+ * @param cls The plugin context (as returned by "init")
+ * @return Always NULL
  */
 void *
 libgnunet_plugin_psycstore_sqlite_done (void *cls)
@@ -850,8 +1551,7 @@ libgnunet_plugin_psycstore_sqlite_done (void *cls)
   database_shutdown (plugin);
   plugin->cfg = NULL;
   GNUNET_free (api);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "sqlite plugin is finished\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "SQLite plugin is finished\n");
   return NULL;
 }
 

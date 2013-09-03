@@ -45,6 +45,28 @@ extern "C"
  */
 #define GNUNET_PSYCSTORE_VERSION 0x00000000
 
+/**
+ * Flags for stored messages.
+ */
+enum GNUNET_PSYCSTORE_MessageFlags
+{
+  /**
+   * The message contains state modifiers.
+   */
+  GNUNET_PSYCSTORE_MESSAGE_STATE = 1 << 0,
+
+  /**
+   * The state modifiers have been applied to the state store.
+   */
+  GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED = 1 << 1,
+
+  /**
+   * The message contains a state hash.
+   */
+  GNUNET_PSYCSTORE_MESSAGE_STATE_HASH = 1 << 2
+};
+
+
 /** 
  * Handle for a PSYCstore
  */
@@ -157,6 +179,8 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel the message belongs to.
  * @param message Message to store.
+ * @param psycstore_flags Flags indicating whether the PSYC message contains
+ *        state modifiers.
  * @param rcb Callback to call with the result of the operation.
  * @param rcb_cls Closure for the callback.
  * 
@@ -166,6 +190,7 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
                                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                                  const struct GNUNET_MULTICAST_MessageHeader *message,
+                                 uint32_t psycstore_flags,
                                  GNUNET_PSYCSTORE_ResultCallback rcb,
                                  void *rcb_cls);
 
@@ -177,12 +202,15 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  * @param cls Closure.
  * @param message The retrieved message fragment.  A NULL value indicates that
  *        there are no more results to be returned.
- * @param flags Message flags indicating fragmentation status.
+ * @param flags Flags stored with the message.
+ *
+ * @return #GNUNET_NO to stop calling this callback with further fragments,
+ *         #GNUNET_YES to continue.
  */
-typedef void
+typedef int
 (*GNUNET_PSYCSTORE_FragmentCallback) (void *cls,
-                                      const struct GNUNET_MULTICAST_MessageHeader *message,
-                                      enum GNUNET_PSYC_MessageFlags flags);
+                                      struct GNUNET_MULTICAST_MessageHeader *message,
+                                      enum GNUNET_PSYCSTORE_MessageFlags flags);
 
 
 /** 
@@ -224,7 +252,8 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
- * Retrieve a fragment of message specified by its message ID and fragment offset.
+ * Retrieve a fragment of message specified by its message ID and fragment
+ * offset.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
@@ -267,7 +296,8 @@ typedef void
  * @see GNUNET_PSYCSTORE_counters_get_slave()
  *
  * @param cls Closure.
- * @param max_state_msg_id Latest message ID containing state modifiers that was applied to the state store.  Used for the state sync process.
+ * @param max_state_msg_id Latest message ID containing state modifiers that was
+ *        applied to the state store.  Used for the state sync process.
  */
 typedef void
 (*GNUNET_PSYCSTORE_SlaveCountersCallback) (void *cls,
@@ -343,6 +373,26 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
+ * Reset the state of a channel.
+ *
+ * Delete all state variables stored for the given channel.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_key The channel we are interested in.
+ * @param rcb Callback to call with the result of the operation.
+ * @param rcb_cls Closure for the callback.
+ * 
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_Handle *
+GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
+                              const struct GNUNET_CRYPTO_EccPublicKey
+                              *channel_key,
+                              GNUNET_PSYCSTORE_ResultCallback rcb,
+                              void *rcb_cls);
+
+
+/** 
  * Update signed values of state variables in the state store.
  *
  * @param h Handle for the PSYCstore.
@@ -368,15 +418,17 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
  * @param cls Closure.
  * @param name Name of the state variable.  A NULL value indicates that there are no more
  *        state variables to be returned.
- * @param value_size Number of bytes in @a value.
  * @param value Value of the state variable.
-t * 
+ * @param value_size Number of bytes in @a value.
+ *
+ * @return #GNUNET_NO to stop calling this callback with further variables,
+ *         #GNUNET_YES to continue.
  */
-typedef void
+typedef int
 (*GNUNET_PSYCSTORE_StateCallback) (void *cls,
                                    const char *name,
-                                   size_t value_size,
-                                   const void *value);
+                                   const void *value,
+                                   size_t value_size);
 
 
 /** 
@@ -420,10 +472,10 @@ GNUNET_PSYCSTORE_state_get_all (struct GNUNET_PSYCSTORE_Handle *h,
 /** 
  * Cancel an operation.
  *
- * @param oh Handle for the operation to cancel.
+ * @param op Handle for the operation to cancel.
  */
 void
-GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *oh);
+GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op);
 
 
 

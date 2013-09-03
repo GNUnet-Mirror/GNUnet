@@ -101,24 +101,69 @@ send_result_code (struct GNUNET_SERVER_Client *client,
 		  uint32_t result_code,
 		  const char *emsg)
 {
-  struct GNUNET_PSYCSTORE_ResultCodeMessage *rcm;
+  struct ResultCodeMessage *rcm;
   size_t elen;
 
   if (NULL == emsg)
     elen = 0;
   else
     elen = strlen (emsg) + 1;
-  rcm = GNUNET_malloc (sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage) + elen);
+  rcm = GNUNET_malloc (sizeof (struct ResultCodeMessage) + elen);
   rcm->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);
-  rcm->header.size = htons (sizeof (struct GNUNET_PSYCSTORE_ResultCodeMessage) + elen);
+  rcm->header.size = htons (sizeof (struct ResultCodeMessage) + elen);
   rcm->result_code = htonl (result_code);
   memcpy (&rcm[1], emsg, elen);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,
 	      emsg);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header,
+                                              GNUNET_NO);
   GNUNET_free (rcm);
+}
+
+
+static void
+handle_membership_store (void *cls,
+                           struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message)
+{
+  const struct MembershipStoreMessage *msg =
+    (const struct MembershipStoreMessage *) message;
+
+  int res = db->membership_store (db->cls, msg->channel_key, msg->slave_key,
+                                  msg->did_join, msg->announced_at,
+                                  msg->effective_since, msg->group_generation);
+
+  if (res != GNUNET_OK)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to store membership information!\n"));
+
+  send_result_code (client, res, NULL);
+}
+
+
+static void
+handle_membership_test (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct MembershipTestMessage *msg =
+    (const struct MembershipTestMessage *) message;
+
+  int res = db->membership_test (db->cls, msg->channel_key, msg->slave_key,
+                                 msg->message_id);
+  switch (res)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to test membership!\n"));
+  }
+
+  send_result_code (client, res, NULL);
 }
 
 
@@ -135,6 +180,12 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_membership_store, NULL,
+     GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_STORE,
+     sizeof (struct MembershipStoreMessage)},
+    {&handle_membership_test, NULL,
+     GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_TEST,
+     sizeof (struct MembershipTestMessage)},
     {NULL, NULL, 0, 0}
   };
 

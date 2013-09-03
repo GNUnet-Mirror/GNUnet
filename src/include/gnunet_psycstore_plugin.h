@@ -40,7 +40,7 @@ extern "C"
 
 
 /**
- * @brief struct returned by the initialization function of the plugin
+ * Struct returned by the initialization function of the plugin.
  */
 struct GNUNET_PSYCSTORE_PluginFunctions
 {
@@ -59,9 +59,9 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*membership_store) (void *cls, 
-                       const struct GNUNET_HashCode *channel_key,
-                       const struct GNUNET_HashCode *slave_key,
+  (*membership_store) (void *cls,
+                       const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                       const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
                        int did_join,
                        uint64_t announced_at,
                        uint64_t effective_since,
@@ -71,7 +71,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * Test if a member was admitted to the channel at the given message ID.
    *
    * @see GNUNET_PSYCSTORE_membership_test()
-   * 
+   *
    * @return #GNUNET_YES if the member was admitted, #GNUNET_NO if not,
    *         #GNUNET_SYSERR if there was en error.
    */
@@ -79,41 +79,42 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   (*membership_test) (void *cls,
                       const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                       const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
-                      uint64_t message_id,
-                      uint64_t group_generation);
+                      uint64_t message_id);
 
   /** 
    * Store a message fragment sent to a channel.
    *
    * @see GNUNET_PSYCSTORE_fragment_store()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
   (*fragment_store) (void *cls,
                      const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-                     const struct GNUNET_MULTICAST_MessageHeader *message);
+                     const struct GNUNET_MULTICAST_MessageHeader *message,
+                     uint32_t psycstore_flags);
 
   /** 
    * Set additional flags for a given message.
    *
+   * They are OR'd with any existing flags set.
+   *
    * @param message_id ID of the message.
-   * @param flags Flags to add.
-   * 
+   * @param psycstore_flags OR'd GNUNET_PSYCSTORE_MessageFlags.
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*fragment_add_flags) (void *cls,
-                         const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-                         uint64_t message_id,
-                         uint64_t multicast_flags,
-                         uint64_t psyc_flags);
+  (*message_add_flags) (void *cls,
+                        const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                        uint64_t message_id,
+                        uint64_t psycstore_flags);
 
   /** 
    * Retrieve a message fragment by fragment ID.
    *
    * @see GNUNET_PSYCSTORE_fragment_get()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
@@ -127,7 +128,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * Retrieve all fragments of a message.
    *
    * @see GNUNET_PSYCSTORE_message_get()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
@@ -142,7 +143,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * offset.
    *
    * @see GNUNET_PSYCSTORE_message_get_fragment()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
@@ -157,7 +158,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * Retrieve latest values of counters for a channel master.
    *
    * @see GNUNET_PSYCSTORE_counters_get_master()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
@@ -168,10 +169,10 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                           uint64_t *group_generation);
 
   /** 
-   * Retrieve latest values of counters for a channel slave. 
+   * Retrieve latest values of counters for a channel slave.
    *
    * @see GNUNET_PSYCSTORE_counters_get_slave()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
@@ -183,27 +184,66 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * Set a state variable to the given value.
    *
    * @see GNUNET_PSYCSTORE_state_modify()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_set) (struct GNUNET_PSYCSTORE_Handle *h,
+  (*state_set) (void *cls,
                 const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                 const char *name,
-                size_t value_size,
-                const void *value);
+                const void *value,
+                size_t value_size);
+
 
   /** 
-   * Retrieve a state variable by name.
+   * Reset the state of a channel.
    *
-   * @param name Name of the variable to retrieve.
-   * @param[out] value_size Size of value.
-   * @param[out] value Returned value.
-   * 
+   * Delete all state variables stored for the given channel.
+   *
+   * @see GNUNET_PSYCSTORE_state_reset()
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_get) (struct GNUNET_PSYCSTORE_Handle *h,
+  (*state_reset) (void *cls,
+                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key);
+
+  /**
+   * Update signed state values from the current ones.
+   *
+   * Sets value_signed = value_current for each variable for the given channel.
+   */
+  int
+  (*state_update_signed) (void *cls,
+                          const struct GNUNET_CRYPTO_EccPublicKey *channel_key);
+
+  /** 
+   * Update signed values of state variables in the state store.
+   *
+   * @param h Handle for the PSYCstore.
+   * @param channel_key The channel we are interested in.
+   * @param message_id Message ID that contained the state @a hash.
+   * @param hash Hash of the serialized full state.
+   * @param rcb Callback to call with the result of the operation.
+   * @param rcb_cls Closure for the callback.
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_hash_update) (void *cls,
+                        const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                        uint64_t message_id,
+                        const struct GNUNET_HashCode *hash,
+                        GNUNET_PSYCSTORE_ResultCallback rcb,
+                        void *rcb_cls);
+
+  /** 
+   * Retrieve a state variable by name (exact match).
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_get) (void *cls,
                 const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                 const char *name,
                 GNUNET_PSYCSTORE_StateCallback cb,
@@ -213,15 +253,27 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * Retrieve all state variables for a channel with the given prefix.
    *
    * @see GNUNET_PSYCSTORE_state_get_all()
-   * 
+   *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_get_all) (struct GNUNET_PSYCSTORE_Handle *h,
+  (*state_get_all) (void *cls,
                     const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
                     const char *name,
                     GNUNET_PSYCSTORE_StateCallback cb,
                     void *cb_cls);
+
+
+  /** 
+   * Retrieve all signed state variables for a channel.
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_get_signed) (void *cls,
+                       const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                       GNUNET_PSYCSTORE_StateCallback cb,
+                       void *cb_cls);
 
 };
 

@@ -22,7 +22,7 @@ endif
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_psycstore_sqlite.la
 if HAVE_TESTING
-#SQLITE_TESTS = test_plugin_psycstore_sqlite
+SQLITE_TESTS = test_plugin_psycstore_sqlite
 endif
 endif
 
@@ -99,3 +99,14 @@ EXTRA_DIST = \
   test_psycstore.conf
 
 
+test_plugin_psycstore_sqlite_SOURCES = \
+ test_plugin_psycstore.c
+test_plugin_psycstore_sqlite_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+test_plugin_psycstore_postgres_SOURCES = \
+ test_plugin_psycstore.c
+test_plugin_psycstore_postgres_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  

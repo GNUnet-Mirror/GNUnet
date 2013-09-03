@@ -83,21 +83,22 @@ struct GNUNET_SOCIAL_Slicer;
  * @param modifier_count Number of elements in the @a modifiers array.
  * @param modifiers Modifiers present in the message. FIXME: use environment instead?
  * @param data_offset Byte offset of @a data in the overall data of the method.
- * @param data_size Number of bytes in @a data.
  * @param data Data stream given to the method (might not be zero-terminated
  *             if data is binary).
+ * @param data_size Number of bytes in @a data.
  * @param flags Message flags indicating fragmentation status.
  */
-typedef int (*GNUNET_SOCIAL_Method)(void *cls,
-                                    struct GNUNET_SOCIAL_Nym *nym,
-                                    const char *full_method_name,
-                                    uint64_t message_id,
-                                    size_t modifier_count,
-                                    GNUNET_PSYC_Modifier *modifiers,
-                                    uint64_t data_offset,
-                                    size_t data_size,
-                                    const void *data,
-                                    enum GNUNET_PSYC_MessageFlags flags);
+typedef int
+(*GNUNET_SOCIAL_Method) (void *cls,
+                         struct GNUNET_SOCIAL_Nym *nym,
+                         const char *full_method_name,
+                         uint64_t message_id,
+                         size_t modifier_count,
+                         GNUNET_PSYC_Modifier *modifiers,
+                         uint64_t data_offset,
+                         const void *data,
+                         size_t data_size,
+                         enum GNUNET_PSYC_MessageFlags flags);
 
 
 /** 
@@ -164,16 +165,17 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
  * @param method_name Method name in the entry request.
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Variables present in the message.
- * @param data_size Number of bytes in @a data.
  * @param data Payload given on enter (e.g. a password).
+ * @param data_size Number of bytes in @a data.
  */
-typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
-                                                 struct GNUNET_SOCIAL_Nym *nym,
-                                                 size_t variable_count,
-                                                 const char *method_name,
-                                                 GNUNET_PSYC_Modifier *variables,
-                                                 size_t data_size,
-                                                 const void *data);
+typedef void
+(*GNUNET_SOCIAL_AnswerDoorCallback) (void *cls,
+                                     struct GNUNET_SOCIAL_Nym *nym,
+                                     size_t variable_count,
+                                     const char *method_name,
+                                     GNUNET_PSYC_Modifier *variables,
+                                     const void *data,
+                                     size_t data_size);
 
 
 /** 
@@ -187,10 +189,11 @@ typedef void (*GNUNET_SOCIAL_AnswerDoorCallback)(void *cls,
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Variables present in the message.
  */
-typedef void (*GNUNET_SOCIAL_FarewellCallback)(void *cls,
-                                               struct GNUNET_SOCIAL_Nym *nym,
-                                               size_t variable_count,
-                                               GNUNET_PSYC_Modifier *variables);
+typedef void
+(*GNUNET_SOCIAL_FarewellCallback) (void *cls,
+                                   struct GNUNET_SOCIAL_Nym *nym,
+                                   size_t variable_count,
+                                   GNUNET_PSYC_Modifier *variables);
 
 
 /** 
@@ -258,16 +261,16 @@ GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
  * @param nym Handle for the entity that wanted to enter.
  * @param method_name Method name for the rejection message.
  * @param env Environment containing variables for the message, or NULL.
- * @param data_size Number of bytes in @a data for method.
  * @param data Data for the rejection message to send back.
+ * @param data_size Number of bytes in @a data for method.
  */
 void
 GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
                                  struct GNUNET_SOCIAL_Nym *nym,
                                  const char *method_name,
                                  const struct GNUNET_ENV_Environment *env,
-                                 size_t data_size,
-                                 const void *data);
+                                 const void *data,
+                                 size_t data_size);
 
 
 /** 
@@ -403,8 +406,8 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
  *        pseudonym's place directly.
  * @param method_name Method name for the message.
  * @param env Environment containing variables for the message, or NULL.
- * @param data_size Number of bytes in @a data.
  * @param data Payload for the message to give to the enter callback.
+ * @param data_size Number of bytes in @a data.
  * @param slicer Slicer to use for processing incoming requests from guests.
  * @return NULL on errors, otherwise handle to the place.
  */
@@ -414,8 +417,8 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            char *address,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
-                           size_t data_size,
                            const void *data,
+                           size_t data_size,
                            struct GNUNET_SOCIAL_Slicer *slicer);
 
 /** 
@@ -429,8 +432,8 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param relays Relays for the underlying multicast group.
  * @param method_name Method name for the message.
  * @param env Environment containing variables for the message, or NULL.
- * @param data_size Number of bytes in @a data.
  * @param data Payload for the message to give to the enter callback.
+ * @param data_size Number of bytes in @a data.
  * @param slicer Slicer to use for processing incoming requests from guests.
  * @return NULL on errors, otherwise handle to the place.
  */
@@ -443,8 +446,8 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_PeerIdentity *relays,
                             const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
-                            size_t data_size,
                             const void *data,
+                            size_t data_size,
                             struct GNUNET_SOCIAL_Slicer *slicer);
 
 
