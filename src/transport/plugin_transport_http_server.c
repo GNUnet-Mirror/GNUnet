@@ -2124,14 +2124,15 @@ server_start (struct HTTP_Server_Plugin *plugin)
   }
 
 	msg = "No";
-  if ((plugin->server_v6 == NULL) && (plugin->server_v6 == NULL))
+  if ((plugin->server_v6 == NULL) && (plugin->server_v4 == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "%s %s server component started on port %u\n",
                      msg, plugin->name, plugin->port);
+    sleep (10);
     return GNUNET_SYSERR;
   }
-  else if ((plugin->server_v6 != NULL) && (plugin->server_v6 != NULL))
+  else if ((plugin->server_v6 != NULL) && (plugin->server_v4 != NULL))
   	msg = "IPv4 and IPv6";
   else if (plugin->server_v6 != NULL)
   	msg = "IPv6";
@@ -2140,7 +2141,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s %s server component started on port %u\n",
                    msg, plugin->name, plugin->port);
-
+  sleep (10);
   return GNUNET_OK;
 }
 
