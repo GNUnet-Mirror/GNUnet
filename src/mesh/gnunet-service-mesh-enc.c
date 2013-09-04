@@ -4826,7 +4826,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
       queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N- %p %u, \n", fc, fc->queue_n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N- %p %u\n", fc, fc->queue_n);
     fc->queue_n--;
     peer->queue_n--;
   }
@@ -5043,6 +5043,7 @@ queue_add (void *cls, uint16_t type, size_t size,
   struct MeshFlowControl *fc;
   struct MeshPeer *peer;
   int priority;
+  int call_core;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "queue add %s %s (%u) on c %p, ch %p\n",
@@ -5081,17 +5082,22 @@ queue_add (void *cls, uint16_t type, size_t size,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
-  if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv) &&
-      GNUNET_SCHEDULER_NO_TASK == fc->poll_task &&
-      GNUNET_MESSAGE_TYPE_MESH_POLL != type)
+  if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "no buffer space (%u > %u): starting poll\n",
-                fc->last_pid_sent + 1, fc->last_ack_recv);
-    fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                  &connection_poll,
-                                                  fc);
+    call_core = GNUNET_NO;
+    if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task &&
+        GNUNET_MESSAGE_TYPE_MESH_POLL != type)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "no buffer space (%u > %u): starting poll\n",
+                  fc->last_pid_sent + 1, fc->last_ack_recv);
+      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                    &connection_poll,
+                                                    fc);
+    }
   }
+  else
+    call_core = GNUNET_YES;
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
   queue->type = type;
@@ -5107,12 +5113,12 @@ queue_add (void *cls, uint16_t type, size_t size,
   else
   {
     GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u, \n", fc, fc->queue_n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
     fc->queue_n++;
     peer->queue_n++;
   }
 
-  if (NULL == peer->core_transmit)
+  if (NULL == peer->core_transmit && GNUNET_YES == call_core)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "calling core tmt rdy towards %s for %u bytes\n",

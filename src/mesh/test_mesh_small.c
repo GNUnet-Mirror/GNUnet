@@ -352,7 +352,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   uint32_t *data;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " tmt_rdy called\n");
+              "tmt_rdy called, filling buffer\n");
   if (size < size_payload || NULL == buf)
   {
     GNUNET_break (0);
@@ -368,7 +368,12 @@ tmt_rdy (void *cls, size_t size, void *buf)
   msg->type = htons ((long) cls);
   data = (uint32_t *) &msg[1];
   *data = htonl (data_sent);
-  if (SPEED == test && GNUNET_YES == initialized)
+  if (GNUNET_NO == initialized)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sending initializer\n");
+  }
+  else if (SPEED == test)
   {
     data_sent++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -377,9 +382,10 @@ tmt_rdy (void *cls, size_t size, void *buf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Scheduling packet %d\n", data_sent + 1);
-      GNUNET_SCHEDULER_add_now(&data_task, NULL);
+      GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }
   }
+  
   return size_payload;
 }
 
