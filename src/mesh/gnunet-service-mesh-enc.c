@@ -3247,6 +3247,12 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
   struct MeshPeer *peer;
   unsigned int own_pos;
 
+  if (NULL == t || NULL == p)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
 
   c = connection_new (&cid);
