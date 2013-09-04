@@ -884,6 +884,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   }
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
+  /* FIXME: only use 'result_x' as key material */
   if (0 != (rc = gcry_sexp_build (&ecdh_sexp, NULL, 
 				  "(dh-shared-secret (x %m)(y %m))",
 				  result_x,
