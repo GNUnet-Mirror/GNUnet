@@ -101,7 +101,7 @@ struct GNUNET_MULTICAST_MessageHeader
    * unicast requests from members.  Updated at each hop and thus not signed and
    * not secure.
    */
-  uint32_t hop_counter;
+  uint32_t hop_counter GNUNET_PACKED;
 
   /** 
    * ECC signature of the message fragment.
@@ -118,19 +118,19 @@ struct GNUNET_MULTICAST_MessageHeader
   /** 
    * Number of the message fragment, monotonically increasing.
    */
-  uint64_t fragment_id;
+  uint64_t fragment_id GNUNET_PACKED;
 
   /** 
    * Byte offset of this @e fragment of the @e message.
    */
-  uint64_t fragment_offset;
+  uint64_t fragment_offset GNUNET_PACKED;
 
   /** 
    * Number of the message this fragment belongs to.
    *
    * Set in GNUNET_MULTICAST_origin_to_all().
    */
-  uint64_t message_id;
+  uint64_t message_id GNUNET_PACKED;
 
   /** 
    * Counter that monotonically increases whenever a member parts the group.
@@ -142,15 +142,15 @@ struct GNUNET_MULTICAST_MessageHeader
    * is still the same before and after the missed messages, it means that no
    * @e join or @e part operations happened during the missed messages.
    */
-  uint64_t group_generation;
+  uint64_t group_generation GNUNET_PACKED;
 
   /**
    * Flags for this message fragment.
    */
-  uint32_t flags;
+  uint32_t flags GNUNET_PACKED;
 
   /* Followed by message body. */
-} GNUNET_PACKED;
+};
 
 GNUNET_NETWORK_STRUCT_END
 
