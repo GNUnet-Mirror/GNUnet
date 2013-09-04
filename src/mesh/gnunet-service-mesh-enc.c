@@ -2689,59 +2689,6 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
 
 
 /**
- * Remove all paths that rely on a direct connection between p1 and p2
- * from the peer itself and notify all tunnels about it.
- *
- * @param peer PeerInfo of affected peer.
- * @param p1 GNUNET_PEER_Id of one peer.
- * @param p2 GNUNET_PEER_Id of another peer that was connected to the first and
- *           no longer is.
- * 
- * FIXME use peer->connections!!!
- */
-static void
-peer_remove_path (struct MeshPeer *peer, GNUNET_PEER_Id p1,
-                  GNUNET_PEER_Id p2)
-{
-  struct MeshPeerPath *p;
-  struct MeshPeerPath *next;
-  struct MeshPeer *peer_d;
-  GNUNET_PEER_Id d;
-  unsigned int destroyed;
-  unsigned int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path\n");
-  destroyed = 0;
-  for (p = peer->path_head; NULL != p; p = next)
-  {
-    next = p->next;
-    for (i = 0; i < (p->length - 1); i++)
-    {
-      if ((p->peers[i] == p1 && p->peers[i + 1] == p2) ||
-          (p->peers[i] == p2 && p->peers[i + 1] == p1))
-      {
-        GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
-        path_destroy (p);
-        destroyed++;
-        break;
-      }
-    }
-  }
-  if (0 == destroyed)
-    return;
-
-  d = tunnel_notify_connection_broken (peer->tunnel, p1, p2);
-
-  peer_d = peer_get_short (d); // FIXME
-  next = peer_get_best_path (peer_d);
-  tunnel_use_path (peer->tunnel, next);
-  peer_connect (peer_d);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer_info_remove_path END\n");
-}
-
-
-/**
  * Add the path to the peer and update the path used to reach it in case this
  * is the shortest.
  *
@@ -6978,8 +6925,6 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     return;
   }
-
-  peer_remove_path (pi, myid, pi->id);
 
   GNUNET_CONTAINER_multihashmap_iterate (pi->connections,
                                          connection_broken,
