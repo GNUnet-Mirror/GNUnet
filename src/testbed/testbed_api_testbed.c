@@ -257,6 +257,11 @@ struct RunContext
   GNUNET_SCHEDULER_TaskIdentifier interrupt_task;
 
   /**
+   * Task for cleaning up the run context and various resources it uses
+   */
+  GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
+
+  /**
    * The event mask for the controller
    */
   uint64_t event_mask;
@@ -443,7 +448,7 @@ remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
  * @param tc the task context from scheduler
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
   unsigned int hid;
@@ -473,6 +478,20 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Perform the cleanup task now
+ *
+ * @param rc the run context to be cleaned up
+ */
+static void
+cleanup_now (struct RunContext *rc)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != rc->cleanup_task)
+    GNUNET_SCHEDULER_cancel (rc->cleanup_task);
+  rc->cleanup_task = GNUNET_SCHEDULER_add_now (&cleanup, rc);
+}
+
+
+/**
  * Iterator for cleaning up elements from rcop_map 
  *
  * @param cls the RunContext
@@ -495,13 +514,27 @@ rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
 
 
 /**
- * Frees memory, closes pending operations, cancels actives tasks of the given
- * RunContext 
+ * Cleanup existing operation in given run context
+ *
+ * @param rc the run context
+ */
+static void
+cleanup_operations (struct RunContext *rc)
+{
+  GNUNET_assert (GNUNET_SYSERR != 
+                 GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
+                                                          &rcop_cleanup_iterator,
+                                                          rc));
+}
+
+
+/**
+ * Cancels operations and tasks which are assigned to the given run context
  *
  * @param rc the RunContext
  */
 static void
-cleanup (struct RunContext *rc)
+rc_cleanup_operations (struct RunContext *rc)
 {
   struct CompatibilityCheckContext *hc;
   unsigned int nhost;
@@ -544,10 +577,7 @@ cleanup (struct RunContext *rc)
     rc->topology_operation = NULL;
   }
   /* cancel any exiting operations */
-  GNUNET_assert (GNUNET_SYSERR != 
-                 GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
-                                                          &rcop_cleanup_iterator,
-                                                          rc));
+  cleanup_operations (rc);
 }
 
 
@@ -567,7 +597,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_NO == rc->shutdown);
   rc->shutdown = GNUNET_YES;
-  cleanup (rc);
+  rc_cleanup_operations (rc);
   if (NULL != rc->c)
   {
     if (NULL != rc->peers)
@@ -584,7 +614,7 @@ shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   rc->state = RC_PEERS_SHUTDOWN;       /* No peers are present so we consider the
                                         * state where all peers are SHUTDOWN  */
-  GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+  cleanup_now (rc);
 }
 
 
@@ -845,7 +875,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_free_non_null (rc->peers);
     rc->peers = NULL;
     DEBUG ("Peers shut down in %s\n", prof_time (rc));
-    GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+    cleanup_now (rc);
     break;
   default:
     GNUNET_assert (0);
@@ -1008,7 +1038,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Controller crash detected. Shutting down.\n"));
     rc->cproc = NULL;
-    cleanup (rc);
+    rc_cleanup_operations (rc);
     if (NULL != rc->peers)
     {
       GNUNET_free (rc->peers);
@@ -1017,7 +1047,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     if (GNUNET_YES == rc->shutdown)
     {
       rc->state = RC_PEERS_SHUTDOWN;
-      GNUNET_SCHEDULER_add_now (&cleanup_task, rc);
+      cleanup_now (rc);
     }
     else
       shutdown_now (rc);

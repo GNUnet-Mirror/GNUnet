@@ -114,6 +114,8 @@ test_master (void *cls, unsigned int num_peers,
   result = GNUNET_OK;
   if (GNUNET_YES == wait_forever)
   {
+    if (GNUNET_SCHEDULER_NO_TASK == abort_task)
+      return;                   /* abort already scheduled */
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = GNUNET_SCHEDULER_NO_TASK;
     (void) GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

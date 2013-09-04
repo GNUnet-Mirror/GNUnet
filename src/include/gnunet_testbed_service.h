@@ -615,36 +615,6 @@ GNUNET_TESTBED_controller_link (void *op_cls,
 
 
 /**
- * Same as the GNUNET_TESTBED_controller_link, however expects configuration in
- * serialized and compressed
- *
- * @param op_cls the operation closure for the event which is generated to
- *          signal success or failure of this operation
- * @param master handle to the master controller who creates the association
- * @param delegated_host requests to which host should be delegated; cannot be NULL
- * @param slave_host which host is used to run the slave controller; use NULL to
- *          make the master controller connect to the delegated host
- * @param sxcfg serialized and compressed configuration
- * @param sxcfg_size the size sxcfg
- * @param scfg_size the size of uncompressed serialized configuration
- * @param is_subordinate GNUNET_YES if the controller at delegated_host should
- *          be started by the slave controller; GNUNET_NO if the slave
- *          controller has to connect to the already started delegated
- *          controller via TCP/IP
- * @return the operation handle
- */
-struct GNUNET_TESTBED_Operation *
-GNUNET_TESTBED_controller_link_2 (void *op_cls,
-                                  struct GNUNET_TESTBED_Controller *master,
-                                  struct GNUNET_TESTBED_Host *delegated_host,
-                                  struct GNUNET_TESTBED_Host *slave_host,
-                                  const char *sxcfg,
-                                  size_t sxcfg_size,
-                                  size_t scfg_size,
-                                  int is_subordinate);
-
-
-/**
  * Function to acquire the configuration of a running slave controller. The
  * completion of the operation is signalled through the controller_cb from
  * GNUNET_TESTBED_controller_connect(). If the operation is successful the
