@@ -2006,6 +2006,7 @@ static int
 server_start (struct HTTP_Server_Plugin *plugin)
 {
   unsigned int timeout;
+  char *msg;
   GNUNET_assert (NULL != plugin);
 
 #if BUILD_HTTPS
@@ -2029,43 +2030,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                    "MHD cannot set timeout per connection! Default time out %u sec.\n",
                    timeout);
 #endif
-  plugin->server_v4 = NULL;
-  if (plugin->use_ipv4 == GNUNET_YES)
-  {
-    plugin->server_v4 = MHD_start_daemon (
-#if VERBOSE_SERVER
-                                           MHD_USE_DEBUG |
-#endif
-#if BUILD_HTTPS
-                                           MHD_USE_SSL |
-#endif
-                                           MHD_NO_FLAG, plugin->port,
-                                           &server_accept_cb, plugin,
-                                           &server_access_cb, plugin,
-                                           MHD_OPTION_SOCK_ADDR,
-                                           (struct sockaddr_in *)
-                                           plugin->server_addr_v4,
-                                           MHD_OPTION_CONNECTION_LIMIT,
-                                           (unsigned int)
-                                           plugin->max_connections,
-#if BUILD_HTTPS
-                                           MHD_OPTION_HTTPS_PRIORITIES,
-                                           plugin->crypto_init,
-                                           MHD_OPTION_HTTPS_MEM_KEY,
-                                           plugin->key,
-                                           MHD_OPTION_HTTPS_MEM_CERT,
-                                           plugin->cert,
-#endif
-                                           MHD_OPTION_CONNECTION_TIMEOUT,
-                                           timeout,
-                                           MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                           (size_t) (2 *
-                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE),
-                                           MHD_OPTION_NOTIFY_COMPLETED,
-                                           &server_disconnect_cb, plugin,
-                                           MHD_OPTION_EXTERNAL_LOGGER,
-                                           server_log, NULL, MHD_OPTION_END);
-  }
+
   plugin->server_v6 = NULL;
   if (plugin->use_ipv6 == GNUNET_YES)
   {
@@ -2102,29 +2067,80 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            &server_disconnect_cb, plugin,
                                            MHD_OPTION_EXTERNAL_LOGGER,
                                            server_log, NULL, MHD_OPTION_END);
-
+    if (plugin->server_v6 == NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Failed to start %s IPv6 server component on port %u\n",
+                       plugin->name, plugin->port);
+    }
+    else
+    	server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
   }
 
-  if ((plugin->use_ipv4 == GNUNET_YES) && (plugin->server_v4 == NULL))
+  plugin->server_v4 = NULL;
+  if (plugin->use_ipv4 == GNUNET_YES)
+  {
+    plugin->server_v4 = MHD_start_daemon (
+#if VERBOSE_SERVER
+                                           MHD_USE_DEBUG |
+#endif
+#if BUILD_HTTPS
+                                           MHD_USE_SSL |
+#endif
+                                           MHD_NO_FLAG, plugin->port,
+                                           &server_accept_cb, plugin,
+                                           &server_access_cb, plugin,
+                                           MHD_OPTION_SOCK_ADDR,
+                                           (struct sockaddr_in *)
+                                           plugin->server_addr_v4,
+                                           MHD_OPTION_CONNECTION_LIMIT,
+                                           (unsigned int)
+                                           plugin->max_connections,
+#if BUILD_HTTPS
+                                           MHD_OPTION_HTTPS_PRIORITIES,
+                                           plugin->crypto_init,
+                                           MHD_OPTION_HTTPS_MEM_KEY,
+                                           plugin->key,
+                                           MHD_OPTION_HTTPS_MEM_CERT,
+                                           plugin->cert,
+#endif
+                                           MHD_OPTION_CONNECTION_TIMEOUT,
+                                           timeout,
+                                           MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                                           (size_t) (2 *
+                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE),
+                                           MHD_OPTION_NOTIFY_COMPLETED,
+                                           &server_disconnect_cb, plugin,
+                                           MHD_OPTION_EXTERNAL_LOGGER,
+                                           server_log, NULL, MHD_OPTION_END);
+    if (plugin->server_v4 == NULL)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Failed to start %s IPv4 server component on port %u\n",
+                       plugin->name, plugin->port);
+    }
+    else
+    	server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
+  }
+
+	msg = "No";
+  if ((plugin->server_v6 == NULL) && (plugin->server_v6 == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     "Failed to start %s IPv4 server component on port %u\n",
-                     plugin->name, plugin->port);
+                     "%s %s server component started on port %u\n",
+                     msg, plugin->name, plugin->port);
     return GNUNET_SYSERR;
   }
-  server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
-
-  if ((plugin->use_ipv6 == GNUNET_YES) && (plugin->server_v6 == NULL))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     "Failed to start %s IPv6 server component on port %u\n",
-                     plugin->name, plugin->port);
-    return GNUNET_SYSERR;
-  }
-  server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
+  else if ((plugin->server_v6 != NULL) && (plugin->server_v6 != NULL))
+  	msg = "IPv4 and IPv6";
+  else if (plugin->server_v6 != NULL)
+  	msg = "IPv6";
+  else if (plugin->server_v4 != NULL)
+  	msg = "IPv4";
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "%s server component started on port %u\n", plugin->name,
-                   plugin->port);
+                   "%s %s server component started on port %u\n",
+                   msg, plugin->name, plugin->port);
+
   return GNUNET_OK;
 }
 
@@ -3124,7 +3140,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
       return NULL;
   }
-
   return api;
 }
 
