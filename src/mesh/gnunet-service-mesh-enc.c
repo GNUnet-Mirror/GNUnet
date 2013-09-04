@@ -4705,13 +4705,13 @@ connection_broken (void *cls,
 
   fwd = peer == connection_get_prev_hop (c);
 
+  connection_cancel_queues (c, !fwd);
   if (connection_is_terminal (c, fwd))
   {
-    /* Local shutdown: no point in iterating anymore */
+    /* Local shutdown, no one to notify about this. */
     connection_destroy (c);
-    return GNUNET_NO;
+    return GNUNET_YES;
   }
-  connection_cancel_queues (c, !fwd);
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
