@@ -1590,8 +1590,8 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
   lowest_q = UINT_MAX;
   for (c = t->connection_head; NULL != c; c = c->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  connection %s, \n",
-                GNUNET_h2s (&c->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
+                GNUNET_h2s (&c->id), c->state);
     if (MESH_CONNECTION_READY == c->state)
     {
       fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -1966,8 +1966,8 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
   uint16_t type;
   uint64_t iv;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X\n",
-              peer2s (ch->t->peer), ch->gid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X %s\n",
+              peer2s (ch->t->peer), ch->gid, fwd ? "FWD" : "BCK");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
 
@@ -2040,6 +2040,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
              fwd);
   if (MESH_TUNNEL_NEW == t->state)
     tunnel_change_state (t, MESH_TUNNEL_WAITING);
+  if (MESH_CONNECTION_READY != connection->state)
+    connection_change_state (connection, MESH_CONNECTION_SENT);
 }
 
 
@@ -4186,12 +4188,12 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending channel ack for channel %s:%X\n",
-              peer2s (ch->t->peer),
+              "  sending channel %s ack for channel %s:%X\n",
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer),
               ch->gid);
 
   msg.chid = htonl (ch->gid);
-  send_prebuilt_message_channel (&msg.header, ch, fwd);
+  send_prebuilt_message_channel (&msg.header, ch, !fwd);
 }
 
 
@@ -5524,10 +5526,10 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   connection_change_state (c, MESH_CONNECTION_READY);
   connection_reset_timeout (c, GNUNET_NO);
 
-  /* Message for us? */
-  if (connection_is_terminal (c, GNUNET_NO))
+  /* Message for us as creator? */
+  if (connection_is_origin (c, GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     if (MESH_TUNNEL_READY != c->t->state)
       tunnel_change_state (c->t, MESH_TUNNEL_READY);
     tunnel_send_queued_data (c->t, GNUNET_YES);
@@ -5536,7 +5538,19 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_DHT_get_stop (c->t->peer->dhtget);
       c->t->peer->dhtget = NULL;
     }
-    //connection_send_ack (c, GNUNET_NO); /* FIXME */
+    send_connection_ack (c, GNUNET_NO);
+    connection_change_state (c, MESH_CONNECTION_READY);
+    return GNUNET_OK;
+  }
+
+  /* Message for us as destination? */
+  if (connection_is_terminal (c, GNUNET_YES))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
+    if (MESH_TUNNEL_READY != c->t->state)
+      tunnel_change_state (c->t, MESH_TUNNEL_READY);
+    connection_change_state (c, MESH_CONNECTION_READY);
+    tunnel_send_queued_data (c->t, GNUNET_NO);
     return GNUNET_OK;
   }
 
@@ -5701,7 +5715,7 @@ handle_channel_create (struct MeshTunnel2 *t,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
   send_local_channel_create (ch);
-  channel_send_ack (ch, !fwd);
+  channel_send_ack (ch, fwd);
   send_local_ack (ch, !fwd);
 }
 
