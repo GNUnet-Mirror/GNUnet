@@ -136,11 +136,9 @@ requester_callback (void *cls,
   case GNUNET_SCALARPRODUCT_Status_Success:
 
     if (0 == (rc = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, result)))
-      printf ("Successfully computed result for session %s with peer %s: %s\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer), buf);
-    else {
-      printf ("Session %s with peer %s failed: \n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer));
+      printf("%s", buf);
+    else
       LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_aprint", rc);
-    }
     break;
   case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
     LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s failed: invalid response received\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer));
