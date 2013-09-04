@@ -4882,7 +4882,8 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
-      if (connection_is_origin (c, GNUNET_NO))
+      if (connection_is_origin (c, GNUNET_NO) ||
+          connection_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_ack (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
@@ -5485,13 +5486,13 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     if (MESH_TUNNEL_READY != c->t->state)
       tunnel_change_state (c->t, MESH_TUNNEL_READY);
+    send_connection_ack (c, GNUNET_NO);
     tunnel_send_queued_data (c->t, GNUNET_YES);
     if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
     {
       GNUNET_DHT_get_stop (c->t->peer->dhtget);
       c->t->peer->dhtget = NULL;
     }
-    send_connection_ack (c, GNUNET_NO);
     connection_change_state (c, MESH_CONNECTION_READY);
     return GNUNET_OK;
   }
