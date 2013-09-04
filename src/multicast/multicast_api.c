@@ -462,7 +462,7 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
  * @param flags Additional flags for the replay request.  It is used & defined
  *        by the replay callback.
  * @param result_cb Function to be called for the replayed message.
- * @param result_cb_cls Closure for @a message_cb.
+ * @param result_cb_cls Closure for @a result_cb.
  * @return Replay request handle, NULL on error.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
