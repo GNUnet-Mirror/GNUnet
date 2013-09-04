@@ -2142,7 +2142,6 @@ server_start (struct HTTP_Server_Plugin *plugin)
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "%s %s server component started on port %u\n",
                    msg, plugin->name, plugin->port);
-  sleep (10);
   return GNUNET_OK;
 }
 
