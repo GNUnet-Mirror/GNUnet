@@ -1719,6 +1719,11 @@ connection_get_buffer (struct MeshConnection *c, int fwd)
 
 /**
  * Get the total buffer space for a tunnel.
+ *
+ * @param t Tunnel.
+ * @param fwd Is this for FWD traffic?
+ *
+ * @return Buffer space offered by all connections in the tunnel.
  */
 static unsigned int
 tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
@@ -1764,7 +1769,7 @@ tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
     }
 
     fc = fwd ? &c->fwd_fc : &c->bck_fc;
-    buffer += fc->last_ack_recv - fc->last_pid_sent;
+    buffer += fc->queue_max - fc->queue_n;
     c = c->next;
   }
 
