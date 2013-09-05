@@ -692,7 +692,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  nonauthority = -1;
   public = -1;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
