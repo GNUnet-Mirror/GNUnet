@@ -3087,6 +3087,9 @@ tunnel_queue_data (struct MeshTunnel2 *t,
   tq->ch = ch;
   memcpy (&tq[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
+
+  if (MESH_TUNNEL_READY == t->state)
+    tunnel_send_queued_data (t, fwd);
 }
 
 
