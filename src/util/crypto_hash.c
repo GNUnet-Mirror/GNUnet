@@ -290,6 +290,8 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 
 /**
+ * @ingroup hash
+ * 
  * Compute the distance between 2 hashcodes.  The computation must be
  * fast, not involve bits[0] or bits[4] (they're used elsewhere), and be
  * somewhat consistent. And of course, the result should be a positive

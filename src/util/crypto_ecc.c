@@ -835,26 +835,21 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
  * @param priv private key to use for the ECDH (x)
  * @param pub public key to use for the ECDH (yG)
  * @param key_material where to write the key material (xyG)
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
                         const struct GNUNET_CRYPTO_EccPublicKey *pub,
                         struct GNUNET_HashCode *key_material)
 { 
-  size_t slen;
-  unsigned char sdata_buf[2048]; /* big enough to print
-				    dh-shared-secret as
-				    S-expression */
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
   gcry_mpi_t d;
   gcry_ctx_t ctx;
   gcry_sexp_t pub_sexpr;
-  gcry_sexp_t ecdh_sexp;
   gcry_mpi_t result_x;
   gcry_mpi_t result_y;
-  int rc;
+  unsigned char xbuf[256 / 8];
 
   /* first, extract the q = dP value from the public key */
   if (! (pub_sexpr = decode_public_key (pub)))
@@ -885,26 +880,11 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
   /* FIXME: only use 'result_x' as key material */
-  if (0 != (rc = gcry_sexp_build (&ecdh_sexp, NULL, 
-				  "(dh-shared-secret (x %m)(y %m))",
-				  result_x,
-				  result_y)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    gcry_mpi_release (result_x);
-    gcry_mpi_release (result_y);
-    return GNUNET_SYSERR;
-  }
+
+  mpi_print (xbuf, sizeof (xbuf), result_x);
+  GNUNET_CRYPTO_hash (xbuf, sizeof (xbuf), key_material);
   gcry_mpi_release (result_x);
   gcry_mpi_release (result_y);
-  slen = gcry_sexp_sprint (ecdh_sexp,
-			   GCRYSEXP_FMT_DEFAULT, 
-			   sdata_buf, sizeof (sdata_buf));
-  GNUNET_assert (0 != slen);
-  gcry_sexp_release (ecdh_sexp);
-  /* finally, get a string of the resulting S-expression and hash it
-     to generate the key material */
-  GNUNET_CRYPTO_hash (sdata_buf, slen, key_material);
   return GNUNET_OK;
 }
 
