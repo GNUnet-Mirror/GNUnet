@@ -37,7 +37,7 @@
 /**
  * Size of the individual blocks used for file-sharing.
  */
-#define DBLOCK_SIZE (32*1024)
+#define DBLOCK_SIZE (32 * 1024)
 
 /**
  * Blocksize to use when hashing files for indexing (blocksize for IO,
@@ -83,7 +83,7 @@ struct IndexStartMessage
 {
 
   /**
-   * Message type will be GNUNET_MESSAGE_TYPE_FS_INDEX_START.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_INDEX_START.
    */
   struct GNUNET_MessageHeader header;
 
@@ -129,7 +129,7 @@ struct IndexInfoMessage
 {
   /**
    * Message type will be
-   * GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
+   * #GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_ENTRY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -161,8 +161,7 @@ struct UnindexMessage
 {
 
   /**
-   * Message type will be
-   * GNUNET_MESSAGE_TYPE_FS_UNINDEX.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_UNINDEX.
    */
   struct GNUNET_MessageHeader header;
 
@@ -206,8 +205,7 @@ struct SearchMessage
 {
 
   /**
-   * Message type will be
-   * GNUNET_MESSAGE_TYPE_FS_START_SEARCH.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_START_SEARCH.
    */
   struct GNUNET_MessageHeader header;
 
@@ -268,7 +266,7 @@ struct PutMessage
 {
 
   /**
-   * Message type will be GNUNET_MESSAGE_TYPE_FS_PUT.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_PUT.
    */
   struct GNUNET_MessageHeader header;
 
@@ -296,7 +294,7 @@ struct ClientPutMessage
 {
 
   /**
-   * Message type will be GNUNET_MESSAGE_TYPE_FS_PUT.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_PUT.
    */
   struct GNUNET_MessageHeader header;
 

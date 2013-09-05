@@ -1352,38 +1352,10 @@ GNUNET_FS_uri_sks_get_content_id (const struct GNUNET_FS_Uri *uri)
 
 
 /**
- * Convert namespace URI to a human readable format
- * (using the namespace description, if available).
- *
- * @param cfg configuration to use
- * @param uri SKS uri to convert
- * @return NULL on error (not an SKS URI)
- */
-char *
-GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct GNUNET_FS_Uri *uri)
-{
-  char *ret;
-  char *name;
-  char *unique_name;
-
-  if (uri->type != GNUNET_FS_URI_SKS)
-    return NULL;
-  (void) GNUNET_FS_pseudonym_get_info (cfg, &uri->data.sks.ns,
-				    NULL, NULL, &name, NULL);
-  unique_name = GNUNET_FS_pseudonym_name_uniquify (cfg, &uri->data.sks.ns, name, NULL);
-  GNUNET_free (name);
-  GNUNET_asprintf (&ret, "%s: %s", unique_name, uri->data.sks.identifier);
-  GNUNET_free (unique_name);
-  return ret;
-}
-
-
-/**
  * Is this a keyword URI?
  *
  * @param uri the uri
- * @return GNUNET_YES if this is a KSK uri
+ * @return #GNUNET_YES if this is a KSK uri
  */
 int
 GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri)

@@ -35,11 +35,6 @@
 #include "fs.h"
 
 /**
- * Size of the individual blocks used for file-sharing.
- */
-#define DBLOCK_SIZE (32*1024)
-
-/**
  * Pick a multiple of 2 here to achive 8-byte alignment!  We also
  * probably want DBlocks to have (roughly) the same size as IBlocks.
  * With SHA-512, the optimal value is 32768 byte / 128 byte = 256 (128
@@ -206,10 +201,11 @@ struct GNUNET_FS_Uri
       struct GNUNET_CRYPTO_EccPublicKey ns;
 
       /**
-       * Human-readable identifier chosen for this
-       * entry in the namespace.
+       * Human-readable identifier chosen for this entry in the
+       * namespace.
        */
       char *identifier;
+
     } sks;
 
     /**

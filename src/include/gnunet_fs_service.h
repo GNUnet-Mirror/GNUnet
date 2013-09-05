@@ -85,7 +85,7 @@ struct GNUNET_FS_Uri;
  * @param cls closure
  * @param keyword the keyword
  * @param is_mandatory is the keyword mandatory (in a search)
- * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue to iterate, #GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
                                           int is_mandatory);
@@ -101,7 +101,7 @@ typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
  * @param unique_name unique name of the pseudonym (might be NULL)
  * @param md meta data known about the pseudonym
  * @param rating the local rating of the pseudonym
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_PseudonymIterator) (void *cls,
 					    const struct GNUNET_CRYPTO_EccPublicKey *pseudonym,
@@ -217,9 +217,9 @@ GNUNET_FS_pseudonym_name_uniquify (const struct GNUNET_CONFIGURATION_Handle *cfg
  * @param ret_rank a location to store rank. NULL, if rank not needed.
  * @param ret_name a location to store human-readable name. Name is not unique.
  *        NULL, if name is not needed. Free with GNUNET_free().
- * @param name_is_a_dup is set to GNUNET_YES, if ret_name was filled with
+ * @param name_is_a_dup is set to #GNUNET_YES, if ret_name was filled with
  *        a duplicate of a "no-name" placeholder
- * @return GNUNET_OK on success. GNUENT_SYSERR if the data was
+ * @return #GNUNET_OK on success. #GNUENT_SYSERR if the data was
  *         unobtainable (in that case ret_* are filled with placeholders - 
  *         empty metadata container, rank -1 and a "no-name" name).
  */
@@ -238,7 +238,7 @@ GNUNET_FS_pseudonym_get_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cfg configuration to use
  * @param ns_uname unique (!) human-readable name for the pseudonym
  * @param pseudonym set to pseudonym ID based on 'ns_uname'
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -256,7 +256,7 @@ GNUNET_FS_pseudonym_name_to_id (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param md metadata to set
  *        May be NULL, in which case it erases pseudonym's metadata!
  * @param rank rank to assign
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_FS_pseudonym_set_info (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -535,19 +535,6 @@ GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
  */
 char *
 GNUNET_FS_uri_sks_get_content_id (const struct GNUNET_FS_Uri *uri);
-
-
-/**
- * Convert namespace URI to a human readable format
- * (using the namespace description, if available).
- *
- * @param cfg configuration to use
- * @param uri SKS uri to convert
- * @return NULL on error (not an SKS URI)
- */
-char *
-GNUNET_FS_uri_sks_to_string_fancy (struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct GNUNET_FS_Uri *uri);
 
 
 /**
