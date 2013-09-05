@@ -30,7 +30,7 @@
  *
  * 1. The entry in the DHT is RSL_RECORD_EXPIRED OR
  * 2. No entry in the NS existed AND
- * 3. The zone queried is not the local resolver's zone AND
+ * 3. The zone queried is not the local resolver's zone (obsolte!) AND
  * 4. The name that was looked up is '+'
  *    because if it was any other canonical name we either already queried
  *    the DHT for the authority in the authority lookup phase (and thus
@@ -386,7 +386,6 @@ static struct GNS_ResolverHandle *rlh_head;
  * Tail of resolver lookup list
  */
 static struct GNS_ResolverHandle *rlh_tail;
-
 
 /**
  * Global configuration.
@@ -1623,7 +1622,9 @@ handle_namestore_block_response (void *cls,
 					  label,
 					  &query);
   rh->namestore_qe = NULL;
-  if (NULL == block)
+  if ( (GNUNET_NO == rh->only_cached) &&
+       ( (NULL == block) ||
+	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
   {
     /* Namestore knows nothing; try DHT lookup */
     rh->get_handle = GNUNET_DHT_get_start (dht_handle,
@@ -1643,6 +1644,14 @@ handle_namestore_block_response (void *cls,
       rx->proc (rx->proc_cls, 0, NULL);
       GNS_resolver_lookup_cancel (rx);
     }
+    return;
+  }
+  if ( (NULL == block) ||
+       (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) )
+  {
+    /* DHT not permitted and no local result, fail */
+    rx->proc (rx->proc_cls, 0, NULL);
+    GNS_resolver_lookup_cancel (rx);
     return;
   }
   if (GNUNET_OK !=
