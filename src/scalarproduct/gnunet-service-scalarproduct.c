@@ -160,7 +160,6 @@ struct ServiceSession
      * tunnel-handle associated with our mesh handle
      */
     struct GNUNET_MESH_Tunnel * tunnel;
-
 };
 
 /**
@@ -180,6 +179,32 @@ struct MessageObject
     struct GNUNET_MessageHeader * msg;
 };
 
+/**
+ * Linked list for all queued tasks.
+ */
+struct TaskClosure
+{
+  
+  /**
+   * point to the next element of the list
+   */
+  struct TaskClosure *next;
+  
+  /**
+   * point to the previous element of the list
+   */
+  struct TaskClosure *prev;
+
+  /**
+   * the handle associated with this task, canceled upon shutdown
+   */
+  GNUNET_SCHEDULER_TaskIdentifier my_handle;
+  
+  /**
+   * the closure, as it's always a session-struct, we don't cast this to void
+   */
+  struct ServiceSession * my_session;
+};
 ///////////////////////////////////////////////////////////////////////////////
 //                      Global Variables
 ///////////////////////////////////////////////////////////////////////////////
@@ -266,6 +291,15 @@ static struct ServiceSession * from_service_tail;
  * Certain events (callbacks for server & mesh operations) must not be queued after shutdown.
  */
 static int do_shutdown;
+
+/**
+ * DLL for all out active, queued tasks. Purged upon disconnect
+ */
+static struct TaskClosure * tasklist_head;
+/**
+ * DLL for all out active, queued tasks. Purged upon disconnect
+ */
+static struct TaskClosure * tasklist_tail;
 
 ///////////////////////////////////////////////////////////////////////////////
 //                      Helper Functions
@@ -646,22 +680,6 @@ find_matching_session (struct ServiceSession * tail,
 
 
 static void
-destroy_tunnel (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ServiceSession * session = cls;
-
-  if (session->tunnel)
-    {
-      GNUNET_MESH_tunnel_destroy (session->tunnel);
-      session->tunnel = NULL;
-    }
-  session->service_transmit_handle = NULL;
-  // we need to set this to NULL so there is no problem with double-cancel later on.
-}
-
-
-static void
 free_session (struct ServiceSession * session)
 {
   unsigned int i;
@@ -690,7 +708,6 @@ free_session (struct ServiceSession * session)
 //                      Event and Message Handlers
 ///////////////////////////////////////////////////////////////////////////////
 
-
 /**
  * A client disconnected. 
  * 
@@ -711,24 +728,24 @@ handle_client_disconnect (void *cls,
 
   // start from the tail, old stuff will be there...
   for (elem = from_client_head; NULL != elem; elem = next)
+  {
+    next = elem->next;
+    if (elem->client != client)
+      continue;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Client (%p) disconnected from us.\n"), client);
+    GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, elem);
+
+    if (!(elem->role == BOB && elem->state == FINALIZED))
     {
-      next = elem->next;
-      if (elem->client != client)
-        continue;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Client (%p) disconnected from us.\n"), client);
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, elem);
-
-      if (!(elem->role == BOB && elem->state == FINALIZED))
-        {
-          //we MUST terminate any client message underway
-          if (elem->service_transmit_handle && elem->tunnel)
-            GNUNET_MESH_notify_transmit_ready_cancel (elem->service_transmit_handle);
-          if (elem->tunnel && elem->state == WAITING_FOR_RESPONSE_FROM_SERVICE)
-            destroy_tunnel (elem, NULL);
-        }
-      free_session (elem);
+      //we MUST terminate any client message underway
+      if (elem->service_transmit_handle && elem->tunnel)
+        GNUNET_MESH_notify_transmit_ready_cancel (elem->service_transmit_handle);
+      if (elem->tunnel && elem->state == WAITING_FOR_RESPONSE_FROM_SERVICE)
+        GNUNET_MESH_tunnel_destroy (elem->tunnel);
     }
+    free_session (elem);
+  }
 }
 
 
@@ -746,9 +763,13 @@ static void
 prepare_client_end_notification (void * cls,
                                  const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
-  struct ServiceSession * session = cls;
+  struct TaskClosure * task = cls;
+  struct ServiceSession * session = task->my_session;
   struct GNUNET_SCALARPRODUCT_client_response * msg;
   struct MessageObject * msg_obj;
+  
+  GNUNET_CONTAINER_DLL_remove (tasklist_head, tasklist_tail, task);
+  GNUNET_free(task);
 
   msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_client_response);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
@@ -919,11 +940,14 @@ prepare_service_response (gcry_mpi_t * r,
   //disconnect our client
   if ( ! request->service_transmit_handle)
     {
+      struct TaskClosure * task = GNUNET_new(struct TaskClosure);
+      
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, response);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    response);
+      task->my_session = response;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
       return GNUNET_NO;
     }
   return GNUNET_OK;
@@ -1156,7 +1180,8 @@ static void
 prepare_service_request (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ServiceSession * session = cls;
+  struct TaskClosure * task = cls;
+  struct ServiceSession * session = task->my_session;
   unsigned char * current;
   struct GNUNET_SCALARPRODUCT_service_request * msg;
   struct MessageObject * msg_obj;
@@ -1166,8 +1191,10 @@ prepare_service_request (void *cls,
   size_t element_length = 0; //gets initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
+  
+  GNUNET_CONTAINER_DLL_remove (tasklist_head, tasklist_tail, task);
+  GNUNET_free(task);
 
-  GNUNET_assert (NULL != cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
@@ -1180,12 +1207,15 @@ prepare_service_request (void *cls,
       + session->mask_length
       + my_pubkey_external_length)
     {
+      struct TaskClosure * task = GNUNET_new(struct TaskClosure);
       // TODO FEATURE: fallback to fragmentation, in case the message is too long
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    session);
+      
+      task->my_session = session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
       return;
     }
   msg = GNUNET_malloc (msg_length);
@@ -1261,13 +1291,16 @@ prepare_service_request (void *cls,
                                                                         msg_obj);
   if ( ! session->service_transmit_handle)
     {
+      struct TaskClosure * task = GNUNET_new(struct TaskClosure);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not send mutlicast message to tunnel!\n"));
       GNUNET_free (msg_obj);
       GNUNET_free (msg);
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    session);
+      
+      task->my_session = session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
     }
 }
 
@@ -1287,6 +1320,7 @@ handle_client_request (void *cls,
                        const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_SCALARPRODUCT_client_request * msg = (const struct GNUNET_SCALARPRODUCT_client_request *) message;
+  struct TaskClosure * task;
   struct ServiceSession * session;
   uint16_t element_count;
   uint16_t mask_length;
@@ -1399,7 +1433,12 @@ handle_client_request (void *cls,
           return;
         }
       session->state = WAITING_FOR_BOBS_CONNECT;
-      GNUNET_SCHEDULER_add_now(&prepare_service_request, (void*) session);
+      
+      task = GNUNET_new(struct TaskClosure);
+      task->my_session = session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_service_request, task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
+      
       GNUNET_SERVER_receive_done (client, GNUNET_YES);
     }
   else
@@ -1428,7 +1467,11 @@ handle_client_request (void *cls,
           if (GNUNET_OK != compute_service_response (requesting_session, session))
             {
               GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-              GNUNET_SCHEDULER_add_now(&prepare_client_end_notification, session);
+              
+              task = GNUNET_new(struct TaskClosure);
+              task->my_session = session;
+              task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification, task);
+              GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
             }
         }
       else
@@ -1483,6 +1526,7 @@ tunnel_destruction_handler (void *cls,
   struct ServiceSession * session = tunnel_ctx;
   struct ServiceSession * client_session;
   struct ServiceSession * curr;
+  struct TaskClosure * task;
   
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Peer disconnected, terminating session %s with peer (%s)\n"), GNUNET_h2s (&session->key), GNUNET_i2s (&session->peer));
   if (ALICE == session->role) {
@@ -1496,12 +1540,13 @@ tunnel_destruction_handler (void *cls,
           GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
           break;
         }
-      // FIXME: dangling tasks, code duplication, use-after-free, fun...
-      GNUNET_SCHEDULER_add_now (&destroy_tunnel,
-                                session);
+      session->tunnel = NULL;
       // if this happened before we received the answer, we must terminate the session
-      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                session);
+      task = GNUNET_new(struct TaskClosure);
+      task->my_session = session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
     }
   }
   else { //(BOB == session->role)
@@ -1528,8 +1573,12 @@ tunnel_destruction_handler (void *cls,
     {
       // remove the session, we just found it in the queue, so it must be there
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, client_session);
-      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                client_session);
+      
+      task = GNUNET_new(struct TaskClosure);
+      task->my_session = client_session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
     }
   }
 }
@@ -1636,7 +1685,8 @@ static void
 prepare_client_response (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ServiceSession * session = cls;
+  struct TaskClosure * task = cls;
+  struct ServiceSession * session = task->my_session;
   struct GNUNET_SCALARPRODUCT_client_response * msg;
   unsigned char * product_exported = NULL;
   size_t product_length = 0;
@@ -1644,6 +1694,9 @@ prepare_client_response (void *cls,
   struct MessageObject * msg_obj;
   int8_t range = 0;
   int sign;
+  
+  GNUNET_CONTAINER_DLL_remove (tasklist_head, tasklist_tail, task);
+  GNUNET_free(task);
 
   if (session->product)
     {
@@ -1888,11 +1941,13 @@ except:
   // and notify our client-session that we could not complete the session
   if (responder_session)
     {
+      struct TaskClosure * task = GNUNET_new(struct TaskClosure);
       // we just found the responder session in this queue
       GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, responder_session);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &prepare_client_end_notification,
-                                    responder_session);
+      task->my_session = responder_session;
+      task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                task);
+      GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
     }
   return GNUNET_SYSERR;
 }
@@ -1919,6 +1974,7 @@ handle_service_response (void *cls,
 
   struct ServiceSession * session;
   struct GNUNET_SCALARPRODUCT_service_response * msg = (struct GNUNET_SCALARPRODUCT_service_response *) message;
+  struct TaskClosure * task;
   unsigned char * current;
   uint16_t count;
   gcry_mpi_t s = NULL;
@@ -2025,11 +2081,14 @@ invalid_msg:
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-  GNUNET_SCHEDULER_add_now (&destroy_tunnel, session); // FIXME: use after free!
   // send message with product to client
-  /* session->current_task = */ GNUNET_SCHEDULER_add_now (&prepare_client_response, session); // FIXME: dangling task!
-  return GNUNET_OK;
-  // if success: terminate the session gracefully, else terminate with error
+  
+  task = GNUNET_new(struct TaskClosure);
+  task->my_session = session;
+  task->my_handle = GNUNET_SCHEDULER_add_now (&prepare_client_response, task);
+  GNUNET_CONTAINER_DLL_insert (tasklist_head, tasklist_tail, task);
+  // just close the connection.
+  return GNUNET_SYSERR;
 }
 
 
@@ -2043,21 +2102,18 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ServiceSession * curr;
-  struct ServiceSession * next;
+  struct ServiceSession * session;
+  struct TaskClosure * task;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Shutting down, initiating cleanup.\n"));
 
   do_shutdown = GNUNET_YES;
+  for (task = tasklist_head; NULL != task; task = task->next)
+      GNUNET_SCHEDULER_cancel(task->my_handle);
+  
   // terminate all owned open tunnels.
-  for (curr = from_client_head; NULL != curr; curr = next)
-    {
-      next = curr->next;
-      if (FINALIZED != curr->state)
-        {
-          destroy_tunnel (curr, NULL);
-          curr->state = FINALIZED;
-        }
-    }
+  for (session = from_client_head; NULL != session; session = session->next)
+      if (FINALIZED != session->state)
+        GNUNET_MESH_tunnel_destroy (session->tunnel);
   if (my_mesh)
     {
       GNUNET_MESH_disconnect (my_mesh);
