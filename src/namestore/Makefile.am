@@ -42,8 +42,8 @@ if HAVE_EXPERIMENTAL
 if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api \
- test_namestore_api_remove
-test_namestore_api_lookup
+ test_namestore_api_remove \
+ test_namestore_api_lookup
 #test_namestore_api_lookup_specific_type
 #test_namestore_api_create 
 #test_namestore_api_create_update
@@ -282,8 +282,8 @@ test_namestore_record_serialization_LDADD = \
 
 EXTRA_DIST = \
   test_namestore_api.conf \
-  test_plugin_namestore_sqlite.conf\
-  test_plugin_namestore_postgres.conf\
+  test_plugin_namestore_sqlite.conf \
+  test_plugin_namestore_postgres.conf \
   test_hostkey \
   zonefiles/S5I9DSGQVAB5FVV16T3B3CC5H1B2JGL3Q412JBKURME8EKU0600G.zkey \
   zonefiles/AQ835GVL939H4O8QJQ7GBLPTQC0QAAO91BN7QK01BA63MDSK6I4G.zkey \
