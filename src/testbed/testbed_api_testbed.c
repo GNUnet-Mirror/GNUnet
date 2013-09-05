@@ -28,6 +28,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+#include "testbed_api.h"
 #include "testbed_api_peers.h"
 #include "testbed_api_hosts.h"
 #include "testbed_api_topology.h"
@@ -242,11 +243,6 @@ struct RunContext
   GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
 
   /**
-   * Task to be run while shutting down
-   */
-  GNUNET_SCHEDULER_TaskIdentifier shutdown_run_task;
-
-  /**
    * Task to be run of a timeout
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -255,11 +251,6 @@ struct RunContext
    * Task run upon shutdown interrupts
    */
   GNUNET_SCHEDULER_TaskIdentifier interrupt_task;
-
-  /**
-   * Task for cleaning up the run context and various resources it uses
-   */
-  GNUNET_SCHEDULER_TaskIdentifier cleanup_task;
 
   /**
    * The event mask for the controller
@@ -448,7 +439,7 @@ remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
  * @param tc the task context from scheduler
  */
 static void
-cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (void *cls)
 {
   struct RunContext *rc = cls;
   unsigned int hid;
@@ -478,20 +469,6 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Perform the cleanup task now
- *
- * @param rc the run context to be cleaned up
- */
-static void
-cleanup_now (struct RunContext *rc)
-{
-  if (GNUNET_SCHEDULER_NO_TASK != rc->cleanup_task)
-    GNUNET_SCHEDULER_cancel (rc->cleanup_task);
-  rc->cleanup_task = GNUNET_SCHEDULER_add_now (&cleanup, rc);
-}
-
-
-/**
  * Iterator for cleaning up elements from rcop_map 
  *
  * @param cls the RunContext
@@ -510,21 +487,6 @@ rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
   GNUNET_TESTBED_operation_done (rcop->op);
   GNUNET_free (rcop);
   return GNUNET_YES;
-}
-
-
-/**
- * Cleanup existing operation in given run context
- *
- * @param rc the run context
- */
-static void
-cleanup_operations (struct RunContext *rc)
-{
-  GNUNET_assert (GNUNET_SYSERR != 
-                 GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
-                                                          &rcop_cleanup_iterator,
-                                                          rc));
 }
 
 
@@ -561,11 +523,6 @@ rc_cleanup_operations (struct RunContext *rc)
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
     rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rc->interrupt_task)
-  {
-    GNUNET_SCHEDULER_cancel (rc->interrupt_task);
-    rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   if (NULL != rc->reg_handle)
   {
     GNUNET_TESTBED_cancel_registration (rc->reg_handle);
@@ -577,66 +534,71 @@ rc_cleanup_operations (struct RunContext *rc)
     rc->topology_operation = NULL;
   }
   /* cancel any exiting operations */
-  cleanup_operations (rc);
+  GNUNET_assert (GNUNET_SYSERR != 
+                 GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
+                                                          &rcop_cleanup_iterator,
+                                                          rc));
 }
 
 
 /**
- * Stops the testbed run and releases any used resources
+ * Cancels the scheduled interrupt task
  *
- * @param cls the tesbed run handle
- * @param tc the task context from scheduler
+ * @param rc the run context
  */
 static void
-shutdown_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cancel_interrupt_task (struct RunContext *rc)
+{
+  GNUNET_SCHEDULER_cancel (rc->interrupt_task);
+  rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
+}
+
+
+/**
+ * This callback will be called when all the operations are completed
+ * (done/cancelled) 
+ *
+ * @param cls run context
+ * @param tc scheduler task context
+ */
+static void
+wait_op_completion (void *cls)
 {
   struct RunContext *rc = cls;
   struct RunContextOperation *rcop;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task);
-  rc->shutdown_run_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (GNUNET_NO == rc->shutdown);
-  rc->shutdown = GNUNET_YES;
-  rc_cleanup_operations (rc);
-  if (NULL != rc->c)
+  if ( (NULL == rc->cproc)
+       || (NULL == rc->c)
+       || (GNUNET_YES == rc->shutdown) )
   {
     if (NULL != rc->peers)
     {
-      rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
-      rcop->rc = rc;
-      rcop->op = GNUNET_TESTBED_shutdown_peers (rc->c, rcop, NULL, NULL);
-      GNUNET_assert (NULL != rcop->op);
-      DEBUG ("Shutting down peers\n");
-      rc->pstart_time = GNUNET_TIME_absolute_get ();
-      insert_rcop (rc, rcop);
-      return;
+      GNUNET_free (rc->peers);
+      rc->peers = NULL;
     }
+    goto cleanup_;
   }
-  rc->state = RC_PEERS_SHUTDOWN;       /* No peers are present so we consider the
-                                        * state where all peers are SHUTDOWN  */
-  cleanup_now (rc);
+  if (NULL == rc->peers)
+    goto cleanup_;
+  rc->shutdown = GNUNET_YES;
+  rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+  rcop->rc = rc;
+  rcop->op = GNUNET_TESTBED_shutdown_peers (rc->c, rcop, NULL, NULL);
+  GNUNET_assert (NULL != rcop->op);
+  DEBUG ("Shutting down peers\n");
+  rc->pstart_time = GNUNET_TIME_absolute_get ();
+  insert_rcop (rc, rcop);
+  return;
+
+ cleanup_:
+  rc->state = RC_PEERS_SHUTDOWN;
+  cancel_interrupt_task (rc);
+  cleanup (rc);
 }
 
 
 /**
- * Function to shutdown now
- *
- * @param rc the RunContext
- */
-static void
-shutdown_now (struct RunContext *rc)
-{
-  if (GNUNET_YES == rc->shutdown)
-    return;
-  if (GNUNET_SCHEDULER_NO_TASK != rc->shutdown_run_task)
-    GNUNET_SCHEDULER_cancel (rc->shutdown_run_task);
-  GNUNET_SCHEDULER_shutdown (); /* Trigger shutdown in programs using this API */
-  rc->shutdown_run_task = GNUNET_SCHEDULER_add_now (&shutdown_run, rc);
-}
-
-
-/**
- * Task run upon any interrupt.  Common ones are SIGINT & SIGTERM.
+ * Task run upon interrupts (SIGINT, SIGTERM) and upon scheduler shutdown.
  *
  * @param cls the RunContext which has to be acted upon
  * @param tc the scheduler task context
@@ -645,9 +607,24 @@ static void
 interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_Controller *c = rc->c;
+  unsigned int size;
 
-  rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
-  shutdown_now (rc);
+  /* reschedule */
+  rc->interrupt_task = GNUNET_SCHEDULER_add_delayed
+      (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt, rc);
+  rc_cleanup_operations (rc);  
+  if ( (GNUNET_NO == rc->shutdown)
+       && (NULL != c) 
+       && (0 != (size = GNUNET_CONTAINER_multihashmap32_size (c->opc_map))))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Shutdown postponed as there are "
+         "%u operations currently active\n", size);
+    c->opcq_empty_cb = &wait_op_completion;
+    c->opcq_empty_cls = rc;
+    return;
+  }
+  wait_op_completion (rc);
 }
 
 
@@ -721,7 +698,7 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
     if (NULL != emsg)
       LOG (GNUNET_ERROR_TYPE_ERROR, "Error while creating a peer: %s\n",
            emsg);
-    shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   rc->peers[rc->peer_count] = peer;
@@ -830,7 +807,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       if (NULL != event->details.operation_finished.emsg)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR, _("Linking controllers failed. Exiting"));
-        shutdown_now (rc);
+        GNUNET_SCHEDULER_shutdown ();
       }
       else
         rc->reg_hosts++;
@@ -846,7 +823,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
       return;
     default:
       GNUNET_break (0);
-      shutdown_now (rc);
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
   }
@@ -862,7 +839,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "A operation has failed with error: %s\n",
          event->details.operation_finished.emsg);
-    shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (GNUNET_YES == rc->shutdown);
@@ -875,7 +852,7 @@ event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     GNUNET_free_non_null (rc->peers);
     rc->peers = NULL;
     DEBUG ("Peers shut down in %s\n", prof_time (rc));
-    cleanup_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     break;
   default:
     GNUNET_assert (0);
@@ -972,7 +949,7 @@ host_registration_completion (void *cls, const char *emsg)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Host registration failed for a host. Error: %s\n"), emsg);
-    shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   rc->register_hosts_task = GNUNET_SCHEDULER_add_now (&register_hosts, rc);
@@ -1037,20 +1014,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Controller crash detected. Shutting down.\n"));
-    rc->cproc = NULL;
-    rc_cleanup_operations (rc);
-    if (NULL != rc->peers)
-    {
-      GNUNET_free (rc->peers);
-      rc->peers = NULL;
-    }
-    if (GNUNET_YES == rc->shutdown)
-    {
-      rc->state = RC_PEERS_SHUTDOWN;
-      cleanup_now (rc);
-    }
-    else
-      shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_CONFIGURATION_destroy (rc->cfg);
@@ -1143,7 +1107,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
     else
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Testbed cannot be started on localhost\n"));
-    shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   rc->reg_hosts++;
@@ -1181,7 +1145,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
   if (NULL == rc->cproc)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot start the master controller"));
-    shutdown_now (rc);
+    GNUNET_SCHEDULER_shutdown ();
   }
 }
 
@@ -1199,7 +1163,7 @@ timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   
   rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
-  shutdown_now (rc);
+   GNUNET_SCHEDULER_shutdown ();
    if (NULL != rc->test_master)
      rc->test_master (rc->test_master_cls, 0, NULL, 0, 0);
    rc->test_master = NULL;

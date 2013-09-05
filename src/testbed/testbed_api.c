@@ -352,6 +352,9 @@ GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
                  GNUNET_CONTAINER_multihashmap32_remove (c->opc_map,
                                                          (uint32_t) opc->id,
                                                          opc));
+  if ( (0 == GNUNET_CONTAINER_multihashmap32_size (c->opc_map))
+       && (NULL != c->opcq_empty_cb) )
+    c->opcq_empty_cb (c->opcq_empty_cls);
 }
 
 
