@@ -778,6 +778,7 @@ prepare_client_end_notification (void * cls,
   msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
   // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
   msg->product_length = htonl (0);
+  msg->range = 1;
 
   msg_obj = GNUNET_new (struct MessageObject);
   msg_obj->msg = &msg->header;
@@ -1692,7 +1693,8 @@ prepare_client_response (void *cls,
   size_t product_length = 0;
   uint16_t msg_length = 0;
   struct MessageObject * msg_obj;
-  int8_t range = 0;
+  int8_t range = -1;
+  gcry_error_t rc;
   int sign;
   
   GNUNET_CONTAINER_DLL_remove (tasklist_head, tasklist_tail, task);
@@ -1705,24 +1707,29 @@ prepare_client_response (void *cls,
       sign = gcry_mpi_cmp_ui(session->product, 0);
       // libgcrypt can not handle a print of a negative number
       if (0 > sign){
-          range = -1;
           gcry_mpi_sub(value, value, session->product);
       }
       else if(0 < sign){
           range = 1;
           gcry_mpi_add(value, value, session->product);
       }
+      else
+        range = 0;
       
       // get representation as string
       // unfortunately libgcrypt is too stupid to implement print-support in
       // signed GCRYMPI_FMT_STD format, and simply asserts in that case.
       // here is the associated sourcecode:
       // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
-      if (range)
-          GNUNET_assert ( ! gcry_mpi_aprint (GCRYMPI_FMT_USG, // FIXME: just log (& survive!)
+      if (range
+          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_USG,
                                              &product_exported,
                                              &product_length,
-                                             session->product));
+                                             session->product)))){
+        LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+        product_length = 0;
+        range = -1; // signal error with product-length = 0 and range = -1
+      }
       
       gcry_mpi_release (session->product);
       session->product = NULL;
