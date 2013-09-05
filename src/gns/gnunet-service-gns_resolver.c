@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  *
  * URGENT:
- * - shortening triggers
  * - We currently go to the DHT simply if we find no local reply; this
  *   is incorrect; the correct rules for going to DHT are:
  *
@@ -42,7 +41,7 @@
  * TODO:
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'. (#3003)
- * - revocation checks (make optional: privacy!), (#3004)
+ * - revocation checks (use CORE-level broadcasts!), (#3004)
  * - DNAME support (#3005)
  */
 #include "platform.h"
@@ -506,6 +505,7 @@ fail_resolution (void *cls,
   GNS_resolver_lookup_cancel (rh);
 }
 
+
 #if (defined WINDOWS) || (defined DARWIN)
 /* Don't have this on W32, here's a naive implementation
  * Was somehow removed on OS X ...  */
@@ -521,6 +521,7 @@ memrchr (const void *s, int c, size_t n)
   return NULL;
 }
 #endif
+
 
 /**
  * Get the next, rightmost label from the name that we are trying to resolve,
@@ -706,7 +707,7 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh);
  *        we were attempting to make
  * @param rs socket that received the response
  * @param dns dns response, never NULL
- * @param dns_len number of bytes in 'dns'
+ * @param dns_len number of bytes in @a dns
  */
 static void
 dns_result_parser (void *cls,
@@ -1323,6 +1324,22 @@ handle_gns_resolution_result (void *cls,
 	  }
 	}
 	break;
+      case GNUNET_NAMESTORE_TYPE_PKEY:
+	/* tigger shortening */
+	if (NULL != rh->shorten_key)
+	{
+	  struct GNUNET_CRYPTO_EccPublicKey pub;
+	  
+	  if (rd[i].data_size != sizeof (struct GNUNET_CRYPTO_EccPublicKey))
+	  {
+	    GNUNET_break_op (0);
+	    break;
+	  }
+	  memcpy (&pub, rd[i].data, rd[i].data_size);
+	  GNS_shorten_start (rh->ac_tail->label,
+			     &pub,
+			     rh->shorten_key);
+	}
       default:
 	break;
       }
@@ -1356,6 +1373,12 @@ handle_gns_resolution_result (void *cls,
 	      rd[i].data,
 	      sizeof (struct GNUNET_CRYPTO_EccPublicKey));
       ac->label = resolver_lookup_get_next_label (rh);
+      /* tigger shortening */
+      if (NULL != rh->shorten_key)      
+	GNS_shorten_start (rh->ac_tail->label,
+			   &ac->authority_info.gns_authority,
+			   rh->shorten_key);      
+      /* add AC to tail */
       GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 					rh->ac_tail,
 					ac);
