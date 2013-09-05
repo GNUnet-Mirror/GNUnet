@@ -17,6 +17,8 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
+
+
 /**
  * @file gns/test_gns_ns_lookup.c
  * @brief base testcase for testing a local GNS record lookup through NS

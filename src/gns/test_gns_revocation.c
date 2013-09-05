@@ -54,6 +54,7 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 
 static struct GNUNET_GNS_Handle *gns_handle;
 
+/**/
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
