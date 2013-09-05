@@ -24,20 +24,6 @@
  * @author Martin Schanzenbach
  * @author Christian Grothoff
  *
- * URGENT:
- * - We currently go to the DHT simply if we find no local reply; this
- *   is incorrect; the correct rules for going to DHT are (#3017):
- *
- * 1. The entry in the DHT is RSL_RECORD_EXPIRED OR
- * 2. No entry in the NS existed AND
- * 3. The zone queried is not the local resolver's zone (obsolte!) AND
- * 4. The name that was looked up is '+'
- *    because if it was any other canonical name we either already queried
- *    the DHT for the authority in the authority lookup phase (and thus
- *    would already have an entry in the NS for the record)
- * 5. We are not in cache only mode
- *
- *
  * TODO:
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'. (#3003)
