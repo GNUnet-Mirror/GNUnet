@@ -88,9 +88,8 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @param anonymity anonymity-level for the content
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum
- *
- * @return GNUNET_OK to keep the item
- *         GNUNET_NO to delete the item
+ * @return #GNUNET_OK to keep the item
+ *         #GNUNET_NO to delete the item
  */
 typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * key,
                                      uint32_t size, const void *data,
@@ -116,7 +115,7 @@ typedef unsigned long long (*PluginEstimateSize) (void *cls);
  *
  * @param cls closure
  * @param key key for the item
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
  * @param priority priority of the content
@@ -124,8 +123,8 @@ typedef unsigned long long (*PluginEstimateSize) (void *cls);
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to an error message (on failure)
- * @return GNUNET_OK on success,
- *         GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on failure
  */
 typedef int (*PluginPut) (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                           const void *data, enum GNUNET_BLOCK_Type type,
@@ -142,8 +141,8 @@ typedef int (*PluginPut) (void *cls, const struct GNUNET_HashCode * key, uint32_
  * @param count how many values are stored under this key in the datastore
  */
 typedef void (*PluginKeyProcessor) (void *cls, 
-				   const struct GNUNET_HashCode *key,
-				   unsigned int count);
+				    const struct GNUNET_HashCode *key,
+				    unsigned int count);
 
 
 /**
@@ -151,7 +150,7 @@ typedef void (*PluginKeyProcessor) (void *cls,
  *
  * @param cls closure
  * @param proc function to call on each key
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 typedef void (*PluginGetKeys) (void *cls,
 			       PluginKeyProcessor proc, void *proc_cls);
@@ -175,7 +174,7 @@ typedef void (*PluginGetKeys) (void *cls,
  *            NULL for no minimum (return smallest key)
  * @param proc function to call on the matching value;
  *        proc should be called with NULL if there is no result
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 typedef void (*PluginGetKey) (void *cls, uint64_t offset,
                               const struct GNUNET_HashCode * key,
@@ -186,13 +185,13 @@ typedef void (*PluginGetKey) (void *cls, uint64_t offset,
 
 /**
  * Get a random item (additional constraints may apply depending on
- * the specific implementation).  Calls 'proc' with all values ZERO or
- * NULL if no item applies, otherwise 'proc' is called once and only
+ * the specific implementation).  Calls @a proc with all values ZERO or
+ * NULL if no item applies, otherwise @a proc is called once and only
  * once with an item.
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
                                  void *proc_cls);
@@ -218,7 +217,7 @@ typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
  *     MAX of any existing expiration time and
  *     this value
  * @param msg set to an error message (on error)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 typedef int (*PluginUpdate) (void *cls, uint64_t uid, int delta,
                              struct GNUNET_TIME_Absolute expire, char **msg);
@@ -234,7 +233,7 @@ typedef int (*PluginUpdate) (void *cls, uint64_t uid, int delta,
  * @param type entries of which type should be considered?
  *        Must not be zero (ANY).
  * @param proc function to call on the matching value
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 typedef void (*PluginGetType) (void *cls, uint64_t offset,
                                enum GNUNET_BLOCK_Type type,

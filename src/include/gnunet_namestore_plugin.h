@@ -55,7 +55,7 @@ typedef void (*GNUNET_NAMESTORE_BlockCallback) (void *cls,
  * @param cls closure
  * @param zone_key private key of the zone
  * @param label name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
+ * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
