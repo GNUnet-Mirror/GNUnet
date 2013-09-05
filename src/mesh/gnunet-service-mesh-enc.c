@@ -4485,7 +4485,11 @@ channel_new (struct MeshTunnel2 *t,
   if (NULL != owner)
   {
     while (NULL != channel_get (t, t->next_chid))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists (%p)...\n",
+                  t->next_chid, channel_get (t, t->next_chid));
       t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+    }
     ch->gid = t->next_chid;
     t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
 
@@ -5148,7 +5152,8 @@ handle_data (struct MeshTunnel2 *t, const struct GNUNET_MESH_Data *msg, int fwd)
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel unknown\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
+                ntohl (msg->chid));
     return;
   }
 
@@ -5664,6 +5669,7 @@ handle_channel_create (struct MeshTunnel2 *t,
 
   /* Check if channel exists */
   chid = ntohl (msg->chid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   chid %u\n", chid);
   ch = channel_get (t, chid);
   if (NULL != ch)
   {
@@ -5680,6 +5686,7 @@ handle_channel_create (struct MeshTunnel2 *t,
   {
     /* Create channel */
     ch = channel_new (t, NULL, 0);
+    ch->gid = chid;
     channel_set_options (ch, ntohl (msg->opt));
   }
 
