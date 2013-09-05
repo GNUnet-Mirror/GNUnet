@@ -3856,34 +3856,34 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
               fwd ? "FWD" : "BCK", c, ch);
   if (NULL == c || connection_is_terminal (c, fwd))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from Channel\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
     buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from Connection\n");
-    GNUNET_assert (NULL != c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
     buffer = connection_get_buffer (c, fwd);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
-  if (NULL == c)
+  if ( (NULL != ch && channel_is_terminal (ch, !fwd)) ||
+       (NULL != c && connection_is_origin (c, fwd)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
+    if (0 < buffer)
+    {
+      GNUNET_assert (NULL != ch);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
+      send_local_ack (ch, fwd);
+    }
+  }
+  else if (NULL == c)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
     GNUNET_assert (NULL != ch);
     channel_send_connections_ack (ch, buffer, fwd);
   }
-  else if (connection_is_origin (c, fwd))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-    if (0 < buffer)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
-      GNUNET_assert (NULL != ch);
-      send_local_ack (ch, fwd);
-    }
-  }
-  else
+  else 
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
     connection_send_ack (c, buffer, fwd);
@@ -3922,8 +3922,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  if (GNUNET_NO == rel->client_ready)
-    send_local_ack (ch, fwd);
+  send_ack (NULL, ch, fwd);
 }
 
 
@@ -4853,6 +4852,7 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -5005,6 +5005,13 @@ queue_add (void *cls, uint16_t type, size_t size,
   if (NULL == fc)
   {
     GNUNET_break (0);
+    return;
+  }
+  
+  if (NULL == peer->connections)
+  {
+    /* We are not connected to this peer, ignore request. */
+    GNUNET_break_op (0);
     return;
   }
 
