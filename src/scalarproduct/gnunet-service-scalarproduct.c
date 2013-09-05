@@ -106,6 +106,11 @@ struct ServiceSession
     struct GNUNET_SERVER_Client * client;
 
     /**
+     * The message to send
+     */
+    struct GNUNET_MessageHeader * msg;
+    
+    /**
      * how many elements we were supplied with from the client
      */
     uint16_t element_count;
@@ -164,23 +169,6 @@ struct ServiceSession
     GNUNET_SCHEDULER_TaskIdentifier client_notification_task;
     
     GNUNET_SCHEDULER_TaskIdentifier service_request_task;
-};
-
-/**
- * We need to do a minimum of bookkeeping to maintain track of our transmit handles.
- * each msg is associated with a session and handle. using this information we can determine which msg was sent.
- */
-struct MessageObject
-{
-    /**
-     * The handle used to transmit with this request
-     */
-    void ** transmit_handle;
-
-    /**
-     * The message to send
-     */
-    struct GNUNET_MessageHeader * msg;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -502,30 +490,30 @@ compute_square_sum (gcry_mpi_t * vector, uint16_t length)
 static size_t
 do_send_message (void *cls, size_t size, void *buf)
 {
-  struct MessageObject * info = cls;
-  struct GNUNET_MessageHeader * msg;
+  struct ServiceSession * session = cls;
   size_t written = 0;
 
-  GNUNET_assert (info);
-  msg = info->msg;
-  GNUNET_assert (msg);
   GNUNET_assert (buf);
 
-  if (ntohs (msg->size) == size)
+  if (ntohs (session->msg->size) == size)
     {
-      memcpy (buf, msg, size);
+      memcpy (buf, session->msg, size);
       written = size;
     }
 
-  // reset the transmit handle, if necessary
-  if (info->transmit_handle)
-    *info->transmit_handle = NULL;
-
+  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT == ntohs(session->msg->type)){
+    session->state = FINALIZED;
+    session->client_transmit_handle = NULL;
+  }
+  else
+    session->service_transmit_handle = NULL;
+    
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sent a message of type %hu.\n", 
-	      ntohs (msg->type));
-  GNUNET_free(msg);
-  GNUNET_free(info);
+	      ntohs (session->msg->type));
+  GNUNET_free(session->msg);
+  session->msg = NULL;
+  
   return written;
 }
 
@@ -653,23 +641,20 @@ free_session (struct ServiceSession * session)
 {
   unsigned int i;
 
-  if (FINALIZED != session->state)
-    {
-      if (session->a)
-        {
-          for (i = 0; i < session->used_element_count; i++)
-            gcry_mpi_release (session->a[i]);
+  if (session->a)
+  {
+    for (i = 0; i < session->used_element_count; i++)
+      gcry_mpi_release (session->a[i]);
 
-          GNUNET_free (session->a);
-        }
-      if (session->product)
-        gcry_mpi_release (session->product);
+    GNUNET_free (session->a);
+  }
+  if (session->product)
+    gcry_mpi_release (session->product);
 
-      if (session->remote_pubkey)
-        gcry_sexp_release (session->remote_pubkey);
+  if (session->remote_pubkey)
+    gcry_sexp_release (session->remote_pubkey);
 
-      GNUNET_free_non_null (session->vector);
-    }
+  GNUNET_free_non_null (session->vector);
   GNUNET_free (session);
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -742,7 +727,6 @@ prepare_client_end_notification (void * cls,
 {
   struct ServiceSession * session = cls;
   struct GNUNET_SCALARPRODUCT_client_response * msg;
-  struct MessageObject * msg_obj;
   
   session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -755,9 +739,7 @@ prepare_client_end_notification (void * cls,
   msg->product_length = htonl (0);
   msg->range = 1;
 
-  msg_obj = GNUNET_new (struct MessageObject);
-  msg_obj->msg = &msg->header;
-  msg_obj->transmit_handle = NULL; // do not reset the transmit handle, please
+  session->msg = &msg->header;
 
   //transmit this message to our client
   session->client_transmit_handle =
@@ -765,7 +747,7 @@ prepare_client_end_notification (void * cls,
                                                sizeof (struct GNUNET_SCALARPRODUCT_client_response),
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &do_send_message,
-                                               msg_obj);
+                                               session);
 
   // if we could not even queue our request, something is wrong
   if ( ! session->client_transmit_handle)
@@ -1549,9 +1531,6 @@ tunnel_destruction_handler (void *cls,
     // or if it was a responder, no point in adding more statefulness
     if (client_session && (!do_shutdown))
     {
-      // remove the session, we just found it in the queue, so it must be there
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, client_session);
-      
       client_session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         client_session);
