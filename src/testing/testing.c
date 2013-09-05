@@ -1201,10 +1201,12 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
                               | GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == fd)
   {
-    GNUNET_asprintf (&emsg_, _("Cannot open hostkey file: %s\n"),
-                     STRERROR (errno));
+    GNUNET_asprintf (&emsg_, _("Cannot open hostkey file `%s': %s\n"),
+                     hostkey_filename, STRERROR (errno));
+    GNUNET_free (hostkey_filename);
     goto err_ret;
   }
+  GNUNET_free (hostkey_filename);
   if (GNUNET_TESTING_HOSTKEYFILESIZE !=
       GNUNET_DISK_file_write (fd, system->hostkeys_data 
 			      + (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),

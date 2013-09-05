@@ -59,6 +59,17 @@ static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 static int result;
 
 /**
+ * The peers we have seen in the statistics iterator
+ */
+static struct GNUNET_TESTBED_Peer **seen_peers;
+
+/**
+ * Number of peers in the above array
+ */
+static unsigned int num_seen_peers;
+
+
+/**
  * Fail testcase
  */
 #define FAIL_TEST(cond, ret) do {                               \
@@ -109,8 +120,6 @@ stats_iterator (void *cls,
                 const char *subsystem, const char *name, uint64_t value,
                 int is_persistent)
 {
-  static struct GNUNET_TESTBED_Peer **seen_peers;
-  static unsigned int num_seen_peers;
   unsigned int cnt;
     
   FAIL_TEST (cls == dummy_cls, return GNUNET_SYSERR);
@@ -187,6 +196,7 @@ main (int argc, char **argv)
                                   NUM_PEERS,
                                   1LL, NULL, NULL,
                                   &test_master, NULL);
+  GNUNET_free_non_null (seen_peers);
   if (GNUNET_OK != result)
     return 1;
   return 0;

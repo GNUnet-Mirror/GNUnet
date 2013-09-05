@@ -90,6 +90,8 @@ shutdown_now ()
   CANCEL_TASK (abort_task);
   CANCEL_TASK (write_task);
   GNUNET_free_non_null (search_dir);
+  if (NULL != h)
+    GNUNET_TESTBED_LOGGER_disconnect (h);
   GNUNET_SCHEDULER_shutdown ();
 }
 

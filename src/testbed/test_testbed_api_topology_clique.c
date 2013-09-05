@@ -94,7 +94,8 @@ controller_event_cb (void *cls,
     if ((NUM_PEERS * (NUM_PEERS - 1)) == overlay_connects)
     {
       result = GNUNET_OK;
-      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+      GNUNET_SCHEDULER_cancel (shutdown_task);
+      shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     }
     break;
   case GNUNET_TESTBED_ET_OPERATION_FINISHED:

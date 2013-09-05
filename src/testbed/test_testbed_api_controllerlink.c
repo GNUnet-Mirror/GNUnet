@@ -181,7 +181,12 @@ enum Stage
   SLAVE3_LINK_SUCCESS,
 
   /**
-   * Destory master peer and mark test as success
+   * Master peer destoryed.  Destory slave 3 peer
+   */
+  MASTER_PEER_DESTROY_SUCCESS,
+
+  /**
+   * Slave 3 peer destroyed.  Mark test as success
    */
   SUCCESS,
 
@@ -631,6 +636,11 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     break;
   case SLAVE3_LINK_SUCCESS:
     check_operation_success (event);
+    result = MASTER_PEER_DESTROY_SUCCESS;
+    GNUNET_TESTBED_operation_done (op);
+    op = GNUNET_TESTBED_peer_destroy (slave3_peer);
+    break;
+  case MASTER_PEER_DESTROY_SUCCESS:
     result = SUCCESS;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
