@@ -26,7 +26,7 @@
  *
  * URGENT:
  * - We currently go to the DHT simply if we find no local reply; this
- *   is incorrect; the correct rules for going to DHT are:
+ *   is incorrect; the correct rules for going to DHT are (#3017):
  *
  * 1. The entry in the DHT is RSL_RECORD_EXPIRED OR
  * 2. No entry in the NS existed AND
