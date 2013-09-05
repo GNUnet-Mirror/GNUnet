@@ -2810,8 +2810,8 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   c = fc->c;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection %s[%X]\n", 
-              peer2s (c->t->peer), c->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%X]\n",
+              GNUNET_h2s (&c->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n", 
               fc == &c->fwd_fc ? "FWD" : "BCK");
 
