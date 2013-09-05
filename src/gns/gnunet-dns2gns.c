@@ -191,6 +191,16 @@ do_shutdown (void *cls,
     GNUNET_NETWORK_socket_close (listen_socket6);
     listen_socket6 = NULL;
   }
+  if (NULL != id_op)
+  {
+    GNUNET_IDENTITY_cancel (id_op);
+    id_op = NULL;
+  }
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
   GNUNET_GNS_disconnect (gns);
   gns = NULL;
   GNUNET_DNSSTUB_stop (dns_stub);

@@ -43,7 +43,7 @@ if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api \
  test_namestore_api_remove
-#test_namestore_api_lookup
+test_namestore_api_lookup
 #test_namestore_api_lookup_specific_type
 #test_namestore_api_create 
 #test_namestore_api_create_update
