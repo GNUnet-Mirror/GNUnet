@@ -8,9 +8,6 @@ UNIXPATH = /tmp/gnunet-service-gns.sock
 
 ZONE_DIR = $SERVICEHOME/gns/
 
-# What is the name of the ego that we use for the shorten zone
-SHORTEN_ZONE = shorten
-
 # Should we hijack DNS queries using the Linux firewall? 
 # (this only works on GNU/Linux systems)
 HIJACK_DNS = NO

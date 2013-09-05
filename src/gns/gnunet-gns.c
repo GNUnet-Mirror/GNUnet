@@ -79,6 +79,16 @@ static struct GNUNET_GNS_LookupRequest *lookup_request;
  */
 static struct GNUNET_IDENTITY_EgoLookup *el;
 
+/**
+ * Handle for identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Active operation on identity service.
+ */
+static struct GNUNET_IDENTITY_Operation *id_op;
+
 
 /**
  * Task run on shutdown.  Cleans up everything.
@@ -95,10 +105,20 @@ do_shutdown (void *cls,
     GNUNET_IDENTITY_ego_lookup_cancel (el);
     el = NULL;
   }
+  if (NULL != id_op)
+  {
+    GNUNET_IDENTITY_cancel (id_op);
+    id_op = NULL;
+  }
   if (NULL != lookup_request)
   {
     GNUNET_GNS_lookup_cancel (lookup_request);
     lookup_request = NULL;
+  }
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
   }
   if (NULL != gns)
   {
@@ -190,31 +210,32 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicKey *pkey,
 
 
 /** 
- * Method called to with the ego we are to use for the lookup.
+ * Method called to with the ego we are to use for shortening
+ * during the lookup.
  *
- * @param cls closure with the `struct GNUNET_CRYPTO_EccPublicKey`
+ * @param cls closure contains the public key to use
  * @param ego ego handle, NULL if not found
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
  */
 static void 
-shorten_cb (void *cls,
-	    const struct GNUNET_IDENTITY_Ego *ego)
+identity_shorten_cb (void *cls,
+		     struct GNUNET_IDENTITY_Ego *ego,
+		     void **ctx,
+		     const char *name)
 {
-  struct GNUNET_CRYPTO_EccPublicKey *pkey = cls;
-  const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
+  struct GNUNET_CRYPTO_EccPublicKey *pkeym = cls;
 
-  el = NULL;
+  id_op = NULL;
   if (NULL == ego) 
-  {
-    fprintf (stderr,
-	     _("Shorten zone not found (looking up without shortening)\n"));
-    shorten_key = NULL;
-  }
+    lookup_with_keys (pkeym, NULL);
   else
-  {
-    shorten_key = GNUNET_IDENTITY_ego_get_private_key (ego);
-  }
-  lookup_with_keys (pkey, shorten_key);
-  GNUNET_free_non_null (pkey);
+    lookup_with_keys (pkeym,
+		      GNUNET_IDENTITY_ego_get_private_key (ego));
+  GNUNET_free (pkeym);
 }
 
 
@@ -228,41 +249,32 @@ static void
 lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
 {
   struct GNUNET_CRYPTO_EccPublicKey *pkeym;
-  char *szone;
 
-  if (GNUNET_OK != 
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-					       "SHORTEN_ZONE", &szone))
+  GNUNET_assert (NULL != pkey);
+  pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicKey);
+  *pkeym = *pkey;
+  id_op = GNUNET_IDENTITY_get (identity,
+			       "shorten-zone",
+			       &identity_shorten_cb,
+			       pkeym);
+  if (NULL == id_op)
   {
+    GNUNET_break (0);
     lookup_with_keys (pkey, NULL);
-    return;
   }
-  if (NULL == pkey)
-  {
-    pkeym = NULL;
-  }
-  else
-  {
-    pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicKey);
-    *pkeym = *pkey;
-  }
-  el = GNUNET_IDENTITY_ego_lookup (cfg, 
-				   szone,
-				   &shorten_cb,
-				   pkeym);
-  GNUNET_free (szone);
 }
 
 
 /** 
- * Method called to with the ego we are to use for the lookup.
+ * Method called to with the ego we are to use for the lookup,
+ * when the ego is determined by a name.
  *
  * @param cls closure (NULL, unused)
  * @param ego ego handle, NULL if not found
  */
 static void 
-identity_cb (void *cls,
-	     const struct GNUNET_IDENTITY_Ego *ego)
+identity_zone_cb (void *cls,
+		  const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_CRYPTO_EccPublicKey pkey;
 
@@ -270,17 +282,50 @@ identity_cb (void *cls,
   if (NULL == ego) 
   {
     fprintf (stderr,
-	     _("Ego `%s' not found\n"),
+	     _("Ego for `%s' not found, cannot perform lookup.\n"),
 	     zone_ego_name);
-    GNUNET_free (zone_ego_name);
-    zone_ego_name = NULL;
+    GNUNET_SCHEDULER_shutdown ();
+  }
+  else
+  {
+    GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
+    lookup_with_public_key (&pkey);
+  }
+  GNUNET_free_non_null (zone_ego_name);
+  zone_ego_name = NULL;
+}
+
+
+/** 
+ * Method called to with the ego we are to use for the lookup,
+ * when the ego is the one for the default master zone.
+ *
+ * @param cls closure (NULL, unused)
+ * @param ego ego handle, NULL if not found
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void 
+identity_master_cb (void *cls,
+		    struct GNUNET_IDENTITY_Ego *ego,
+		    void **ctx,
+		    const char *name)
+{
+  struct GNUNET_CRYPTO_EccPublicKey pkey;
+
+  id_op = NULL;
+  if (NULL == ego) 
+  {
+    fprintf (stderr,
+	     _("Ego for `master-zone' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
   lookup_with_public_key (&pkey);
-  GNUNET_free (zone_ego_name);
-  zone_ego_name = NULL;
 }
 
 
@@ -300,6 +345,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   cfg = c;
   gns = GNUNET_GNS_connect (cfg);
+  identity = GNUNET_IDENTITY_connect (cfg, NULL, NULL);
   if (NULL == gns)
   {
     fprintf (stderr,
@@ -328,7 +374,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     el = GNUNET_IDENTITY_ego_lookup (cfg, 
 				     zone_ego_name,
-				     &identity_cb,
+				     &identity_zone_cb,
 				     NULL);
     return;
   }
@@ -344,10 +390,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   else
   {
-    fprintf (stderr,
-	     _("I need a zone (`-p' or `-z' option) to resolve this name\n"));
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    id_op = GNUNET_IDENTITY_get (identity,
+				 "master-zone",
+				 &identity_master_cb,
+				 NULL);
+    GNUNET_assert (NULL != id_op);
   }
 }
 
