@@ -4828,7 +4828,6 @@ queue_send (void *cls, size_t size, void *buf)
   fwd = queue->fwd;
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
-
   dst_id = GNUNET_PEER_resolve2 (peer->id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
   /* Check if buffer size is enough for the message */
@@ -5058,6 +5057,18 @@ queue_add (void *cls, uint16_t type, size_t size,
   queue->fwd = fwd;
   if (100 <= priority)
   {
+    struct MeshPeerQueue *copy;
+    struct MeshPeerQueue *next;
+
+    for (copy = peer->queue_head; NULL != copy; copy = next)
+    {
+      next = copy->next;
+      if (copy->type == type && copy->c == c && copy->fwd == fwd)
+      {
+        /* Example: also a FWD ACK for connection XYZ */
+        queue_destroy (copy, GNUNET_YES);
+      }
+    }
     GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
   }
   else
@@ -5994,6 +6005,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
+  uint32_t ack;
   int fwd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
@@ -6030,9 +6042,11 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  fc->last_ack_recv = ntohl (msg->ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", fc->last_ack_recv);
-
+  ack = ntohl (msg->ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
+              ack, fc->last_ack_recv);
+  if (GMC_is_pid_bigger (ack, fc->last_ack_recv))
+    fc->last_ack_recv = ack;
 
   /* Cancel polling if the ACK is big enough. */
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
