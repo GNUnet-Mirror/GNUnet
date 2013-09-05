@@ -6007,7 +6007,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   struct MeshFlowControl *fc;
   GNUNET_PEER_Id id;
-  uint32_t ack;
+  int fwd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
@@ -6029,11 +6029,13 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
+    fwd = GNUNET_YES;
   }
   else if (connection_get_prev_hop (c)->id == id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
+    fwd = GNUNET_NO;
   }
   else
   {
@@ -6041,12 +6043,13 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  ack = ntohl (msg->ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", ack);
+  fc->last_ack_recv = ntohl (msg->ack);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u\n", fc->last_ack_recv);
 
-  /* Cancel polling if the ACK is bigger than before. */
+
+  /* Cancel polling if the ACK is big enough. */
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
-      GMC_is_pid_bigger (ack, fc->last_ack_recv))
+      GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
     GNUNET_SCHEDULER_cancel (fc->poll_task);
@@ -6054,8 +6057,7 @@ handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
   }
 
-  fc->last_ack_recv = ack;
-  connection_unlock_queue (c, fc == &c->fwd_fc);
+  connection_unlock_queue (c, fwd);
 
   return GNUNET_OK;
 }
