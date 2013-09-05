@@ -587,7 +587,7 @@ GST_barriers_stop ()
  *
  * @param cls the closure given to GNUNET_TESTBED_barrier_init()
  * @param name the name of the barrier
- * @param barrier the barrier handle
+ * @param b_ the barrier handle
  * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
  *   GNUNET_SYSERR upon error
  * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
@@ -653,8 +653,8 @@ wbarrier_status_cb (void *cls, const char *name,
  * Function called upon timeout while waiting for a response from the
  * subcontrollers to barrier init message
  *
- * @param 
- * @return 
+ * @param cls barrier
+ * @param tc scheduler task context
  */
 static void
 fwd_tout_barrier_init (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)

@@ -309,7 +309,7 @@ destroy_handle (struct GNUNET_TESTBED_BarrierWaitHandle *h)
  * from the service.
  *
  * @param cls closure
- * @param msg message received, NULL on timeout or fatal error
+ * @param message received message; NULL on timeout or fatal error
  */
 static void
 receive_handler (void *cls, const struct GNUNET_MessageHeader *message)

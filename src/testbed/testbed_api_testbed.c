@@ -436,7 +436,6 @@ remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
  * Assuming all peers have been destroyed cleanup run handle
  *
  * @param cls the run handle
- * @param tc the task context from scheduler
  */
 static void
 cleanup (void *cls)
@@ -559,7 +558,6 @@ cancel_interrupt_task (struct RunContext *rc)
  * (done/cancelled) 
  *
  * @param cls run context
- * @param tc scheduler task context
  */
 static void
 wait_op_completion (void *cls)
