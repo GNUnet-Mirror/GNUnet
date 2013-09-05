@@ -2591,27 +2591,9 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
               "connection_unlock_queue %s on %s\n",
               fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
 
-  if (connection_is_origin (c, fwd))
+  if (connection_is_terminal (c, fwd))
   {
-    struct MeshTunnel2 *t = c->t;
-    struct MeshChannel *ch;
-    struct MeshChannelReliability *rel;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " is origin!\n");
-    /* FIXME randomize channel selection, not always first channel */
-    for (ch = t->channel_head; NULL != ch; ch = ch->next)
-    {
-      rel = fwd ? ch->root_rel : ch->dest_rel;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  channel %X - %s\n",
-                  ch->gid, rel->client_ready ? "ready " : "not ready");
-      if (GNUNET_NO == rel->client_ready)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    sending local ack!\n");
-        send_local_ack (ch, fwd);
-        return; /* FIXME authorize all channels? */
-      }
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " is terminal!\n");
     return;
   }
 
