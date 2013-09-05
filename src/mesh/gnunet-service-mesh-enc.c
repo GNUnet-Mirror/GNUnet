@@ -53,27 +53,26 @@
 #include "gnunet_statistics_service.h"
 
 #define MESH_BLOOM_SIZE         128
-
-#define MESH_DEBUG_DHT          GNUNET_NO
-#define MESH_DEBUG_CONNECTION   GNUNET_YES
-#define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
-
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
 #define MESH_RETRANSMIT_MARGIN  4
 
-#if MESH_DEBUG_CONNECTION
-#define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_CONN(...)
-#endif
+#define MESH_DEBUG_DHT          GNUNET_NO
+#define MESH_DEBUG_CONNECTION   GNUNET_NO
+#define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
 
 #if MESH_DEBUG_DHT
 #define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 #else
 #define DEBUG_DHT(...)
+#endif
+
+#if MESH_DEBUG_CONNECTION
+#define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+#else
+#define DEBUG_CONN(...)
 #endif
 
 #if MESH_DEBUG_TIMING
