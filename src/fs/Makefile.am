@@ -36,7 +36,6 @@ libgnunetfs_la_SOURCES = \
   fs_file_information.c \
   fs_getopt.c \
   fs_list_indexed.c \
-  fs_pseudonym.c \
   fs_publish.c \
   fs_publish_ksk.c \
   fs_publish_ublock.c fs_publish_ublock.h \
@@ -80,7 +79,6 @@ bin_PROGRAMS = \
   gnunet-directory \
   gnunet-download \
   gnunet-publish \
-  gnunet-pseudonym \
   gnunet-search \
   gnunet-fs \
   gnunet-unindex 
@@ -151,17 +149,6 @@ gnunet_helper_fs_publish_LDADD =  \
  -lextractor \
  $(GN_LIBINTL)
 gnunet_helper_fs_publish_DEPENDENCIES = \
-  libgnunetfs.la
-
-gnunet_pseudonym_SOURCES = \
- gnunet-pseudonym.c
-gnunet_pseudonym_LDADD = \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/fs/libgnunetfs.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -lextractor \
-  $(GN_LIBINTL)
-gnunet_pseudonym_DEPENDENCIES = \
   libgnunetfs.la
 
 gnunet_search_SOURCES = \
@@ -256,7 +243,6 @@ check_PROGRAMS = \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_namespace_list_updateable \
- test_pseudonym \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -303,7 +289,6 @@ TESTS = \
  test_fs_list_indexed \
  test_fs_namespace \
  test_fs_namespace_list_updateable \
- test_pseudonym \
  test_fs_publish \
  test_fs_publish_persistence \
  test_fs_search \
@@ -322,14 +307,6 @@ TESTS = \
  perf_gnunet_service_fs_p2p_respect \
  $(check_SCRIPTS)  
 endif
-
-
-test_pseudonym_SOURCES = \
- test_pseudonym.c
-test_pseudonym_LDADD = \
- -lgcrypt \
- $(top_builddir)/src/fs/libgnunetfs.la  \
- $(top_builddir)/src/util/libgnunetutil.la  
 
 
 test_fs_directory_SOURCES = \

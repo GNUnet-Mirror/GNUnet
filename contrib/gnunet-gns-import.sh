@@ -7,11 +7,16 @@ gnunet-identity -C master-zone
 gnunet-identity -C short-zone
 gnunet-identity -C private-zone
 
+# Additionally, we create the FS SKS zone
+gnunet-identity -C sks-zone
+
 # Integrate those with the respective subsystems.
 gnunet-identity -e short-zone -s gns-short
 gnunet-identity -e master-zone -s gns-master
 gnunet-identity -e private-zone -s gns-private
+gnunet-identity -e sks-zone -s fs-sks
 
+# Get the public keys as strings (so we can create PKEY records)
 MASTER=`gnunet-identity -d | grep master-zone | awk '{print $3}`
 SHORT=`gnunet-identity -d | grep short-zone | awk '{print $3}`
 PRIVATE=`gnunet-identity -d | grep private-zone | awk '{print $3}`
