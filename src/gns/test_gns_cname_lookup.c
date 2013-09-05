@@ -376,7 +376,7 @@ do_check (void *cls,
   rd.data_size = sizeof(struct in_addr);
   rd.data = &web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    alice_key,

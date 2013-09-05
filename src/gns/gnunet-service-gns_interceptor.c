@@ -22,9 +22,6 @@
  * @brief GNUnet GNS interceptor logic
  * @author Martin Schanzenbach
  * @author Christian Grothoff
- *
- * TODO:
- * - implement RF_SHADOW_RECORD logic
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

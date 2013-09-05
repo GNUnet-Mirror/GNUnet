@@ -363,7 +363,7 @@ put_www_dht (void *cls, int success)
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
   
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -448,7 +448,7 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
   
   sig = GNUNET_NAMESTORE_create_signature (bob_key,
 					   GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -519,7 +519,7 @@ fin_init_zone (void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
   
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    our_key,
@@ -540,7 +540,7 @@ cont_init_zone (void *cls, int32_t success, const char *emsg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &short_zone;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    priv_key,
@@ -641,7 +641,7 @@ do_check (void *cls,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &priv_zone;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    our_key,

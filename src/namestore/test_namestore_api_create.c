@@ -262,7 +262,7 @@ name_lookup_initial_proc (void *cls,
     s_second_record = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_RecordData) + TEST_CREATE_RECORD_DATALEN);
     s_second_record->expiration_time = UINT64_MAX;
     s_second_record->record_type = TEST_CREATE_RECORD_TYPE;
-    s_second_record->flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+    s_second_record->flags = GNUNET_NAMESTORE_RF_NONE;
     s_second_record->data = &s_second_record[1];
     s_second_record->data_size = TEST_CREATE_RECORD_DATALEN;
     memset ((char *) s_second_record->data, TEST_CREATE_RECORD_DATA, TEST_CREATE_RECORD_DATALEN);

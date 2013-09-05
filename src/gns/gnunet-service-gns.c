@@ -19,7 +19,7 @@
 */
 /**
  * @file gns/gnunet-service-gns.c
- * @brief GNUnet GNS service
+ * @brief GNU Name System (main service)
  * @author Martin Schanzenbach
  * @author Christian Grothoff
  */
@@ -472,7 +472,7 @@ publish_zone_dht_start (void *cls,
  * Reply to client with the result from our lookup.
  *
  * @param cls the closure (our client lookup handle)
- * @param rd_count the number of records
+ * @param rd_count the number of records in @a rd
  * @param rd the record data
  */
 static void

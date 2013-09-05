@@ -354,7 +354,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[0], key, "www", 
 					    1, &rd,
@@ -422,7 +422,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &dave_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[1], key, "buddy",
 					    1, &rd,
@@ -474,7 +474,7 @@ setup_alice (const struct GNUNET_CONFIGURATION_Handle * cfg)
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (nh[2], key, "bob", 
 					    1, &rd, 

@@ -144,14 +144,6 @@ enum GNUNET_NAMESTORE_RecordFlags
   GNUNET_NAMESTORE_RF_NONE = 0,
 
   /**
-   * This peer is the authority for this record; it must thus
-   * not be deleted (other records can be deleted if we run
-   * out of space).
-   * @deprecated
-   */
-  GNUNET_NAMESTORE_RF_AUTHORITY = 1,
-
-  /**
    * This is a private record of this peer and it should
    * thus not be handed out to other peers.
    */

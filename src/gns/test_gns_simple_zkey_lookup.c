@@ -244,7 +244,7 @@ do_check (void *cls,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    alice_key,

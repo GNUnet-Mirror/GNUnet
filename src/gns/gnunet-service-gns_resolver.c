@@ -20,7 +20,7 @@
 
 /**
  * @file gns/gnunet-service-gns_resolver.c
- * @brief GNUnet GNS resolver logic
+ * @brief GNU Name System resolver logic
  * @author Martin Schanzenbach
  * @author Christian Grothoff
  *

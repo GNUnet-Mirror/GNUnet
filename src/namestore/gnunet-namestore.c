@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - allow users to set record options (not just 'RF_AUTHORITY')
  * - test
  * - add options to list/lookup individual records
  */
@@ -91,14 +90,14 @@ static struct GNUNET_NAMESTORE_ZoneIterator *list_it;
 static int del;
 
 /**
- * Is record public
+ * Is record public (opposite of #GNUNET_NAMESTORE_RF_PRIVATE)
  */
 static int public;
 
 /**
- * Is record authority
+ * Is record a shadow record (#GNUNET_NAMESTORE_RF_SHADOW_RECORD)
  */
-static int nonauthority;
+static int shadow;
 
 /**
  * Queue entry for the 'del' operation.
@@ -398,8 +397,8 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  if (1 != nonauthority)
-    rde->flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+  if (1 != shadow)
+    rde->flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
   if (1 != public)
     rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
   GNUNET_assert (NULL != name);
@@ -602,8 +601,8 @@ testservice_task (void *cls,
       rd.expiration_time = etime_abs.abs_value_us;
     else    
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-    if (1 != nonauthority)
-      rd.flags |= GNUNET_NAMESTORE_RF_AUTHORITY;
+    if (1 != shadow)
+      rd.flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
 						 &zone_pkey,
 						 sname,
@@ -727,9 +726,9 @@ main (int argc, char *const *argv)
     {'p', "public", NULL,
      gettext_noop ("create or list public record"), 0,
      &GNUNET_GETOPT_set_one, &public},
-    {'N', "non-authority", NULL,
-     gettext_noop ("create or list non-authority record"), 0,
-     &GNUNET_GETOPT_set_one, &nonauthority},
+    {'s', "shadow", NULL,
+     gettext_noop ("create shadow record (only valid if all other records of the same type have expired"), 0,
+     &GNUNET_GETOPT_set_one, &shadow},
     {'z', "zone", "EGO",
      gettext_noop ("name of the ego controlling the zone"), 1,
      &GNUNET_GETOPT_set_string, &ego_name},   

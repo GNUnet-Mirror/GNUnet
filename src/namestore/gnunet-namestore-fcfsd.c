@@ -525,7 +525,7 @@ zone_to_name_cb (void *cls,
   r.data_size = sizeof (pub);
   r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  r.flags = GNUNET_NAMESTORE_RF_NONE;
   request->qe = GNUNET_NAMESTORE_records_store (ns,
 						&fcfs_zone_pkey,
 						request->domain_name,

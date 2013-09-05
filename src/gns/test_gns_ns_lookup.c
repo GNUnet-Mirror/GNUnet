@@ -603,13 +603,13 @@ do_check (void *cls,
   rd[0].data_size = sizeof (struct in_addr);
   rd[0].data = &ns;
   rd[0].record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd[0].flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd[0].flags = GNUNET_NAMESTORE_RF_NONE;
   
   rd[1].expiration_time = UINT64_MAX;
   rd[1].data_size = strlen (TEST_RECORD_NS);
   rd[1].data = TEST_RECORD_NS;
   rd[1].record_type = GNUNET_DNSPARSER_TYPE_NS;
-  rd[1].flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd[1].flags = GNUNET_NAMESTORE_RF_NONE;
 
   qe = GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 						 alice_key,

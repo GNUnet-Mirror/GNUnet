@@ -290,7 +290,7 @@ process_pseu_lookup_ns (void *cls,
   new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
   new_pkey.data = &gph->target_zone;
   new_pkey.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
-  new_pkey.flags = GNUNET_NAMESTORE_RF_AUTHORITY
+  new_pkey.flags = GNUNET_NAMESTORE_RF_NONE
                  | GNUNET_NAMESTORE_RF_PRIVATE
                  | GNUNET_NAMESTORE_RF_PENDING;
   gph->namestore_task 
