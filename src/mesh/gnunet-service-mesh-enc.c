@@ -1274,6 +1274,8 @@ GNUNET_MESH_DEBUG_CS2S (enum MeshTunnelState s)
       return "MESH_CONNECTION_NEW";
     case MESH_CONNECTION_SENT:
       return "MESH_CONNECTION_SENT";
+    case MESH_CONNECTION_ACK:
+      return "MESH_CONNECTION_ACK";
     case MESH_CONNECTION_READY:
       return "MESH_CONNECTION_READY";
     default:
@@ -1757,7 +1759,10 @@ tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
   while (NULL != c)
   {
     if (c->state != MESH_CONNECTION_READY)
+    {
+      c = c->next;
       continue;
+    }
 
     fc = fwd ? &c->fwd_fc : &c->bck_fc;
     buffer += fc->last_ack_recv - fc->last_pid_sent;
@@ -5365,8 +5370,8 @@ handle_mesh_connection_create (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = connection_new (cid);
     if (NULL == c)
-      return GNUNET_OK;  connection_reset_timeout (c, GNUNET_YES);
-    tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
+      return GNUNET_OK;
+    connection_reset_timeout (c, GNUNET_YES);
 
     /* Create path */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
@@ -5397,6 +5402,8 @@ handle_mesh_connection_create (void *cls,
   {
     path = NULL;
   }
+  if (MESH_CONNECTION_NEW == c->state)
+    connection_change_state (c, MESH_CONNECTION_SENT);
 
   /* Remember peers */
   dest_peer = peer_get (&id[size - 1]);
@@ -5414,11 +5421,15 @@ handle_mesh_connection_create (void *cls,
       orig_peer->tunnel->peer = orig_peer;
     }
     tunnel_add_connection (orig_peer->tunnel, c);
+    if (MESH_TUNNEL_NEW == c->t->state)
+      tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
 
     send_connection_ack (c, GNUNET_NO);
+    if (MESH_CONNECTION_SENT == c->state)
+      connection_change_state (c, MESH_CONNECTION_ACK);
 
     /* Keep tunnel alive in direction dest->owner*/
-    connection_reset_timeout (c, GNUNET_NO); 
+    connection_reset_timeout (c, GNUNET_NO);
   }
   else
   {
@@ -5447,8 +5458,10 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionACK *msg;
-  struct MeshPeerPath *p;
   struct MeshConnection *c;
+  struct MeshPeerPath *p;
+  struct MeshPeer *pi;
+  int fwd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
@@ -5464,8 +5477,29 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
               GNUNET_i2s (peer));
+  pi = peer_get (peer);
+  if (connection_get_next_hop (c) == pi)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
+    fwd = GNUNET_NO;
+    if (MESH_CONNECTION_SENT == c->state)
+      connection_change_state (c, MESH_CONNECTION_ACK);
+  }
+  else if (connection_get_prev_hop (c) == pi)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
+    fwd = GNUNET_YES;
+    connection_change_state (c, MESH_CONNECTION_READY);
+  }
+  else
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  connection_reset_timeout (c, fwd);
 
   /* Add path to peers? */
   p = c->path;
@@ -5477,23 +5511,21 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
   }
-  connection_change_state (c, MESH_CONNECTION_READY);
-  connection_reset_timeout (c, GNUNET_NO);
 
   /* Message for us as creator? */
   if (connection_is_origin (c, GNUNET_YES))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
+    connection_change_state (c, MESH_CONNECTION_READY);
     if (MESH_TUNNEL_READY != c->t->state)
       tunnel_change_state (c->t, MESH_TUNNEL_READY);
-    send_connection_ack (c, GNUNET_NO);
+    send_connection_ack (c, GNUNET_YES);
     tunnel_send_queued_data (c->t, GNUNET_YES);
     if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
     {
       GNUNET_DHT_get_stop (c->t->peer->dhtget);
       c->t->peer->dhtget = NULL;
     }
-    connection_change_state (c, MESH_CONNECTION_READY);
     return GNUNET_OK;
   }
 
@@ -5509,7 +5541,7 @@ handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  send_prebuilt_message_connection (message, c, NULL, GNUNET_NO);
+  send_prebuilt_message_connection (message, c, NULL, fwd);
   return GNUNET_OK;
 }
 
