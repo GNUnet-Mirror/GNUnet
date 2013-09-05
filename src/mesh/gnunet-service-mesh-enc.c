@@ -1219,6 +1219,15 @@ handle_decrypted (struct MeshTunnel2 *t,
 
 
 /**
+ * Send all cached messages that we can, tunnel is online.
+ *
+ * @param t Tunnel that holds the messages.
+ * @param fwd Is this fwd?
+ */
+static void
+tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd);
+
+/**
  * Dummy function to separate declarations from definitions in function list.
  */
 void
@@ -3064,7 +3073,6 @@ tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
   t->state = state;
 }
 
-
 /**
  * Cache a message to be sent once tunnel is online.
  *
@@ -3093,12 +3101,6 @@ tunnel_queue_data (struct MeshTunnel2 *t,
 }
 
 
-/**
- * Send all cached messages that we can, tunnel is online.
- *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
- */
 static void
 tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
 {
