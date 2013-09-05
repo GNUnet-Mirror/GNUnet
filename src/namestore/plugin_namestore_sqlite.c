@@ -102,6 +102,11 @@ struct Plugin
   sqlite3_stmt *iterate_zone;
 
   /**
+   * Precompiled SQL for iterate all records within all zones.
+   */
+  sqlite3_stmt *iterate_all_zones;
+
+  /**
    * Precompiled SQL to for reverse lookup based on PKEY.
    */
   sqlite3_stmt *zone_to_name;
@@ -152,6 +157,9 @@ create_indices (sqlite3 * dbh)
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns096records (zone_private_key,rvalue)",
+		      NULL, NULL, NULL)) ||
+       (SQLITE_OK !=
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns096records (rvalue)",
 		      NULL, NULL, NULL)) )
     LOG (GNUNET_ERROR_TYPE_ERROR, 
 	 "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
@@ -174,7 +182,7 @@ create_indices (sqlite3 * dbh)
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
@@ -317,7 +325,13 @@ database_setup (struct Plugin *plugin)
        (plugin->dbh,
 	"SELECT record_count,record_data,label" 
 	" FROM ns096records WHERE zone_private_key=? ORDER BY rvalue LIMIT 1 OFFSET ?",
-	&plugin->iterate_zone) != SQLITE_OK) )
+	&plugin->iterate_zone) != SQLITE_OK) ||
+      (sq_prepare
+       (plugin->dbh,
+	"SELECT record_count,record_data,label" 
+	" FROM ns096records ORDER BY rvalue LIMIT 1 OFFSET ?",
+	&plugin->iterate_all_zones) != SQLITE_OK) 
+      )
   {
     LOG_SQLITE (plugin,GNUNET_ERROR_TYPE_ERROR, "precompiling");
     return GNUNET_SYSERR;
@@ -760,14 +774,24 @@ namestore_sqlite_iterate_records (void *cls,
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
+  int err;
 
-  stmt = plugin->iterate_zone;
-  // FIXME: does not hanlde NULL for zone!
-  if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
-					zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
-					SQLITE_STATIC)) ||
-       (SQLITE_OK != sqlite3_bind_int64 (stmt, 2,
-					 offset)) ) 
+  if (NULL == zone)
+  {
+    stmt = plugin->iterate_all_zones;
+    err = (SQLITE_OK != sqlite3_bind_int64 (stmt, 1,
+					    offset));
+  }
+  else
+  {
+    stmt = plugin->iterate_zone;
+    err = ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
+					     zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
+					     SQLITE_STATIC)) ||
+	    (SQLITE_OK != sqlite3_bind_int64 (stmt, 2,
+					      offset)) );
+  }
+  if (err)
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite3_bind_XXXX");
