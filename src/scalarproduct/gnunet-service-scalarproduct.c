@@ -896,7 +896,6 @@ prepare_service_response (gcry_mpi_t * r,
   if ( ! request->service_transmit_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, response);
       
       response->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1160,8 +1159,6 @@ prepare_service_request (void *cls,
     {
       // TODO FEATURE: fallback to fragmentation, in case the message is too long
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-      
       session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
@@ -1243,8 +1240,6 @@ prepare_service_request (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not send mutlicast message to tunnel!\n"));
       GNUNET_free (msg_obj);
       GNUNET_free (msg);
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-      
       session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
@@ -1275,10 +1270,15 @@ handle_client_request (void *cls,
   uint32_t i;
 
   GNUNET_SERVER_client_get_user_context (client, session);
-  if (NULL != session){
+  if ((NULL != session) && (session->state != FINALIZED)){
+    // only one concurrent session per client connection allowed
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  else if(NULL != session){
+    // old session is already completed, clean it up
+    GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
     free_session(session);
-    // FIXME: also terminate active handles and tasks, in it's not finalized
-    GNUNET_SERVER_client_set_user_context (client, NULL);
   }
 
   //we need at least a peer and one message id to compare
@@ -1399,13 +1399,12 @@ handle_client_request (void *cls,
               GNUNET_SCHEDULER_add_now (&prepare_service_request, 
                                         session);
       
-      GNUNET_SERVER_receive_done (client, GNUNET_YES);
     }
   else
     {
       struct ServiceSession * requesting_session;
       enum SessionState needed_state = REQUEST_FROM_SERVICE_RECEIVED;
-
+      
       session->role = BOB;
       session->mask = NULL;
       // copy over the elements
@@ -1415,7 +1414,6 @@ handle_client_request (void *cls,
       session->state = MESSAGE_FROM_RESPONDING_CLIENT_RECEIVED;
       
       GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
-      GNUNET_SERVER_receive_done (client, GNUNET_YES);
       //check if service queue contains a matching request 
       requesting_session = find_matching_session (from_service_tail,
                                                   &session->key,
@@ -1425,19 +1423,18 @@ handle_client_request (void *cls,
         {
           GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"), GNUNET_h2s (&session->key));
           if (GNUNET_OK != compute_service_response (requesting_session, session))
-            {
-              GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-              
               session->client_notification_task = 
                       GNUNET_SCHEDULER_add_now (&prepare_client_end_notification, 
                                                 session);
-            }
+              
         }
-      else
+      else{
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"), GNUNET_h2s (&session->key));
         // no matching session exists yet, store the response
         // for later processing by handle_service_request()
+      }
     }
+  GNUNET_SERVER_receive_done (client, GNUNET_YES);
 }
 
 
@@ -1495,12 +1492,6 @@ tunnel_destruction_handler (void *cls,
 
     if ((FINALIZED != session->state) && (!do_shutdown))
     {
-      for (curr = from_client_head; NULL != curr; curr = curr->next)
-        if (curr == session)
-        {
-          GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-          break;
-        }
       session->tunnel = NULL;
       // if this happened before we received the answer, we must terminate the session
       session->client_notification_task = 
