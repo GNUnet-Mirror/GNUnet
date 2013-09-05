@@ -43,16 +43,16 @@ if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api \
  test_namestore_api_remove
- #test_namestore_api_lookup \
- #test_namestore_api_lookup_specific_type \
- #test_namestore_api_create \
- #test_namestore_api_create_update \ 
- #test_namestore_api_remove_not_existing_record \
- #test_namestore_api_zone_to_name \
- #test_namestore_api_monitoring \
- #test_namestore_api_zone_iteration \
- #test_namestore_api_zone_iteration_specific_zone \
- #test_namestore_api_zone_iteration_stop
+#test_namestore_api_lookup
+#test_namestore_api_lookup_specific_type
+#test_namestore_api_create 
+#test_namestore_api_create_update
+#test_namestore_api_remove_not_existing_record 
+#test_namestore_api_zone_to_name 
+#test_namestore_api_monitoring 
+#test_namestore_api_zone_iteration 
+#test_namestore_api_zone_iteration_specific_zone 
+#test_namestore_api_zone_iteration_stop
 endif
 
 if HAVE_SQLITE
@@ -115,6 +115,7 @@ gnunet_namestore_fcfsd_SOURCES = \
  gnunet-namestore-fcfsd.c 
 gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_namestore_fcfsd_DEPENDENCIES = \

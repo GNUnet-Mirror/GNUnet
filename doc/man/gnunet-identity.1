@@ -21,6 +21,10 @@ Creates a new ego with the given NAME.
 Delete the ego with the given NAME.
 
 .TP
+\fB\-e NAME\fR, \fB\-\-ego=NAME\fR
+Perform "set" operation with the respective ego.  Needs to be used together with option \-s.
+
+.TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help page.
 
@@ -31,6 +35,10 @@ display all ouf our egos
 .TP
 \fB\-m\fR, \fB\-\-monitor\fR
 run in monitor mode, listing all ouf our egos until CTRL-C is pressed. Each ego is listed together with a unique pointer value; if egos are renamed, that pointer value remains the same; if egos are deleted, they are listed one more time with a name of "<null>".
+
+.TP
+\fB\-s SUBSYSTEM\fR, \fB\-\-set=SUBSYSTEM\fR
+Perform "set" operation for the specified SUBSYSTEM with the respective ego.  Needs to be used together with option \-e.  After this, the given SUBSYSTEM will use the ego with the specified NAME.  This will fail if NAME does not yet exist.
 
 
 .SH FILES

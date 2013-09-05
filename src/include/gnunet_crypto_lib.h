@@ -427,11 +427,11 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 /**
  * @ingroup hash
- * Compute the distance between 2 hashcodes.
- * The computation must be fast, not involve
- * a.a or a.e (they're used elsewhere), and
- * be somewhat consistent. And of course, the
- * result should be a positive number.
+ *
+ * Compute the distance between 2 hashcodes.  The
+ * computation must be fast, not involve a[0] or a[4] (they're used
+ * elsewhere), and be somewhat consistent. And of course, the result
+ * should be a positive number.
  *
  * @param a some hash code
  * @param b some hash code

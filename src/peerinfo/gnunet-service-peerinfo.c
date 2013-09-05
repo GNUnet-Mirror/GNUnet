@@ -516,7 +516,7 @@ struct DirScanContext
  * @param cls pointer to 'unsigned int' to increment for each file, or NULL
  *            if the file is from a read-only, read-once resource directory
  * @param fullname name of the file to parse
- * @return GNUNET_OK (continue iteration)
+ * @return #GNUNET_OK (continue iteration)
  */
 static int
 hosts_directory_scan_callback (void *cls, const char *fullname)

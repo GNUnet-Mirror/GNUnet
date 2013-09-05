@@ -23,8 +23,7 @@
  * @author Christian Grothoff
  *
  * Todo:
- * - add options to get/set default egos
- * - print short hashes of egos when printing
+ * - add options to get default egos
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -56,6 +55,21 @@ static char *create_ego;
 static char *delete_ego;
 
 /**
+ * -s option.
+ */
+static char *set_ego;
+
+/**
+ * -S option.
+ */
+static char *set_subsystem;
+
+/**
+ * Operation handle for set operation.
+ */
+static struct GNUNET_IDENTITY_Operation *set_op;
+
+/**
  * Handle for create operation.
  */
 static struct GNUNET_IDENTITY_Operation *create_op;
@@ -76,10 +90,24 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != set_op)
+  {
+    GNUNET_IDENTITY_cancel (set_op);
+    set_op = NULL;
+  }
+  if (NULL != create_op)
+  {
+    GNUNET_IDENTITY_cancel (create_op);
+    create_op = NULL;
+  }
+  if (NULL != delete_op)
+  {
+    GNUNET_IDENTITY_cancel (delete_op);
+    delete_op = NULL;
+  }  
   GNUNET_IDENTITY_disconnect (sh);
   sh = NULL;
 }
-
 
 
 /**
@@ -90,6 +118,8 @@ test_finished ()
 {
   if ( (NULL == create_op) &&
        (NULL == delete_op) &&
+       (NULL == set_op) &&
+       (NULL == set_ego) &&
        (! list) &&
        (! monitor) )  
     GNUNET_SCHEDULER_shutdown ();
@@ -139,6 +169,25 @@ create_finished (void *cls,
 
 
 /**
+ * Function called by #GNUNET_IDENTITY_set up on completion.
+ *
+ * @param cls NULL
+ * @param emsg error message (NULL on success)
+ */
+static void
+set_done (void *cls,
+	  const char *emsg)
+{
+  set_op = NULL;
+  if (NULL != emsg)
+    fprintf (stderr,
+	     _("Failed to set default ego: %s\n"),
+	     emsg);
+  test_finished ();
+}
+
+
+/**
  * If listing is enabled, prints information about the egos.
  *
  * This function is initially called for all egos and then again
@@ -177,17 +226,48 @@ print_ego (void *cls,
 	   void **ctx,
 	   const char *identifier)
 {
-  if (! (list | monitor))
-    return;
+  struct GNUNET_CRYPTO_EccPublicKey pk;
+  char *s;
+
+  if ( (NULL != set_ego) &&
+       (NULL != ego) &&
+       (NULL != identifier) &&
+       (0 == strcmp (identifier, 
+		     set_ego)) )
+    {
+      set_op = GNUNET_IDENTITY_set (sh,
+				    set_subsystem,
+				    ego,
+				    &set_done,
+				    NULL);
+      GNUNET_free (set_subsystem);
+      set_subsystem = NULL;
+      GNUNET_free (set_ego);
+      set_ego = NULL;
+    }
+  if ( (NULL == ego) &&
+       (NULL != set_ego) )
+  {
+    fprintf (stderr,
+	     "Could not set ego to `%s' for subsystem `%s', ego not known\n",
+	     set_ego,
+	     set_subsystem);
+    GNUNET_free (set_subsystem);
+    set_subsystem = NULL;
+    GNUNET_free (set_ego);
+    set_ego = NULL;
+  }
   if ( (NULL == ego) && (! monitor) )
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if (monitor)
-    fprintf (stderr, "%s - %p\n", identifier, ego);
-  else if (NULL != identifier)
-    fprintf (stderr, "%s\n", identifier);
+  if (! (list | monitor))
+    return;
+  GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
+  s = GNUNET_CRYPTO_ecc_public_key_to_string (&pk);
+  if ( (monitor) || (NULL != identifier) )
+    fprintf (stderr, "%s - %s\n", identifier, s);
 }
 
 
@@ -203,6 +283,13 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  if ( (NULL == set_subsystem) ^
+       (NULL == set_ego) )
+  {
+    fprintf (stderr,
+	     "Options -e and -s must always be specified together\n");
+    return;
+  }
   sh = GNUNET_IDENTITY_connect (cfg, &print_ego, NULL);
   if (NULL != delete_ego)
     delete_op = GNUNET_IDENTITY_delete (sh,
@@ -242,9 +329,15 @@ main (int argc, char *const *argv)
     {'d', "display", NULL,
      gettext_noop ("display all egos"),
      0, &GNUNET_GETOPT_set_one, &list},
+    {'e', "ego", "NAME",
+     gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -s)"),
+     1, &GNUNET_GETOPT_set_string, &set_ego},
     {'m', "monitor", NULL,
      gettext_noop ("run in monitor mode egos"),
      0, &GNUNET_GETOPT_set_one, &monitor},
+    {'s', "set", "SUBSYSYSTEM",
+     gettext_noop ("set default identity to EGO for a subsystem SUBSYSTEM (use together with -e)"),
+     1, &GNUNET_GETOPT_set_string, &set_subsystem},
     GNUNET_GETOPT_OPTION_END
   };
 

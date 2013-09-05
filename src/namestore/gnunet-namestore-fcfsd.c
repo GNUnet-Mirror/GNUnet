@@ -31,6 +31,7 @@
 #include "platform.h"
 #include <microhttpd.h>
 #include "gnunet_util_lib.h"
+#include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 
 /**
@@ -63,7 +64,7 @@
 /**
  * Name of our cookie.
  */
-#define COOKIE_NAME "gns-fcfs"
+#define COOKIE_NAME "namestore-fcfsd"
 
 #define DEFAULT_ZONEINFO_BUFSIZE 2048
 
@@ -193,7 +194,22 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Private key for the fcfsd zone.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *fcfs_zone_pkey;
+static struct GNUNET_CRYPTO_EccPrivateKey fcfs_zone_pkey;
+
+/**
+ * Connection to identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Request for our ego.
+ */
+static struct GNUNET_IDENTITY_Operation *id_op;
+
+/**
+ * Port we use for the HTTP server.
+ */
+static unsigned long long port;
 			
 
 /**
@@ -315,7 +331,7 @@ serve_zoneinfo_page (struct MHD_Connection *connection)
   zr->connection = connection;
   zr->write_offset = 0;
   zr->list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-						       fcfs_zone_pkey,
+						       &fcfs_zone_pkey,
 						       &iterate_cb,
 						       zr);
   return MHD_YES;
@@ -511,7 +527,7 @@ zone_to_name_cb (void *cls,
   r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   r.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
   request->qe = GNUNET_NAMESTORE_records_store (ns,
-						fcfs_zone_pkey,
+						&fcfs_zone_pkey,
 						request->domain_name,
 						1, &r,
 						&put_continuation,
@@ -557,7 +573,7 @@ lookup_result_processor (void *cls,
     return;
   }
   request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
-					       fcfs_zone_pkey,
+					       &fcfs_zone_pkey,
 					       &pub,
 					       &zone_to_name_cb,
 					       request);
@@ -584,7 +600,7 @@ lookup_block_processor (void *cls,
     lookup_result_processor (request, 0, NULL);
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public (&fcfs_zone_pkey,
 				    &pub);
   if (GNUNET_OK != 
       GNUNET_NAMESTORE_block_decrypt (block,
@@ -715,7 +731,7 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  GNUNET_CRYPTO_ecc_key_get_public (fcfs_zone_pkey,
+	  GNUNET_CRYPTO_ecc_key_get_public (&fcfs_zone_pkey,
 					    &pub);
 	  GNUNET_NAMESTORE_query_from_public_key (&pub,
 						  request->domain_name,
@@ -867,11 +883,70 @@ do_shutdown (void *cls,
     MHD_stop_daemon (httpd);
     httpd = NULL;
   }
-  if (NULL != fcfs_zone_pkey)
+  if (NULL != id_op)
   {
-    GNUNET_free (fcfs_zone_pkey);
-    fcfs_zone_pkey = NULL;
+    GNUNET_IDENTITY_cancel (id_op);
+    id_op = NULL;
   }
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
+}
+
+
+/** 
+ * Method called to inform about the egos of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * that one was not NULL).
+ *
+ * @param cls closure, NULL
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  id_op = NULL;
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("No ego configured for `fcfsd` subsystem\n"));
+    return;
+  }
+  fcfs_zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  httpd = MHD_start_daemon (MHD_USE_DUAL_STACK | MHD_USE_DEBUG,
+			    (uint16_t) port,
+			    NULL, NULL, 
+			    &create_response, NULL, 
+			    MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+			    MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+			    MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024), 
+			    MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
+			    MHD_OPTION_END);
+  if (NULL == httpd)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to start HTTP server\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  run_httpd ();
 }
 
 
@@ -887,9 +962,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *keyfile;
-  unsigned long long port;
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "fcfsd",
@@ -900,24 +972,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 			       "fcfsd", "HTTPPORT");
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-					       "fcfsd",
-					       "ZONEKEY",
-					       &keyfile))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "fcfsd", "ZONEKEY");
-    return;
-  }
-  fcfs_zone_pkey = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
-  if (NULL == fcfs_zone_pkey)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to read or create private zone key\n"));
-    return;
-  }
   ns = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns)
     {
@@ -925,25 +979,10 @@ run (void *cls, char *const *args, const char *cfgfile,
 		  _("Failed to connect to namestore\n"));
       return;
     }
-  httpd = MHD_start_daemon (MHD_USE_DEBUG,
-			    (uint16_t) port,
-			    NULL, NULL, 
-			    &create_response, NULL, 
-			    MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
-			    MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-			    MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024), 
-			    MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
-			    MHD_OPTION_END);
-  if (NULL == httpd)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Failed to start HTTP server\n"));
-    GNUNET_NAMESTORE_disconnect (ns);
-    ns = NULL;
-    return;
-  }
-  run_httpd ();
+  identity = GNUNET_IDENTITY_connect (cfg,
+				      NULL, NULL);
+  id_op = GNUNET_IDENTITY_get (identity, "fcfsd",
+			       &identity_cb, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&do_shutdown, NULL);
 }
@@ -972,11 +1011,11 @@ main (int argc, char *const *argv)
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "fcfsd",
-                           _("GNUnet GNS first come first serve registration service"), 
+                           _("GNU Name System First Come First Serve name registration service"), 
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;
 }
 
-/* end of gnunet-gns-fcfsd.c */
+/* end of gnunet-namestore-fcfsd.c */
