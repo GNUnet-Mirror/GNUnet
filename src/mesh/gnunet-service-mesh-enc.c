@@ -4478,8 +4478,6 @@ channel_new (struct MeshTunnel2 *t,
   ch->lid_root = lid_root;
   ch->t = t;
 
-  GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, ch);
-
   GNUNET_STATISTICS_update (stats, "# channels", 1, GNUNET_NO);
 
   if (NULL != owner)
@@ -4493,9 +4491,9 @@ channel_new (struct MeshTunnel2 *t,
     ch->gid = t->next_chid;
     t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
 
-    if(GNUNET_OK !=
-       GNUNET_CONTAINER_multihashmap32_put (owner->own_channels, lid_root, ch,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    if (GNUNET_OK !=
+        GNUNET_CONTAINER_multihashmap32_put (owner->own_channels, lid_root, ch,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
       GNUNET_break (0);
       channel_destroy (ch);
@@ -4503,6 +4501,7 @@ channel_new (struct MeshTunnel2 *t,
       return NULL;
     }
   }
+  GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, ch);
 
   return ch;
 }
