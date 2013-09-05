@@ -1185,18 +1185,18 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). This MUST lock the GNUNET_NAMESTORE_Handle
- * for any other calls than GNUNET_NAMESTORE_zone_iterator_next and
- * GNUNET_NAMESTORE_zone_iteration_stop.  "proc" will be called once
+ * records into our DHT). This MUST lock the struct GNUNET_NAMESTORE_Handle
+ * for any other calls than #GNUNET_NAMESTORE_zone_iterator_next and
+ * #GNUNET_NAMESTORE_zone_iteration_stop. @a proc will be called once
  * immediately, and then again after
- * "GNUNET_NAMESTORE_zone_iterator_next" is invoked.
+ * #GNUNET_NAMESTORE_zone_iterator_next is invoked.
  *
  * @param h handle to the namestore
- * @param zone zone to access
+ * @param zone zone to access, NULL for all zones
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
  *        and always once at the end with a name of NULL.
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
@@ -1218,7 +1218,8 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   it->proc = proc;
   it->proc_cls = proc_cls;
   it->op_id = rid;
-  it->zone = *zone;
+  if (NULL != zone)
+    it->zone = *zone;
   GNUNET_CONTAINER_DLL_insert_tail (h->z_head, h->z_tail, it);
 
   msg_size = sizeof (struct ZoneIterationStartMessage);
@@ -1228,7 +1229,8 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (rid);
-  msg->zone = *zone;
+  if (NULL != zone)
+    msg->zone = *zone;
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit(h);
   return it;
@@ -1236,7 +1238,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
- * Calls the record processor specified in GNUNET_NAMESTORE_zone_iteration_start
+ * Calls the record processor specified in #GNUNET_NAMESTORE_zone_iteration_start
  * for the next record.
  *
  * @param it the iterator

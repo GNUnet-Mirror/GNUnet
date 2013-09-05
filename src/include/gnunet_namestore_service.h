@@ -393,15 +393,18 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
 
 /**
  * Starts a new zone iteration (used to periodically PUT all of our
- * records into our DHT). @a proc will be called once immediately, and
- * then again after #GNUNET_NAMESTORE_zone_iterator_next is invoked.
+ * records into our DHT). This MUST lock the struct GNUNET_NAMESTORE_Handle
+ * for any other calls than #GNUNET_NAMESTORE_zone_iterator_next and
+ * #GNUNET_NAMESTORE_zone_iteration_stop. @a proc will be called once
+ * immediately, and then again after
+ * #GNUNET_NAMESTORE_zone_iterator_next is invoked.
  *
  * @param h handle to the namestore
- * @param zone zone to access
+ * @param zone zone to access, NULL for all zones
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
  *        and always once at the end with a name of NULL.
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return an iterator handle to use for iteration
  */
 struct GNUNET_NAMESTORE_ZoneIterator *

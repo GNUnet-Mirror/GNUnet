@@ -762,7 +762,7 @@ namestore_sqlite_iterate_records (void *cls,
   sqlite3_stmt *stmt;
 
   stmt = plugin->iterate_zone;
-
+  // FIXME: does not hanlde NULL for zone!
   if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1, 
 					zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
 					SQLITE_STATIC)) ||

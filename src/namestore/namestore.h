@@ -347,7 +347,7 @@ struct ZoneIterationStartMessage
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   * Zone key.
+   * Zone key.  All zeros for "all zones".
    */
   struct GNUNET_CRYPTO_EccPrivateKey zone;
 

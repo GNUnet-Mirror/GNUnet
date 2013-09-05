@@ -95,7 +95,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param cls closure (internal context for the plugin)
    * @param query hash of public key derived from the zone and the label
    * @param iter function to call with the result
-   * @param iter_cls closure for iter
+   * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*lookup_block) (void *cls, 
@@ -127,10 +127,10 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * datastore.  Will return at most one result to the iterator.
    *
    * @param cls closure (internal context for the plugin)
-   * @param zone private key of the zone
+   * @param zone private key of the zone, NULL for all zones
    * @param offset offset in the list of all matching records
    * @param iter function to call with the result
-   * @param iter_cls closure for iter
+   * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*iterate_records) (void *cls, 
@@ -147,7 +147,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @param zone private key of the zone to look up in, never NULL
    * @param value_zone public key of the target zone (value), never NULL
    * @param iter function to call with the result
-   * @param iter_cls closure for iter
+   * @param iter_cls closure for @a iter
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*zone_to_name) (void *cls, 

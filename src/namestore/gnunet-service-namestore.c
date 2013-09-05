@@ -862,7 +862,7 @@ enum ZoneIterationResult
 
 /**
  * Context for record remove operations passed from
- * 'run_zone_iteration_round' to 'zone_iteraterate_proc' as closure
+ * #run_zone_iteration_round to #zone_iteraterate_proc as closure
  */
 struct ZoneIterationProcResult
 {
@@ -934,6 +934,7 @@ zone_iteraterate_proc (void *cls,
 static void
 run_zone_iteration_round (struct ZoneIteration *zi)
 {
+  static struct GNUNET_CRYPTO_EccPrivateKey zero;
   struct ZoneIterationProcResult proc;
   struct RecordResultMessage rrm;
   int ret;
@@ -945,7 +946,9 @@ run_zone_iteration_round (struct ZoneIteration *zi)
   {
     if (GNUNET_SYSERR ==
 	(ret = GSN_database->iterate_records (GSN_database->cls, 
-					      &zi->zone, 
+					      (0 == memcmp (&zi->zone, &zero, sizeof (zero))) 
+					      ? NULL 
+					      : &zi->zone,
 					      zi->offset, 
 					      &zone_iteraterate_proc, &proc)))
     {
@@ -982,7 +985,7 @@ run_zone_iteration_round (struct ZoneIteration *zi)
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_START message
  *
  * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
+ * @param client the client sending the message
  * @param message message of type 'struct ZoneIterationStartMessage'
  */
 static void

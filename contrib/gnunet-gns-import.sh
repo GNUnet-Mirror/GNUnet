@@ -3,7 +3,7 @@
 # namestore.
 #
 # By default, we create three GNS zones:
-gnunet-identity -C master-zone
+gnunet-identity -C master-zone 
 gnunet-identity -C short-zone
 gnunet-identity -C private-zone
 
