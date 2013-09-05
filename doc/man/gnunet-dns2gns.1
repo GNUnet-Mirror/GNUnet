@@ -15,6 +15,8 @@ Most users will not want to run an DNS to GADS proxy/gateway and thus will not n
 
 A DNS\-to\-GNS proxy using gnunet\-dns2gns is available at ".zkey.eu" 
 
+If you do not want to specify a public key and are the owner of the zone that gnunet\-dns2gns will use for GNS lookups, you need to first create a pseudonym (using "gnunet\-identity \-C NAME"), and then assign it to be used for the "dns2gns" service using "gnunet\-identity \-e NAME \-s dns2gns".  After that, you can start the dns2gns service (possibly using gnunet\-arm) without specifying a public key using "\-z".
+
 .SH OPTIONS
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
@@ -37,10 +39,13 @@ Authoritative DNS suffix to use.  This is the name under which the GADS ".zkey" 
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
+.B
+.IP "\-z PUBLICKEY, \-\-zone=PUBLICKEY"
+Use PUBLICKEY for the zone to resolve GNS names in.  The PUBLICKEY must be encoded in the text format which can be obtained using gnunet\-ecc, seen in PKEY records and output by gnunet\-identity.  If this option is not specified, the default ego associated by gnunet\-identity for the "dns2gns" subsystem will be used.  
 
 
 .SH BUGS
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug\-gnunet@gnu.org>
 
 .SH SEE ALSO
-gnunet\-gns\-fcfs(1), gnunet\-gns(1)
+gnunet\-gns\-fcfs(1), gnunet\-gns(1), gnunet\-identity(1)

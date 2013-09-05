@@ -26,6 +26,7 @@
 #include <gnunet_util_lib.h>
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_gns_service.h>
+#include <gnunet_identity_service.h>
 #include <gnunet_dnsstub_lib.h>
 #include "gns.h"
 
@@ -148,6 +149,22 @@ static struct GNUNET_CRYPTO_EccPublicKey my_zone;
  * '-z' option with the main zone to use.
  */
 static char *gns_zone_str;
+
+/**
+ * Configuration to use.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Connection to identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Request for our ego.
+ */
+static struct GNUNET_IDENTITY_Operation *id_op;
+
 
 
 /**
@@ -557,34 +574,11 @@ read_dns6 (void *cls,
 
 
 /**
- * Main function that will be run.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
+ * Start DNS daemon.
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run_dnsd ()
 {
-  if (NULL == dns_ip)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No DNS server specified!\n"));
-    return;
-  }
-  if ( (NULL == gns_zone_str) ||
-       (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_key_from_string (gns_zone_str,
-						  strlen (gns_zone_str),
-						  &my_zone)) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		_("No valid GNS zone specified!\n"));
-    return;
-  }
-
   if (NULL == dns_suffix)
     dns_suffix = DNS_SUFFIX;
   if (NULL == fcfs_suffix)
@@ -665,13 +659,96 @@ run (void *cls, char *const *args, const char *cfgfile,
 					&read_dns6,
 					listen_socket6);
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&do_shutdown, NULL);
+}
+
+
+/** 
+ * Method called to inform about the egos of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * that one was not NULL).
+ *
+ * @param cls closure, NULL
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls,
+	     struct GNUNET_IDENTITY_Ego *ego,
+	     void **ctx,
+	     const char *name)
+{
+  id_op = NULL;
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("No ego configured for `dns2gns` subsystem\n"));
+    return;
+  }
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+				      &my_zone);
+  run_dnsd ();
 }
 
 
 /**
- * The main function for the fcfs daemon.
+ * Main function that will be run.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  cfg = c;
+
+  if (NULL == dns_ip)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("No DNS server specified!\n"));
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+				&do_shutdown, NULL);
+  if (NULL == gns_zone_str)
+    {
+      identity = GNUNET_IDENTITY_connect (cfg,
+					  NULL, NULL);
+      id_op = GNUNET_IDENTITY_get (identity,
+				   "dns2gns",
+				   &identity_cb,
+				   NULL);
+      return;
+    }
+  if ( (NULL == gns_zone_str) ||
+       (GNUNET_OK !=
+	GNUNET_CRYPTO_ecc_public_key_from_string (gns_zone_str,
+						  strlen (gns_zone_str),
+						  &my_zone)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("No valid GNS zone specified!\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  run_dnsd ();
+}
+
+
+/**
+ * The main function for the dns2gns daemon.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -695,7 +772,7 @@ main (int argc,
       gettext_noop ("UDP port to listen on for inbound DNS requests; default: 53"), 1,
       &GNUNET_GETOPT_set_uint, &listen_port},
     {'z', "zone", "PUBLICKEY",
-      gettext_noop ("Public key of the GNS zone to use (required)"), 1,
+      gettext_noop ("Public key of the GNS zone to use (overrides default)"), 1,
       &GNUNET_GETOPT_set_string, &gns_zone_str},
     GNUNET_GETOPT_OPTION_END
   };
