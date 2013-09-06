@@ -134,7 +134,10 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
   a->cfg = cfg;
   a->client = GNUNET_CLIENT_connect ("regex", cfg);
   if (NULL == a->client)
+  {
+    GNUNET_free (a);
     return NULL;
+  }
   a->msg.header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_ANNOUNCE);
   a->msg.header.size = htons (slen + sizeof (struct AnnounceMessage));
   a->msg.compression = htons (compression);
@@ -299,11 +302,14 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
   size_t slen;
 
   slen = strlen (string) + 1;
-  s = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Search));
+  s = GNUNET_new (struct GNUNET_REGEX_Search);
   s->cfg = cfg;
   s->client = GNUNET_CLIENT_connect ("regex", cfg);
   if (NULL == s->client)
+  {
+    GNUNET_free (s);
     return NULL;
+  }
   s->callback = callback;
   s->callback_cls = callback_cls;
   s->msg = GNUNET_malloc (sizeof (struct SearchMessage) + slen);

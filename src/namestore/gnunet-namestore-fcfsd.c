@@ -23,6 +23,8 @@
  * @author Christian Grothoff
  *
  * TODO:
+ * - need to track active zone info requests so we can cancel them
+ *   during shutdown, right?
  * - the code currently contains a 'race' between checking that the
  *   domain name is available and allocating it to the new public key
  *   (should this race be solved by namestore or by fcfsd?)
@@ -921,6 +923,8 @@ identity_cb (void *cls,
 	     void **ctx,
 	     const char *name)
 {
+  int options;
+
   id_op = NULL;
   if (NULL == ego)
   {
@@ -930,21 +934,24 @@ identity_cb (void *cls,
   }
   fcfs_zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
 
-
-  httpd = MHD_start_daemon (
-#ifdef MHD_USE_DUAL_STACK
-  		    MHD_USE_DUAL_STACK |
-#endif
-  		    MHD_USE_DEBUG,
-			    (uint16_t) port,
-			    NULL, NULL, 
-			    &create_response, NULL, 
-			    MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
-			    MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
-			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-			    MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024), 
-			    MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
-			    MHD_OPTION_END);
+  options = MHD_USE_DUAL_STACK | MHD_USE_DEBUG;
+  do
+    {
+      httpd = MHD_start_daemon (options,
+				(uint16_t) port,
+				NULL, NULL, 
+				&create_response, NULL, 
+				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
+				MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
+				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024), 
+				MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
+				MHD_OPTION_END);
+      if (MHD_USE_DEBUG == options)
+	break;
+      options = MHD_USE_DEBUG;
+    }
+  while (NULL == httpd);
   if (NULL == httpd)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

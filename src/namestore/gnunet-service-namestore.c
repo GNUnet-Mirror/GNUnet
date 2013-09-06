@@ -752,7 +752,7 @@ handle_zone_to_name_it (void *cls,
 	      "Found result for zone-to-name lookup: `%s'\n", 
 	      name);
   res = GNUNET_YES;
-  name_len = strlen (name) + 1;
+  name_len = (NULL == name) ? 0 : strlen (name) + 1;
   rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len;
   if (msg_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)

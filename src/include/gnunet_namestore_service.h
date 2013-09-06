@@ -327,9 +327,9 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
  * Process a record that was stored in the namestore.
  *
  * @param cls closure
- * @param zone private key of the zone
- * @param label label of the records
- * @param rd_count number of entries in @a rd array
+ * @param zone private key of the zone; NULL on disconnect
+ * @param label label of the records; NULL on disconnect
+ * @param rd_count number of entries in @a rd array, 0 if label was deleted
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,

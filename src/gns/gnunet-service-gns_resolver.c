@@ -727,6 +727,7 @@ dns_result_parser (void *cls,
       GNUNET_free (rh->name);
       rh->name = GNUNET_strdup (p->answers[0].data.hostname);
       start_resolver_lookup (rh);
+      GNUNET_DNSPARSER_free_packet (p);
       return;     
     }
   /* FIXME: add DNAME support */
@@ -1195,8 +1196,8 @@ handle_gns_resolution_result (void *cls,
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
 	    }
-	    GNUNET_free (cname);
 	  }
+	  GNUNET_free_non_null (cname);	  
 	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
@@ -1231,8 +1232,9 @@ handle_gns_resolution_result (void *cls,
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
 	    }
-	    GNUNET_DNSPARSER_free_soa (soa);
 	  }
+	  if (NULL != soa)
+	    GNUNET_DNSPARSER_free_soa (soa);	  
 	}
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
@@ -1266,8 +1268,9 @@ handle_gns_resolution_result (void *cls,
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
 	    }
-	    GNUNET_DNSPARSER_free_mx (mx);
 	  }
+	  if (NULL != mx)
+	    GNUNET_DNSPARSER_free_mx (mx);	  
 	}	
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
@@ -1305,8 +1308,9 @@ handle_gns_resolution_result (void *cls,
 	      rd_new[rd_off].data_size = scratch_off - scratch_start;
 	      rd_off++;
 	    }
-	    GNUNET_DNSPARSER_free_srv (srv);
 	  }
+	  if (NULL != srv)
+	    GNUNET_DNSPARSER_free_srv (srv);	  
 	}
 	break;
       case GNUNET_NAMESTORE_TYPE_PKEY:

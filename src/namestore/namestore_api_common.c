@@ -450,8 +450,8 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_AesSessionKey skey;
 
-  if (ntohl (block->purpose.size) <
-      sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) -
+  if (ntohl (block->purpose.size) <      
+      sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO))
   {
     GNUNET_break_op (0);
@@ -979,6 +979,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
 		   &pkeys[slen / 2],
 		   (int) (slen / 2),
 		   pkeys);
+  GNUNET_free (pkeys);
   return ret;
 }
 

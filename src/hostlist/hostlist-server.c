@@ -634,6 +634,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                   ip);
       sa = NULL;
     }
+    GNUNET_free (ip);
   }
   else
     sa = NULL;
