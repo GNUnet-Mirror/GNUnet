@@ -1187,8 +1187,8 @@ client_conclude (void *cls,
   }
   if (session->num_peers <= 1)
   {
-    /* FIXME: what to do here? */
-    //send_client_conclude_done (session);
+    session->current_round = CONSENSUS_ROUND_FINISH;
+    GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
   }
   else
   {

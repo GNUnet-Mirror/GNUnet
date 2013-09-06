@@ -52,7 +52,7 @@ extern "C"
  * @param element new element, NULL on error
  */
 typedef void (*GNUNET_CONSENSUS_ElementCallback) (void *cls,
-                                                 const struct GNUNET_SET_Element *element);
+                                                  const struct GNUNET_SET_Element *element);
 
 
 

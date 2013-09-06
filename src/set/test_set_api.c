@@ -136,8 +136,9 @@ init_set2 (void *cls)
 {
   struct GNUNET_SET_Element element;
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initializing set 2\n");
+
+  element.type = 0;
 
   element.data = "hello";
   element.size = strlen(element.data);
@@ -158,6 +159,8 @@ static void
 init_set1 (void)
 {
   struct GNUNET_SET_Element element;
+
+  element.type = 0;
 
   element.data = "hello";
   element.size = strlen(element.data);

@@ -65,16 +65,6 @@ struct GNUNET_CONSENSUS_Handle
   struct GNUNET_HashCode session_id;
 
   /**
-   * Number of peers in the consensus. Optionally includes the local peer.
-   */
-  int num_peers;
-
-  /**
-   * Peer identities of peers participating in the consensus, includes the local peer.
-   */
-  struct GNUNET_PeerIdentity **peers;
-
-  /**
    * GNUNES_YES iff the join message has been sent to the service.
    */
   int joined;
@@ -194,15 +184,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;
-  consensus->num_peers = num_peers;
   consensus->session_id = *session_id;
-
-  if (0 == num_peers)
-    consensus->peers = NULL;
-  else if (num_peers > 0)
-    consensus->peers =
-        GNUNET_memdup (peers, num_peers * sizeof (struct GNUNET_PeerIdentity));
-
   consensus->client = GNUNET_CLIENT_connect ("consensus", cfg);
   consensus->mq = GNUNET_MQ_queue_for_connection_client (consensus->client,
                                                          mq_handlers, NULL, consensus);
@@ -214,10 +196,10 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
 
   join_msg->session_id = consensus->session_id;
-  join_msg->num_peers = htonl (consensus->num_peers);
+  join_msg->num_peers = htonl (num_peers);
   memcpy(&join_msg[1],
-	 consensus->peers,
-	 consensus->num_peers * sizeof (struct GNUNET_PeerIdentity));
+	 peers,
+	 num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (consensus->mq, ev);
   return consensus;
@@ -318,8 +300,6 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
     GNUNET_CLIENT_disconnect (consensus->client);
     consensus->client = NULL;
   }
-  if (NULL != consensus->peers)
-    GNUNET_free (consensus->peers);
   GNUNET_free (consensus);
 }
 
