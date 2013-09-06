@@ -119,6 +119,7 @@ controller_event_cb (void *cls,
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param peers_ handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that
@@ -127,7 +128,9 @@ controller_event_cb (void *cls,
  *          failed
  */
 static void
-test_master (void *cls, unsigned int num_peers,
+test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers_,
              unsigned int links_succeeded,
              unsigned int links_failed)
@@ -135,8 +138,12 @@ test_master (void *cls, unsigned int num_peers,
   unsigned int peer;
 
   GNUNET_assert (NULL == cls);
+  if (NULL == peers_)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
+    return;
+  }
   GNUNET_assert (NUM_PEERS == num_peers);
-  GNUNET_assert (NULL != peers_);
   for (peer = 0; peer < num_peers; peer++)
     GNUNET_assert (NULL != peers_[peer]);
   peers = peers_;

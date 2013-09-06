@@ -304,7 +304,8 @@ do_download (void *cls,
 
 
 static void
-do_publish (void *cls, 
+do_publish (void *cls,
+            struct GNUNET_TESTBED_RunHandle *h,
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers,
             unsigned int links_succeeded,

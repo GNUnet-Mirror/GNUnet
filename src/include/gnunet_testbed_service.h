@@ -1328,11 +1328,16 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
                                GNUNET_TESTBED_OperationCompletionCallback cont,
                                void *cls);
 
+/**
+ * Handle for testbed run helper funtions
+ */
+struct GNUNET_TESTBED_RunHandle;
 
 /**
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
@@ -1340,8 +1345,10 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
  *          succeeded
  * @param links_failed the number of overlay link connection attempts that
  *          failed
+ * @see GNUNET_TESTBED_test_run()
  */
 typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
+                                          struct GNUNET_TESTBED_RunHandle *h,
                                           unsigned int num_peers,
                                           struct GNUNET_TESTBED_Peer **peers,
                                           unsigned int links_succeeded,
@@ -1440,6 +1447,16 @@ GNUNET_TESTBED_test_run (const char *testname,
                          GNUNET_TESTBED_TestMaster test_master,
                          void *test_master_cls);
 
+
+/**
+ * Obtain handle to the master controller from a testbed run.  The handle
+ * returned should not be disconnected.
+ *
+ * @param h the testbed run handle
+ * @return handle to the master controller
+ */
+struct GNUNET_TESTBED_Controller *
+GNUNET_TESTBED_run_get_controller_handle (struct GNUNET_TESTBED_RunHandle *h);
 
 /**
  * Opaque handle for barrier

@@ -161,6 +161,7 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
 
 static void
 do_publish (void *cls, 
+            struct GNUNET_TESTBED_RunHandle *h,
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers,
             unsigned int links_succeeded,

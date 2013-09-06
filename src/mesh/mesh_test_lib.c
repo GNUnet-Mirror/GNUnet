@@ -213,6 +213,7 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
  * each other)
  * 
  * @param cls Closure (context).
+ * @param h the run handle
  * @param num_peers Number of peers that are running.
  * @param peers Handles to each one of the @c num_peers peers.
  * @param links_succeeded the number of overlay link connection attempts that
@@ -222,6 +223,7 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
  */
 static void
 mesh_test_run (void *cls,
+               struct GNUNET_TESTBED_RunHandle *h,
                unsigned int num_peers,
                struct GNUNET_TESTBED_Peer **peers,
                unsigned int links_succeeded,

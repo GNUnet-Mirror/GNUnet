@@ -303,6 +303,7 @@ peer_info_cb (void *cb_cls,
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param started_peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
@@ -313,6 +314,7 @@ peer_info_cb (void *cb_cls,
  */
 static void
 test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **started_peers,
              unsigned int links_succeeded,

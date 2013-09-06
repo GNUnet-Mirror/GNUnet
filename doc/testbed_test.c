@@ -131,13 +131,16 @@ dht_da (void *cls, void *op_result)
  * just to the DHT service of peer 0.
  *
  * @param cls closure
+ * @param h the run handle
  * @param peers started peers for the test
  * @param num_peers size of the 'peers' array
  * @param links_succeeded number of links between peers that were created
  * @param links_failed number of links testbed was unable to establish
  */
 static void
-test_master (void *cls, unsigned int num_peers,
+test_master (void *cls, 
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers,
              unsigned int links_succeeded,
              unsigned int links_failed)

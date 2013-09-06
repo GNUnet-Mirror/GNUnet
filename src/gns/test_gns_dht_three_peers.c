@@ -596,6 +596,7 @@ peerinfo_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
 
 
 void testbed_master (void *cls,
+                     struct GNUNET_TESTBED_RunHandle *h,
                      unsigned int num_peers,
                      struct GNUNET_TESTBED_Peer **peers,
                      unsigned int links_succeeded,

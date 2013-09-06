@@ -115,6 +115,7 @@ do_publish (void *cls,
  * Actual main function for the test.
  * 
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that
@@ -124,6 +125,7 @@ do_publish (void *cls,
  */
 static void
 run (void *cls, 
+     struct GNUNET_TESTBED_RunHandle *h,
      unsigned int num_peers,
      struct GNUNET_TESTBED_Peer **peers,
      unsigned int links_succeeded,

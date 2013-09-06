@@ -50,10 +50,6 @@
  */
 #define DEFAULT_SETUP_TIMEOUT 300
 
-/**
- * Testbed Run Handle
- */
-struct RunContext;
 
 /**
  * Context information for the operation we start
@@ -68,7 +64,7 @@ struct RunContextOperation
   /**
    * Context information for GNUNET_TESTBED_run()
    */
-  struct RunContext *rc;
+  struct GNUNET_TESTBED_RunHandle *rc;
 
   /**
    * Closure
@@ -130,7 +126,7 @@ struct CompatibilityCheckContext
   /**
    * The run context
    */
-  struct RunContext *rc;
+  struct GNUNET_TESTBED_RunHandle *rc;
 
   /**
    * Handle for the compability check
@@ -147,7 +143,7 @@ struct CompatibilityCheckContext
 /**
  * Testbed Run Handle
  */
-struct RunContext
+struct GNUNET_TESTBED_RunHandle
 {
   /**
    * The controller handle
@@ -381,7 +377,7 @@ search_iterator (void *cls, uint32_t key, void *value)
  * @return the matching RunContextOperation if found; NULL if not
  */
 static struct RunContextOperation *
-search_rcop (struct RunContext *rc, struct GNUNET_TESTBED_Operation *op)
+search_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct GNUNET_TESTBED_Operation *op)
 {
   struct SearchContext sc;
   
@@ -407,7 +403,7 @@ search_rcop (struct RunContext *rc, struct GNUNET_TESTBED_Operation *op)
  * @param rcop the RunContextOperation to insert
  */
 static void
-insert_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
+insert_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct RunContextOperation *rcop)
 {
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_put (rc->rcop_map,
@@ -424,7 +420,7 @@ insert_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
  * @param rcop the RunContextOperation
  */
 static void
-remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
+remove_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct RunContextOperation *rcop)
 {
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (rc->rcop_map,
@@ -440,7 +436,7 @@ remove_rcop (struct RunContext *rc, struct RunContextOperation *rcop)
 static void
 cleanup (void *cls)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   unsigned int hid;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
@@ -478,7 +474,7 @@ cleanup (void *cls)
 static int
 rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop = value;
 
   GNUNET_assert (rc == rcop->rc);
@@ -495,7 +491,7 @@ rcop_cleanup_iterator (void *cls, uint32_t key, void *value)
  * @param rc the RunContext
  */
 static void
-rc_cleanup_operations (struct RunContext *rc)
+rc_cleanup_operations (struct GNUNET_TESTBED_RunHandle *rc)
 {
   struct CompatibilityCheckContext *hc;
   unsigned int nhost;
@@ -546,7 +542,7 @@ rc_cleanup_operations (struct RunContext *rc)
  * @param rc the run context
  */
 static void
-cancel_interrupt_task (struct RunContext *rc)
+cancel_interrupt_task (struct GNUNET_TESTBED_RunHandle *rc)
 {
   GNUNET_SCHEDULER_cancel (rc->interrupt_task);
   rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
@@ -562,7 +558,7 @@ cancel_interrupt_task (struct RunContext *rc)
 static void
 wait_op_completion (void *cls)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
 
   if ( (NULL == rc->cproc)
@@ -604,7 +600,7 @@ wait_op_completion (void *cls)
 static void
 interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct GNUNET_TESTBED_Controller *c = rc->c;
   unsigned int size;
 
@@ -634,7 +630,7 @@ interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return the representation string; this is NOT reentrant
  */
 static const char *
-prof_time (struct RunContext *rc)
+prof_time (struct GNUNET_TESTBED_RunHandle *rc)
 {
   struct GNUNET_TIME_Relative ptime;
 
@@ -652,7 +648,7 @@ prof_time (struct RunContext *rc)
 static void
 start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
   unsigned int peer;
 
@@ -684,7 +680,7 @@ static void
 peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
 {
   struct RunContextOperation *rcop = cls;
-  struct RunContext *rc;
+  struct GNUNET_TESTBED_RunHandle *rc;
 
   GNUNET_assert (NULL != rcop);
   GNUNET_assert (NULL != (rc = rcop->rc));
@@ -715,12 +711,12 @@ peer_create_cb (void *cls, struct GNUNET_TESTBED_Peer *peer, const char *emsg)
  * @param rc the RunContext
  */
 static void
-call_master (struct RunContext *rc)
+call_master (struct GNUNET_TESTBED_RunHandle *rc)
 {
   GNUNET_SCHEDULER_cancel (rc->timeout_task);
   rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != rc->test_master)
-    rc->test_master (rc->test_master_cls, rc->num_peers, rc->peers,
+    rc->test_master (rc->test_master_cls, rc, rc->num_peers, rc->peers,
                      rc->links_succeeded, rc->links_failed);
 }
 
@@ -738,7 +734,7 @@ static void
 topology_completion_callback (void *cls, unsigned int nsuccess,
                               unsigned int nfailures)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
 
   DEBUG ("Overlay topology generated in %s\n", prof_time (rc));
   GNUNET_TESTBED_operation_done (rc->topology_operation);
@@ -756,7 +752,7 @@ topology_completion_callback (void *cls, unsigned int nsuccess,
  * @param rc the RunContext
  */
 static void
-create_peers (struct RunContext *rc)
+create_peers (struct GNUNET_TESTBED_RunHandle *rc)
 {
   struct RunContextOperation *rcop;
   unsigned int peer;
@@ -793,7 +789,7 @@ create_peers (struct RunContext *rc)
 static void
 event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
 
   if (RC_INIT == rc->state)
@@ -940,7 +936,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 host_registration_completion (void *cls, const char *emsg)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
 
   rc->reg_handle = NULL;
   if (NULL != emsg)
@@ -963,7 +959,7 @@ host_registration_completion (void *cls, const char *emsg)
 static void
 register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
   unsigned int slave;
 
@@ -1005,7 +1001,7 @@ static void
 controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
                       int status)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   uint64_t event_mask;
 
   if (status != GNUNET_OK)
@@ -1052,7 +1048,7 @@ netint_proc (void *cls, const char *name, int isDefault,
              const struct sockaddr *addr, const struct sockaddr *broadcast_addr,
              const struct sockaddr *netmask, socklen_t addrlen)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   char hostip[NI_MAXHOST];
   char *buf;
 
@@ -1088,7 +1084,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
                    int status)
 {
   struct CompatibilityCheckContext *hc = cls;
-  struct RunContext *rc;
+  struct GNUNET_TESTBED_RunHandle *rc;
   struct GNUNET_TESTBED_Host **old_hosts;
   unsigned int nhost;
 
@@ -1157,13 +1153,13 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
 static void
 timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct RunContext *rc = cls;
+  struct GNUNET_TESTBED_RunHandle *rc = cls;
   
   rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
    GNUNET_SCHEDULER_shutdown ();
    if (NULL != rc->test_master)
-     rc->test_master (rc->test_master_cls, 0, NULL, 0, 0);
+     rc->test_master (rc->test_master_cls, rc, 0, NULL, 0, 0);
    rc->test_master = NULL;
 }
 
@@ -1203,7 +1199,7 @@ GNUNET_TESTBED_run (const char *host_filename,
                     GNUNET_TESTBED_TestMaster test_master,
                     void *test_master_cls)
 {
-  struct RunContext *rc;
+  struct GNUNET_TESTBED_RunHandle *rc;
   char *topology;
   struct CompatibilityCheckContext *hc;      
   struct GNUNET_TIME_Relative timeout;
@@ -1212,7 +1208,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   unsigned int nhost;
 
   GNUNET_assert (num_peers > 0);
-  rc = GNUNET_malloc (sizeof (struct RunContext));
+  rc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_RunHandle));
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
 #if ENABLE_LL
   rc->num_hosts = GNUNET_TESTBED_hosts_load_from_loadleveler (rc->cfg,

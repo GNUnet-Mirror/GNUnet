@@ -1097,6 +1097,7 @@ dht_da (void *cls, void *op_result)
  * Signature of a main function for a testcase.
  *
  * @param cls NULL
+ * @param h the run handle
  * @param num_peers_ number of peers in 'peers'
  * @param testbed_peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
@@ -1107,6 +1108,7 @@ dht_da (void *cls, void *op_result)
  */
 static void 
 test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers_,
              struct GNUNET_TESTBED_Peer **testbed_peers,
              unsigned int links_succeeded,

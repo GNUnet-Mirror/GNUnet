@@ -20,8 +20,8 @@
 
 /**
  * @file testbed/gnunet-service-test-barriers.c
- * @brief Service for testing testbed barriers.  This service is started as a
- *   peer service and waits for a barrier to be crossed.
+ * @brief Daemon acting as a service for testing testbed barriers.  It is
+ *   started as a peer service and waits for a barrier to be crossed.
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
  */
 

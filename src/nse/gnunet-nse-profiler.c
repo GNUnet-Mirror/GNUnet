@@ -757,6 +757,7 @@ master_controller_cb (void *cls,
  * Signature of a main function for a testcase.
  *
  * @param cls NULL
+ * @param h the run handle
  * @param num_peers_ number of peers in 'peers'
  * @param peers handle to peers run in the testbed.  NULL upon timeout (see
  *          GNUNET_TESTBED_test_run()).
@@ -767,6 +768,7 @@ master_controller_cb (void *cls,
  */
 static void 
 test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers_,
              struct GNUNET_TESTBED_Peer **peers,
              unsigned int links_succeeded,

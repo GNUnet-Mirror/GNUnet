@@ -98,6 +98,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param peers_ handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that
@@ -106,7 +107,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *          failed
  */
 static void
-test_master (void *cls, unsigned int num_peers,
+test_master (void *cls, 
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers_,
              unsigned int links_succeeded,
              unsigned int links_failed)

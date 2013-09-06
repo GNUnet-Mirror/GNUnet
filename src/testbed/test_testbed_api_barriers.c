@@ -24,8 +24,74 @@
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
  */
 
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testbed_service.h"
 
-int main ()
+/**
+ * Number of peers we start in this test case
+ */
+#define NUM_PEERS 3
+
+/**
+ * Result of this test case
+ */
+static int result;
+
+
+/**
+ * Signature of a main function for a testcase.
+ *
+ * @param cls closure
+ * @param h the run handle
+ * @param num_peers number of peers in 'peers'
+ * @param peers_ handle to peers run in the testbed
+ * @param links_succeeded the number of overlay link connection attempts that
+ *          succeeded
+ * @param links_failed the number of overlay link connection attempts that
+ *          failed
+ */
+static void
+test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
+             struct GNUNET_TESTBED_Peer **peers_,
+             unsigned int links_succeeded,
+             unsigned int links_failed)
 {
+
+  GNUNET_assert (NULL == cls);
+  if (NULL == peers_)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
+    return;
+  }
+  GNUNET_assert (NUM_PEERS == num_peers);
+  
+  result = GNUNET_OK;
+  GNUNET_SCHEDULER_shutdown ();
+  /* shutdown_task = */
+  /*     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply */
+  /*                                   (GNUNET_TIME_UNIT_SECONDS, 300), */
+  /*                                   do_shutdown, NULL); */
+}
+
+
+/**
+ * Main function
+ */
+int
+main (int argc, char **argv)
+{
+  uint64_t event_mask;
+
+  result = GNUNET_SYSERR;
+  event_mask = 0;
+  (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
+                                  "test_testbed_api_barriers.conf", NUM_PEERS,
+                                  event_mask, NULL, NULL,
+                                  &test_master, NULL);
+  if (GNUNET_OK != result)
+    return 1;
   return 0;
 }

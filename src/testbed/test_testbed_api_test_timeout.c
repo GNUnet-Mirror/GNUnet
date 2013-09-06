@@ -78,6 +78,7 @@ controller_event_cb (void *cls,
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h the run handle
  * @param num_peers number of peers in 'peers'
  * @param peers- handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that
@@ -86,7 +87,9 @@ controller_event_cb (void *cls,
  *          failed
  */
 static void
-test_master (void *cls, unsigned int num_peers,
+test_master (void *cls,
+             struct GNUNET_TESTBED_RunHandle *h,
+             unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers_,
              unsigned int links_succeeded,
              unsigned int links_failed)
