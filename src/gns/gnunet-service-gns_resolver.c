@@ -1382,6 +1382,7 @@ handle_gns_resolution_result (void *cls,
       }
       /* find associated A/AAAA record */
       sa = NULL;
+      sa_len = 0;
       for (j=0;j<rd_count;j++)
       {
 	switch (rd[j].record_type)
@@ -1430,9 +1431,18 @@ handle_gns_resolution_result (void *cls,
 		  sizeof (struct in6_addr));
 	  sa = (struct sockaddr *) &v6;
 	  break;
+	default:
+	  break;
 	}
 	if (NULL != sa)
 	  break;
+      }
+      if (NULL == sa)
+      {
+	/* we cannot continue; NS without A/AAAA */
+	rh->proc (rh->proc_cls, 0, NULL);
+	GNS_resolver_lookup_cancel (rh);
+	return;
       }
       /* expand authority chain */
       ac = GNUNET_new (struct AuthorityChain);
@@ -1636,8 +1646,8 @@ handle_namestore_block_response (void *cls,
        (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) )
   {
     /* DHT not permitted and no local result, fail */
-    rx->proc (rx->proc_cls, 0, NULL);
-    GNS_resolver_lookup_cancel (rx);
+    rh->proc (rh->proc_cls, 0, NULL);
+    GNS_resolver_lookup_cancel (rh);
     return;
   }
   if (GNUNET_OK !=
