@@ -191,27 +191,27 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 if HAVE_TESTING
-check_PROGRAMS = \
-  test_gns_simple_shorten \
-  test_gns_simple_lookup \
-  test_gns_simple_delegated_lookup \
-  test_gns_simple_mx_lookup \
-  test_gns_simple_srv_lookup \
-  test_gns_simple_zkey_lookup \
-  test_gns_dht_delegated_lookup \
-  test_gns_pseu_shorten \
-  test_gns_max_queries \
-  test_gns_cname_lookup \
-  test_gns_ns_lookup \
-  test_gns_revocation \
-  test_gns_dht_three_peers
- #test_gns_proxy
+#check_PROGRAMS = 
+#  test_gns_simple_shorten 
+#  test_gns_simple_lookup 
+#  test_gns_simple_delegated_lookup 
+#  test_gns_simple_mx_lookup 
+#  test_gns_simple_srv_lookup 
+#  test_gns_simple_zkey_lookup 
+#  test_gns_dht_delegated_lookup 
+#  test_gns_pseu_shorten 
+#  test_gns_max_queries 
+#  test_gns_cname_lookup 
+#  test_gns_ns_lookup 
+#  test_gns_revocation 
+#  test_gns_dht_three_peers
+# test_gns_proxy
 endif
 
 if ENABLE_TEST_RUN
 if LINUX
 if HAVE_SQLITE
-TESTS = $(check_PROGRAMS)
+# TESTS = $(check_PROGRAMS)
 endif
 endif
 endif
