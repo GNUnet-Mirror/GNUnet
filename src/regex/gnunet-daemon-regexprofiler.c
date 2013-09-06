@@ -277,10 +277,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER",
                                              "POLICY_DIR", &policy_dir))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "regexprofiler", "policy_dir");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "REGEXPROFILER", "POLICY_DIR");
     global_ret = GNUNET_SYSERR;
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -289,11 +286,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
                                              "PEERID", &peer_id))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "regexprofiler", "policy_file");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "TESTBED", "PEERID");
     global_ret = GNUNET_SYSERR;
+    GNUNET_free (policy_dir);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -302,11 +297,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_CONFIGURATION_get_value_string (cfg, "REGEXPROFILER",
                                              "REGEX_PREFIX", &regex_prefix))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "regexprofiler", "regex_prefix");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "REGEXPROFILER", "REGEX_PREFIX");
     global_ret = GNUNET_SYSERR;
+    GNUNET_free (policy_dir);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -331,6 +324,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not acquire dht handle. Exiting.\n");
     global_ret = GNUNET_SYSERR;
+    GNUNET_free (policy_dir);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -344,9 +338,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
                 "Policy file %s contains no policies. Exiting.\n",
                 policy_filename);
     global_ret = GNUNET_SYSERR;
+    GNUNET_free (policy_dir);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  GNUNET_free (policy_dir);
   regex = REGEX_TEST_combine (components);
   REGEX_TEST_free_from_file (components);
 
