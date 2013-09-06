@@ -7006,6 +7006,11 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
                                          pi);
   GNUNET_CONTAINER_multihashmap_destroy (pi->connections);
   pi->connections = NULL;
+  if (NULL != pi->core_transmit)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit);
+      pi->core_transmit = NULL;
+    }
   if (myid == pi->id)
   {
     DEBUG_CONN ("     (self)\n");
