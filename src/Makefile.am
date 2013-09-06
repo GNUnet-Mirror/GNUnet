@@ -47,6 +47,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   $(TESTBED) \
+  ats-tests \
   nse \
   dht \
   hostlist \

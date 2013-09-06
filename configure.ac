@@ -1284,6 +1284,7 @@ src/arm/arm.conf
 src/ats/Makefile
 src/ats/ats.conf
 src/ats-tool/Makefile
+src/ats-tests/Makefile
 src/block/Makefile
 src/core/Makefile
 src/core/core.conf
