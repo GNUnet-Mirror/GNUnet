@@ -29,14 +29,18 @@ import os
 import sys
 from buildvars import libexecdir
 
-
-service = 'gnunet-service-test-barriers'
+if os.name == 'nt':
+  service = 'gnunet-service-test-barriers.exe'
+  test_testbed_api_barriers = './test_testbed_api_barriers.exe'
+else:
+  service = 'gnunet-service-test-barriers'
+  test_testbed_api_barriers = './test_testbed_api_barriers'
 
 # copy gnunet-service-test-barriers service to gnunet's libexec dir
 shutil.copy (service, libexecdir)
 
 # start the testcase binary
-ret = subprocess.call ('./test_testbed_api_barriers', shell=False)
+ret = subprocess.call (test_testbed_api_barriers, shell=False)
 
 # remove the installed gnunet-service-test-barriers copy
 os.unlink (os.path.join (libexecdir, service))

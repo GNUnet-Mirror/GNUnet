@@ -21,4 +21,14 @@
 # brief:    file for importing variables from build syste into python
 # author:   Sree Harsha Totakura
 
+import os
+
+exec_prefix = '@exec_prefix@'
 libexecdir = '@libexecdir@'
+
+if libexecdir.startswith (exec_prefix):
+  libexecdir = libexecdir[len (exec_prefix):]
+
+gnunet_prefix = os.environ.get ('GNUNET_PREFIX', None)
+if gnunet_prefix and libexecdir.startswith ('/'):
+  libexecdir = os.path.join (gnunet_prefix, libexecdir[1:])

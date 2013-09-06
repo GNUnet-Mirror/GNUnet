@@ -367,7 +367,7 @@ test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
-do_subst = sed -e 's,[@]libexecdir[@],$(libexecdir),g'
+do_subst = sed -e 's,[@]libexecdir[@],$(libexecdir),g' -e 's,[@]exec_prefix[@],$(exec_prefix),g'
 
 buildvars.py: buildvars.py.in Makefile
 	$(do_subst) < $(srcdir)/buildvars.py.in > $@
