@@ -79,9 +79,7 @@ TESTING_TESTS = \
  test_ats_simplistic_change_preference \
  test_ats_api_performance_list_addresses \
  test_ats_api_performance_address_info \
- test_ats_api_performance_feedback \
- perf_ats_proportional_bandwidth \
- perf_ats_proportional_delay
+ test_ats_api_performance_feedback
 endif
 
 check_PROGRAMS = \
@@ -257,27 +255,7 @@ test_ats_normalization_update_quality_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la  
 
-# performance tests
-
-perf_ats_proportional_bandwidth_SOURCES = \
-  perf_ats.c  
-perf_ats_proportional_bandwidth_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/core/libgnunetcore.la  
-
-perf_ats_proportional_delay_SOURCES = \
-  perf_ats.c  
-perf_ats_proportional_delay_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/core/libgnunetcore.la  
-
 EXTRA_DIST = \
   ats.h \
   test_ats_api.conf \
-  test_ats_mlp.conf \
-  perf_ats_proportional_bandwidth.conf \
-  perf_ats_proportional_delay.conf
+  test_ats_mlp.conf
