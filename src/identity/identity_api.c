@@ -419,7 +419,6 @@ message_handler (void *cls,
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
-    GNUNET_free (ego->name);
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     if (NULL != op->cb)
