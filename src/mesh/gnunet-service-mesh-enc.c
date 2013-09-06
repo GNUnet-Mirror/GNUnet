@@ -1219,15 +1219,6 @@ handle_decrypted (struct MeshTunnel2 *t,
 
 
 /**
- * Send all cached messages that we can, tunnel is online.
- *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
- */
-static void
-tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd);
-
-/**
  * Dummy function to separate declarations from definitions in function list.
  */
 void
@@ -1633,9 +1624,9 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
 static int
 connection_is_origin (struct MeshConnection *c, int fwd)
 {
-  if (!fwd && c->own_pos == c->path->length - 1)
+  if (!fwd && c->path->length - 1 == c->own_pos )
     return GNUNET_YES;
-  if (fwd && c->own_pos == 0)
+  if (fwd && 0 == c->own_pos)
     return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -1653,16 +1644,30 @@ connection_is_origin (struct MeshConnection *c, int fwd)
 static int
 connection_is_terminal (struct MeshConnection *c, int fwd)
 {
-  if (fwd && c->own_pos == c->path->length - 1)
-    return GNUNET_YES;
-  if (!fwd && c->own_pos == 0)
-    return GNUNET_YES;
-  return GNUNET_NO;
+  return connection_is_origin (c, !fwd);
 }
 
 
 /**
- * Is the recipient client for this channel on this peer?
+ * Is the root client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+static int
+channel_is_origin (struct MeshChannel *ch, int fwd)
+{
+  struct MeshClient *c;
+
+  c = fwd ? ch->root : ch->dest;
+  return NULL != c;
+}
+
+
+/**
+ * Is the destination client for this channel on this peer?
  *
  * @param ch Channel.
  * @param fwd Is this for fwd traffic?
@@ -1672,12 +1677,10 @@ connection_is_terminal (struct MeshConnection *c, int fwd)
 static int
 channel_is_terminal (struct MeshChannel *ch, int fwd)
 {
-  if (NULL == ch->t || NULL == ch->t->connection_head)
-  {
-    GNUNET_break (0);
-    return GNUNET_NO;
-  }
-  return connection_is_terminal (ch->t->connection_head, fwd);
+  struct MeshClient *c;
+
+  c = fwd ? ch->dest : ch->root;
+  return NULL != c;
 }
 
 
@@ -1744,14 +1747,8 @@ tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
   c = t->connection_head;
   buffer = 0;
 
-  if (NULL == c)
-  {
-    GNUNET_break (0);
-    return 0;
-  }
-
   /* If terminal, return biggest channel buffer */
-  if (connection_is_terminal (c, fwd))
+  if (NULL == c || connection_is_terminal (c, fwd))
   {
     struct MeshChannel *ch;
     unsigned int ch_buf;
@@ -1989,12 +1986,12 @@ send_prebuilt_message_channel (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
 
-  if (channel_is_terminal (ch, fwd))
+  if (channel_is_terminal (ch, fwd) || ch->t->peer->id == myid)
   {
     handle_decrypted (ch->t, message, fwd);
     return;
   }
-  
+
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD : GNUNET_MESSAGE_TYPE_MESH_BCK;
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
 
@@ -3073,6 +3070,38 @@ tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
   t->state = state;
 }
 
+
+/**
+ * Send all cached messages that we can, tunnel is online.
+ *
+ * @param t Tunnel that holds the messages.
+ * @param fwd Is this fwd?
+ */
+static void
+tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
+{
+  struct MeshTunnelQueue *tq;
+  struct MeshTunnelQueue *next;
+  unsigned int room;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "tunnel_send_queued_data on tunnel %s\n",
+              peer2s (t->peer));
+  room = tunnel_get_buffer (t, fwd);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
+  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
+  {
+    next = tq->next;
+    room--;
+    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
+    send_prebuilt_message_channel ((struct GNUNET_MessageHeader *) &tq[1],
+                                   tq->ch, fwd);
+
+    GNUNET_free (tq);
+  }
+}
+
+
 /**
  * Cache a message to be sent once tunnel is online.
  *
@@ -3098,31 +3127,6 @@ tunnel_queue_data (struct MeshTunnel2 *t,
 
   if (MESH_TUNNEL_READY == t->state)
     tunnel_send_queued_data (t, fwd);
-}
-
-
-static void
-tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
-{
-  struct MeshTunnelQueue *tq;
-  struct MeshTunnelQueue *next;
-  unsigned int room;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "tunnel_send_queued_data on tunnel %s\n",
-              peer2s (t->peer));
-  room = tunnel_get_buffer (t, fwd);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
-  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
-  {
-    next = tq->next;
-    room--;
-    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
-    send_prebuilt_message_channel ((struct GNUNET_MessageHeader *) &tq[1],
-                                   tq->ch, fwd);
-
-    GNUNET_free (tq);
-  }
 }
 
 
@@ -3871,7 +3875,7 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
-  if ( (NULL != ch && channel_is_terminal (ch, !fwd)) ||
+  if ( (NULL != ch && channel_is_origin (ch, fwd)) ||
        (NULL != c && connection_is_origin (c, fwd)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
@@ -6493,6 +6497,14 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   {
     peer->tunnel = tunnel_new ();
     peer->tunnel->peer = peer;
+    if (peer->id == myid)
+    {
+      tunnel_change_state (peer->tunnel, MESH_TUNNEL_READY);
+    }
+    else
+    {
+      peer_connect (peer);
+    }
   }
   t = peer->tunnel;
 
@@ -6507,14 +6519,13 @@ handle_local_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   ch->port = ntohl (msg->port);
   channel_set_options (ch, ntohl (msg->opt));
 
-  /* In unreliable channels, we'll use the DLL to buffer data for the root */
+  /* In unreliable channels, we'll use the DLL to buffer BCK data */
   ch->root_rel = GNUNET_new (struct MeshChannelReliability);
   ch->root_rel->ch = ch;
   ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
               peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
-  peer_connect (peer);
 
   /* Send create channel */
   {
