@@ -4540,13 +4540,11 @@ channel_destroy_iterator (void *cls,
   struct MeshChannel *ch = value;
   struct MeshClient *c = cls;
   struct MeshTunnel2 *t;
-  int loopback;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Channel %X (%X / %X) destroy, due to client %u shutdown.\n",
               ch->gid, ch->lid_root, ch->lid_dest, c->id);
   channel_debug (ch);
-  loopback = ( (NULL != ch->root) && (NULL != ch->dest) );
 
   if (c == ch->dest)
   {
@@ -4559,11 +4557,7 @@ channel_destroy_iterator (void *cls,
 
   t = ch->t;
   channel_send_destroy (ch);
-  if (GNUNET_NO == loopback)
-  {
-    /* In loopback, channel will be destroyed by the channel_destroy handler */
-    channel_destroy (ch);
-  }
+  channel_destroy (ch);
   tunnel_destroy_if_empty (t);
 
   return GNUNET_OK;
