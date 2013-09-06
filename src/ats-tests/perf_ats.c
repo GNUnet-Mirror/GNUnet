@@ -1172,6 +1172,7 @@ peerinformation_cb (void *cb_cls,
  */
 static void
 test_main (void *cls, unsigned int num_peers,
+	   struct GNUNET_TESTBED_RunHandle *h,
 	   struct GNUNET_TESTBED_Peer **peers_,
 	   unsigned int links_succeeded,
 	   unsigned int links_failed)
