@@ -929,7 +929,13 @@ identity_cb (void *cls,
     return;
   }
   fcfs_zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  httpd = MHD_start_daemon (MHD_USE_DUAL_STACK | MHD_USE_DEBUG,
+
+
+  httpd = MHD_start_daemon (
+#ifdef MHD_USE_DUAL_STACK
+  		    MHD_USE_DUAL_STACK |
+#endif
+  		    MHD_USE_DEBUG,
 			    (uint16_t) port,
 			    NULL, NULL, 
 			    &create_response, NULL, 
