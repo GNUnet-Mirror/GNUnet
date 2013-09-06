@@ -2967,7 +2967,6 @@ channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
   return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
 }
 
-#if 0
 
 static void
 channel_debug (struct MeshChannel *ch)
@@ -2977,8 +2976,8 @@ channel_debug (struct MeshChannel *ch)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X\n",
-              peer2s (ch->t->peer), ch->gid);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X (%p)\n",
+              peer2s (ch->t->peer), ch->gid, ch);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
               ch->root, ch->root_rel);
   if (NULL != ch->root)
@@ -2988,7 +2987,7 @@ channel_debug (struct MeshChannel *ch)
                 ch->root_rel->client_ready ? "YES" : "NO");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  dest %p/%p\n",
               ch->dest, ch->dest_rel);
   if (NULL != ch->dest)
   {
@@ -2999,6 +2998,7 @@ channel_debug (struct MeshChannel *ch)
   }
 }
 
+#if 0
 static void
 fc_debug (struct MeshFlowControl *fc)
 {
@@ -4424,6 +4424,10 @@ channel_destroy (struct MeshChannel *ch)
   if (NULL == ch)
     return;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
+              peer2s (ch->t->peer), ch->gid);
+  channel_debug (ch);
+
   c = ch->root;
   if (NULL != c)
   {
@@ -4536,10 +4540,13 @@ channel_destroy_iterator (void *cls,
   struct MeshChannel *ch = value;
   struct MeshClient *c = cls;
   struct MeshTunnel2 *t;
+  int loopback;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               " Channel %X (%X / %X) destroy, due to client %u shutdown.\n",
               ch->gid, ch->lid_root, ch->lid_dest, c->id);
+  channel_debug (ch);
+  loopback = ( (NULL != ch->root) && (NULL != ch->dest) );
 
   if (c == ch->dest)
   {
@@ -4552,7 +4559,11 @@ channel_destroy_iterator (void *cls,
 
   t = ch->t;
   channel_send_destroy (ch);
-  channel_destroy (ch);
+  if (GNUNET_NO == loopback)
+  {
+    /* In loopback, channel will be destroyed by the channel_destroy handler */
+    channel_destroy (ch);
+  }
   tunnel_destroy_if_empty (t);
 
   return GNUNET_OK;
@@ -5791,6 +5802,11 @@ handle_channel_destroy (struct MeshTunnel2 *t,
   if (NULL == ch)
   {
     /* Probably a retransmission, safe to ignore */
+    return;
+  }
+  if ( (fwd && NULL == ch->dest) || (!fwd && NULL == ch->root) )
+  {
+    /* Not for us (don't destroy twice a half-open loopback channel) */
     return;
   }
 
