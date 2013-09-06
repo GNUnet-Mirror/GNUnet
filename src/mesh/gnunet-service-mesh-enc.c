@@ -4365,6 +4365,7 @@ tunnel_destroy (struct MeshTunnel2 *t)
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
+  t->peer->tunnel = NULL;
 
   GNUNET_free (t);
 }
