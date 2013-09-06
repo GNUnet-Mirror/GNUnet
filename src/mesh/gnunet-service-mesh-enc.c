@@ -7150,33 +7150,19 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  char *keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
   GNUNET_SERVER_suspend (server_handle);
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "peer/privatekey");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
+  
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
                                            &refresh_connection_time))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "refresh path time");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "REFRESH_CONNECTION_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -7185,10 +7171,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "id announce time");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "ID_ANNOUNCE_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -7197,10 +7181,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "CONNECT_TIMEOUT",
                                            &connect_timeout))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "connect timeout");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "CONNECT_TIMEOUT", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -7209,10 +7191,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
                                              &max_msgs_queue))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "max msgs queue");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "MAX_MSGS_QUEUE", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -7221,10 +7201,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
                                              &max_connections))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "mesh", "max tunnels");
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "MAX_CONNECTIONS", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -7233,10 +7211,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DEFAULT_TTL",
                                              &default_ttl))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "mesh", "default ttl", 64);
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "MESH", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
 
@@ -7244,9 +7220,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
                                              &max_peers))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "mesh", "max peers", 1000);
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "MESH", "MAX_PEERS", "USING DEFAULT");
     max_peers = 1000;
   }
 
@@ -7259,19 +7234,19 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Mesh is running with drop mode enabled. "
-                "This is NOT a good idea! "
-                "Remove the DROP_PERCENT option from your configuration.\n");
+                "\n***************************************\n"
+                "Mesh is running with drop mode enabled.\n"
+                "This is NOT a good idea!\n"
+                "Remove the DROP_PERCENT option from your configuration.\n"
+                "***************************************\n");
   }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("%s service is lacking key configuration settings (%s). Using default (%u).\n"),
-                "mesh", "dht replication level", 3);
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "MESH", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
     dht_replication_level = 3;
   }
 
@@ -7289,8 +7264,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "reading key\n");
+  pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (c);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
   GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
