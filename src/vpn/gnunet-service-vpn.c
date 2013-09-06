@@ -3078,11 +3078,11 @@ run (void *cls,
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("vpn", cfg);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_MAPPING",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "VPN", "MAX_MAPPING",
 					     &max_destination_mappings))
     max_destination_mappings = 200;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "vpn", "MAX_TUNNELS",
+      GNUNET_CONFIGURATION_get_value_number (cfg, "VPN", "MAX_TUNNELS",
 					     &max_tunnel_mappings))
     max_tunnel_mappings = 200;
 
@@ -3094,10 +3094,9 @@ run (void *cls,
 
   vpn_argv[0] = GNUNET_strdup ("vpn-gnunet");
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IFNAME", &ifname))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "VPN", "IFNAME", &ifname))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'IFNAME' in configuration!\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "VPN", "IFNAME");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -3105,32 +3104,33 @@ run (void *cls,
   if (GNUNET_OK == GNUNET_NETWORK_test_pf (PF_INET6))
   {
     if ( (GNUNET_SYSERR ==
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6ADDR",
+	  GNUNET_CONFIGURATION_get_value_string (cfg, "VPN", "IPV6ADDR",
 						 &ipv6addr) ||
 	  (1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No valid entry 'IPV6ADDR' in configuration!\n");
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6ADDR", 
+				 _("Must specify valid IPv6 address"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
     vpn_argv[2] = ipv6addr;
     if (GNUNET_SYSERR ==
-	GNUNET_CONFIGURATION_get_value_string (cfg, "vpn", "IPV6PREFIX",
+	GNUNET_CONFIGURATION_get_value_string (cfg, "VPN", "IPV6PREFIX",
 					       &ipv6prefix_s))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No entry 'IPV6PREFIX' in configuration!\n");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6PREFIX");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
     vpn_argv[3] = ipv6prefix_s;
     if ( (GNUNET_OK !=
-	  GNUNET_CONFIGURATION_get_value_number (cfg, "vpn",
+	  GNUNET_CONFIGURATION_get_value_number (cfg, "VPN",
 						 "IPV6PREFIX",
 						 &ipv6prefix)) ||
 	 (ipv6prefix >= 127) )
     {
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4MASK",
+				 _("Must specify valid IPv6 mask"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3149,8 +3149,8 @@ run (void *cls,
 						 &ipv4addr) ||
 	  (1 != inet_pton (AF_INET, ipv4addr, &v4))) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No valid entry for 'IPV4ADDR' in configuration!\n");
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4ADDR", 
+				 _("Must specify valid IPv4 address"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3160,8 +3160,8 @@ run (void *cls,
 						 &ipv4mask) ||
 	  (1 != inet_pton (AF_INET, ipv4mask, &v4))) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No valid entry 'IPV4MASK' in configuration!\n");
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4MASK",
+				 _("Must specify valid IPv4 mask"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }

@@ -347,9 +347,11 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_notification_context_broadcast (nc, &sdm->header, GNUNET_NO);
       GNUNET_free (sdm);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_free (identifier);
       return;
     }
   }
+  GNUNET_free (identifier);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Failed to find ego `%s'\n",
 	      name);

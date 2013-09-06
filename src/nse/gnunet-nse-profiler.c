@@ -440,8 +440,10 @@ stat_iterator (void *cls, const char *subsystem, const char *name,
   if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to write to file!\n");
+    GNUNET_free (output_buffer);
     return GNUNET_SYSERR;
   }
+  GNUNET_free (output_buffer);
   return GNUNET_OK;
 }
 
