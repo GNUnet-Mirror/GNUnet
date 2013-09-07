@@ -1027,7 +1027,7 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
   }
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
-  ee = GNUNET_malloc (sizeof *eo + element_size);
+  ee = GNUNET_malloc (sizeof *ee + element_size);
   memcpy (&ee[1], &mh[1], element_size);
   ee->element.size = element_size;
   ee->element.data = &ee[1];
