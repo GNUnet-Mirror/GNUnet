@@ -813,7 +813,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_PUBLISH_PROGRESS events.
+	 * #GNUNET_FS_STATUS_PUBLISH_PROGRESS events.
 	 */
         struct
         {
@@ -843,7 +843,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_PUBLISH_RESUME events.
+	 * #GNUNET_FS_STATUS_PUBLISH_RESUME events.
 	 */
         struct
         {
@@ -862,7 +862,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_PUBLISH_COMPLETED events.
+	 * #GNUNET_FS_STATUS_PUBLISH_COMPLETED events.
 	 */
         struct
         {
@@ -876,7 +876,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_PUBLISH_ERROR events.
+	 * #GNUNET_FS_STATUS_PUBLISH_ERROR events.
 	 */
         struct
         {
@@ -977,7 +977,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_DOWNLOAD_PROGRESS events.
+	 * #GNUNET_FS_STATUS_DOWNLOAD_PROGRESS events.
 	 */
         struct
         {
@@ -1002,7 +1002,7 @@ struct GNUNET_FS_ProgressInfo
 
           /**
 	   * How much time passed between us asking for this block and
-           * actually getting it? GNUNET_TIME_UNIT_FOREVER_REL if unknown.
+           * actually getting it? #GNUNET_TIME_UNIT_FOREVER_REL if unknown.
 	   */
           struct GNUNET_TIME_Relative block_download_duration;
 
@@ -1032,7 +1032,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_DOWNLOAD_START events.
+	 * #GNUNET_FS_STATUS_DOWNLOAD_START events.
 	 */
         struct
         {
@@ -1046,7 +1046,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_DOWNLOAD_RESUME events.
+	 * #GNUNET_FS_STATUS_DOWNLOAD_RESUME events.
 	 */
         struct
         {
@@ -1065,7 +1065,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_DOWNLOAD_ERROR events.
+	 * #GNUNET_FS_STATUS_DOWNLOAD_ERROR events.
 	 */
         struct
         {
@@ -1139,7 +1139,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_RESULT events.
+	 * #GNUNET_FS_STATUS_SEARCH_RESULT events.
 	 */
         struct
         {
@@ -1169,7 +1169,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_RESUME_RESULT events.
+	 * #GNUNET_FS_STATUS_SEARCH_RESUME_RESULT events.
 	 */
         struct
         {
@@ -1212,7 +1212,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_UPDATE events.
+	 * #GNUNET_FS_STATUS_SEARCH_UPDATE events.
 	 */
         struct
         {
@@ -1261,10 +1261,10 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND events.
+	 * #GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND events.
 	 * These events are automatically triggered for
 	 * each search result before the
-	 * GNUNET_FS_STATUS_SEARCH_SUSPEND event.  This
+	 * #GNUNET_FS_STATUS_SEARCH_SUSPEND event.  This
 	 * happens primarily to give the client a chance
 	 * to clean up the "cctx" (if needed).
 	 */
@@ -1291,10 +1291,10 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED events.
+	 * #GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED events.
 	 * These events are automatically triggered for
 	 * each search result before the
-	 * GNUNET_FS_STATUS_SEARCH_STOPPED event.  This
+	 * #GNUNET_FS_STATUS_SEARCH_STOPPED event.  This
 	 * happens primarily to give the client a chance
 	 * to clean up the "cctx" (if needed).
 	 */
@@ -1321,7 +1321,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_RESUME events.
+	 * #GNUNET_FS_STATUS_SEARCH_RESUME events.
 	 */
         struct
         {
@@ -1340,7 +1340,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_SEARCH_ERROR events.
+	 * #GNUNET_FS_STATUS_SEARCH_ERROR events.
 	 */
         struct
         {
@@ -1353,7 +1353,7 @@ struct GNUNET_FS_ProgressInfo
         } error;
 
         /**
-	 * Values for all "GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE" events.
+	 * Values for #GNUNET_FS_STATUS_SEARCH_RESULT_NAMESPACE events.
 	 */
         struct
         {
@@ -1438,7 +1438,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_UNINDEX_PROGRESS events.
+	 * #GNUNET_FS_STATUS_UNINDEX_PROGRESS events.
 	 */
         struct
         {
@@ -1468,7 +1468,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_UNINDEX_RESUME events.
+	 * #GNUNET_FS_STATUS_UNINDEX_RESUME events.
 	 */
         struct
         {
@@ -1482,7 +1482,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * GNUNET_FS_STATUS_UNINDEX_ERROR events.
+	 * #GNUNET_FS_STATUS_UNINDEX_ERROR events.
 	 */
         struct
         {
@@ -1525,7 +1525,7 @@ struct GNUNET_FS_ProgressInfo
  *         for this operation; should be set to NULL for
  *         SUSPEND and STOPPED events).  The value returned
  *         will be passed to future callbacks in the respective
- *         field in the GNUNET_FS_ProgressInfo struct.
+ *         field in the `struct GNUNET_FS_ProgressInfo`.
  */
 typedef void *(*GNUNET_FS_ProgressCallback) (void *cls,
                                              const struct GNUNET_FS_ProgressInfo *info);
@@ -1536,22 +1536,22 @@ typedef void *(*GNUNET_FS_ProgressCallback) (void *cls,
  */
 enum GNUNET_FS_Flags
 {
-    /**
-     * No special flags set.
-     */
+  /**
+   * No special flags set.
+   */
   GNUNET_FS_FLAGS_NONE = 0,
 
-    /**
-     * Is persistence of operations desired?
-     * (will create SUSPEND/RESUME events).
-     */
+  /**
+   * Is persistence of operations desired?
+   * (will create SUSPEND/RESUME events).
+   */
   GNUNET_FS_FLAGS_PERSISTENCE = 1,
 
-    /**
-     * Should we automatically trigger probes for search results
-     * to determine availability?
-     * (will create GNUNET_FS_STATUS_SEARCH_UPDATE events).
-     */
+  /**
+   * Should we automatically trigger probes for search results
+   * to determine availability?
+   * (will create #GNUNET_FS_STATUS_SEARCH_UPDATE events).
+   */
   GNUNET_FS_FLAGS_DO_PROBES = 2
 };
 
@@ -1668,9 +1668,9 @@ struct GNUNET_FS_Handle;
  * @param cfg configuration to use
  * @param client_name unique identifier for this client
  * @param upcb function to call to notify about FS actions
- * @param upcb_cls closure for upcb
+ * @param upcb_cls closure for @a upcb
  * @param flags specific attributes for fs-operations
- * @param ... list of optional options, terminated with GNUNET_FS_OPTIONS_END
+ * @param ... list of optional options, terminated with #GNUNET_FS_OPTIONS_END
  * @return NULL on error
  */
 struct GNUNET_FS_Handle *
@@ -1898,7 +1898,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
  * Test if a given entry represents a directory.
  *
  * @param ent check if this FI represents a directory
- * @return GNUNET_YES if so, GNUNET_NO if not
+ * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
 int
 GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
@@ -1908,13 +1908,13 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
 /**
  * Add an entry to a directory in a publish-structure.  Clients
  * should never modify publish structures that were passed to
- * "GNUNET_FS_publish_start" already.
+ * #GNUNET_FS_publish_start already.
  *
  * @param dir the directory
  * @param ent the entry to add; the entry must not have been
  *            added to any other directory at this point and
- *            must not include "dir" in its structure
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ *            must not include @a dir in its structure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
@@ -1924,16 +1924,16 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
 /**
  * Inspect a file or directory in a publish-structure.  Clients
  * should never modify publish structures that were passed to
- * "GNUNET_FS_publish_start" already.  When called on a directory,
- * this function will FIRST call "proc" with information about
+ * #GNUNET_FS_publish_start already.  When called on a directory,
+ * this function will FIRST call @a proc with information about
  * the directory itself and then for each of the files in the
  * directory (but not for files in subdirectories).  When called
- * on a file, "proc" will be called exactly once (with information
+ * on a file, @a proc will be called exactly once (with information
  * about the specific file).
  *
  * @param dir the directory
  * @param proc function to call on each entry
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 void
 GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
@@ -1943,13 +1943,13 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 
 /**
  * Destroy publish-structure.  Clients should never destroy publish
- * structures that were passed to "GNUNET_FS_publish_start" already.
+ * structures that were passed to #GNUNET_FS_publish_start already.
  *
  * @param fi structure to destroy
  * @param cleaner function to call on each entry in the structure
  *        (useful to clean up client_info); can be NULL; return
  *        values are ignored
- * @param cleaner_cls closure for cleaner
+ * @param cleaner_cls closure for @a cleaner
  */
 void
 GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
@@ -1963,15 +1963,15 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
  */
 enum GNUNET_FS_PublishOptions
 {
-    /**
-     * No options (use defaults for everything).
-     */
+  /**
+   * No options (use defaults for everything).
+   */
   GNUNET_FS_PUBLISH_OPTION_NONE = 0,
 
-    /**
-     * Simulate publishing.  With this option, no data will be stored
-     * in the datastore.  Useful for computing URIs from files.
-     */
+  /**
+   * Simulate publishing.  With this option, no data will be stored
+   * in the datastore.  Useful for computing URIs from files.
+   */
   GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY = 1
 };
 
@@ -2039,8 +2039,8 @@ struct GNUNET_FS_PublishKskContext;
  * @param bo block options
  * @param options publication options
  * @param cont continuation
- * @param cont_cls closure for cont
- * @return NULL on error ('cont' will still be called)
+ * @param cont_cls closure for @a cont
+ * @return NULL on error (@a cont will still be called)
  */
 struct GNUNET_FS_PublishKskContext *
 GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
@@ -2079,13 +2079,14 @@ struct GNUNET_FS_PublishSksContext;
  * @param bo block options
  * @param options publication options
  * @param cont continuation
- * @param cont_cls closure for cont
- * @return NULL on error ('cont' will still be called)
+ * @param cont_cls closure for @a cont
+ * @return NULL on error (@a cont will still be called)
  */
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        const struct GNUNET_CRYPTO_EccPrivateKey *ns,
-                       const char *identifier, const char *update,
+                       const char *identifier, 
+		       const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
                        const struct GNUNET_FS_BlockOptions *bo,
@@ -2103,12 +2104,12 @@ GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc);
 
 
 /**
- * Type of a function called by "GNUNET_FS_get_indexed_files".
+ * Type of a function called by #GNUNET_FS_get_indexed_files.
  *
  * @param cls closure
  * @param filename the name of the file, NULL for end of list
  * @param file_id hash of the contents of the indexed file
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls, const char *filename,
                                                const struct GNUNET_HashCode * file_id);
@@ -2125,7 +2126,7 @@ struct GNUNET_FS_GetIndexedContext;
  *
  * @param h handle to the file sharing subsystem
  * @param iterator function to call on each indexed file
- * @param iterator_cls closure for iterator
+ * @param iterator_cls closure for @a iterator
  * @return NULL on error ('iter' is not called)
  */
 struct GNUNET_FS_GetIndexedContext *
@@ -2152,7 +2153,8 @@ GNUNET_FS_get_indexed_files_cancel (struct GNUNET_FS_GetIndexedContext *gic);
  * @return NULL on error, otherwise handle
  */
 struct GNUNET_FS_UnindexContext *
-GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, const char *filename,
+GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
+			 const char *filename,
                          void *cctx);
 
 
@@ -2174,12 +2176,11 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param last_meta metadata associated with last_uri
  * @param next_id identifier that should be used for updates
  */
-typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, const char *last_id,
-                                               const struct GNUNET_FS_Uri *
-                                               last_uri,
-                                               const struct
-                                               GNUNET_CONTAINER_MetaData *
-                                               last_meta, const char *next_id);
+typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, 
+					       const char *last_id,
+                                               const struct GNUNET_FS_Uri *last_uri,
+                                               const struct GNUNET_CONTAINER_MetaData *last_meta, 
+					       const char *next_id);
 
 
 /**
@@ -2188,20 +2189,20 @@ typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, const char *last_id,
  * has a name.  Each node can have any number of URI/meta-data entries
  * which can each be linked to other nodes.  Cycles are possible.
  *
- * Calling this function with "next_id" NULL will cause the library to
- * call "ip" with a root for each strongly connected component of the
+ * Calling this function with @a next_id NULL will cause the library to
+ * call @a ip with a root for each strongly connected component of the
  * graph (a root being a node from which all other nodes in the Scc
  * are reachable).
  *
- * Calling this function with "next_id" being the name of a node will
- * cause the library to call "ip" with all children of the node.  Note
+ * Calling this function with @a next_id being the name of a node will
+ * cause the library to call @a ip with all children of the node.  Note
  * that cycles within an SCC are possible (including self-loops).
  *
-* @param h fs handle to use
+ * @param h fs handle to use
  * @param ns namespace to inspect for updateable content
  * @param next_id ID to look for; use NULL to look for SCC roots
  * @param ip function to call on each updateable identifier
- * @param ip_cls closure for ip
+ * @param ip_cls closure for @a ip
  */
 void
 GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
@@ -2293,7 +2294,7 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
 
 /**
  * Stop probe activity.  Must ONLY be used on values
- * returned from 'GNUNET_FS_probe'.
+ * returned from #GNUNET_FS_probe.
  *
  * @param sr search result to stop probing for (freed)
  * @return the value of the 'client_info' pointer
@@ -2348,7 +2349,7 @@ enum GNUNET_FS_DownloadOptions
  * download is still using the blocking of the underlying FS
  * encoding.  As a result, the download may *write* outside of the
  * given boundaries (if offset and length do not match the 32k FS
- * block boundaries). <p>
+ * block boundaries).
  *
  * The given range can be used to focus a download towards a
  * particular portion of the file (optimization), not to strictly
@@ -2394,7 +2395,7 @@ GNUNET_FS_download_start (struct GNUNET_FS_Handle *h,
  * download is still using the blocking of the underlying FS
  * encoding.  As a result, the download may *write* outside of the
  * given boundaries (if offset and length do not match the 32k FS
- * block boundaries). <p>
+ * block boundaries).
  *
  * The given range can be used to focus a download towards a
  * particular portion of the file (optimization), not to strictly
@@ -2448,8 +2449,8 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete);
  * Does the meta-data claim that this is a directory?
  * Checks if the mime-type is that of a GNUnet directory.
  *
- * @return GNUNET_YES if it is, GNUNET_NO if it is not, GNUNET_SYSERR if
- *  we have no mime-type information (treat as 'GNUNET_NO')
+ * @return #GNUNET_YES if it is, #GNUNET_NO if it is not, #GNUNET_SYSERR if
+ *  we have no mime-type information (treat as #GNUNET_NO)
  */
 int
 GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData
@@ -2473,8 +2474,7 @@ GNUNET_FS_meta_data_make_directory (struct GNUNET_CONTAINER_MetaData *md);
  * @return NULL if meta data is useless for suggesting a filename
  */
 char *
-GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData
-                                      *md);
+GNUNET_FS_meta_data_suggest_filename (const struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -2516,10 +2516,10 @@ typedef void (*GNUNET_FS_DirectoryEntryProcessor) (void *cls,
  * @param data pointer to the beginning of the directory
  * @param offset offset of data in the directory
  * @param dep function to call on each entry
- * @param dep_cls closure for dep
- * @return GNUNET_OK if this could be a block in a directory,
- *         GNUNET_NO if this could be part of a directory (but not 100% OK)
- *         GNUNET_SYSERR if 'data' does not represent a directory
+ * @param dep_cls closure for @a dep
+ * @return #GNUNET_OK if this could be a block in a directory,
+ *         #GNUNET_NO if this could be part of a directory (but not 100% OK)
+ *         #GNUNET_SYSERR if 'data' does not represent a directory
  */
 int
 GNUNET_FS_directory_list_contents (size_t size, const void *data,
@@ -2532,6 +2532,7 @@ GNUNET_FS_directory_list_contents (size_t size, const void *data,
  * Opaque handle to a directory builder.
  */
 struct GNUNET_FS_DirectoryBuilder;
+
 
 /**
  * Create a directory builder.
@@ -2568,7 +2569,7 @@ GNUNET_FS_directory_builder_add (struct GNUNET_FS_DirectoryBuilder *bld,
  * @param bld directory to finish
  * @param rsize set to the number of bytes needed
  * @param rdata set to the encoded directory
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_FS_directory_builder_finish (struct GNUNET_FS_DirectoryBuilder *bld,
@@ -2624,9 +2625,9 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
  *
  * @param cls closure
  * @param filename which file we are making progress on
- * @param is_directory GNUNET_YES if this is a directory,
- *                     GNUNET_NO if this is a file
- *                     GNUNET_SYSERR if it is neither (or unknown)
+ * @param is_directory #GNUNET_YES if this is a directory,
+ *                     #GNUNET_NO if this is a file
+ *                     #GNUNET_SYSERR if it is neither (or unknown)
  * @param reason kind of progress we are making
  */
 typedef void (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
@@ -2689,7 +2690,7 @@ struct GNUNET_FS_ShareTreeItem
   char *short_filename;
 
   /**
-   * GNUNET_YES if this is a directory
+   * #GNUNET_YES if this is a directory
    */
   int is_directory;
 
@@ -2706,10 +2707,10 @@ struct GNUNET_FS_DirScanner;
  * Start a directory scanner.
  *
  * @param filename name of the directory to scan
- * @param disable_extractor GNUNET_YES to not to run libextractor on files (only build a tree)
+ * @param disable_extractor #GNUNET_YES to not to run libextractor on files (only build a tree)
  * @param ex if not NULL, must be a list of extra plugins for extractor
  * @param cb the callback to call when there are scanning progress messages
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  * @return directory scanner object to be used for controlling the scanner
  */
 struct GNUNET_FS_DirScanner *
@@ -2721,7 +2722,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
 
 
 /**
- * Abort the scan.    Must not be called from within the progress_callback
+ * Abort the scan. Must not be called from within the progress_callback
  * function.
  *
  * @param ds directory scanner structure
@@ -2732,7 +2733,7 @@ GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds);
 
 /**
  * Obtain the result of the scan after the scan has signalled
- * completion.  Must not be called prior to completion.  The 'ds' is
+ * completion.  Must not be called prior to completion.  The @a ds is
  * freed as part of this call.
  *
  * @param ds directory scanner structure
