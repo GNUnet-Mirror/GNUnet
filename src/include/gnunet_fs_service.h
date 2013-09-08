@@ -1630,33 +1630,6 @@ struct GNUNET_FS_BlockOptions
 
 
 /**
- * Return the current year (i.e. '2011').
- */
-unsigned int
-GNUNET_FS_get_current_year (void);
-
-
-/**
- * Convert a year to an expiration time of January 1st of that year.
- *
- * @param year a year (after 1970, please ;-)).
- * @return absolute time for January 1st of that year.
- */
-struct GNUNET_TIME_Absolute
-GNUNET_FS_year_to_time (unsigned int year);
-
-
-/**
- * Convert an expiration time to the respective year (rounds)
- *
- * @param at absolute time 
- * @return year a year (after 1970), 0 on error
- */
-unsigned int 
-GNUNET_FS_time_to_year (struct GNUNET_TIME_Absolute at);
-
-
-/**
  * Handle to the file-sharing service.
  */
 struct GNUNET_FS_Handle;
