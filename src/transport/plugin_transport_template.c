@@ -107,7 +107,7 @@ struct Session
 
 };
 
-#define GNUNET_NETWORK_STRUCT_BEGIN
+GNUNET_NETWORK_STRUCT_BEGIN
 
 struct TemplateAddress
 {
