@@ -1274,7 +1274,8 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   int i = 0;
   int retcode = 0;
-  DWORD ms_total = 0;
+  uint64_t mcs_total = 0;
+  DWORD ms_rounded = 0;
 
   int nhandles = 0;
 
@@ -1383,22 +1384,23 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
 #else
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
-  /* calculate how long we need to wait in milliseconds */
+  /* calculate how long we need to wait in microseconds */
   if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    ms_total = INFINITE;
+  {
+    mcs_total = INFINITE;
+    ms_rounded = INFINITE;
+  }
   else
   {
-    ms_total = timeout.rel_value_us / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us;
-    if (timeout.rel_value_us / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us > 0xFFFFFFFFLL - 1)
-    {
-      GNUNET_break (0);
-      ms_total = 0xFFFFFFFF - 1;
-    }
+    mcs_total = timeout.rel_value_us / GNUNET_TIME_UNIT_MICROSECONDS.rel_value_us;
+    ms_rounded = (DWORD) (mcs_total / GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us);
+    if (mcs_total > 0 && ms_rounded == 0)
+      ms_rounded = 1;
   }
   /* select() may be used as a portable way to sleep */
   if (!(rfds || wfds || efds))
   {
-    Sleep (ms_total);
+    Sleep (ms_rounded);
     return 0;
   }
 
@@ -1413,9 +1415,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     select_standby_event = CreateEvent (NULL, TRUE, FALSE, NULL);
     select_finished_event = CreateEvent (NULL, TRUE, FALSE, NULL);
 
-    select_wakeup_socket = WSASocket (AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    select_wakeup_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    select_listening_socket = WSASocket (AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+    select_listening_socket = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     p = 1;
     res = ioctlsocket (select_wakeup_socket, FIONBIO, &p);
@@ -1518,7 +1520,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   /* If our select returned something or is a 0-timed request, then also check the pipes and get out of here! */
   /* Sadly, it means code duplication :( */
-  if ((selectret > 0) || (ms_total == 0))
+  if ((selectret > 0) || (mcs_total == 0))
   {
     /* Read Pipes */
     if (rfds && read_handles)
@@ -1781,6 +1783,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       sp.tv = &select_timeout;
     }
     FD_SET (select_wakeup_socket, &aread);
+    do
+    {
+      i = recv (select_wakeup_socket, (char *) &returnedpos, 1, 0);
+    } while (i == 1);
     sp.r = &aread;
     sp.w = &awrite;
     sp.e = &aexcept;
@@ -1798,17 +1804,17 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
 
   handle_array[nhandles] = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "nfds: %d, handles: %d, will wait: %llu ms\n", 
-       nfds, nhandles, (unsigned long long) ms_total);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "nfds: %d, handles: %d, will wait: %llu mcs\n",
+       nfds, nhandles, mcs_total);
   if (nhandles)
   {
     returncode =
-        WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_total);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n",
-         returncode);
+        WaitForMultipleObjects (nhandles, handle_array, FALSE, ms_rounded);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WaitForMultipleObjects Returned : %d\n", returncode);
   }
   else if (nfds > 0)
   {
+    GNUNET_break (0); /* This branch shouldn't actually be executed...*/
     i = (int) WaitForSingleObject (select_finished_event, INFINITE);
     returncode = WAIT_TIMEOUT;
   }
@@ -1823,11 +1829,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     /* Don't wake up select-thread when delay is 0, it should return immediately
      * and wake up by itself.
      */
-    if (ms_total != 0)
+    if (mcs_total != 0)
       i = send (select_send_socket, (const char *) &returnedpos, 1, 0);
     i = (int) WaitForSingleObject (select_finished_event, INFINITE);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished waiting for the select thread: %d %d\n", i, sp.status);
-    if (ms_total != 0)
+    if (mcs_total != 0)
     {
       do
       {
