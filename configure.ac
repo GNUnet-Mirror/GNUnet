@@ -1332,6 +1332,7 @@ src/peerinfo/Makefile
 src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
 src/postgres/Makefile
+src/psycstore/psycstore.conf
 src/pt/Makefile
 src/regex/Makefile
 src/regex/regex.conf
