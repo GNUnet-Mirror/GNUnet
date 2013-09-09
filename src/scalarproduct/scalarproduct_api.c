@@ -440,16 +440,16 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
 
-  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_bytes;
+  size = sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_bytes;
 
   h->cont_datum = cont;
   h->cont_cls = cont_cls;
   h->response_proc = &process_status_message;
   h->cfg = cfg;
-  h->msg = GNUNET_malloc (size);
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
 
-  msg = (struct GNUNET_SCALARPRODUCT_client_request*) h->msg;
+  msg = (struct GNUNET_SCALARPRODUCT_client_request*) GNUNET_malloc (size);
+  h->msg = msg;
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
   msg->element_count = htons (element_count);
