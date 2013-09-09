@@ -1,0 +1,65 @@
+* Description
+The barriers component of testbed facilitates coordination among the peers run
+by the testbed and the experiment driver.  The concept is similar to the barrier
+synchronisation mechanism found in parallel programming or multithreading
+paradigms - a peer waits at a barrier upon reaching it until it is crossed i.e,
+reached by a predefined number of peers.  This predefined number peers required
+to cross a barrier is also called quorum.
+
+Coordination among the peers and the experiment driver is achieved through the
+barriers service and its respective barriers API.  The barriers API provides the
+following functions:
+
+1) barrier_init():  function to initialse a barrier in the experiment
+2) barrier_cancel(): function to cancel a barrier which has been initialised
+    before
+3) barrier_wait(): function to signal barrier service that the caller has reached
+    a barrier and is waiting for it to be crossed
+4) barrier_wait_cancel(): function to stop waiting for a barrier to be crossed
+
+Among the above functions, the first two, namely barrier_init() and
+barrier_cacel() are used by experiment drivers.  All barriers should be
+initialised by the experiment driver by calling barrier_init().  This function
+takes a name to identify the barrier and a notification callback for notifying
+the experiment driver when the barrier is crossed.  The function
+barrier_cancel() cancels an initialised barrier and frees the resources
+allocated for it.  This function can be called upon a initialised barrier before
+it is crossed.
+
+The remaining two functions barrier_wait() and barrier_wait_cancel() are used in
+the peer's processes.  barrier_wait() connects to the local barrier service and
+registers that the caller has reached the barrier and is waiting for the barrier
+to be crossed.  Note that this function can only be used by peers which are
+started by testbed as this function tries to access the local barrier service
+which is part of the testbed controller service.  Calling barrier_wait() on an
+uninitialised barrier (or not-yet-initialised) barrier results in failure.
+barrier_wait_cancel() cancels the notification registered by barrier_wait().
+
+
+* Implementation
+Since barriers involve coordination between experiment driver and peers the
+barrier service is split into two components.  The first component responds to
+the barrier API used by the experiment driver (functions barrier_init() and
+barrier_cancel()) and the second component to the barrier API used by peers
+(functions barrier_wait() and barrier_wait_cancel())
+
+Calling barrier_init() sends a BARRIER_INIT message to the master controller.
+The master controller then registers a barrier and calls barrier_init() for each
+its subcontrollers.  In this way barrier initialisation is propagated to the
+controller hierarchy.  While propagating initialisation, any errors at a
+subcontroller such as timeout during further propagation are reported up the
+hierarchy back to the experiment driver.
+
+Similar to barrier_init(), barrier_cancel() propagates BARRIER_CANCEL message
+which causes controllers to remove an initialised barrier.
+
+The second component, according to gnunet architecture, is actually an another
+service but runs in the same binary `gnunet-service-testbed'; the reason is
+that it requires access to barrier data created by the first component.  This
+component responds to BARRIER_WAIT messages from local peers when they call
+barrier_wait().  Upon receiving BARRIER_WAIT message, the service checks if the
+requested barrier has been initialised before and it was not initialised the
+an error status is sent through BARRIER_STATUS message to the local peer and the
+connection from the peer is terminated.  If the barrier is initialised before,
+the barrier's counter for reached peers is incremented and a notification is
+registered to notify this peer when the barrier is reached.
