@@ -51,7 +51,7 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
  * @param handle handle to initialize
  * @param sessionkey session key to use
  * @param iv initialization vector to use
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 setup_cipher (gcry_cipher_hd_t *handle,

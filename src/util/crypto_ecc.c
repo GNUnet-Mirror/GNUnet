@@ -309,7 +309,7 @@ GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKey 
  * @param enc encoded public key
  * @param enclen number of bytes in enc (without 0-terminator)
  * @param pub where to store the public key
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc, 
@@ -879,7 +879,6 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   }
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
-  /* FIXME: only use 'result_x' as key material */
 
   mpi_print (xbuf, sizeof (xbuf), result_x);
   GNUNET_CRYPTO_hash (xbuf, sizeof (xbuf), key_material);

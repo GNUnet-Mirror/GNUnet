@@ -1301,8 +1301,6 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
   int tolerant;
 
 #ifndef MINGW
-  const char *lpid;
-  unsigned int pid;
   const char *nfds;
   unsigned int cnt;
   int flags;
@@ -1343,9 +1341,7 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
 
 #ifndef MINGW
   errno = 0;
-  if ((NULL != (lpid = getenv ("LISTEN_PID"))) &&
-      (1 == SSCANF (lpid, "%u", &pid)) && (getpid () == (pid_t) pid) &&
-      (NULL != (nfds = getenv ("LISTEN_FDS"))) &&
+  if ((NULL != (nfds = getenv ("LISTEN_FDS"))) &&
       (1 == SSCANF (nfds, "%u", &cnt)) && (cnt > 0) && (cnt < FD_SETSIZE) &&
       (cnt + 4 < FD_SETSIZE))
   {
@@ -1370,7 +1366,6 @@ setup_service (struct GNUNET_SERVICE_Context *sctx)
         break;
       }
     }
-    unsetenv ("LISTEN_PID");
     unsetenv ("LISTEN_FDS");
   }
 #else

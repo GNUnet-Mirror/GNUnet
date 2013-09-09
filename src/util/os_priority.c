@@ -510,7 +510,6 @@ start_process (int pipe_control,
 {
 #ifndef MINGW
   pid_t ret;
-  char lpid[16];
   char fds[16];
   struct GNUNET_OS_Process *gnunet_proc;
   struct GNUNET_DISK_FileHandle *childpipe_read;
@@ -615,7 +614,7 @@ start_process (int pipe_control,
   if (0 != ret)
   {
     unsetenv (GNUNET_OS_CONTROL_PIPE);
-    gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
+    gnunet_proc = GNUNET_new (struct GNUNET_OS_Process);
     gnunet_proc->pid = ret;
     gnunet_proc->control_pipe = childpipe_write;
     if (GNUNET_YES == pipe_control)
@@ -669,8 +668,6 @@ start_process (int pipe_control,
   if (NULL != lscp)
   {
     /* read systemd documentation... */
-    GNUNET_snprintf (lpid, sizeof (lpid), "%u", getpid ());
-    setenv ("LISTEN_PID", lpid, 1);
     i = 0;
     tgt = 3;
     while (-1 != lscp[i])
