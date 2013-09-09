@@ -21,12 +21,12 @@ man_MANS = \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \
   gnunet-rsa.1 \
+  gnunet-scalarproduct.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \
   gnunet-transport.1 \
   gnunet-unindex.1 \
   gnunet-uri.1 \
-  gnunet-vectorproduct.1 \
   gnunet-vpn.1
 
 EXTRA_DIST = ${man_MANS}
