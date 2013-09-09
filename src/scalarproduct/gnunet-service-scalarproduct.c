@@ -504,12 +504,14 @@ do_send_message (void *cls, size_t size, void *buf)
       written = size;
     }
 
-  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT == ntohs(session->msg->type)){
-    session->state = FINALIZED;
-    session->client_transmit_handle = NULL;
+  switch (ntohs(session->msg->type)){
+    case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT:
+      session->state = FINALIZED;
+      session->client_transmit_handle = NULL;
+      break;
+    default:
+      session->service_transmit_handle = NULL;
   }
-  else
-    session->service_transmit_handle = NULL;
     
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Sent a message of type %hu.\n", 
@@ -1642,6 +1644,7 @@ prepare_client_response (void *cls,
       
       sign = gcry_mpi_cmp_ui(session->product, 0);
       // libgcrypt can not handle a print of a negative number
+      // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
       if (0 > sign){
           gcry_mpi_sub(value, value, session->product);
       }
@@ -1652,23 +1655,20 @@ prepare_client_response (void *cls,
       else
         range = 0;
       
+      gcry_mpi_release (session->product);
+      session->product = NULL;
+      
       // get representation as string
-      // unfortunately libgcrypt is too stupid to implement print-support in
-      // signed GCRYMPI_FMT_STD format, and simply asserts in that case.
-      // here is the associated sourcecode:
-      // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
       if (range
-          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_USG,
+          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_STD,
                                              &product_exported,
                                              &product_length,
-                                             session->product)))){
+                                             value)))){
         LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
         product_length = 0;
         range = -1; // signal error with product-length = 0 and range = -1
       }
-      
-      gcry_mpi_release (session->product);
-      session->product = NULL;
+      gcry_mpi_release (value);
     }
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) + product_length;

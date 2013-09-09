@@ -184,7 +184,7 @@ process_result_message (void *cls,
           gcry_mpi_t num;
           size_t read = 0;
 
-          if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read)))
+          if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_STD, &msg[1], product_len, &read)))
             {
               LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
               gcry_mpi_release (result);
@@ -338,7 +338,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
   h->stats = GNUNET_STATISTICS_create ("scalarproduct-api", cfg);
-  if (!h->th)
+  if (!h->stats)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to send a message to the statistics service\n"));
@@ -431,7 +431,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
   h->stats = GNUNET_STATISTICS_create ("scalarproduct-api", cfg);
-  if (!h->th)
+  if (!h->stats)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _ ("Failed to send a message to the statistics service\n"));
