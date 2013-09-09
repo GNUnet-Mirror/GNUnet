@@ -48,6 +48,7 @@ gnunet_service_ats_SOURCES = \
  gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
  gnunet-service-ats-solver_proportional.c gnunet-service-ats-solver_proportional.h \
  $(GN_MLP_SRC) \
+ gnunet-service-ats-solver_ril.c gnunet-service-ats-solver_ril.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
