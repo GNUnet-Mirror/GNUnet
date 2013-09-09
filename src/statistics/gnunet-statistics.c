@@ -83,6 +83,7 @@ static unsigned long long set_val;
  */
 static int set_value;
 
+
 /**
  * Callback function to process statistic values.
  *
@@ -90,8 +91,8 @@ static int set_value;
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
 printer (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -128,8 +129,8 @@ printer (void *cls, const char *subsystem, const char *name, uint64_t value,
  * Function called last by the statistics code.
  *
  * @param cls closure
- * @param success GNUNET_OK if statistics were
- *        successfully obtained, GNUNET_SYSERR if not.
+ * @param success #GNUNET_OK if statistics were
+ *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
 cleanup (void *cls, int success)
@@ -161,7 +162,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL == h)
     return;
-  GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h));
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   h = NULL;  
 }
@@ -244,7 +246,7 @@ main_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * running.
  *
  * @param cls closure with our configuration
- * @param result GNUNET_YES if the resolver is running
+ * @param result #GNUNET_YES if the resolver is running
  */ 
 static void
 resolver_test_task (void *cls, 
