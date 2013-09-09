@@ -148,7 +148,7 @@ cleanup_node (void *cls,
 
 	GNUNET_free_non_null (n->issuer_id);
 
-	GNUNET_CONTAINER_multihashmap_remove (cur, key, value);
+	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (cur, key, value));
 	GNUNET_free (value);
 	return GNUNET_OK;
 }
@@ -242,7 +242,7 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &n->id.hashPubKey))
 	{
-			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &n->id.hashPubKey, n);
+			GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &n->id.hashPubKey, n));
 			update_stats (nodes_requested);
 			GNUNET_CONTAINER_multihashmap_put (nodes_inactive, &n->id.hashPubKey, n,
 					GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
@@ -268,7 +268,7 @@ size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 	size_t ri_size = sizeof (struct Experimentation_Issuer) * GSE_my_issuer_count;
 	size_t total_size = msg_size + ri_size;
 
-	memset (buf, '0', bufsize);
+	memset (buf, '\0', bufsize);
 	n->cth = NULL;
   if (buf == NULL)
   {
@@ -479,7 +479,7 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 	}
 	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
 	{
-			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
+		  GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n));
 			update_stats (nodes_inactive);
 			make_active = GNUNET_YES;
 	}
@@ -586,7 +586,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from peer `%s'\n",
 					"RESPONSE", "inactive", GNUNET_i2s (peer));
-			GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n);
+			GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n));
 			update_stats (nodes_inactive);
 			make_active = GNUNET_YES;
 	}

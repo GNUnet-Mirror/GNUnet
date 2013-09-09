@@ -86,7 +86,7 @@ int free_experiment (void *cls,
 										 void *value)
 {
 	struct Experiment *e = value;
-	GNUNET_CONTAINER_multihashmap_remove (experiments, key, value);
+	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (experiments, key, value));
 	GNUNET_free_non_null (e->description);
 	GNUNET_free_non_null (e->name);
 	GNUNET_free (e);
@@ -107,7 +107,7 @@ int free_issuer (void *cls,
 								 void *value)
 {
 	struct Issuer *i = value;
-	GNUNET_CONTAINER_multihashmap_remove (valid_issuers, key, value);
+	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (valid_issuers, key, value));
 	GNUNET_free (i);
 	return GNUNET_OK;
 }
@@ -354,9 +354,8 @@ void exp_file_iterator (void *cls,
 	/* Optional fields */
 
 	/* Description */
-	GNUNET_CONFIGURATION_get_value_string (exp, name, "DESCRIPTION", &description);
-
-
+	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (exp, name, "DESCRIPTION", &description))
+		description = NULL;
 
 	if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "START", (long long unsigned int *) &start.abs_value_us))
 			start = GNUNET_TIME_UNIT_ZERO_ABS;
