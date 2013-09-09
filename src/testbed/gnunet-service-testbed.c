@@ -824,12 +824,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (mq_entry);
   }
   GNUNET_free_non_null (hostname);
-  GNUNET_CONFIGURATION_destroy (GST_config);
   /* Free hello cache */
   GST_cache_clear ();
   GNUNET_TESTBED_operation_queue_destroy_ (GST_opq_openfds);
   GST_opq_openfds = NULL;
   GST_stats_destroy ();
+  GST_barriers_destroy ();
+  GNUNET_CONFIGURATION_destroy (GST_config);
 }
 
 
@@ -942,6 +943,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                   &shutdown_task, NULL);
   LOG_DEBUG ("Testbed startup complete\n");
   GST_stats_init (GST_config);
+  GST_barriers_init (GST_config);
 }
 
 

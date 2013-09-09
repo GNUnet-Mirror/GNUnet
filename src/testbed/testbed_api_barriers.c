@@ -29,6 +29,18 @@
 #include "testbed_api.h"
 
 /**
+ * Logging shorthand
+ */
+#define LOG(type, ...)                          \
+  GNUNET_log_from (type, "testbed-api-barriers", __VA_ARGS__);
+
+/**
+ * Debug logging shorthand
+ */
+#define LOG_DEBUG(...)                          \
+  LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__);
+
+/**
  * Handle for barrier
  */
 struct GNUNET_TESTBED_Barrier
@@ -119,8 +131,13 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
   msize = ntohs (msg->header.size);  
   name = msg->data;
   name_len = ntohs (msg->name_len);
-  if (  (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
-        || ('\0' != name[name_len])  )
+  LOG_DEBUG ("Received BARRIER_STATUS msg\n");
+  if (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1 > msize)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if ('\0' != name[name_len])
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -143,11 +160,17 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     (void) memcpy (emsg, msg->data + name_len + 1, emsg_len);
   }
   if (NULL == barrier_map)
+  {
+    GNUNET_break_op (0);
     goto cleanup;
+  }
   GNUNET_CRYPTO_hash (name, name_len, &key);
   barrier = GNUNET_CONTAINER_multihashmap_get (barrier_map, &key);
   if (NULL == barrier)
+  {
+    GNUNET_break_op (0);
     goto cleanup;
+  }
   GNUNET_assert (NULL != barrier->cb);
   barrier->cb (barrier->cls, name, barrier, status, emsg);
   if (BARRIER_STATUS_INITIALISED == status)
@@ -200,6 +223,7 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
     GNUNET_break (0);
     return NULL;
   }
+  LOG_DEBUG ("Initialising barrier `%s'\n", name);
   barrier = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Barrier));
   barrier->c = controller;
   barrier->name = GNUNET_strdup (name);
@@ -340,6 +364,8 @@ receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
   case BARRIER_STATUS_CROSSED:
     h->cb (h->cls, h->name, GNUNET_OK);
     goto destroy;
+  default:
+    GNUNET_break_op (0);
   }
 
  fail:
@@ -410,10 +436,15 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   GNUNET_assert (NULL != name);
   cfg_filename = getenv (ENV_TESTBED_CONFIG);
   if (NULL == cfg_filename)
-    return NULL;
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_filename));
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Are you running under testbed?\n");
+    return NULL;
+  }
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_filename))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Unable to load configuration from file `%s'\n",
+         cfg_filename);
     GNUNET_CONFIGURATION_destroy (cfg);
     return NULL;
   }
@@ -425,6 +456,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   h->cls = cls;
   if (NULL == h->conn)
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Unable to connect to local testbed-barrier service\n");
     destroy_handle (h);
     return NULL;
   }

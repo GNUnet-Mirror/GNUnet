@@ -27,16 +27,104 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+#include "test_testbed_api_barriers.h"
+
+
+/**
+ * logging short hand
+ */
+#define LOG(type,...) \
+  GNUNET_log (type, __VA_ARGS__);
 
 /**
  * Number of peers we start in this test case
  */
 #define NUM_PEERS 3
 
+
+/**
+ * Our barrier
+ */
+struct GNUNET_TESTBED_Barrier *barrier;
+
+/**
+ * Identifier for the shutdown task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
 /**
  * Result of this test case
  */
 static int result;
+
+
+/**
+ * Shutdown this test case when it takes too long
+ *
+ * @param cls NULL
+ * @param tc scheduler task context
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != barrier)
+  {
+    GNUNET_TESTBED_barrier_cancel (barrier);
+    barrier = NULL;
+  }
+  
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Functions of this type are to be given as callback argument to
+ * GNUNET_TESTBED_barrier_init().  The callback will be called when status
+ * information is available for the barrier.
+ *
+ * @param cls the closure given to GNUNET_TESTBED_barrier_init()
+ * @param name the name of the barrier
+ * @param barrier the barrier handle
+ * @param status status of the barrier; GNUNET_OK if the barrier is crossed;
+ *   GNUNET_SYSERR upon error
+ * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
+ *   error messsage
+ */
+static void
+barrier_cb (void *cls,
+            const char *name,
+            struct GNUNET_TESTBED_Barrier *_barrier,
+            enum GNUNET_TESTBED_BarrierStatus status,
+            const char *emsg)
+{
+  static enum GNUNET_TESTBED_BarrierStatus old_status;
+  
+  GNUNET_assert (NULL == cls);
+  GNUNET_assert (_barrier == barrier);
+  switch (status)
+  {
+  case BARRIER_STATUS_INITIALISED:
+    LOG (GNUNET_ERROR_TYPE_INFO, "Barrier initialised\n");
+    old_status = status;
+    return;
+  case BARRIER_STATUS_ERROR:
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Barrier initialisation failed: %s", 
+         (NULL == emsg) ? "unknown reason" : emsg);
+    barrier = NULL;
+    GNUNET_SCHEDULER_shutdown ();    
+    return;
+  case BARRIER_STATUS_CROSSED:
+    LOG (GNUNET_ERROR_TYPE_INFO, "Barrier crossed\n");
+    if (old_status == BARRIER_STATUS_INITIALISED) 
+      result = GNUNET_OK;
+    barrier = NULL;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  default:
+    GNUNET_assert (0);
+  }
+}
 
 
 /**
@@ -59,6 +147,7 @@ test_master (void *cls,
              unsigned int links_succeeded,
              unsigned int links_failed)
 {
+  struct GNUNET_TESTBED_Controller *c;
 
   GNUNET_assert (NULL == cls);
   if (NULL == peers_)
@@ -67,13 +156,14 @@ test_master (void *cls,
     return;
   }
   GNUNET_assert (NUM_PEERS == num_peers);
-  
-  result = GNUNET_OK;
-  GNUNET_SCHEDULER_shutdown ();
-  /* shutdown_task = */
-  /*     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply */
-  /*                                   (GNUNET_TIME_UNIT_SECONDS, 300), */
-  /*                                   do_shutdown, NULL); */
+  c = GNUNET_TESTBED_run_get_controller_handle (h);
+  barrier = GNUNET_TESTBED_barrier_init (c, TEST_BARRIER_NAME, 100,
+                                         &barrier_cb, NULL);
+  shutdown_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_SECONDS, 
+                                     10 * (NUM_PEERS + 1)),
+                                    &do_shutdown, NULL);
 }
 
 
@@ -87,7 +177,7 @@ main (int argc, char **argv)
 
   result = GNUNET_SYSERR;
   event_mask = 0;
-  (void) GNUNET_TESTBED_test_run ("test_testbed_api_test",
+  (void) GNUNET_TESTBED_test_run ("test_testbed_api_barriers",
                                   "test_testbed_api_barriers.conf", NUM_PEERS,
                                   event_mask, NULL, NULL,
                                   &test_master, NULL);

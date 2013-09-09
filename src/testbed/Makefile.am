@@ -49,7 +49,8 @@ gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed_cpustatus.c \
   gnunet-service-testbed_meminfo.c \
   gnunet-service-testbed_meminfo.h \
-  gnunet-service-testbed_barriers.c
+  gnunet-service-testbed_barriers.c \
+  gnunet-service-testbed_barriers.h
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \
@@ -362,7 +363,8 @@ test_testbed_api_peer_reconfiguration_LDADD = \
  libgnunettestbed.la
 
 test_testbed_api_barriers_SOURCES = \
- test_testbed_api_barriers.c
+ test_testbed_api_barriers.c \
+ test_testbed_api_barriers.h
 test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
@@ -373,7 +375,8 @@ buildvars.py: buildvars.py.in Makefile
 	$(do_subst) < $(srcdir)/buildvars.py.in > $@
 
 gnunet_service_test_barriers_SOURCES = \
-  gnunet-service-test-barriers.c
+  gnunet-service-test-barriers.c \
+  test_testbed_api_barriers.h
 gnunet_service_test_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la

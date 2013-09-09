@@ -1556,7 +1556,7 @@ struct GNUNET_TESTBED_BarrierWaitHandle;
  */
 typedef void (*GNUNET_TESTBED_barrier_wait_cb) (void *cls,
                                                 const char *name,
-                                                int estatus);
+                                                int status);
 
 
 /**
@@ -1577,7 +1577,8 @@ GNUNET_TESTBED_barrier_wait (const char *name,
 
 
 /**
- * Cancel a barrier wait handle
+ * Cancel a barrier wait handle.  Should not be called in or after the callback
+ * given to GNUNET_TESTBED_barrier_wait() has been called.
  *
  * @param h the barrier wait handle
  */

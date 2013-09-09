@@ -28,6 +28,22 @@
 #define GNUNET_SERVER_TESTBED_BARRIERS_H_
 
 /**
+ * Function to initialise barrriers component
+ *
+ * @param cfg the configuration to use for initialisation
+ */
+void
+GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Function to stop the barrier service
+ */
+void
+GST_barriers_destroy ();
+
+
+/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT messages.  This
  * message should always come from a parent controller or the testbed API if we
  * are the root controller.

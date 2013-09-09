@@ -832,12 +832,12 @@ struct GNUNET_TESTBED_BarrierStatusMsg
   /**
    * status.  Use enumerated values of enum BarrierStatus
    */
-  uint16_t status;
+  uint16_t status GNUNET_PACKED;
 
   /**
    * strlen of the barrier name
    */
-  uint16_t name_len;
+  uint16_t name_len GNUNET_PACKED;
   
   /**
    * the barrier name (NULL terminated) concatenated with an error message (NULL

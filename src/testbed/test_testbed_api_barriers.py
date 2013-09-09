@@ -24,7 +24,6 @@
 
 
 import subprocess
-import shutil
 import os
 import sys
 from buildvars import libexecdir
@@ -37,7 +36,12 @@ else:
   test_testbed_api_barriers = './test_testbed_api_barriers'
 
 # copy gnunet-service-test-barriers service to gnunet's libexec dir
-shutil.copy (service, libexecdir)
+ret = subprocess.call (['libtool', '--mode=install', 'install',
+                        service, libexecdir],
+                       shell=False, executable='libtool')
+if ret is not 0:
+    print "could not install test daemon"
+    sys.exit (ret);
 
 # start the testcase binary
 ret = subprocess.call (test_testbed_api_barriers, shell=False)

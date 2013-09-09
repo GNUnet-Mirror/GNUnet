@@ -1006,6 +1006,7 @@ controller_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (status != GNUNET_OK)
   {
+    rc->cproc = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Controller crash detected. Shutting down.\n"));
     GNUNET_SCHEDULER_shutdown ();
@@ -1357,6 +1358,20 @@ error_cleanup:
   if (NULL != rc->cfg)
     GNUNET_CONFIGURATION_destroy (rc->cfg);
   GNUNET_free (rc);
+}
+
+
+/**
+ * Obtain handle to the master controller from a testbed run.  The handle
+ * returned should not be disconnected.
+ *
+ * @param h the testbed run handle
+ * @return handle to the master controller
+ */
+struct GNUNET_TESTBED_Controller *
+GNUNET_TESTBED_run_get_controller_handle (struct GNUNET_TESTBED_RunHandle *h)
+{
+  return h->c;
 }
 
 

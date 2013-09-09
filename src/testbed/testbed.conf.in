@@ -92,3 +92,12 @@ UNIXPATH = /tmp/gnunet-gnunet-testbed-logger.sock
 DIR = /tmp
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
+
+
+[testbed-barrier]
+AUTOSTART = NO
+@UNIXONLY@ PORT = 2103
+HOSTNAME = localhost
+UNIXPATH = /tmp/gnunet-service-testbed-barrier.sock
+UNIX_MATCH_UID = YES
+UNIX_MATCH_GID = YES
