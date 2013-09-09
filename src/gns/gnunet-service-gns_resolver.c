@@ -1641,6 +1641,7 @@ handle_namestore_block_response (void *cls,
     {
       /* fail longest-standing DHT request */
       rx = GNUNET_CONTAINER_heap_peek (dht_lookup_heap);
+      GNUNET_assert (NULL != rx);
       rx->proc (rx->proc_cls, 0, NULL);
       GNS_resolver_lookup_cancel (rx);
     }

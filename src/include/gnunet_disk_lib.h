@@ -722,7 +722,7 @@ GNUNET_DISK_directory_test (const char *fil, int is_readable);
  * caution.
  *
  * @param filename the file to remove
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_directory_remove (const char *filename);
@@ -732,7 +732,7 @@ GNUNET_DISK_directory_remove (const char *filename);
  * Implementation of "mkdir -p"
  *
  * @param dir the directory to create
- * @returns GNUNET_SYSERR on failure, GNUNET_OK otherwise
+ * @returns #GNUNET_SYSERR on failure, #GNUNET_OK otherwise
  */
 int
 GNUNET_DISK_directory_create (const char *dir);
@@ -744,8 +744,8 @@ GNUNET_DISK_directory_create (const char *dir);
  * @param fh file handle
  * @param lockStart absolute position from where to lock
  * @param lockEnd absolute position until where to lock
- * @param excl GNUNET_YES for an exclusive lock
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param excl #GNUNET_YES for an exclusive lock
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
@@ -753,11 +753,12 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
 
 
 /**
- * Unlock a part of a file
+ * Unlock a part of a file.
+ *
  * @param fh file handle
  * @param unlockStart absolute position from where to unlock
  * @param unlockEnd absolute position until where to unlock
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
@@ -776,7 +777,7 @@ GNUNET_DISK_filename_canonicalize (char *fn);
  * @brief Change owner of a file
  * @param filename file to change
  * @param user new owner of the file
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_DISK_file_change_owner (const char *filename, const char *user);
@@ -823,7 +824,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
  * Unmap a file
  *
  * @param h mapping handle
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h);

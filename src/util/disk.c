@@ -653,6 +653,7 @@ GNUNET_DISK_file_test (const char *fil)
 
 /**
  * Implementation of "mkdir -p"
+ *
  * @param dir the directory to create
  * @returns GNUNET_OK on success, GNUNET_SYSERR on failure
  */

@@ -1336,15 +1336,15 @@ peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit a message to the given peer as soon as possible.
  * If the peer disconnects before the transmission can happen,
- * the callback is invoked with a 'NULL' buffer.
+ * the callback is invoked with a `NULL` @a buffer.
  *
  * @param cp target peer
- * @param is_query is this a query (GNUNET_YES) or content (GNUNET_NO) or neither (GNUNET_SYSERR)
+ * @param is_query is this a query (#GNUNET_YES) or content (#GNUNET_NO) or neither (#GNUNET_SYSERR)
  * @param priority how important is this request?
  * @param timeout when does this request timeout (call gmc with error)
  * @param size number of bytes we would like to send to the peer
  * @param gmc function to call to get the message
- * @param gmc_cls closure for gmc
+ * @param gmc_cls closure for @a gmc
  * @return handle to cancel request
  */
 struct GSF_PeerTransmitHandle *
@@ -1573,10 +1573,10 @@ struct IterationContext
 /**
  * Function that calls the callback for each peer.
  *
- * @param cls the 'struct IterationContext*'
+ * @param cls the `struct IterationContext *`
  * @param key identity of the peer
- * @param value the 'struct GSF_ConnectedPeer*'
- * @return GNUNET_YES to continue iteration
+ * @param value the `struct GSF_ConnectedPeer *`
+ * @return #GNUNET_YES to continue iteration
  */
 static int
 call_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1593,7 +1593,7 @@ call_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
  * Iterate over all connected peers.
  *
  * @param it function to call for each peer
- * @param it_cls closure for it
+ * @param it_cls closure for @a it
  */
 void
 GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it, void *it_cls)
@@ -1794,7 +1794,7 @@ GSF_connected_peer_init_ ()
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
                                                           "RESPECT",
                                                           &respectDirectory));
-  GNUNET_DISK_directory_create (respectDirectory);
+  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_create (respectDirectory));
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                       &cron_flush_respect, NULL);
 }
@@ -1806,7 +1806,7 @@ GSF_connected_peer_init_ ()
  * @param cls closure, unused
  * @param key current key code
  * @param value value in the hash map (peer entry)
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 clean_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1837,7 +1837,7 @@ GSF_connected_peer_done_ ()
  * @param cls the 'struct GSF_LocalClient*' to look for
  * @param key current key code
  * @param value value in the hash map (peer entry)
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 clean_local_client (void *cls, const struct GNUNET_HashCode * key, void *value)
