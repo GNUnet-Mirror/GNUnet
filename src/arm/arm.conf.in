@@ -17,7 +17,7 @@ UNIX_MATCH_GID = YES
 # logging with a new log file each day.  Note that only the last 3
 # log files are preserved.
 # GLOBAL_POSTFIX = -l $SERVICEHOME/{}-%Y-%m-%d.log
-# GLOBAL_PREFIX =
+GLOBAL_PREFIX = @MONKEYPREFIX@
 # USERNAME =
 # MAXBUF =
 # TIMEOUT =

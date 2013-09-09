@@ -1060,7 +1060,7 @@ AC_MSG_RESULT($enable_monkey)
 AM_CONDITIONAL([ENABLE_MONKEY], [test "x$enable_monkey" = "xyes"])
 if test "x$enable_monkey" = "xyes"
 then
-  MONKEYPREFIX="monkey"
+  MONKEYPREFIX="pathologist -d $(eval echo ${datarootdir}/gnunet/gnunet.sqlite) -p 30 --"
 else
   MONKEYPREFIX=""
 fi

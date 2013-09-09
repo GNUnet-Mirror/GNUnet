@@ -47,9 +47,6 @@ MIN_MIGRATION_DELAY = 100 ms
 # For how many neighbouring peers should we allocate hash maps?
 EXPECTED_NEIGHBOUR_COUNT = 128
 
-# Enable monkey?
-# PREFIX = @MONKEYPREFIX@
-
 # Disable anonymous file-sharing (but keep non-anonymous transfers)?
 # This option is mostly for testing.
 DISABLE_ANON_TRANSFER = NO

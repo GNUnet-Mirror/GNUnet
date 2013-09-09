@@ -121,7 +121,7 @@ display_bar (unsigned long long x,
  *         for this operation; should be set to NULL for
  *         SUSPEND and STOPPED events).  The value returned
  *         will be passed to future callbacks in the respective
- *         field in the GNUNET_FS_ProgressInfo struct.
+ *         field in the `struct GNUNET_FS_ProgressInfo`
  */
 static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
