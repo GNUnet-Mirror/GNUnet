@@ -50,6 +50,7 @@ enum SessionState
     WAITING_FOR_SERVICE_REQUEST,
     WAITING_FOR_SERVICE_RESPONSE,
     SERVICE_REQUEST_RECEIVED,
+    SERVICE_RESPONSE_RECEIVED,
     FINALIZED
 };
 
@@ -740,8 +741,7 @@ prepare_client_end_notification (void * cls,
   // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
   msg->product_length = htonl (0);
   msg->range = 1;
-  session->state = FINALIZED;
-
+  
   session->msg = &msg->header;
 
   //transmit this message to our client
@@ -753,11 +753,11 @@ prepare_client_end_notification (void * cls,
                                                session);
 
   // if we could not even queue our request, something is wrong
-  if ( ! session->client_transmit_handle)
+  if ( NULL == session->client_transmit_handle)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not send message to client (%p)! This is OK if it was disconnected beforehand already.\n"), session->client);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not send message to client (%p)!\n"), session->client);
       // usually gets freed by do_send_message
-      GNUNET_free (msg_obj);
+      session->msg = NULL;
       GNUNET_free (msg);
     }
   else
@@ -1262,7 +1262,7 @@ handle_client_request (void *cls,
   uint32_t i;
 
   // only one concurrent session per client connection allowed, simplifies logics a lot...
-  GNUNET_SERVER_client_get_user_context (client, session);
+  session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if ((NULL != session) && (session->state != FINALIZED)){
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -1630,7 +1630,6 @@ prepare_client_response (void *cls,
   unsigned char * product_exported = NULL;
   size_t product_length = 0;
   uint16_t msg_length = 0;
-  struct MessageObject * msg_obj;
   int8_t range = -1;
   gcry_error_t rc;
   int sign;
@@ -1683,26 +1682,23 @@ prepare_client_response (void *cls,
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
   msg->product_length = htonl (product_length);
   
-  msg_obj = GNUNET_new (struct MessageObject);
-  msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
-  msg_obj->transmit_handle = NULL; // don't reset the transmit handle
-
+  session->msg = (struct GNUNET_MessageHeader *) msg;
   //transmit this message to our client
   session->client_transmit_handle = 
           GNUNET_SERVER_notify_transmit_ready (session->client,
                                                msg_length,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &do_send_message,
-                                               msg_obj);
-  if ( ! session->client_transmit_handle)
+                                               session);
+  if ( NULL == session->client_transmit_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _ ("Could not send message to client (%p)! This probably is OK if the client disconnected before us.\n"), 
+		  _ ("Could not send message to client (%p)!\n"), 
 		  session->client);
       session->client = NULL;
       // callback was not called!
-      GNUNET_free (msg_obj);
       GNUNET_free (msg);
+      session->msg = NULL;
     }
   else
       // gracefully sent message, just terminate session structure
@@ -1937,6 +1933,7 @@ handle_service_response (void *cls,
   
   count = session->used_element_count;
   session->product = NULL;
+  session->state = SERVICE_RESPONSE_RECEIVED;
 
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size))
@@ -1983,7 +1980,7 @@ handle_service_response (void *cls,
                            PAILLIER_ELEMENT_LENGTH, &read)))
         {
           LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
+          GNUNET_break_op (0);
           goto invalid_msg;
         }
       current += PAILLIER_ELEMENT_LENGTH;
@@ -1998,12 +1995,11 @@ handle_service_response (void *cls,
                            PAILLIER_ELEMENT_LENGTH, &read)))
         {
           LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
+          GNUNET_break_op (0);
           goto invalid_msg;
         }
       current += PAILLIER_ELEMENT_LENGTH;
     }
-  
   session->product = compute_scalar_product (session, r, r_prime, s, s_prime);
   
 invalid_msg:
@@ -2018,16 +2014,14 @@ invalid_msg:
   GNUNET_free_non_null (r);
   GNUNET_free_non_null (r_prime);
   
-  session->state = FINALIZED;
-  // the tunnel has done its job, terminate our connection and the tunnel
-  // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
-  GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
+  session->tunnel = NULL;
   // send message with product to client
-  
   session->client_notification_task = 
           GNUNET_SCHEDULER_add_now (&prepare_client_response, 
           session);
-  // just close the connection.
+  // the tunnel has done its job, terminate our connection and the tunnel
+  // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
+  // just close the connection, as recommended by Christian
   return GNUNET_SYSERR;
 }
 
