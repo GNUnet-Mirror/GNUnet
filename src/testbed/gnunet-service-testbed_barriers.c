@@ -168,7 +168,7 @@ struct Barrier
   /**
    * The client handle to the master controller
    */
-  struct GNUNET_SERVER_Client *client;
+  struct GNUNET_SERVER_Client *mc;
 
   /**
    * The name of the barrier
@@ -308,6 +308,8 @@ queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
   
   mq = GNUNET_malloc (sizeof (struct MessageQueue));
   mq->msg = msg;
+  LOG_DEBUG ("Queueing message of type %u, size %u for sending\n",
+             ntohs (msg->type), ntohs (msg->size));
   GNUNET_CONTAINER_DLL_insert_tail (ctx->mq_head, ctx->mq_tail, mq);
   if (NULL == ctx->tx)
    ctx->tx = GNUNET_SERVER_notify_transmit_ready (client, ntohs (msg->size),
@@ -359,7 +361,7 @@ remove_barrier (struct Barrier *barrier)
     cleanup_clientctx (ctx);
   }
   GNUNET_free (barrier->name);
-  GNUNET_SERVER_client_drop (barrier->client);
+  GNUNET_SERVER_client_drop (barrier->mc);
   GNUNET_free (barrier);
 }
 
@@ -430,8 +432,7 @@ static void
 send_barrier_status_msg (struct Barrier *barrier, const char *emsg)
 {
   GNUNET_assert (0 != barrier->status);
-  send_client_status_msg (barrier->client, barrier->name,
-                          barrier->status, emsg);
+  send_client_status_msg (barrier->mc, barrier->name, barrier->status, emsg);
 }
 
 
@@ -529,6 +530,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_client_keep (client);
     client_ctx->barrier = barrier;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->head, barrier->tail, client_ctx);
+    GNUNET_SERVER_client_set_user_context (client, client_ctx); 
   }
   barrier->nreached++;
   if ((barrier->num_wbarriers_reached == barrier->num_wbarriers)
@@ -754,7 +756,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   (void) memcpy (&barrier->hash, &hash, sizeof (struct GNUNET_HashCode));
   barrier->quorum = msg->quorum;
   barrier->name = name;
-  barrier->client = client;
+  barrier->mc = client;
   GNUNET_SERVER_client_keep (client);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (barrier_map,
