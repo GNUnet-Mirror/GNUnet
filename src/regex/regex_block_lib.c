@@ -403,7 +403,7 @@ REGEX_BLOCK_create (const char *proof,
   for (i=0;i<num_edges;i++)
   {
     slen = strlen (edges[i].label);
-    if (len > UINT16_MAX) 
+    if (slen > UINT16_MAX) 
     {
       GNUNET_break (0);
       return NULL;
