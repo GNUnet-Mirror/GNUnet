@@ -44,10 +44,12 @@
  */
 enum SessionState
 {
+    CLIENT_REQUEST_RECEIVED,
     WAITING_FOR_BOBS_CONNECT,
-    MESSAGE_FROM_RESPONDING_CLIENT_RECEIVED,
-    WAITING_FOR_RESPONSE_FROM_SERVICE,
-    REQUEST_FROM_SERVICE_RECEIVED,
+    CLIENT_RESPONSE_RECEIVED,
+    WAITING_FOR_SERVICE_REQUEST,
+    WAITING_FOR_SERVICE_RESPONSE,
+    SERVICE_REQUEST_RECEIVED,
     FINALIZED
 };
 
@@ -689,7 +691,7 @@ handle_client_disconnect (void *cls,
       //we MUST terminate any client message underway
       if (session->service_transmit_handle && session->tunnel)
         GNUNET_MESH_notify_transmit_ready_cancel (session->service_transmit_handle);
-      if (session->tunnel && session->state == WAITING_FOR_RESPONSE_FROM_SERVICE)
+      if (session->tunnel && session->state == WAITING_FOR_SERVICE_RESPONSE)
         GNUNET_MESH_tunnel_destroy (session->tunnel);
     }
   if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task)
@@ -738,6 +740,7 @@ prepare_client_end_notification (void * cls,
   // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
   msg->product_length = htonl (0);
   msg->range = 1;
+  session->state = FINALIZED;
 
   session->msg = &msg->header;
 
@@ -870,30 +873,22 @@ prepare_service_response (gcry_mpi_t * r,
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE >= msg_length)
     {
-      struct MessageObject * msg_obj;
-
-      msg_obj = GNUNET_new (struct MessageObject);
-      msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
-      msg_obj->transmit_handle = (void *) &request->service_transmit_handle; //and reset the transmit handle
+      request->msg = (struct GNUNET_MessageHeader *) msg;
       request->service_transmit_handle =
               GNUNET_MESH_notify_transmit_ready (request->tunnel,
                                                  GNUNET_YES,
                                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                                  msg_length,
                                                  &do_send_message,
-                                                 msg_obj);
+                                                 request);
       // we don't care if it could be send or not. either way, the session is over for us.
       request->state = FINALIZED;
-      response->state = FINALIZED;
     }
   else
-    {
-      // TODO FEATURE: fallback to fragmentation, in case the message is too long
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!)\n"));
-    }
 
   //disconnect our client
-  if ( ! request->service_transmit_handle)
+  if ( NULL == request->service_transmit_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
       
@@ -1135,11 +1130,10 @@ prepare_service_request (void *cls,
   struct ServiceSession * session = cls;
   unsigned char * current;
   struct GNUNET_SCALARPRODUCT_service_request * msg;
-  struct MessageObject * msg_obj;
   unsigned int i;
   unsigned int j;
   uint16_t msg_length;
-  size_t element_length = 0; //gets initialized by gcry_mpi_print, but the compiler doesn't know that
+  size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
   
@@ -1157,15 +1151,14 @@ prepare_service_request (void *cls,
       + session->mask_length
       + my_pubkey_external_length)
     {
-      // TODO FEATURE: fallback to fragmentation, in case the message is too long
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
       session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
       return;
     }
+  
   msg = GNUNET_malloc (msg_length);
-
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   msg->mask_length = htons (session->mask_length);
@@ -1223,27 +1216,26 @@ prepare_service_request (void *cls,
     }
   gcry_mpi_release (a);
 
-  msg_obj = GNUNET_new (struct MessageObject);
-  msg_obj->msg = (struct GNUNET_MessageHeader *) msg;
-  msg_obj->transmit_handle = (void *) &session->service_transmit_handle; //and reset the transmit handle
+  session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transmitting service request.\n"));
 
   //transmit via mesh messaging
-  session->state = WAITING_FOR_RESPONSE_FROM_SERVICE;
   session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         msg_length,
                                                                         &do_send_message,
-                                                                        msg_obj);
+                                                                        session);
   if ( ! session->service_transmit_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not send mutlicast message to tunnel!\n"));
-      GNUNET_free (msg_obj);
       GNUNET_free (msg);
+      session->msg = NULL;
       session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
+      return;
     }
+  session->state = WAITING_FOR_SERVICE_RESPONSE;
 }
 
 /**
@@ -1269,9 +1261,9 @@ handle_client_request (void *cls,
   int32_t * vector;
   uint32_t i;
 
+  // only one concurrent session per client connection allowed, simplifies logics a lot...
   GNUNET_SERVER_client_get_user_context (client, session);
   if ((NULL != session) && (session->state != FINALIZED)){
-    // only one concurrent session per client connection allowed
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1318,8 +1310,6 @@ handle_client_request (void *cls,
     }
 
   session = GNUNET_new (struct ServiceSession);
-  //FIXME: this actually should not happen here!
-  GNUNET_SERVER_client_set_user_context (client, session);
   session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
   session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
   session->client = client;
@@ -1377,7 +1367,6 @@ handle_client_request (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 		  _ ("Creating new tunnel to for session with key %s.\n"), 
 		  GNUNET_h2s (&session->key));
-      GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
       session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
                                                    &session->peer,
                                                    GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
@@ -1393,8 +1382,10 @@ handle_client_request (void *cls,
           GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
           return;
         }
-      session->state = WAITING_FOR_BOBS_CONNECT;
+      GNUNET_SERVER_client_set_user_context (client, session);
+      GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
       
+      session->state = CLIENT_REQUEST_RECEIVED;
       session->service_request_task = 
               GNUNET_SCHEDULER_add_now (&prepare_service_request, 
                                         session);
@@ -1403,7 +1394,7 @@ handle_client_request (void *cls,
   else
     {
       struct ServiceSession * requesting_session;
-      enum SessionState needed_state = REQUEST_FROM_SERVICE_RECEIVED;
+      enum SessionState needed_state = SERVICE_REQUEST_RECEIVED;
       
       session->role = BOB;
       session->mask = NULL;
@@ -1411,9 +1402,11 @@ handle_client_request (void *cls,
       session->used_element_count = element_count;
       for (i = 0; i < element_count; i++)
         session->vector[i] = ntohl (vector[i]);
-      session->state = MESSAGE_FROM_RESPONDING_CLIENT_RECEIVED;
+      session->state = CLIENT_RESPONSE_RECEIVED;
       
+      GNUNET_SERVER_client_set_user_context (client, session);
       GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
+      
       //check if service queue contains a matching request 
       requesting_session = find_matching_session (from_service_tail,
                                                   &session->key,
@@ -1459,6 +1452,7 @@ tunnel_incoming_handler (void *cls,
   c->peer = *initiator;
   c->tunnel = tunnel;
   c->role = BOB;
+  c->state = WAITING_FOR_SERVICE_REQUEST;
   return c;
 }
 
@@ -1763,16 +1757,16 @@ handle_service_request (void *cls,
   // Check if message was sent by me, which would be bad!
   if ( ! memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_break (0);
       GNUNET_free (session);
+      GNUNET_break (0);
       return GNUNET_SYSERR;
     }
 
   //we need at least a peer and one message id to compare
   if (ntohs (msg->header.size) < sizeof (struct GNUNET_SCALARPRODUCT_service_request))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Too short message received from peer!\n"));
       GNUNET_free (session);
+      GNUNET_break_op(0);
       return GNUNET_SYSERR;
     }
   mask_length = ntohs (msg->mask_length);
@@ -1787,9 +1781,8 @@ handle_service_request (void *cls,
       || (used_elements == 0) || (mask_length != (element_count / 8 + (element_count % 8 ? 1 : 0)))
       )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Invalid message received from peer, message count does not match message length!\n"));
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Used elements: %hu\nElement Count: %hu\nExpected Mask Length: %hu\nCalculated Masklength: %d\n"), used_elements, element_count, mask_length, (element_count / 8 + (element_count % 8 ? 1 : 0)));
       GNUNET_free (session);
+      GNUNET_break_op(0);
       return GNUNET_SYSERR;
     }
   if (find_matching_session (from_service_tail,
@@ -1804,7 +1797,7 @@ handle_service_request (void *cls,
     }
   
   memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
-  session->state = REQUEST_FROM_SERVICE_RECEIVED;
+  session->state = SERVICE_REQUEST_RECEIVED;
   session->element_count = ntohs (msg->element_count);
   session->used_element_count = used_elements;
   session->tunnel = tunnel;
@@ -1830,7 +1823,7 @@ handle_service_request (void *cls,
   current += pk_length;
 
   //check if service queue contains a matching request 
-  needed_state = MESSAGE_FROM_RESPONDING_CLIENT_RECEIVED;
+  needed_state = CLIENT_RESPONSE_RECEIVED;
   responder_session = find_matching_session (from_client_tail,
                                              &session->key,
                                              session->element_count,
@@ -1875,6 +1868,7 @@ handle_service_request (void *cls,
         }
       else
           GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s without a matching element set, queueing.\n"), GNUNET_h2s (&session->key));
+      
       return GNUNET_OK;
     }
   else
@@ -1894,13 +1888,10 @@ except:
   free_session (session);
   // and notify our client-session that we could not complete the session
   if (responder_session)
-    {
       // we just found the responder session in this queue
-      GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, responder_session);
       responder_session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         responder_session);
-    }
   return GNUNET_SYSERR;
 }
 
