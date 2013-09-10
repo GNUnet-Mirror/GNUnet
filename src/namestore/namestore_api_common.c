@@ -1030,7 +1030,6 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
   GNUNET_free (pkeys);
   return GNUNET_OK;
  error:
-  GNUNET_break (0); 
   GNUNET_free (cpy);
   return GNUNET_SYSERR;
 }
