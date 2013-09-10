@@ -800,9 +800,9 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls NULL
  * @param filename name of the file to parse
- * @return GNUNET_OK to continue to iterate,
- *  GNUNET_NO to stop iteration with no error,
- *  GNUNET_SYSERR to abort iteration with error!
+ * @return #GNUNET_OK to continue to iterate,
+ *  #GNUNET_NO to stop iteration with no error,
+ *  #GNUNET_SYSERR to abort iteration with error!
  */
 static int
 process_ego_file (void *cls,
