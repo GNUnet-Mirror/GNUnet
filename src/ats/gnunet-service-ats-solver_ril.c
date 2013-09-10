@@ -25,6 +25,7 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
+#include "float.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet_statistics_service.h"
@@ -33,12 +34,21 @@
 #define RIL_DEFAULT_DISCOUNT_FACTOR 0.5
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.4
 #define RIL_DEFAULT_TRACE_DECAY 0.6
+#define RIL_EXPLORE_RATIO 0.1
 
 /**
  * ATS reinforcement learning solver
  *
  * General description
  */
+
+enum RIL_Action
+{
+	RIL_BW_DBL = 0,
+	RIL_BW_HLV = 1,
+	RIL_NUM_ACTIONS = 2
+};
+//TODO add the rest of the actions
 
 /**
  * Global learning parameters
@@ -74,9 +84,24 @@ struct RIL_Peer_Agent
 	struct RIL_Peer_Agent *prev;
 
 	/**
+	 * Environment handle
+	 */
+	struct GAS_RIL_Handle *envi;
+
+	/**
 	 * Peer ID
 	 */
 	struct GNUNET_PeerIdentity peer;
+
+	/**
+	 * Whether the agent is active or not
+	 */
+	int active;
+
+	/**
+	* Number of performed time-steps
+	*/
+	unsigned long long step_count;
 
 	/**
 	 * Experience matrix W
@@ -84,19 +109,34 @@ struct RIL_Peer_Agent
 	double ** W;
 
 	/**
+	 * Number of rows of W / Number of state-vector features
+	 */
+	int m;
+
+	/**
+	 * Number of columns of W / Number of actions
+	 */
+	int n;
+
+	/**
 	 * Last perceived state feature vector
 	 */
-	double * s_t;
+	double * s_old;
 
 	/**
 	 * Last chosen action
 	 */
-	double * a_t;
+	int a_old;
 
 	/**
 	 * Last eligibility trace vector
 	 */
 	double * e_t;
+
+	/**
+	 * Address in use
+	 */
+	struct ATS_Address * address;
 };
 
 struct RIL_Network
@@ -228,66 +268,225 @@ struct GAS_RIL_Handle
 	/**
 	* List of active peer-agents
 	*/
-	struct RIL_Peer_Agent * agents_active_head;
-	struct RIL_Peer_Agent * agents_active_tail;
-
-	/**
-	* List of paused peer-agents
-	*/
-	struct RIL_Peer_Agent * agents_paused_head;
-	struct RIL_Peer_Agent * agents_paused_tail;
+	struct RIL_Peer_Agent * agents_head;
+	struct RIL_Peer_Agent * agents_tail;
 };
 
 
-enum Actions
-{
-	bw_dbl,
-	bw_hlv
-};
-//TODO add the rest of the actions
+
 
 /**
  *  Private functions
  *  ---------------------------
  */
 
+/**
+ * Estimate the current action-value for state s and action a
+ * @param agent agent performing the estimation
+ * @param state s
+ * @param action a
+ * @return estimation value
+ */
+double
+agent_estimate_q (struct RIL_Peer_Agent *agent,
+		double *state,
+		int action)
+{
+	int i;
+	double result = 0;
+
+	for (i = 0; i < agent->m; i++)
+	{
+		result += state[i] * (agent->W)[agent->m][action];
+	}
+
+	return result;
+}
+
+int
+agent_choose_action (struct RIL_Peer_Agent *agent,
+		double *state)
+{
+	int i;
+	int max_i = -1;
+	double r;
+	double cur_q;
+	double max_q = DBL_MIN;
+
+	r = ((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX) / (double) UINT32_MAX);
+
+	if (r < RIL_EXPLORE_RATIO)
+	{
+		return GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, agent->n);
+	}
+
+	for (i = 0; i < agent->m; i++)
+	{
+		cur_q = agent_estimate_q (agent, state, i);
+		if (cur_q > max_q)
+		{
+			max_q = cur_q;
+			max_i = i;
+		}
+	}
+
+	GNUNET_assert(-1 != max_i);
+
+	return max_i;
+}
+
+double *
+envi_get_state (void *s)
+{
+	int i;
+	struct GAS_RIL_Handle *solver = s;
+	struct RIL_Network *net;
+	double *state = GNUNET_malloc (sizeof (double) * solver->networks_count * 4);
+
+	for (i = 0; i < solver->networks_count; i += 4)
+	{
+		net = (&solver->network_entries)[i];
+		state[i]   = (double) net->bw_in_assigned;
+		state[i+1] = (double) net->bw_in_available;
+		state[i+2] = (double) net->bw_out_assigned;
+		state[i+3] = (double) net->bw_out_available;
+	}
+
+	return state;
+}
+
+double
+envi_get_reward ()
+{
+	//TODO implement
+	return (double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX) / (double) UINT32_MAX;
+}
+
 void
-agent_periodic_step (void *solver,
+agent_step (struct RIL_Peer_Agent *agent)
+{
+	int a_next;
+	double *s_next;
+	double reward;
+	double delta;
+	double q_next;
+
+
+	s_next = envi_get_state(agent->envi);
+	reward = envi_get_reward();
+
+	a_next = agent_choose_action (agent, s_next);
+	q_next = agent_estimate_q(agent, s_next, a_next);
+
+	if (NULL != agent->s_old)
+	{
+		delta = reward +
+				(agent->envi->parameters.gamma * q_next) -
+				agent_estimate_q(agent, agent->s_old, agent->a_old);
+	}
+
+	GNUNET_free(agent->s_old);
+	agent->s_old = s_next;
+	agent->a_old = a_next;
+
+	agent->step_count += 1;
+}
+
+void
+ril_periodic_step (void *s,
 				const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 	/*
 	 * iterate over active agents and do a time step
 	 */
-	struct GAS_RIL_Handle *s = solver;
+	struct GAS_RIL_Handle *solver = s;
+	struct RIL_Peer_Agent *cur;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", s->step_count);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", solver->step_count);
 
-	s->step_count += 1;
-	s->next_step = GNUNET_SCHEDULER_add_delayed (
-			s->step_time,
-			&agent_periodic_step,
+	for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+	{
+		if (cur->active)
+		{
+			agent_step (cur);
+		}
+	}
+
+	solver->step_count += 1;
+	solver->next_step = GNUNET_SCHEDULER_add_delayed (
+			solver->step_time,
+			&ril_periodic_step,
 			solver);
 }
 
 /**
- * Whether a peer already has an agent in a list
- * @param head of list
- * @param peer in question
+ * Initialize an agent without addresses and its knowledge base
+ * @param s ril solver
+ * @param peer the one in question
+ * @return handle to the new agent
  */
-int
-list_contains_agent (struct RIL_Peer_Agent * head,
-					struct GNUNET_PeerIdentity * peer)
+struct RIL_Peer_Agent *
+agent_init (void *s,
+		struct GNUNET_PeerIdentity peer)
 {
+	int i;
+	struct GAS_RIL_Handle * solver = s;
+	struct RIL_Peer_Agent * agent = GNUNET_malloc (sizeof (struct RIL_Peer_Agent));
+
+	agent->envi = solver;
+	agent->peer = peer;
+	agent->step_count = 0;
+	agent->active = GNUNET_NO;
+	agent->s_old = NULL;
+	agent->n = solver->networks_count * 4;
+	agent->m = RIL_NUM_ACTIONS;
+	agent->W = (double **) GNUNET_malloc (sizeof (double) * agent->n);
+	for (i = 0; i < agent->n; i++)
+	{
+		(agent->W)[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
+	}
+	agent->a_old = -1;
+	agent->e_t = NULL;
+
+	GNUNET_CONTAINER_DLL_insert (solver->agents_head, solver->agents_tail, agent);
+
+	return agent;
+}
+
+/**
+ * Deallocate agent
+ * @param s solver handle
+ * @param agent the agent to retire
+ */
+void
+agent_die (void *s,
+		struct RIL_Peer_Agent * agent)
+{
+
+}
+
+/**
+ * Returns the agent for a peer
+ * @param s solver handle
+ * @param peer identity of the peer
+ * @return agent
+ */
+struct RIL_Peer_Agent *
+ril_get_agent (struct GAS_RIL_Handle * s,
+		struct GNUNET_PeerIdentity peer)
+{
+	struct GAS_RIL_Handle * solver = s;
 	struct RIL_Peer_Agent * cur;
 
-	for (cur = head; NULL != cur; cur = cur->next)
+	for (cur = s->agents_head; NULL != cur; cur = cur->next)
 	{
-		if (!memcmp (&(cur->peer.hashPubKey), &peer->hashPubKey, sizeof(struct GNUNET_HashCode)))
+		if (0 == GNUNET_CRYPTO_hash_cmp (&peer.hashPubKey, &cur->peer.hashPubKey))
 		{
-			return GNUNET_YES;
+			return cur;
 		}
 	}
-	return GNUNET_NO;
+
+	return agent_init (solver, peer);
 }
 
 /**
@@ -307,14 +506,15 @@ init_agents_it (void *cls,
 	struct ATS_Address *address = value;
 	struct RIL_Peer_Agent *agent;
 
-	if (!list_contains_agent (solver->agents_paused_head, &address->peer))
+	agent = ril_get_agent (solver, address->peer);
+
+	GNUNET_assert (agent != NULL);
+
+	if (NULL == agent->address)
 	{
-		agent = GNUNET_malloc (sizeof (struct RIL_Peer_Agent));
-		agent->peer = address->peer;
-		GNUNET_CONTAINER_DLL_insert (solver->agents_paused_head, solver->agents_paused_tail, agent);
+		agent->address = address;
 	}
 
-	//TODO add address to agent
 	return GNUNET_YES;
 }
 
@@ -339,13 +539,14 @@ GAS_ril_address_change_preference (void *solver,
 								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
 								 	 	 	double pref_rel)
 {
-	//TODO implement
-
-	/*
-	 * Probably nothing to do here. The preference is looked up during reward calculation and does
-	 * not trigger anything
-	 */
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ril_address_change_preference() has been called\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	              "Preference `%s' for peer `%s' changed to %.2f \n",
+	              GNUNET_ATS_print_preference_type (kind),
+	              GNUNET_i2s (peer),
+	              pref_rel);
+	  /*
+	   * Nothing to do here. Preferences are considered during reward calculation.
+	   */
 }
 
 
@@ -467,7 +668,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 	solver->next_step = GNUNET_SCHEDULER_add_delayed (
 				GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_millisecond_ (), 1000),
-				&agent_periodic_step,
+				&ril_periodic_step,
 				solver);
 
 	return solver;
@@ -525,7 +726,8 @@ GAS_ril_address_add (void *solver,
  */
 void
 GAS_ril_address_delete (void *solver,
-    struct ATS_Address *address, int session_only)
+						struct ATS_Address *address,
+						int session_only)
 {
 	//TODO implement
 	/*
@@ -556,12 +758,14 @@ GAS_ril_address_property_changed (void *solver,
     															uint32_t abs_value,
     															double rel_value)
 {
-	//TODO implement
-	/*
-	 * Like change_preference() not really interesting, since lookup happens anyway during reward
-	 * calculation
-	 */
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ril_address_property_changed() has been called\n");
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	              "Property `%s' for peer `%s' address %p changed to %.2f \n",
+	              GNUNET_ATS_print_property_type (type),
+	              GNUNET_i2s (&address->peer),
+	              address, rel_value);
+	  /*
+	   * Nothing to do here, properties are considered in every reward calculation
+	   */
 }
 
 
