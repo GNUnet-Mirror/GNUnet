@@ -197,7 +197,8 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 static int result;
 static char *solver;
-static char *preference;
+static char *pref_str;
+static int pref_val;
 
 /**
  * Pending Responses
@@ -519,7 +520,7 @@ ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set preference for master %u: %f\n",
 			bp->no, last);
 	GNUNET_ATS_performance_change_preference (bp->p_handle, &bp->destination->id,
-			GNUNET_ATS_PREFERENCE_BANDWIDTH, (double) last,
+			pref_val, (double) last,
 			GNUNET_ATS_PREFERENCE_END);
 	last++;
 	bp->ats_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -1181,7 +1182,7 @@ test_main (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Benchmarking solver `%s' on preference `%s' with %u master and %u slave peers\n"),
-	      solver, preference, c_master_peers, c_slave_peers);
+	      solver, pref_str, c_master_peers, c_slave_peers);
 
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(TEST_TIMEOUT, c_master_peers + c_slave_peers), &do_shutdown, NULL);
 
@@ -1229,6 +1230,7 @@ main (int argc, char *argv[])
   char *test_name;
   char *conf_name;
   char *dotexe;
+  char *prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
   int c;
 
   result = 0;
@@ -1253,10 +1255,31 @@ main (int argc, char *argv[])
   	return GNUNET_SYSERR;
   }
   tmp_sep[0] = '\0';
-  preference = GNUNET_strdup(tmp_sep + 1);
+  pref_str = GNUNET_strdup(tmp_sep + 1);
 
-  GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, preference);
-  GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, preference);
+  GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, pref_str);
+  GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, pref_str);
+
+  for (c = 0; c <= strlen (pref_str); c++)
+  {
+  	pref_str[c] = toupper(pref_str[c]);
+  }
+  pref_val = -1;
+	for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+	{
+		if (0 == strcmp (pref_str, prefs[c]))
+		{
+			pref_val = c;
+			break;
+		}
+	}
+	if (-1 == pref_val)
+	{
+		fprintf (stderr, "Unknown preference: `%s'\n", pref_str);
+	  GNUNET_free (solver);
+	  GNUNET_free (pref_str);
+	  return -1;
+	}
 
   for (c = 0; c < (argc -1); c++)
   {
@@ -1306,7 +1329,7 @@ main (int argc, char *argv[])
                                   &test_main, NULL);
 
   GNUNET_free (solver);
-  GNUNET_free (preference);
+  GNUNET_free (pref_str);
   GNUNET_free (conf_name);
   GNUNET_free (test_name);
   GNUNET_free (bp_slaves);
