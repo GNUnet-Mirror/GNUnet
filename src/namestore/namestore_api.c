@@ -416,13 +416,13 @@ handle_record_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE'
+ * Handle an incoming message of type #GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE.
  *
  * @param qe the respective entry in the message queue
  * @param msg the message we received
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_NO if we notified the client about
- *         the error, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_NO if we notified the client about
+ *         the error, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -493,10 +493,10 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
  *
  * @param qe the respective zone iteration handle
  * @param msg the message we received
- * @param type the message type in HBO
+ * @param type the message type in host byte order
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_NO if we notified the client about
- *         the error, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_NO if we notified the client about
+ *         the error, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -555,8 +555,8 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
  * @param ze the respective iterator for this operation
  * @param msg the message containing the respoonse
  * @param size the message size
- * @return GNUNET_YES on success, 'ze' should be kept, GNUNET_NO on success if 'ze' should
- *         not be kept any longer, GNUNET_SYSERR on error (disconnect) and 'ze' should be kept
+ * @return #GNUNET_YES on success, @a ze should be kept, #GNUNET_NO on success if @a ze should
+ *         not be kept any longer, #GNUNET_SYSERR on error (disconnect) and @a ze should be kept
  */
 static int
 handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
@@ -587,7 +587,8 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   }
   if ((0 == name_len) && (0 == (memcmp (&msg->private_key, &priv_dummy, sizeof (priv_dummy)))))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Zone iteration is completed!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Zone iteration is completed!\n");
     if (NULL != ze->proc)
       ze->proc (ze->proc_cls, NULL, NULL, 0, NULL);
     return GNUNET_NO;
@@ -621,8 +622,8 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
  * @param msg the message we received
  * @param type the message type in HBO
  * @param size the message size
- * @return GNUNET_YES on success, 'ze' should be kept, GNUNET_NO on success if 'ze' should
- *         not be kept any longer, GNUNET_SYSERR on error (disconnect) and 'ze' should be kept
+ * @return #GNUNET_YES on success, @a ze should be kept, #GNUNET_NO on success if @a ze should
+ *         not be kept any longer, #GNUNET_SYSERR on error (disconnect) and @a ze should be kept
  */
 static int
 manage_zone_operations (struct GNUNET_NAMESTORE_ZoneIterator *ze,
@@ -650,7 +651,7 @@ manage_zone_operations (struct GNUNET_NAMESTORE_ZoneIterator *ze,
  * Type of a function to call when we receive a message
  * from the service.
  *
- * @param cls the 'struct GNUNET_NAMESTORE_SchedulingHandle'
+ * @param cls the `struct GNUNET_NAMESTORE_SchedulingHandle`
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
@@ -710,8 +711,7 @@ process_namestore_message (void *cls,
       GNUNET_free (qe);
     }
   }
-
-  /* Is it a zone iteration operation ? */
+  /* Is it a zone iteration operation? */
   for (ze = h->z_head; ze != NULL; ze = ze->next)
     if (ze->op_id == r_id)
       break;

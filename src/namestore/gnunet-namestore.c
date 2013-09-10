@@ -239,9 +239,9 @@ do_shutdown (void *cls,
  * operation.
  *
  * @param cls closure, location of the QueueEntry pointer to NULL out
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there
+ *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
 static void
@@ -273,9 +273,9 @@ add_continuation (void *cls,
  * operation.
  *
  * @param cls closure, unused
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there
+ *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
 static void
@@ -301,7 +301,7 @@ del_continuation (void *cls,
  * @param cls closure
  * @param zone_key private key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd_len number of entries in 'rd' array
+ * @param rd_len number of entries in @a rd array
  * @param rd array of records with data to store
  */
 static void
@@ -320,7 +320,7 @@ display_record (void *cls,
     list_it = NULL;
     if ( (NULL == del_qe) &&
 	 (NULL == add_qe_uri) &&
-	 (NULL == add_qe) )
+	 (NULL == add_qe) )    
       GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -369,7 +369,7 @@ sync_cb (void *cls)
  * @param cls closure, unused
  * @param zone_key private key of the zone
  * @param rec_name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
+ * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
 static void
@@ -409,7 +409,10 @@ get_existing_record (void *cls,
 					   rde,
 					   &add_continuation,
 					   &add_qe);
-  GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
+  /* only cancel if we were not told that this
+     was the end of the iteration already */
+  if (NULL != rec_name)
+    GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
   add_zit = NULL;
 }
 
@@ -420,7 +423,7 @@ get_existing_record (void *cls,
  * operation.
  *
  * @param cls closure with our configuration
- * @param result GNUNET_YES if the namestore service is running
+ * @param result #GNUNET_YES if the namestore service is running
  */
 static void
 testservice_task (void *cls,
