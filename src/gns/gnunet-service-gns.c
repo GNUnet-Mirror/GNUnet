@@ -286,6 +286,7 @@ dht_put_continuation (void *cls,
 {
   struct GNUNET_TIME_Relative next_put_interval; 
 
+  active_put = NULL;
   num_public_records++;  
   if ( (num_public_records > last_num_public_records) &&
        (GNUNET_NO == first_zone_iteration) )
