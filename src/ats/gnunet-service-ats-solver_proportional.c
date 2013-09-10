@@ -37,9 +37,9 @@
  * on gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
  * use build_txt.sh to generate plaintext output
  *
- * ATS addresses : simplistic solver
+ * ATS addresses : proportional solver
  *
- *    The simplistic solver ("simplistic") distributes the available
+ *    The proportional solver ("proportional") distributes the available
  *    bandwidth fair over all the addresses influenced by the
  *    preference values. For each available network type an in- and
  *    outbound quota is configured and the bandwidth available in
@@ -76,13 +76,13 @@
  *    is used to specify network related information as total adresses
  *    and active addresses in this network and the configured in- and
  *    outbound quota. Each network also contains a list of addresses
- *    added to the solver located in this network. The simplistic
+ *    added to the solver located in this network. The proportional
  *    solver uses the addresses' solver_information field to store the
- *    simplistic network it belongs to for each address.
+ *    proportional network it belongs to for each address.
  *
  *     3.2 Initializing
  *
- *    When the simplistic solver is initialized the solver creates a
+ *    When the proportional solver is initialized the solver creates a
  *    new solver handle and initializes the network structures with
  *    the quotas passed from addresses and returns the handle solver.
  *
@@ -95,7 +95,7 @@
  *     3.4 Updating an address
  *
  *    The main purpose of address updates is to update the ATS
- *    information for addresse selection. Important for the simplistic
+ *    information for addresse selection. Important for the proportional
  *    solver is when an address switches network it is located
  *    in. This is common because addresses added by transport's
  *    validation mechanism are commonly located in
@@ -104,12 +104,12 @@
  *    return of payload data transport switches to the real network
  *    the address is located in.  When an address changes networks it
  *    is first of all removed from the old network using the solver
- *    API function GAS_simplistic_address_delete and the network in
+ *    API function GAS_proportional_address_delete and the network in
  *    the address struct is updated. A lookup for the respective new
- *    simplistic network is done and stored in the addresse's
+ *    proportional network is done and stored in the addresse's
  *    solver_information field. Next the address is re-added to the
  *    solver using the solver API function
- *    GAS_simplistic_address_add. If the address was marked as in
+ *    GAS_proportional_address_add. If the address was marked as in
  *    active, the solver checks if bandwidth is available in the
  *    network and if yes sets the address to active and updates the
  *    bandwidth distribution in this network. If no bandwidth is

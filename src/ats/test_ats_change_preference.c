@@ -26,7 +26,7 @@
  */
 /**
  * @file ats/test_ats_change_preferences.c
- * @brief test for ats simplistic solver preference aging:
+ * @brief test for ats proportional solver preference aging:
  * 	Add 2 addresses and set high preference for one. Expect higher bw for this
  * 	address, wait. Preferences should age and so bw assigned should decrease.
  * @author Christian Grothoff

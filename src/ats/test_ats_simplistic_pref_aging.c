@@ -26,7 +26,7 @@
  */
 /**
  * @file ats/test_ats_api_scheduling_add_address.c
- * @brief test for ats simplistic solver preference aging:
+ * @brief test for ats proportional solver preference aging:
  * 	Add 2 addresses and set high preference for one. Expect higher bw for this
  * 	address, wait. Preferences should age and so bw assigned should decrease.
  * @author Christian Grothoff
@@ -439,7 +439,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_simplistic_pref_aging",
+  if (0 != GNUNET_TESTING_peer_run ("test_ats_proportional_pref_aging",
                                     "test_ats_api.conf",
                                     &run, NULL))
     return 1;

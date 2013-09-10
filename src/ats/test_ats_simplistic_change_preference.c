@@ -26,7 +26,7 @@
  */
 /**
  * @file ats/test_ats_simplistic_change_preference.c
- * @brief test for changing preferences in ats simplistic solver
+ * @brief test for changing preferences in ats proportional solver
  * @author Christian Grothoff
  * @author Matthias Wachs
  */

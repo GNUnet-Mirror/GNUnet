@@ -116,7 +116,7 @@
  *    it as a value_number. If no configuration value is found it will assign
  *    GNUNET_ATS_DefaultBandwidth. The most important step is to load the
  *    configured solver using configuration "[ats]:MODE". Current solvers are
- *    MODE_SIMPLISTIC, MODE_MLP. Interaction is done using a solver API
+ *    MODE_PROPORTIONAL, MODE_MLP. Interaction is done using a solver API
  *
  *     1.4 Solver API
  *
