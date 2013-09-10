@@ -269,7 +269,7 @@ print_ego (void *cls,
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
   s = GNUNET_CRYPTO_ecc_public_key_to_string (&pk);
   if ( (monitor) || (NULL != identifier) )
-    fprintf (stderr, "%s - %s\n", identifier, s);
+    fprintf (stdout, "%s - %s\n", identifier, s);
   GNUNET_free (s);
 }
 
