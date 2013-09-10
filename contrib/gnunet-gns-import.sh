@@ -17,9 +17,9 @@ gnunet-identity -e private-zone -s gns-private
 gnunet-identity -e sks-zone -s fs-sks
 
 # Get the public keys as strings (so we can create PKEY records)
-MASTER=`gnunet-identity -d | grep master-zone | awk '{print $3}`
-SHORT=`gnunet-identity -d | grep short-zone | awk '{print $3}`
-PRIVATE=`gnunet-identity -d | grep private-zone | awk '{print $3}`
+MASTER=`gnunet-identity -d | grep master-zone | awk '{print $3}'`
+SHORT=`gnunet-identity -d | grep short-zone | awk '{print $3}'`
+PRIVATE=`gnunet-identity -d | grep private-zone | awk '{print $3}'`
 
 # Link short and private zones into master zone
 gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE 
