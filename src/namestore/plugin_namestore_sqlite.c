@@ -328,7 +328,7 @@ database_setup (struct Plugin *plugin)
 	&plugin->iterate_zone) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-	"SELECT record_count,record_data,label" 
+	"SELECT record_count,record_data,label,zone_private_key" 
 	" FROM ns096records ORDER BY rvalue LIMIT 1 OFFSET ?",
 	&plugin->iterate_all_zones) != SQLITE_OK) 
       )
@@ -717,7 +717,20 @@ get_record_and_call_iterator (struct Plugin *plugin,
     data_size = sqlite3_column_bytes (stmt, 1);
     data = sqlite3_column_blob (stmt, 1);
     label = (const char*) sqlite3_column_text (stmt, 2);
-
+    if (NULL == zone_key)
+    {
+      /* must be "iterate_all_zones", got one extra return value */
+      if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) !=
+	  sqlite3_column_bytes (stmt, 3))
+      {
+	GNUNET_break (0);
+	ret = GNUNET_SYSERR;
+      }
+      else
+      {
+	zone_key = sqlite3_column_blob (stmt, 3);
+      }
+    }
     if (record_count > 64 * 1024)
     {
       /* sanity check, don't stack allocate far too much just
@@ -736,7 +749,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
 	GNUNET_break (0);
 	ret = GNUNET_SYSERR;
       }
-      else
+      else if (NULL != zone_key)
       {
 	iter (iter_cls, zone_key, label, 
 	      record_count, rd);
