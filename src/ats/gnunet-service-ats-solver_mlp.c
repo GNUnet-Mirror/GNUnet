@@ -1531,9 +1531,11 @@ GAS_mlp_get_preferred_address (void *solver,
 
   	  /* Added new peer, we have to rebuild problem before solving */
   	  mlp->mlp_prob_changed = GNUNET_YES;
+
+  	  if ((GNUNET_YES == mlp->mlp_auto_solve) &&
+  	  		(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(mlp->addresses, &peer->hashPubKey)))
+  	  	GAS_mlp_solve_problem (mlp);
   }
-  if (GNUNET_YES == mlp->mlp_auto_solve)
-  	GAS_mlp_solve_problem (mlp);
 
   /* Get prefered address */
   GNUNET_CONTAINER_multihashmap_get_multiple (mlp->addresses, &peer->hashPubKey,
