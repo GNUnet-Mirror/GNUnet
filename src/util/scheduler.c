@@ -239,7 +239,7 @@ static int current_lifeness;
 
 /**
  * Function to use as a select() in the scheduler.
- * If NULL, we use GNUNET_NETWORK_socket_select ().
+ * If NULL, we use GNUNET_NETWORK_socket_select().
  */
 static GNUNET_SCHEDULER_select scheduler_select;
 
@@ -252,7 +252,7 @@ static void *scheduler_select_cls;
  * Sets the select function to use in the scheduler (scheduler_select).
  *
  * @param new_select new select function to use
- * @param new_select_cls closure for 'new_select'
+ * @param new_select_cls closure for @a new_select
  * @return previously used select function, NULL for default
  */
 void
@@ -363,7 +363,7 @@ set_overlaps (const struct GNUNET_NETWORK_FDSet *ready,
  * @param now the current time
  * @param rs set of FDs ready for reading
  * @param ws set of FDs ready for writing
- * @return GNUNET_YES if we can run it, GNUNET_NO if not.
+ * @return #GNUNET_YES if we can run it, #GNUNET_NO if not.
  */
 static int
 is_ready (struct Task *task, struct GNUNET_TIME_Absolute now,
@@ -630,6 +630,26 @@ sighandler_pipe ()
   return;
 }
 #endif
+
+
+/**
+ * Wait for a short time.
+ * Sleeps for @a ms ms (as that should be long enough for virtually all
+ * modern systems to context switch and allow another process to do
+ * some 'real' work).
+ *
+ * @param ms how many ms to wait
+ */
+static void
+short_wait (unsigned int ms)
+{
+  struct GNUNET_TIME_Relative timeout;
+
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, ms);
+  (void) GNUNET_NETWORK_socket_select (NULL, NULL, NULL, timeout);
+}
+
+
 /**
  * Signal handler called for signals that should cause us to shutdown.
  */
@@ -653,8 +673,8 @@ sighandler_shutdown ()
  * Check if the system is still life. Trigger shutdown if we
  * have tasks, but none of them give us lifeness.
  *
- * @return GNUNET_OK to continue the main loop,
- *         GNUNET_NO to exit
+ * @return #GNUNET_OK to continue the main loop,
+ *         #GNUNET_NO to exit
  */
 static int
 check_lifeness ()
@@ -780,7 +800,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
     if ((0 == ret) && (0 == timeout.rel_value_us) && (busy_wait_warning > 16))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, _("Looks like we're busy waiting...\n"));
-      sleep (1);                /* mitigate */
+      short_wait (100);                /* mitigate */
     }
     check_ready (rs, ws);
     run_ready (rs, ws);
@@ -793,6 +813,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
     }
     if (last_tr == tasks_run)
     {
+      short_wait (1);
       busy_wait_warning++;
     }
     else
