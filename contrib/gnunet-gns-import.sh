@@ -25,6 +25,6 @@ PRIVATE=`gnunet-identity -d | grep private-zone | awk '{print $3}'`
 gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE 
 gnunet-namestore -z master-zone -a -e never -n short -p -t PKEY -V $SHORT 
 
-# Link GNUnet's FCFS zone into master zone
-gnunet-namestore -z master-zone -a -e never -n fcfs -p -t PKEY -V 72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG
+# Link GNUnet's FCFS zone into master zone under label "pin"
+gnunet-namestore -z master-zone -a -e never -n pin -p -t PKEY -V 72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG
 
