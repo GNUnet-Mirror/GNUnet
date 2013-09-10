@@ -506,6 +506,7 @@ send_lookup_response (void* cls,
   GNUNET_SERVER_receive_done (clh->client, 
 			      GNUNET_OK); 
   GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
+  GNUNET_SERVER_client_set_user_context (clh->client, NULL);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
                             "Completed lookups", 1, 
