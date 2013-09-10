@@ -413,7 +413,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	}
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "RIL_DISCOUNT_FACTOR", &tmp))
 	{
-		solver->parameters.gamma = tmp;
+		solver->parameters.gamma = (double) tmp / 100;;
 	}
 	else
 	{
@@ -421,7 +421,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	}
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &tmp))
 	{
-		solver->parameters.alpha = tmp;
+		solver->parameters.alpha = (double) tmp / 100;;
 	}
 	else
 	{
@@ -429,7 +429,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	}
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "RIL_TRACE_DECAY", &tmp))
 	{
-		solver->parameters.lambda = tmp;
+		solver->parameters.lambda = (double) tmp / 100;;
 	}
 	else
 	{
@@ -631,6 +631,28 @@ GAS_ril_address_change_network (void *solver,
 	 * update network
 	 */
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ril_address_change_network() has been called\n");
+}
+
+/**
+ * Get application feedback for a peer
+ *
+ * @param solver the solver handle
+ * @param application the application
+ * @param peer the peer to change the preference for
+ * @param scope the time interval for this feedback: [now - scope .. now]
+ * @param kind the kind to change the preference
+ * @param score the score
+ */
+void
+GAS_ril_address_preference_feedback (void *solver,
+											void *application,
+								 	 	 	const struct GNUNET_PeerIdentity *peer,
+								 	 	 	const struct GNUNET_TIME_Relative scope,
+								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
+								 	 	 	double score)
+{
+	//TODO implement
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ril_address_preference_feedback() has been called\n");
 }
 
 /**

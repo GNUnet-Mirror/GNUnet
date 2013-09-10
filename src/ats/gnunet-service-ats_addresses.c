@@ -1694,7 +1694,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
  * Initialize address subsystem. The addresses subsystem manages the addresses
  * known and current performance information. It has a solver component
  * responsible for the resource allocation. It tells the solver about changes
- * and receives updates when the solver changes the ressource allocation.
+ * and receives updates when the solver changes the resource allocation.
  *
  * @param cfg configuration to use
  * @param stats the statistics handle to use
@@ -1809,6 +1809,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	  ah->s_get = &GAS_ril_get_preferred_address;
 	  ah->s_get_stop = &GAS_ril_stop_get_preferred_address;
 	  ah->s_pref = &GAS_ril_address_change_preference;
+	  ah->s_feedback = &GAS_ril_address_preference_feedback;
 	  ah->s_del  = &GAS_ril_address_delete;
 	  ah->s_bulk_start = &GAS_ril_bulk_start;
 	  ah->s_bulk_stop = &GAS_ril_bulk_stop;
