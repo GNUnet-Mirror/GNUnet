@@ -121,7 +121,7 @@
  *    it as a value_number. If no configuration value is found it will assign
  *    GNUNET_ATS_DefaultBandwidth. The most important step is to load the
  *    configured solver using configuration "[ats]:MODE". Current solvers are
- *    MODE_SIMPLISTIC, MODE_MLP. Interaction is done using a solver API
+ *    MODE_PROPORTIONAL, MODE_MLP. Interaction is done using a solver API
  *
  *     1.4 Solver API
  *
@@ -237,13 +237,13 @@
 enum ATS_Mode
 {
   /*
-   * Simplistic mode:
+   * proportional mode:
    *
    * Assign each peer an equal amount of bandwidth (bw)
    *
    * bw_per_peer = bw_total / #active addresses
    */
-  MODE_SIMPLISTIC,
+  MODE_PROPORTIONAL,
 
   /*
    * MLP mode:
@@ -1723,23 +1723,23 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* Figure out configured solution method */
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "No resource assignment method configured, using simplistic approach\n");
-      ah->ats_mode = MODE_SIMPLISTIC;
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "No resource assignment method configured, using proportional approach\n");
+      ah->ats_mode = MODE_PROPORTIONAL;
   }
   else
   {
       for (c = 0; c < strlen (mode_str); c++)
         mode_str[c] = toupper (mode_str[c]);
-      if (0 == strcmp (mode_str, "SIMPLISTIC"))
+      if (0 == strcmp (mode_str, "PROPORTIONAL"))
       {
-          ah->ats_mode = MODE_SIMPLISTIC;
+          ah->ats_mode = MODE_PROPORTIONAL;
       }
       else if (0 == strcmp (mode_str, "MLP"))
       {
           ah->ats_mode = MODE_MLP;
 #if !HAVE_LIBGLPK
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Assignment method `%s' configured, but GLPK is not available, please install \n", mode_str);
-          ah->ats_mode = MODE_SIMPLISTIC;
+          ah->ats_mode = MODE_PROPORTIONAL;
 #endif
       }
       else if (0 == strcmp (mode_str, "RIL"))
@@ -1748,8 +1748,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid resource assignment method `%s' configured, using simplistic approach\n", mode_str);
-          ah->ats_mode = MODE_SIMPLISTIC;
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid resource assignment method `%s' configured, using proportional approach\n", mode_str);
+          ah->ats_mode = MODE_PROPORTIONAL;
       }
       GNUNET_free (mode_str);
   }
@@ -1779,9 +1779,9 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
 #endif
       break;
-    case MODE_SIMPLISTIC:
-      /* Init the simplistic solver with default values */
-      ah->ats_mode = MODE_SIMPLISTIC;
+    case MODE_PROPORTIONAL:
+      /* Init the proportional solver with default values */
+      ah->ats_mode = MODE_PROPORTIONAL;
       ah->s_init = &GAS_proportional_init;
       ah->s_add = &GAS_proportional_address_add;
       ah->s_address_update_property = &GAS_proportional_address_property_changed;
@@ -1796,7 +1796,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->s_bulk_start = &GAS_proportional_bulk_start;
       ah->s_bulk_stop = &GAS_proportional_bulk_stop;
       ah->s_done = &GAS_proportional_done;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "SIMPLISTIC");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "PROPORTIONAL");
       break;
     case MODE_RIL:
       /* Init the ril solver with default values */
