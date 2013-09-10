@@ -172,6 +172,8 @@ struct GNUNET_IDENTITY_Handle
 
 /**
  * Obtain the ego representing 'anonymous' users.
+ * 
+ * @return handle for the anonymous user, must not be freed
  */
 const struct GNUNET_IDENTITY_Ego *
 GNUNET_IDENTITY_ego_get_anonymous ()
@@ -448,8 +450,8 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h);
 /**
  * Transmit next message to service.
  *
- * @param cls the 'struct GNUNET_IDENTITY_Handle'.
- * @param size number of bytes available in buf
+ * @param cls the `struct GNUNET_IDENTITY_Handle`.
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message
  * @return number of bytes copied to buf
  */
@@ -558,7 +560,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cfg the configuration to use
  * @param cb function to call on all identity events, can be NULL
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  * @return handle to use
  */
 struct GNUNET_IDENTITY_Handle *
@@ -614,7 +616,7 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
  * @param id identity service to query
  * @param service_name for which service is an identity wanted
  * @param cb function to call with the result (will only be called once)
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
@@ -663,7 +665,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
  * @param service_name for which service is an identity set
  * @param ego new default identity to be set for this service
  * @param cont function to call once the operation finished
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
@@ -713,7 +715,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
  * @param id identity service to use
  * @param name desired name
  * @param cont function to call with the result (will only be called once)
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
@@ -768,7 +770,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
  * @param old_name old name
  * @param new_name desired new name
  * @param cb function to call with the result (will only be called once)
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_Operation *
@@ -923,10 +925,11 @@ free_ego (void *cls,
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Ego *ego = value;
 
-  h->cb (h->cb_cls,
-	 ego,
-	 &ego->ctx,
-	 NULL);
+  if (NULL != h->cb)
+    h->cb (h->cb_cls,
+	   ego,
+	   &ego->ctx,
+	   NULL);
   GNUNET_free (ego->pk);
   GNUNET_free (ego->name);
   GNUNET_free (ego);
