@@ -76,6 +76,20 @@ void
 GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message);
 
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages.
+ * This handler is queued in the main service and will handle the messages sent
+ * either from the testbed driver or from a high level controller
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_barrier_status (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message);
+
 #endif  /* GNUNET_SERVER_TESTBED_BARRIERS_H_ */
 
 /* end of gnunet-service-testbed_barriers.h */

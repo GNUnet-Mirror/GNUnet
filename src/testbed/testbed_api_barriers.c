@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api.h"
+#include "testbed_api_barriers.h"
 
 /**
  * Logging shorthand
@@ -70,6 +71,10 @@ struct GNUNET_TESTBED_Barrier
    */
   void *cls;
  
+  /**
+   * Should the barrier crossed status message be echoed back to the controller?
+   */
+  int echo;
 };
 
 
@@ -172,6 +177,8 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     goto cleanup;
   }
   GNUNET_assert (NULL != barrier->cb);
+  if ((GNUNET_YES == barrier->echo) && (BARRIER_STATUS_CROSSED == status))
+    GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
   barrier->cb (barrier->cls, name, barrier, status, emsg);
   if (BARRIER_STATUS_INITIALISED == status)
     return GNUNET_OK;           /* just initialised; skip cleanup */
@@ -196,13 +203,16 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
  * @param cb the callback to call when the barrier is reached or upon error.
  *   Cannot be NULL.
  * @param cls closure for the above callback
+ * @param echo GNUNET_YES to echo the barrier crossed status message back to the
+ *   controller
  * @return barrier handle; NULL upon error
  */
 struct GNUNET_TESTBED_Barrier *
-GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
-                             const char *name,
-                             unsigned int quorum,
-                             GNUNET_TESTBED_barrier_status_cb cb, void *cls)
+GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
+                              const char *name,
+                              unsigned int quorum,
+                              GNUNET_TESTBED_barrier_status_cb cb, void *cls,
+                              int echo)
 {
   struct GNUNET_TESTBED_BarrierInit *msg;
   struct GNUNET_TESTBED_Barrier *barrier;
@@ -229,6 +239,7 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
   barrier->name = GNUNET_strdup (name);
   barrier->cb = cb;
   barrier->cls = cls;
+  barrier->echo = echo;
   (void) memcpy (&barrier->key, &key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (barrier_map, &barrier->key,
@@ -242,6 +253,30 @@ GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
   (void) memcpy (msg->name, barrier->name, name_len);
   GNUNET_TESTBED_queue_message_ (barrier->c, &msg->header);
   return barrier;
+}
+
+
+/**
+ * Initialise a barrier and call the given callback when the required percentage
+ * of peers (quorum) reach the barrier OR upon error.
+ *
+ * @param controller the handle to the controller
+ * @param name identification name of the barrier
+ * @param quorum the percentage of peers that is required to reach the barrier.
+ *   Peers signal reaching a barrier by calling
+ *   GNUNET_TESTBED_barrier_reached().
+ * @param cb the callback to call when the barrier is reached or upon error.
+ *   Cannot be NULL.
+ * @param cls closure for the above callback
+ * @return barrier handle; NULL upon error
+ */
+struct GNUNET_TESTBED_Barrier *
+GNUNET_TESTBED_barrier_init (struct GNUNET_TESTBED_Controller *controller,
+                             const char *name,
+                             unsigned int quorum,
+                             GNUNET_TESTBED_barrier_status_cb cb, void *cls)
+{
+  return GNUNET_TESTBED_barrier_init_ (controller, name, quorum, cb, cls, GNUNET_YES);
 }
 
 

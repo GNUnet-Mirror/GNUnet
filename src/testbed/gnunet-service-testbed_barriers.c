@@ -26,6 +26,7 @@
 
 #include "gnunet-service-testbed.h"
 #include "gnunet-service-testbed_barriers.h"
+#include "testbed_api_barriers.h"
 
 
 /**
@@ -328,7 +329,8 @@ cleanup_clientctx (struct ClientCtx *ctx)
 {
   struct MessageQueue *mq;
   
-  GNUNET_SERVER_client_drop (ctx->client);
+  if (NULL != ctx->client)
+    GNUNET_SERVER_client_drop (ctx->client);
   if (NULL != ctx->tx)
     GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
   if (NULL != (mq = ctx->mq_head))
@@ -358,7 +360,13 @@ remove_barrier (struct Barrier *barrier)
   while (NULL != (ctx = barrier->head))
   {
     GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, ctx);
-    cleanup_clientctx (ctx);
+    GNUNET_SERVER_client_drop (ctx->client);
+    ctx->client = NULL;
+    if (NULL != ctx->tx)
+    {
+      GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
+      ctx->tx = NULL;
+    }
   }
   GNUNET_free (barrier->name);
   GNUNET_SERVER_client_drop (barrier->mc);
@@ -436,41 +444,6 @@ send_barrier_status_msg (struct Barrier *barrier, const char *emsg)
 }
 
 
-
-/**
- * Task for sending barrier crossed notifications to waiting client
- *
- * @param cls the barrier which is crossed
- * @param tc scheduler task context
- */
-static void
-notify_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Barrier *barrier = cls;
-  struct ClientCtx *client_ctx;
-  struct GNUNET_TESTBED_BarrierStatusMsg *msg;
-  struct GNUNET_MessageHeader *dup_msg;
-  uint16_t name_len;
-  uint16_t msize;
-
-  name_len = strlen (barrier->name) + 1;
-  msize = sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len;  
-  msg = GNUNET_malloc (msize);
-  msg->header.size = htons (msize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS);
-  msg->status = htons (BARRIER_STATUS_CROSSED);
-  msg->name_len = htons (name_len);
-  (void) memcpy (msg->data, barrier->name, name_len);
-  msg->data[name_len] = '\0';
-  while (NULL != (client_ctx = barrier->head))
-  {
-    dup_msg = GNUNET_copy_message (&msg->header);
-    queue_message (client_ctx, dup_msg);
-    GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, client_ctx);
-  }
-}
-
-
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_WAIT messages.  This
  * message should come from peers or a shared helper service using the
@@ -538,7 +511,6 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   {
     barrier->status = BARRIER_STATUS_CROSSED;
     send_barrier_status_msg (barrier, NULL);
-    notify_task_cb (barrier, NULL);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -560,9 +532,6 @@ disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   if (NULL == client)
     return;
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
-  if (NULL == client_ctx)
-    return;                     /* We only set user context for locally
-                                   connected clients */
   cleanup_clientctx (client_ctx);
 }
 
@@ -777,11 +746,12 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
     wrapper = GNUNET_malloc (sizeof (struct WBarrier));
     wrapper->barrier = barrier;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->whead, barrier->wtail, wrapper);
-    wrapper->hbarrier = GNUNET_TESTBED_barrier_init (slave->controller,
-                                                     barrier->name,
-                                                     barrier->quorum,
-                                                     &wbarrier_status_cb,
-                                                     wrapper);    
+    wrapper->hbarrier = GNUNET_TESTBED_barrier_init_ (slave->controller,
+                                                      barrier->name,
+                                                      barrier->quorum,
+                                                      &wbarrier_status_cb,
+                                                      wrapper,
+                                                      GNUNET_NO);
   }
   if (NULL == barrier->whead)   /* No further propagation */
   {
@@ -854,6 +824,87 @@ GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
   cancel_wrappers (barrier);
   remove_barrier (barrier);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+}
+
+
+/**
+ * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS messages.
+ * This handler is queued in the main service and will handle the messages sent
+ * either from the testbed driver or from a high level controller
+ *
+ * @param cls NULL
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void
+GST_handle_barrier_status (void *cls, struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
+  struct Barrier *barrier; 
+  struct ClientCtx *client_ctx;
+  const char *name;
+  struct GNUNET_HashCode key;
+  enum GNUNET_TESTBED_BarrierStatus status;
+  uint16_t msize;
+  uint16_t name_len;
+  
+  if (NULL == GST_context)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }  
+  if (client != GST_context->client)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msize = ntohs (message->size);
+  if (msize <= sizeof (struct GNUNET_TESTBED_BarrierStatusMsg))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  msg = (const struct GNUNET_TESTBED_BarrierStatusMsg *) message;
+  status = ntohs (msg->status);
+  if (BARRIER_STATUS_CROSSED != status)
+  {
+    GNUNET_break_op (0);        /* current we only expect BARRIER_CROSSED
+                                   status message this way */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  name = msg->data;
+  name_len = ntohs (msg->name_len);
+  if ((sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len + 1) != msize)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  if ('\0' != name[name_len])
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_CRYPTO_hash (name, name_len, &key);
+  barrier = GNUNET_CONTAINER_multihashmap_get (barrier_map, &key);
+  if (NULL == barrier)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  while (NULL != (client_ctx = barrier->head)) /* Notify peers */
+  {
+    queue_message (client_ctx, GNUNET_copy_message (message));
+    GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, client_ctx);
+  }
 }
 
 /* end of gnunet-service-testbed_barriers.c */

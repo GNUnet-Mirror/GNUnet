@@ -903,6 +903,8 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT, 0},
     {&GST_handle_barrier_cancel, NULL, 
      GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL, 0},
+    {&GST_handle_barrier_status, NULL,
+     GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS, 0},
     {NULL, NULL, 0, 0}
   };
   char *logfile;
