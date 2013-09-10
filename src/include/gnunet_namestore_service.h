@@ -613,8 +613,8 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z);
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  * 
- * @param pkey a public key with (x,y) on the eliptic curve 
- * @return string "Y.X.zkey" where X and Y are the coordinates of the public
+ * @param pkey a public key with a point on the eliptic curve 
+ * @return string "X.zkey" where X is the coordinates of the public
  *         key in an encoding suitable for DNS labels.
  */
 const char *
@@ -625,9 +625,9 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey);
  * Convert an absolute domain name in the ".zkey" pTLD to the
  * respective public key.
  * 
- * @param zkey string "Y.X.zkey" where X and Y are the coordinates of the public
+ * @param zkey string "X.zkey" where X is the public
  *         key in an encoding suitable for DNS labels.
- * @param pkey set to a public key with (x,y) on the eliptic curve 
+ * @param pkey set to a public key on the eliptic curve 
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int

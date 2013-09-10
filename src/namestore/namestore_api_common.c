@@ -960,24 +960,20 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey 
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  * 
- * @param pkey a public key with (x,y) on the eliptic curve 
- * @return string "Y.X.zkey" where X and Y are the coordinates of the public
+ * @param pkey a public key with a point on the eliptic curve 
+ * @return string "X.zkey" where X is the public 
  *         key in an encoding suitable for DNS labels.
  */
 const char *
 GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
 {
-  static char ret[256];
+  static char ret[128];
   char *pkeys;
-  size_t slen;
 
   pkeys = GNUNET_CRYPTO_ecc_public_key_to_string (pkey);
-  slen = strlen (pkeys);
   GNUNET_snprintf (ret,
 		   sizeof (ret),
-		   "%s.%.*s.zkey",
-		   &pkeys[slen / 2],
-		   (int) (slen / 2),
+		   "%s.zkey",
 		   pkeys);
   GNUNET_free (pkeys);
   return ret;
@@ -988,9 +984,9 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey)
  * Convert an absolute domain name in the ".zkey" pTLD to the
  * respective public key.
  * 
- * @param zkey string "Y.X.zkey" where X and Y are the coordinates of the public
+ * @param zkey string "X.zkey" where X is the coordinates of the public
  *         key in an encoding suitable for DNS labels.
- * @param pkey set to a public key with (x,y) on the eliptic curve 
+ * @param pkey set to a public key on the eliptic curve 
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
@@ -1000,34 +996,22 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
   char *cpy;
   char *dot;
   const char *x;
-  const char *y;
-  char *pkeys;
     
   cpy = GNUNET_strdup (zkey);
-  y = cpy;
-  if (NULL == (dot = strchr (y, (int) '.')))
-    goto error;
-  *dot = '\0';
-  x = dot + 1;
+  x = cpy;
   if (NULL == (dot = strchr (x, (int) '.')))
     goto error;
   *dot = '\0';
   if (0 != strcasecmp (dot + 1, 
 		       "zkey"))
     goto error;
-  GNUNET_asprintf (&pkeys,
-		   "%s%s",
-		   x, y);
-  GNUNET_free (cpy);
+
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_key_from_string (pkeys,
-						strlen (pkeys),
+      GNUNET_CRYPTO_ecc_public_key_from_string (x,
+						strlen (x),
 						pkey))
-  {
-    GNUNET_free (pkeys);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (pkeys);
+    goto error;
+  GNUNET_free (cpy);
   return GNUNET_OK;
  error:
   GNUNET_free (cpy);
