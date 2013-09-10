@@ -353,16 +353,18 @@ database_shutdown (struct Plugin *plugin)
 
   if (NULL != plugin->cache_block)
     sqlite3_finalize (plugin->cache_block);
-  if (NULL != plugin->expire_blocks)
-    sqlite3_finalize (plugin->expire_blocks);
   if (NULL != plugin->lookup_block)
     sqlite3_finalize (plugin->lookup_block);
+  if (NULL != plugin->expire_blocks)
+    sqlite3_finalize (plugin->expire_blocks);
   if (NULL != plugin->store_records)
     sqlite3_finalize (plugin->store_records);
   if (NULL != plugin->delete_records)
     sqlite3_finalize (plugin->delete_records);
   if (NULL != plugin->iterate_zone)
     sqlite3_finalize (plugin->iterate_zone);
+  if (NULL != plugin->iterate_all_zones)
+    sqlite3_finalize (plugin->iterate_all_zones);
   if (NULL != plugin->zone_to_name)
     sqlite3_finalize (plugin->zone_to_name);
   result = sqlite3_close (plugin->dbh);

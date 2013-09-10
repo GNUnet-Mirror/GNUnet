@@ -912,7 +912,7 @@ zone_iteraterate_proc (void *cls,
   {
     /* what is this!? should never happen */
     proc->res_iteration_finished = IT_START;
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;    
   }
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
