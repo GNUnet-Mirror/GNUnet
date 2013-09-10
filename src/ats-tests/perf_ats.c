@@ -693,8 +693,6 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
   int c;
   int cs;
 
-  id = GNUNET_strdup (GNUNET_i2s (&p->id));
-
   t = find_peer (peer);
   if (NULL == t)
   {
@@ -702,6 +700,7 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
   	return;
   }
 
+  id = GNUNET_strdup (GNUNET_i2s (&p->id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "%s %s connected to %s %s\n",
 	      (p->master == GNUNET_YES) ? "Master": "Slave",
