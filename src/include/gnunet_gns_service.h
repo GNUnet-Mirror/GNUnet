@@ -104,7 +104,7 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
  * @param proc_cls closure for processor
  * @return handle to the queued request
  */
-struct GNUNET_GNS_LookupRequest*
+struct GNUNET_GNS_LookupRequest *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char *name,
 		   const struct GNUNET_CRYPTO_EccPublicKey *zone,

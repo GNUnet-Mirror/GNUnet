@@ -122,9 +122,9 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h);
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                GNUNET_NO if content was already there or not found
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there or not found
+ *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
 typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
@@ -176,7 +176,7 @@ enum GNUNET_NAMESTORE_RecordFlags
    * pass the '--private' option when removing a record from
    * the namestore, hence we don't require this particular option
    * to match upon removal).  See also
-   * 'GNUNET_NAMESTORE_records_cmp'.
+   * #GNUNET_NAMESTORE_records_cmp.
    */
 #define GNUNET_NAMESTORE_RF_RCMP_FLAGS (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)
 };
@@ -314,7 +314,7 @@ typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
  * @param derived_hash hash of zone key combined with name to lookup
  * @param proc function to call on the matching block, or with
  *        NULL if there is no matching block
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return a handle that can be used to cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
@@ -348,7 +348,7 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
  * @param value_zone public key of the target zone (value), never NULL
  * @param proc function to call on the matching records, or with
  *        NULL (rd_count == 0) if there are no matching records
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return a handle that can be used to
  *         cancel
  */
@@ -456,7 +456,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  * @param zone zone to monitor
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
- * @param cls closure for @a monitor' and @a sync_cb
+ * @param cls closure for @a monitor and @a sync_cb
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
