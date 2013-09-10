@@ -187,7 +187,7 @@ struct GNUNET_DNSPARSER_SoaRecord
    * The domainname of the name server that was the
    * original or primary source of data for this zone.
    * In UTF-8 format.  The library will convert from and to DNS-IDNA 
-   * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
+   * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
    */
@@ -386,8 +386,8 @@ struct GNUNET_DNSPARSER_Packet
  * This can fail if the ASCII-conversion becomes longer than 63 characters.
  *
  * @param label label to check (UTF-8 string)
- * @return GNUNET_OK if the label can be converted to IDNA,
- *         GNUNET_SYSERR if the label is not valid for DNS names
+ * @return #GNUNET_OK if the label can be converted to IDNA,
+ *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
 GNUNET_DNSPARSER_check_label (const char *label);
@@ -399,8 +399,8 @@ GNUNET_DNSPARSER_check_label (const char *label);
  * the entire name exceeds 253 characters.
  *
  * @param name name to check (UTF-8 string)
- * @return GNUNET_OK if the label can be converted to IDNA,
- *         GNUNET_SYSERR if the label is not valid for DNS names
+ * @return #GNUNET_OK if the label can be converted to IDNA,
+ *         #GNUNET_SYSERR if the label is not valid for DNS names
  */
 int
 GNUNET_DNSPARSER_check_name (const char *name);
@@ -411,7 +411,7 @@ GNUNET_DNSPARSER_check_name (const char *name);
  * processing and manipulation.
  *
  * @param udp_payload wire-format of the DNS packet
- * @param udp_payload_length number of bytes in udp_payload 
+ * @param udp_payload_length number of bytes in @a udp_payload 
  * @return NULL on error, otherwise the parsed packet
  */
 struct GNUNET_DNSPARSER_Packet *
