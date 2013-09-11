@@ -37,8 +37,6 @@ endif
 endif
 
 # testcases do not even build yet; thus: experimental!
-if HAVE_EXPERIMENTAL
-
 if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api_store \
@@ -60,9 +58,6 @@ check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
  $(TESTING_TESTS)
-endif
-
-# end of 'HAVE_EXPERIMENTAL' for testcases 
 endif
 
 if ENABLE_TEST_RUN
@@ -226,14 +221,14 @@ test_namestore_api_monitoring_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
-  
+
 test_namestore_api_monitoring_existing_SOURCES = \
  test_namestore_api_monitoring_existing.c
 test_namestore_api_monitoring_existing_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
- 
+
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c
 test_namestore_api_zone_iteration_LDADD = \
