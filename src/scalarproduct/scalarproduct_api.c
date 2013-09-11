@@ -351,14 +351,14 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   h->cont_status = cont;
   h->cont_cls = cont_cls;
-  h->response_proc = &process_result_message;
+  h->response_proc = &process_status_message;
   h->cfg = cfg;
-  h->msg = GNUNET_malloc (size);
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-
-  msg = (struct GNUNET_SCALARPRODUCT_client_request*) h->msg;
+  
+  msg = (struct GNUNET_SCALARPRODUCT_client_request*) GNUNET_malloc (size);
+  h->msg = msg;
   msg->header.size = htons (size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB);
   msg->element_count = htonl (element_count);
 
   vector = (int32_t*) & msg[1];
@@ -444,16 +444,16 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   h->cont_datum = cont;
   h->cont_cls = cont_cls;
-  h->response_proc = &process_status_message;
+  h->response_proc = &process_result_message;
   h->cfg = cfg;
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-
+  
   msg = (struct GNUNET_SCALARPRODUCT_client_request*) GNUNET_malloc (size);
   h->msg = msg;
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE);
-  msg->element_count = htons (element_count);
-  msg->mask_length = htons (mask_bytes);
+  msg->element_count = htonl (element_count);
+  msg->mask_length = htonl (mask_bytes);
 
   vector = (int32_t*) & msg[1];
   // copy each element over to the message

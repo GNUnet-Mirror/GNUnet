@@ -73,12 +73,12 @@ struct GNUNET_SCALARPRODUCT_client_request
   /**
    * how many elements the vector in payload contains
    */
-  uint16_t element_count GNUNET_PACKED;
+  uint32_t element_count GNUNET_PACKED;
 
   /**
    * how many bytes the mask has
    */
-  uint16_t mask_length GNUNET_PACKED;
+  uint32_t mask_length GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session
@@ -108,12 +108,12 @@ struct GNUNET_SCALARPRODUCT_service_request {
   /**
    * how many bytes the mask has
    */
-  uint16_t mask_length GNUNET_PACKED;
+  uint32_t mask_length GNUNET_PACKED;
 
   /**
    * the length of the publickey contained within this message
    */
-  uint16_t pk_length GNUNET_PACKED;
+  uint32_t pk_length GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session
@@ -123,12 +123,12 @@ struct GNUNET_SCALARPRODUCT_service_request {
   /**
    * how many elements the vector in payload contains
    */
-  uint16_t element_count GNUNET_PACKED;
+  uint32_t element_count GNUNET_PACKED;
 
   /**
    * how many elements are actually included after the mask was applied.
    */
-  uint16_t used_element_count GNUNET_PACKED;
+  uint32_t used_element_count GNUNET_PACKED;
 
   /**
    * followed by mask | public_key | vector[used_element_count]
@@ -148,12 +148,12 @@ struct GNUNET_SCALARPRODUCT_service_response {
   /**
    * how many elements the vector in payload contains
    */
-  uint16_t element_count GNUNET_PACKED;
+  uint32_t element_count GNUNET_PACKED;
 
   /**
    * how many elements are actually included after the mask was applied.
    */
-  uint16_t used_element_count GNUNET_PACKED;
+  uint32_t used_element_count GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session

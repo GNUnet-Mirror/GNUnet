@@ -151,6 +151,18 @@ requester_callback (void *cls,
   }
 }
 
+/**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_SCALARPRODUCT_disconnect ();
+}
 
 /**
  * Main function that will be run by the scheduler.
@@ -310,6 +322,10 @@ run (void *cls,
                                                                          (void *) &closure)))
     return;
 
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
+                                NULL);
+  
   ret = 0;
 }
 
