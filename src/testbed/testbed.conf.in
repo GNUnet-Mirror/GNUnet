@@ -1,6 +1,6 @@
 [testbed]
 AUTOSTART = NO
-@UNIXONLY@ PORT = 2101
+@JAVAPORT@ PORT = 2101
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-testbed
