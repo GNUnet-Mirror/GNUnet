@@ -19,7 +19,7 @@
 */
 /**
  * @file namestore/test_namestore_api_zone_iteration.c
- * @brief testcase for zone iteration functionality: iterate of a specific zone
+ * @brief testcase for zone iteration functionality: iterate all zones
  */
 #include "platform.h"
 #include "gnunet_common.h"

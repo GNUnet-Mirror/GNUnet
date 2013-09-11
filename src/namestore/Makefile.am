@@ -43,8 +43,9 @@ if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api_store \
  test_namestore_api_remove \
- test_namestore_api_zone_iteration
-# test_namestore_api_lookup
+ test_namestore_api_zone_iteration \
+ test_namestore_api_zone_iteration_specific_zone
+# test_namestore_api_lookup 
 #test_namestore_api_lookup_specific_type
 #test_namestore_api_create 
 #test_namestore_api_create_update
@@ -52,7 +53,7 @@ TESTING_TESTS = \
 #test_namestore_api_zone_to_name 
 #test_namestore_api_monitoring 
  
-#test_namestore_api_zone_iteration_specific_zone 
+ 
 #test_namestore_api_zone_iteration_stop
 endif
 
