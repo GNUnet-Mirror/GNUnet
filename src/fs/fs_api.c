@@ -1391,12 +1391,16 @@ cleanup:
  * @return NULL if srch was not found in this subtree
  */
 static struct GNUNET_FS_FileInformation *
-find_file_position (struct GNUNET_FS_FileInformation *pos, const char *srch)
+find_file_position (struct GNUNET_FS_FileInformation *pos, 
+		    const char *srch)
 {
   struct GNUNET_FS_FileInformation *r;
 
   while (NULL != pos)
   {
+    fprintf (stderr,
+	     "CMP: %s %s\n",
+	     srch, pos->serialization);
     if (0 == strcmp (srch, pos->serialization))
       return pos;
     if ( (GNUNET_YES == pos->is_directory) &&
@@ -1457,7 +1461,7 @@ fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
  *
  * @param cls the 'struct GNUNET_FS_Handle*'
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 deserialize_publish_file (void *cls, const char *filename)

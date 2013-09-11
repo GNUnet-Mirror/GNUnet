@@ -349,7 +349,7 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   const char *dd;
 
   p = pc->fi_pos;
-  if (p->is_directory == GNUNET_YES)
+  if (GNUNET_YES == p->is_directory)
   {
     pt_size = GNUNET_MIN (max, p->data.dir.dir_size - offset);
     dd = p->data.dir.dir_data;
@@ -357,8 +357,16 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   }
   else
   {
-    if (UINT64_MAX == offset)
-      return p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
+    if (UINT64_MAX == offset) 
+    {
+      if (NULL != p->data.file.reader)
+      {
+	pt_size = p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
+	p->data.file.reader = NULL;
+	return pt_size;
+      }
+      return 0;
+    }
     pt_size = GNUNET_MIN (max, p->data.file.file_size - offset);
     if (pt_size == 0)
       return 0;                 /* calling reader with pt_size==0
