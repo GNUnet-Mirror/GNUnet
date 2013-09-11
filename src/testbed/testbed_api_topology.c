@@ -606,7 +606,7 @@ gen_scale_free (struct TopologyContext *tc)
   tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink));
   make_link (&tc->link_array[0], 0, 1, tc);
   popularity[0]++;              /* increase popularity of 0 as 1 connected to it */
-  for (cnt = 1; cnt < tc->num_peers; cnt++)
+  for (cnt = 2; cnt < tc->num_peers; cnt++)
   {
     previous_connections = tc->link_array_size;
     for (i = 0; i < cnt; i++)
@@ -623,8 +623,8 @@ gen_scale_free (struct TopologyContext *tc)
             GNUNET_realloc (tc->link_array,
                             (sizeof (struct OverlayLink) *
                              tc->link_array_size));
-        make_link (&tc->link_array[tc->link_array_size - 1], cnt, i, tc);
-        popularity[cnt]++;
+        make_link (&tc->link_array[tc->link_array_size - 1], i, cnt, tc);
+        popularity[i]++;
       }
     }
   }
