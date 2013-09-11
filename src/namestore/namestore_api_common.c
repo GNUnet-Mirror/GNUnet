@@ -489,7 +489,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
 	return GNUNET_SYSERR;
       }
       if (NULL != proc)
-      	proc (proc_cls, rd_count, rd);
+      	proc (proc_cls, rd_count, (0 != rd_count) ? rd : NULL);
     }
   }
   return GNUNET_OK;
