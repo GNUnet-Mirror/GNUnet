@@ -992,7 +992,14 @@ enum GNUNET_TESTBED_TopologyOption
   GNUNET_TESTBED_TOPOLOGY_INTERNAT,
 
   /**
-   * Scale free topology. No options.
+   * Scale free topology.  It is generated according to the method described in
+   * "Emergence of Scaling in Random Networks." Science 286, 509-512, 1999.
+   *
+   * This options takes two arguments in the following order: an uint16_t to
+   * determine the maximum number of edges a peer is permitted to have while
+   * generating scale free topology, a good value for this argument is 70; and
+   * an uint8_t to determine the number of edges to be established when adding a
+   * new node to the scale free network, a good value for this argument is 4.
    */
   GNUNET_TESTBED_TOPOLOGY_SCALE_FREE,
 

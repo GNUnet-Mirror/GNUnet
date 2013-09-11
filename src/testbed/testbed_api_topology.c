@@ -589,46 +589,60 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
  * "Emergence of Scaling in Random Networks." Science 286, 509-512, 1999.
  *
  * @param tc the topology context
+ * @param cap maximum allowed node degree
+ * @param m number of edges to establish for a new node when it is added to the
+ *   network
  */
 static void
-gen_scale_free (struct TopologyContext *tc)
+gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
 {
-  double random;
-  double probability;
   unsigned int cnt;
-  unsigned int previous_connections;
-  unsigned int i;
-  uint16_t *popularity;
+  unsigned int cnt2;
+  unsigned int peer;
+  unsigned int *etab;
+  unsigned int *used;
+  unsigned int links;
+  unsigned int random;
 
-  popularity = GNUNET_malloc (sizeof (uint16_t) * tc->num_peers);
-  /* Initially connect peer 1 to peer 0 */
-  tc->link_array_size = 1;
-  tc->link_array = GNUNET_malloc (sizeof (struct OverlayLink));
-  make_link (&tc->link_array[0], 0, 1, tc);
-  popularity[0]++;              /* increase popularity of 0 as 1 connected to it */
-  for (cnt = 2; cnt < tc->num_peers; cnt++)
+  links = 0;
+  tc->link_array_size = tc->num_peers * m;
+  tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
+                                        tc->link_array_size);
+  etab = GNUNET_malloc_large (sizeof (unsigned int) * 2 * tc->link_array_size);
+
+  used = GNUNET_malloc (sizeof (unsigned int) * m);
+
+  make_link (&tc->link_array[0], 0, 1, tc); /* Initially connect peer 1 to peer 0 */
+  etab[2 * links] = 0;
+  etab[(2 * links) + 1] = 1;
+  links = 1;
+  for (peer = 2; peer < tc->num_peers; peer++)
   {
-    previous_connections = tc->link_array_size;
-    for (i = 0; i < cnt; i++)
+    for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
     {
-      probability = ((double) popularity[i]) / ((double) previous_connections);
-      random =
-          ((double)
-           GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                     UINT64_MAX)) / ((double) UINT64_MAX);
-      if (random < probability)
-      {
-        tc->link_array_size++;
-        tc->link_array =
-            GNUNET_realloc (tc->link_array,
-                            (sizeof (struct OverlayLink) *
-                             tc->link_array_size));
-        make_link (&tc->link_array[tc->link_array_size - 1], i, cnt, tc);
-        popularity[i]++;
-      }
+    redo:
+      random = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, (2 * links)
+                                         + cnt);
+      for (cnt2 = 0; cnt2 < cnt; cnt2++)
+        if (etab[random] == used[cnt2])
+          goto redo;
+      make_link (&tc->link_array[links + cnt], etab[random], peer, tc);
+      etab[(2 * links) + cnt] = etab[random];
+      used[cnt] = etab[random];
     }
+    for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
+    {
+      etab[(2 * links) + cnt + 1] = peer;
+    }
+    links += GNUNET_MIN (peer, m);
   }
-  GNUNET_free (popularity);
+  GNUNET_free (etab);
+  GNUNET_free (used);
+  GNUNET_assert (links <= tc->link_array_size);
+  tc->link_array_size = links;
+  tc->link_array = 
+      GNUNET_realloc (tc->link_array,
+                      sizeof (struct OverlayLink) * tc->link_array_size);
 }
 
 
@@ -933,7 +947,14 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 
     break;
   case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
-    gen_scale_free (tc);
+    {
+      uint16_t cap;
+      uint8_t m;
+      
+      cap = (uint16_t) va_arg (va, unsigned int);
+      m = (uint8_t) va_arg (va, unsigned int);
+      gen_scale_free (tc, cap, m);
+    }
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
   {

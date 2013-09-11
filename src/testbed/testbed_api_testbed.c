@@ -52,6 +52,23 @@
 
 
 /**
+ * Configuration section for testbed
+ */
+#define TESTBED_CONFIG_SECTION "testbed"
+
+/**
+ * Option string for the maximum number of edges a peer is permitted to have
+ * while generating scale free topology
+ */
+#define SCALE_FREE_CAP "SCALE_FREE_TOPOLOGY_CAP"
+
+/**
+ * Option string for the number of edges to be established when adding a new
+ * node to the scale free network
+ */
+#define SCALE_FREE_M "SCALE_FREE_TOPOLOGY_M"
+
+/**
  * Context information for the operation we start
  */
 struct RunContextOperation
@@ -869,10 +886,13 @@ call_cc:
   DEBUG ("%u peers started in %s\n", rc->num_peers, prof_time (rc));
   if (GNUNET_TESTBED_TOPOLOGY_NONE != rc->topology)
   {
-    if ((GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI == rc->topology) ||
-        (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING == rc->topology) ||
-        (GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD == rc->topology))
+    switch (rc->topology)
     {
+    case GNUNET_TESTBED_TOPOLOGY_NONE:
+      GNUNET_assert (0);
+    case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+    case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
+    case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
@@ -881,9 +901,8 @@ call_cc:
                                                      rc->topology,
                                                      rc->random_links,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
-    }
-    else if (GNUNET_TESTBED_TOPOLOGY_FROM_FILE == rc->topology)
-    {
+      break;
+    case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
       GNUNET_assert (NULL != rc->topo_file);
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
@@ -893,8 +912,32 @@ call_cc:
                                                      rc->topology,
                                                      rc->topo_file,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
-    }
-    else
+      break;
+    case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
+      {
+        unsigned long long number;
+        unsigned int cap;
+        GNUNET_assert (GNUNET_OK == 
+                       GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
+                                                              SCALE_FREE_CAP,
+                                                              &number));
+        cap = (unsigned int) number;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
+                                                              SCALE_FREE_M,
+                                                              &number));
+        rc->topology_operation =
+            GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
+                                                       rc->peers, &rc->num_oc,
+                                                       &topology_completion_callback,
+                                                       rc,
+                                                       rc->topology,
+                                                       cap,    /* uint16_t */
+                                                       (unsigned int) number, /* uint8_t */
+                                                       GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+      }
+      break;
+    default:
       rc->topology_operation =
           GNUNET_TESTBED_overlay_configure_topology (NULL, rc->num_peers,
                                                      rc->peers, &rc->num_oc,
@@ -902,9 +945,10 @@ call_cc:
                                                      rc,
                                                      rc->topology,
                                                      GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    }
     if (NULL == rc->topology_operation)
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Not generating topology. Check number of peers\n");
+           "Not generating a topology. Check number of peers\n");
     else
     {
       DEBUG ("Creating overlay topology\n");
@@ -1204,7 +1248,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   char *topology;
   struct CompatibilityCheckContext *hc;      
   struct GNUNET_TIME_Relative timeout;
-  unsigned long long random_links;
+  unsigned long long number;
   unsigned int hid;
   unsigned int nhost;
 
@@ -1245,12 +1289,12 @@ GNUNET_TESTBED_run (const char *host_filename,
   rc->state = RC_INIT;
   rc->topology = GNUNET_TESTBED_TOPOLOGY_NONE;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
+      GNUNET_CONFIGURATION_get_value_string (rc->cfg, TESTBED_CONFIG_SECTION,
                                              "OVERLAY_TOPOLOGY", &topology))
   {
     if (GNUNET_NO == GNUNET_TESTBED_topology_get_ (&rc->topology, topology))
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "testbed",
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, TESTBED_CONFIG_SECTION,
                                  "OVERLAY_TOPLOGY",
                                  _
                                  ("Specified topology must be supported by testbed"));
@@ -1263,38 +1307,73 @@ GNUNET_TESTBED_run (const char *host_filename,
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
   case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (rc->cfg, "testbed",
+        GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
                                                "OVERLAY_RANDOM_LINKS",
-                                               &random_links))
+                                               &number))
     {
       /* OVERLAY option RANDOM & SMALL_WORLD_RING requires OVERLAY_RANDOM_LINKS
        * option to be set to the number of random links to be established  */
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "testbed",
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, TESTBED_CONFIG_SECTION,
                                  "OVERLAY_RANDOM_LINKS");
       goto error_cleanup;
     }
-    if (random_links > UINT32_MAX)
+    if (number > UINT32_MAX)
     {
       GNUNET_break (0);         /* Too big number */
       goto error_cleanup;
     }
-    rc->random_links = (unsigned int) random_links;
+    rc->random_links = (unsigned int) number;
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (rc->cfg, "testbed",
+        GNUNET_CONFIGURATION_get_value_string (rc->cfg, TESTBED_CONFIG_SECTION,
                                                "OVERLAY_TOPOLOGY_FILE",
                                                &rc->topo_file))
     {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "testbed",
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, TESTBED_CONFIG_SECTION,
                                  "OVERLAY_TOPOLOGY_FILE");
       goto error_cleanup;
     }
-    break;
+    goto warn_ignore;
+  case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
+                                               SCALE_FREE_CAP, &number))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, TESTBED_CONFIG_SECTION,
+                                 SCALE_FREE_CAP);
+      goto error_cleanup;
+    }
+    if (UINT16_MAX < number)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Maximum number of edges a peer can have in a scale free topology"
+             " cannot be more than %u.  Given `%s = %llu'"), UINT16_MAX,
+           SCALE_FREE_CAP, number);
+      goto error_cleanup;
+    }
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
+                                               SCALE_FREE_M, &number))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, TESTBED_CONFIG_SECTION,
+                                 SCALE_FREE_M);
+      goto error_cleanup;
+    }
+    if (UINT8_MAX < number)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("The number of edges that can established when adding a new node"
+             " to scale free topology cannot be more than %u.  Given `%s = %llu'"),
+           UINT8_MAX, SCALE_FREE_M, number);
+      goto error_cleanup;
+    }
+    goto warn_ignore;
   default:
+  warn_ignore:
     /* Warn if OVERLAY_RANDOM_LINKS is present that it will be ignored */
     if (GNUNET_YES ==
-        GNUNET_CONFIGURATION_have_value (rc->cfg, "testbed",
+        GNUNET_CONFIGURATION_have_value (rc->cfg, TESTBED_CONFIG_SECTION,
                                          "OVERLAY_RANDOM_LINKS"))
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Ignoring value of `OVERLAY_RANDOM_LINKS' in given configuration\n");
@@ -1330,7 +1409,7 @@ GNUNET_TESTBED_run (const char *host_filename,
     rc->cproc =
         GNUNET_TESTBED_controller_start ("127.0.0.1", rc->h,
                                          &controller_status_cb, rc);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "TESTBED",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, TESTBED_CONFIG_SECTION,
                                                         "SETUP_TIMEOUT",
                                                         &timeout))
   {
