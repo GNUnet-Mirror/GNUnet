@@ -169,7 +169,7 @@ GNUNET_SERVER_suspend (struct GNUNET_SERVER_Handle *server);
 /**
  * Resume accepting connections from the listen socket.
  *
- * @param server server to stop accepting connections.
+ * @param server server to resume accepting connections.
  */
 void
 GNUNET_SERVER_resume (struct GNUNET_SERVER_Handle *server);
