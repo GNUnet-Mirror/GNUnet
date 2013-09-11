@@ -44,7 +44,8 @@ TESTING_TESTS = \
  test_namestore_api_store \
  test_namestore_api_remove \
  test_namestore_api_zone_iteration \
- test_namestore_api_zone_iteration_specific_zone
+ test_namestore_api_zone_iteration_specific_zone \
+ test_namestore_api_zone_iteration_stop
 # test_namestore_api_lookup 
 #test_namestore_api_lookup_specific_type
 #test_namestore_api_create 
@@ -54,7 +55,7 @@ TESTING_TESTS = \
 #test_namestore_api_monitoring 
  
  
-#test_namestore_api_zone_iteration_stop
+#
 endif
 
 if HAVE_SQLITE
