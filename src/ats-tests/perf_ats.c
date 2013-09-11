@@ -1323,7 +1323,7 @@ main (int argc, char *argv[])
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  (void) GNUNET_TESTBED_test_run (test_name,
+  (void) GNUNET_TESTBED_test_run ("perf_ats",
                                   conf_name, c_slave_peers + c_master_peers,
                                   event_mask, &controller_event_cb, NULL,
                                   &test_main, NULL);

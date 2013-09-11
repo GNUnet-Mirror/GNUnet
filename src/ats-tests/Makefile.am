@@ -20,10 +20,10 @@ endif
 if HAVE_TESTING
 TESTING_TESTS = \
  perf_ats_proportional_bandwidth \
- perf_ats_proportional_latency \
- perf_ats_ril_bandwidth \
- perf_ats_ril_latency \
- $(PERF_MLP_BANDWIDTH) $(PERF_MLP_LATENCY)
+ perf_ats_proportional_latency
+ #perf_ats_ril_bandwidth \
+ #perf_ats_ril_latency \
+ #$(PERF_MLP_BANDWIDTH) $(PERF_MLP_LATENCY)
 endif
 
 check_PROGRAMS = \
