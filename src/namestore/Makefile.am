@@ -42,6 +42,7 @@ if HAVE_EXPERIMENTAL
 if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api_store \
+ test_namestore_api_store_update \
  test_namestore_api_remove \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
@@ -184,6 +185,13 @@ test_namestore_api_blocks_LDADD = \
 test_namestore_api_store_SOURCES = \
  test_namestore_api_store.c
 test_namestore_api_store_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_store_update_SOURCES = \
+ test_namestore_api_store_update.c
+test_namestore_api_store_update_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
