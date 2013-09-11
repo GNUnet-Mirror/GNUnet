@@ -116,18 +116,18 @@ struct ServiceSession
     /**
      * how many elements we were supplied with from the client
      */
-    uint16_t element_count;
+    uint32_t element_count;
 
     /**
      * how many elements actually are used after applying the mask
      */
-    uint16_t used_element_count;
+    uint32_t used_element_count;
 
     /**
      * how many bytes the mask is long. 
      * just for convenience so we don't have to re-re-re calculate it each time
      */
-    uint16_t mask_length;
+    uint32_t mask_length;
 
     /**
      * all the vector elements we received
@@ -197,7 +197,7 @@ static unsigned char * my_pubkey_external;
 /**
  * Service's own public key represented as string
  */
-static uint16_t my_pubkey_external_length = 0;
+static uint32_t my_pubkey_external_length = 0;
 
 /**
  * Service's own n
@@ -459,7 +459,7 @@ decrypt_element (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, g
  * @return an MPI value containing the calculated sum, never NULL
  */
 static gcry_mpi_t
-compute_square_sum (gcry_mpi_t * vector, uint16_t length)
+compute_square_sum (gcry_mpi_t * vector, uint32_t length)
 {
   gcry_mpi_t elem;
   gcry_mpi_t sum;
@@ -530,7 +530,7 @@ do_send_message (void *cls, size_t size, void *buf)
  * @return the initialized vector, never NULL
  */
 static gcry_mpi_t *
-initialize_mpi_vector (uint16_t length)
+initialize_mpi_vector (uint32_t length)
 {
   uint32_t i;
   gcry_mpi_t * output = GNUNET_malloc (sizeof (gcry_mpi_t) * length);
@@ -577,7 +577,7 @@ permute_vector (gcry_mpi_t * vector,
  * @return an array of MPI values with random values
  */
 static gcry_mpi_t *
-generate_random_vector (uint16_t length)
+generate_random_vector (uint32_t length)
 {
   gcry_mpi_t * random_vector;
   int32_t value;
@@ -613,7 +613,7 @@ generate_random_vector (uint16_t length)
 static struct ServiceSession *
 find_matching_session (struct ServiceSession * tail,
                        const struct GNUNET_HashCode * key,
-                       uint16_t element_count,
+                       uint32_t element_count,
                        enum SessionState * state,
                        const struct GNUNET_PeerIdentity * peerid)
 {
@@ -796,7 +796,7 @@ prepare_service_response (gcry_mpi_t * r,
                           struct ServiceSession * response)
 {
   struct GNUNET_SCALARPRODUCT_service_response * msg;
-  uint16_t msg_length = 0;
+  uint32_t msg_length = 0;
   unsigned char * current = NULL;
   unsigned char * element_exported = NULL;
   size_t element_length = 0;
@@ -810,8 +810,8 @@ prepare_service_response (gcry_mpi_t * r,
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
   msg->header.size = htons (msg_length);
-  msg->element_count = htons (request->element_count);
-  msg->used_element_count = htons (request->used_element_count);
+  msg->element_count = htonl (request->element_count);
+  msg->used_element_count = htonl (request->used_element_count);
   memcpy (&msg->key, &request->key, sizeof (struct GNUNET_HashCode));
   current = (unsigned char *) &msg[1];
 
@@ -925,7 +925,7 @@ compute_service_response (struct ServiceSession * request,
   int ret = GNUNET_SYSERR;
   unsigned int * p;
   unsigned int * q;
-  uint16_t count;
+  uint32_t count;
   gcry_mpi_t * rand = NULL;
   gcry_mpi_t * r = NULL;
   gcry_mpi_t * r_prime = NULL;
@@ -1134,7 +1134,7 @@ prepare_service_request (void *cls,
   struct GNUNET_SCALARPRODUCT_service_request * msg;
   unsigned int i;
   unsigned int j;
-  uint16_t msg_length;
+  uint32_t msg_length;
   size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
@@ -1163,10 +1163,10 @@ prepare_service_request (void *cls,
   msg = GNUNET_malloc (msg_length);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
-  msg->mask_length = htons (session->mask_length);
-  msg->pk_length = htons (my_pubkey_external_length);
-  msg->used_element_count = htons (session->used_element_count);
-  msg->element_count = htons (session->element_count);
+  msg->mask_length = htonl (session->mask_length);
+  msg->pk_length = htonl (my_pubkey_external_length);
+  msg->used_element_count = htonl (session->used_element_count);
+  msg->element_count = htonl (session->element_count);
   msg->header.size = htons (msg_length);
 
   // fill in the payload
@@ -1257,9 +1257,9 @@ handle_client_request (void *cls,
 {
   const struct GNUNET_SCALARPRODUCT_client_request * msg = (const struct GNUNET_SCALARPRODUCT_client_request *) message;
   struct ServiceSession * session;
-  uint16_t element_count;
-  uint16_t mask_length;
-  uint16_t msg_type;
+  uint32_t element_count;
+  uint32_t mask_length;
+  uint32_t msg_type;
   int32_t * vector;
   uint32_t i;
 
@@ -1285,8 +1285,8 @@ handle_client_request (void *cls,
     }
 
   msg_type = ntohs (msg->header.type);
-  element_count = ntohs (msg->element_count);
-  mask_length = ntohs (msg->mask_length);
+  element_count = ntohl (msg->element_count);
+  mask_length = ntohl (msg->mask_length);
 
   //sanity check: is the message as long as the message_count fields suggests?
   if (( ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_length))
@@ -1544,7 +1544,7 @@ static gcry_mpi_t
 compute_scalar_product (struct ServiceSession * session,
                         gcry_mpi_t * r, gcry_mpi_t * r_prime, gcry_mpi_t s, gcry_mpi_t s_prime)
 {
-  uint16_t count;
+  uint32_t count;
   gcry_mpi_t t;
   gcry_mpi_t u;
   gcry_mpi_t utick;
@@ -1631,7 +1631,7 @@ prepare_client_response (void *cls,
   struct GNUNET_SCALARPRODUCT_client_response * msg;
   unsigned char * product_exported = NULL;
   size_t product_length = 0;
-  uint16_t msg_length = 0;
+  uint32_t msg_length = 0;
   int8_t range = -1;
   gcry_error_t rc;
   int sign;
@@ -1729,11 +1729,11 @@ handle_service_request (void *cls,
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
-  uint16_t mask_length;
-  uint16_t pk_length;
-  uint16_t used_elements;
-  uint16_t element_count;
-  uint16_t msg_length;
+  uint32_t mask_length;
+  uint32_t pk_length;
+  uint32_t used_elements;
+  uint32_t element_count;
+  uint32_t msg_length;
   unsigned char * current;
   struct ServiceSession * responder_session;
   int32_t i = -1;
@@ -1765,10 +1765,10 @@ handle_service_request (void *cls,
       GNUNET_break_op(0);
       return GNUNET_SYSERR;
     }
-  mask_length = ntohs (msg->mask_length);
-  pk_length = ntohs (msg->pk_length);
-  used_elements = ntohs (msg->used_element_count);
-  element_count = ntohs (msg->element_count);
+  mask_length = ntohl (msg->mask_length);
+  pk_length = ntohl (msg->pk_length);
+  used_elements = ntohl (msg->used_element_count);
+  element_count = ntohl (msg->element_count);
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
                + mask_length + pk_length + used_elements * PAILLIER_ELEMENT_LENGTH;
 
@@ -1794,7 +1794,7 @@ handle_service_request (void *cls,
   
   memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
   session->state = SERVICE_REQUEST_RECEIVED;
-  session->element_count = ntohs (msg->element_count);
+  session->element_count = ntohl (msg->element_count);
   session->used_element_count = used_elements;
   session->tunnel = tunnel;
 
@@ -1913,12 +1913,12 @@ handle_service_response (void *cls,
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_response * msg = (const struct GNUNET_SCALARPRODUCT_service_response *) message;
   unsigned char * current;
-  uint16_t count;
+  uint32_t count;
   gcry_mpi_t s = NULL;
   gcry_mpi_t s_prime = NULL;
   size_t read;
   size_t i;
-  uint16_t used_element_count;
+  uint32_t used_element_count;
   size_t msg_size;
   gcry_mpi_t * r = NULL;
   gcry_mpi_t * r_prime = NULL;
@@ -1941,7 +1941,7 @@ handle_service_response (void *cls,
       GNUNET_break_op (0);
       goto invalid_msg;
     }
-  used_element_count = ntohs (msg->used_element_count);
+  used_element_count = ntohl (msg->used_element_count);
   msg_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * used_element_count * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
