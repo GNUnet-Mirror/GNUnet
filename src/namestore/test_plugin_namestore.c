@@ -73,6 +73,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void*) cfg)))
   {
     FPRINTF (stderr, "Failed to load plugin `%s'!\n", plugin_name);
+    GNUNET_free (libname);
     return NULL;
   }
   GNUNET_free (libname);
