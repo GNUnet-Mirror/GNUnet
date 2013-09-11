@@ -33,7 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Initial message from a client to a testing control service.
  */
-    struct GNUNET_TESTBED_InitMessage
+struct GNUNET_TESTBED_InitMessage
 {
 
   /**
@@ -252,7 +252,7 @@ struct GNUNET_TESTBED_PeerReconfigureMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -285,7 +285,7 @@ struct GNUNET_TESTBED_PeerStartMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_START_PEER
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_START_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -310,7 +310,7 @@ struct GNUNET_TESTBED_PeerStopMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -335,7 +335,7 @@ struct GNUNET_TESTBED_PeerDestroyMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_DESTROY_PEER
    */
   struct GNUNET_MessageHeader header;
 
@@ -360,7 +360,7 @@ struct GNUNET_TESTBED_ConfigureUnderlayLinkMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_CONFIGURE_UNDERLAY_LINK
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_CONFIGURE_UNDERLAY_LINK
    */
   struct GNUNET_MessageHeader header;
 
@@ -397,7 +397,7 @@ struct GNUNET_TESTBED_OverlayConnectMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_OVERLAY_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -431,7 +431,7 @@ struct GNUNET_TESTBED_OverlayConnectMessage
 struct GNUNET_TESTBED_RemoteOverlayConnectMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_REMOTE_OVERLAY_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -453,7 +453,9 @@ struct GNUNET_TESTBED_RemoteOverlayConnectMessage
   /**
    * To be followed by the HELLO message of A
    */
-  struct GNUNET_MessageHeader hello[0];
+  struct GNUNET_MessageHeader hello[0]; 
+  // FIXME: we usually do not use this gcc-hack as some
+  // compilers / tools really get messed up by it...
 
 };
 
@@ -465,13 +467,13 @@ struct GNUNET_TESTBED_PeerEventMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * 'enum GNUNET_TESTBED_EventType' (in NBO);
-   * either GNUNET_TESTBED_ET_PEER_START or GNUNET_TESTBED_ET_PEER_STOP.
+   * `enum GNUNET_TESTBED_EventType` (in NBO);
+   * either #GNUNET_TESTBED_ET_PEER_START or #GNUNET_TESTBED_ET_PEER_STOP.
    */
   int32_t event_type GNUNET_PACKED;
 
