@@ -263,8 +263,12 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
   struct GNUNET_NAMESTORE_ZoneMonitor *zm;
   struct GNUNET_CLIENT_Connection *client;
 
+  if (NULL == zone)
+  	return NULL;
   if (NULL == (client = GNUNET_CLIENT_connect ("namestore", cfg)))
-    return NULL; 
+    return NULL;
+
+
   zm = GNUNET_new (struct GNUNET_NAMESTORE_ZoneMonitor);
   zm->cfg = cfg;
   zm->h = client;
