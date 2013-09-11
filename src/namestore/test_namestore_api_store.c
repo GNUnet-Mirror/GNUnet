@@ -19,7 +19,7 @@
 */
 /**
  * @file namestore/test_namestore_api.c
- * @brief testcase for namestore_api.c
+ * @brief testcase for namestore_api.c: store a record and perform a lookup
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -132,10 +132,11 @@ name_lookup_proc (void *cls,
   if (NULL == block)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      "Namestore returned no block\n");
+  	      _("Namestore returned no block\n"));
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -197,6 +198,12 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
   nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
 				      1, &rd, &put_cont, (void *) name);
+  if (NULL == nsqe)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Namestore cannot store no block\n"));
+  }
+
   GNUNET_free ((void *)rd.data);
 }
 
