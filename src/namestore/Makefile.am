@@ -44,12 +44,12 @@ TESTING_TESTS = \
  test_namestore_api_store \
  test_namestore_api_store_update \
  test_namestore_api_remove \
+ test_namestore_api_remove_not_existing_record \
  test_namestore_api_zone_iteration \
  test_namestore_api_zone_iteration_specific_zone \
  test_namestore_api_zone_iteration_stop \
  test_namestore_api_monitoring \
  test_namestore_api_monitoring_existing
-#test_namestore_api_remove_not_existing_record 
 #test_namestore_api_zone_to_name  
 endif
 
