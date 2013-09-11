@@ -245,4 +245,4 @@ const struct ATS_Address *
 GAS_ril_get_preferred_address (void *solver,
                                const struct GNUNET_PeerIdentity *peer);
 
-/* end of gnunet-service-ats-solver_reinf.h */
+/* end of gnunet-service-ats-solver_ril.h */
