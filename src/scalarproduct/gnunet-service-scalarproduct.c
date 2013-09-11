@@ -681,7 +681,7 @@ handle_client_disconnect (void *cls,
                           struct GNUNET_SERVER_Client *client)
 {
   struct ServiceSession *session;
-
+  
   session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if (NULL == session)
     return;
@@ -1345,11 +1345,10 @@ handle_client_request (void *cls,
             session->used_element_count++;
         }
 
-      if ( ! session->used_element_count)
+      if ( 0 == session->used_element_count)
         {
           GNUNET_break_op (0);
           GNUNET_free (session->vector);
-          GNUNET_free (session->a);
           GNUNET_free (session);
           GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
           return;
@@ -1359,7 +1358,6 @@ handle_client_request (void *cls,
         {
           GNUNET_break (0);
           GNUNET_free (session->vector);
-          GNUNET_free (session->a);
           GNUNET_free (session);
           GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
           return;
@@ -1379,7 +1377,6 @@ handle_client_request (void *cls,
         {
           GNUNET_break (0);
           GNUNET_free (session->vector);
-          GNUNET_free (session->a);
           GNUNET_free (session);
           GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
           return;

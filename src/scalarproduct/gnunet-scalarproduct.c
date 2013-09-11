@@ -254,7 +254,7 @@ run (void *cls,
     // get the length of the current element and replace , with null
     for (end = begin; *end && *end != ','; end++);
 
-    if (1 == sscanf (begin, "%" SCNd32",", &element))
+    if (1 == sscanf (begin, "%" SCNd32",", &elements[element_count]))
     {
       //element in the middle
       element_count++;

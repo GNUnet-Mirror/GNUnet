@@ -39,6 +39,13 @@
  **************************************************************/
 
 /**
+ * the abstraction function for our internal callback
+ */
+typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
+                                                             const struct GNUNET_MessageHeader *msg,
+                                                             enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+
+/**
  * Entry in the request queue per client
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle
@@ -90,15 +97,15 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
 
   union
   {
-    /**
-     * Function to call after transmission of the request.
-     */
-    GNUNET_SCALARPRODUCT_ContinuationWithStatus cont_status;
+  /**
+   * Function to call after transmission of the request.
+   */
+  GNUNET_SCALARPRODUCT_ContinuationWithStatus cont_status;
 
-    /**
-     * Function to call after transmission of the request.
-     */
-    GNUNET_SCALARPRODUCT_DatumProcessor cont_datum;
+  /**
+   * Function to call after transmission of the request.
+   */
+  GNUNET_SCALARPRODUCT_DatumProcessor cont_datum;
   };
 
   /**
@@ -173,8 +180,7 @@ process_result_message (void *cls,
   gcry_mpi_t result = NULL;
   gcry_error_t rc;
 
-  if (GNUNET_SCALARPRODUCT_Status_Success == status
-      && qe->cont_datum != NULL)
+  if (GNUNET_SCALARPRODUCT_Status_Success == status)
     {
       size_t product_len = ntohl (message->product_length);
       result = gcry_mpi_new (0);
@@ -239,7 +245,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
       status = GNUNET_SCALARPRODUCT_Status_Success;
     }
-
+  
   if (qe->cont_datum != NULL)
     qe->response_proc (qe, msg, status);
 
@@ -272,6 +278,7 @@ transmit_request (void *cls, size_t size,
       // notify caller about the error, done here.
       if (qe->cont_datum != NULL)
         qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_Failure);
+      
       GNUNET_SCALARPRODUCT_cancel (cls);
       return 0;
     }
@@ -322,10 +329,6 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint16_t size;
   uint64_t i;
 
-  GNUNET_assert (key);
-  GNUNET_assert (elements);
-  GNUNET_assert (cont);
-  GNUNET_assert (element_count > 1);
   GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= sizeof (struct GNUNET_SCALARPRODUCT_client_request)
                  +element_count * sizeof (int32_t));
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
@@ -459,7 +462,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   // copy each element over to the message
   for (i = 0; i < element_count; i++)
     vector[i] = htonl (elements[i]);
-
+  
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&msg->key, key, sizeof (struct GNUNET_HashCode));
   memcpy (&vector[element_count], mask, mask_bytes);
