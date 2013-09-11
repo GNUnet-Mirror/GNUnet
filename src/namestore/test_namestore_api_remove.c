@@ -102,7 +102,6 @@ static void
 remove_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
-
   if (GNUNET_YES != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

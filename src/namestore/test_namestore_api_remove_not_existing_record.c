@@ -43,8 +43,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey *privkey;
 
 static struct GNUNET_CRYPTO_EccPublicKey pubkey;
 
-static struct GNUNET_HashCode derived_hash;
-
 static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
@@ -95,83 +93,43 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-rd_decrypt_cb (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd)
-{
-	GNUNET_assert (0 == rd_count);
-	GNUNET_assert (NULL == rd);
-
-	GNUNET_SCHEDULER_add_now (&end, NULL);
-}
-
-static void
-name_lookup_proc (void *cls,
-						 	 	 	const struct GNUNET_NAMESTORE_Block *block)
-{
-  const char *name = cls;
-  nsqe = NULL;
-
-  GNUNET_assert (NULL != cls);
-
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (NULL == block)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore returned no block\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Namestore returned block, decrypting \n");
-	GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
-		&pubkey, name, &rd_decrypt_cb, (void *) name));
-}
-
-static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
-  const char *name = cls;
-
   GNUNET_assert (NULL != cls);
+
+  nsqe = NULL;
+
   if (GNUNET_SYSERR == success)
   {
   	GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore could not store record: `%s'\n"), emsg);
+  	      _("Namestore could not remove record: `%s'\n"), emsg);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Name store added record for `%s': %s\n",
-	      name,
-	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-
-  /* Create derived hash */
-  GNUNET_NAMESTORE_query_from_private_key (privkey, name, &derived_hash);
-
-  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
-					 &name_lookup_proc, (void *) name);
-  if (NULL == nsqe)
+  else if (GNUNET_OK == success)
   {
   	GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore cannot perform lookup\n"));
+  	      _("Namestore did remove not exisiting record: `%s'\n"), emsg);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
+  }
+  else
+  {
+  	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Name was not removed\n");
+  	res = 0;
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+      endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  	GNUNET_SCHEDULER_add_now (&end, NULL);
   }
 }
 
