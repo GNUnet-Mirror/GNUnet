@@ -2,6 +2,8 @@ INCLUDES = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
+else
+  TEST_API_BARRIERS= test_testbed_api_barriers.py
 endif
 
 if USE_COVERAGE
@@ -191,7 +193,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_testbed_run_topologysmallworldring \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
-  test_testbed_api_barriers.py
+  $(TEST_API_BARRIERS)
 endif
 
 test_testbed_api_hosts_SOURCES = \
