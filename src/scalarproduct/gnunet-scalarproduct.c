@@ -184,8 +184,8 @@ run (void *cls,
   int i;
   int32_t * elements;
   unsigned char * mask;
-  unsigned short mask_bytes;
-  unsigned short element_count = 0;
+  uint32_t mask_bytes;
+  uint32_t element_count = 0;
   struct ScalarProductCallbackClosure * closure;
 
   if (NULL == input_elements)
