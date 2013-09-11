@@ -162,8 +162,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL == h)
     return;
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h));
+  if (NULL != subsystem && NULL != name)
+    GNUNET_assert (GNUNET_OK ==
+        GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h));
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   h = NULL;  
 }
