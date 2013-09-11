@@ -19,7 +19,7 @@
 */
 /**
  * @file namestore/test_namestore_api.c
- * @brief testcase for namestore_api.c to remove record
+ * @brief testcase for namestore_api.c to: remove record
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -103,12 +103,32 @@ remove_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
 
+  if (GNUNET_YES != success)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Records could not be removed: `%s'\n"), emsg);
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Records were removed, perform lookup\n");
 
   removed = GNUNET_YES;
   nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
 					 &name_lookup_proc, (void *) name);
+  if (NULL == nsqe)
+  {
+  	GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Namestore cannot perform lookup for removed record\n"));
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
 }
 
 
@@ -138,11 +158,18 @@ rd_decrypt_cb (void *cls,
   }
   else
   {
-  	GNUNET_assert (0 == rd_count);
+  	if ((0 != rd_count) /*|| (NULL != rd)*/)
+  	{
+  		GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+					_("Record was not removed \n"));
+      if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+        GNUNET_SCHEDULER_cancel (endbadly_task);
+      endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      return;
+  	}
 
 		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-					"Record was removed \n");
-
+				_("Record was removed \n"));
   	GNUNET_SCHEDULER_add_now (&end, NULL);
   }
 }
@@ -165,17 +192,17 @@ name_lookup_proc (void *cls,
   if (NULL == block)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      "Namestore returned no block\n");
+  	      _("Namestore returned no block\n"));
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Namestore returned block, decrypting \n");
-
-  	GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
-  		&pubkey, name, &rd_decrypt_cb, (void *) name));
+	GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
+		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
 static void
@@ -184,8 +211,18 @@ put_cont (void *cls, int32_t success, const char *emsg)
   const char *name = cls;
 
   GNUNET_assert (NULL != cls);
+  if (GNUNET_SYSERR == success)
+  {
+  	GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Namestore could not store record: `%s'\n"), emsg);
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
@@ -195,6 +232,16 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
   nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
 					 &name_lookup_proc, (void *) name);
+  if (NULL == nsqe)
+  {
+  	GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Namestore cannot perform lookup\n"));
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    return;
+  }
 }
 
 
@@ -231,6 +278,11 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
   nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
 				      1, &rd, &put_cont, (void *) name);
+  if (NULL == nsqe)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  	      _("Namestore cannot store no block\n"));
+  }
   GNUNET_free ((void *)rd.data);
 }
 
