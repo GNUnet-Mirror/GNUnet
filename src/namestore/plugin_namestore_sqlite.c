@@ -751,8 +751,8 @@ get_record_and_call_iterator (struct Plugin *plugin,
       }
       else if (NULL != zone_key)
       {
-	iter (iter_cls, zone_key, label, 
-	      record_count, rd);
+      	if (NULL != iter)
+      		iter (iter_cls, zone_key, label, record_count, rd);
 	ret = GNUNET_YES;
       }
     }
