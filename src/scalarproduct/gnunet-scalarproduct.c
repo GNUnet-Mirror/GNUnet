@@ -104,6 +104,7 @@ responder_callback (void *cls,
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (&closure->key), status);
   }
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -149,6 +150,7 @@ requester_callback (void *cls,
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s failed: return code %d\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer), status);
   }
+  GNUNET_SCHEDULER_shutdown();
 }
 
 /**

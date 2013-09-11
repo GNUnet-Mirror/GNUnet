@@ -78,7 +78,7 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
   /**
    * The shared session key identifying this computation
    */
-  struct GNUNET_HashCode * key;
+  struct GNUNET_HashCode key;
 
   /**
    * Current transmit handle.
@@ -249,6 +249,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
   if (qe->cont_datum != NULL)
     qe->response_proc (qe, msg, status);
 
+  GNUNET_CONTAINER_DLL_remove (head, tail, qe);
   GNUNET_free (qe);
 }
 
