@@ -49,8 +49,6 @@ TESTING_TESTS = \
  test_namestore_api_zone_iteration_stop \
  test_namestore_api_monitoring \
  test_namestore_api_monitoring_existing
-# test_namestore_api_lookup 
-#test_namestore_api_lookup_specific_type
 #test_namestore_api_remove_not_existing_record 
 #test_namestore_api_zone_to_name  
 endif
@@ -200,21 +198,6 @@ test_namestore_api_put_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
-
-test_namestore_api_lookup_SOURCES = \
- test_namestore_api_lookup.c
-test_namestore_api_lookup_LDADD = \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
-test_namestore_api_lookup_specific_type_SOURCES = \
- test_namestore_api_lookup_specific_type.c
-test_namestore_api_lookup_specific_type_LDADD = \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
 
 test_namestore_api_remove_SOURCES = \
  test_namestore_api_remove.c
