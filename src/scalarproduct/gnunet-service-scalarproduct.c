@@ -2014,8 +2014,8 @@ invalid_msg:
   session->tunnel = NULL;
   // send message with product to client
   session->client_notification_task = 
-          GNUNET_SCHEDULER_add_now (&prepare_client_response, 
-          session);
+             GNUNET_SCHEDULER_add_now (&prepare_client_response, 
+                                        session);
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   // just close the connection, as recommended by Christian

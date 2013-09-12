@@ -225,13 +225,13 @@ run (void *cls,
     // get the length of the current element and replace , with null
     for (end = begin; *end && *end != ','; end++);
 
-    if (1 == sscanf (begin, "%" SCNd32",", &element))
+    if (1 == sscanf (begin, "%" SCNd32 ",", &element))
     {
       //element in the middle
       element_count++;
       begin = end + 1;
     }
-    else if (*begin == 0)
+    else if (0 == *begin)
     {
       break;
     }
@@ -244,25 +244,26 @@ run (void *cls,
   while (1);
   if (0 == element_count)
   {
-
+    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Need elements to compute the vectorproduct, got none.\n"));
     return;
   }
-
+  
   begin = input_elements;
   elements = GNUNET_malloc (sizeof (int32_t) * element_count);
+  element_count = 0;
   /* Read input_elements_peer1, and put in elements_peer1 array */
   do
   {
     // get the length of the current element and replace , with null
     for (end = begin; *end && *end != ','; end++);
 
-    if (1 == sscanf (begin, "%" SCNd32",", &elements[element_count]))
+    if (1 == sscanf (begin, "%" SCNd32 ",", &elements[element_count]))
     {
       //element in the middle
       element_count++;
       begin = end + 1;
     }
-    else if (*begin == 0)
+    else if (0 == *begin)
     {
       break;
     }
@@ -270,7 +271,7 @@ run (void *cls,
   while (1);
 
   mask_bytes = element_count / 8 + (element_count % 8 ? 1 : 0);
-  mask = GNUNET_malloc ((element_count / 8) + 2);
+  mask = GNUNET_malloc ((element_count / 8) + 1);
 
   /* Read input_mask_peer1 and read in mask_peer1 array */
   if ((NULL != input_peer_id) && (NULL != input_mask))
