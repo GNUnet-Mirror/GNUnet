@@ -596,17 +596,20 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
 static void
 gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
 {
+  unsigned int *deg;
+  unsigned int *etab;
+  unsigned int *used;
+  unsigned int etaboff;
   unsigned int cnt;
   unsigned int cnt2;
   unsigned int peer;
   unsigned int random_peer;
-  unsigned int *deg;
-  unsigned int *etab;
-  unsigned int *used;
   unsigned int links;
-  unsigned int random;
+  unsigned int off;
+  unsigned int redo_threshold;
 
   links = 0;
+  etaboff = 0;  
   tc->link_array_size = tc->num_peers * m;
   tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
                                         tc->link_array_size);
@@ -617,8 +620,8 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   make_link (&tc->link_array[0], 0, 1, tc);
   deg[0]++;
   deg[1]++;
-  etab[2 * links] = 0;
-  etab[(2 * links) + 1] = 1;
+  etab[etaboff++] = 0;
+  etab[etaboff++] = 1;
   links = 1;
   for (peer = 2; peer < tc->num_peers; peer++)
   {
@@ -626,23 +629,41 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
       continue;
     for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
     {
+      redo_threshold = 0;
     redo:
-      random = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, (2 * links));
-      random_peer = etab[random];
+      off = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, etaboff);
+      random_peer = etab[off];
       if (cap < deg[random_peer])
+      {
+        if (++redo_threshold > GNUNET_MAX (1, cap / 2))
+        {
+          redo_threshold = 0;
+          off = 0;
+          for (cnt2 = 0; cnt2 < etaboff; cnt2++)
+          {
+            if (random_peer == etab[cnt2])
+            {
+              off++;
+              continue;
+            }
+            etab[cnt2 - off] = etab[cnt2];
+          }
+          etaboff -= off;
+        }
         goto redo;
+      }
       for (cnt2 = 0; cnt2 < cnt; cnt2++)
         if (random_peer == used[cnt2])
           goto redo;
-      make_link (&tc->link_array[links + cnt], etab[random], peer, tc);
+      make_link (&tc->link_array[links + cnt], random_peer, peer, tc);
       deg[random_peer]++;
       deg[peer]++;      
       used[cnt] = random_peer;
     }
     for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
     {
-      etab[(2 * links) + cnt] = used[cnt];
-      etab[(2 * links) + cnt + 1] = peer;
+      etab[etaboff++] = used[cnt];
+      etab[etaboff++] = peer;
     }
     links += GNUNET_MIN (peer, m);
   }
