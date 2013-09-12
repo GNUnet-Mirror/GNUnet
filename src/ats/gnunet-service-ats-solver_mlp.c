@@ -972,8 +972,6 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   }
   mlp_use = glp_mip_col_val(mlp->p.prob, mlpi->c_n);
 
-
-
   if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
   {
   	/* Address switch: Activate address*/
@@ -983,7 +981,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 		mlpi->b_in.value__ = htonl(mlp_bw_in);
 		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
 		mlpi->b_out.value__ = htonl(mlp_bw_out);
-		mlpi->n = mlp_use;
+		mlpi->n = GNUNET_YES;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
@@ -996,7 +994,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 		mlpi->b_in.value__ = htonl(mlp_bw_in);
 		address->assigned_bw_out.value__ = htonl (0);
 		mlpi->b_out.value__ = htonl(mlp_bw_out);
-		mlpi->n = mlp_use;
+		mlpi->n = GNUNET_NO;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else if ((mlp_bw_out != ntohl(address->assigned_bw_out.value__)) ||
@@ -1008,7 +1006,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 		mlpi->b_in.value__ = htonl(mlp_bw_in);
 		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
 		mlpi->b_out.value__ = htonl(mlp_bw_out);
-		mlpi->n = mlp_use;
+		mlpi->n = (GLP_YES == mlp_use) ? GNUNET_YES : GNUNET_NO;
 		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
   }
   else
@@ -1457,16 +1455,16 @@ static int
 mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
 
-  struct ATS_Address *aa = (struct ATS_Address *) cls;
+  struct ATS_Address **aa = (struct ATS_Address **) cls;
   struct ATS_Address *addr = value;
   struct MLP_information *mlpi = addr->solver_information;
   if (mlpi == NULL)
     return GNUNET_YES;
-  if (mlpi->n == GNUNET_YES)
+  if (GNUNET_YES == mlpi->n)
   {
-    aa = addr;
-      aa->assigned_bw_in = mlpi->b_in;
-      aa->assigned_bw_out = mlpi->b_out;
+    (*aa) = addr;
+      (*aa)->assigned_bw_in = mlpi->b_in;
+      (*aa)->assigned_bw_out = mlpi->b_out;
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -1507,7 +1505,7 @@ GAS_mlp_get_preferred_address (void *solver,
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p;
-  struct ATS_Address *res = NULL;
+  struct ATS_Address *res;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
@@ -1533,11 +1531,10 @@ GAS_mlp_get_preferred_address (void *solver,
   	  		(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(mlp->addresses, &peer->hashPubKey)))
   	  	GAS_mlp_solve_problem (mlp);
   }
-
   /* Get prefered address */
+	res = NULL;
   GNUNET_CONTAINER_multihashmap_get_multiple (mlp->addresses, &peer->hashPubKey,
-  																						mlp_get_preferred_address_it, res);
-
+  																						mlp_get_preferred_address_it, &res);
   return res;
 }
 
