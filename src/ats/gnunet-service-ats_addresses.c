@@ -804,7 +804,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                       &peer->hashPubKey, new_address,
                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new address %p for peer `%s' session id %u, %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding new address %p for peer `%s' session id %u, %s\n",
     		new_address, GNUNET_i2s (peer), session_id, GNUNET_ATS_print_network_type(addr_net));
 
     /* Tell solver about new address */
@@ -896,7 +896,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   handle->s_address_update_session (handle->solver, existing_address,
   		previous_session, session_id);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
            "Updated existing address for peer `%s' %p with new session %u in network %s\n",
            GNUNET_i2s (peer),
            existing_address,
@@ -1050,7 +1050,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
         (0 == memcmp (des->addr, aa->addr, aa->addr_len)))
     {
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Deleting full address for peer `%s' session %u %p\n",
                   GNUNET_i2s (&aa->peer), aa->session_id, aa);
 
@@ -1083,7 +1083,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     if (aa->addr_len == 0)
     {
         /* Inbound connection died, delete full address */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "Deleting inbound address for peer `%s': `%s' session %u\n",
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
 
@@ -1099,7 +1099,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
     else
     {
         /* Session died */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "Deleting session for peer `%s': `%s' %u\n",
                     GNUNET_i2s (&aa->peer), aa->plugin, aa->session_id);
         /* Notify solver to delete session */
@@ -1301,12 +1301,12 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   aa = (struct ATS_Address *) handle->s_get (handle->solver, peer);
   if (NULL == aa)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
   GAS_scheduling_transmit_address_suggestion (peer,
@@ -1894,9 +1894,8 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
   if (GNUNET_NO == handle->running)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s'\n",
-              "DESTROY ALL");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Destroying all addresses\n");
   if (handle->addresses != NULL)
     GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &destroy_all_address_it, handle);
 }
@@ -1912,7 +1911,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 {
   struct GAS_Addresses_Suggestion_Requests *cur;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down addresses\n");
   GNUNET_assert (NULL != handle);
   GAS_addresses_destroy_all (handle);
