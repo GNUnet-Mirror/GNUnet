@@ -599,6 +599,8 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   unsigned int cnt;
   unsigned int cnt2;
   unsigned int peer;
+  unsigned int random_peer;
+  unsigned int *deg;
   unsigned int *etab;
   unsigned int *used;
   unsigned int links;
@@ -609,35 +611,44 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
                                         tc->link_array_size);
   etab = GNUNET_malloc_large (sizeof (unsigned int) * 2 * tc->link_array_size);
-
+  deg = GNUNET_malloc (sizeof (unsigned int) * tc->num_peers);
   used = GNUNET_malloc (sizeof (unsigned int) * m);
-
-  make_link (&tc->link_array[0], 0, 1, tc); /* Initially connect peer 1 to peer 0 */
+  /* start by connecting peer 1 to peer 0 */
+  make_link (&tc->link_array[0], 0, 1, tc);
+  deg[0]++;
+  deg[1]++;
   etab[2 * links] = 0;
   etab[(2 * links) + 1] = 1;
   links = 1;
   for (peer = 2; peer < tc->num_peers; peer++)
   {
+    if (cap < deg[peer])
+      continue;
     for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
     {
     redo:
-      random = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, (2 * links)
-                                         + cnt);
+      random = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, (2 * links));
+      random_peer = etab[random];
+      if (cap < deg[random_peer])
+        goto redo;
       for (cnt2 = 0; cnt2 < cnt; cnt2++)
-        if (etab[random] == used[cnt2])
+        if (random_peer == used[cnt2])
           goto redo;
       make_link (&tc->link_array[links + cnt], etab[random], peer, tc);
-      etab[(2 * links) + cnt] = etab[random];
-      used[cnt] = etab[random];
+      deg[random_peer]++;
+      deg[peer]++;      
+      used[cnt] = random_peer;
     }
     for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
     {
+      etab[(2 * links) + cnt] = used[cnt];
       etab[(2 * links) + cnt + 1] = peer;
     }
     links += GNUNET_MIN (peer, m);
   }
   GNUNET_free (etab);
   GNUNET_free (used);
+  GNUNET_free (deg);
   GNUNET_assert (links <= tc->link_array_size);
   tc->link_array_size = links;
   tc->link_array = 
