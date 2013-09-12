@@ -70,7 +70,7 @@
 /**
  * How long are we willing to wait for a response from ATS before timing out?
  */
-#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5000)
 
 /**
  * How long are we willing to wait for an ACK from the other peer before
@@ -1849,14 +1849,14 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   	              GNUNET_i2s (target));
   		return; /* during shutdown, do nothing */
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Asked to connect to peer `%s'\n",
               GNUNET_i2s (target));
   if (0 == memcmp (target, &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
     /* refuse to connect to myself */
     /* FIXME: can this happen? Is this not an API violation? */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Refusing to try to connect to myself.\n");
     return;
   }
@@ -1877,8 +1877,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_CONNECT_RECV_ATS:
     case S_CONNECT_RECV_BLACKLIST:
     case S_CONNECT_RECV_ACK:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Ignoring request to try to connect to `%s', already trying!\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      		"Ignoring request to try to connect to `%s', already trying!\n",
 		  GNUNET_i2s (target));
       return; /* already trying */
     case S_CONNECTED:      
@@ -1887,8 +1887,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_RECONNECT_SENT:
     case S_CONNECTED_SWITCHING_BLACKLIST:
     case S_CONNECTED_SWITCHING_CONNECT_SENT:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Ignoring request to try to connect, already connected to `%s'!\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      		"Ignoring request to try to connect, already connected to `%s'!\n",
 		  GNUNET_i2s (target));
       return; /* already connected */
     case S_DISCONNECT:
@@ -2332,7 +2332,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "ATS tells us to switch to address '%s' session %p for "
               "peer `%s' in state %s (quota in/out %u %u )\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
