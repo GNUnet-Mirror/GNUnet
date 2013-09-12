@@ -775,7 +775,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   uint32_t previous_session;
   int c1;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received `%s' for peer `%s'\n",
               "ADDRESS ADD",
               GNUNET_i2s (peer));
@@ -1277,7 +1277,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
   struct ATS_Address *aa;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received `%s' for peer `%s'\n",
               "REQUEST ADDRESS",
               GNUNET_i2s (peer));
@@ -1652,7 +1652,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   GNUNET_assert (handle != NULL);
   GNUNET_assert (address != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
 
   /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
@@ -1671,12 +1671,12 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   }
   if (NULL == cur)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Nobody is interested in peer `%s' :(\n",GNUNET_i2s (&address->peer));
       return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Sending bandwidth update for peer `%s'\n",GNUNET_i2s (&address->peer));
 
   /* *Notify scheduling clients about suggestion */
@@ -1759,7 +1759,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     case MODE_MLP:
       /* Init the MLP solver with default values */
 #if HAVE_LIBGLPK
-      ah->ats_mode = MODE_MLP;
       ah->s_init = &GAS_mlp_init;
       ah->s_add = &GAS_mlp_address_add;
       ah->s_address_update_property = &GAS_mlp_address_property_changed;
@@ -1781,7 +1780,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       break;
     case MODE_PROPORTIONAL:
       /* Init the proportional solver with default values */
-      ah->ats_mode = MODE_PROPORTIONAL;
       ah->s_init = &GAS_proportional_init;
       ah->s_add = &GAS_proportional_address_add;
       ah->s_address_update_property = &GAS_proportional_address_property_changed;
