@@ -245,7 +245,7 @@ main (int argc, char *argv[])
   {
     if (0 != stat (FIFO_FILE2, &st))
     {
-      erg = mkfifo (FIFO_FILE2, 0666);
+    	GNUNET_break (0 == (erg = mkfifo (FIFO_FILE2, 0666)));
       if ( (0 != erg) && (EEXIST != errno) )
 	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE2,
 		 strerror (errno));
@@ -263,7 +263,7 @@ main (int argc, char *argv[])
     }
     if (NULL == (fpout = fopen (FIFO_FILE2, "w")))
     {
-      mkfifo (FIFO_FILE2, 0666);
+      GNUNET_break (0 == mkfifo (FIFO_FILE2, 0666));
       fpout = fopen (FIFO_FILE2, "w");
     }
     if (NULL == fpout)
@@ -277,7 +277,7 @@ main (int argc, char *argv[])
     first = 0;
     if (NULL == (fpout = fopen (FIFO_FILE1, "w")))
     {
-      mkfifo (FIFO_FILE1, 0666);
+    	GNUNET_break (0 == mkfifo (FIFO_FILE1, 0666));
       fpout = fopen (FIFO_FILE1, "w");
     }
     if (NULL == fpout)
