@@ -700,7 +700,7 @@ get_session_it (void *cls,
   struct GetSessionIteratorContext *gsi = cls;
   struct Session *s = value;
 
-  if ( (gsi->addrlen == s->addrlen) &&
+  if ((GNUNET_NO == s->inbound) && (gsi->addrlen == s->addrlen) &&
        (0 == memcmp (gsi->address, s->addr, s->addrlen)) )
   {
     gsi->res = s;
