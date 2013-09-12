@@ -1202,7 +1202,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
   if (NULL == ea)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Trying to set unknown address `%s', %s %u %s \n",
+                "Trying to set unknown address `%s' `%s' `%u' to %s \n",
                 GNUNET_i2s (peer),
                 plugin_name, session_id,
                 (GNUNET_NO == in_use) ? "NO" : "YES");
@@ -1896,8 +1896,10 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Destroying all addresses\n");
+  handle->s_bulk_start (handle->solver);
   if (handle->addresses != NULL)
     GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &destroy_all_address_it, handle);
+  handle->s_bulk_start (handle->solver);
 }
 
 

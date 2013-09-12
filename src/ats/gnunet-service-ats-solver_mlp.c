@@ -1054,10 +1054,7 @@ GAS_mlp_solve_problem (void *solver)
 		return GNUNET_OK;
 	}
 	if (0 == GNUNET_CONTAINER_multihashmap_size(mlp->addresses))
-	{
-		GNUNET_break (0);
-		return GNUNET_OK;
-	}
+		return GNUNET_OK; /* No addresses available */
 
 	if ((GNUNET_NO == mlp->mlp_prob_changed) && (GNUNET_NO == mlp->mlp_prob_updated))
 	{
