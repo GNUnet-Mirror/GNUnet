@@ -804,8 +804,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                       &peer->hashPubKey, new_address,
                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding new address %p for peer `%s' session id %u, %s\n",
-    		new_address, GNUNET_i2s (peer), session_id, GNUNET_ATS_print_network_type(addr_net));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding new address %p for peer `%s', length %u, session id %u, %s\n",
+    		new_address, GNUNET_i2s (peer), plugin_addr_len, session_id, GNUNET_ATS_print_network_type(addr_net));
 
     /* Tell solver about new address */
     handle->s_add (handle->solver, new_address, addr_net);
@@ -897,9 +897,10 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   		previous_session, session_id);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-           "Updated existing address for peer `%s' %p with new session %u in network %s\n",
+           "Updated existing address for peer `%s' %p length %u with new session %u in network %s\n",
            GNUNET_i2s (peer),
            existing_address,
+           existing_address->addr_len,
            session_id,
            GNUNET_ATS_print_network_type(addr_net));
 }
@@ -1105,6 +1106,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key, void *valu
         /* Notify solver to delete session */
         handle->s_del (handle->solver, aa, GNUNET_YES);
         aa->session_id = 0;
+        aa->active = GNUNET_NO;
         return GNUNET_OK;
     }
   }
@@ -1263,6 +1265,23 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
   GNUNET_free (cur);
 }
 
+/*
+static int
+addrinfo_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+	static int count = 0;
+	struct GNUNET_PeerIdentity *id = cls;
+	struct ATS_Address *aa = value;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "[%u] Peer `%s' %s length %u session %u active %s\n",
+              count, GNUNET_i2s (id), aa->plugin, aa->addr_len, aa->session_id,
+              (GNUNET_YES == aa->active) ? "active" : "inactive");
+
+  count ++;
+	return GNUNET_OK;
+}
+*/
 
 /**
  * Request address suggestions for a peer
@@ -1296,6 +1315,13 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
       cur->id = (*peer);
       GNUNET_CONTAINER_DLL_insert (handle->r_head, handle->r_tail, cur);
   }
+
+  /*
+   * Debuging information about addresses
+   *
+   * GNUNET_CONTAINER_multihashmap_get_multiple(handle->addresses,
+   *  &peer->hashPubKey, &addrinfo_it, (void *) peer);
+   */
 
   /* Get prefered address from solver */
   aa = (struct ATS_Address *) handle->s_get (handle->solver, peer);
