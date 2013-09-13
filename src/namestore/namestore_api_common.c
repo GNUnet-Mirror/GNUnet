@@ -582,7 +582,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_NAMESTORE_TYPE_PKEY:
     if (data_size != sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
       return NULL;
-    return GNUNET_CRYPTO_ecc_public_key_to_string (data);
+    return GNUNET_CRYPTO_ecc_public_sign_key_to_string (data);
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_LEHO:
@@ -970,7 +970,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey
   static char ret[128];
   char *pkeys;
 
-  pkeys = GNUNET_CRYPTO_ecc_public_key_to_string (pkey);
+  pkeys = GNUNET_CRYPTO_ecc_public_sign_key_to_string (pkey);
   GNUNET_snprintf (ret,
 		   sizeof (ret),
 		   "%s.zkey",

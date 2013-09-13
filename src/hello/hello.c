@@ -873,7 +873,7 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
   struct GNUNET_HELLO_ComposeUriContext ctx;
   ctx.plugins_find = plugins_find;
 
-  char *pkey = GNUNET_CRYPTO_ecc_public_key_to_string (&(hello->publicKey));
+  char *pkey = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&(hello->publicKey));
 
   GNUNET_asprintf (&(ctx.uri),
                    "%s%s",
