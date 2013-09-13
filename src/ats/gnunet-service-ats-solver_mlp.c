@@ -975,7 +975,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
   {
   	/* Address switch: Activate address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+  	LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
 		address->active = GNUNET_YES;
 		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
 		mlpi->b_in.value__ = htonl(mlp_bw_in);
@@ -987,7 +987,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
   {
 		/* Address switch: Disable address*/
-  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+  	LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
 		address->active = GNUNET_NO;
 		/* Set bandwidth to 0 */
 		address->assigned_bw_in.value__ = htonl (0);
@@ -1001,7 +1001,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   				 (mlp_bw_in != ntohl(address->assigned_bw_in.value__)))
   {
   	/* Bandwidth changed */
-		LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+		LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
 		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
 		mlpi->b_in.value__ = htonl(mlp_bw_in);
 		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
@@ -1420,8 +1420,9 @@ GAS_mlp_address_delete (void *solver,
 	mlpi = address->solver_information;
 	if ((GNUNET_NO == session_only) && (NULL != mlpi))
 	{
-			GNUNET_free (mlpi);
-			address->solver_information = NULL;
+		/* Remove full address */
+		GNUNET_free (mlpi);
+		address->solver_information = NULL;
 	}
 
   /* Is this peer included in the problem? */
@@ -1432,7 +1433,7 @@ GAS_mlp_address_delete (void *solver,
     		GNUNET_i2s(&address->peer));
   	return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s for peer `%s' with address request \n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Deleting %s for peer `%s' with address request \n",
   		(session_only == GNUNET_YES) ? "session" : "address",
   		GNUNET_i2s(&address->peer));
 
@@ -1454,19 +1455,26 @@ GAS_mlp_address_delete (void *solver,
 static int
 mlp_get_preferred_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-
+	static int counter = 0;
   struct ATS_Address **aa = (struct ATS_Address **) cls;
   struct ATS_Address *addr = value;
   struct MLP_information *mlpi = addr->solver_information;
   if (mlpi == NULL)
     return GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "MLP [%u] Peer `%s' %s length %u session %u active %s mlp active %s\n",
+              counter, GNUNET_i2s (&addr->peer), addr->plugin, addr->addr_len, addr->session_id,
+              (GNUNET_YES == addr->active) ? "active" : "inactive",
+              (GNUNET_YES == mlpi->n) ? "active" : "inactive");
   if (GNUNET_YES == mlpi->n)
   {
+
     (*aa) = addr;
-      (*aa)->assigned_bw_in = mlpi->b_in;
-      (*aa)->assigned_bw_out = mlpi->b_out;
+    (*aa)->assigned_bw_in = mlpi->b_in;
+    (*aa)->assigned_bw_out = mlpi->b_out;
     return GNUNET_NO;
   }
+  counter ++;
   return GNUNET_YES;
 }
 
@@ -1510,13 +1518,13 @@ GAS_mlp_get_preferred_address (void *solver,
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Getting preferred address for `%s'\n",
   		GNUNET_i2s (peer));
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &peer->hashPubKey)))
   {
-  	  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding peer `%s' to list of requested_peers with requests\n",
+  	  LOG (GNUNET_ERROR_TYPE_INFO, "Adding peer `%s' to list of requested_peers with requests\n",
   	  		GNUNET_i2s (peer));
 
   	  p = GNUNET_malloc (sizeof (struct ATS_Peer));
