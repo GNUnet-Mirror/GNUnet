@@ -340,7 +340,7 @@ struct GNUNET_FS_FileInformation
       int do_index;
 
       /**
-       * Is "file_id" already valid?  Set to GNUNET_YES once the hash
+       * Is "file_id" already valid?  Set to #GNUNET_YES once the hash
        * has been calculated.
        */
       int have_hash;

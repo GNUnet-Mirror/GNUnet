@@ -1187,7 +1187,7 @@ make_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
  *
  * @param wh write handle
  * @param fi file with reader
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 copy_from_reader (struct GNUNET_BIO_WriteHandle *wh,
@@ -1330,6 +1330,9 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
     }
     break;
   case 4:                      /* directory */
+    if ( (NULL != fi->data.dir.entries) &&
+	 (NULL == fi->data.dir.entries->serialization) )
+      GNUNET_FS_file_information_sync_ (fi->data.dir.entries);
     if ((GNUNET_OK != GNUNET_BIO_write_int32 (wh, fi->data.dir.dir_size)) ||
         (GNUNET_OK !=
          GNUNET_BIO_write (wh, fi->data.dir.dir_data,
@@ -1348,6 +1351,9 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
     GNUNET_assert (0);
     goto cleanup;
   }
+  if ( (NULL != fi->next) &&
+       (NULL == fi->next->serialization) )
+    GNUNET_FS_file_information_sync_ (fi->next);
   if (GNUNET_OK !=
       GNUNET_BIO_write_string (wh,
                                (fi->next !=
@@ -1398,9 +1404,6 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
 
   while (NULL != pos)
   {
-    fprintf (stderr,
-	     "CMP: %s %s\n",
-	     srch, pos->serialization);
     if (0 == strcmp (srch, pos->serialization))
       return pos;
     if ( (GNUNET_YES == pos->is_directory) &&
@@ -1416,7 +1419,7 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
  * Signal the FS's progress function that we are resuming
  * an upload.
  *
- * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param cls closure (of type `struct GNUNET_FS_PublishContext *`, for the parent (!))
  * @param fi the entry in the publish-structure
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
@@ -1424,7 +1427,7 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
  * @param bo block options (can be modified)
  * @param do_index should we index?
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue (always)
+ * @return #GNUNET_OK to continue (always)
  */
 static int
 fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
@@ -1442,8 +1445,8 @@ fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
     return GNUNET_OK;
   }
   pi.status = GNUNET_FS_STATUS_PUBLISH_RESUME;
-  pi.value.publish.specifics.resume.message = pc->fi->emsg;
-  pi.value.publish.specifics.resume.chk_uri = pc->fi->chk_uri;
+  pi.value.publish.specifics.resume.message = fi->emsg;
+  pi.value.publish.specifics.resume.chk_uri = fi->chk_uri;
   *client_info = GNUNET_FS_publish_make_status_ (&pi, pc, fi, 0);
   if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (meta))
   {
@@ -1459,7 +1462,7 @@ fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
  * Function called with a filename of serialized publishing operation
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param cls the `struct GNUNET_FS_Handle *`
  * @param filename complete filename (absolute path)
  * @return #GNUNET_OK (continue to iterate)
  */
