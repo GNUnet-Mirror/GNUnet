@@ -824,7 +824,8 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   p->num_addresses = mlp_create_problem_count_addresses (mlp->requested_peers, mlp->addresses);
 
   /* Create problem matrix: 10 * #addresses + #q * #addresses + #q, + #peer + 2 + 1 */
-  p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +  mlp->pv.m_q + p->num_peers + 2 + 1);
+  p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +
+  		mlp->pv.m_q + p->num_peers + 2 + 1);
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Rebuilding problem for %u peer(s) and %u addresse(s) and %u quality metrics == %u elements\n",
 			p->num_peers, p->num_addresses, mlp->pv.m_q, p->num_elements);
 
@@ -953,7 +954,9 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 
   /* Check if we have to add this peer due to a pending request */
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(mlp->requested_peers, key))
+  {
   	return GNUNET_OK;
+  }
   address = value;
   GNUNET_assert (address->solver_information != NULL);
   mlpi = address->solver_information;
@@ -972,47 +975,68 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
   }
   mlp_use = glp_mip_col_val(mlp->p.prob, mlpi->c_n);
 
-  if ((GLP_YES == mlp_use) && (GNUNET_NO == address->active))
-  {
-  	/* Address switch: Activate address*/
-  	LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-		address->active = GNUNET_YES;
-		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
-		mlpi->b_in.value__ = htonl(mlp_bw_in);
-		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
-		mlpi->b_out.value__ = htonl(mlp_bw_out);
+	LOG (GNUNET_ERROR_TYPE_INFO, "MLP result address: `%s' `%s' length %u session %u, mlp use %f\n",
+			GNUNET_i2s(&address->peer), address->plugin,
+			address->addr_len, address->session_id);
+
+	if (GLP_YES == mlp_use)
+	{
+		/* This address was selected by the solver to be used */
 		mlpi->n = GNUNET_YES;
-		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
-  }
-  else if ((GLP_NO == mlp_use) && (GNUNET_YES == address->active))
-  {
-		/* Address switch: Disable address*/
-  	LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-		address->active = GNUNET_NO;
-		/* Set bandwidth to 0 */
-		address->assigned_bw_in.value__ = htonl (0);
-		mlpi->b_in.value__ = htonl(mlp_bw_in);
-		address->assigned_bw_out.value__ = htonl (0);
-		mlpi->b_out.value__ = htonl(mlp_bw_out);
+		if (GNUNET_NO == address->active)
+		{
+			/* Address was not used before, enabling address */
+	  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+			address->active = GNUNET_YES;
+			address->assigned_bw_in.value__ = htonl (mlp_bw_in);
+			mlpi->b_in.value__ = htonl(mlp_bw_in);
+			address->assigned_bw_out.value__ = htonl (mlp_bw_out);
+			mlpi->b_out.value__ = htonl(mlp_bw_out);
+			mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+		}
+		else if (GNUNET_YES == address->active)
+		{
+			/* Address was used before, check for bandwidth change */
+			if ((mlp_bw_out != ntohl(address->assigned_bw_out.value__)) ||
+			  	(mlp_bw_in != ntohl(address->assigned_bw_in.value__)))
+			{
+				LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+				address->assigned_bw_in.value__ = htonl (mlp_bw_in);
+				mlpi->b_in.value__ = htonl(mlp_bw_in);
+				address->assigned_bw_out.value__ = htonl (mlp_bw_out);
+				mlpi->b_out.value__ = htonl(mlp_bw_out);
+				mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+			}
+		}
+		else
+			GNUNET_break (0);
+	}
+	else if (GLP_NO == mlp_use)
+	{
+		/* This address was selected by the solver to be not used */
 		mlpi->n = GNUNET_NO;
-		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
-  }
-  else if ((mlp_bw_out != ntohl(address->assigned_bw_out.value__)) ||
-  				 (mlp_bw_in != ntohl(address->assigned_bw_in.value__)))
-  {
-  	/* Bandwidth changed */
-		LOG (GNUNET_ERROR_TYPE_INFO, "%s %.2f : bandwidth changed\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-		address->assigned_bw_in.value__ = htonl (mlp_bw_in);
-		mlpi->b_in.value__ = htonl(mlp_bw_in);
-		address->assigned_bw_out.value__ = htonl (mlp_bw_out);
-		mlpi->b_out.value__ = htonl(mlp_bw_out);
-		mlpi->n = (GLP_YES == mlp_use) ? GNUNET_YES : GNUNET_NO;
-		mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-  }
+		if (GNUNET_NO == address->active)
+		{
+			/* Address was not used before, nothing to do */
+	    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+		}
+		else if (GNUNET_YES == address->active)
+		{
+			/* Address was used before, disabling address */
+	  	LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : disabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+			address->active = GNUNET_NO;
+			/* Set bandwidth to 0 */
+			address->assigned_bw_in.value__ = htonl (0);
+			mlpi->b_in.value__ = htonl(mlp_bw_in);
+			address->assigned_bw_out.value__ = htonl (0);
+			mlpi->b_out.value__ = htonl(mlp_bw_out);
+			mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+		}
+		else
+			GNUNET_break (0);
+	}
+	else
+		GNUNET_break (0);
 
   return GNUNET_OK;
 }
@@ -1074,13 +1098,14 @@ GAS_mlp_solve_problem (void *solver)
 	}
 
 	/* Run LP solver */
-	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver %s\n", (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
+	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver %s\n",
+			(GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
 	start_lp = GNUNET_TIME_absolute_get();
 	res_lp = mlp_solve_lp_problem (mlp);
 	duration_lp = GNUNET_TIME_absolute_get_duration (start_lp);
 
 
-  /* Run LP solver */
+  /* Run MLP solver */
 	LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
 	start_mlp = GNUNET_TIME_absolute_get();
 	res_mip = mlp_solve_mlp_problem (mlp);
@@ -1099,13 +1124,13 @@ GAS_mlp_solve_problem (void *solver)
 	mlp->ps.p_rows = glp_get_num_rows (mlp->p.prob);
 	mlp->ps.p_elements = mlp->p.num_elements;
 
-	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Execution time: Build %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (duration_build, GNUNET_NO));
-	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Execution time: LP %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (duration_lp, GNUNET_NO));
-	LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Execution time: MLP %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (duration_mlp, GNUNET_NO));
 
@@ -1535,8 +1560,9 @@ GAS_mlp_get_preferred_address (void *solver,
   	  /* Added new peer, we have to rebuild problem before solving */
   	  mlp->mlp_prob_changed = GNUNET_YES;
 
-  	  if ((GNUNET_YES == mlp->mlp_auto_solve) &&
-  	  		(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(mlp->addresses, &peer->hashPubKey)))
+  	  if ((GNUNET_YES == mlp->mlp_auto_solve)&&
+  	  		(GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(mlp->addresses,
+  	  				&peer->hashPubKey)))
   	  	GAS_mlp_solve_problem (mlp);
   }
   /* Get prefered address */
@@ -1812,7 +1838,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
    if (GNUNET_SYSERR == mlp->write_mip_mps)
   	 mlp->write_mip_mps = GNUNET_NO;
    mlp->write_mip_sol = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats",
-  		 	 "DUMP_MLP");
+  		 	 "DUMP_SOLUTION");
    if (GNUNET_SYSERR == mlp->write_mip_sol)
   	 mlp->write_mip_sol = GNUNET_NO;
 
