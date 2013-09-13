@@ -563,7 +563,7 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_EccPublicKey alice_pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey alice_pkey;
   char* alice_keyfile;
   struct GNUNET_NAMESTORE_RecordData rd[2];
   struct in_addr ns;
@@ -593,7 +593,7 @@ do_check (void *cls,
   }
 
   alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (alice_key, &alice_pkey);
   GNUNET_free (alice_keyfile);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

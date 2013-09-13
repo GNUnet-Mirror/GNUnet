@@ -83,7 +83,7 @@ typedef void (*GNS_ResultProcessor)(void *cls,
  * @return handle to cancel operation
  */
 struct GNS_ResolverHandle *
-GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicKey *zone,
+GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
 		     uint32_t record_type,
 		     const char *name,
 		     const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,

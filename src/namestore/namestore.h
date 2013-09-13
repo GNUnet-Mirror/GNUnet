@@ -93,7 +93,7 @@ struct LookupBlockResponseMessage
   /**
    * Derived public key.
    */
-  struct GNUNET_CRYPTO_EccPublicKey derived_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
 
   /* follwed by encrypted block data */
 };
@@ -122,7 +122,7 @@ struct BlockCacheMessage
   /**
    * Derived public key.
    */
-  struct GNUNET_CRYPTO_EccPublicKey derived_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
 
   /* follwed by encrypted block data */
 };
@@ -228,7 +228,7 @@ struct ZoneToNameMessage
   /**
    * The public key of the target zone  
    */
-  struct GNUNET_CRYPTO_EccPublicKey value_zone;
+  struct GNUNET_CRYPTO_EccPublicSignKey value_zone;
 };
 
 

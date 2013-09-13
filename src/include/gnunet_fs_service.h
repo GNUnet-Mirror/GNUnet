@@ -336,7 +336,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicKey *ns, 
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns, 
 			  const char *id);
 
 
@@ -350,7 +350,7 @@ GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicKey *ns,
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_CRYPTO_EccPublicKey *pseudonym);
+                                 struct GNUNET_CRYPTO_EccPublicSignKey *pseudonym);
 
 
 /**
@@ -1376,7 +1376,7 @@ struct GNUNET_FS_ProgressInfo
           /**
 	   * Public key of the namespace.
 	   */
-          struct GNUNET_CRYPTO_EccPublicKey pseudonym;
+          struct GNUNET_CRYPTO_EccPublicSignKey pseudonym;
 
         } ns;
 

@@ -58,7 +58,7 @@ struct GNUNET_DNS_Record
   /**
    * The peer providing this service
    */
-  struct GNUNET_CRYPTO_EccPublicKey peer;
+  struct GNUNET_CRYPTO_EccPublicSignKey peer;
 
   /**
    * The descriptor for the service

@@ -48,7 +48,7 @@
 /**
  * Our public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
 
 /**
  * Our identity.
@@ -634,7 +634,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_identity.hashPubKey);
 

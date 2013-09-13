@@ -80,7 +80,7 @@ struct GetPseuAuthorityHandle
   /**
    * The zone for which we are trying to find the PSEU record.
    */
-  struct GNUNET_CRYPTO_EccPublicKey target_zone;
+  struct GNUNET_CRYPTO_EccPublicSignKey target_zone;
 
   /**
    * Handle for DHT lookups. Should be NULL if no lookups are in progress 
@@ -195,7 +195,7 @@ process_pseu_block_ns (void *cls,
 		       const struct GNUNET_NAMESTORE_Block *block)
 {
   struct GetPseuAuthorityHandle *gph = cls;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
 
   gph->namestore_task = NULL;
   if (NULL == block)
@@ -203,7 +203,7 @@ process_pseu_block_ns (void *cls,
     process_pseu_lookup_ns (gph, 0, NULL);
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&gph->shorten_zone_key,
 				    &pub);
   if (GNUNET_OK != 
       GNUNET_NAMESTORE_block_decrypt (block,
@@ -229,10 +229,10 @@ static void
 perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
 		     const char *label)
 { 
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_HashCode query;
 
-  GNUNET_CRYPTO_ecc_key_get_public (&gph->shorten_zone_key,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&gph->shorten_zone_key,
 				    &pub);
   GNUNET_free_non_null (gph->current_label);
   gph->current_label = GNUNET_strdup (label);
@@ -287,7 +287,7 @@ process_pseu_lookup_ns (void *cls,
 	      GNUNET_NAMESTORE_z2s (&gph->target_zone),
 	      gph->current_label);
   new_pkey.expiration_time = UINT64_MAX;
-  new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
+  new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   new_pkey.data = &gph->target_zone;
   new_pkey.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   new_pkey.flags = GNUNET_NAMESTORE_RF_NONE
@@ -431,7 +431,7 @@ process_auth_discovery_dht_result (void* cls,
   block = data;
   if (size !=
       ntohs (block->purpose.size) + 
-      sizeof (struct GNUNET_CRYPTO_EccPublicKey) +
+      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
       sizeof (struct GNUNET_CRYPTO_EccSignature))
   {
     /* how did this pass DHT block validation!? */
@@ -513,7 +513,7 @@ process_zone_to_name_discover (void *cls,
  */
 void
 GNS_shorten_start (const char *original_label,
-		   const struct GNUNET_CRYPTO_EccPublicKey *pub,
+		   const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
 		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone)
 {
   struct GetPseuAuthorityHandle *gph;

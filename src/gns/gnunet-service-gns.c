@@ -419,7 +419,7 @@ put_gns_record (void *cls,
 					 rd_public_count);
   block_size = ntohl (block->purpose.size) 
     + sizeof (struct GNUNET_CRYPTO_EccSignature) 
-    + sizeof (struct GNUNET_CRYPTO_EccPublicKey);
+    + sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   GNUNET_NAMESTORE_query_from_private_key (key,
 					   name,
 					   &query);
@@ -635,7 +635,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     { &handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
     {NULL, NULL, 0, 0}
   };
-  struct GNUNET_CRYPTO_EccPublicKey dns_root;
+  struct GNUNET_CRYPTO_EccPublicSignKey dns_root;
   unsigned long long max_parallel_bg_queries = 0;
   char *dns_root_name;
 
@@ -699,7 +699,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 					     &dns_root_name))
   {
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_key_from_string (dns_root_name,
+	GNUNET_CRYPTO_ecc_public_sign_key_from_string (dns_root_name,
 						  strlen (dns_root_name),
 						  &dns_root))
     {

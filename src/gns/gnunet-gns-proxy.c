@@ -3189,7 +3189,7 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct GNUNET_CRYPTO_ShortHashCode *zone;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
 
@@ -3210,10 +3210,10 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
 
   key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   local_gns_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   GNUNET_CRYPTO_short_hash (&pkey,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 			    local_gns_zone);
   zone = local_gns_zone;
   GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
@@ -3239,10 +3239,10 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   else
   {
     key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
     local_private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+			      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 			      local_private_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -3268,10 +3268,10 @@ load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
   else
   {
     key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
     local_shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
     GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+			      sizeof(struct GNUNET_CRYPTO_EccPublicSignKey),
 			      local_shorten_zone);
     GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

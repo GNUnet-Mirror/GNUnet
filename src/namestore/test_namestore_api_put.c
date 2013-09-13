@@ -44,7 +44,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKey pubkey;
+static struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
@@ -151,7 +151,7 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
   GNUNET_free (hostkey_file);
   /* get public key */
-  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature(privkey, &pubkey);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* create record */

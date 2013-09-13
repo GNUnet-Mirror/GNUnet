@@ -189,7 +189,7 @@ struct ValidationEntry
   /**
    * Public key of the peer.
    */
-  struct GNUNET_CRYPTO_EccPublicKey public_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
 
   /**
    * The identity of the peer. FIXME: duplicated (also in 'address')
@@ -678,7 +678,7 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         if we don't have an existing entry and no public key was given
  */
 static struct ValidationEntry *
-find_validation_entry (const struct GNUNET_CRYPTO_EccPublicKey *public_key,
+find_validation_entry (const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
 		       const struct GNUNET_HELLO_Address *address)
 {
   struct ValidationEntryMatchContext vemc;
@@ -733,7 +733,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_ATS_Information ats;
-  struct GNUNET_CRYPTO_EccPublicKey public_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
@@ -855,7 +855,7 @@ GST_validation_stop ()
  */
 static void
 multicast_pong (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicKey *public_key, 
+                const struct GNUNET_CRYPTO_EccPublicSignKey *public_key, 
 		struct GNUNET_TIME_Absolute valid_until,
                 struct GNUNET_TIME_Absolute validation_block,
                 const struct GNUNET_HELLO_Address *address)
@@ -1141,7 +1141,7 @@ struct ValidateAddressContext
   /**
    * Public key of the peer whose address is being validated.
    */
-  struct GNUNET_CRYPTO_EccPublicKey public_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
 };
 
 

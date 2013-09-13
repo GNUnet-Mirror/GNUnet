@@ -97,7 +97,7 @@ GNUNET_IDENTITY_ego_get_anonymous (void);
  */
 void
 GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
-				    struct GNUNET_CRYPTO_EccPublicKey *pk);
+				    struct GNUNET_CRYPTO_EccPublicSignKey *pk);
 
 
 /** 

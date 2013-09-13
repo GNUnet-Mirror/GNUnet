@@ -1146,7 +1146,7 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;

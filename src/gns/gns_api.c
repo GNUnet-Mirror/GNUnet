@@ -521,7 +521,7 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
 struct GNUNET_GNS_LookupRequest*
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char *name,
-		   const struct GNUNET_CRYPTO_EccPublicKey *zone,
+		   const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
 		   int type,
 		   int only_cached,
 		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone_key,

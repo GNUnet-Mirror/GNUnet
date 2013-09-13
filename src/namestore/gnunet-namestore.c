@@ -430,7 +430,7 @@ testservice_task (void *cls,
                   int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   if (GNUNET_YES != result)
@@ -446,7 +446,7 @@ testservice_task (void *cls,
              _("No options given\n"));
     return; 
   }
-  GNUNET_CRYPTO_ecc_key_get_public (&zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
                                     &pub);
 
   ns = GNUNET_NAMESTORE_connect (cfg);
@@ -575,14 +575,14 @@ testservice_task (void *cls,
   {
     char sh[105];
     char sname[64];
-    struct GNUNET_CRYPTO_EccPublicKey pkey;
+    struct GNUNET_CRYPTO_EccPublicSignKey pkey;
 
     if ( (2 != (sscanf (uri,
                         "gnunet://gns/%104s/%63s",
                         sh,
                         sname)) ) ||
          (GNUNET_OK !=
-          GNUNET_CRYPTO_ecc_public_key_from_string (sh, strlen (sh), &pkey)) )
+          GNUNET_CRYPTO_ecc_public_sign_key_from_string (sh, strlen (sh), &pkey)) )
     {
       fprintf (stderr, 
                _("Invalid URI `%s'\n"),
@@ -593,7 +593,7 @@ testservice_task (void *cls,
     }
     memset (&rd, 0, sizeof (rd));
     rd.data = &pkey;
-    rd.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicKey);
+    rd.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
     if (GNUNET_YES == etime_is_rel)
     {

@@ -110,7 +110,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_PeerIdentity pid;
 
   if (NULL == args[0])
@@ -130,7 +130,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     char *s;
 
-    GNUNET_CRYPTO_ecc_key_get_public (pk, &pub);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
     s = GNUNET_CRYPTO_ecc_public_key_to_string (&pub);
     fprintf (stdout, "%s\n", s);
     GNUNET_free (s);
@@ -139,7 +139,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
-    GNUNET_CRYPTO_ecc_key_get_public (pk, &pub);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &pid.hashPubKey);
     GNUNET_CRYPTO_hash_to_enc (&pid.hashPubKey, &enc);
     fprintf (stdout, "%s\n", enc.encoding);

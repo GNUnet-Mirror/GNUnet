@@ -85,7 +85,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
   block = reply_block;
-  if (ntohs (block->purpose.size) + sizeof (struct GNUNET_CRYPTO_EccSignature) + sizeof (struct GNUNET_CRYPTO_EccPublicKey) !=
+  if (ntohs (block->purpose.size) + sizeof (struct GNUNET_CRYPTO_EccSignature) + sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) !=
       reply_block_size)
     {
       GNUNET_break_op (0);

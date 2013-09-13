@@ -36,7 +36,7 @@
  * @return GNUNET_YES on success GNUNET_SYSERR on error
  */
 int
-GNS_interceptor_init (const struct GNUNET_CRYPTO_EccPublicKey *gnu_zone,
+GNS_interceptor_init (const struct GNUNET_CRYPTO_EccPublicSignKey *gnu_zone,
 		      const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**

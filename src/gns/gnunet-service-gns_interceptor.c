@@ -75,7 +75,7 @@ static struct GNUNET_DNS_Handle *dns_handle;
 /**
  * Key of the zone we start lookups in.
  */
-static struct GNUNET_CRYPTO_EccPublicKey zone;
+static struct GNUNET_CRYPTO_EccPublicSignKey zone;
 
 /**
  * Head of the DLL.
@@ -291,7 +291,7 @@ handle_dns_request (void *cls,
  * @return GNUNET_OK on success
  */
 int
-GNS_interceptor_init (const struct GNUNET_CRYPTO_EccPublicKey *gnu_zone,
+GNS_interceptor_init (const struct GNUNET_CRYPTO_EccPublicSignKey *gnu_zone,
 		      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

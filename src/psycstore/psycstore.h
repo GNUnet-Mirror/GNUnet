@@ -58,8 +58,8 @@ struct ResultCodeMessage
  */
 struct MembershipStoreMessage
 {
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key;
-  const struct GNUNET_CRYPTO_EccPublicKey *slave_key;
+  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key;
+  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key;
   int did_join;
   uint64_t announced_at;
   uint64_t effective_since;
@@ -72,8 +72,8 @@ struct MembershipStoreMessage
  */
 struct MembershipTestMessage
 {
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key;
-  const struct GNUNET_CRYPTO_EccPublicKey *slave_key;
+  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key;
+  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key;
   uint64_t message_id;
   uint64_t group_generation;
 };

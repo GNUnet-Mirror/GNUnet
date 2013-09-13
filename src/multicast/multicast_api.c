@@ -58,7 +58,7 @@ struct GNUNET_MULTICAST_RequestHeader
   /**
    * Public key of the sending member.
    */
-  struct GNUNET_CRYPTO_EccPublicKey member_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey member_key;
 
   /** 
    * ECC signature of the request fragment.
@@ -122,12 +122,12 @@ struct GNUNET_MULTICAST_JoinRequest
   /**
    * Public key of the target group.
    */
-  struct GNUNET_CRYPTO_EccPublicKey group_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey group_key;
 
   /**
    * Public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EccPublicKey member_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey member_key;
 
   /**
    * Peer identity of the joining member.
@@ -402,7 +402,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin)
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_CRYPTO_EccPublicKey *group_key,
+                              const struct GNUNET_CRYPTO_EccPublicSignKey *group_key,
                               const struct GNUNET_CRYPTO_EccPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               size_t relay_count,

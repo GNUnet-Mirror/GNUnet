@@ -152,7 +152,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int (*zone_to_name) (void *cls, 
 		       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-		       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+		       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
 

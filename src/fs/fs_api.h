@@ -120,7 +120,7 @@ struct Location
   /**
    * Identity of the peer sharing the file.
    */
-  struct GNUNET_CRYPTO_EccPublicKey peer;
+  struct GNUNET_CRYPTO_EccPublicSignKey peer;
 
   /**
    * Time when this location URI expires.
@@ -198,7 +198,7 @@ struct GNUNET_FS_Uri
       /**
        * Identifier of the namespace.
        */
-      struct GNUNET_CRYPTO_EccPublicKey ns;
+      struct GNUNET_CRYPTO_EccPublicSignKey ns;
 
       /**
        * Human-readable identifier chosen for this entry in the
@@ -1461,7 +1461,7 @@ struct SearchRequestEntry
   /**
    * Derived public key, hashes to 'uquery'.
    */ 
-  struct GNUNET_CRYPTO_EccPublicKey dpub;
+  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
 
   /**
    * The original keyword, used to derive the

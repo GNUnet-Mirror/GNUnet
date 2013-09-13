@@ -46,7 +46,7 @@ static void
 derive_ublock_encryption_key (struct GNUNET_CRYPTO_AesSessionKey *skey,
 			      struct GNUNET_CRYPTO_AesInitializationVector *iv,
 			      const char *label,
-			      const struct GNUNET_CRYPTO_EccPublicKey *pub)
+			      const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
   struct GNUNET_HashCode key;
 
@@ -73,7 +73,7 @@ derive_ublock_encryption_key (struct GNUNET_CRYPTO_AesSessionKey *skey,
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,
-			   const struct GNUNET_CRYPTO_EccPublicKey *ns,
+			   const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
 			   const char *label,
 			   void *output)
 {
@@ -170,7 +170,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   struct GNUNET_CRYPTO_AesInitializationVector iv;
   struct GNUNET_CRYPTO_AesSessionKey skey;
   struct GNUNET_CRYPTO_EccPrivateKey *nsd;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   char *uris;
   size_t size;
   char *kbe;
@@ -225,7 +225,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 	      "Publishing under identifier `%s'\n",
               label);
   /* get public key of the namespace */
-  GNUNET_CRYPTO_ecc_key_get_public (ns,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns,
 				    &pub);
   derive_ublock_encryption_key (&skey, &iv,
 				label, &pub);
@@ -243,7 +243,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 
   /* derive signing-key from 'label' and public key of the namespace */
   nsd = GNUNET_CRYPTO_ecc_key_derive (ns, label, "fs-ublock");
-  GNUNET_CRYPTO_ecc_key_get_public (nsd,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (nsd,
 				    &ub_enc->verification_key);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CRYPTO_ecc_sign (nsd,

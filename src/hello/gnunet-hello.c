@@ -111,7 +111,7 @@ main (int argc, char *argv[])
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_HELLO_Message *orig;
   struct GNUNET_HELLO_Message *result;
-  struct GNUNET_CRYPTO_EccPublicKey pk;
+  struct GNUNET_CRYPTO_EccPublicSignKey pk;
   uint64_t fsize;
   address_count = 0;
 

@@ -312,7 +312,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct in_addr *web;
   struct GNUNET_NAMESTORE_RecordData rd;
 
@@ -344,7 +344,7 @@ setup_dave (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
 
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &dave_hash);
 
   rd.expiration_time = UINT64_MAX;
@@ -383,7 +383,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
 {
   char* keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Setting up bob\n");
@@ -415,7 +415,7 @@ setup_bob (const struct GNUNET_CONFIGURATION_Handle * cfg)
     return GNUNET_SYSERR;
   }
   
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   GNUNET_CRYPTO_short_hash(&pkey, sizeof(pkey), &bob_hash);
 
   rd.expiration_time = UINT64_MAX;

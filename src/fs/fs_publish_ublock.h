@@ -46,7 +46,7 @@
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,
-			   const struct GNUNET_CRYPTO_EccPublicKey *ns,
+			   const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
 			   const char *label,
 			   void *output);
 

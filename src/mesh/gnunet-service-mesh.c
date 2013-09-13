@@ -722,7 +722,7 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 /**
  * Own public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
 
 /**
  * Tunnel ID for the next created tunnel (global tunnel number).
@@ -5902,7 +5902,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
   GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
                       &my_full_id.hashPubKey);
   myid = GNUNET_PEER_intern (&my_full_id);

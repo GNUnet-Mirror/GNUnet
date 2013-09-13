@@ -573,7 +573,7 @@ handle_record_store (void *cls,
   const char *rd_ser;
   unsigned int rd_count;
   int res;
-  struct GNUNET_CRYPTO_EccPublicKey pubkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", 
@@ -624,7 +624,7 @@ handle_record_store (void *cls,
 	}
 
     /* Extracting and converting private key */
-    GNUNET_CRYPTO_ecc_key_get_public (&rp_msg->private_key,
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (&rp_msg->private_key,
 				      &pubkey);
     conv_name = GNUNET_NAMESTORE_normalize_string (name_tmp);
     if (NULL == conv_name)

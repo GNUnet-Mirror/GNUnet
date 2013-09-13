@@ -70,7 +70,7 @@ static struct GNUNET_SERVER_Handle *GST_server;
 /**
  * Our public key.
  */
-struct GNUNET_CRYPTO_EccPublicKey GST_my_public_key;
+struct GNUNET_CRYPTO_EccPublicSignKey GST_my_public_key;
 
 /**
  * Our private key.
@@ -769,7 +769,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
-  GNUNET_CRYPTO_ecc_key_get_public (GST_my_private_key, &GST_my_public_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (GST_my_private_key, &GST_my_public_key);
   GNUNET_CRYPTO_hash (&GST_my_public_key, sizeof (GST_my_public_key),
                       &GST_my_identity.hashPubKey);
   GNUNET_assert (NULL != GST_my_private_key);

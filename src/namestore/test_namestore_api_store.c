@@ -41,7 +41,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey *privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKey pubkey;
+static struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 
 static int res;
 
@@ -185,7 +185,7 @@ run (void *cls,
   privkey = GNUNET_CRYPTO_ecc_key_create_from_file (hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecc_key_get_public (privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (privkey, &pubkey);
 
 
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;

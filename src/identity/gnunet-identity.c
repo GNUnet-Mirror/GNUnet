@@ -226,7 +226,7 @@ print_ego (void *cls,
 	   void **ctx,
 	   const char *identifier)
 {
-  struct GNUNET_CRYPTO_EccPublicKey pk;
+  struct GNUNET_CRYPTO_EccPublicSignKey pk;
   char *s;
 
   if ( (NULL != set_ego) &&

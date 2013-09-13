@@ -63,7 +63,7 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * Zone that is to be used for lookup
    */
-  struct GNUNET_CRYPTO_EccPublicKey zone;
+  struct GNUNET_CRYPTO_EccPublicSignKey zone;
 
   /**
    * Only check cached results

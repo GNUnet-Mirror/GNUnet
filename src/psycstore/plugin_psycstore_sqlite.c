@@ -609,7 +609,7 @@ database_shutdown (struct Plugin *plugin)
 
 static int
 channel_key_store (struct Plugin *plugin,
-                   const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key)
 {
   sqlite3_stmt *stmt = plugin->insert_channel_key;
 
@@ -638,7 +638,7 @@ channel_key_store (struct Plugin *plugin,
 
 static int
 slave_key_store (struct Plugin *plugin,
-                 const struct GNUNET_CRYPTO_EccPublicKey *slave_key)
+                 const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key)
 {
   sqlite3_stmt *stmt = plugin->insert_slave_key;
 
@@ -676,8 +676,8 @@ slave_key_store (struct Plugin *plugin,
  */
 static int
 membership_store (void *cls,
-                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-                  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+                  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
                   int did_join,
                   uint64_t announced_at,
                   uint64_t effective_since,
@@ -736,8 +736,8 @@ membership_store (void *cls,
  */
 static int
 membership_test (void *cls,
-                 const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-                 const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+                 const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                 const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
                  uint64_t message_id)
 {
   struct Plugin *plugin = cls;
@@ -783,7 +783,7 @@ membership_test (void *cls,
  */
 static int
 fragment_store (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                 const struct GNUNET_MULTICAST_MessageHeader *msg,
                 uint32_t psycstore_flags)
 {
@@ -847,7 +847,7 @@ fragment_store (void *cls,
  */
 static int
 message_add_flags (void *cls,
-                   const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                    uint64_t message_id,
                    uint64_t psycstore_flags)
 {
@@ -923,7 +923,7 @@ fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
 static int
 fragment_get (void *cls,
               const struct
-              GNUNET_CRYPTO_EccPublicKey *channel_key,
+              GNUNET_CRYPTO_EccPublicSignKey *channel_key,
               uint64_t fragment_id,
               GNUNET_PSYCSTORE_FragmentCallback cb,
               void *cb_cls)
@@ -974,7 +974,7 @@ fragment_get (void *cls,
  */
 static int
 message_get (void *cls,
-             const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+             const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
              uint64_t message_id,
              GNUNET_PSYCSTORE_FragmentCallback cb,
              void *cb_cls)
@@ -1035,7 +1035,7 @@ message_get (void *cls,
  */
 static int
 message_get_fragment (void *cls,
-                      const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                      const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                       uint64_t message_id,
                       uint64_t fragment_offset,
                       GNUNET_PSYCSTORE_FragmentCallback cb,
@@ -1089,7 +1089,7 @@ message_get_fragment (void *cls,
  */
 static int
 counters_get_master (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                      uint64_t *fragment_id,
                      uint64_t *message_id,
                      uint64_t *group_generation)
@@ -1142,7 +1142,7 @@ counters_get_master (void *cls,
  */
 static int
 counters_get_slave (void *cls,
-                    const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                    const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                     uint64_t *max_state_msg_id)
 {
   struct Plugin *plugin = cls;
@@ -1193,7 +1193,7 @@ counters_get_slave (void *cls,
  */
 static int
 state_set (void *cls,
-           const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
            const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
@@ -1242,7 +1242,7 @@ state_set (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_reset (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+state_reset (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->delete_state;
@@ -1279,7 +1279,7 @@ state_reset (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
  */
 static int
 state_update_signed (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicKey *channel_key)
+                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->update_state_signed;
@@ -1315,7 +1315,7 @@ state_update_signed (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_get (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+state_get (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
            const char *name, GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
   struct Plugin *plugin = cls;
@@ -1367,7 +1367,7 @@ state_get (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_get_all (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+state_get_all (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                const char *name, GNUNET_PSYCSTORE_StateCallback cb,
                void *cb_cls)
 {
@@ -1435,7 +1435,7 @@ state_get_all (void *cls, const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
  */
 static int
 state_get_signed (void *cls,
-                  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
+                  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                   GNUNET_PSYCSTORE_StateCallback cb, void *cb_cls)
 {
   struct Plugin *plugin = cls;

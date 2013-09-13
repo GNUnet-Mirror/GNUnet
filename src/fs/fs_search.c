@@ -679,20 +679,20 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  */
 static int
 decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
-			    const struct GNUNET_CRYPTO_EccPublicKey *dpub,
+			    const struct GNUNET_CRYPTO_EccPublicSignKey *dpub,
 			    const void *edata,
 			    size_t edata_size,
 			    char *data)
 { 
   const struct GNUNET_CRYPTO_EccPrivateKey *anon;
-  struct GNUNET_CRYPTO_EccPublicKey anon_pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
   unsigned int i;
 
   /* find key */
   for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
     if (0 == memcmp (dpub,
 		     &sc->requests[i].dpub,
-		     sizeof (struct GNUNET_CRYPTO_EccPublicKey)))
+		     sizeof (struct GNUNET_CRYPTO_EccPublicSignKey)))
       break;
   if (i == sc->uri->data.ksk.keywordCount)
   {
@@ -702,7 +702,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
   }
   /* decrypt */
   anon = GNUNET_CRYPTO_ecc_key_get_anonymous ();
-  GNUNET_CRYPTO_ecc_key_get_public (anon, &anon_pub);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (anon, &anon_pub);
   GNUNET_FS_ublock_decrypt_ (edata, edata_size,
 			     &anon_pub,
 			     sc->requests[i].keyword,
@@ -1035,7 +1035,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   struct MessageBuilderContext mbc;
   size_t msize;
   struct SearchMessage *sm;
-  struct GNUNET_CRYPTO_EccPublicKey dpub;
+  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
   unsigned int sqms;
   uint32_t options;
 
@@ -1272,7 +1272,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
   unsigned int i;
   const char *keyword;
   const struct GNUNET_CRYPTO_EccPrivateKey *anon;
-  struct GNUNET_CRYPTO_EccPublicKey anon_pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
   struct SearchRequestEntry *sre;
 
   GNUNET_assert (NULL == sc->client);
@@ -1280,7 +1280,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
   {
     GNUNET_assert (0 != sc->uri->data.ksk.keywordCount);
     anon = GNUNET_CRYPTO_ecc_key_get_anonymous ();
-    GNUNET_CRYPTO_ecc_key_get_public (anon, &anon_pub);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (anon, &anon_pub);
     sc->requests =
         GNUNET_malloc (sizeof (struct SearchRequestEntry) *
                        sc->uri->data.ksk.keywordCount);
@@ -1294,7 +1294,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 					   "fs-ublock",
 					   &sre->dpub);
       GNUNET_CRYPTO_hash (&sre->dpub, 
-			  sizeof (struct GNUNET_CRYPTO_EccPublicKey), 
+			  sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), 
 			  &sre->uquery);
       sre->mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sre->mandatory)

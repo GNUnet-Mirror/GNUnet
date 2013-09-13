@@ -192,7 +192,7 @@ static struct GNUNET_PeerIdentity my_peer_identity;
 /**
  * My public key.
  */
-static struct GNUNET_CRYPTO_EccPublicKey my_public_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
 
 /**
  * Head of list of print contexts.
@@ -677,7 +677,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_ecc_key_get_public (priv, &my_public_key);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, &my_public_key);
     GNUNET_free (priv);
     GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }

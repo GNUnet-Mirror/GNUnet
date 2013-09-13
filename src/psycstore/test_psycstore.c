@@ -58,8 +58,8 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
 static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
 
-static struct GNUNET_CRYPTO_EccPublicKey channel_pub_key;
-static struct GNUNET_CRYPTO_EccPublicKey slave_pub_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
 
 /**
  * Clean up all resources used.
@@ -160,8 +160,8 @@ run (void *cls,
   channel_key = GNUNET_CRYPTO_ecc_key_create ();
   slave_key = GNUNET_CRYPTO_ecc_key_create ();
 
-  GNUNET_CRYPTO_ecc_key_get_public (channel_key, &channel_pub_key);
-  GNUNET_CRYPTO_ecc_key_get_public (slave_key, &slave_pub_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (channel_key, &channel_pub_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (slave_key, &slave_pub_key);
 
   op = GNUNET_PSYCSTORE_membership_store (h, &channel_pub_key, &slave_pub_key,
                                           GNUNET_YES, 2, 2, 1,

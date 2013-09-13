@@ -237,7 +237,7 @@ struct GNUNET_NAMESTORE_Block
   /**
    * Derived key used for signing; hash of this is the query.
    */
-  struct GNUNET_CRYPTO_EccPublicKey derived_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
 
   /**
    * Number of bytes signed; also specifies the number of bytes
@@ -355,7 +355,7 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h, 
 			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
 
 
@@ -604,7 +604,7 @@ GNUNET_NAMESTORE_normalize_string (const char *src);
  * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s.
  */
 const char *
-GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z);
+GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z);
 
 
 /**
@@ -618,7 +618,7 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicKey *z);
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey);
+GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey);
 
 
 /**
@@ -632,7 +632,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicKey *pkey);
  */
 int
 GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
-			       struct GNUNET_CRYPTO_EccPublicKey *pkey);
+			       struct GNUNET_CRYPTO_EccPublicSignKey *pkey);
 
 
 /**
@@ -656,7 +656,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicKey *pub,
+GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
 					const char *label,
 					struct GNUNET_HashCode *query);
 
@@ -702,7 +702,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
  */
 int
 GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
-				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
 				const char *label,
 				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls);

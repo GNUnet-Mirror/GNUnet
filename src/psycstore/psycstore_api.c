@@ -437,8 +437,8 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (
   struct GNUNET_PSYCSTORE_Handle *h,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
   int did_join,
   uint64_t announced_at,
   uint64_t effective_since,
@@ -453,8 +453,8 @@ GNUNET_PSYCSTORE_membership_store (
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (
   struct GNUNET_PSYCSTORE_Handle *h,
-  const struct GNUNET_CRYPTO_EccPublicKey *channel_key,
-  const struct GNUNET_CRYPTO_EccPublicKey *slave_key,
+  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
   uint64_t message_id,
   uint64_t group_generation,
   GNUNET_PSYCSTORE_ResultCallback rcb,

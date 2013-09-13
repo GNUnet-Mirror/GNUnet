@@ -131,7 +131,7 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
 {
   char *dn;
   char *ret;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_HashCode hc;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -143,7 +143,7 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
 			       "fs", "UPDATE_DIR");
     return NULL;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (ns, &pub);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &hc);
   GNUNET_CRYPTO_hash_to_enc (&hc,
 			     &enc);
@@ -448,7 +448,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   sks_uri = GNUNET_new (struct GNUNET_FS_Uri);
   sks_uri->type = GNUNET_FS_URI_SKS;
   sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
-  GNUNET_CRYPTO_ecc_key_get_public (ns,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns,
 				    &sks_uri->data.sks.ns);
 
   psc = GNUNET_new (struct GNUNET_FS_PublishSksContext);

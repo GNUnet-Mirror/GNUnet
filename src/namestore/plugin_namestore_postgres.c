@@ -273,7 +273,7 @@ namestore_postgres_remove_records (void *cls,
  */
 static int 
 namestore_postgres_put_records (void *cls, 
-				const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+				const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
 				struct GNUNET_TIME_Absolute expire,
 				const char *name,
 				unsigned int rd_count,
@@ -291,7 +291,7 @@ namestore_postgres_put_records (void *cls,
   unsigned int i;
 
   GNUNET_CRYPTO_short_hash (zone_key, 
-			    sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+			    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 			    &zone);
   (void) namestore_postgres_remove_records (plugin, &zone, name);
   name_len = strlen (name);
@@ -331,7 +331,7 @@ namestore_postgres_put_records (void *cls,
       (const char *) &rvalue_be
     };
     int paramLengths[] = {
-      sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
       name_len,
       sizeof (uint32_t),
       data_size,
@@ -383,7 +383,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
 {
   unsigned int record_count;
   size_t data_size;
-  /* const struct GNUNET_CRYPTO_EccPublicKey *zone_key; */
+  /* const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key; */
   const struct GNUNET_CRYPTO_EccPrivateKey *zone_key;
   /* const struct GNUNET_CRYPTO_EccSignature *sig; */
   /* struct GNUNET_TIME_Absolute expiration; */
@@ -413,7 +413,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   GNUNET_assert (1 == cnt);
   if ((6 != PQnfields (res)) || 
-      (sizeof (struct GNUNET_CRYPTO_EccPublicKey) != PQgetlength (res, 0, 0)) || 
+      (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) != PQgetlength (res, 0, 0)) || 
       (sizeof (uint32_t) != PQfsize (res, 2)) || 
       (sizeof (uint64_t) != PQfsize (res, 4)) || 
       (sizeof (struct GNUNET_CRYPTO_EccSignature) != PQgetlength (res, 0, 5)))
@@ -423,7 +423,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     return GNUNET_SYSERR;
   }
   zone_key = (const struct GNUNET_CRYPTO_EccPrivateKey *) PQgetvalue (res, 0, 0);
-  /* zone_key = (const struct GNUNET_CRYPTO_EccPublicKey *) PQgetvalue (res, 0, 0); */
+  /* zone_key = (const struct GNUNET_CRYPTO_EccPublicSignKey *) PQgetvalue (res, 0, 0); */
   name = PQgetvalue (res, 0, 1);
   name_len = PQgetlength (res, 0, 1);
   record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
@@ -563,7 +563,7 @@ namestore_postgres_iterate_records (void *cls,
 static int
 namestore_postgres_zone_to_name (void *cls, 
 			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
 #if  0

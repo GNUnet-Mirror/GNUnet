@@ -149,9 +149,32 @@ struct GNUNET_CRYPTO_EccSignature
 
 /**
  * Public ECC key (always for NIST P-521) encoded in a format suitable
- * for network transmission.
+ * for network transmission and signatures (ECDSA/EdDSA).
  */
-struct GNUNET_CRYPTO_EccPublicKey 
+struct GNUNET_CRYPTO_EccPublicSignKey
+{
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
+   *
+   * FIXME: this coordinate will be removed in the future (compressed point!).
+   */
+  unsigned char q_x[256 / 8];
+
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
+   */
+  unsigned char q_y[256 / 8];
+
+};
+
+
+/**
+ * Public ECC key (always for NIST P-521) encoded in a format suitable
+ * for network transmission and encryption (ECDH).
+ */
+struct GNUNET_CRYPTO_EccPublicEncryptKey 
 {
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
@@ -162,6 +185,8 @@ struct GNUNET_CRYPTO_EccPublicKey
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
    * given here in affine coordinates.
+   *
+   * FIXME: this coordinate will be removed in the future (compressed point!).
    */
   unsigned char q_y[256 / 8];
 
@@ -415,11 +440,11 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
 
 /**
  * @ingroup hash
- * Convert ASCII encoding back to struct GNUNET_HashCode
+ * Convert ASCII encoding back to `struct GNUNET_HashCode`
  *
  * @param enc the encoding
  * @param result where to store the hash code
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 #define GNUNET_CRYPTO_hash_from_string(enc, result) \
   GNUNET_CRYPTO_hash_from_string2 (enc, strlen(enc), result)
@@ -495,7 +520,7 @@ struct GNUNET_CRYPTO_FileHashContext;
  * @param filename name of file to hash
  * @param blocksize number of bytes to process in one task
  * @param callback function to call upon completion
- * @param callback_cls closure for callback
+ * @param callback_cls closure for @a callback
  * @return NULL on (immediate) errror
  */
 struct GNUNET_CRYPTO_FileHashContext *
@@ -586,12 +611,13 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
  * @ingroup hash
  * Obtain a bit from a hashcode.
  *
- * @param code the GNUNET_CRYPTO_hash to index bit-wise
+ * @param code the `struct GNUNET_HashCode` to index bit-wise
  * @param bit index into the hashcode, [0...159]
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
  */
 int
-GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode * code, unsigned int bit);
+GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code, 
+			    unsigned int bit);
 
 
 /**
@@ -738,7 +764,7 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
  * @param skm source key material
  * @param skm_len length of skm
  * @param ... void * & size_t pairs for context chunks
- * @return GNUNET_YES on success
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
@@ -765,32 +791,70 @@ typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
  * @param pub where to write the public key
  */
 void
-GNUNET_CRYPTO_ecc_key_get_public (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-                                  struct GNUNET_CRYPTO_EccPublicKey *pub);
+GNUNET_CRYPTO_ecc_key_get_public_for_signature (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+						struct GNUNET_CRYPTO_EccPublicSignKey *pub);
+
+
+
+/**
+ * @ingroup crypto
+ * Extract the public key for the given private key.
+ *
+ * @param priv the private key
+ * @param pub where to write the public key
+ */
+void
+GNUNET_CRYPTO_ecc_key_get_public_for_encryption (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+						 struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
 
 
 /**
  * Convert a public key to a string.
  *
  * @param pub key to convert
- * @return string representing  'pub'
+ * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicKey *pub);
+GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPublicSignKey *pub);
 
 
 /**
  * Convert a string representing a public key to a public key.
  *
  * @param enc encoded public key
- * @param enclen number of bytes in enc (without 0-terminator)
+ * @param enclen number of bytes in @a enc (without 0-terminator)
  * @param pub where to store the public key
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_key_from_string (const char *enc, 
-					  size_t enclen,
-					  struct GNUNET_CRYPTO_EccPublicKey *pub);
+GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc, 
+					       size_t enclen,
+					       struct GNUNET_CRYPTO_EccPublicSignKey *pub);
+
+
+
+/**
+ * Convert a public key to a string.
+ *
+ * @param pub key to convert
+ * @return string representing @a pub
+ */
+char *
+GNUNET_CRYPTO_ecc_public_encrypt_key_to_string (const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
+
+
+/**
+ * Convert a string representing a public key to a public key.
+ *
+ * @param enc encoded public key
+ * @param enclen number of bytes in @a enc (without 0-terminator)
+ * @param pub where to store the public key
+ * @return #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecc_public_encrypt_key_from_string (const char *enc, 
+						  size_t enclen,
+						  struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
 
 
 /**
@@ -817,6 +881,7 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
  * Create a new private key by reading our peer's key from
  * the file specified in the configuration.
  *
+ * @param cfg the configuration to use
  * @return new private key, NULL on error (for example,
  *   permission denied); free using #GNUNET_free
  */
@@ -830,8 +895,8 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
  *
  * @return fresh private key; free using #GNUNET_free
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_create (void);
+struct GNUNET_CRYPTO_EccPrivateEncryptKey *
+GNUNET_CRYPTO_ecc_key_encrypt_create (void);
 
 
 /**
@@ -882,7 +947,7 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-                        const struct GNUNET_CRYPTO_EccPublicKey *pub,
+                        const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub,
                         struct GNUNET_HashCode *key_material);
 
 
@@ -916,7 +981,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
                           const struct GNUNET_CRYPTO_EccSignaturePurpose
                           *validate,
                           const struct GNUNET_CRYPTO_EccSignature *sig,
-                          const struct GNUNET_CRYPTO_EccPublicKey *pub);
+                          const struct GNUNET_CRYPTO_EccPublicSignKey *pub);
 
 
 /**
@@ -950,10 +1015,10 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @param result where to write the derived public key
  */
 void
-GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicKey *pub,
+GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
 				     const char *label,
 				     const char *context,
-				     struct GNUNET_CRYPTO_EccPublicKey *result);
+				     struct GNUNET_CRYPTO_EccPublicSignKey *result);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

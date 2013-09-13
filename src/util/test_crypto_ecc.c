@@ -43,13 +43,13 @@ testSignVerify ()
 {
   struct GNUNET_CRYPTO_EccSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
   FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
@@ -92,11 +92,11 @@ testDeriveSignVerify ()
   struct GNUNET_CRYPTO_EccSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EccPrivateKey *dpriv;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
-  struct GNUNET_CRYPTO_EccPublicKey dpub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
 
   dpriv = GNUNET_CRYPTO_ecc_key_derive (key, "test-derive", "test-CTX");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   GNUNET_CRYPTO_ecc_public_key_derive (&pkey, "test-derive", "test-CTX", &dpub);
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
@@ -146,7 +146,7 @@ testSignPerformance ()
 {
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_CRYPTO_EccSignature sig;
-  struct GNUNET_CRYPTO_EccPublicKey pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
@@ -154,7 +154,7 @@ testSignPerformance ()
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
   FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
@@ -177,22 +177,22 @@ testSignPerformance ()
 static int
 testCreateFromFile ()
 {
-  struct GNUNET_CRYPTO_EccPublicKey p1;
-  struct GNUNET_CRYPTO_EccPublicKey p2;
+  struct GNUNET_CRYPTO_EccPublicSignKey p1;
+  struct GNUNET_CRYPTO_EccPublicSignKey p2;
 
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &p1);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p1);
   GNUNET_free (key);
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &p2);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p2);
   GNUNET_assert (0 == memcmp (&p1, &p2, sizeof (p1)));
   GNUNET_free (key);
   GNUNET_assert (0 == UNLINK (KEYFILE));
   key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
   GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public (key, &p2);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p2);
   GNUNET_assert (0 != memcmp (&p1, &p2, sizeof (p1)));
   GNUNET_free (key);
   return GNUNET_OK;
@@ -204,15 +204,15 @@ test_ecdh ()
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv1;
   struct GNUNET_CRYPTO_EccPrivateKey *priv2;
-  struct GNUNET_CRYPTO_EccPublicKey pub1;
-  struct GNUNET_CRYPTO_EccPublicKey pub2;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub1;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub2;
   struct GNUNET_HashCode ecdh1;
   struct GNUNET_HashCode ecdh2;
 
   priv1 = GNUNET_CRYPTO_ecc_key_create ();
   priv2 = GNUNET_CRYPTO_ecc_key_create ();
-  GNUNET_CRYPTO_ecc_key_get_public (priv1, &pub1);
-  GNUNET_CRYPTO_ecc_key_get_public (priv2, &pub2);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv1, &pub1);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv2, &pub2);
   GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
   GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
   GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,

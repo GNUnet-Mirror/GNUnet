@@ -101,7 +101,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_Block *block;
-  struct GNUNET_CRYPTO_EccPublicKey pubkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 
   /* load privat key */
   char *hostkey_file;
@@ -113,7 +113,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (privkey != NULL);
   struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
   /* get public key */
-  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature(privkey, &pubkey);
 
   /* create record */
   s_name = "DUMMY.dummy.gnunet";

@@ -179,12 +179,12 @@ const struct GNUNET_IDENTITY_Ego *
 GNUNET_IDENTITY_ego_get_anonymous ()
 {
   static struct GNUNET_IDENTITY_Ego anon;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
 
   if (NULL != anon.pk)
     return &anon;
   anon.pk = (struct GNUNET_CRYPTO_EccPrivateKey *) GNUNET_CRYPTO_ecc_key_get_anonymous ();
-  GNUNET_CRYPTO_ecc_key_get_public (anon.pk,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (anon.pk,
 				    &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &anon.id);
   return &anon;
@@ -249,7 +249,7 @@ message_handler (void *cls,
   const struct GNUNET_IDENTITY_ResultCodeMessage *rcm;
   const struct GNUNET_IDENTITY_UpdateMessage *um;
   const struct GNUNET_IDENTITY_SetDefaultMessage *sdm;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_HashCode id;
   const char *str;
   uint16_t size;
@@ -326,7 +326,7 @@ message_handler (void *cls,
 	h->cb (h->cb_cls, NULL, NULL, NULL);
       break;
     }
-    GNUNET_CRYPTO_ecc_key_get_public (&um->private_key,
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (&um->private_key,
 				      &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
     if (0 == name_len)
@@ -406,7 +406,7 @@ message_handler (void *cls,
     }
     /* Note: we know which service this should be for, so we're not
        really using 'str' henceforth */
-    GNUNET_CRYPTO_ecc_key_get_public (&sdm->private_key,
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (&sdm->private_key,
 				      &pub);
     GNUNET_CRYPTO_hash (&pub, sizeof (pub), &id);
     ego = GNUNET_CONTAINER_multihashmap_get (h->egos,
@@ -602,9 +602,9 @@ GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego)
  */
 void
 GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
-				    struct GNUNET_CRYPTO_EccPublicKey *pk)
+				    struct GNUNET_CRYPTO_EccPublicSignKey *pk)
 {
-  GNUNET_CRYPTO_ecc_key_get_public (ego->pk,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ego->pk,
 				    pk);
 }
 

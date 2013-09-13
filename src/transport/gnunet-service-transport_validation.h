@@ -134,7 +134,7 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
  */
 typedef void (*GST_ValidationAddressCallback) (void *cls,
                                                const struct
-                                               GNUNET_CRYPTO_EccPublicKey *public_key,
+                                               GNUNET_CRYPTO_EccPublicSignKey *public_key,
                                                struct GNUNET_TIME_Absolute
                                                valid_until,
                                                struct GNUNET_TIME_Absolute

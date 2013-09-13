@@ -283,7 +283,7 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
  */
 void
 GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
-                           struct GNUNET_CRYPTO_EccPublicKey *nym_key);
+                           struct GNUNET_CRYPTO_EccPublicSignKey *nym_key);
 
 
 /** 
@@ -440,7 +440,7 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_IDENTITY_Ego *ego,
-                            struct GNUNET_CRYPTO_EccPublicKey *crypto_address,
+                            struct GNUNET_CRYPTO_EccPublicSignKey *crypto_address,
                             struct GNUNET_PeerIdentity *origin,
                             size_t relay_count,
                             struct GNUNET_PeerIdentity *relays,

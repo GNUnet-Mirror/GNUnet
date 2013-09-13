@@ -58,7 +58,7 @@ struct UBlock
   /**
    * Public key used to sign this block.
    */
-  struct GNUNET_CRYPTO_EccPublicKey verification_key;
+  struct GNUNET_CRYPTO_EccPublicSignKey verification_key;
 
   /* rest of the data is encrypted */
 

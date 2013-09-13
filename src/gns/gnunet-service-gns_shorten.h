@@ -59,7 +59,7 @@ GNS_shorten_done (void);
  */
 void
 GNS_shorten_start (const char *original_label,
-		   const struct GNUNET_CRYPTO_EccPublicKey *pub,
+		   const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
 		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone);
 
 

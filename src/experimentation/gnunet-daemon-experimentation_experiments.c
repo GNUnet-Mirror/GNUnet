@@ -38,7 +38,7 @@
  */
 struct Issuer
 {
-	struct GNUNET_CRYPTO_EccPublicKey pubkey;
+	struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 };
 
 
@@ -409,7 +409,7 @@ GED_experiments_start ()
 	char *pubkey;
 	char *pos;
 	struct GNUNET_PeerIdentity issuer_ID;
-	struct GNUNET_CRYPTO_EccPublicKey pub;
+	struct GNUNET_CRYPTO_EccPublicSignKey pub;
 	struct GNUNET_HashCode hash;
 
 	/* Load valid issuer */
@@ -448,7 +448,7 @@ GED_experiments_start ()
 
 	if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (GED_cfg, "EXPERIMENTATION", "PUBKEY", &pubkey))
 	{
-			if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_key_from_string(pubkey, strlen (pubkey), &pub))
+			if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string(pubkey, strlen (pubkey), &pub))
 	  		GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Invalid public key `%s'\n"), pubkey);
 			else
 			{

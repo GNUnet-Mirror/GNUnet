@@ -29,7 +29,7 @@
 #include "gnunet_fs_service.h"
 
 
-static struct GNUNET_CRYPTO_EccPublicKey nsid;
+static struct GNUNET_CRYPTO_EccPublicSignKey nsid;
 
 static struct GNUNET_FS_Uri *sks_expect_uri;
 
@@ -255,7 +255,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   bo.replication_level = 0;
   bo.expiration_time =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  GNUNET_CRYPTO_ecc_key_get_public (ns, &nsid);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns, &nsid);
   GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri,
                          &bo, GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont, NULL);
   GNUNET_CONTAINER_meta_data_destroy (meta);

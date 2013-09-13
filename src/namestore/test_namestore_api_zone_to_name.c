@@ -45,7 +45,7 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicKey pubkey;
+static struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 
 static struct GNUNET_TIME_Absolute expire;
 
@@ -98,7 +98,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_to_name_proc (void *cls,
-		   const struct GNUNET_CRYPTO_EccPublicKey *zone_key,
+		   const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
 		   struct GNUNET_TIME_Absolute expire,
 		   const char *n,
 		   unsigned int rd_count,
@@ -125,7 +125,7 @@ zone_to_name_proc (void *cls,
       fail = GNUNET_YES;
       GNUNET_break (0);
     }
-    if ((zone_key == NULL) || (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey))))
+    if ((zone_key == NULL) || (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);
@@ -179,10 +179,10 @@ run (void *cls,
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   /* get public key */
-  GNUNET_CRYPTO_ecc_key_get_public(privkey, &pubkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature(privkey, &pubkey);
 
   /* zone hash */
-  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicKey), &s_zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), &s_zone);
   GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_NAMESTORE_short_h2s (&s_zone_value));
 

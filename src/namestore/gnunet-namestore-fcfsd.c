@@ -552,7 +552,7 @@ lookup_result_processor (void *cls,
 			 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   
   if (0 != rd_count)
   {
@@ -565,7 +565,7 @@ lookup_result_processor (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_key_from_string (request->public_key,
+      GNUNET_CRYPTO_ecc_public_sign_key_from_string (request->public_key,
 						strlen (request->public_key),
 						&pub))
   {
@@ -594,7 +594,7 @@ lookup_block_processor (void *cls,
 			const struct GNUNET_NAMESTORE_Block *block)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
 
   request->qe = NULL;
   if (NULL == block)
@@ -602,7 +602,7 @@ lookup_block_processor (void *cls,
     lookup_result_processor (request, 0, NULL);
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public (&fcfs_zone_pkey,
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&fcfs_zone_pkey,
 				    &pub);
   if (GNUNET_OK != 
       GNUNET_NAMESTORE_block_decrypt (block,
@@ -655,7 +655,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   int ret;
-  struct GNUNET_CRYPTO_EccPublicKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_HashCode query;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
@@ -705,7 +705,7 @@ create_response (void *cls,
 	request->pp = NULL;
       }
       if (GNUNET_OK !=
-	  GNUNET_CRYPTO_ecc_public_key_from_string (request->public_key,
+	  GNUNET_CRYPTO_ecc_public_sign_key_from_string (request->public_key,
 						    strlen (request->public_key),
 						    &pub))
       {
@@ -733,7 +733,7 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  GNUNET_CRYPTO_ecc_key_get_public (&fcfs_zone_pkey,
+	  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&fcfs_zone_pkey,
 					    &pub);
 	  GNUNET_NAMESTORE_query_from_public_key (&pub,
 						  request->domain_name,

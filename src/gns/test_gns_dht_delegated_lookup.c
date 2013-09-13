@@ -65,8 +65,8 @@ static struct GNUNET_DHT_Handle *dht_handle;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static struct GNUNET_CRYPTO_EccPublicKey alice_pkey;
-static struct GNUNET_CRYPTO_EccPublicKey bob_pkey;
+static struct GNUNET_CRYPTO_EccPublicSignKey alice_pkey;
+static struct GNUNET_CRYPTO_EccPublicSignKey bob_pkey;
 static struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
 static struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
 
@@ -262,7 +262,7 @@ put_dht(void *cls, int32_t success, const char *emsg)
   }
   GNUNET_CRYPTO_short_hash(TEST_RECORD_NAME, strlen(TEST_RECORD_NAME), &name_hash);
   GNUNET_CRYPTO_short_hash(&bob_pkey,
-                     sizeof(struct GNUNET_CRYPTO_EccPublicKey),
+                     sizeof(struct GNUNET_CRYPTO_EccPublicSignKey),
                      &zone_hash);
   GNUNET_CRYPTO_short_hash_double(&zone_hash, &zone_hash_double);
   GNUNET_CRYPTO_short_hash_double(&name_hash, &name_hash_double);
@@ -335,8 +335,8 @@ do_check (void *cls,
   
   GNUNET_free(alice_keyfile);
 
-  GNUNET_CRYPTO_ecc_key_get_public (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (bob_key, &bob_pkey);
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   struct GNUNET_NAMESTORE_RecordData rd;

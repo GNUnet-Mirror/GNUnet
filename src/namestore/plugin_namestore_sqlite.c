@@ -455,11 +455,11 @@ namestore_sqlite_cache_block (void *cls,
 
   namestore_sqlite_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key, 
-		      sizeof (struct GNUNET_CRYPTO_EccPublicKey), 
+		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), 
 		      &query);
   expiration = GNUNET_TIME_absolute_ntoh (block->expiration_time);
   block_size = ntohl (block->purpose.size) + 
-    sizeof (struct GNUNET_CRYPTO_EccPublicKey) + 
+    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) + 
     sizeof (struct GNUNET_CRYPTO_EccSignature); 
   if (block_size > 64 * 65536)
   {
@@ -542,7 +542,7 @@ namestore_sqlite_lookup_block (void *cls,
     block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
     if ( (block_size < sizeof (struct GNUNET_NAMESTORE_Block)) ||
 	 (ntohl (block->purpose.size) + 
-	  sizeof (struct GNUNET_CRYPTO_EccPublicKey) + 
+	  sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) + 
 	  sizeof (struct GNUNET_CRYPTO_EccSignature) != block_size) )
     {
       GNUNET_break (0);
@@ -599,7 +599,7 @@ namestore_sqlite_store_records (void *cls,
   for (i=0;i<rd_count;i++)
     if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
     {
-      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicKey) == rd[i].data_size);
+      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) == rd[i].data_size);
       GNUNET_CRYPTO_hash (rd[i].data,
 			  rd[i].data_size,
 			  &pkey_hash);
@@ -834,7 +834,7 @@ namestore_sqlite_iterate_records (void *cls,
 static int
 namestore_sqlite_zone_to_name (void *cls, 
 			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicKey *value_zone,
+			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -845,7 +845,7 @@ namestore_sqlite_zone_to_name (void *cls,
 					zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
 					SQLITE_STATIC)) ||
        (SQLITE_OK != sqlite3_bind_blob (stmt, 2, 
-					value_zone, sizeof (struct GNUNET_CRYPTO_EccPublicKey),
+					value_zone, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 					SQLITE_STATIC)) )
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
