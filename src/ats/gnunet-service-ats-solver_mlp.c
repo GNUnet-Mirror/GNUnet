@@ -1047,10 +1047,7 @@ GAS_mlp_solve_problem (void *solver)
 	}
 
 	if (0 == GNUNET_CONTAINER_multihashmap_size(mlp->requested_peers))
-	{
-		GNUNET_break (0);
-		return GNUNET_OK;
-	}
+		return GNUNET_OK; /* No pending requests */
 	if (0 == GNUNET_CONTAINER_multihashmap_size(mlp->addresses))
 		return GNUNET_OK; /* No addresses available */
 
@@ -1424,6 +1421,7 @@ GAS_mlp_address_delete (void *solver,
 		GNUNET_free (mlpi);
 		address->solver_information = NULL;
 	}
+	address->active = GNUNET_NO;
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
@@ -1440,7 +1438,9 @@ GAS_mlp_address_delete (void *solver,
 	/* Problem size changed: new address for peer with pending request */
 	mlp->mlp_prob_changed = GNUNET_YES;
 	if (GNUNET_YES == mlp->mlp_auto_solve)
+	{
 		GAS_mlp_solve_problem (solver);
+	}
   return;
 }
 
@@ -1602,11 +1602,16 @@ GAS_mlp_stop_get_preferred_address (void *solver,
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
-
   if (NULL != (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &peer->hashPubKey)))
   {
   	GNUNET_CONTAINER_multihashmap_remove (mlp->requested_peers, &peer->hashPubKey, p);
   	GNUNET_free (p);
+
+  	mlp->mlp_prob_changed = GNUNET_YES;
+  	if (GNUNET_YES == mlp->mlp_auto_solve)
+  	{
+  		GAS_mlp_solve_problem (solver);
+  	}
   }
 }
 
