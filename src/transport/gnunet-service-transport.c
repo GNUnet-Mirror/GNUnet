@@ -523,6 +523,19 @@ plugin_env_update_metrics (void *cls,
   GST_ats_update_metrics (peer, &haddress, session, ats, ats_count);
 }
 
+/**
+ * Plugin tells transport service about a new (inbound) session
+ *
+ * @param cls unused
+ * @param peer the peer
+ * @param plugin plugin name
+ * @param address address
+ * @param address_len address length
+ * @param session the new session
+ * @param ats ats information
+ * @param ats_count number of ats information
+ */
+
 static void
 plugin_env_session_start (void *cls,
 	   const struct GNUNET_PeerIdentity *peer,
@@ -533,6 +546,7 @@ plugin_env_session_start (void *cls,
 	   const struct GNUNET_ATS_Information *ats,
 	   uint32_t ats_count)
 {
+	struct GNUNET_HELLO_Address *addr;
 	if (NULL == peer)
 	{
 		GNUNET_break (0);
@@ -554,8 +568,13 @@ plugin_env_session_start (void *cls,
 		return;
 	}
 
-	struct GNUNET_HELLO_Address *addr;
 	addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
+	if (0 != address_len)
+	{
+		GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+				"Inbound session from plugin `%s' about new session %p from peer `%s' address `%s' does not have address length 0 but %u\n",
+				plugin, session, GNUNET_i2s (peer), GST_plugins_a2s(addr), address_len);
+	}
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 			"Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
 			plugin, session, GNUNET_i2s (peer), GST_plugins_a2s(addr));
