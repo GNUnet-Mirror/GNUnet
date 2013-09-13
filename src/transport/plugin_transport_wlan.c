@@ -212,6 +212,8 @@ struct Session
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
+  int inbound;
+
 };
 
 
@@ -350,6 +352,11 @@ struct MacEndpoint
    * peer mac address
    */
   struct WlanAddress addr;
+
+  /**
+   * Inbound or outbound session
+   */
+  int inbound;
 
   /**
    * Message delay for fragmentation context
@@ -718,13 +725,14 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static struct Session *
 lookup_session (struct MacEndpoint *endpoint,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+                int inbound)
 {
   struct Session *session;
 
   for (session = endpoint->sessions_head; NULL != session; session = session->next)
-    if (0 == memcmp (peer, &session->target,
-		     sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == memcmp (peer, &session->target, sizeof (struct GNUNET_PeerIdentity)) &&
+    		(session->inbound == inbound))
     {
       session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
       return session;
@@ -741,7 +749,7 @@ lookup_session (struct MacEndpoint *endpoint,
  */
 static struct Session *
 create_session (struct MacEndpoint *endpoint,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer, int inbound)
 {
   struct Session *session;
 
@@ -751,15 +759,19 @@ create_session (struct MacEndpoint *endpoint,
   GNUNET_CONTAINER_DLL_insert_tail (endpoint->sessions_head,
                                     endpoint->sessions_tail,
 				    session);
+  session->inbound = inbound;
   session->mac = endpoint;
   session->target = *peer;
   session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   session->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &session_timeout, session);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Created new session for peer `%s' with endpoint %s\n",
+       "Created new %s session %p for peer `%s' with endpoint %s\n",
+       (GNUNET_YES == inbound) ? "inbound" : "outbound",
+       session,
        GNUNET_i2s (peer),
        mac_to_string (&endpoint->addr.mac));
+
   return session;
 }
 
@@ -773,12 +785,13 @@ create_session (struct MacEndpoint *endpoint,
  */
 static struct Session *
 get_session (struct MacEndpoint *endpoint,
-                const struct GNUNET_PeerIdentity *peer)
+                const struct GNUNET_PeerIdentity *peer,
+                int inbound)
 {
   struct Session *session;
-  if (NULL != (session = lookup_session (endpoint, peer)))
+  if (NULL != (session = lookup_session (endpoint, peer, inbound)))
   	return session;
-  return create_session (endpoint, peer);
+  return create_session (endpoint, peer, inbound);
 }
 
 
@@ -1113,7 +1126,7 @@ wlan_plugin_get_session (void *cls,
        GNUNET_i2s (&address->peer),
        wlan_plugin_address_to_string(NULL, address->address, address->address_length));
   endpoint = create_macendpoint (plugin, address->address);
-  return get_session (endpoint, &address->peer);
+  return get_session (endpoint, &address->peer, GNUNET_NO);
 }
 
 
@@ -1354,9 +1367,9 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       break;
     }
     xmas.endpoint = mas->endpoint;
-    if (NULL == (xmas.session =  lookup_session (mas->endpoint, &wlanheader->sender)))
+    if (NULL == (xmas.session =  lookup_session (mas->endpoint, &wlanheader->sender, GNUNET_YES)))
     {
-    	xmas.session = create_session (mas->endpoint, &wlanheader->sender);
+    	xmas.session = create_session (mas->endpoint, &wlanheader->sender, GNUNET_YES);
     	plugin->env->session_start (NULL, &wlanheader->sender,
     			PLUGIN_NAME, NULL, 0, xmas.session, NULL, 0);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
