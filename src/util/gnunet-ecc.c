@@ -131,7 +131,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     char *s;
 
     GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
-    s = GNUNET_CRYPTO_ecc_public_key_to_string (&pub);
+    s = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pub);
     fprintf (stdout, "%s\n", s);
     GNUNET_free (s);
   }

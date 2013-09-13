@@ -895,8 +895,8 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
  *
  * @return fresh private key; free using #GNUNET_free
  */
-struct GNUNET_CRYPTO_EccPrivateEncryptKey *
-GNUNET_CRYPTO_ecc_key_encrypt_create (void);
+struct GNUNET_CRYPTO_EccPrivateKey *
+GNUNET_CRYPTO_ecc_key_create (void);
 
 
 /**

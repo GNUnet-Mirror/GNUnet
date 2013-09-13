@@ -281,7 +281,7 @@ GNUNET_CRYPTO_ecc_key_get_public_for_signature (const struct GNUNET_CRYPTO_EccPr
  * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_ecc_public_key_to_string (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
   char *pubkeybuf;
   size_t keylen = (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey)) * 8;
