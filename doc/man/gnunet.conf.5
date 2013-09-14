@@ -1,15 +1,91 @@
-.TH GNUNET.CONF "5" "25 Oct 2012" "GNUnet"
+.TH GNUNET.CONF "5" "12 Aug 2013" "GNUnet"
 .SH NAME
 gnunet.conf \- GNUnet configuration file
 .SH SYNOPSIS
 ~/.gnunet/gnunet.conf
 .SH DESCRIPTION
 .PP
-A GNUnet setup typically consists of a a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The service processes are usually started using "gnunet\-arm \-s".  The default location for the configuration file is then "~gnunet/.gnunet/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration to "/etc/gnunet.conf".  gnunet\-setup can be used to edit this configuration.  The configuration for normal users is in "$HOME/.gnunet/gnunet.conf".  The file does not have to exist, and there are no options that typically require manual configuration in this file.  Note that while it is possible to run both sets of processes as the same user (and use one shared configuration file), this breaks some GNUnet components (GADS/GNS) and is generally not recommended.  
+
+A GNUnet setup typically consists of a a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The default location for the configuration file for the services is "~gnunet/.gnunet/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in "/etc/gnunet.conf".  gnunet\-setup (part of the GTK package) can be used to edit this configuration.  The parts of GNUnet that is ran as a normal user may have config options too and they read from "$HOME/.gnunet/gnunet.conf". The latter config file can skip any options for the services.
+
 .TP
-The basic structure of the configuration file is the following.  The file is split into sections.  Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".  Empty lines and lines beginning with a "#" are treated as comments.  Almost all options are optional and the tools resort to reasonable defaults if they are not present. 
+The basic structure of the configuration file is the following.  The file is split into sections.  Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".  Empty lines and lines beginning with a "#" are treated as comments.  Almost all options are optional and the tools resort to reasonable defaults if they are not present.
 .PP
-Default values for all of the options can be found in the files in the "$GNUNET_PREFIX/share/gnunet/config.d/" directory.  Note that only some of the options can be configured with gnunet\-setup, as for most options the default choice is all that should ever be needed by normal users.  However, developers may find some of the other options of interest.
+Default values for all of the options can be found in the files in the "$GNUNET_PREFIX/share/gnunet/config.d/" directory. A typical setup will work out of the box with those. See the examples section below for some common setups on top of that.
+
+.SH General OPTIONS
+.PP
+Many options will be common between sections. They can be repeated under each section with different values.  The "[PATHS]" section is special. Here, it is possible to specify values for variables like "SERVICEHOME".  Then, in all filenames that begin with "$SERVICEHOME" the "$SERVICEHOME" will be replaced with the respective value at runtime.  The main use of this is to redefine "$SERVICEHOME", which by default points to "$HOME/.gnunet/".  By setting this variable, you can change the location where GNUnet stores its internal data.
+.PP
+
+The following options are generic and shared by all services:
+
+.IP HOSTNAME
+    The hostname specifies the machine on which the service is running.  This is usually "localhost".
+.IP HOME
+    Which home directory should be used for the service.  Usually "$SERVICEHOME".
+.IP BINARY
+    The filename that implements the service. For example "gnunet-service-ats".
+.IP AUTOSTART
+    This defines the section it is defined in, which should be a service, will be started by the ARM service if the value is set to YES.
+.IP ACCEPT_FROM
+    A semi-column separated list of IPv4 addresses that are allowed to use the service; usually 127.0.0.1.
+.IP ACCEPT_FROM6
+    A semi-column separated list of IPv6 addresses that are allowed to use the service; usually ::1.
+.IP UNIXPATH
+    Path to use for the UNIX domain socket for inter process communication with the service on POSIX systems.
+.IP UNIX_MATCH_UID
+    If UNIX domain sockets are used, set this to YES if only users with the same UID are allowed to access the service.
+.IP UNIX_MATCH_GID
+    If UNIX domain sockets are used, set this to YES if only users with the same GID are allowed to access the service.
+
+.SH ARM Options
+
+This section is configuration for the automatic restart manager which is responsible for launching services.
+
+.IP DEFAULTSERVICES
+    list of services that ARM should always start by default.  AUTOSTART services are only started when the service is needed by some other service.  The services listed here will always be started, not just on-demand.  "topology" and "hostlist" should virtually always be listed here, and most users will want to specify high-level applications like "fs", "gns" or "pt" here as well.
+.B
+.SH ATS Options
+
+.IP UNSPECIFIED_QUOTA_IN
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP UNSPECIFIED_QUOTA_OUT
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP LOOPBACK_QUOTA_IN
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP LOOPBACK_QUOTA_OUT
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP LAN_QUOTA_IN
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP LAN_QUOTA_OUT
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP WAN_QUOTA_IN
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP WAN_QUOTA_OUT
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP WLAN_QUOTA_IN
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+.IP WLAN_QUOTA_OUT
+    quotes in KiB or MiB per seconds.  Or use the word "unlimited"
+
+.SH EXAMPLES
+
+This example is a simple way to get started, using a server that has a known list of peers to get you started. Most users will be behind a firewal on IPv4, as such NAT is enabled.  Please rememeber to change your IP address to the actual external address for your usage.
+.PP
+    [hostlist]
+    OPTIONS = -b
+    SERVERS = http://v9.gnunet.org:58080/
+
+    [arm]
+    DEFAULTSERVICES = topology hostlist fs
+
+    [nat]
+    BEHIND_NAT = YES
+    ENABLE_UPNP = YES
+    DISABLEV6 = YES
+    EXTERNAL_ADDRESS = 157.166.249.10
+
 .SH FILES
 .TP
 ~/.gnunet/gnunet.conf
