@@ -540,16 +540,20 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == h->client);
   h->client = GNUNET_CLIENT_connect ("identity", h->cfg);
   GNUNET_assert (NULL != h->client);
-  op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) + 
-		      sizeof (struct GNUNET_MessageHeader));
-  op->h = h;
-  op->msg = (const struct GNUNET_MessageHeader *) &op[1];
-  msg.size = htons (sizeof (msg));
-  msg.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_START);
-  memcpy (&op[1], &msg, sizeof (msg));
-  GNUNET_CONTAINER_DLL_insert (h->op_head,
-			       h->op_tail,
-			       op);
+  if ( (NULL == h->op_head) ||
+       (GNUNET_MESSAGE_TYPE_IDENTITY_START != ntohs (h->op_head->msg->type)) )
+  {
+    op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) + 
+			sizeof (struct GNUNET_MessageHeader));
+    op->h = h;
+    op->msg = (const struct GNUNET_MessageHeader *) &op[1];
+    msg.size = htons (sizeof (msg));
+    msg.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_START);
+    memcpy (&op[1], &msg, sizeof (msg));
+    GNUNET_CONTAINER_DLL_insert (h->op_head,
+				 h->op_tail,
+				 op);
+  }
   transmit_next (h);
   GNUNET_assert (NULL != h->th);
 }
@@ -945,8 +949,11 @@ free_ego (void *cls,
 void
 GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
 {
+  struct GNUNET_IDENTITY_Operation *op;
+
   GNUNET_assert (NULL != h);
-  GNUNET_assert (h->op_head == h->op_tail);
+  while (NULL != (op = h->op_head))
+    GNUNET_IDENTITY_cancel (op);
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
