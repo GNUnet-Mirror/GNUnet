@@ -22,7 +22,7 @@
  * @brief PlibC header
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
- * @version $Revision$
+ * @version $Revision: 149 $
  */
 
 #ifndef _PLIBC_H_
@@ -114,6 +114,10 @@ enum
   _SC_PAGESIZE = 30,
   _SC_PAGE_SIZE = 30
 };
+
+#if !defined(EACCESS)
+#  define EACCESS EACCES
+#endif
 
 /* Thanks to the Cygwin project */
 #if !defined(ENOCSI)
@@ -521,9 +525,6 @@ int inet_pton4(const char *src, u_char *dst, int pton);
 #if USE_IPV6
 int inet_pton6(const char *src, u_char *dst);
 #endif
-#if !defined(FTRUNCATE_DEFINED)
-int truncate(const char *fname, int distance);
-#endif
 int statfs(const char *path, struct statfs *buf);
 const char *hstrerror(int err);
 int mkstemp(char *tmplate);
@@ -557,8 +558,9 @@ int _win_close(int fd);
 int _win_creat(const char *path, mode_t mode);
 char *_win_ctime(const time_t *clock);
 char *_win_ctime_r(const time_t *clock, char *buf);
-int _win_fstat(int handle, struct stat *buffer);
+int _win_fstat(int handle, struct _stat *buffer);
 int _win_ftruncate(int fildes, off_t length);
+int _win_truncate(const char *fname, int distance);
 int _win_kill(pid_t pid, int sig);
 int _win_pipe(int *phandles);
 intptr_t _win_mkfifo(const char *path, mode_t mode);
@@ -570,7 +572,7 @@ long _win_random(void);
 void _win_srandom(unsigned int seed);
 int _win_remove(const char *path);
 int _win_rename(const char *oldname, const char *newname);
-int _win_stat(const char *path, struct stat *buffer);
+int _win_stat(const char *path, struct _stat *buffer);
 int _win_stat64(const char *path, struct stat64 *buffer);
 long _win_sysconf(int name);
 int _win_unlink(const char *filename);
@@ -583,7 +585,7 @@ void *_win_mmap(void *start, size_t len, int access, int flags, int fd,
                 unsigned long long offset);
 int _win_msync(void *start, size_t length, int flags);
 int _win_munmap(void *start, size_t length);
-int _win_lstat(const char *path, struct stat *buf);
+int _win_lstat(const char *path, struct _stat *buf);
 int _win_lstat64(const char *path, struct stat64 *buf);
 int _win_readlink(const char *path, char *buf, size_t bufsize);
 int _win_accept(int s, struct sockaddr *addr, int *addrlen);
@@ -610,6 +612,7 @@ int _win_setsockopt(int s, int level, int optname, const void *optval,
                     int optlen);
 int _win_shutdown(int s, int how);
 int _win_socket(int af, int type, int protocol);
+int _win_socketpair(int af, int type, int protocol, int socket_vector[2]);
 struct hostent *_win_gethostbyaddr(const char *addr, int len, int type);
 struct hostent *_win_gethostbyname(const char *name);
 struct hostent *gethostbyname2(const char *name, int af);
@@ -658,6 +661,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define FOPEN(f, m) fopen(f, m)
  #define FCLOSE(f) fclose(f)
  #define FTRUNCATE(f, l) ftruncate(f, l)
+ #define TRUNCATE(f, l) truncate(f, l)
  #define OPENDIR(d) opendir(d)
  #define CLOSEDIR(d) closedir(d)
  #define READDIR(d) readdir(d)
@@ -722,6 +726,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define SETSOCKOPT(s, l, o, v, n) setsockopt(s, l, o, v, n)
  #define SHUTDOWN(s, h) shutdown(s, h)
  #define SOCKET(a, t, p) socket(a, t, p)
+ #define SOCKETPAIR(a, t, p, v) socketpair(a, t, p, v)
  #define GETHOSTBYADDR(a, l, t) gethostbyaddr(a, l, t)
  #define GETHOSTBYNAME(n) gethostbyname(n)
  #define GETTIMEOFDAY(t, n) gettimeofday(t, n)
@@ -756,6 +761,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define FOPEN(f, m) _win_fopen(f, m)
  #define FCLOSE(f) _win_fclose(f)
  #define FTRUNCATE(f, l) _win_ftruncate(f, l)
+ #define TRUNCATE(f, l) _win_truncate(f, l)
  #define OPENDIR(d) _win_opendir(d)
  #define CLOSEDIR(d) _win_closedir(d)
  #define READDIR(d) _win_readdir(d)
@@ -820,6 +826,7 @@ char *strcasestr(const char *haystack_start, const char *needle_start);
  #define SETSOCKOPT(s, l, o, v, n) _win_setsockopt(s, l, o, v, n)
  #define SHUTDOWN(s, h) _win_shutdown(s, h)
  #define SOCKET(a, t, p) _win_socket(a, t, p)
+ #define SOCKETPAIR(a, t, p, v) _win_socketpair(a, t, p, v)
  #define GETHOSTBYADDR(a, l, t) _win_gethostbyaddr(a, l, t)
  #define GETHOSTBYNAME(n) _win_gethostbyname(n)
  #define GETTIMEOFDAY(t, n) gettimeofday(t, n)

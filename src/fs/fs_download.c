@@ -541,7 +541,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     GNUNET_FS_download_make_status_ (&pi, dc);
     if ((NULL != dc->filename) &&
         (0 !=
-         truncate (dc->filename,
+         TRUNCATE (dc->filename,
                    GNUNET_ntohll (dc->uri->data.chk.file_length))))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "truncate",
                                 dc->filename);
@@ -1103,7 +1103,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
     if (NULL != dc->filename)
     {
       if (0 !=
-          truncate (dc->filename,
+          TRUNCATE (dc->filename,
                     GNUNET_ntohll (dc->uri->data.chk.file_length)))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "truncate",
                                   dc->filename);
@@ -1767,7 +1767,7 @@ reconstruct_cb (void *cls, const struct ContentHashKey *chk, uint64_t offset,
 	if (NULL != dc->filename)
 	{
 	  if (0 !=
-	      truncate (dc->filename,
+	      TRUNCATE (dc->filename,
 			GNUNET_ntohll (dc->uri->data.chk.file_length)))
 	    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "truncate",
 				      dc->filename);
