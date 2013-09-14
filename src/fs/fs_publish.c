@@ -345,8 +345,8 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
-  size_t pt_size;
   const char *dd;
+  size_t pt_size;
 
   p = pc->fi_pos;
   if (GNUNET_YES == p->is_directory)
@@ -359,16 +359,15 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   {
     if (UINT64_MAX == offset) 
     {
-      if (NULL != p->data.file.reader)
-      {
-	pt_size = p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
-	p->data.file.reader = NULL;
-	return pt_size;
+      if (&GNUNET_FS_data_reader_file_ == p->data.file.reader)
+      {	
+	/* force closing the file to avoid keeping too many files open */
+	p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
       }
       return 0;
     }
     pt_size = GNUNET_MIN (max, p->data.file.file_size - offset);
-    if (pt_size == 0)
+    if (0 == pt_size)
       return 0;                 /* calling reader with pt_size==0
                                  * might free buf, so don't! */
     if (pt_size !=

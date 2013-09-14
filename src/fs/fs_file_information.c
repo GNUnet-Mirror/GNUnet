@@ -123,7 +123,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
     return NULL;
   }
   fi = GNUNET_FS_make_file_reader_context_ (filename);
-  if (fi == NULL)
+  if (NULL == fi)
   {
     GNUNET_break (0);
     return NULL;
@@ -261,7 +261,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
  * Test if a given entry represents a directory.
  *
  * @param ent check if this FI represents a directory
- * @return GNUNET_YES if so, GNUNET_NO if not
+ * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
 int
 GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
@@ -409,7 +409,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   int no;
 
   no = GNUNET_NO;
-  if (fi->is_directory == GNUNET_YES)
+  if (GNUNET_YES == fi->is_directory)
   {
     /* clean up directory */
     while (NULL != (pos = fi->data.dir.entries))

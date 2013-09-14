@@ -496,7 +496,7 @@ GNUNET_FS_make_file_reader_context_ (const char *filename)
 {
   struct FileInfo *fi;
 
-  fi = GNUNET_malloc (sizeof (struct FileInfo));
+  fi = GNUNET_new (struct FileInfo);
   fi->filename = GNUNET_STRINGS_filename_expand (filename);
   if (NULL == fi->filename)
   {

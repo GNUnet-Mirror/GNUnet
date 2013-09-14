@@ -250,13 +250,13 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
 
 
 /**
- * Initialize a tree encoder.  This function will call "proc" and
+ * Initialize a tree encoder.  This function will call @a proc and
  * "progress" on each block in the tree.  Once all blocks have been
- * processed, "cont" will be scheduled.  The "reader" will be called
+ * processed, "cont" will be scheduled.  The @a reader will be called
  * to obtain the (plaintext) blocks for the file.  Note that this
- * function will not actually call "proc".  The client must
- * call "GNUNET_FS_tree_encoder_next" to trigger encryption (and
- * calling of "proc") for the each block.
+ * function will not actually call @a proc.  The client must
+ * call #GNUNET_FS_tree_encoder_next to trigger encryption (and
+ * calling of @a proc) for the each block.
  *
  * @param h the global FS context
  * @param size overall size of the file to encode
@@ -268,7 +268,8 @@ GNUNET_FS_tree_calculate_block_size (uint64_t fsize, uint64_t offset,
  */
 struct GNUNET_FS_TreeEncoder *
 GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
-                               void *cls, GNUNET_FS_DataReader reader,
+                               void *cls,
+			       GNUNET_FS_DataReader reader,
                                GNUNET_FS_TreeBlockProcessor proc,
                                GNUNET_FS_TreeProgressCallback progress,
                                GNUNET_SCHEDULER_Task cont)
