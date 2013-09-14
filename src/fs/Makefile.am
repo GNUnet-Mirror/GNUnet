@@ -269,8 +269,7 @@ if HAVE_PYTHON
 check_SCRIPTS = \
  test_gnunet_fs_psd.py \
  test_gnunet_fs_rec.py \
- test_gnunet_fs_idx.py \
- test_gnunet_fs_ns.py 
+ test_gnunet_fs_idx.py 
 endif
 
 if ENABLE_MONKEY
