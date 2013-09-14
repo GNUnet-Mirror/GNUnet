@@ -952,7 +952,7 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   struct GNUNET_IDENTITY_Operation *op;
 
   GNUNET_assert (NULL != h);
-  while (NULL != (op = h->op_head))
+  while ((NULL != (op = h->op_head) && (NULL != op->next)))
     GNUNET_IDENTITY_cancel (op);
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
