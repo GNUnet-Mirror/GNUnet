@@ -1573,7 +1573,7 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Detach from terminal.
  *
  * @param sctx service context
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 detach_terminal (struct GNUNET_SERVICE_Context *sctx)

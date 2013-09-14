@@ -87,6 +87,11 @@ struct ScanTreeNode
  */
 static struct EXTRACTOR_PluginList *plugins;
 
+/**
+ * File descriptor we use for IPC with the parent.
+ */
+static int output_stream;
+
 
 /**
  * Add meta data that libextractor finds to our meta data
@@ -140,11 +145,11 @@ free_tree (struct ScanTreeNode *tree)
 
 
 /**
- * Write 'size' bytes from 'buf' into 'out'.
+ * Write @a size bytes from @a buf into the #output_stream.
  *
  * @param buf buffer with data to write
  * @param size number of bytes to write
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 write_all (const void *buf,
@@ -157,7 +162,7 @@ write_all (const void *buf,
   total = 0;
   do
   {
-    wr = write (1,
+    wr = write (output_stream,
 		&cbuf[total],
 		size - total);
     if (wr > 0)
@@ -176,8 +181,8 @@ write_all (const void *buf,
  *
  * @param message_type message type to use
  * @param data data to append, NULL for none
- * @param data_length number of bytes in data
- * @return GNUNET_SYSERR to stop scanning (the pipe was broken somehow)
+ * @param data_length number of bytes in @a data
+ * @return #GNUNET_SYSERR to stop scanning (the pipe was broken somehow)
  */
 static int
 write_message (uint16_t message_type,
@@ -187,7 +192,8 @@ write_message (uint16_t message_type,
   struct GNUNET_MessageHeader hdr;
 
 #if 0
-  fprintf (stderr, "Helper sends %u-byte message of type %u\n",
+  fprintf (stderr, 
+	   "Helper sends %u-byte message of type %u\n",
 	   (unsigned int) (sizeof (struct GNUNET_MessageHeader) + data_length),
 	   (unsigned int) message_type);
 #endif
@@ -211,8 +217,8 @@ write_message (uint16_t message_type,
  *
  * @param filename file or directory to scan
  * @param dst where to store the resulting share tree item;
- *         NULL is stored in 'dst' upon recoverable errors (GNUNET_OK is returned)
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ *         NULL is stored in @a dst upon recoverable errors (#GNUNET_OK is returned)
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 preprocess_file (const char *filename,
@@ -241,9 +247,9 @@ struct RecursionContext
  * of the files in the directory to the tree.  Called by the directory
  * scanner to initiate the scan.  Does NOT yet add any metadata.
  *
- * @param cls the 'struct RecursionContext'
+ * @param cls the `struct RecursionContext`
  * @param filename file or directory to scan
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 scan_callback (void *cls,
@@ -276,8 +282,8 @@ scan_callback (void *cls,
  *
  * @param filename file or directory to scan
  * @param dst where to store the resulting share tree item;
- *         NULL is stored in 'dst' upon recoverable errors (GNUNET_OK is returned) 
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ *         NULL is stored in @a dst upon recoverable errors (#GNUNET_OK is returned) 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 preprocess_file (const char *filename,
@@ -340,7 +346,7 @@ preprocess_file (const char *filename,
  * Extract metadata from files.
  *
  * @param item entry we are processing
- * @return GNUNET_OK on success, GNUNET_SYSERR on fatal errors
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on fatal errors
  */
 static int
 extract_files (struct ScanTreeNode *item)
@@ -428,6 +434,29 @@ ignore_sigpipe ()
     fprintf (stderr,
              "Failed to install SIGPIPE handler: %s\n", strerror (errno));
 }
+
+
+/**
+ * Turn the given file descriptor in to '/dev/null'.
+ *
+ * @param fd fd to bind to /dev/null
+ * @param flags flags to use (O_RDONLY or O_WRONLY)
+ */
+static void
+make_dev_zero (int fd, 
+	       int flags)
+{
+  int z;
+
+  GNUNET_assert (0 == close (fd));
+  z = open ("/dev/null", flags);
+  GNUNET_assert (-1 != z);
+  if (z == fd)
+    return;
+  dup2 (z, fd);
+  GNUNET_assert (0 == close (z));
+}
+
 #endif
 
 
@@ -441,8 +470,9 @@ ignore_sigpipe ()
  *                 otherwise custom plugins to load from LE
  * @return 0 on success
  */
-int main(int argc,
-	 char *const *argv)
+int 
+main (int argc,
+      char *const *argv)
 {
   const char *filename_expanded;
   const char *ex;
@@ -456,8 +486,14 @@ int main(int argc,
   /* Get utf-8-encoded arguments */
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 5;
+  output_stream = 1; /* stdout */
 #else
   ignore_sigpipe ();
+  /* move stdout to some other FD for IPC, bind 
+     stdout/stderr to /dev/null */
+  output_stream = dup (1);
+  make_dev_zero (1, O_WRONLY);
+  make_dev_zero (2, O_WRONLY);
 #endif
 
   /* parse command line */

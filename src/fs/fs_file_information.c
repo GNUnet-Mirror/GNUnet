@@ -37,8 +37,7 @@
  *
  * @param s structure to get the filename for
  * @return NULL on error, otherwise filename that
- *         can be passed to "GNUNET_FS_file_information_recover"
- *         to read this fi-struct from disk.
+ *         can be used to read this fi-struct from disk.
  */
 const char *
 GNUNET_FS_file_information_get_id (struct GNUNET_FS_FileInformation *s)
@@ -80,6 +79,7 @@ GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
     s->filename = NULL;
 }
 
+
 /**
  * Create an entry for a file in a publish-structure.
  *
@@ -89,8 +89,8 @@ GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param bo block options
  * @return publish structure entry for the file
  */
@@ -215,8 +215,8 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param bo block options
  * @return publish structure entry for the file
  */
@@ -316,13 +316,13 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
 /**
  * Add an entry to a directory in a publish-structure.  Clients
  * should never modify publish structures that were passed to
- * "GNUNET_FS_publish_start" already.
+ * #GNUNET_FS_publish_start already.
  *
  * @param dir the directory
  * @param ent the entry to add; the entry must not have been
  *            added to any other directory at this point and
- *            must not include "dir" in its structure
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ *            must not include @a dir in its structure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
@@ -344,16 +344,16 @@ GNUNET_FS_file_information_add (struct GNUNET_FS_FileInformation *dir,
 /**
  * Inspect a file or directory in a publish-structure.  Clients
  * should never modify publish structures that were passed to
- * "GNUNET_FS_publish_start" already.  When called on a directory,
- * this function will FIRST call "proc" with information about
+ * #GNUNET_FS_publish_start already.  When called on a directory,
+ * this function will FIRST call @a proc with information about
  * the directory itself and then for each of the files in the
  * directory (but not for files in subdirectories).  When called
- * on a file, "proc" will be called exactly once (with information
+ * on a file, @a proc will be called exactly once (with information
  * about the specific file).
  *
  * @param dir the directory
  * @param proc function to call on each entry
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 void
 GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
@@ -392,13 +392,13 @@ GNUNET_FS_file_information_inspect (struct GNUNET_FS_FileInformation *dir,
 
 /**
  * Destroy publish-structure.  Clients should never destroy publish
- * structures that were passed to "GNUNET_FS_publish_start" already.
+ * structures that were passed to #GNUNET_FS_publish_start already.
  *
  * @param fi structure to destroy
  * @param cleaner function to call on each entry in the structure
  *        (useful to clean up client_info); can be NULL; return
  *        values are ignored
- * @param cleaner_cls closure for cleaner
+ * @param cleaner_cls closure for @a cleaner
  */
 void
 GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,

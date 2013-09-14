@@ -93,8 +93,10 @@ restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   rtask = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_stop (fs);
-  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence", &progress_cb, NULL,
-                        GNUNET_FS_FLAGS_PERSISTENCE, GNUNET_FS_OPTIONS_END);
+  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence", 
+			&progress_cb, NULL,
+                        GNUNET_FS_FLAGS_PERSISTENCE,
+			GNUNET_FS_OPTIONS_END);
 }
 
 
@@ -123,7 +125,8 @@ consider_restart (int ev)
 
 
 static void *
-progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
+progress_cb (void *cls,
+	     const struct GNUNET_FS_ProgressInfo *event)
 {
   void *ret;
 
@@ -138,7 +141,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                   (1 +
                                    GNUNET_TIME_absolute_get_duration
                                    (start).rel_value_us) / 1024));
-    if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
+    if ( (NULL != event->value.publish.cctx) &&
+	 (0 == strcmp ("publish-context-dir", event->value.publish.cctx)) )
       GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
@@ -206,7 +210,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
     consider_restart (event->status);
-    if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
+    if ( (NULL != event->value.publish.cctx) &&
+	 (0 == strcmp ("publish-context-dir", event->value.publish.cctx)) )
       GNUNET_assert (publish == event->value.publish.pc);
     break;
   default:

@@ -106,8 +106,8 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
  * Function called by the datastore API with
  * the result from the PUT request.
  *
- * @param cls the 'struct GNUNET_FS_PublishContext'
- * @param success GNUNET_OK on success
+ * @param cls the `struct GNUNET_FS_PublishContext *`
+ * @param success #GNUNET_OK on success
  * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (or NULL)
  */
@@ -200,7 +200,7 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
 /**
  * Datastore returns from reservation cancel request.
  *
- * @param cls the 'struct GNUNET_FS_PublishContext'
+ * @param cls the `struct GNUNET_FS_PublishContext *`
  * @param success success code (not used)
  * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message (typically NULL, not used)
@@ -284,7 +284,7 @@ publish_sblock (struct GNUNET_FS_PublishContext *pc)
  * We've finished publishing a KBlock as part of a larger upload.
  * Check the result and continue the larger upload.
  *
- * @param cls the "struct GNUNET_FS_PublishContext*"
+ * @param cls the `struct GNUNET_FS_PublishContext *`
  *        of the larger upload
  * @param uri URI of the published blocks
  * @param emsg NULL on success, otherwise error message
@@ -399,6 +399,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished with tree encoder\n");
   p = pc->fi_pos;
+  GNUNET_FS_file_information_sync_ (p);
   GNUNET_FS_tree_encoder_finish (p->te, &p->chk_uri, &emsg);
   p->te = NULL;
   if (NULL != emsg)
@@ -423,8 +424,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     pi.value.publish.specifics.progress.depth = GNUNET_FS_compute_depth (flen);
     p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, flen);
   }
-  GNUNET_FS_file_information_sync_ (p);
-  /* continue with main */
+  /* continue with main */  /* continue with main */
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
@@ -444,7 +444,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param depth depth of the block in the file, 0 for DBLOCK
  * @param type type of the block (IBLOCK or DBLOCK)
  * @param block the (encrypted) block
- * @param block_size size of block (in bytes)
+ * @param block_size size of @a block (in bytes)
  */
 static void
 block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
@@ -508,7 +508,7 @@ block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
  * @param cls closure
  * @param offset where are we in the file
  * @param pt_block plaintext of the currently processed block
- * @param pt_size size of pt_block
+ * @param pt_size size of @a pt_block
  * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void
@@ -611,11 +611,12 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
  * Process the response (or lack thereof) from
  * the "fs" service to our 'start index' request.
  *
- * @param cls closure (of type "struct GNUNET_FS_PublishContext*"_)
+ * @param cls closure (of type `struct GNUNET_FS_PublishContext *`)
  * @param msg the response we got
  */
 static void
-process_index_start_response (void *cls, const struct GNUNET_MessageHeader *msg)
+process_index_start_response (void *cls, 
+			      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -668,7 +669,8 @@ process_index_start_response (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param res resulting hash, NULL on error
  */
 static void
-hash_for_index_cb (void *cls, const struct GNUNET_HashCode * res)
+hash_for_index_cb (void *cls,
+		   const struct GNUNET_HashCode *res)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -773,7 +775,7 @@ hash_for_index_cb (void *cls, const struct GNUNET_HashCode * res)
 /**
  * Main function that performs the upload.
  *
- * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
+ * @param cls `struct GNUNET_FS_PublishContext *` identifies the upload
  * @param tc task context
  */
 void
@@ -799,8 +801,10 @@ GNUNET_FS_publish_main_ (void *cls,
     return;
   }
   /* find starting position */
-  while ((p->is_directory == GNUNET_YES) && (NULL != p->data.dir.entries) && (NULL == p->emsg)
-         && (NULL == p->data.dir.entries->chk_uri))
+  while ( (GNUNET_YES == p->is_directory) && 
+	  (NULL != p->data.dir.entries) && 
+	  (NULL == p->emsg) &&
+	  (NULL == p->data.dir.entries->chk_uri) )
   {
     p = p->data.dir.entries;
     pc->fi_pos = p;
@@ -809,7 +813,9 @@ GNUNET_FS_publish_main_ (void *cls,
   /* abort on error */
   if (NULL != p->emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error uploading: %s\n", p->emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Error uploading: %s\n", 
+		p->emsg);
     /* error with current file, abort all
      * related files as well! */
     while (NULL != p->dir)
@@ -897,7 +903,7 @@ GNUNET_FS_publish_main_ (void *cls,
  * Signal the FS's progress function that we are starting
  * an upload.
  *
- * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param cls closure (of type `struct GNUNET_FS_PublishContext *`)
  * @param fi the entry in the publish-structure
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
@@ -905,13 +911,17 @@ GNUNET_FS_publish_main_ (void *cls,
  * @param bo block options
  * @param do_index should we index?
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue (always)
+ * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_start (void *cls, struct GNUNET_FS_FileInformation *fi,
-                  uint64_t length, struct GNUNET_CONTAINER_MetaData *meta,
-                  struct GNUNET_FS_Uri **uri, struct GNUNET_FS_BlockOptions *bo,
-                  int *do_index, void **client_info)
+fip_signal_start (void *cls,
+		  struct GNUNET_FS_FileInformation *fi,
+                  uint64_t length,
+		  struct GNUNET_CONTAINER_MetaData *meta,
+                  struct GNUNET_FS_Uri **uri, 
+		  struct GNUNET_FS_BlockOptions *bo,
+                  int *do_index, 
+		  void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -1024,13 +1034,16 @@ suspend_operation (struct GNUNET_FS_FileInformation *fi,
  * @param bo block options
  * @param do_index should we index?
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue (always)
+ * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_suspend (void *cls, struct GNUNET_FS_FileInformation *fi,
-                    uint64_t length, struct GNUNET_CONTAINER_MetaData *meta,
+fip_signal_suspend (void *cls,
+		    struct GNUNET_FS_FileInformation *fi,
+                    uint64_t length, 
+		    struct GNUNET_CONTAINER_MetaData *meta,
                     struct GNUNET_FS_Uri **uri,
-                    struct GNUNET_FS_BlockOptions *bo, int *do_index,
+                    struct GNUNET_FS_BlockOptions *bo, 
+		    int *do_index,
                     void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
@@ -1081,7 +1094,7 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
  * We have gotten a reply for our space reservation request.
  * Either fail (insufficient space) or start publishing for good.
  *
- * @param cls the 'struct GNUNET_FS_PublishContext*'
+ * @param cls the `struct GNUNET_FS_PublishContext *`
  * @param success positive reservation ID on success
  * @param min_expiration minimum expiration time required for content to be stored
  * @param msg error message on error, otherwise NULL
@@ -1097,7 +1110,8 @@ finish_reserve (void *cls, int success,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reservation complete (%d)!\n", success);
   if ((msg != NULL) || (success <= 0))
   {
-    GNUNET_asprintf (&pc->fi->emsg, _("Insufficient space for publishing: %s"),
+    GNUNET_asprintf (&pc->fi->emsg, 
+		     _("Insufficient space for publishing: %s"),
                      msg);
     signal_publish_error (pc->fi, pc, pc->fi->emsg);
     return;
@@ -1193,7 +1207,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * Signal the FS's progress function that we are stopping
  * an upload.
  *
- * @param cls closure (of type "struct GNUNET_FS_PublishContext*")
+ * @param cls closure (of type `struct GNUNET_FS_PublishContext *`)
  * @param fi the entry in the publish-structure
  * @param length length of the file or directory
  * @param meta metadata for the file or directory (can be modified)
@@ -1201,7 +1215,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
  * @param bo block options (can be modified)
  * @param do_index should we index?
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue (always)
+ * @return #GNUNET_OK to continue (always)
  */
 static int
 fip_signal_stop (void *cls, struct GNUNET_FS_FileInformation *fi,

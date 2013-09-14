@@ -186,7 +186,7 @@ GNUNET_FS_uri_ksk_get_keyword_count (const struct GNUNET_FS_Uri *uri);
  *
  * @param uri ksk uri to get the keywords from
  * @param iterator function to call on each keyword
- * @param iterator_cls closure for iterator
+ * @param iterator_cls closure for @a iterator
  * @return -1 if this is not a keyword URI, otherwise number of
  *   keywords iterated over until iterator aborted
  */
@@ -201,7 +201,7 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
  *
  * @param uri the location URI to inspect
  * @param peer where to store the identify of the peer (presumably) offering the content
- * @return GNUNET_SYSERR if this is not a location URI, otherwise GNUNET_OK
+ * @return #GNUNET_SYSERR if this is not a location URI, otherwise #GNUNET_OK
  */
 int
 GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
@@ -303,7 +303,8 @@ GNUNET_FS_uri_ksk_create (const char *keywords, char **emsg);
  *  if keywords is not legal (i.e. empty).
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create_from_args (unsigned int argc, const char **argv);
+GNUNET_FS_uri_ksk_create_from_args (unsigned int argc, 
+				    const char **argv);
 
 
 /**
@@ -311,7 +312,7 @@ GNUNET_FS_uri_ksk_create_from_args (unsigned int argc, const char **argv);
  *
  * @param u1 one of the URIs
  * @param u2 the other URI
- * @return GNUNET_YES if the URIs are equal
+ * @return #GNUNET_YES if the URIs are equal
  */
 int
 GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
@@ -322,7 +323,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
  * Is this a namespace URI?
  *
  * @param uri the uri to check
- * @return GNUNET_YES if this is an SKS uri
+ * @return #GNUNET_YES if this is an SKS uri
  */
 int
 GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
@@ -346,7 +347,7 @@ GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
  *
  * @param uri the uri to get the namespace ID from
  * @param pseudonym where to store the public key of the namespace
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
@@ -367,7 +368,7 @@ GNUNET_FS_uri_sks_get_content_id (const struct GNUNET_FS_Uri *uri);
  * Is this a keyword URI?
  *
  * @param uri the uri
- * @return GNUNET_YES if this is a KSK uri
+ * @return #GNUNET_YES if this is a KSK uri
  */
 int
 GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri);
@@ -377,7 +378,7 @@ GNUNET_FS_uri_test_ksk (const struct GNUNET_FS_Uri *uri);
  * Is this a file (or directory) URI?
  *
  * @param uri the uri to check
- * @return GNUNET_YES if this is a CHK uri
+ * @return #GNUNET_YES if this is a CHK uri
  */
 int
 GNUNET_FS_uri_test_chk (const struct GNUNET_FS_Uri *uri);
@@ -398,7 +399,7 @@ GNUNET_FS_uri_chk_get_file_size (const struct GNUNET_FS_Uri *uri);
  * Is this a location URI?
  *
  * @param uri the uri to check
- * @return GNUNET_YES if this is a LOC uri
+ * @return #GNUNET_YES if this is a LOC uri
  */
 int
 GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri);
@@ -429,7 +430,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
  * @param scls must be of type "struct GNUNET_FS_Uri **"
  * @param option name of the option (typically 'k')
  * @param value command line argument given
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -444,10 +445,10 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
  * the metadata must be passed as the "scls" argument.
  *
  * @param ctx command line processor context
- * @param scls must be of type "struct GNUNET_CONTAINER_MetaData **"
+ * @param scls must be of type `struct GNUNET_CONTAINER_MetaData **`
  * @param option name of the option (typically 'k')
  * @param value command line argument given
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -1664,7 +1665,7 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
 
 
 /**
- * Function called on entries in a GNUNET_FS_FileInformation publish-structure.
+ * Function called on entries in a `struct GNUNET_FS_FileInformation` iteration.
  *
  * @param cls closure
  * @param fi the entry in the publish-structure
@@ -1674,8 +1675,8 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
  * @param bo block options (can be modified)
  * @param do_index should we index (can be modified)
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue, GNUNET_NO to remove
- *         this entry from the directory, GNUNET_SYSERR
+ * @return #GNUNET_OK to continue, #GNUNET_NO to remove
+ *         this entry from the directory, #GNUNET_SYSERR
  *         to abort the iteration
  */
 typedef int (*GNUNET_FS_FileInformationProcessor) (void *cls,
@@ -1697,8 +1698,7 @@ typedef int (*GNUNET_FS_FileInformationProcessor) (void *cls,
  * file information structures.
  *
  * @param s structure to get the filename for
- * @return NULL on error, otherwise filename that
- *         can be passed to "GNUNET_FS_file_information_recover"
+ * @return NULL on error, otherwise filename that can be used 
  *         to read this fi-struct from disk.
  */
 const char *
@@ -1737,8 +1737,8 @@ GNUNET_FS_file_information_set_filename (struct GNUNET_FS_FileInformation *s,
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param bo block options
  * @return publish structure entry for the file
  */
@@ -1766,8 +1766,8 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param bo block options
  * @return publish structure entry for the file
  */
@@ -1802,7 +1802,7 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  *            the reader to clean up its internal state
  * @param buf where the reader should write the data
  * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
+ * @return number of bytes written, usually @a max, 0 on error
  */
 typedef size_t (*GNUNET_FS_DataReader) (void *cls, uint64_t offset, size_t max,
                                         void *buf, char **emsg);
@@ -1815,12 +1815,12 @@ typedef size_t (*GNUNET_FS_DataReader) (void *cls, uint64_t offset, size_t max,
  * @param client_info initial client-info value for this entry
  * @param length length of the file
  * @param reader function that can be used to obtain the data for the file
- * @param reader_cls closure for "reader"
+ * @param reader_cls closure for @a reader
  * @param keywords under which keywords should this file be available
  *         directly; can be NULL
  * @param meta metadata for the file
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param bo block options
  * @return publish structure entry for the file
  */
@@ -1842,7 +1842,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 /**
  * Create an entry for an empty directory in a publish-structure.
  * This function should be used by applications for which the
- * use of "GNUNET_FS_file_information_create_from_directory"
+ * use of #GNUNET_FS_file_information_create_from_directory
  * is not appropriate.
  *
  * @param h handle to the file sharing subsystem
@@ -2100,7 +2100,7 @@ struct GNUNET_FS_GetIndexedContext;
  * @param h handle to the file sharing subsystem
  * @param iterator function to call on each indexed file
  * @param iterator_cls closure for @a iterator
- * @return NULL on error ('iter' is not called)
+ * @return NULL on error (@a iterator is not called)
  */
 struct GNUNET_FS_GetIndexedContext *
 GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
@@ -2145,8 +2145,8 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  *
  * @param cls closure
  * @param last_id last identifier
- * @param last_uri uri used for the content published under the last_id
- * @param last_meta metadata associated with last_uri
+ * @param last_uri uri used for the content published under the @a last_id
+ * @param last_meta metadata associated with @a last_uri
  * @param next_id identifier that should be used for updates
  */
 typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, 
@@ -2282,35 +2282,35 @@ GNUNET_FS_probe_stop (struct GNUNET_FS_SearchResult *sr);
  */
 enum GNUNET_FS_DownloadOptions
 {
-    /**
-     * No options (use defaults for everything).
-     */
+  /**
+   * No options (use defaults for everything).
+   */
   GNUNET_FS_DOWNLOAD_OPTION_NONE = 0,
-
-    /**
-     * Only download from the local host, do not access remote systems (no P2P)
-     */
+  
+  /**
+   * Only download from the local host, do not access remote systems (no P2P)
+   */
   GNUNET_FS_DOWNLOAD_OPTION_LOOPBACK_ONLY = 1,
 
-    /**
-     * Do a recursive download (that is, automatically trigger the
-     * download of files in directories).
-     */
+  /**
+   * Do a recursive download (that is, automatically trigger the
+   * download of files in directories).
+   */
   GNUNET_FS_DOWNLOAD_OPTION_RECURSIVE = 2,
 
-    /**
-     * Do not append temporary data to
-     * the target file (for the IBlocks).
-     */
+  /**
+   * Do not append temporary data to
+   * the target file (for the IBlocks).
+   */
   GNUNET_FS_DOWNLOAD_NO_TEMPORARIES = 4,
 
-    /**
-     * Internal option used to flag this download as a 'probe' for a
-     * search result.  Impacts the priority with which the download is
-     * run and causes signalling callbacks to be done differently.
-     * Also, probe downloads are not serialized on suspension.  Normal
-     * clients should not use this!
-     */
+  /**
+   * Internal option used to flag this download as a 'probe' for a
+   * search result.  Impacts the priority with which the download is
+   * run and causes signalling callbacks to be done differently.
+   * Also, probe downloads are not serialized on suspension.  Normal
+   * clients should not use this!
+   */
   GNUNET_FS_DOWNLOAD_IS_PROBE = (1 << 31)
 };
 
