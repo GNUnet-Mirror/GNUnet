@@ -53,8 +53,7 @@
 
 /**
  * Should messages be delayed randomly?  This option should be set to
- * GNUNET_NO only for experiments, not in production.  It should also
- * be removed once the initial experiments have been completed.
+ * #GNUNET_NO only for experiments, not in production.  
  */
 #define USE_RANDOM_DELAYS GNUNET_YES
 
@@ -231,7 +230,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *peers;
 static double current_size_estimate;
 
 /**
- * The standard deviation of the last HISTORY_SIZE network
+ * The standard deviation of the last #HISTORY_SIZE network
  * size estimates.
  */
 static double current_std_dev = NAN;
@@ -412,12 +411,14 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
  * @param message the message received
  */
 static void
-handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
+handle_start_message (void *cls, 
+		      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_NSE_ClientMessage em;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received START message from client\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received START message from client\n");
   GNUNET_SERVER_notification_context_add (nc, client);
   setup_estimate_message (&em);
   GNUNET_SERVER_notification_context_unicast (nc, client, &em.header,
@@ -479,7 +480,7 @@ get_delay_randomization (uint32_t matching_bits)
  * Calculate the 'proof-of-work' hash (an expensive hash).
  *
  * @param buf data to hash
- * @param buf_len number of bytes in 'buf'
+ * @param buf_len number of bytes in @a buf
  * @param result where to write the resulting hash
  */
 static void
@@ -570,24 +571,27 @@ get_transmit_delay (int round_offset)
 /**
  * Task that triggers a NSE P2P transmission.
  *
- * @param cls the 'struct NSEPeerEntry'
+ * @param cls the `struct NSEPeerEntry *`
  * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmit_task_cb (void *cls, 
+		  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
  * Called when core is ready to send a message we asked for
  * out to the destination.
  *
- * @param cls closure (NULL)
- * @param size number of bytes available in buf
+ * @param cls closure with the `struct NSEPeerEntry *`
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
-transmit_ready (void *cls, size_t size, void *buf)
+transmit_ready (void *cls, 
+		size_t size,
+		void *buf)
 {
   struct NSEPeerEntry *peer_entry = cls;
   unsigned int idx;
@@ -646,11 +650,12 @@ transmit_ready (void *cls, size_t size, void *buf)
 /**
  * Task that triggers a NSE P2P transmission.
  *
- * @param cls the 'struct NSEPeerEntry'
+ * @param cls the `struct NSEPeerEntry *`
  * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_task_cb (void *cls, 
+		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeerEntry *peer_entry = cls;
 
@@ -679,7 +684,9 @@ update_network_size_estimate ()
   struct GNUNET_NSE_ClientMessage em;
 
   setup_estimate_message (&em);
-  GNUNET_SERVER_notification_context_broadcast (nc, &em.header, GNUNET_YES);
+  GNUNET_SERVER_notification_context_broadcast (nc, 
+						&em.header, 
+						GNUNET_YES);
 }
 
 
@@ -726,8 +733,8 @@ setup_flood_message (unsigned int slot,
  *
  * @param cls unused
  * @param key hash of peer identity
- * @param value the 'struct NSEPeerEntry'
- * @return GNUNET_OK (continue to iterate)
+ * @param value the `struct NSEPeerEntry`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 schedule_current_round (void *cls, 
@@ -770,7 +777,8 @@ schedule_current_round (void *cls,
  * @param tc context for this message
  */
 static void
-update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+update_flood_message (void *cls, 
+		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative offset;
   unsigned int i;
@@ -820,11 +828,11 @@ update_flood_message (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Count the leading zeroes in hash.
  *
- * @param hash
+ * @param hash to count leading zeros in
  * @return the number of leading zero bits.
  */
 static unsigned int
-count_leading_zeroes (const struct GNUNET_HashCode * hash)
+count_leading_zeroes (const struct GNUNET_HashCode *hash)
 {
   unsigned int hash_count;
 
@@ -836,13 +844,12 @@ count_leading_zeroes (const struct GNUNET_HashCode * hash)
 
 
 /**
- * Check whether the given public key
- * and integer are a valid proof of work.
+ * Check whether the given public key and integer are a valid proof of
+ * work.
  *
  * @param pkey the public key
  * @param val the integer
- *
- * @return GNUNET_YES if valid, GNUNET_NO if not
+ * @return #GNUNET_YES if valid, #GNUNET_NO if not
  */
 static int
 check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
@@ -889,7 +896,8 @@ write_proof ()
  * @param tc task context
  */
 static void
-find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_proof (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 #define ROUND_SIZE 10
   uint64_t counter;
@@ -944,9 +952,8 @@ find_proof (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * period.  Verify the signature and/or proof of work.
  *
  * @param incoming_flood the message to verify
- *
- * @return GNUNET_YES if the message is verified
- *         GNUNET_NO if the key/signature don't verify
+ * @return #GNUNET_YES if the message is verified
+ *         #GNUNET_NO if the key/signature don't verify
  */
 static int
 verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
@@ -981,11 +988,13 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
  *
  * @param cls peer entry to exclude from updates
  * @param key hash of peer identity
- * @param value the 'struct NSEPeerEntry'
- * @return GNUNET_OK (continue to iterate)
+ * @param value the `struct NSEPeerEntry *` of a peer to transmit to
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
+update_flood_times (void *cls, 
+		    const struct GNUNET_HashCode *key, 
+		    void *value)
 {
   struct NSEPeerEntry *exclude = cls;
   struct NSEPeerEntry *peer_entry = value;
@@ -1026,7 +1035,8 @@ update_flood_times (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @param peer peer identity this message is from (ignored)
  */
 static int
-handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
+handle_p2p_size_estimate (void *cls, 
+			  const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_NSE_FloodMessage *incoming_flood;
@@ -1210,13 +1220,14 @@ handle_p2p_size_estimate (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+handle_core_connect (void *cls,
+		     const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *peer_entry;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
-  peer_entry = GNUNET_malloc (sizeof (struct NSEPeerEntry));
+  peer_entry = GNUNET_new (struct NSEPeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey,
@@ -1237,11 +1248,13 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+handle_core_disconnect (void *cls, 
+			const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' disconnected from us\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
   pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
   if (NULL == pos)
@@ -1272,10 +1285,11 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * message to the logger service
  *
  * @param cls NULL
- * @param size the amount of data sent
+ * @param size the amount of data sent (ignored)
  */
 static void 
-flush_comp_cb (void *cls, size_t size)
+flush_comp_cb (void *cls, 
+	       size_t size)
 {
   GNUNET_TESTBED_LOGGER_disconnect (lh);
   lh = NULL;
@@ -1290,7 +1304,8 @@ flush_comp_cb (void *cls, size_t size)
  * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != flood_task)
   {
@@ -1515,7 +1530,8 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc, 
+      char *const *argv)
 {
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "nse", GNUNET_SERVICE_OPTION_NONE,
@@ -1529,7 +1545,8 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor)) 
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);

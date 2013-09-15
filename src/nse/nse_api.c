@@ -35,7 +35,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "nse-api",__VA_ARGS__)
 
 /**
- * Handle for the service.
+ * Handle for talking with the NSE service.
  */
 struct GNUNET_NSE_Handle
 {
@@ -70,7 +70,7 @@ struct GNUNET_NSE_Handle
   GNUNET_NSE_Callback recv_cb;
 
   /**
-   * Closure to pass to callback.
+   * Closure to pass to @e recv_cb callback.
    */
   void *recv_cb_cls;
 
@@ -100,13 +100,14 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_NSE_Handle *h = cls;
   const struct GNUNET_NSE_ClientMessage *client_msg;
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     /* Error, timeout, death */
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
     h->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
+        GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, 
+				      &reconnect, h);
     return;
   }
   if ((ntohs (msg->size) != sizeof (struct GNUNET_NSE_ClientMessage)) ||
@@ -122,7 +123,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_CLIENT_receive (h->client, &message_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
-
 
 
 /**
@@ -159,10 +159,10 @@ reschedule_connect (struct GNUNET_NSE_Handle *h)
 /**
  * Transmit START message to service.
  *
- * @param cls unused
- * @param size number of bytes available in buf
+ * @param cls the `struct GNUNET_NSE_Handle *`
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 send_start (void *cls, size_t size, void *buf)
@@ -175,11 +175,14 @@ send_start (void *cls, size_t size, void *buf)
   {
     /* Connect error... */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Error while trying to transmit `%s' request.\n", "START");
+         "Error while trying to transmit `%s' request.\n", 
+	 "START");
     reschedule_connect (h);
     return 0;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' request.\n", "START");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Transmitting `%s' request.\n", 
+       "START");
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
 
   msg = (struct GNUNET_MessageHeader *) buf;
@@ -194,11 +197,12 @@ send_start (void *cls, size_t size, void *buf)
 /**
  * Try again to connect to network size estimation service.
  *
- * @param cls the handle to the transport service
+ * @param cls the `struct GNUNET_NSE_Handle *`
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls, 
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NSE_Handle *h = cls;
 
@@ -223,8 +227,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cfg the configuration to use
  * @param func funtion to call with network size estimate
- * @param func_cls closure to pass for network size estimate callback
- *
+ * @param func_cls closure to pass to @a func
  * @return handle to use
  */
 struct GNUNET_NSE_Handle *
@@ -234,7 +237,7 @@ GNUNET_NSE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_NSE_Handle *ret;
 
   GNUNET_assert (func != NULL);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NSE_Handle));
+  ret = GNUNET_new (struct GNUNET_NSE_Handle);
   ret->cfg = cfg;
   ret->recv_cb = func;
   ret->recv_cb_cls = func_cls;

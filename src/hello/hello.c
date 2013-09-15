@@ -40,14 +40,14 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * 1) transport-name (0-terminated)
  * 2) address-length (uint16_t, network byte order; possibly
  *    unaligned!)
- * 3) address expiration (GNUNET_TIME_AbsoluteNBO); possibly
+ * 3) address expiration (`struct GNUNET_TIME_AbsoluteNBO`); possibly
  *    unaligned!)
  * 4) address (address-length bytes; possibly unaligned!)
  */
 struct GNUNET_HELLO_Message
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_HELLO.
+   * Type will be #GNUNET_MESSAGE_TYPE_HELLO.
    */
   struct GNUNET_MessageHeader header;
 
@@ -93,7 +93,7 @@ struct GNUNET_HELLO_ParseUriContext
   const char *pos;
 
   /**
-   * Set to GNUNET_SYSERR to indicate parse errors.
+   * Set to #GNUNET_SYSERR to indicate parse errors.
    */
   int ret;
 
@@ -107,7 +107,7 @@ struct GNUNET_HELLO_ParseUriContext
 /** Return HELLO type
  *
  * @param h HELLO Message to test
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
 GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h)
@@ -124,8 +124,8 @@ GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h)
  * the given buffer using the format of HELLOs.
  *
  * @param address the address
- * @param expiration expiration for the address
- * @param target where to copy the address
+ * @param expiration expiration for the @a address
+ * @param target where to copy the @a address
  * @param max maximum number of bytes to copy to target
  * @return number of bytes copied, 0 if
  *         the target buffer was not big enough.
@@ -165,7 +165,9 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
  * @return size of the entry, or 0 if max is not large enough
  */
 static size_t
-get_hello_address_size (const char *buf, size_t max, uint16_t * ralen)
+get_hello_address_size (const char *buf,
+			size_t max, 
+			uint16_t *ralen)
 {
   const char *pos;
   uint16_t alen;
@@ -260,7 +262,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EccPublicSignKey *publicKey,
  * @param return_modified if a modified copy should be returned,
  *         otherwise NULL will be returned
  * @param it iterator to call on each address
- * @param it_cls closure for it
+ * @param it_cls closure for @a it
  * @return modified HELLO message
  */
 struct GNUNET_HELLO_Message *
