@@ -1634,9 +1634,9 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
        GNUNET_BIO_write_string (wh,
                                 (NULL == pc->fi_pos) ? NULL : pc->fi_pos->serialization)) ||
       ( (NULL != pc->ns) &&
-	GNUNET_BIO_write (wh,
-			  pc->ns,
-			  sizeof (struct GNUNET_CRYPTO_EccPrivateKey)) ) )
+	(GNUNET_OK != GNUNET_BIO_write (wh,
+					pc->ns,
+					sizeof (struct GNUNET_CRYPTO_EccPrivateKey)) ) ))
   {
     GNUNET_break (0);
     goto cleanup;
