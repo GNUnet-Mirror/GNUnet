@@ -1,6 +1,6 @@
 [set]
 AUTOSTART = NO
-# PORT = 2106
+@UNIXONLY@PORT = 2106
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-set
