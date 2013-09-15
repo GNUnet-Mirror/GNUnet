@@ -109,7 +109,8 @@ GNUNET_NAMESTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Disconnect from the namestore service (and free associated
- * resources).
+ * resources).  Must not be called from within operation callbacks of
+ * the API.
  *
  * @param h handle to the namestore
  */
