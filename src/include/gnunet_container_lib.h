@@ -398,7 +398,8 @@ GNUNET_CONTAINER_meta_data_add_publication_date (struct
  * Iterate over MD entries.
  *
  * @param md metadata to inspect
- * @param iter function to call on each entry
+ * @param iter function to call on each entry, return 0 to continue to iterate
+ *             and 1 to abort iteration in this function (GNU libextractor API!)
  * @param iter_cls closure for @a iter
  * @return number of entries
  */
@@ -406,6 +407,7 @@ int
 GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
                                     EXTRACTOR_MetaDataProcessor iter,
                                     void *iter_cls);
+
 
 /**
  * @ingroup metadata

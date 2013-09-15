@@ -198,7 +198,7 @@ add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
  * @param data_len number of bytes in data
- * @return GNUNET_OK to continue extracting / iterating
+ * @return 0 to continue extracting / iterating
  */
 static int
 add_to_meta_counter (void *cls, const char *plugin_name,
@@ -211,9 +211,9 @@ add_to_meta_counter (void *cls, const char *plugin_name,
 
   GNUNET_CRYPTO_hash (data, data_len, &key);
   cnt = GNUNET_CONTAINER_multihashmap_get (map, &key);
-  if (cnt == NULL)
+  if (NULL == cnt)
   {
-    cnt = GNUNET_malloc (sizeof (struct MetaCounter));
+    cnt = GNUNET_new (struct MetaCounter);
     cnt->data = data;
     cnt->data_size = data_len;
     cnt->plugin_name = plugin_name;
