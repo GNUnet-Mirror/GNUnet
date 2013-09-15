@@ -75,7 +75,7 @@ struct ScanTreeNode
   uint64_t file_size;
 
   /**
-   * GNUNET_YES if this is a directory
+   * #GNUNET_YES if this is a directory
    */
   int is_directory;
 
@@ -107,7 +107,7 @@ static int output_stream;
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_len number of bytes in @a data
  * @return always 0 to continue extracting
  */
 static int
@@ -117,14 +117,27 @@ add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
 {
   struct GNUNET_CONTAINER_MetaData *md = cls;
 
-  (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
-                                            data_mime_type, data, data_len);
+  if ( ((EXTRACTOR_METAFORMAT_UTF8 == format) ||
+	(EXTRACTOR_METAFORMAT_C_STRING == format)) &&
+       ('\0' != data[data_size - 1]) )
+  {
+    char zdata[data_len + 1];
+    memcpy (zdata, data, data_len);
+    zdata[data_size] = '\0';
+    (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
+					      data_mime_type, zdata, data_len + 1);    
+  } 
+  else
+  {
+    (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
+					      data_mime_type, data, data_len);
+  }
   return 0;
 }
 
 
 /**
- * Free memory of the 'tree' structure
+ * Free memory of the @a tree structure
  *
  * @param tree tree to free
  */
