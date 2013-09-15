@@ -65,7 +65,7 @@ derive_ublock_encryption_key (struct GNUNET_CRYPTO_AesSessionKey *skey,
  * Decrypt the given UBlock, storing the result in output.
  *
  * @param input input data
- * @param input_len number of bytes in input
+ * @param input_len number of bytes in @a input
  * @param ns public key under which the UBlock was stored
  * @param label label under which the UBlock was stored
  * @param output where to write the result, has input_len bytes

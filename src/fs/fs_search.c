@@ -672,9 +672,9 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  * @param sc search context with the keywords
  * @param dpub derived public key used for the search
  * @param edata encrypted data
- * @param edata_size number of bytes in 'edata' (and 'data')
+ * @param edata_size number of bytes in @a edata (and @a data)
  * @param data where to store the plaintext
- * @return keyword index on success, GNUNET_SYSERR on error (no such 
+ * @return keyword index on success, #GNUNET_SYSERR on error (no such 
  *         keyword, internal error)
  */
 static int

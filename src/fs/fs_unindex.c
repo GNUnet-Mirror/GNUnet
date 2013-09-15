@@ -31,6 +31,7 @@
 #include "fs_api.h"
 #include "fs_tree.h"
 #include "block_fs.h"
+#include "fs_publish_ublock.h"
 
 
 /**
@@ -492,17 +493,16 @@ process_kblock_for_unindex (void *cls,
   }
   {
     char pt[size - sizeof (struct UBlock)];  
-    struct GNUNET_CRYPTO_AesSessionKey skey;
-    struct GNUNET_CRYPTO_AesInitializationVector iv;
+    struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
+    const char *keyword;
      
-    GNUNET_CRYPTO_hash_to_aes_key (&uc->ukey, &skey, &iv);
-    if (-1 ==
-	GNUNET_CRYPTO_aes_decrypt (&ub[1], size - sizeof (struct UBlock), &skey,
-				   &iv, pt))
-    {
-      GNUNET_break (0);
-      goto get_next;
-    }       
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (GNUNET_CRYPTO_ecc_key_get_anonymous (),
+						    &anon_pub);
+    keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
+    GNUNET_FS_ublock_decrypt_ (&ub[1], size - sizeof (struct UBlock),
+			       &anon_pub,
+			       keyword,
+			       pt);
     if (NULL == memchr (&pt[1], 0, sizeof (pt) - 1))
     {
       GNUNET_break_op (0); /* malformed UBlock */
@@ -689,7 +689,7 @@ GNUNET_FS_unindex_process_hash_ (void *cls, const struct GNUNET_HashCode * file_
  * Create SUSPEND event for the given unindex operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ * @param cls the `struct GNUNET_FS_UnindexContext` to signal for
  */
 void
 GNUNET_FS_unindex_signal_suspend_ (void *cls)
@@ -760,7 +760,8 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
  * @return NULL on error, otherwise handle
  */
 struct GNUNET_FS_UnindexContext *
-GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, const char *filename,
+GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, 
+			 const char *filename,
                          void *cctx)
 {
   struct GNUNET_FS_UnindexContext *ret;
