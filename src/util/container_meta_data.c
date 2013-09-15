@@ -211,7 +211,7 @@ GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md)
  *
  * @param md1 first value to check
  * @param md2 other value to check
- * @return GNUNET_YES if they are equal
+ * @return #GNUNET_YES if they are equal
  */
 int
 GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
@@ -343,7 +343,7 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
 /**
  * Merge given meta data.
  *
- * @param cls the 'struct GNUNET_CONTAINER_MetaData' to merge into
+ * @param cls the `struct GNUNET_CONTAINER_MetaData` to merge into
  * @param plugin_name name of the plugin that produced this value;
  *        special values can be used (i.e. '&lt;zlib&gt;' for zlib being
  *        used in the main libextractor library and yielding

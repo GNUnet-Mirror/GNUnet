@@ -158,19 +158,28 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te);
 
 
 /**
- * Clean up a tree encoder and return information
- * about the resulting URI or an error message.
+ * Get the resulting URI from the encoding.
  *
  * @param te the tree encoder to clean up
- * @param uri set to the resulting URI (if encoding finished)
+ * @return uri set to the resulting URI (if encoding finished), NULL otherwise
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_tree_encoder_get_uri (struct GNUNET_FS_TreeEncoder *te);
+
+
+/**
+ * Clean up a tree encoder and return information
+ * about possible errors.
+ *
+ * @param te the tree encoder to clean up
  * @param emsg set to an error message (if an error occured
  *        within the tree encoder; if this function is called
  *        prior to completion and prior to an internal error,
- *        both "*uri" and "*emsg" will be set to NULL).
+ *        both "*emsg" will be set to NULL).
  */
 void
 GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
-                               struct GNUNET_FS_Uri **uri, char **emsg);
+                               char **emsg);
 
 
 #if 0
@@ -200,6 +209,7 @@ GNUNET_FS_tree_encoder_resume_get_data (const struct GNUNET_FS_TreeEncoder *te,
 void
 GNUNET_FS_tree_encoder_resume (struct GNUNET_FS_TreeEncoder *te,
                                const void *data, size_t size);
+
 #endif
 
 #endif

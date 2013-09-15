@@ -2021,7 +2021,7 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
   GNUNET_FS_download_make_status_ (&pi, dc);
   if (NULL != dc->te)
   {
-    GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);
+    GNUNET_FS_tree_encoder_finish (dc->te, NULL);
     dc->te = NULL;
   }
   if (NULL != dc->rfh)
@@ -2310,7 +2310,7 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
   }
   if (NULL != dc->te)
   {
-    GNUNET_FS_tree_encoder_finish (dc->te, NULL, NULL);
+    GNUNET_FS_tree_encoder_finish (dc->te, NULL);
     dc->te = NULL;
   }
   have_children = (NULL != dc->child_head) ? GNUNET_YES : GNUNET_NO;

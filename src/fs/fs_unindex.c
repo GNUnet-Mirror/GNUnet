@@ -271,15 +271,12 @@ static void
 unindex_finish (struct GNUNET_FS_UnindexContext *uc)
 {
   char *emsg;
-  struct GNUNET_FS_Uri *uri;
   struct UnindexMessage req;
 
   /* generate final progress message */
   unindex_progress (uc, uc->file_size, NULL, 0, 0);
-  GNUNET_FS_tree_encoder_finish (uc->tc, &uri, &emsg);
+  GNUNET_FS_tree_encoder_finish (uc->tc, &emsg);
   uc->tc = NULL;
-  if (uri != NULL)
-    GNUNET_FS_uri_destroy (uri);
   GNUNET_DISK_file_close (uc->fh);
   uc->fh = NULL;
   GNUNET_DATASTORE_disconnect (uc->dsh, GNUNET_NO);
@@ -730,7 +727,7 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
   }
   if (NULL != uc->tc)
   {
-    GNUNET_FS_tree_encoder_finish (uc->tc, NULL, NULL);
+    GNUNET_FS_tree_encoder_finish (uc->tc, NULL);
     uc->tc = NULL;
   }
   if (uc->fh != NULL)
@@ -831,7 +828,7 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc)
   }
   if (NULL != uc->tc)
   {
-    GNUNET_FS_tree_encoder_finish (uc->tc, NULL, NULL);
+    GNUNET_FS_tree_encoder_finish (uc->tc, NULL);
     uc->tc = NULL;
   }
   if (uc->fh != NULL)

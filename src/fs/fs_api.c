@@ -1044,7 +1044,8 @@ cleanup:
  * @return NULL on error
  */
 static struct GNUNET_FS_FileInformation *
-deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename)
+deserialize_file_information (struct GNUNET_FS_Handle *h,
+			      const char *filename)
 {
   struct GNUNET_FS_FileInformation *ret;
   struct GNUNET_BIO_ReadHandle *rh;
@@ -1726,9 +1727,9 @@ cleanup:
 /**
  * Serialize a download request.
  *
- * @param wh the 'struct GNUNET_BIO_WriteHandle*'
- * @param dr the 'struct DownloadRequest'
- * @return GNUNET_YES on success, GNUNET_NO on error
+ * @param wh the `struct GNUNET_BIO_WriteHandle*`
+ * @param dr the the request to write to disk
+ * @return #GNUNET_YES on success, #GNUNET_NO on error
  */
 static int
 write_download_request (struct GNUNET_BIO_WriteHandle *wh,
@@ -1756,7 +1757,7 @@ write_download_request (struct GNUNET_BIO_WriteHandle *wh,
  * Read a download request tree.
  *
  * @param rh mesh to read from
- * @return value the 'struct DownloadRequest', NULL on error
+ * @return value the download request read from disk, NULL on error
  */
 static struct DownloadRequest *
 read_download_request (struct GNUNET_BIO_ReadHandle *rh)

@@ -416,19 +416,33 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
 
 
 /**
- * Clean up a tree encoder and return information
- * about the resulting URI or an error message.
+ * Get the resulting URI from the encoding.
  *
  * @param te the tree encoder to clean up
- * @param uri set to the resulting URI (if encoding finished)
+ * @return uri set to the resulting URI (if encoding finished), NULL otherwise
+ */
+struct GNUNET_FS_Uri *
+GNUNET_FS_tree_encoder_get_uri (struct GNUNET_FS_TreeEncoder *te)
+{
+  if (NULL != te->uri)
+    return GNUNET_FS_uri_dup (te->uri);
+  return NULL;
+}
+
+
+/**
+ * Clean up a tree encoder and return information
+ * about possible errors.
+ *
+ * @param te the tree encoder to clean up
  * @param emsg set to an error message (if an error occured
  *        within the tree encoder; if this function is called
  *        prior to completion and prior to an internal error,
- *        both "*uri" and "*emsg" will be set to NULL).
+ *        both "*emsg" will be set to NULL).
  */
 void
 GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
-                               struct GNUNET_FS_Uri **uri, char **emsg)
+			       char **emsg)
 {
   if (NULL != te->reader)
   {
@@ -436,9 +450,7 @@ GNUNET_FS_tree_encoder_finish (struct GNUNET_FS_TreeEncoder *te,
     te->reader =  NULL;
   }
   GNUNET_assert (GNUNET_NO == te->in_next);
-  if (uri != NULL)
-    *uri = te->uri;
-  else if (NULL != te->uri)
+  if (NULL != te->uri)
     GNUNET_FS_uri_destroy (te->uri);
   if (emsg != NULL)
     *emsg = te->emsg;

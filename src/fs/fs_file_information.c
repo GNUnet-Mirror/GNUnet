@@ -451,7 +451,7 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   GNUNET_free_non_null (fi->serialization);
   if (NULL != fi->te)
   {
-    GNUNET_FS_tree_encoder_finish (fi->te, NULL, NULL);
+    GNUNET_FS_tree_encoder_finish (fi->te, NULL);
     fi->te = NULL;
   }
   GNUNET_free (fi);
