@@ -267,9 +267,8 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
  * the operation.
  *
  * @param op operation to cancel
- * @return GNUNET_YES if the continuation was cancelled
  */
-int
+void
 GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
 
 

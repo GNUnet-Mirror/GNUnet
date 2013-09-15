@@ -879,9 +879,8 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
  * the operation.
  *
  * @param op operation to cancel
- * @return GNUNET_YES if the continuation was cancelled
  */
-int
+void
 GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 {
   struct GNUNET_IDENTITY_Handle *h = op->h;
@@ -894,7 +893,7 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 				 h->op_tail,
 				 op);
     GNUNET_free (op);
-    return GNUNET_YES;
+    return;
   }
   if (NULL != h->th)
   {
@@ -906,12 +905,11 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
 				 op);
     GNUNET_free (op);
     transmit_next (h);
-    return GNUNET_YES;
+    return;
   }
   /* request active with service, simply ensure continuations are not called */
   op->cont = NULL;
   op->cb = NULL;
-  return GNUNET_NO;
 }
 
 
@@ -955,8 +953,14 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
 
   GNUNET_assert (NULL != h);
   while (NULL != (op = h->op_head))
-    if (GNUNET_YES != GNUNET_IDENTITY_cancel (op))
-      break;
+  {
+    if (NULL != h->th)
+      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    GNUNET_free (op);
+  }
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
