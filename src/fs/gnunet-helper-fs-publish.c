@@ -119,11 +119,11 @@ add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
 
   if ( ((EXTRACTOR_METAFORMAT_UTF8 == format) ||
 	(EXTRACTOR_METAFORMAT_C_STRING == format)) &&
-       ('\0' != data[data_size - 1]) )
+       ('\0' != data[data_len - 1]) )
   {
     char zdata[data_len + 1];
     memcpy (zdata, data, data_len);
-    zdata[data_size] = '\0';
+    zdata[data_len] = '\0';
     (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
 					      data_mime_type, zdata, data_len + 1);    
   } 
