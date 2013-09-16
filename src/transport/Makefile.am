@@ -302,7 +302,7 @@ libgnunet_plugin_transport_http_client_la_LDFLAGS = \
 libgnunet_plugin_transport_http_client_la_CFLAGS = \
  $(CFLAGS) 
 libgnunet_plugin_transport_http_client_la_CPPFLAGS = \
- @LIBCURL_CPPFLAGS@
+ @LIBCURL_CPPFLAGS@ $(AM_CPPFLAGS)
 
 
 libgnunet_plugin_transport_http_server_la_SOURCES = \
@@ -333,7 +333,7 @@ libgnunet_plugin_transport_https_client_la_LDFLAGS = \
 libgnunet_plugin_transport_https_client_la_CFLAGS = \
  $(CFLAGS) -DBUILD_HTTPS 
 libgnunet_plugin_transport_https_client_la_CPPFLAGS = \
- @LIBCURL_CPPFLAGS@
+ @LIBCURL_CPPFLAGS@ $(AM_CPPFLAGS)
 
 
 libgnunet_plugin_transport_https_server_la_SOURCES = \

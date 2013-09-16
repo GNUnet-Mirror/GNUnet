@@ -137,7 +137,7 @@ libgnunet_plugin_datastore_mysql_la_LIBADD = \
 libgnunet_plugin_datastore_mysql_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(MYSQL_LDFLAGS) -lmysqlclient
 libgnunet_plugin_datastore_mysql_la_CPPFLAGS = \
- $(MYSQL_CPPFLAGS)
+ $(MYSQL_CPPFLAGS) $(AM_CPPFLAGS)
 
 libgnunet_plugin_datastore_postgres_la_SOURCES = \
   plugin_datastore_postgres.c
@@ -148,7 +148,7 @@ libgnunet_plugin_datastore_postgres_la_LIBADD = \
 libgnunet_plugin_datastore_postgres_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
 libgnunet_plugin_datastore_postgres_la_CPPFLAGS = \
- $(POSTGRES_CPPFLAGS)
+ $(POSTGRES_CPPFLAGS) $(AM_CPPFLAGS)
 
 
 libgnunet_plugin_datastore_template_la_SOURCES = \

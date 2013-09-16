@@ -70,7 +70,7 @@ libgnunet_plugin_datacache_postgres_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
 libgnunet_plugin_datacache_postgres_la_CPPFLAGS = \
- $(POSTGRES_CPPFLAGS)
+ $(POSTGRES_CPPFLAGS) $(AM_CPPFLAGS)
 libgnunet_plugin_datacache_postgres_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
 

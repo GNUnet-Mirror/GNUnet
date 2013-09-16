@@ -38,7 +38,7 @@ gnunet_daemon_hostlist_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_daemon_hostlist_CPPFLAGS = \
- @LIBCURL_CPPFLAGS@ 
+ @LIBCURL_CPPFLAGS@  $(AM_CPPFLAGS)
 
 if HAVE_LIBCURL
 check_PROGRAMS = \
