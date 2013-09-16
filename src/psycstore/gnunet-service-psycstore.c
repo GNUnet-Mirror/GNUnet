@@ -113,7 +113,8 @@ send_result_code (struct GNUNET_SERVER_Client *client, uint32_t result_code,
   res->header.size = htons (sizeof (struct OperationResult) + err_len);
   res->result_code = htonl (result_code);
   res->op_id = op_id;
-  memcpy (&res[1], err_msg, err_len);
+  if (0 < err_len)
+    memcpy (&res[1], err_msg, err_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,
@@ -607,6 +608,7 @@ handle_state_get (void *cls,
         ret = db->state_get (db->cls, &req->channel_key, n,
                              &send_state_var, &sc);
       }
+      GNUNET_free (n);
     }
   }
   switch (ret)

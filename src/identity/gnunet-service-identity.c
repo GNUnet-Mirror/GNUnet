@@ -189,7 +189,8 @@ send_result_code (struct GNUNET_SERVER_Client *client,
   rcm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE);
   rcm->header.size = htons (sizeof (struct GNUNET_IDENTITY_ResultCodeMessage) + elen);
   rcm->result_code = htonl (result_code);
-  memcpy (&rcm[1], emsg, elen);
+  if (0 < elen)
+    memcpy (&rcm[1], emsg, elen);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,

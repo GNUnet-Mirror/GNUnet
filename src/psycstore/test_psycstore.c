@@ -454,7 +454,8 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (234);
-  GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose, &msg->signature);
+  ASSERT (GNUNET_OK == GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose,
+                                               &msg->signature));
 
   op = GNUNET_PSYCSTORE_fragment_store (h, &channel_pub_key, msg, fcls.flags[0],
                                         &fragment_store_result, GNUNET_NO);
