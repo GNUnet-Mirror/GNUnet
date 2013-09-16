@@ -361,7 +361,7 @@ static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer `%4s' connected to us (%p)!\n",
               GNUNET_i2s (peer), cls);
 }
 
@@ -369,7 +369,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer `%4s' disconnected (%p)!\n",
               GNUNET_i2s (peer), cls);
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -390,7 +390,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %s <-> %s\n", p1_c,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peers connected: %s <-> %s\n", p1_c,
               GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
@@ -406,7 +406,7 @@ start_cb (struct PeerContext *p, void *cls)
 
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer %u (`%s') started\n", p->no,
               GNUNET_i2s (&p->id));
 
   if (started != 2)
