@@ -502,11 +502,11 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h)
       if (qe == h)
         {
           GNUNET_CONTAINER_DLL_remove (head, tail, qe);
-          if (NULL == qe->th)
+          if (NULL != qe->th)
             GNUNET_CLIENT_notify_transmit_ready_cancel (qe->th);
           GNUNET_CLIENT_disconnect (qe->client);
           GNUNET_STATISTICS_destroy (qe->stats, GNUNET_YES);
-          GNUNET_free (qe->msg);
+          GNUNET_free_non_null (qe->msg);
           GNUNET_free (qe);
           break;
         }
@@ -525,11 +525,11 @@ GNUNET_SCALARPRODUCT_disconnect ()
     for (qe = head; head != NULL; qe = head)
     {
         GNUNET_CONTAINER_DLL_remove (head, tail, qe);
-        if (NULL == qe->th)
+        if (NULL != qe->th)
             GNUNET_CLIENT_notify_transmit_ready_cancel (qe->th);
         GNUNET_CLIENT_disconnect (qe->client);
         GNUNET_STATISTICS_destroy (qe->stats, GNUNET_YES);
-        GNUNET_free (qe->msg);
+        GNUNET_free_non_null (qe->msg);
         GNUNET_free (qe);
     }
 }
