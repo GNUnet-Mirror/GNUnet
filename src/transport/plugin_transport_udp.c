@@ -2126,11 +2126,13 @@ fragment_msg_proc (void *cls, const struct GNUNET_MessageHeader *msg)
 
 struct LookupContext
 {
-  const struct sockaddr * addr;
-
   struct Session *res;
 
+  const struct sockaddr * addr;
+
   size_t addrlen;
+
+  int must_have_frag_ctx;
 };
 
 
@@ -2140,11 +2142,21 @@ lookup_session_by_addr_it (void *cls, const struct GNUNET_HashCode * key, void *
   struct LookupContext *l_ctx = cls;
   struct Session * s = value;
 
+  if ((GNUNET_YES == l_ctx->must_have_frag_ctx) && (NULL == s->frag_ctx))
+    return GNUNET_YES;
+
+  /*
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Comparing session: have %s %s %p<-> want %s\n",
+      GNUNET_a2s(s->sock_addr, s->addrlen),
+      (GNUNET_YES == s->inbound) ? "inbound" : "outbound",
+      s->frag_ctx,
+      GNUNET_a2s(l_ctx->addr, l_ctx->addrlen));
+   */
   if ((s->addrlen == l_ctx->addrlen) &&
       (0 == memcmp (s->sock_addr, l_ctx->addr, s->addrlen)))
   {
     l_ctx->res = s;
-    return GNUNET_NO;
+    return GNUNET_YES;
   }
   return GNUNET_YES;
 }
@@ -2171,6 +2183,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   l_ctx.addr = rc->src_addr;
   l_ctx.addrlen = rc->addr_len;
   l_ctx.res = NULL;
+  l_ctx.must_have_frag_ctx = GNUNET_NO;
   GNUNET_CONTAINER_multihashmap_iterate (rc->plugin->sessions,
       &lookup_session_by_addr_it,
       &l_ctx);
@@ -2245,15 +2258,16 @@ read_process_ack (struct Plugin *plugin,
   l_ctx.addr = (const struct sockaddr *) addr;
   l_ctx.addrlen = fromlen;
   l_ctx.res = NULL;
+  l_ctx.must_have_frag_ctx = GNUNET_YES;
   GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
 					 &lookup_session_by_addr_it,
 					 &l_ctx);
   s = l_ctx.res;
-
   if ((NULL == s) || (NULL == s->frag_ctx))
   {
     return;
   }
+
 
   flow_delay.rel_value_us = (uint64_t) ntohl (udp_ack->delay);
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
