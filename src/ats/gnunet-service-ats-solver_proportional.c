@@ -229,6 +229,11 @@ struct GAS_PROPORTIONAL_Handle
   const struct GNUNET_CONTAINER_MultiHashMap *addresses;
 
   /**
+   * Pending address requests
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *requests;
+
+  /**
    * Bandwidth changed callback
    */
   GAS_bandwidth_changed_cb bw_changed;
@@ -533,44 +538,44 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
 
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-                          "Total bandwidth assigned is (in/out): %llu /%llu\n",
-                          quota_in_used,
-                          quota_out_used);
+    "Total bandwidth assigned is (in/out): %llu /%llu\n",
+    quota_in_used,
+    quota_out_used);
   if (quota_out_used > net->total_quota_out + 1) /* +1 is required due to rounding errors */
   {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-                            "Total outbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
-                            net->active_addresses,
-                            quota_out_used,
-                            net->total_quota_out);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+      "Total outbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
+      net->active_addresses,
+      quota_out_used,
+      net->total_quota_out);
   }
   if (quota_in_used > net->total_quota_in + 1) /* +1 is required due to rounding errors */
   {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-                            "Total inbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
-                            net->active_addresses,
-                            quota_in_used,
-                            net->total_quota_in);
+        "Total inbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
+        net->active_addresses,
+        quota_in_used,
+        net->total_quota_in);
   }
 }
 
 
 struct FindBestAddressCtx
 {
-	struct GAS_PROPORTIONAL_Handle *s;
-	struct ATS_Address *best;
+  struct GAS_PROPORTIONAL_Handle *s;
+  struct ATS_Address *best;
 };
 
 
 static int
 find_property_index (uint32_t type)
 {
-	int existing_types[] = GNUNET_ATS_QualityProperties;
-	int c;
-	for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
-		if (existing_types[c] == type)
-			return c;
-	return GNUNET_SYSERR;
+  int existing_types[] = GNUNET_ATS_QualityProperties;
+  int c;
+  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+          if (existing_types[c] == type)
+                  return c;
+  return GNUNET_SYSERR;
 }
 
 /**
@@ -586,7 +591,7 @@ find_property_index (uint32_t type)
 static int
 find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
 {
-	struct FindBestAddressCtx *fba_ctx = (struct FindBestAddressCtx *) cls;
+  struct FindBestAddressCtx *fba_ctx = (struct FindBestAddressCtx *) cls;
   struct ATS_Address *current = (struct ATS_Address *) value;
   struct GNUNET_TIME_Absolute now;
   struct Network *net = (struct Network *) current->solver_information;
@@ -695,11 +700,9 @@ find_best_address_it (void *cls, const struct GNUNET_HashCode * key, void *value
 static void
 distribute_bandwidth_in_all_networks (struct GAS_PROPORTIONAL_Handle *s)
 {
-	int i;
-
-	for (i = 0; i < s->networks; i++)
-		distribute_bandwidth_in_network (s, &s->network_entries[i], NULL);
-
+  int i;
+  for (i = 0; i < s->networks; i++)
+          distribute_bandwidth_in_network (s, &s->network_entries[i], NULL);
 }
 
 
@@ -932,6 +935,11 @@ GAS_proportional_get_preferred_address (void *solver,
   GNUNET_assert (s != NULL);
   GNUNET_assert (peer != NULL);
 
+  /* Add to list of pending requests */
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (s->requests, &peer->hashPubKey))
+    GNUNET_CONTAINER_multihashmap_put (s->requests, &peer->hashPubKey,
+        NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
   /* Get address with: stick to current address, lower distance, lower latency */
   fba_ctx.s = s;
   fba_ctx.best = NULL;
@@ -940,11 +948,11 @@ GAS_proportional_get_preferred_address (void *solver,
                                               &find_best_address_it, &fba_ctx);
   if (NULL == fba_ctx.best)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
+    LOG (GNUNET_ERROR_TYPE_INFO, "Cannot suggest address for peer `%s'\n", GNUNET_i2s (peer));
     return NULL;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Suggesting %s address %p for peer `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Suggesting %s address %p for peer `%s'\n",
       (GNUNET_NO == fba_ctx.best->active) ? "inactive" : "active",
       		fba_ctx.best, GNUNET_i2s (peer));
   net_cur = (struct Network *) fba_ctx.best->solver_information;
@@ -976,7 +984,7 @@ GAS_proportional_get_preferred_address (void *solver,
       prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
-     	distribute_bandwidth_in_network (s, net_prev, NULL);
+      distribute_bandwidth_in_network (s, net_prev, NULL);
   }
 
   if (GNUNET_NO == (is_bandwidth_available_in_network (fba_ctx.best->solver_information)))
@@ -987,7 +995,7 @@ GAS_proportional_get_preferred_address (void *solver,
 
   fba_ctx.best->active = GNUNET_YES;
   addresse_increment (s, net_cur, GNUNET_NO, GNUNET_YES);
-  distribute_bandwidth_in_network (s, net_cur, fba_ctx.best);
+  distribute_bandwidth_in_network (s, net_cur, NULL);
   return fba_ctx.best;
 }
 
@@ -1005,19 +1013,23 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct GAS_PROPORTIONAL_Handle *s = solver;
 	struct ATS_Address *cur;
 	struct Network *cur_net;
+
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (s->requests, &peer->hashPubKey))
+    GNUNET_CONTAINER_multihashmap_remove (s->requests, &peer->hashPubKey, NULL);
+
   cur = get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, peer);
   if (NULL != cur)
   {
-  	/* Disabling current address */
-  	cur_net = (struct Network *) cur->solver_information;
-  	cur->active = GNUNET_NO; /* No active any longer */
-  	cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
-  	cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
-		if (GNUNET_SYSERR == addresse_decrement (s, cur_net, GNUNET_NO, GNUNET_YES))
-			GNUNET_break (0);
-		distribute_bandwidth_in_network (s, cur_net, NULL);
+    /* Disabling current address */
+    cur_net = (struct Network *) cur->solver_information;
+    cur->active = GNUNET_NO; /* No active any longer */
+    cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
+    cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+    if (GNUNET_SYSERR == addresse_decrement (s, cur_net, GNUNET_NO, GNUNET_YES))
+      GNUNET_break (0);
+    distribute_bandwidth_in_network (s, cur_net, NULL);
   }
-	return;
+  return;
 }
 
 
@@ -1162,10 +1174,10 @@ GAS_proportional_address_add (void *solver,
  */
 void
 GAS_proportional_address_property_changed (void *solver,
-    															struct ATS_Address *address,
-    															uint32_t type,
-    															uint32_t abs_value,
-    															double rel_value)
+                                          struct ATS_Address *address,
+                                          uint32_t type,
+                                          uint32_t abs_value,
+                                          double rel_value)
 {
 	struct GAS_PROPORTIONAL_Handle *s;
 	struct Network *n;
@@ -1214,9 +1226,9 @@ GAS_proportional_address_property_changed (void *solver,
  */
 void
 GAS_proportional_address_session_changed (void *solver,
-    															struct ATS_Address *address,
-    															uint32_t cur_session,
-    															uint32_t new_session)
+struct ATS_Address *address,
+uint32_t cur_session,
+uint32_t new_session)
 {
   if (cur_session!= new_session)
   {
@@ -1237,8 +1249,8 @@ GAS_proportional_address_session_changed (void *solver,
  */
 void
 GAS_proportional_address_inuse_changed (void *solver,
-    															struct ATS_Address *address,
-    															int in_use)
+struct ATS_Address *address,
+int in_use)
 {
 	LOG (GNUNET_ERROR_TYPE_DEBUG,
 							"Usage changed to %s\n",
@@ -1340,8 +1352,8 @@ GAS_proportional_address_change_network (void *solver,
  */
 void
 GAS_proportional_address_add (void *solver,
-															struct ATS_Address *address,
-															uint32_t network)
+                              struct ATS_Address *address,
+                              uint32_t network)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
@@ -1360,6 +1372,11 @@ GAS_proportional_address_add (void *solver,
   GNUNET_CONTAINER_DLL_insert (net->head, net->tail, aw);
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
   aw->addr->solver_information = net;
+
+  if ((GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(s->requests, &address->peer.hashPubKey)) &&
+      (NULL == get_active_address (s,
+          (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, &address->peer)))
+      GAS_proportional_get_preferred_address (s, &address->peer);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After adding address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
@@ -1438,6 +1455,8 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->bulk_lock = GNUNET_NO;
   s->addresses = addresses;
 
+  s->requests = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_YES);
+
   for (c = 0; c < dest_length; c++)
   {
       cur = &s->network_entries[c];
@@ -1515,6 +1534,7 @@ GAS_proportional_done (void *solver)
     GNUNET_break (0);
   }
   GNUNET_free (s->network_entries);
+  GNUNET_CONTAINER_multihashmap_destroy (s->requests);
   GNUNET_free (s);
 }
 

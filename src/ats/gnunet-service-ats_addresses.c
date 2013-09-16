@@ -1332,7 +1332,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suggesting address %p for peer `%s'\n", aa, GNUNET_i2s (peer));
 
   GAS_scheduling_transmit_address_suggestion (peer,
