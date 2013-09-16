@@ -104,6 +104,17 @@ struct ProxyGNSCertificate
  */
 struct Socks5Request
 {
+
+  /**
+   * DLL.
+   */
+  struct Socks5Request *next;
+
+  /**
+   * DLL.
+   */
+  struct Socks5Request *prev;
+
   /**
    * The client socket 
    */
@@ -192,6 +203,7 @@ struct NetworkHandleList
   struct GNUNET_NETWORK_Handle *h;
 };
 
+
 /**
  * A structure for all running Httpds
  */
@@ -242,6 +254,7 @@ struct MhdHttpList
    */
   struct NetworkHandleList *socket_handles_tail;
 };
+
 
 /**
  * A structure for MHD<->cURL streams
@@ -429,6 +442,7 @@ struct ProxySetCookieHeader
   char *cookie;
 };
 
+
 /**
  * Post data structure
  */
@@ -495,11 +509,6 @@ static GNUNET_SCHEDULER_TaskIdentifier ltask;
 static GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 
 /**
- * The non SSL httpd daemon handle 
- */
-static struct MHD_Daemon *httpd;
-
-/**
  * Number of current mhd connections 
  */
 static unsigned int total_mhd_connections;
@@ -525,14 +534,24 @@ static struct ProxyCurlTask *ctasks_head;
 static struct ProxyCurlTask *ctasks_tail;
 
 /**
- * DLL for http daemons 
+ * DLL for http/https daemons 
  */
 static struct MhdHttpList *mhd_httpd_head;
 
 /**
- * DLL for http daemons 
+ * DLL for http/https daemons 
  */
 static struct MhdHttpList *mhd_httpd_tail;
+
+/**
+ * DLL of active socks requests.
+ */
+static struct Socks5Request *s5r_head;
+
+/**
+ * DLL of active socks requests.
+ */
+static struct Socks5Request *s5r_tail;
 
 /**
  * The users local GNS master zone 
@@ -555,9 +574,10 @@ static int do_shorten;
 static struct ProxyCA proxy_ca;
 
 /**
- * UNIX domain socket for mhd 
+ * Daemon for HTTP (we have one per SSL certificate, and then one for all HTTP connections;
+ * this is the one for HTTP, not HTTPS).
  */
-static struct GNUNET_NETWORK_Handle *mhd_unix_socket;
+static struct MHD_Daemon *httpd;
 
 /**
  * Shorten zone private key 
@@ -583,6 +603,31 @@ static struct GNUNET_IDENTITY_Operation *id_op;
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Clean up s5r handles
+ *
+ * @param s5r the handle to destroy
+ */
+static void
+cleanup_s5r (struct Socks5Request *s5r)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
+    GNUNET_SCHEDULER_cancel (s5r->rtask);
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdwtask)
+    GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdrtask)
+    GNUNET_SCHEDULER_cancel (s5r->fwdrtask);  
+  if (NULL != s5r->remote_sock)
+    GNUNET_NETWORK_socket_close (s5r->remote_sock);
+  if ( (NULL != s5r->sock) && 
+       (GNUNET_YES == s5r->cleanup_sock) )
+    GNUNET_NETWORK_socket_close (s5r->sock);
+  GNUNET_CONTAINER_DLL_remove (s5r_head,
+			       s5r_tail,
+			       s5r);
+  GNUNET_free(s5r);
+}
 
 
 /**
@@ -2123,7 +2168,7 @@ do_httpd (void *cls,
  * @param tc scheduler context
  */
 static void
-do_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_s5r_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -2149,11 +2194,10 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int len;
 
   s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
-
-  if ((NULL != tc->read_ready) &&
-      (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->remote_sock)) &&
-      ((len = GNUNET_NETWORK_socket_send (s5r->remote_sock, s5r->rbuf,
-                                         s5r->rbuf_len)>0)))
+  if ( (NULL != tc->read_ready) &&
+       (GNUNET_NETWORK_fdset_isset (tc->write_ready, s5r->remote_sock)) &&
+       ((len = GNUNET_NETWORK_socket_send (s5r->remote_sock, s5r->rbuf,
+					   s5r->rbuf_len)>0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Successfully sent %d bytes to remote socket\n",
@@ -2161,46 +2205,15 @@ do_write_remote (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "write remote");
-    if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
-      GNUNET_SCHEDULER_cancel (s5r->rtask);
-    if (GNUNET_SCHEDULER_NO_TASK != s5r->wtask)
-      GNUNET_SCHEDULER_cancel (s5r->wtask);
-    if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdrtask)
-      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
-    GNUNET_NETWORK_socket_close (s5r->remote_sock);
-    GNUNET_NETWORK_socket_close (s5r->sock);
-    GNUNET_free(s5r);
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "send");
+    cleanup_s5r (s5r);
     return;
   }
 
   s5r->rtask =
     GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                    s5r->sock,
-                                   &do_read, s5r);
-}
-
-
-/**
- * Clean up s5r handles
- *
- * @param s5r the handle to destroy
- */
-static void
-cleanup_s5r (struct Socks5Request *s5r)
-{
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
-    GNUNET_SCHEDULER_cancel (s5r->rtask);
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdwtask)
-    GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->fwdrtask)
-    GNUNET_SCHEDULER_cancel (s5r->fwdrtask);  
-  if (NULL != s5r->remote_sock)
-    GNUNET_NETWORK_socket_close (s5r->remote_sock);
-  if ((NULL != s5r->sock) && (s5r->cleanup_sock == GNUNET_YES))
-    GNUNET_NETWORK_socket_close (s5r->sock);
-  
-  GNUNET_free(s5r);
+                                   &do_s5r_read, s5r);
 }
 
 
@@ -2277,16 +2290,7 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (0 == s5r->wbuf_len)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "0 bytes received from remote... graceful shutdown!\n");
-    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-    if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->rtask);
-    
-    GNUNET_NETWORK_socket_close (s5r->remote_sock);
-    s5r->remote_sock = NULL;
-    GNUNET_NETWORK_socket_close (s5r->sock);
-    GNUNET_free(s5r);
-
+    cleanup_s5r (s5r);
     return;
   }
   
@@ -2581,13 +2585,13 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
 
 
 /**
- * Read data from incoming connection
+ * Read data from incoming Socks5 connection
  *
- * @param cls the closure
+ * @param cls the closure with the `struct Socks5Request`
  * @param tc the scheduler context
  */
 static void
-do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Socks5Request *s5r = cls;
   struct socks5_client_hello *c_hello;
@@ -2605,7 +2609,6 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct NetworkHandleList *nh;
 
   s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
-
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) &&
       (s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, s5r->rbuf,
@@ -2621,16 +2624,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "read");
     else
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disco!\n");
-
-    if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
-    if (s5r->wtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->wtask);
-    if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-    GNUNET_NETWORK_socket_close (s5r->remote_sock);
-    GNUNET_NETWORK_socket_close (s5r->sock);
-    GNUNET_free(s5r);
+    cleanup_s5r (s5r);
     return;
   }
 
@@ -2655,7 +2649,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 s5r->sock,
-                                                &do_read, s5r);
+                                                &do_s5r_read, s5r);
 
     s5r->state = SOCKS5_REQUEST;
     return;
@@ -2811,7 +2805,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       s5r->rtask =
         GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                        s5r->sock,
-                                       &do_read, s5r);
+                                       &do_s5r_read, s5r);
 
     }
     return;
@@ -2823,19 +2817,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Closing connection to client\n");
-      if (s5r->rtask != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (s5r->rtask);
-      if (s5r->fwdwtask != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (s5r->fwdwtask);
-      if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
-      if (s5r->fwdrtask != GNUNET_SCHEDULER_NO_TASK)
-        GNUNET_SCHEDULER_cancel (s5r->fwdrtask);
-      
-      if (s5r->remote_sock != NULL)
-        GNUNET_NETWORK_socket_close (s5r->remote_sock);
-      GNUNET_NETWORK_socket_close (s5r->sock);
-      GNUNET_free(s5r);
+      cleanup_s5r (s5r);
       return;
     }
 
@@ -2871,9 +2853,6 @@ do_accept (void *cls,
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
 
-  ltask = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          lsock,
                                          &do_accept, NULL);
@@ -2886,14 +2865,14 @@ do_accept (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got an inbound connection, waiting for data\n");
   s5r = GNUNET_new (struct Socks5Request);
+  GNUNET_CONTAINER_DLL_insert (s5r_head,
+			       s5r_tail,
+			       s5r);
   s5r->sock = s;
   s5r->state = SOCKS5_INIT;
-  s5r->wtask = GNUNET_SCHEDULER_NO_TASK;
-  s5r->fwdwtask = GNUNET_SCHEDULER_NO_TASK;
-  s5r->fwdrtask = GNUNET_SCHEDULER_NO_TASK;
   s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                               s5r->sock,
-                                              &do_read, s5r);
+                                              &do_s5r_read, s5r);
 }
 
 
@@ -2917,24 +2896,11 @@ do_shutdown (void *cls,
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
-  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
-  {
-    GNUNET_SCHEDULER_cancel (curl_download_task);
-    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  for (hd = mhd_httpd_head; hd != NULL; hd = tmp_hd)
+  for (hd = mhd_httpd_head; NULL != hd; hd = tmp_hd)
   {
     tmp_hd = hd->next;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Stopping daemon\n");
-
     if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Stopping select task %d\n",
-                  hd->httpd_task);
       GNUNET_SCHEDULER_cancel (hd->httpd_task);
       hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     }
@@ -2943,47 +2909,39 @@ do_shutdown (void *cls,
       MHD_stop_daemon (hd->daemon);
       hd->daemon = NULL;
     }
-    for (nh = hd->socket_handles_head; nh != NULL; nh = tmp_nh)
+    for (nh = hd->socket_handles_head; NULL != nh; nh = tmp_nh)
     {
       tmp_nh = nh->next;
-
       GNUNET_NETWORK_socket_close (nh->h);
-
       GNUNET_free (nh);
     }
-
-    if (NULL != hd->proxy_cert)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Free certificate\n");
-      GNUNET_free (hd->proxy_cert);
-    }
-
+    GNUNET_free_non_null (hd->proxy_cert);
     GNUNET_free (hd);
   }
-
   for (ctask=ctasks_head; ctask != NULL; ctask=ctask_tmp)
   {
     ctask_tmp = ctask->next;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Cleaning up cURL task\n");
-
-    if (ctask->curl != NULL)
+    if (NULL != ctask->curl)
+    {
       curl_easy_cleanup (ctask->curl);
-    ctask->curl = NULL;
+      ctask->curl = NULL;
+    }
     if (NULL != ctask->headers)
+    {
       curl_slist_free_all (ctask->headers);
+      ctask->headers = NULL;
+    }
     if (NULL != ctask->resolver)
+    {
       curl_slist_free_all (ctask->resolver);
-
+      ctask->resolver = NULL;
+    }
     if (NULL != ctask->response)
+    {
       MHD_destroy_response (ctask->response);
-
-    pdata = ctask->upload_data_head;
-
-    //FIXME free pdata here
-    for (; pdata != NULL; pdata = ctask->upload_data_head)
+      ctask->response = NULL;
+    }    
+    for (pdata = ctask->upload_data_head; NULL != pdata; pdata = ctask->upload_data_head)
     {
       GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
                                    ctask->upload_data_tail,
@@ -3011,8 +2969,26 @@ do_shutdown (void *cls,
     GNUNET_IDENTITY_disconnect (identity);
     identity = NULL;
   }
-  curl_multi_cleanup (curl_multi);
-  GNUNET_GNS_disconnect (gns_handle);
+  if (NULL != curl_multi)
+  {
+    curl_multi_cleanup (curl_multi);
+    curl_multi = NULL;
+  }
+  if (NULL != gns_handle)
+  {
+    GNUNET_GNS_disconnect (gns_handle);
+    gns_handle = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
+  {
+    GNUNET_SCHEDULER_cancel (curl_download_task);
+    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != ltask)
+  {
+    GNUNET_SCHEDULER_cancel (ltask);
+    ltask = GNUNET_SCHEDULER_NO_TASK;
+  }
   gnutls_global_deinit ();
 }
 
@@ -3024,21 +3000,19 @@ static void
 run_cont () 
 {
   struct MhdHttpList *hd;
-  size_t len;
   struct sockaddr_in sa;
-  char* proxy_sockfile;
-  struct sockaddr_un mhd_unix_sock_addr;
 
+  /* Open listen socket for socks proxy */
+  /* FIXME: support IPv6! */
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
   sa.sin_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa.sin_len = sizeof (sa);
 #endif
-
   lsock = GNUNET_NETWORK_socket_create (AF_INET,
-                                        SOCK_STREAM,
-                                        0);
+					SOCK_STREAM,
+					0);
   if (NULL == lsock) 
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
@@ -3053,7 +3027,6 @@ run_cont ()
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock, 5))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
@@ -3069,81 +3042,32 @@ run_cont ()
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
-                                                            "PROXY_UNIXPATH",
-                                                            &proxy_sockfile))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "gns-proxy", "PROXY_UNIXPATH");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (NULL == (mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
-							       SOCK_STREAM,
-							       0)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to create UNIX domain socket!\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 
-  mhd_unix_sock_addr.sun_family = AF_UNIX;
-  strcpy (mhd_unix_sock_addr.sun_path, proxy_sockfile);
-
-#if LINUX
-  mhd_unix_sock_addr.sun_path[0] = '\0';
-#endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  mhd_unix_sock_addr.sun_len = (u_char) sizeof (struct sockaddr_un);
-#endif
-
-  len = strlen (proxy_sockfile) + sizeof(AF_UNIX);
-  GNUNET_free (proxy_sockfile);
-
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,
-					       (struct sockaddr *) &mhd_unix_sock_addr,
-					       len, 0))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_OK != GNUNET_NETWORK_socket_listen (mhd_unix_socket,
-                                                 1))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
+  /* start MHD daemon for HTTP */
   hd = GNUNET_new (struct MhdHttpList);
-  hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
-
-  httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
-                            0,
-			    &accept_cb, NULL,
-			    &create_response, hd,
-			    MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
-			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-			    MHD_OPTION_NOTIFY_COMPLETED,
-			    NULL, NULL,
-			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
-			    MHD_OPTION_END);
-  if (NULL == httpd)
+  hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
+				 0,
+				 &accept_cb, NULL,
+				 &create_response, hd,
+				 MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
+				 MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+				 MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
+				 MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
+				 MHD_OPTION_END);
+  if (NULL == hd->daemon)
   {
-      
+    GNUNET_free (hd);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  hd->daemon = httpd;
-  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  httpd = hd->daemon;
   GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
+
+  /* start loop running all MHD instances */
   run_httpds ();
 }
 
@@ -3280,6 +3204,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		_("Failed to load SSL/TLS key and certificate from `%s'\n"),
 		cafile);
     // FIXME: release resources...
+    GNUNET_free_non_null (cafile_cfg);  
     return;
   }
   GNUNET_free_non_null (cafile_cfg);
