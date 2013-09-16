@@ -22,13 +22,13 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.9.5a],[bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.9.5a], [bug-gnunet@gnu.org])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST
 AC_CANONICAL_SYSTEM
 
-AM_INIT_AUTOMAKE([gnunet], [0.9.5a])
+AM_INIT_AUTOMAKE
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([gnunet_config.h])
 AH_TOP([#define _GNU_SOURCE  1])
