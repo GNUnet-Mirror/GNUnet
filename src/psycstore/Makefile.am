@@ -104,9 +104,3 @@ test_plugin_psycstore_sqlite_SOURCES = \
 test_plugin_psycstore_sqlite_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la  
-
-test_plugin_psycstore_postgres_SOURCES = \
- test_plugin_psycstore.c
-test_plugin_psycstore_postgres_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la  

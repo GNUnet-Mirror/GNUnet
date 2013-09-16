@@ -701,29 +701,6 @@ struct GNUNET_PSYC_StateQuery;
 
 
 /** 
- * Return all channel state variables whose name matches a given prefix.
- *
- * A name matches if it starts with the given @a name_prefix, thus requesting the
- * empty prefix ("") will match all values; requesting "_a_b" will also return
- * values stored under "_a_b_c".
- *
- * The @a state_cb is invoked on all matching state variables asynchronously, as
- * the state is stored in and retrieved from the PSYCstore,
- *
- * @param channel Channel handle.
- * @param name_prefix Prefix of the state variable name to match.
- * @param cb Function to call with the matching state variables.
- * @param cb_cls Closure for the callbacks.
- * @return Handle that can be used to cancel the query operation.
- */
-struct GNUNET_PSYC_StateQuery *
-GNUNET_PSYC_channel_state_get_all (struct GNUNET_PSYC_Channel *channel,
-                                   const char *name_prefix,
-                                   GNUNET_PSYC_StateCallback cb,
-                                   void *cb_cls);
-
-
-/** 
  * Retrieve the best matching channel state variable.
  *
  * If the requested variable name is not present in the state, the nearest
@@ -743,6 +720,29 @@ GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
                                const char *full_name,
                                GNUNET_PSYC_StateCallback cb,
                                void *cb_cls);
+
+
+/** 
+ * Return all channel state variables whose name matches a given prefix.
+ *
+ * A name matches if it starts with the given @a name_prefix, thus requesting the
+ * empty prefix ("") will match all values; requesting "_a_b" will also return
+ * values stored under "_a_b_c".
+ *
+ * The @a state_cb is invoked on all matching state variables asynchronously, as
+ * the state is stored in and retrieved from the PSYCstore,
+ *
+ * @param channel Channel handle.
+ * @param name_prefix Prefix of the state variable name to match.
+ * @param cb Function to call with the matching state variables.
+ * @param cb_cls Closure for the callbacks.
+ * @return Handle that can be used to cancel the query operation.
+ */
+struct GNUNET_PSYC_StateQuery *
+GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
+                                      const char *name_prefix,
+                                      GNUNET_PSYC_StateCallback cb,
+                                      void *cb_cls);
 
 
 /** 

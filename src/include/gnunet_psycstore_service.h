@@ -108,7 +108,7 @@ struct GNUNET_PSYCSTORE_OperationHandle;
  */
 typedef void
 (*GNUNET_PSYCSTORE_ResultCallback) (void *cls,
-                                    int result,
+                                    int64_t result,
                                     const char *err_msg);
 
 
@@ -202,7 +202,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  * @param cls Closure.
  * @param message The retrieved message fragment.  A NULL value indicates that
  *        there are no more results to be returned.
- * @param flags Flags stored with the message.
+ * @param psycstore_flags Flags stored with the message.
  *
  * @return #GNUNET_NO to stop calling this callback with further fragments,
  *         #GNUNET_YES to continue.
@@ -210,7 +210,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
 typedef int
 (*GNUNET_PSYCSTORE_FragmentCallback) (void *cls,
                                       struct GNUNET_MULTICAST_MessageHeader *message,
-                                      enum GNUNET_PSYCSTORE_MessageFlags flags);
+                                      enum GNUNET_PSYCSTORE_MessageFlags psycstore_flags);
 
 
 /** 
@@ -219,8 +219,9 @@ typedef int
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
  * @param fragment_id Fragment ID to check.  Use 0 to get the latest message fragment.
- * @param cb Callback to call with the retrieved fragment.
- * @param cb_cls Closure for the callback.
+ * @param fcb Callback to call with the retrieved fragment.
+ * @param rcb Callback to call with the result of the operation.
+ * @param cls Closure for the callbacks.
  * 
  * @return Handle that can be used to cancel the operation.
  */
@@ -228,8 +229,9 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                                uint64_t fragment_id,
-                               GNUNET_PSYCSTORE_FragmentCallback cb,
-                               void *cb_cls);
+                               GNUNET_PSYCSTORE_FragmentCallback fcb,
+                               GNUNET_PSYCSTORE_ResultCallback rcb,
+                               void *cls);
 
 
 /** 
@@ -238,8 +240,9 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
  * @param message_id Message ID to check.  Use 0 to get the latest message.
- * @param cb Callback to call with the retrieved fragments.
- * @param cb_cls Closure for the callback.
+ * @param fcb Callback to call with the retrieved fragments.
+ * @param rcb Callback to call with the result of the operation.
+ * @param cls Closure for the callbacks.
  * 
  * @return Handle that can be used to cancel the operation.
  */
@@ -247,8 +250,9 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                               uint64_t message_id,
-                              GNUNET_PSYCSTORE_FragmentCallback cb,
-                              void *cb_cls);
+                              GNUNET_PSYCSTORE_FragmentCallback fcb,
+                              GNUNET_PSYCSTORE_ResultCallback rcb,
+                              void *cls);
 
 
 /** 
@@ -259,8 +263,9 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param channel_key The channel we are interested in.
  * @param message_id Message ID to check.  Use 0 to get the latest message.
  * @param fragment_offset Offset of the fragment to retrieve.
- * @param cb Callback to call with the retrieved fragments.
- * @param cb_cls Closure for the callback.
+ * @param fcb Callback to call with the retrieved fragments.
+ * @param rcb Callback to call with the result of the operation.
+ * @param cls Closure for the callbacks.
  * 
  * @return Handle that can be used to cancel the operation.
  */
@@ -269,8 +274,9 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
                                        const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                                        uint64_t message_id,
                                        uint64_t fragment_offset,
-                                       GNUNET_PSYCSTORE_FragmentCallback cb,
-                                       void *cb_cls);
+                                       GNUNET_PSYCSTORE_FragmentCallback fcb,
+                                       GNUNET_PSYCSTORE_ResultCallback rcb,
+                                       void *cls);
 
 
 /** 
@@ -312,16 +318,16 @@ typedef void
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key Public key that identifies the channel.
- * @param cb Callback to call with the result.
- * @param cb_cls Closure for the callback.
+ * @param mccb Callback to call with the result.
+ * @param mccb_cls Closure for the callback.
  * 
- * @return 
+ * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_counters_get_master (struct GNUNET_PSYCSTORE_Handle *h,
                                       struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                      GNUNET_PSYCSTORE_MasterCountersCallback *cb,
-                                      void *cb_cls);
+                                      GNUNET_PSYCSTORE_MasterCountersCallback mccb,
+                                      void *mccb_cls);
 
 
 /** 
@@ -332,16 +338,16 @@ GNUNET_PSYCSTORE_counters_get_master (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key Public key that identifies the channel.
- * @param cb Callback to call with the result.
- * @param cb_cls Closure for the callback.
+ * @param sccb Callback to call with the result.
+ * @param sccb_cls Closure for the callback.
  * 
- * @return 
+ * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_counters_get_slave (struct GNUNET_PSYCSTORE_Handle *h,
                                      struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                     GNUNET_PSYCSTORE_SlaveCountersCallback *cb,
-                                     void *cb_cls);
+                                     GNUNET_PSYCSTORE_SlaveCountersCallback sccb,
+                                     void *sccb_cls);
 
 
 /** 
@@ -353,7 +359,7 @@ GNUNET_PSYCSTORE_counters_get_slave (struct GNUNET_PSYCSTORE_Handle *h,
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
  * @param message_id ID of the message that contains the @a modifiers.
- * @param state_delta Value of the _state_delta PSYC header variable of the message.
+ * @param state_delta Value of the @e state_delta PSYC header variable of the message.
  * @param modifier_count Number of elements in the @a modifiers array.
  * @param modifiers List of modifiers to apply.
  * @param rcb Callback to call with the result of the operation.
@@ -373,6 +379,30 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /** 
+ * Store synchronized state.
+ *
+ * @param h Handle for the PSYCstore.
+ * @param channel_key The channel we are interested in.
+ * @param message_id ID of the message that contains the state_hash PSYC header variable.
+ * @param modifier_count Number of elements in the @a modifiers array.
+ * @param modifiers Full state to store.
+ * @param rcb Callback to call with the result of the operation.
+ * @param rcb_cls Closure for the callback.
+ * 
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
+                             const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                             uint64_t message_id,
+                             size_t modifier_count,
+                             const struct GNUNET_ENV_Modifier *modifiers,
+                             GNUNET_PSYCSTORE_ResultCallback rcb,
+                             void *rcb_cls);
+
+
+
+/** 
  * Reset the state of a channel.
  *
  * Delete all state variables stored for the given channel.
@@ -384,7 +414,7 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
  * 
  * @return Handle that can be used to cancel the operation.
  */
-struct GNUNET_PSYCSTORE_Handle *
+struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EccPublicSignKey
                               *channel_key,
@@ -423,12 +453,10 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * @return #GNUNET_NO to stop calling this callback with further variables,
  *         #GNUNET_YES to continue.
- */
+ */;
 typedef int
-(*GNUNET_PSYCSTORE_StateCallback) (void *cls,
-                                   const char *name,
-                                   const void *value,
-                                   size_t value_size);
+(*GNUNET_PSYCSTORE_StateCallback) (void *cls, const char *name,
+                                   const void *value, size_t value_size);
 
 
 /** 
@@ -437,8 +465,9 @@ typedef int
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
  * @param name Name of variable to match, the returned variable might be less specific.
- * @param cb Callback to return matching state variables.
- * @param cb_cls Closure for the callback.
+ * @param scb Callback to return the matching state variable.
+ * @param rcb Callback to call with the result of the operation.
+ * @param cls Closure for the callbacks.
  * 
  * @return Handle that can be used to cancel the operation.
  */
@@ -446,8 +475,9 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
                             const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                             const char *name,
-                            GNUNET_PSYCSTORE_StateCallback cb,
-                            void *cb_cls);
+                            GNUNET_PSYCSTORE_StateCallback scb,
+                            GNUNET_PSYCSTORE_ResultCallback rcb,
+                            void *cls);
 
 
 /** 
@@ -456,17 +486,19 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel we are interested in.
  * @param name_prefix Prefix of state variable names to match.
- * @param cb Callback to return matching state variables.
- * @param cb_cls Closure for the callback.
+ * @param scb Callback to return matching state variables.
+ * @param rcb Callback to call with the result of the operation.
+ * @param cls Closure for the callbacks.
  * 
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_state_get_all (struct GNUNET_PSYCSTORE_Handle *h,
-                                const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                const char *name_prefix,
-                                GNUNET_PSYCSTORE_StateCallback cb,
-                                void *cb_cls);
+GNUNET_PSYCSTORE_state_get_prefix (struct GNUNET_PSYCSTORE_Handle *h,
+                                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                                   const char *name_prefix,
+                                   GNUNET_PSYCSTORE_StateCallback scb,
+                                   GNUNET_PSYCSTORE_ResultCallback rcb,
+                                   void *cls);
 
 
 /** 

@@ -203,6 +203,26 @@ GNUNET_ENV_var_get_type (char *name);
 
 
 /** 
+ * Perform an operation on a variable.
+ *
+ * @param name Name of variable.
+ * @param current_value Current value of variable.
+ * @param current_value_size Size of @a current_value.
+ * @param oper Operator.
+ * @param args Arguments for the operation.
+ * @param args_size Size of @a args.
+ * @param return_value Return value.
+ * @param return_value_size Size of @a return_value.
+ * 
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+int
+GNUNET_ENV_operation (char *name, void *current_value, size_t current_value_size,
+                      enum GNUNET_ENV_Operator oper, void *args, size_t args_size,
+                      void **return_value, size_t *return_value_size);
+
+
+/** 
  * Get the variable's value as an integer.
  *
  * @param size Size of value.

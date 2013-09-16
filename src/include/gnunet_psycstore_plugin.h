@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -137,6 +137,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   (*message_get) (void *cls,
                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                   uint64_t message_id,
+                  uint64_t *returned_fragments,
                   GNUNET_PSYCSTORE_FragmentCallback cb,
                   void *cb_cls);
 
@@ -182,19 +183,88 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                          uint64_t *max_state_msg_id);
 
+
   /** 
-   * Set a state variable to the given value.
+   * Begin modifying current state.
    *
    * @see GNUNET_PSYCSTORE_state_modify()
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_set) (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                const char *name,
-                const void *value,
-                size_t value_size);
+  (*state_modify_begin) (void *cls,
+                         const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                         uint64_t message_id, uint64_t state_delta);
+
+  /** 
+   * Set the current value of a state variable.
+   *
+   * The state modification process is started with state_modify_begin(),
+   * which is followed by one or more calls to this function,
+   * and finished with state_modify_end().
+   *
+   * @see GNUNET_PSYCSTORE_state_modify()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_modify_set) (void *cls,
+                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const char *name, const void *value, size_t value_size);
+
+
+  /** 
+   * End modifying current state.
+   *
+   * @see GNUNET_PSYCSTORE_state_modify()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_modify_end) (void *cls,
+                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       uint64_t message_id);
+
+
+  /** 
+   * Begin synchronizing state.
+   *
+   * @see GNUNET_PSYCSTORE_state_sync()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_sync_begin) (void *cls,
+                         const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
+
+  /** 
+   * Set the value of a state variable while synchronizing state.
+   *
+   * The state synchronization process is started with state_sync_begin(),
+   * which is followed by one or more calls to this function,
+   * and finished with state_sync_end().
+   *
+   * @see GNUNET_PSYCSTORE_state_sync()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_sync_set) (void *cls,
+                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                     const char *name, const void *value, size_t value_size);
+
+
+  /** 
+   * End synchronizing state.
+   *
+   * @see GNUNET_PSYCSTORE_state_sync()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*state_sync_end) (void *cls,
+                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                     uint64_t message_id);
 
 
   /** 
@@ -219,25 +289,6 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   (*state_update_signed) (void *cls,
                           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
 
-  /** 
-   * Update signed values of state variables in the state store.
-   *
-   * @param h Handle for the PSYCstore.
-   * @param channel_key The channel we are interested in.
-   * @param message_id Message ID that contained the state @a hash.
-   * @param hash Hash of the serialized full state.
-   * @param rcb Callback to call with the result of the operation.
-   * @param rcb_cls Closure for the callback.
-   *
-   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
-   */
-  int
-  (*state_hash_update) (void *cls,
-                        const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                        uint64_t message_id,
-                        const struct GNUNET_HashCode *hash,
-                        GNUNET_PSYCSTORE_ResultCallback rcb,
-                        void *rcb_cls);
 
   /** 
    * Retrieve a state variable by name (exact match).
@@ -254,16 +305,16 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   /** 
    * Retrieve all state variables for a channel with the given prefix.
    *
-   * @see GNUNET_PSYCSTORE_state_get_all()
+   * @see GNUNET_PSYCSTORE_state_get_prefix()
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_get_all) (void *cls,
-                    const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                    const char *name,
-                    GNUNET_PSYCSTORE_StateCallback cb,
-                    void *cb_cls);
+  (*state_get_prefix) (void *cls,
+                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const char *name,
+                       GNUNET_PSYCSTORE_StateCallback cb,
+                       void *cb_cls);
 
 
   /** 

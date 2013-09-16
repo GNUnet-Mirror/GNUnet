@@ -1,21 +1,21 @@
 /*
-  This file is part of GNUnet.
-  (C) 2013 Christian Grothoff (and other contributing authors)
-
-  GNUnet is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published
-  by the Free Software Foundation; either version 3, or (at your
-  option) any later version.
-
-  GNUnet is distributed in the hope that it will be useful, but
-  WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-  General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with GNUnet; see the file COPYING.  If not, write to the
-  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-  Boston, MA 02111-1307, USA.
+ * This file is part of GNUnet
+ * (C) 2013 Christian Grothoff (and other contributing authors)
+ *
+ * GNUnet is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation; either version 3, or (at your
+ * option) any later version.
+ *
+ * GNUnet is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GNUnet; see the file COPYING.  If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 /**
@@ -89,71 +89,134 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
+/** 
  * Send a result code back to the client.
  *
- * @param client client that should receive the result code
- * @param result_code code to transmit
- * @param emsg error message to include (or NULL for none)
+ * @param client Client that should receive the result code.
+ * @param result_code Code to transmit.
+ * @param op_id Operation ID.
+ * @param err_msg Error message to include (or NULL for none).
  */
 static void
-send_result_code (struct GNUNET_SERVER_Client *client,
-		  uint32_t result_code,
-		  const char *emsg)
+send_result_code (struct GNUNET_SERVER_Client *client, uint32_t result_code,
+                  uint32_t op_id, const char *err_msg)
 {
-  struct ResultCodeMessage *rcm;
-  size_t elen;
+  struct OperationResult *res;
+  size_t err_len;
 
-  if (NULL == emsg)
-    elen = 0;
+  if (NULL == err_msg)
+    err_len = 0;
   else
-    elen = strlen (emsg) + 1;
-  rcm = GNUNET_malloc (sizeof (struct ResultCodeMessage) + elen);
-  rcm->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);
-  rcm->header.size = htons (sizeof (struct ResultCodeMessage) + elen);
-  rcm->result_code = htonl (result_code);
-  memcpy (&rcm[1], emsg, elen);
+    err_len = strlen (err_msg) + 1;
+  res = GNUNET_malloc (sizeof (struct OperationResult) + err_len);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);
+  res->header.size = htons (sizeof (struct OperationResult) + err_len);
+  res->result_code = htonl (result_code);
+  res->op_id = op_id;
+  memcpy (&res[1], err_msg, err_len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,
-	      emsg);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header,
+	      err_msg);
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &res->header,
                                               GNUNET_NO);
-  GNUNET_free (rcm);
+  GNUNET_free (res);
+}
+
+
+struct SendClosure
+{
+  struct GNUNET_SERVER_Client *client;
+  uint64_t op_id;
+};
+
+
+static int
+send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
+               enum GNUNET_PSYCSTORE_MessageFlags flags)
+{
+  struct SendClosure *sc = cls;
+  struct FragmentResult *res;
+  size_t msg_size = ntohs (msg->header.size);
+
+  res = GNUNET_malloc (sizeof (struct FragmentResult) + msg_size);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_FRAGMENT);
+  res->header.size = htons (sizeof (struct FragmentResult) + msg_size);
+  res->op_id = sc->op_id;
+  res->psycstore_flags = htonl (flags);
+  memcpy (&res[1], msg, msg_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending fragment %ld to client\n",
+	      GNUNET_ntohll (msg->fragment_id));
+  GNUNET_free (msg);
+  GNUNET_SERVER_notification_context_add (nc, sc->client);
+  GNUNET_SERVER_notification_context_unicast (nc, sc->client, &res->header,
+                                              GNUNET_NO);
+  GNUNET_free (res);
+  return GNUNET_OK;
+}
+
+
+static int
+send_state_var (void *cls, const char *name,
+                const void *value, size_t value_size)
+{
+  struct SendClosure *sc = cls;
+  struct StateResult *res;
+  size_t name_size = strlen (name) + 1;
+
+  res = GNUNET_malloc (sizeof (struct StateResult) + name_size + value_size);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE);
+  res->header.size = htons (sizeof (struct StateResult) + name_size + value_size);
+  res->op_id = sc->op_id;
+  res->name_size = htons (name_size);
+  memcpy (&res[1], name, name_size);
+  memcpy ((void *) &res[1] + name_size, value, value_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending state variable %s to client\n", name);
+  GNUNET_SERVER_notification_context_add (nc, sc->client);
+  GNUNET_SERVER_notification_context_unicast (nc, sc->client, &res->header,
+                                              GNUNET_NO);
+  GNUNET_free (res);
+  return GNUNET_OK;
 }
 
 
 static void
 handle_membership_store (void *cls,
-                           struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *message)
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
 {
-  const struct MembershipStoreMessage *msg =
-    (const struct MembershipStoreMessage *) message;
+  const struct MembershipStoreRequest *req =
+    (const struct MembershipStoreRequest *) msg;
 
-  int res = db->membership_store (db->cls, msg->channel_key, msg->slave_key,
-                                  msg->did_join, msg->announced_at,
-                                  msg->effective_since, msg->group_generation);
+  int ret = db->membership_store (db->cls, &req->channel_key, &req->slave_key,
+                                  ntohl (req->did_join),
+                                  GNUNET_ntohll (req->announced_at),
+                                  GNUNET_ntohll (req->effective_since),
+                                  GNUNET_ntohll (req->group_generation));
 
-  if (res != GNUNET_OK)
+  if (ret != GNUNET_OK)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to store membership information!\n"));
 
-  send_result_code (client, res, NULL);
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 static void
 handle_membership_test (void *cls,
                         struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *message)
+                        const struct GNUNET_MessageHeader *msg)
 {
-  const struct MembershipTestMessage *msg =
-    (const struct MembershipTestMessage *) message;
+  const struct MembershipTestRequest *req =
+    (const struct MembershipTestRequest *) msg;
 
-  int res = db->membership_test (db->cls, msg->channel_key, msg->slave_key,
-                                 msg->message_id);
-  switch (res)
+  int ret = db->membership_test (db->cls, &req->channel_key, &req->slave_key,
+                                 GNUNET_ntohll (req->message_id));
+  switch (ret)
   {
   case GNUNET_YES:
   case GNUNET_NO:
@@ -163,7 +226,440 @@ handle_membership_test (void *cls,
                 _("Failed to test membership!\n"));
   }
 
-  send_result_code (client, res, NULL);
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_fragment_store (void *cls,
+                       struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *msg)
+{
+  const struct FragmentStoreRequest *req =
+    (const struct FragmentStoreRequest *) msg;
+
+  int ret = db->fragment_store (db->cls, &req->channel_key,
+                                (const struct GNUNET_MULTICAST_MessageHeader *)
+                                &req[1], ntohl (req->psycstore_flags));
+
+  if (ret != GNUNET_OK)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to store fragment!\n"));
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_fragment_get (void *cls,
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
+{
+  const struct FragmentGetRequest *req
+    = (const struct FragmentGetRequest *) msg;
+  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+
+  int ret = db->fragment_get (db->cls, &req->channel_key,
+                              GNUNET_ntohll (req->fragment_id),
+                              &send_fragment, &sc);
+  switch (ret)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get fragment!\n"));
+  }
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_message_get (void *cls,
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *msg)
+{
+  const struct MessageGetRequest *req = (const struct MessageGetRequest *) msg;
+  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  uint64_t ret_frags = 0;
+  int64_t ret = db->message_get (db->cls, &req->channel_key,
+                                 GNUNET_ntohll (req->message_id),
+                                 &ret_frags, &send_fragment, &sc);
+  switch (ret)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    ret_frags = ret;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get message!\n"));
+  }
+
+  send_result_code (client, ret_frags, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_message_get_fragment (void *cls,
+                             struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *msg)
+{
+  const struct MessageGetFragmentRequest *req =
+    (const struct MessageGetFragmentRequest *) msg;
+
+  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+
+  int ret = db->message_get_fragment (db->cls, &req->channel_key,
+                                      GNUNET_ntohll (req->message_id),
+                                      GNUNET_ntohll (req->fragment_offset),
+                                      &send_fragment, &sc);
+  switch (ret)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get message fragment!\n"));
+  }
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_counters_get_master (void *cls,
+                            struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req = (const struct OperationRequest *) msg;
+  struct MasterCountersResult res = { {0} };
+
+  int ret = db->counters_get_master (db->cls, &req->channel_key,
+                                     &res.fragment_id, &res.message_id,
+                                     &res.group_generation);
+  switch (ret)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get master counters!\n"));
+  }
+
+  res.header.type
+    = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_MASTER);
+  res.header.size = htons (sizeof (res));
+  res.result_code = htonl (ret);
+  res.op_id = req->op_id;
+  res.fragment_id = GNUNET_htonll (res.fragment_id);
+  res.message_id = GNUNET_htonll (res.message_id);
+  res.group_generation = GNUNET_htonll (res.group_generation);
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
+                                              GNUNET_NO);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_counters_get_slave (void *cls,
+                           struct GNUNET_SERVER_Client *client,
+                           const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req = (const struct OperationRequest *) msg;
+  struct SlaveCountersResult res = { {0} };
+
+  int ret = db->counters_get_slave (db->cls, &req->channel_key,
+                                    &res.max_known_msg_id);
+
+  switch (ret)
+  {
+  case GNUNET_YES:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get slave counters!\n"));
+  }
+
+  res.header.type
+    = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_SLAVE);
+  res.header.size = htons (sizeof (res));
+  res.result_code = htonl (ret);
+  res.op_id = req->op_id;
+  res.max_known_msg_id = GNUNET_htonll (res.max_known_msg_id);
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
+                                              GNUNET_NO);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/* FIXME: stop processing further state modify messages after an error */
+static void
+handle_state_modify (void *cls,
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
+{
+  const struct StateModifyRequest *req
+    = (const struct StateModifyRequest *) msg;
+
+  int ret = GNUNET_SYSERR;
+  const char *name = (const char *) &req[1];
+  uint16_t name_size = ntohs (req->name_size);
+
+  if (name_size <= 2 || '\0' != name[name_size - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Tried to set invalid state variable name!\n"));
+    GNUNET_break_op (0);
+  }
+  else
+  {
+    ret = GNUNET_OK;
+
+    if (req->flags & STATE_OP_FIRST)
+    {
+      ret = db->state_modify_begin (db->cls, &req->channel_key,
+                                    GNUNET_ntohll (req->message_id),
+                                    GNUNET_ntohll (req->state_delta));
+    }
+    if (ret != GNUNET_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to begin modifying state!\n"));
+    }
+    else
+    {
+      switch (req->oper)
+      {
+      case GNUNET_ENV_OP_ASSIGN:
+        ret = db->state_modify_set (db->cls, &req->channel_key,
+                                    (const char *) &req[1],
+                                    name + ntohs (req->name_size),
+                                    ntohs (req->header.size) - sizeof (*req)
+                                    - ntohs (req->name_size));
+        break;
+      default:
+#if TODO
+        ret = GNUNET_ENV_operation ((const char *) &req[1],
+                                    current_value, current_value_size,
+                                    req->oper, name + ntohs (req->name_size),
+                                    ntohs (req->header.size) - sizeof (*req)
+                                    - ntohs (req->name_size), &value, &value_size);
+#endif
+        ret = GNUNET_SYSERR;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Unknown operator: %c\n"), req->oper);
+      }
+    }
+
+    if (GNUNET_OK == ret && req->flags & STATE_OP_LAST)
+    {
+      ret = db->state_modify_end (db->cls, &req->channel_key,
+                                  GNUNET_ntohll (req->message_id));
+      if (ret != GNUNET_OK)
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to end modifying state!\n"));
+    }
+  }
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/* FIXME: stop processing further state sync messages after an error */
+static void
+handle_state_sync (void *cls,
+                   struct GNUNET_SERVER_Client *client,
+                   const struct GNUNET_MessageHeader *msg)
+{
+  const struct StateSyncRequest *req
+    = (const struct StateSyncRequest *) msg;
+
+  int ret = GNUNET_SYSERR;
+  const char *name = (const char *) &req[1];
+  uint16_t name_size = ntohs (req->name_size);
+
+  if (name_size <= 2 || '\0' != name[name_size - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Tried to set invalid state variable name!\n"));
+    GNUNET_break_op (0);
+  }
+  else
+  {
+    ret = GNUNET_OK;
+
+    if (req->flags & STATE_OP_FIRST)
+    {
+      ret = db->state_sync_begin (db->cls, &req->channel_key);
+    }
+    if (ret != GNUNET_OK)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to begin synchronizing state!\n"));
+    }
+    else
+    {
+      ret = db->state_sync_set (db->cls, &req->channel_key, name,
+                                name + ntohs (req->name_size),
+                                ntohs (req->header.size) - sizeof (*req)
+                                - ntohs (req->name_size));
+    }
+
+    if (GNUNET_OK == ret && req->flags & STATE_OP_LAST)
+    {
+      ret = db->state_sync_end (db->cls, &req->channel_key,
+                                GNUNET_ntohll (req->message_id));
+      if (ret != GNUNET_OK)
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to end synchronizing state!\n"));
+    }
+  }
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_state_reset (void *cls,
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req =
+    (const struct OperationRequest *) msg;
+
+  int ret = db->state_reset (db->cls, &req->channel_key);
+
+  if (ret != GNUNET_OK)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to reset state!\n"));
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_state_hash_update (void *cls,
+                          struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req =
+    (const struct OperationRequest *) msg;
+
+  int ret = db->state_reset (db->cls, &req->channel_key);
+
+  if (ret != GNUNET_OK)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to reset state!\n"));
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_state_get (void *cls,
+                  struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req =
+    (const struct OperationRequest *) msg;
+
+  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  int64_t ret = GNUNET_SYSERR;
+  const char *name = (const char *) &req[1];
+  uint16_t name_size = ntohs (req->header.size) - sizeof (*req);
+
+  if (name_size <= 2 || '\0' != name[name_size - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Tried to get invalid state variable name!\n"));
+    GNUNET_break (0);
+  }
+  else
+  {
+    ret = db->state_get (db->cls, &req->channel_key, name,
+                         &send_state_var, &sc);
+    if (GNUNET_NO == ret && name_size >= 5) /* min: _a_b\0 */
+    {
+      char *p, *n = GNUNET_malloc (name_size);
+      memcpy (n, name, name_size);
+      while (&n[1] < (p = strrchr (n, '_')) && GNUNET_NO == ret)
+      {
+        *p = '\0';
+        ret = db->state_get (db->cls, &req->channel_key, n,
+                             &send_state_var, &sc);
+      }
+    }
+  }
+  switch (ret)
+  {
+  case GNUNET_OK:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get state variable!\n"));
+  }
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static void
+handle_state_get_prefix (void *cls,
+                         struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  const struct OperationRequest *req =
+    (const struct OperationRequest *) msg;
+
+  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  int64_t ret = GNUNET_SYSERR;
+  const char *name = (const char *) &req[1];
+  uint16_t name_size = ntohs (req->header.size) - sizeof (*req);
+
+  if (name_size <= 1 || '\0' != name[name_size - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Tried to get invalid state variable name!\n"));
+    GNUNET_break (0);
+  }
+  else
+  {
+    ret = db->state_get_prefix (db->cls, &req->channel_key, name,
+                                &send_state_var, &sc);
+  }
+  switch (ret)
+  {
+  case GNUNET_OK:
+  case GNUNET_NO:
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to get state variable!\n"));
+  }
+
+  send_result_code (client, ret, req->op_id, NULL);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -180,13 +676,58 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_membership_store, NULL,
-     GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_STORE,
-     sizeof (struct MembershipStoreMessage)},
-    {&handle_membership_test, NULL,
-     GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_TEST,
-     sizeof (struct MembershipTestMessage)},
-    {NULL, NULL, 0, 0}
+    { &handle_membership_store, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_STORE,
+      sizeof (struct MembershipStoreRequest) },
+
+    { &handle_membership_test, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_MEMBERSHIP_TEST,
+      sizeof (struct MembershipTestRequest) },
+
+    { &handle_fragment_store, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_STORE, 0, },
+
+    { &handle_fragment_get, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_GET,
+      sizeof (struct FragmentGetRequest) },
+
+    { &handle_message_get, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET,
+      sizeof (struct MessageGetRequest) },
+
+    { &handle_message_get_fragment, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET_FRAGMENT,
+      sizeof (struct MessageGetFragmentRequest) },
+
+    { &handle_counters_get_master, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_MASTER,
+      sizeof (struct OperationRequest) },
+
+    { &handle_counters_get_slave, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_SLAVE,
+      sizeof (struct OperationRequest) },
+
+    { &handle_state_modify, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY, 0 },
+
+    { &handle_state_sync, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_SYNC, 0 },
+
+    { &handle_state_reset, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_RESET,
+      sizeof (struct OperationRequest) },
+
+    { &handle_state_hash_update, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_HASH_UPDATE,
+      sizeof (struct StateHashUpdateRequest) },
+
+    { &handle_state_get, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_GET, 0 },
+
+    { &handle_state_get_prefix, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_GET_PREFIX, 0 },
+
+    { NULL, NULL, 0, 0 }
   };
 
   cfg = c;
