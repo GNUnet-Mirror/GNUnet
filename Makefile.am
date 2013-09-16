@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include
 SUBDIRS  = contrib doc m4 src po pkgconfig
 
 EXTRA_DIST = \

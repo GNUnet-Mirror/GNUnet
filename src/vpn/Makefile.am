@@ -1,4 +1,4 @@
-INCLUDES = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -I$(top_builddir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined,--export-all-symbols
