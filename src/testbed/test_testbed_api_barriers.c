@@ -173,14 +173,33 @@ test_master (void *cls,
 int
 main (int argc, char **argv)
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char pwd[PATH_MAX];
+  char *binary;
   uint64_t event_mask;
 
   result = GNUNET_SYSERR;
   event_mask = 0;
+  cfg = GNUNET_CONFIGURATION_create ();
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONFIGURATION_parse (cfg,
+                                             "test_testbed_api_barriers.conf.in"));
+  if (NULL == getcwd (pwd, PATH_MAX))
+    return 1;
+  GNUNET_assert (0 < GNUNET_asprintf (&binary, "%s/%s", pwd,
+                                      "gnunet-service-test-barriers"));
+  GNUNET_CONFIGURATION_set_value_string (cfg, "test-barriers","BINARY", binary);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write
+                 (cfg, "test_testbed_api_barriers.conf"));
+  GNUNET_CONFIGURATION_destroy (cfg);  
+  cfg = NULL;
+  GNUNET_free (binary);
+  binary = NULL;
   (void) GNUNET_TESTBED_test_run ("test_testbed_api_barriers",
                                   "test_testbed_api_barriers.conf", NUM_PEERS,
                                   event_mask, NULL, NULL,
                                   &test_master, NULL);
+  (void) unlink ("test_testbed_api_barriers.conf");
   if (GNUNET_OK != result)
     return 1;
   return 0;

@@ -12,13 +12,14 @@ PORT = 12366
 
 [test-barriers]
 AUTOSTART = YES
-PORT = 12114                    #not really used
-BINARY = @abs_srcdir@/gnunet-service-test-barriers
+PORT = 12114
+BINARY = /will/be/overwriten/in/test_testbed_api_barriers/
 
 [fs]
 AUTOSTART = NO
 
 [resolver]
+HOSTNAME = localhost
 AUTOSTART = NO
 
 [mesh]
