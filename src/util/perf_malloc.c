@@ -24,9 +24,7 @@
  * @brief measure performance of allocation functions
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 #include <gauger.h>
 
 static uint64_t 
