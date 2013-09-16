@@ -227,9 +227,40 @@ decode_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *priv)
  * @param ctx context to use for ECC operations
  */ 
 static void
-point_to_public_key (gcry_mpi_point_t q,
-		     gcry_ctx_t ctx,
-		     struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+point_to_public_sign_key (gcry_mpi_point_t q,
+			  gcry_ctx_t ctx,
+			  struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+{
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
+  
+  q_x = gcry_mpi_new (256);
+  q_y = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    return;
+  }
+
+  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
+  gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+}
+
+
+/**
+ * Initialize public key struct from the respective point
+ * on the curve.
+ *
+ * @param q point on curve
+ * @param pub public key struct to initialize
+ * @param ctx context to use for ECC operations
+ */ 
+static void
+point_to_public_encrypt_key (gcry_mpi_point_t q,
+			     gcry_ctx_t ctx,
+			     struct GNUNET_CRYPTO_EccPublicEncryptKey *pub)
 {
   gcry_mpi_t q_x;
   gcry_mpi_t q_y;
@@ -268,7 +299,32 @@ GNUNET_CRYPTO_ecc_key_get_public_for_signature (const struct GNUNET_CRYPTO_EccPr
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  point_to_public_key (q, ctx, pub);
+  point_to_public_sign_key (q, ctx, pub);
+  gcry_ctx_release (ctx);
+  gcry_mpi_point_release (q);
+}
+
+
+/**
+ * Extract the public key for the given private key.
+ *
+ * @param priv the private key
+ * @param pub where to write the public key
+ */
+void
+GNUNET_CRYPTO_ecc_key_get_public_for_encryption (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+						 struct GNUNET_CRYPTO_EccPublicEncryptKey *pub)
+{
+  gcry_sexp_t sexp;
+  gcry_ctx_t ctx;
+  gcry_mpi_point_t q;
+
+  sexp = decode_private_key (priv);
+  GNUNET_assert (NULL != sexp);
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
+  gcry_sexp_release (sexp);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  point_to_public_encrypt_key (q, ctx, pub);
   gcry_ctx_release (ctx);
   gcry_mpi_point_release (q);
 }
@@ -1047,7 +1103,7 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicSignKey
   gcry_mpi_release (n);
   gcry_mpi_point_release (q);
   /* convert point 'v' to public key that we return */
-  point_to_public_key (v, ctx, result);
+  point_to_public_sign_key (v, ctx, result);
   gcry_mpi_point_release (v);
   gcry_ctx_release (ctx);
 }

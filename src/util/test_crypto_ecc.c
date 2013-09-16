@@ -204,15 +204,15 @@ test_ecdh ()
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv1;
   struct GNUNET_CRYPTO_EccPrivateKey *priv2;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub1;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub2;
+  struct GNUNET_CRYPTO_EccPublicEncryptKey pub1;
+  struct GNUNET_CRYPTO_EccPublicEncryptKey pub2;
   struct GNUNET_HashCode ecdh1;
   struct GNUNET_HashCode ecdh2;
 
   priv1 = GNUNET_CRYPTO_ecc_key_create ();
   priv2 = GNUNET_CRYPTO_ecc_key_create ();
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv1, &pub1);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv2, &pub2);
+  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (priv1, &pub1);
+  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (priv2, &pub2);
   GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
   GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
   GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,

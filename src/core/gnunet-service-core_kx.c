@@ -111,7 +111,7 @@ struct EphemeralKeyMessage
    * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
    * for network transmission as created using 'gcry_sexp_sprint'.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey ephemeral_key;  
+  struct GNUNET_CRYPTO_EccPublicEncryptKey ephemeral_key;  
 
   /**
    * Public key of the signing peer (persistent version, not the ephemeral public key).
@@ -1492,8 +1492,8 @@ sign_ephemeral_key ()
   {
     current_ekm.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_ephemeral_key,
-				    &current_ekm.ephemeral_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (my_ephemeral_key,
+						   &current_ekm.ephemeral_key);
   current_ekm.origin_public_key = my_public_key;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CRYPTO_ecc_sign (my_private_key,
