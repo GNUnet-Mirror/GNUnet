@@ -192,6 +192,7 @@ struct SessionCompareContext
 {
   struct Session *res;
   const struct GNUNET_HELLO_Address *addr;
+  int inbound;
 };
 
 
@@ -1479,6 +1480,8 @@ session_cmp_it (void *cls,
        udp_address_to_string (NULL, (void *) address->address, 
 			      address->address_length),
        GNUNET_a2s (s->sock_addr, s->addrlen));
+  if (s->inbound != cctx->inbound)
+    return GNUNET_YES;
   if ((address->address_length == sizeof (struct IPv4UdpAddress)) &&
       (s_addrlen == sizeof (struct sockaddr_in)))
   {
@@ -1533,11 +1536,13 @@ udp_get_network (void *cls,
  *
  * @param cls the plugin
  * @param address the address
+ * @param inbound look for inbound session
  * @return the session or NULL of max connections exceeded
  */
 static struct Session *
 udp_plugin_lookup_session (void *cls,
-			   const struct GNUNET_HELLO_Address *address)
+			   const struct GNUNET_HELLO_Address *address,
+			   int inbound)
 {
   struct Plugin * plugin = cls;
   struct IPv6UdpAddress * udp_a6;
@@ -1581,6 +1586,7 @@ udp_plugin_lookup_session (void *cls,
   struct SessionCompareContext cctx;
   cctx.addr = address;
   cctx.res = NULL;
+  cctx.inbound = inbound;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Looking for existing session for peer `%s' `%s' \n", 
        GNUNET_i2s (&address->peer), 
@@ -1597,7 +1603,8 @@ udp_plugin_lookup_session (void *cls,
 
 static struct Session *
 udp_plugin_create_session (void *cls,
-			   const struct GNUNET_HELLO_Address *address)
+			   const struct GNUNET_HELLO_Address *address,
+			   int inbound)
 {
   struct Session *s;
 
@@ -1608,8 +1615,10 @@ udp_plugin_create_session (void *cls,
 		      NULL, NULL);
   if (NULL == s)
     return NULL; /* protocol not supported or address invalid */
+  s->inbound = inbound;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new session %p for peer `%s' address `%s'\n",
+       "Creating new %s session %p for peer `%s' address `%s'\n",
+       (GNUNET_YES == s->inbound) ? "inbound" : "outbound",
        s,
        GNUNET_i2s(&address->peer),
        udp_address_to_string(NULL,address->address,address->address_length));
@@ -1650,9 +1659,9 @@ udp_plugin_get_session (void *cls,
     return NULL;
 
   /* otherwise create new */
-  if (NULL != (s = udp_plugin_lookup_session (cls, address)))
+  if (NULL != (s = udp_plugin_lookup_session (cls, address, GNUNET_NO)))
     return s;
-  return udp_plugin_create_session (cls, address);
+  return udp_plugin_create_session (cls, address, GNUNET_NO);
 }
 
 
@@ -2037,14 +2046,13 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
        GNUNET_a2s (sender_addr, sender_addr_len));
 
   struct GNUNET_HELLO_Address * address = GNUNET_HELLO_address_allocate(&msg->sender, "udp", arg, args);
-  if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
+  if (NULL == (s = udp_plugin_lookup_session (plugin, address, GNUNET_YES)))
   {
-  		s = udp_plugin_create_session(plugin, address);
-  		s->inbound = GNUNET_YES;
-  	  plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
-  	  		(GNUNET_YES == s->inbound) ? NULL : address->address,
-  	  		(GNUNET_YES == s->inbound) ? 0 : address->address_length,
-  	  	  s, NULL, 0);
+    s = udp_plugin_create_session (plugin, address, GNUNET_YES);
+    plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
+                  (GNUNET_YES == s->inbound) ? NULL : address->address,
+                  (GNUNET_YES == s->inbound) ? 0 : address->address_length,
+            s, NULL, 0);
   }
   GNUNET_free (address);
 
