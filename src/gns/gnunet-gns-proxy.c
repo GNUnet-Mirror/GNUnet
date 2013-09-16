@@ -183,28 +183,6 @@ struct Socks5Request
 
 
 /**
- * DLL for Network Handles
- */
-struct NetworkHandleList
-{
-  /**
-   * DLL
-   */
-  struct NetworkHandleList *next;
-
-  /**
-   * DLL
-   */
-  struct NetworkHandleList *prev;
-
-  /**
-   * The handle 
-   */
-  struct GNUNET_NETWORK_Handle *h;
-};
-
-
-/**
  * A structure for all running Httpds
  */
 struct MhdHttpList
@@ -244,15 +222,6 @@ struct MhdHttpList
    */
   GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 
-  /**
-   * Handles associated with this daemon 
-   */
-  struct NetworkHandleList *socket_handles_head;
-  
-  /**
-   * Handles associated with this daemon 
-   */
-  struct NetworkHandleList *socket_handles_tail;
 };
 
 
@@ -2305,7 +2274,7 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param h the handle to the socket to add
  * @param daemon the daemon to add the fd to
- * @return whatever MHD_add_connection returns
+ * @return whatever #MHD_add_connection returns
  */
 static int
 add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
@@ -2522,38 +2491,33 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
 
 
 /**
- * Adds a socket to an SSL MHD instance
- * It is important the the domain name is
- * correct. In most cases we need to start a new daemon
+ * Adds a socket to an SSL MHD instance It is important that the
+ * domain name is correct. In most cases we need to start a new daemon.
  *
  * @param h the handle to add to a daemon
- * @param domain the domain the ssl daemon has to serve
+ * @param domain the domain the SSL daemon has to serve
  * @return #MHD_YES on success
  */
 static int
-add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
+add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, 
+		       const char* domain)
 {
   struct MhdHttpList *hd;
   struct ProxyGNSCertificate *pgc;
-  struct NetworkHandleList *nh;
 
   for (hd = mhd_httpd_head; NULL != hd; hd = hd->next)
     if (0 == strcmp (hd->domain, domain))
       break;
-
   if (NULL == hd)
   {    
-    pgc = generate_gns_certificate (domain);
-    
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting fresh MHD HTTPS instance for domain `%s'\n",
+                domain);
+    pgc = generate_gns_certificate (domain);   
     hd = GNUNET_new (struct MhdHttpList);
     hd->is_ssl = GNUNET_YES;
-    strcpy (hd->domain, domain);
+    strcpy (hd->domain, domain); /* FIXME: avoid fixed-sized buffers... */
     hd->proxy_cert = pgc;
-
-    /* Start new MHD */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No previous SSL instance found... starting new one for %s\n",
-                domain);
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL | MHD_USE_NO_LISTEN_SOCKET,
                                    0,
                                    &accept_cb, NULL,
@@ -2567,19 +2531,10 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
 				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
 				   NULL,
 				   MHD_OPTION_END);
-    GNUNET_assert (hd->daemon != NULL);
-    hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
-    
+    /* FIXME: rather than assert, handle error! */
+    GNUNET_assert (NULL != hd->daemon);
     GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
   }
-
-  nh = GNUNET_new (struct NetworkHandleList);
-  nh->h = h;
-
-  GNUNET_CONTAINER_DLL_insert (hd->socket_handles_head,
-                               hd->socket_handles_tail,
-                               nh);
-  
   return add_handle_to_mhd (h, hd->daemon);
 }
 
@@ -2606,85 +2561,64 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t remote_ip;
   struct sockaddr_in remote_addr;
   struct in_addr *r_sin_addr;
-  struct NetworkHandleList *nh;
 
   s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
-  if ((NULL != tc->write_ready) &&
-      (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) &&
-      (s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, s5r->rbuf,
-                                         sizeof (s5r->rbuf))))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Successfully read %d bytes from socket\n",
-                s5r->rbuf_len);
-  }
+  if ( (NULL != tc->read_ready) &&
+       (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) )
+    s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, s5r->rbuf,
+						sizeof (s5r->rbuf));
   else
+    s5r->rbuf_len = 0;
+  if (0 == s5r->rbuf_len)
   {
-    if (s5r->rbuf_len != 0)
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "read");
-    else
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disco!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"socks5 client disconnected.\n");
     cleanup_s5r (s5r);
     return;
   }
-
-  if (s5r->state == SOCKS5_INIT)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Processing socks data in state %d\n",
+	      s5r->state);
+  switch (s5r->state)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "SOCKS5 init\n");
-    c_hello = (struct socks5_client_hello*)&s5r->rbuf;
-
+  case SOCKS5_INIT:
+    /* FIXME: failed to check if we got enough data yet! */
+    c_hello = (struct socks5_client_hello*) &s5r->rbuf;
     GNUNET_assert (c_hello->version == SOCKS_VERSION_5);
-
-    s_hello = (struct socks5_server_hello*)&s5r->wbuf;
+    s_hello = (struct socks5_server_hello*) &s5r->wbuf;
     s5r->wbuf_len = sizeof( struct socks5_server_hello );
-
     s_hello->version = c_hello->version;
     s_hello->auth_method = SOCKS_AUTH_NONE;
-
     /* Write response to client */
     s5r->wtask = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                s5r->sock,
-                                                &do_write, s5r);
-
+						 s5r->sock,
+						 &do_write, s5r);
     s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 s5r->sock,
                                                 &do_s5r_read, s5r);
-
     s5r->state = SOCKS5_REQUEST;
     return;
-  }
-
-  if (s5r->state == SOCKS5_REQUEST)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Processing SOCKS5 request\n");
-    c_req = (struct socks5_client_request*)&s5r->rbuf;
-    s_resp = (struct socks5_server_response*)&s5r->wbuf;
-    //Only 10byte for ipv4 response!
+  case SOCKS5_REQUEST:
+    /* FIXME: failed to check if we got enough data yet!? */
+    c_req = (struct socks5_client_request *) &s5r->rbuf;
+    s_resp = (struct socks5_server_response *) &s5r->wbuf;
+    //Only 10 byte for ipv4 response!
     s5r->wbuf_len = 10;//sizeof (struct socks5_server_response);
-
     GNUNET_assert (c_req->addr_type == 3);
-
     dom_len = *((uint8_t*)(&(c_req->addr_type) + 1));
     memset(domain, 0, sizeof(domain));
     strncpy(domain, (char*)(&(c_req->addr_type) + 2), dom_len);
     req_port = *((uint16_t*)(&(c_req->addr_type) + 2 + dom_len));
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Requested connection is %s:%d\n",
+                "Requested connection is to %s:%d\n",
                 domain,
                 ntohs(req_port));
-
     if (is_tld (domain, GNUNET_GNS_TLD) ||
         is_tld (domain, GNUNET_GNS_TLD_ZKEY))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Requested connection is gnunet tld\n",
-                  domain);
-      
+      /* GNS TLD */
       ret = MHD_NO;
-      if (ntohs(req_port) == HTTPS_PORT)
+      if (ntohs (req_port) == HTTPS_PORT)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Requested connection is HTTPS\n");
@@ -2694,13 +2628,6 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Requested connection is HTTP\n");
-        nh = GNUNET_new (struct NetworkHandleList);
-        nh->h = s5r->sock;
-
-        GNUNET_CONTAINER_DLL_insert (mhd_httpd_head->socket_handles_head,
-                               mhd_httpd_head->socket_handles_tail,
-                               nh);
-
         ret = add_handle_to_mhd ( s5r->sock, httpd );
       }
 
@@ -2736,7 +2663,9 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     else
     {
-      phost = (struct hostent*)gethostbyname (domain);
+      /* non-GNS TLD, use DNS to resolve */
+      /* FIXME: make asynchronous! */
+      phost = (struct hostent *) gethostbyname (domain);
       if (phost == NULL)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2787,17 +2716,13 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         //TODO see above
         return;
       }
-
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "new remote connection\n");
-
       s_resp->version = 0x05;
       s_resp->reply = 0x00;
       s_resp->reserved = 0x00;
       s_resp->addr_type = 0x01;
-
       s5r->state = SOCKS5_DATA_TRANSFER;
-
       s5r->wtask =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                         s5r->sock,
@@ -2806,36 +2731,35 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                        s5r->sock,
                                        &do_s5r_read, s5r);
-
     }
     return;
-  }
-
-  if (s5r->state == SOCKS5_DATA_TRANSFER)
-  {
-    if ((s5r->remote_sock == NULL) || (s5r->rbuf_len == 0))
+  case SOCKS5_DATA_TRANSFER:
     {
+      if ((s5r->remote_sock == NULL) || (s5r->rbuf_len == 0))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Closing connection to client\n");
+	cleanup_s5r (s5r);
+	return;
+      }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Closing connection to client\n");
-      cleanup_s5r (s5r);
-      return;
+		  "forwarding %d bytes from client\n", s5r->rbuf_len);      
+      s5r->fwdwtask =
+	GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					s5r->remote_sock,
+					&do_write_remote, s5r);      
+      if (s5r->fwdrtask == GNUNET_SCHEDULER_NO_TASK)
+      {
+	s5r->fwdrtask =
+	  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					 s5r->remote_sock,
+					 &do_read_remote, s5r);
+      }
     }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "forwarding %d bytes from client\n", s5r->rbuf_len);
-
-    s5r->fwdwtask =
-      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                      s5r->remote_sock,
-                                      &do_write_remote, s5r);
-
-    if (s5r->fwdrtask == GNUNET_SCHEDULER_NO_TASK)
-    {
-      s5r->fwdrtask =
-        GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                       s5r->remote_sock,
-                                       &do_read_remote, s5r);
-    }
+    return;
+  default:
+    GNUNET_break (0);
+    return;
   }
 }
 
@@ -2888,8 +2812,6 @@ do_shutdown (void *cls,
 {
   struct MhdHttpList *hd;
   struct MhdHttpList *tmp_hd;
-  struct NetworkHandleList *nh;
-  struct NetworkHandleList *tmp_nh;
   struct ProxyCurlTask *ctask;
   struct ProxyCurlTask *ctask_tmp;
   struct ProxyUploadData *pdata;
@@ -2908,12 +2830,6 @@ do_shutdown (void *cls,
     {
       MHD_stop_daemon (hd->daemon);
       hd->daemon = NULL;
-    }
-    for (nh = hd->socket_handles_head; NULL != nh; nh = tmp_nh)
-    {
-      tmp_nh = nh->next;
-      GNUNET_NETWORK_socket_close (nh->h);
-      GNUNET_free (nh);
     }
     GNUNET_free_non_null (hd->proxy_cert);
     GNUNET_free (hd);
