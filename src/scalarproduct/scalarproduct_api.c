@@ -190,7 +190,7 @@ process_result_message (void *cls,
           gcry_mpi_t num;
           size_t read = 0;
 
-          if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_STD, &msg[1], product_len, &read)))
+          if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_USG, &msg[1], product_len, &read)))
             {
               LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
               gcry_mpi_release (result);
@@ -199,9 +199,9 @@ process_result_message (void *cls,
             }
           else
             {
-              if (message->range > 0)
+              if (0 < message->range)
                 gcry_mpi_add (result, result, num);
-              else
+              else if (0 > message->range)
                 gcry_mpi_sub (result, result, num);
               gcry_mpi_release (num);
             }

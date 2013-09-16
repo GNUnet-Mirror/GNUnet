@@ -1483,7 +1483,7 @@ tunnel_destruction_handler (void *cls,
   if (ALICE == session->role) {
     // as we have only one peer connected in each session, just remove the session
 
-    if ((FINALIZED != session->state) && (!do_shutdown))
+    if ((SERVICE_RESPONSE_RECEIVED > session->state) && (!do_shutdown))
     {
       session->tunnel = NULL;
       // if this happened before we received the answer, we must terminate the session
@@ -1657,7 +1657,7 @@ prepare_client_response (void *cls,
       
       // get representation as string
       if (range
-          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_STD,
+          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_USG,
                                              &product_exported,
                                              &product_length,
                                              value)))){
@@ -1670,13 +1670,15 @@ prepare_client_response (void *cls,
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) + product_length;
   msg = GNUNET_malloc (msg_length);
-  memcpy (&msg[1], product_exported, product_length);
-  GNUNET_free_non_null (product_exported);
+  memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
+  memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
+  if (product_exported != NULL){
+    memcpy (&msg[1], product_exported, product_length);
+    GNUNET_free(product_exported);
+  }
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
   msg->header.size = htons (msg_length);
   msg->range = range;
-  memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
-  memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
   msg->product_length = htonl (product_length);
   
   session->msg = (struct GNUNET_MessageHeader *) msg;

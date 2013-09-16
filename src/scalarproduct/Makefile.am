@@ -53,10 +53,10 @@ libgnunetscalarproduct_la_LIBADD = \
 libgnunetscalarproduct_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
-check_PROGRAMS = \
-	test_scalarproduct_api_regression \
-	test_scalarproduct_api \
-	test_scalarproduct_api_4peers
+#check_PROGRAMS = \
+#	test_scalarproduct_api_regression \
+#	test_scalarproduct_api \
+#	test_scalarproduct_api_4peers
 #FIXME unfinished
 #test_scalarproduct_api_regression2 
 
