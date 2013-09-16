@@ -166,7 +166,6 @@ static struct GNUNET_IDENTITY_Handle *identity;
 static struct GNUNET_IDENTITY_Operation *id_op;
 
 
-
 /**
  * Task run on shutdown.  Cleans up everything.
  *

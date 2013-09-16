@@ -33,37 +33,39 @@
 #include <regex.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_gns_service.h"
+#include "gnunet_identity_service.h"
 #include "gns_proxy_proto.h"
 #include "gns.h"
 
-#define HAVE_MHD_NO_LISTEN_SOCKET (MHD_VERSION >= 0x00091401)
 
 #define GNUNET_GNS_PROXY_PORT 7777
+
 #define MHD_MAX_CONNECTIONS 300
+
 #define MAX_HTTP_URI_LENGTH 2048
+
 #define POSTBUFFERSIZE 4096
 
-/* MHD/cURL defines */
+#define HTTP_PORT 80
+
+#define HTTPS_PORT 443
+
+/**
+ * Log curl error.
+ *
+ * @param level log level
+ * @param fun name of curl_easy-function that gave the error
+ * @param rc return code from curl
+ */
+#define LOG_CURL_EASY(level,fun,rc) GNUNET_log(level, _("%s failed at %s:%d: `%s'\n"), fun, __FILE__, __LINE__, curl_easy_strerror (rc))
+
+
 enum BufferStatus
   {
     BUF_WAIT_FOR_CURL,
-    BUF_WAIT_FOR_MHD,
-    BUF_WAIT_FOR_PP 
+    BUF_WAIT_FOR_MHD
   };
 
-#define HTML_HDR_CONTENT "Content-Type: text/html"
-
-/* buffer padding for proper RE matching */
-#define CURL_BUF_PADDING 1000
-
-/* regexp */
-//#define RE_DOTPLUS "<a href=\"http://(([A-Za-z]+[.])+)([+])"
-#define RE_A_HREF  "href=\"https?://(([A-Za-z0-9]+[.])+)([+]|[a-z]+)"
-#define RE_N_MATCHES 4
-
-/* The usual suspects */
-#define HTTP_PORT 80
-#define HTTPS_PORT 443
 
 
 /**
@@ -71,10 +73,14 @@ enum BufferStatus
  */
 struct ProxyCA
 {
-  /* The certificate */
+  /**
+   * The certificate 
+   */
   gnutls_x509_crt_t cert;
 
-  /* The private key */
+  /**
+   * The private key 
+   */
   gnutls_x509_privkey_t key;
 };
 
@@ -98,58 +104,91 @@ struct ProxyGNSCertificate
  */
 struct Socks5Request
 {
-  /* The client socket */
+  /**
+   * The client socket 
+   */
   struct GNUNET_NETWORK_Handle *sock;
 
-  /* The server socket */
+  /**
+   * The server socket 
+   */
   struct GNUNET_NETWORK_Handle *remote_sock;
   
-  /* The socks state */
+  /**
+   * The socks state 
+   */
   int state;
   
-  /* Client socket read task */
+  /**
+   * Client socket read task 
+   */
   GNUNET_SCHEDULER_TaskIdentifier rtask;
 
-  /* Server socket read task */
+  /**
+   * Server socket read task 
+   */
   GNUNET_SCHEDULER_TaskIdentifier fwdrtask;
 
-  /* Client socket write task */
+  /**
+   * Client socket write task 
+   */
   GNUNET_SCHEDULER_TaskIdentifier wtask;
 
-  /* Server socket write task */
+  /**
+   * Server socket write task 
+   */
   GNUNET_SCHEDULER_TaskIdentifier fwdwtask;
 
-  /* Read buffer */
+  /**
+   * Read buffer 
+   */
   char rbuf[2048];
 
-  /* Write buffer */
+  /**
+   * Write buffer 
+   */
   char wbuf[2048];
 
-  /* Length of data in read buffer */
+  /**
+   * Length of data in read buffer 
+   */
   unsigned int rbuf_len;
 
-  /* Length of data in write buffer */
+  /**
+   * Length of data in write buffer 
+   */
   unsigned int wbuf_len;
 
-  /* This handle is scheduled for cleanup? */
+  /**
+   * This handle is scheduled for cleanup? 
+   */
   int cleanup;
 
-  /* Shall we close the client socket on cleanup? */
+  /**
+   * Shall we close the client socket on cleanup? 
+   */
   int cleanup_sock;
 };
+
 
 /**
  * DLL for Network Handles
  */
 struct NetworkHandleList
 {
-  /*DLL*/
+  /**
+   * DLL
+   */
   struct NetworkHandleList *next;
 
-  /*DLL*/
+  /**
+   * DLL
+   */
   struct NetworkHandleList *prev;
 
-  /* The handle */
+  /**
+   * The handle 
+   */
   struct GNUNET_NETWORK_Handle *h;
 };
 
@@ -158,31 +197,49 @@ struct NetworkHandleList
  */
 struct MhdHttpList
 {
-  /* DLL for httpds */
+  /**
+   * DLL for httpds 
+   */
   struct MhdHttpList *prev;
 
-  /* DLL for httpds */
+  /**
+   * DLL for httpds 
+   */
   struct MhdHttpList *next;
 
-  /* is this an ssl daemon? */
+  /**
+   * is this an ssl daemon? 
+   */
   int is_ssl;
 
-  /* the domain name to server (only important for SSL) */
+  /**
+   * the domain name to server (only important for SSL) 
+   */
   char domain[256];
 
-  /* The daemon handle */
+  /**
+   * The daemon handle 
+   */
   struct MHD_Daemon *daemon;
 
-  /* Optional proxy certificate used */
+  /**
+   * Optional proxy certificate used
+   */
   struct ProxyGNSCertificate *proxy_cert;
 
-  /* The task ID */
+  /**
+   * The task ID 
+   */
   GNUNET_SCHEDULER_TaskIdentifier httpd_task;
 
-  /* Handles associated with this daemon */
+  /**
+   * Handles associated with this daemon 
+   */
   struct NetworkHandleList *socket_handles_head;
   
-  /* Handles associated with this daemon */
+  /**
+   * Handles associated with this daemon 
+   */
   struct NetworkHandleList *socket_handles_tail;
 };
 
@@ -191,68 +248,92 @@ struct MhdHttpList
  */
 struct ProxyCurlTask
 {
-  /* DLL for tasks */
+  /**
+   * DLL for tasks 
+   */
   struct ProxyCurlTask *prev;
 
-  /* DLL for tasks */
+  /**
+   * DLL for tasks 
+   */
   struct ProxyCurlTask *next;
 
-  /* Handle to cURL */
+  /**
+   * Handle to cURL 
+   */
   CURL *curl;
 
-  /* Optional header replacements for curl (LEHO) */
+  /**
+   * Optional header replacements for curl (LEHO) 
+   */
   struct curl_slist *headers;
 
-  /* Optional resolver replacements for curl (LEHO) */
+  /**
+   * Optional resolver replacements for curl (LEHO) 
+   */
   struct curl_slist *resolver;
 
-  /* curl response code */
+  /**
+   * curl response code 
+   */
   long curl_response_code;
 
-  /* The URL to fetch */
+  /**
+   * The URL to fetch 
+   */
   char url[MAX_HTTP_URI_LENGTH];
 
-  /* The cURL write buffer / MHD read buffer */
-  char buffer[CURL_MAX_WRITE_SIZE + CURL_BUF_PADDING];
+  /**
+   * The cURL write buffer / MHD read buffer 
+   */
+  char buffer[CURL_MAX_WRITE_SIZE];
 
-  /* Read pos of the data in the buffer */
+  /**
+   * Read pos of the data in the buffer 
+   */
   char *buffer_read_ptr;
 
-  /* Write pos in the buffer */
+  /**
+   * Write pos in the buffer 
+   */
   char *buffer_write_ptr;
 
-  /* connection */
+  /**
+   * connection 
+   */
   struct MHD_Connection *connection;
 
-  /*put*/
+  /**
+   * put
+   */
   size_t put_read_offset;
   size_t put_read_size;
 
-  /*post*/
+  /**
+   *post
+   */
   struct MHD_PostProcessor *post_handler;
 
   /* post data */
   struct ProxyUploadData *upload_data_head;
   struct ProxyUploadData *upload_data_tail;
 
-  /* the type of POST encoding */
+  /**
+   * the type of POST encoding 
+   */
   char* post_type;
 
   struct curl_httppost *httppost;
 
   struct curl_httppost *httppost_last;
 
-  /* Number of bytes in buffer */
+  /**
+   * Number of bytes in buffer 
+   */
   unsigned int bytes_in_buffer;
 
   /* PP task */
   GNUNET_SCHEDULER_TaskIdentifier pp_task;
-
-  /* PP match list */
-  struct ProxyREMatch *pp_match_head;
-
-  /* PP match list */
-  struct ProxyREMatch *pp_match_tail;
 
   /* The associated daemon list entry */
   struct MhdHttpList *mhd;
@@ -275,41 +356,50 @@ struct ProxyCurlTask
   /* The LEgacy HOstname (can be empty) */
   char leho[256];
 
-  /* The port */
+  /**
+   * The port 
+   */
   uint16_t port;
 
-  /* The buffer status (BUF_WAIT_FOR_CURL or BUF_WAIT_FOR_MHD) */
+  /**
+   * The buffer status (BUF_WAIT_FOR_CURL or BUF_WAIT_FOR_MHD) 
+   */
   enum BufferStatus buf_status;
 
-  /* connection status */
+  /**
+   * connection status 
+   */
   int ready_to_queue;
 
-  /* is curl running? */
+  /**
+   * is curl running? 
+   */
   int curl_running;
   
-  /* are we done */
+  /**
+   * are we done 
+   */
   int fin;
 
-  /* Already accepted */
+  /**
+   * Already accepted 
+   */
   int accepted;
 
-  /* Indicates wheather the download is in progress */
+  /**
+   * Indicates wheather the download is in progress 
+   */
   int download_in_progress;
 
-  /* Indicates wheather the download was successful */
+  /**
+   * Indicates wheather the download was successful 
+   */
   int download_is_finished;
 
-  /* Indicates wheather the download failed */
+  /**
+   * Indicates wheather the download failed 
+   */
   int download_error;
-
-  /* Indicates wheather we need to parse HTML */
-  int parse_content;
-
-  /* Indicates wheather we are postprocessing the HTML right now */
-  int is_postprocessing;
-
-  /* Indicates wheather postprocessing has finished */
-  int pp_finished;
 
   int post_done;
 
@@ -317,55 +407,25 @@ struct ProxyCurlTask
   
 };
 
-/**
- * Struct for RE matches in postprocessing of HTML
- */
-struct ProxyREMatch
-{
-  /* DLL */
-  struct ProxyREMatch *next;
-
-  /* DLL */
-  struct ProxyREMatch *prev;
-
-  /* start of match in buffer */
-  char* start;
-
-  /* end of match in buffer */
-  char* end;
-
-  /* associated proxycurltask */
-  struct ProxyCurlTask *ctask;
-
-  /* hostname found */
-  char hostname[255];
-
-  /* PP result */
-  char result[255];
-
-  /* shorten task */
-  struct GNUNET_GNS_ShortenRequest *shorten_task;
-
-  /* are we done */
-  int done;
-
-  /* is SSL */
-  int is_ssl;
-
-};
 
 /**
  * Struct for set-cookies
  */
 struct ProxySetCookieHeader
 {
-  /* DLL */
+  /**
+   * DLL 
+   */
   struct ProxySetCookieHeader *next;
 
-  /* DLL */
+  /**
+   * DLL 
+   */
   struct ProxySetCookieHeader *prev;
 
-  /* the cookie */
+  /**
+   * the cookie 
+   */
   char *cookie;
 };
 
@@ -374,10 +434,14 @@ struct ProxySetCookieHeader
  */
 struct ProxyUploadData
 {
-  /* DLL */
+  /**
+   * DLL 
+   */
   struct ProxyUploadData *next;
 
-  /* DLL */
+  /**
+   * DLL 
+   */
   struct ProxyUploadData *prev;
 
   char *key;
@@ -388,78 +452,137 @@ struct ProxyUploadData
 
   size_t content_length;
   
-  /* value */
+  /**
+   * value 
+   */
   char *value;
 
-  /* to copy */
+  /**
+   * to copy 
+   */
   size_t bytes_left;
 
-  /* size */
+  /**
+   * size 
+   */
   size_t total_bytes;
 };
 
 
-/* The port the proxy is running on (default 7777) */
+/**
+ * The port the proxy is running on (default 7777) 
+ */
 static unsigned long port = GNUNET_GNS_PROXY_PORT;
 
-/* The CA file (pem) to use for the proxy CA */
+/**
+ * The CA file (pem) to use for the proxy CA 
+ */
 static char* cafile_opt;
 
-/* The listen socket of the proxy */
+/**
+ * The listen socket of the proxy 
+ */
 static struct GNUNET_NETWORK_Handle *lsock;
 
-/* The listen task ID */
+/**
+ * The listen task ID 
+ */
 static GNUNET_SCHEDULER_TaskIdentifier ltask;
 
-/* The cURL download task */
+/**
+ * The cURL download task 
+ */
 static GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
 
-/* The non SSL httpd daemon handle */
+/**
+ * The non SSL httpd daemon handle 
+ */
 static struct MHD_Daemon *httpd;
 
-/* Number of current mhd connections */
+/**
+ * Number of current mhd connections 
+ */
 static unsigned int total_mhd_connections;
 
-/* The cURL multi handle */
+/**
+ * The cURL multi handle 
+ */
 static CURLM *curl_multi;
 
-/* Handle to the GNS service */
+/**
+ * Handle to the GNS service 
+ */
 static struct GNUNET_GNS_Handle *gns_handle;
 
-/* DLL for ProxyCurlTasks */
+/**
+ * DLL for ProxyCurlTasks 
+ */
 static struct ProxyCurlTask *ctasks_head;
 
-/* DLL for ProxyCurlTasks */
+/**
+ * DLL for ProxyCurlTasks 
+ */
 static struct ProxyCurlTask *ctasks_tail;
 
-/* DLL for http daemons */
+/**
+ * DLL for http daemons 
+ */
 static struct MhdHttpList *mhd_httpd_head;
 
-/* DLL for http daemons */
+/**
+ * DLL for http daemons 
+ */
 static struct MhdHttpList *mhd_httpd_tail;
 
-/* Handle to the regex for dotplus (.+) replacement in HTML */
-static regex_t re_dotplus;
+/**
+ * The users local GNS master zone 
+ */
+static struct GNUNET_CRYPTO_EccPublicSignKey local_gns_zone;
 
-/* The users local GNS zone hash */
-static struct GNUNET_CRYPTO_ShortHashCode *local_gns_zone;
+/**
+ * The users local shorten zone 
+ */
+static struct GNUNET_CRYPTO_EccPrivateKey local_shorten_zone;
 
-/* The users local private zone */
-static struct GNUNET_CRYPTO_ShortHashCode *local_private_zone;
+/**
+ * Is shortening enabled?
+ */
+static int do_shorten;
 
-/* The users local shorten zone */
-static struct GNUNET_CRYPTO_ShortHashCode *local_shorten_zone;
-
-/* The CA for SSL certificate generation */
+/**
+ * The CA for SSL certificate generation 
+ */
 static struct ProxyCA proxy_ca;
 
-/* UNIX domain socket for mhd */
-#if !HAVE_MHD_NO_LISTEN_SOCKET
+/**
+ * UNIX domain socket for mhd 
+ */
 static struct GNUNET_NETWORK_Handle *mhd_unix_socket;
-#endif
 
-/* Shorten zone private key */
-static struct GNUNET_CRYPTO_EccPrivateKey *shorten_zonekey;
+/**
+ * Shorten zone private key 
+ */
+static struct GNUNET_CRYPTO_EccPrivateKey shorten_zonekey;
+
+/**
+ * Response we return on cURL failures.
+ */
+static struct MHD_Response *curl_failure_response;
+
+/**
+ * Connection to identity service.
+ */
+static struct GNUNET_IDENTITY_Handle *identity;
+
+/**
+ * Request for our ego.
+ */
+static struct GNUNET_IDENTITY_Operation *id_op;
+
+/**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
 /**
@@ -467,7 +590,7 @@ static struct GNUNET_CRYPTO_EccPrivateKey *shorten_zonekey;
  *
  * @param name the name to check 
  * @param tld the TLD to check for (must NOT begin with ".")
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 static int
 is_tld (const char* name, const char* tld)
@@ -515,7 +638,7 @@ con_post_data_iter (void *cls,
     /* new part */
     if (0 == off)
     {
-      pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
+      pdata = GNUNET_new (struct ProxyUploadData);
       pdata->key = GNUNET_strdup (key);
 
       if (NULL != filename)
@@ -566,7 +689,7 @@ con_post_data_iter (void *cls,
 	return MHD_NO;
       }
     /* a key */
-    pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
+    pdata = GNUNET_new (struct ProxyUploadData);
     pdata->value = GNUNET_malloc (strlen (enc) + 3);
     if (NULL != ctask->upload_data_head)
     {
@@ -596,7 +719,7 @@ con_post_data_iter (void *cls,
       GNUNET_break (0);
       return MHD_NO;
     }
-  pdata = GNUNET_malloc (sizeof (struct ProxyUploadData));
+  pdata = GNUNET_new (struct ProxyUploadData);
   pdata->value = GNUNET_malloc (strlen (enc) + 1);
   memcpy (pdata->value, enc, strlen (enc));
   pdata->bytes_left = strlen (pdata->value);
@@ -621,7 +744,7 @@ con_post_data_iter (void *cls,
  * @param kind value kind
  * @param key field key
  * @param value field value
- * @return MHD_NO when Host found
+ * @return #MHD_NO when Host found
  */
 static int
 con_val_iter (void *cls,
@@ -721,9 +844,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 {
   size_t bytes = size * nmemb;
   struct ProxyCurlTask *ctask = cls;
-  int html_mime_len = strlen (HTML_HDR_CONTENT);
   int cookie_hdr_len = strlen (MHD_HTTP_HEADER_SET_COOKIE);
-  char hdr_mime[html_mime_len+1];
   char hdr_generic[bytes+1];
   char new_cookie_hdr[bytes+strlen (ctask->leho)+1];
   char new_location[MAX_HTTP_URI_LENGTH+500];
@@ -773,20 +894,6 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     }
     ctask->ready_to_queue = GNUNET_YES;
   }
-  
-  if (html_mime_len <= bytes)
-  {
-    memcpy (hdr_mime, buffer, html_mime_len);
-    hdr_mime[html_mime_len] = '\0';
-
-    if (0 == strcmp (hdr_mime, HTML_HDR_CONTENT))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Got HTML HTTP response header\n");
-      ctask->parse_content = GNUNET_YES;
-    }
-  }
-
   if (cookie_hdr_len > bytes)
     return bytes;
 
@@ -993,7 +1100,6 @@ mhd_content_free (void *cls,
   struct ProxyCurlTask *ctask = cls;
   struct ProxyUploadData *pdata;
 
-  GNUNET_assert (NULL == ctask->pp_match_head);
   if (NULL != ctask->headers)
     curl_slist_free_all (ctask->headers);
 
@@ -1040,7 +1146,6 @@ mhd_content_cb (void *cls,
                 size_t max)
 {
   struct ProxyCurlTask *ctask = cls;
-  struct ProxyREMatch *re_match;
   ssize_t copied = 0;
   size_t bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
@@ -1077,68 +1182,6 @@ mhd_content_cb (void *cls,
     return 0;
   
   copied = 0;
-  for (re_match = ctask->pp_match_head; NULL != re_match; re_match = ctask->pp_match_head)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: Processing PP %s\n",
-                re_match->hostname);
-    bytes_to_copy = re_match->start - ctask->buffer_read_ptr;
-    if (bytes_to_copy+copied > max)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "MHD: buffer in response too small for %u. Using available space (%d). (%s)\n",
-		  (unsigned int) bytes_to_copy,
-		  max,
-		  ctask->url);
-      memcpy (buf+copied, ctask->buffer_read_ptr, max-copied);
-      ctask->buffer_read_ptr += max-copied;
-      copied = max;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "MHD: copied %d bytes\n", (int) copied);
-      return copied;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: copying %u bytes to mhd response at offset %d\n",
-                (unsigned int) bytes_to_copy, ctask->buffer_read_ptr);
-    memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
-    copied += bytes_to_copy;
-
-    if (GNUNET_NO == re_match->done)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Waiting for PP of %s\n", re_match->hostname);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "MHD: copied %d bytes\n", (int) copied);
-      ctask->buffer_read_ptr += bytes_to_copy;
-      return copied;
-    }
-    
-    if (strlen (re_match->result) > (max - copied))
-    {
-      //FIXME partially copy domain here
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: buffer in response too small for %s! (%s)\n",
-                  re_match->result,
-                  ctask->url);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "MHD: copied %d bytes\n", (int) copied);
-      ctask->buffer_read_ptr += bytes_to_copy;
-      return copied;
-    }
-    
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: Adding PP result %s to buffer\n",
-                re_match->result);
-    memcpy (buf + copied, re_match->result, strlen (re_match->result));
-    copied += strlen (re_match->result);
-    ctask->buffer_read_ptr = re_match->end;
-    GNUNET_CONTAINER_DLL_remove (ctask->pp_match_head,
-                                 ctask->pp_match_tail,
-                                 re_match);
-    GNUNET_free (re_match);
-  }
-
   bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1174,134 +1217,6 @@ mhd_content_cb (void *cls,
 
 
 /**
- * Shorten result callback
- *
- * @param cls the proxycurltask
- * @param short_name the shortened name (NULL on error)
- */
-static void
-process_shorten (void* cls, const char* short_name)
-{
-  struct ProxyREMatch *re_match = cls;
-  char result[sizeof (re_match->result)];
-  
-  if (NULL == short_name)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "PP: Unable to shorten %s\n",
-                re_match->hostname);
-    GNUNET_CONTAINER_DLL_remove (re_match->ctask->pp_match_head,
-                                 re_match->ctask->pp_match_tail,
-                                 re_match);
-    GNUNET_free (re_match);
-    return;
-  }
-
-  if (0 == strcmp (short_name, re_match->ctask->leho))
-    strcpy (result, re_match->ctask->host);
-  else
-    strcpy (result, short_name);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "PP: Shorten %s -> %s\n",
-              re_match->hostname,
-              result);
-  
-  if (re_match->is_ssl)
-    sprintf (re_match->result, "href=\"https://%s", result);
-  else
-    sprintf (re_match->result, "href=\"http://%s", result);
-
-  re_match->done = GNUNET_YES;
-  run_mhd_now (re_match->ctask->mhd);
-}
-
-
-/**
- * Postprocess data in buffer. From read ptr to write ptr
- *
- * @param cls the curlproxytask
- * @param tc task context
- */
-static void
-postprocess_buffer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ProxyCurlTask *ctask = cls;
-  struct ProxyREMatch *re_match;
-  char* re_ptr = ctask->buffer_read_ptr;
-  char re_hostname[255];
-  regmatch_t m[RE_N_MATCHES];
-
-  ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (GNUNET_YES != ctask->parse_content)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "PP: Not parsing content\n");
-    ctask->buf_status = BUF_WAIT_FOR_MHD;
-    run_mhd_now (ctask->mhd);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "PP: We need to parse the HTML\n");
-
-  /* 0 means match found */
-  while (0 == regexec (&re_dotplus, re_ptr, RE_N_MATCHES, m, 0))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "PP: regex match\n");
-
-    GNUNET_assert (m[1].rm_so != -1);
-
-    memset (re_hostname, 0, sizeof (re_hostname));
-    memcpy (re_hostname, re_ptr+m[1].rm_so, (m[3].rm_eo-m[1].rm_so));
-    
-
-    re_match = GNUNET_malloc (sizeof (struct ProxyREMatch));
-    re_match->start = re_ptr + m[0].rm_so;
-    re_match->end = re_ptr + m[3].rm_eo;
-    re_match->done = GNUNET_NO;
-    re_match->ctask = ctask;
-    
-    if ('s' == *(re_ptr+m[1].rm_so-strlen("://")-1)) //FIXME strcmp
-      re_match->is_ssl = GNUNET_YES;
-    else
-      re_match->is_ssl = GNUNET_NO;
-      
-    strcpy (re_match->hostname, re_hostname);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "PP: Got hostname %s\n", re_hostname);
-    re_ptr += m[3].rm_eo;
-
-    if (GNUNET_YES == is_tld (re_match->hostname, GNUNET_GNS_TLD_PLUS))
-    {
-      re_match->hostname[strlen(re_match->hostname)-1] = '\0';
-      strcpy (re_match->hostname+strlen(re_match->hostname),
-              ctask->authority);
-    }
-
-    re_match->shorten_task = GNUNET_GNS_shorten_zone (gns_handle,
-                             re_match->hostname,
-                             local_private_zone,
-                             local_shorten_zone,
-                             local_gns_zone,
-                             &process_shorten,
-                             re_match); //FIXME cancel appropriately
-
-    GNUNET_CONTAINER_DLL_insert_tail (ctask->pp_match_head,
-                                      ctask->pp_match_tail,
-                                      re_match);
-  }
-  
-  ctask->buf_status = BUF_WAIT_FOR_MHD;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "PP: No more matches\n");
-  run_mhd_now (ctask->mhd);
-}
-
-
-/**
  * Handle data from cURL
  *
  * @param ptr pointer to the data
@@ -1316,41 +1231,31 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
   const char *cbuf = ptr;
   size_t total = size * nmemb;
   struct ProxyCurlTask *ctask = ctx;
-  size_t buf_space = sizeof (ctask->buffer) -
-    (ctask->buffer_write_ptr-ctask->buffer);
+  size_t buf_space = sizeof (ctask->buffer) - (ctask->buffer_write_ptr - ctask->buffer);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "CURL: Got %d. %d free in buffer\n",
-              total, buf_space);
-
-  if (BUF_WAIT_FOR_CURL != ctask->buf_status)
-    return CURL_WRITEFUNC_PAUSE;
-
-  if (total > (buf_space - CURL_BUF_PADDING))
+              (int) total,
+	      (int) buf_space);
+  if (0 == buf_space)
   {
-    if (ctask->buf_status == BUF_WAIT_FOR_CURL)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "CURL: Buffer full starting postprocessing\n");
-      ctask->buf_status = BUF_WAIT_FOR_PP;
-      ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_buffer,
-                                                 ctask);
-      return CURL_WRITEFUNC_PAUSE;
-    }
-
-    /* we should not get called in that case */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "CURL: called out of context and no space in buffer!\n");
+    ctask->buf_status = BUF_WAIT_FOR_MHD;
+    run_mhd_now (ctask->mhd);
     return CURL_WRITEFUNC_PAUSE;
   }
-
+  if (total > buf_space)
+    total = buf_space;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Copying %d bytes to buffer (%s)\n", total, ctask->url);
+              "CURL: Copying %d bytes to buffer (%s)\n", 
+	      total, ctask->url);
   memcpy (ctask->buffer_write_ptr, cbuf, total);
   ctask->bytes_in_buffer += total;
   ctask->buffer_write_ptr += total;
-  ctask->buffer_write_ptr[0] = '\0';
-
+  if (ctask->bytes_in_buffer > 0)
+  {
+    ctask->buf_status = BUF_WAIT_FOR_MHD;
+    run_mhd_now (ctask->mhd);
+  }
   return total;
 }
 
@@ -1576,7 +1481,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Running curl tasks: %d\n", running);
-
     for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1584,12 +1488,6 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       num_ctasks++;
     }
 
-    if (num_ctasks != running)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "%d ctasks, %d curl running\n", num_ctasks, running);
-    }
-    
     do
     {
       
@@ -1661,10 +1559,9 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                          "CURL: Completed ctask!\n");
              if (GNUNET_SCHEDULER_NO_TASK == ctask->pp_task)
-             {
-              ctask->buf_status = BUF_WAIT_FOR_PP;
-              ctask->pp_task = GNUNET_SCHEDULER_add_now (&postprocess_buffer,
-                                                          ctask);
+	     {
+	       ctask->buf_status = BUF_WAIT_FOR_MHD;
+	       run_mhd_now (ctask->mhd);
              }
 
              ctask->ready_to_queue = MHD_YES;
@@ -1700,14 +1597,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     num_ctasks=0;
     for (ctask=ctasks_head; NULL != ctask; ctask = ctask->next)    
       num_ctasks++; 
-    
-    if (num_ctasks != running)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "CURL: %d tasks, %d running\n", num_ctasks, running);
-    }
-
-    GNUNET_assert ( num_ctasks == running );
+    GNUNET_assert (num_ctasks == running);
 
   } while (mret == CURLM_CALL_MULTI_PERFORM);
   
@@ -1767,13 +1657,8 @@ process_leho_lookup (void *cls,
                 "New HTTP header value: %s\n", hosthdr);
     ctask->headers = curl_slist_append (ctask->headers, hosthdr);
     GNUNET_assert (NULL != ctask->headers);
-    ret = curl_easy_setopt (ctask->curl, CURLOPT_HTTPHEADER, ctask->headers);
-    if (CURLE_OK != ret)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "%s failed at %s:%d: `%s'\n",
-                           "curl_easy_setopt", __FILE__, __LINE__, curl_easy_strerror(ret));
-    }
-
+    if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_HTTPHEADER, ctask->headers)))
+      LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
   }
 
   if (ctask->mhd->is_ssl)
@@ -1789,14 +1674,17 @@ process_leho_lookup (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Curl resolve: %s\n", resolvename);
       ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
-      curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver);
+      if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver)))
+	LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
       sprintf (curlurl, "https://%s:%d%s", ctask->leho, ctask->port, ctask->url);
-      curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
+      if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl)))
+	LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
     }
     else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "gethostbyname failed for %s!\n", ctask->host);
+                  "gethostbyname failed for %s!\n",
+		  ctask->host);
       ctask->download_is_finished = GNUNET_YES;
       ctask->download_error = GNUNET_YES;
       return;
@@ -1816,7 +1704,6 @@ process_leho_lookup (void *cls,
   GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
 
   curl_download_prepare ();
-
 }
 
 
@@ -1825,7 +1712,6 @@ process_leho_lookup (void *cls,
  *
  * @param cls the proxycurltask
  * @param auth_name the name of the authority (site of origin) of ctask->host
- *
  */
 static void
 process_get_authority (void *cls,
@@ -1846,23 +1732,24 @@ process_get_authority (void *cls,
     strcpy (ctask->authority, auth_name);
   }
 
-  GNUNET_GNS_lookup_zone (gns_handle,
-                          ctask->host,
-                          local_gns_zone,
-                          GNUNET_NAMESTORE_TYPE_LEHO,
-                          GNUNET_YES, //Only cached for performance
-                          shorten_zonekey,
-                          &process_leho_lookup,
-                          ctask);
+  GNUNET_GNS_lookup (gns_handle,
+		     ctask->host,
+		     &local_gns_zone,
+		     GNUNET_NAMESTORE_TYPE_LEHO,
+		     GNUNET_YES /* Only cached for performance */,
+		     &shorten_zonekey,
+		     &process_leho_lookup,
+		     ctask);
 }
 
 
 static void*
-mhd_log_callback (void* cls, const char* url)
+mhd_log_callback (void* cls, 
+		  const char* url)
 {
   struct ProxyCurlTask *ctask;
 
-  ctask = GNUNET_malloc (sizeof (struct ProxyCurlTask));
+  ctask = GNUNET_new (struct ProxyCurlTask);
   strcpy (ctask->url, url);
   return ctask;
 }
@@ -1884,11 +1771,11 @@ mhd_log_callback (void* cls, const char* url)
  *        data *will* be made available incrementally in
  *        upload_data)
  * @param upload_data_size set initially to the size of the
- *        upload_data provided; the method must update this
+ *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param con_cls pointer to location where we store the 'struct Request'
- * @return MHD_YES if the connection was handled successfully,
- *         MHD_NO if the socket must be closed due to a serious
+ * @return #MHD_YES if the connection was handled successfully,
+ *         #MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
 static int
@@ -1901,10 +1788,7 @@ create_response (void *cls,
                  size_t *upload_data_size,
                  void **con_cls)
 {
-  struct MhdHttpList* hd = cls;
-  const char* page = "<html><head><title>gnunet-gns-proxy</title>"
-                      "</head><body>cURL fail</body></html>";
-  
+  struct MhdHttpList* hd = cls;  
   char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
   int ret = MHD_YES;
   int i;
@@ -1935,13 +1819,9 @@ create_response (void *cls,
     ctask->curl_running = GNUNET_NO;
     if (NULL == ctask->curl)
     {
-      ctask->response = MHD_create_response_from_buffer (strlen (page),
-                                                (void*)page,
-                                                MHD_RESPMEM_PERSISTENT);
       ret = MHD_queue_response (con,
                                 MHD_HTTP_OK,
-                                ctask->response);
-      MHD_destroy_response (ctask->response);
+                                curl_failure_response);
       GNUNET_free (ctask);
       return ret;
     }
@@ -2004,9 +1884,9 @@ create_response (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Setting up POST processor\n");
       ctask->post_handler = MHD_create_post_processor (con,
-                                 POSTBUFFERSIZE,
-                                 &con_post_data_iter,
-                                 ctask);
+						       POSTBUFFERSIZE,
+						       &con_post_data_iter,
+						       ctask);
       ctask->headers = curl_slist_append (ctask->headers,
                                          "Transfer-Encoding: chunked");
       return MHD_YES;
@@ -2124,7 +2004,7 @@ create_response (void *cls,
         return MHD_YES;
       }
 
-      fin_post = GNUNET_malloc (sizeof (struct ProxyUploadData));
+      fin_post = GNUNET_new (struct ProxyUploadData);
       GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
                                         ctask->upload_data_tail,
                                         fin_post);
@@ -2162,9 +2042,6 @@ run_httpds ()
 }
 
 
-#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
-
-
 /**
  * schedule mhd
  *
@@ -2181,7 +2058,7 @@ run_httpd (struct MhdHttpList *hd)
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
   int haveto;
-  UNSIGNED_MHD_LONG_LONG timeout;
+  MHD_UNSIGNED_LONG_LONG timeout;
   struct GNUNET_TIME_Relative tv;
 
   FD_ZERO (&rs);
@@ -2505,7 +2382,7 @@ load_key_from_file (gnutls_x509_privkey_t key, const char* keyfile)
  *
  * @param crt struct to store data in
  * @param certfile path to pem file
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
@@ -2556,7 +2433,7 @@ generate_gns_certificate (const char *name)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generating cert\n");
 
   struct ProxyGNSCertificate *pgc =
-    GNUNET_malloc (sizeof (struct ProxyGNSCertificate));
+    GNUNET_new (struct ProxyGNSCertificate);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding DNs\n");
   
@@ -2571,8 +2448,7 @@ generate_gns_certificate (const char *name)
   ret = gnutls_rnd (GNUTLS_RND_NONCE, &serial, sizeof (serial));
 
   etime = time (NULL);
-  tm_data = localtime (&etime);
-  
+  tm_data = localtime (&etime);  
 
   ret = gnutls_x509_crt_set_serial (request,
                                     &serial,
@@ -2648,7 +2524,7 @@ accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
  *
  * @param h the handle to add to a daemon
  * @param domain the domain the ssl daemon has to serve
- * @return MHD_YES on success
+ * @return #MHD_YES on success
  */
 static int
 add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
@@ -2665,7 +2541,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
   {    
     pgc = generate_gns_certificate (domain);
     
-    hd = GNUNET_malloc (sizeof (struct MhdHttpList));
+    hd = GNUNET_new (struct MhdHttpList);
     hd->is_ssl = GNUNET_YES;
     strcpy (hd->domain, domain);
     hd->proxy_cert = pgc;
@@ -2674,7 +2550,6 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No previous SSL instance found... starting new one for %s\n",
                 domain);
-#if HAVE_MHD_NO_LISTEN_SOCKET
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL | MHD_USE_NO_LISTEN_SOCKET,
                                    0,
                                    &accept_cb, NULL,
@@ -2688,29 +2563,13 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h, const char* domain)
 				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
 				   NULL,
 				   MHD_OPTION_END);
-#else
-    hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL,
-                                   4444 /* dummy port */,
-                                   &accept_cb, NULL,
-                                   &create_response, hd,
-				   MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-                                   MHD_OPTION_CONNECTION_LIMIT,
-                                   MHD_MAX_CONNECTIONS,
-				   MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-				   MHD_OPTION_NOTIFY_COMPLETED, NULL, NULL,
-				   MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
-				   MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
-				   MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback,
-				   NULL,
-				   MHD_OPTION_END);
-#endif
     GNUNET_assert (hd->daemon != NULL);
     hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
     
     GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
   }
 
-  nh = GNUNET_malloc (sizeof (struct NetworkHandleList));
+  nh = GNUNET_new (struct NetworkHandleList);
   nh->h = h;
 
   GNUNET_CONTAINER_DLL_insert (hd->socket_handles_head,
@@ -2841,7 +2700,7 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Requested connection is HTTP\n");
-        nh = GNUNET_malloc (sizeof (struct NetworkHandleList));
+        nh = GNUNET_new (struct NetworkHandleList);
         nh->h = s5r->sock;
 
         GNUNET_CONTAINER_DLL_insert (mhd_httpd_head->socket_handles_head,
@@ -3006,7 +2865,8 @@ do_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc the scheduler context
  */
 static void
-do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_accept (void *cls, 
+	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
@@ -3014,23 +2874,18 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ltask = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          lsock,
                                          &do_accept, NULL);
-
   s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
-
   if (NULL == s)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "accept");
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got an inbound connection, waiting for data\n");
-
-  s5r = GNUNET_malloc (sizeof (struct Socks5Request));
+  s5r = GNUNET_new (struct Socks5Request);
   s5r->sock = s;
   s5r->state = SOCKS5_INIT;
   s5r->wtask = GNUNET_SCHEDULER_NO_TASK;
@@ -3062,13 +2917,6 @@ do_shutdown (void *cls,
   
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
-  if (NULL != local_gns_zone)
-    GNUNET_free (local_gns_zone); 
-  if (NULL != local_private_zone)
-    GNUNET_free (local_private_zone);
-  if (NULL != local_shorten_zone)
-    GNUNET_free (local_shorten_zone);
-
   if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
   {
     GNUNET_SCHEDULER_cancel (curl_download_task);
@@ -3148,6 +2996,21 @@ do_shutdown (void *cls,
     }
     GNUNET_free (ctask);
   }
+  if (NULL != lsock)
+  {
+    GNUNET_NETWORK_socket_close (lsock);
+    lsock = NULL;
+  }
+  if (NULL != id_op)
+  {
+    GNUNET_IDENTITY_cancel (id_op);
+    id_op = NULL;
+  }
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
   curl_multi_cleanup (curl_multi);
   GNUNET_GNS_disconnect (gns_handle);
   gnutls_global_deinit ();
@@ -3155,214 +3018,16 @@ do_shutdown (void *cls,
 
 
 /**
- * Compiles a regex for us
- *
- * @param re ptr to re struct
- * @param rt the expression to compile
- * @return 0 on success
+ * Continue initialization after we have our zone information.
  */
-static int
-compile_regex (regex_t *re, const char* rt)
+static void 
+run_cont () 
 {
-  int status;
-  char err[1024];
-
-  status = regcomp (re, rt, REG_EXTENDED|REG_NEWLINE);
-  if (status)
-  {
-    regerror (status, re, err, 1024);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Regex error compiling '%s': %s\n", rt, err);
-    return 1;
-  }
-  return 0;
-}
-
-
-/**
- * Loads the users local zone key
- *
- * @return GNUNET_YES on success
- */
-static int
-load_local_zone_key (const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  char *keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *key;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
-  struct GNUNET_CRYPTO_ShortHashCode *zone;
-  struct GNUNET_CRYPTO_ShortHashAsciiEncoded zonename;
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                            "ZONEKEY", &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone key config value!\n");
-    return GNUNET_NO;
-  }
-
-  if (GNUNET_NO == GNUNET_DISK_file_test (keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone key %s!\n", keyfile);
-    GNUNET_free(keyfile);
-    return GNUNET_NO;
-  }
-
-  key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
-  local_gns_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-  GNUNET_CRYPTO_short_hash (&pkey,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-			    local_gns_zone);
-  zone = local_gns_zone;
-  GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using zone: %s!\n", &zonename);
-  GNUNET_free(key);
-  GNUNET_free(keyfile);
-  keyfile = NULL;
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                   "PRIVATE_ZONEKEY", &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load private zone key config value!\n");
-  }
-
-  if ((NULL != keyfile) && (GNUNET_NO == GNUNET_DISK_file_test (keyfile)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load private zone key %s!\n", keyfile);
-    GNUNET_free(keyfile);
-  }
-  else
-  {
-    key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
-    local_private_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-			      local_private_zone);
-    GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Using private zone: %s!\n", &zonename);
-    GNUNET_free(key);
-    GNUNET_free(keyfile);
-  }
-  keyfile = NULL;
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                   "SHORTEN_ZONEKEY", &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load shorten zone key config value!\n");
-  }
-
-  if ((NULL != keyfile) && (GNUNET_NO == GNUNET_DISK_file_test (keyfile)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load shorten zone key %s!\n", keyfile);
-    GNUNET_free(keyfile);
-  }
-  else
-  {
-    key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
-    local_shorten_zone = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_ShortHashCode));
-    GNUNET_CRYPTO_short_hash (&pkey,
-			      sizeof(struct GNUNET_CRYPTO_EccPublicSignKey),
-			      local_shorten_zone);
-    GNUNET_CRYPTO_short_hash_to_enc (zone, &zonename);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Using shorten zone: %s!\n", &zonename);
-    GNUNET_free(key);
-    GNUNET_free(keyfile);
-  }
-
-  return GNUNET_YES;
-}
-
-
-/**
- * Main function that will be run
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param cfg configuration
- */
-static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  struct sockaddr_in sa;
   struct MhdHttpList *hd;
-  char* cafile_cfg = NULL;
-  char* cafile;
-#if !HAVE_MHD_NO_LISTEN_SOCKET
   size_t len;
+  struct sockaddr_in sa;
   char* proxy_sockfile;
   struct sockaddr_un mhd_unix_sock_addr;
-#endif
-
-  if (NULL == (curl_multi = curl_multi_init ()))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to create cURL multo handle!\n");
-    return;
-  }
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Loading CA\n");
-  cafile = cafile_opt;
-  if (NULL == cafile)
-  {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
-							      "PROXY_CACERT",
-							      &cafile_cfg))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unable to load proxy CA config value!\n");
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "No proxy CA provided!\n");
-      return;
-    }
-    cafile = cafile_cfg;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Using %s as CA\n", cafile);
-  
-  gnutls_global_init ();
-  gnutls_x509_crt_init (&proxy_ca.cert);
-  gnutls_x509_privkey_init (&proxy_ca.key);
-  
-  if ( (GNUNET_OK != load_cert_from_file (proxy_ca.cert, cafile)) ||
-       (GNUNET_OK != load_key_from_file (proxy_ca.key, cafile)) )
-  {
-    // FIXME: release resources...
-    return;
-  }
-
-  GNUNET_free_non_null (cafile_cfg);
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Loading Template\n");
-  
-  compile_regex (&re_dotplus, (char*) RE_A_HREF);
-
-  if (NULL == (gns_handle = GNUNET_GNS_connect (cfg)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to connect to GNS!\n");
-    return;
-  }
-  if (GNUNET_NO == load_local_zone_key (cfg))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to load zone!\n");
-    return;
-  }
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
@@ -3374,25 +3039,24 @@ run (void *cls, char *const *args, const char *cfgfile,
   lsock = GNUNET_NETWORK_socket_create (AF_INET,
                                         SOCK_STREAM,
                                         0);
-
-  if ((NULL == lsock) ||
-      (GNUNET_OK !=
-       GNUNET_NETWORK_socket_bind (lsock, (const struct sockaddr *) &sa,
-                                   sizeof (sa), 0)))
+  if (NULL == lsock) 
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to create listen socket bound to `%s'",
-                GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)));
-    if (NULL != lsock)
-      GNUNET_NETWORK_socket_close (lsock);
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (lsock, (const struct sockaddr *) &sa,
+				  sizeof (sa), 0))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock, 5))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to listen on socket bound to `%s'",
-                GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)));
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
     return;
   }
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -3402,19 +3066,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "cURL global init failed!\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Proxy listens on port %u\n",
               port);
-#if ! HAVE_MHD_NO_LISTEN_SOCKET
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
                                                             "PROXY_UNIXPATH",
                                                             &proxy_sockfile))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Specify PROXY_UNIXPATH in gns-proxy config section!\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "gns-proxy", "PROXY_UNIXPATH");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (NULL == (mhd_unix_socket = GNUNET_NETWORK_socket_create (AF_UNIX,
@@ -3422,7 +3086,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 							       0)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to create unix domain socket!\n");
+                "Unable to create UNIX domain socket!\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -3440,28 +3105,26 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (proxy_sockfile);
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (mhd_unix_socket,
-                               (struct sockaddr*)&mhd_unix_sock_addr,
-                               len, 0))
+					       (struct sockaddr *) &mhd_unix_sock_addr,
+					       len, 0))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to bind unix domain socket!\n");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (mhd_unix_socket,
                                                  1))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unable to listen on unix domain socket!\n");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-#endif
 
-  hd = GNUNET_malloc (sizeof (struct MhdHttpList));
+  hd = GNUNET_new (struct MhdHttpList);
   hd->is_ssl = GNUNET_NO;
   strcpy (hd->domain, "");
 
-#if HAVE_MHD_NO_LISTEN_SOCKET
   httpd = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
                             0,
 			    &accept_cb, NULL,
@@ -3472,24 +3135,166 @@ run (void *cls, char *const *args, const char *cfgfile,
 			    NULL, NULL,
 			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
 			    MHD_OPTION_END);
-#else
-  httpd = MHD_start_daemon (MHD_USE_DEBUG,
-			    4444 /* Dummy port */,
-			    &accept_cb, NULL,
-			    &create_response, hd,
-			    MHD_OPTION_LISTEN_SOCKET, GNUNET_NETWORK_get_fd (mhd_unix_socket),
-			    MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
-			    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-			    MHD_OPTION_NOTIFY_COMPLETED,
-			    NULL, NULL,
-			    MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
-			    MHD_OPTION_END);
-#endif
-  GNUNET_break (httpd != NULL);
+  if (NULL == httpd)
+  {
+      
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   hd->daemon = httpd;
   hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_CONTAINER_DLL_insert (mhd_httpd_head, mhd_httpd_tail, hd);
   run_httpds ();
+}
+
+
+/** 
+ * Method called to inform about the egos of the shorten zone of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * that one was not NULL).
+ *
+ * @param cls closure, NULL
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_shorten_cb (void *cls,
+		     struct GNUNET_IDENTITY_Ego *ego,
+		     void **ctx,
+		     const char *name)
+{
+  id_op = NULL;
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("No ego configured for `shorten-zone`\n"));
+  }
+  else
+  {
+    local_shorten_zone = *GNUNET_IDENTITY_ego_get_private_key (ego);
+    do_shorten = GNUNET_YES;
+  }
+  run_cont ();
+}
+
+
+/** 
+ * Method called to inform about the egos of the master zone of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * that one was not NULL).
+ *
+ * @param cls closure, NULL
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_master_cb (void *cls,
+		    struct GNUNET_IDENTITY_Ego *ego,
+		    void **ctx,
+		    const char *name)
+{
+  id_op = NULL;
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("No ego configured for `master-zone`\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+				      &local_gns_zone);
+  id_op = GNUNET_IDENTITY_get (identity,
+			       "shorten-zone",
+			       &identity_shorten_cb,
+			       NULL);
+}
+
+
+/**
+ * Main function that will be run
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  char* cafile_cfg = NULL;
+  char* cafile;
+
+  cfg = c;
+  if (NULL == (curl_multi = curl_multi_init ()))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create cURL multi handle!\n");
+    return;
+  } 
+  cafile = cafile_opt;
+  if (NULL == cafile)
+  {
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns-proxy",
+							      "PROXY_CACERT",
+							      &cafile_cfg))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+				 "gns-proxy",
+				 "PROXY_CACERT");
+      return;
+    }
+    cafile = cafile_cfg;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using %s as CA\n", cafile);
+  
+  gnutls_global_init ();
+  gnutls_x509_crt_init (&proxy_ca.cert);
+  gnutls_x509_privkey_init (&proxy_ca.key);
+  
+  if ( (GNUNET_OK != load_cert_from_file (proxy_ca.cert, cafile)) ||
+       (GNUNET_OK != load_key_from_file (proxy_ca.key, cafile)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to load SSL/TLS key and certificate from `%s'\n"),
+		cafile);
+    // FIXME: release resources...
+    return;
+  }
+  GNUNET_free_non_null (cafile_cfg);
+  if (NULL == (gns_handle = GNUNET_GNS_connect (cfg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unable to connect to GNS!\n");
+    return;
+  }
+  identity = GNUNET_IDENTITY_connect (cfg,
+				      NULL, NULL);  
+  id_op = GNUNET_IDENTITY_get (identity,
+			       "master-zone",
+			       &identity_master_cb,
+			       NULL);  
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
 }
@@ -3514,17 +3319,25 @@ main (int argc, char *const *argv)
       &GNUNET_GETOPT_set_string, &cafile_opt},
     GNUNET_GETOPT_OPTION_END
   };
+  static const char* page = 
+    "<html><head><title>gnunet-gns-proxy</title>"
+    "</head><body>cURL fail</body></html>";
   int ret;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   GNUNET_log_setup ("gnunet-gns-proxy", "WARNING", NULL);
+  curl_failure_response = MHD_create_response_from_buffer (strlen (page),
+							   (void*)page,
+							   MHD_RESPMEM_PERSISTENT);
+
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-gns-proxy",
                            _("GNUnet GNS proxy"),
                            options,
                            &run, NULL)) ? 0 : 1;
+  MHD_destroy_response (curl_failure_response);
   GNUNET_free_non_null ((char *) argv);
   return ret;
 }
