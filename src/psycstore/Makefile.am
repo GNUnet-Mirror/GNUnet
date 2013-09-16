@@ -76,8 +76,8 @@ libgnunet_plugin_psycstore_sqlite_la_DEPENDENCIES = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_psycstore \
- $(SQLITE_TESTS)
+ $(SQLITE_TESTS) \
+ test_psycstore
 endif
 
 if ENABLE_TEST_RUN
