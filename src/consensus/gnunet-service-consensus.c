@@ -622,7 +622,7 @@ set_result_cb (void *cls,
  * Compare the round the session is in with the round of the given context message.
  *
  * @param session a consensus session
- * @param round a round context message
+ * @param ri a round context message
  * @return 0 if it's the same round, -1 if the session is in an earlier round,
  *         1 if the session is in a later round
  */
