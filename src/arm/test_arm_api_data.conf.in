@@ -17,10 +17,9 @@ AUTOSTART = NO
 PORT = 2223
 HOSTNAME = localhost
 HOME = $SERVICEHOME
-BINARY = mockup-service
+BINARY = /will/be/overwritten/by/test_exponential_backoff
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-
 
 [fs]
 AUTOSTART = NO

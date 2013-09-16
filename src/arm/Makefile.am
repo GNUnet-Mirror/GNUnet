@@ -29,11 +29,13 @@ libgnunetarm_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-arm 
+ gnunet-arm
+
+noinst_PROGRAMS = \
+ mockup-service
 
 libexec_PROGRAMS = \
- gnunet-service-arm \
- mockup-service 
+ gnunet-service-arm
 
 gnunet_arm_SOURCES = \
  gnunet-arm.c         

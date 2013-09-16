@@ -38,6 +38,12 @@
 
 #define FIVE_MILLISECONDS GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
 
+#define SERVICE "do-nothing"
+
+#define BINARY "mockup-service"
+
+#define CFGFILENAME "test_arm_api_data.conf"
+
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -182,9 +188,9 @@ write_shutdown (void *cls, size_t size, void *buf)
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_ARM_STOP);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  strcpy ((char *) &msg[1], "do-nothing");
+  strcpy ((char *) &msg[1], SERVICE);
   LOG ("Sent a shutdown request\n");
-  return sizeof (struct GNUNET_MessageHeader) + strlen ("do-nothing") + 1;
+  return sizeof (struct GNUNET_MessageHeader) + strlen (SERVICE) + 1;
 }
 
 
@@ -214,7 +220,7 @@ do_nothing_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
   shutdown_ctx->sock = sock;
   shutdown_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_CLIENT_notify_transmit_ready (sock,
-				       sizeof (struct GNUNET_MessageHeader) + strlen ("do-nothing") + 1,
+				       sizeof (struct GNUNET_MessageHeader) + strlen (SERVICE) + 1,
 				       timeout, GNUNET_NO, &write_shutdown,
 				       shutdown_ctx);
 }
@@ -255,14 +261,14 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
     waitedFor.rel_value_us = 0;
   }
   /* Connect to the doNothing task */
-  doNothingConnection = GNUNET_CLIENT_connect ("do-nothing", cfg);
+  doNothingConnection = GNUNET_CLIENT_connect (SERVICE, cfg);
   GNUNET_assert (doNothingConnection != NULL);
   if (trialCount == 12)
     waitedFor_prev = waitedFor;
   else if (trialCount == 13)
   {
     GNUNET_CLIENT_disconnect (doNothingConnection);
-    GNUNET_ARM_request_service_stop (arm, "do-nothing", TIMEOUT, NULL, NULL);
+    GNUNET_ARM_request_service_stop (arm, SERVICE, TIMEOUT, NULL, NULL);
     if (waitedFor_prev.rel_value_us >= waitedFor.rel_value_us)
       ok = 9;
     else
@@ -302,21 +308,21 @@ srv_status (void *cls, const char *service, enum GNUNET_ARM_ServiceStatus status
   if (status == GNUNET_ARM_SERVICE_MONITORING_STARTED)
   {
     phase++;
-    GNUNET_ARM_request_service_start (arm, "do-nothing",
+    GNUNET_ARM_request_service_start (arm, SERVICE,
         GNUNET_OS_INHERIT_STD_OUT_AND_ERR, TIMEOUT, NULL, NULL);
     return;
   }
   if (phase == 1)
   {
     GNUNET_break (status == GNUNET_ARM_SERVICE_STARTING);
-    GNUNET_break (0 == strcasecmp (service, "do-nothing"));
+    GNUNET_break (0 == strcasecmp (service, SERVICE));
     GNUNET_break (phase == 1);
     LOG ("do-nothing is starting\n");
     phase++;
     ok = 1;
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &kill_task, NULL);
   }
-  else if ((phase == 2) && (strcasecmp ("do-nothing", service) == 0))
+  else if ((phase == 2) && (strcasecmp (SERVICE, service) == 0))
   {
     /* We passively monitor ARM for status updates. ARM should tell us
      * when do-nothing dies (no need to run a service upness test ourselves).
@@ -392,7 +398,7 @@ check ()
 {
   char *const argv[] = {
     "test-exponential-backoff",
-    "-c", "test_arm_api_data.conf",
+    "-c", CFGFILENAME,
     NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -413,6 +419,26 @@ check ()
 static int
 init ()
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char pwd[PATH_MAX];
+  char *binary;
+
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg,
+                                               "test_arm_api_data.conf.in"))
+    return GNUNET_SYSERR;
+  if (NULL == getcwd (pwd, PATH_MAX))
+    return GNUNET_SYSERR;
+  GNUNET_assert (0 < GNUNET_asprintf (&binary, "%s/%s", pwd, BINARY));
+  GNUNET_CONFIGURATION_set_value_string (cfg, SERVICE, "BINARY", binary);
+  GNUNET_free (binary);  
+  if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, CFGFILENAME))
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CONFIGURATION_destroy (cfg);
+
 #if LOG_BACKOFF
   killLogFileName = GNUNET_DISK_mktemp ("exponential-backoff-waiting.log");
   if (NULL == (killLogFilePtr = FOPEN (killLogFileName, "w")))
@@ -434,6 +460,7 @@ houseKeep ()
   GNUNET_assert (0 == fclose (killLogFilePtr));
   GNUNET_free (killLogFileName);
 #endif
+  (void) unlink (CFGFILENAME);
 }
 
 
@@ -446,7 +473,8 @@ main (int argc, char *argv[])
 		    "WARNING",
 		    NULL);
 
-  init ();
+  if (GNUNET_OK != init ())
+    return 1;
   ret = check ();
   houseKeep ();
   return ret;
