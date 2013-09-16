@@ -362,7 +362,7 @@ namestore_postgres_put_records (void *cls,
 }
 #endif
 
-
+#if 0
 /**
  * The given 'postgres' result was obtained from the database.
  * Parse the record and give it to the iterator.
@@ -460,7 +460,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   PQclear (res);
   return GNUNET_OK;
 }
-  
+#endif
   
 /**
  * Iterate over the results for a particular key and zone in the
@@ -588,7 +588,7 @@ namestore_postgres_zone_to_name (void *cls,
   return GNUNET_SYSERR;
 }
 
-
+#if 0
 /**
  * Delete an entire zone (all records).  Not used in normal operation.
  *
@@ -604,6 +604,7 @@ namestore_postgres_delete_zone (void *cls,
   const char *paramValues[] = {
     (const char *) zone,
   };
+
   int paramLengths[] = {
     sizeof (struct GNUNET_CRYPTO_ShortHashCode)
   };
@@ -621,6 +622,7 @@ namestore_postgres_delete_zone (void *cls,
   }
   PQclear (ret);
 }
+#endif
 
 /**
  * Cache a block in the datastore.
