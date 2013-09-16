@@ -197,6 +197,8 @@ test_iter ()
 
   iter_set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
 
+  element.type = 0;
+
   element.data = "hello";
   element.size = strlen(element.data);
   GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
