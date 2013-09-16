@@ -11,8 +11,13 @@ if HAVE_TESTING
 endif
 
 if HAVE_EXPERIMENTAL
- EXP_DIR = dv multicast $(CONSENSUS) $(EXPERIMENTATION) 
-#note: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
+ EXP_DIR = \
+  dv \
+  multicast \
+  psyc \
+  $(CONSENSUS) \
+  $(EXPERIMENTATION)
+  # NOTE: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
 endif
 
 if HAVE_MYSQL
@@ -22,7 +27,6 @@ endif
 if HAVE_POSTGRES
  POSTGRES_DIR = postgres
 endif
-
 
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
@@ -67,4 +71,3 @@ SUBDIRS = \
   pt \
   integration-tests \
   $(EXP_DIR) 
-

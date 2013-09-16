@@ -23,11 +23,8 @@
  * @brief PSYCstore service
  * @author Gabor X Toth
  * @author Christian Grothoff
- *
- * The purpose of this service is to manage private keys that
- * represent the various egos/pseudonyms/identities of a GNUnet user.
- *
  */
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -666,15 +663,14 @@ handle_state_get_prefix (void *cls,
 
 
 /**
- * Handle PSYCstore clients.
+ * Initialize the PSYCstore service.
  *
- * @param cls closure
- * @param server the initialized server
- * @param c configuration to use
+ * @param cls Closure.
+ * @param server The initialized server.
+ * @param c Configuration to use.
  */
 static void
-run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -766,7 +762,7 @@ run (void *cls,
 
 
 /**
- * The main function for the network size estimation service.
+ * The main function for the service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

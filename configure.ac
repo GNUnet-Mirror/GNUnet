@@ -1311,7 +1311,6 @@ src/gns/nss/Makefile
 src/hello/Makefile
 src/identity/Makefile
 src/identity/identity.conf
-src/psycstore/Makefile
 src/include/Makefile
 src/include/gnunet_directories.h
 src/integration-tests/Makefile
@@ -1332,6 +1331,9 @@ src/peerinfo/Makefile
 src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
 src/postgres/Makefile
+src/psyc/Makefile
+src/psyc/psyc.conf
+src/psycstore/Makefile
 src/psycstore/psycstore.conf
 src/pt/Makefile
 src/regex/Makefile

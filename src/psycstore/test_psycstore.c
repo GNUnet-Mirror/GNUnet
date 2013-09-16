@@ -500,13 +500,13 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 #else
-  run (void *cls,
-       const struct GNUNET_CONFIGURATION_Handle *cfg,
-       struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 #endif
 {
-  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
-                                                 &end_badly, NULL);
+  end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+
   h = GNUNET_PSYCSTORE_connect (cfg);
   GNUNET_assert (NULL != h);
 

@@ -24,8 +24,8 @@
  * @author Gabor X Toth
  */
 
-#ifndef PSYCSTORE_H
-#define PSYCSTORE_H
+#ifndef GNUNET_PSYCSTORE_H
+#define GNUNET_PSYCSTORE_H
 
 #include "gnunet_common.h"
 
