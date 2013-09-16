@@ -360,13 +360,7 @@ remove_barrier (struct Barrier *barrier)
   while (NULL != (ctx = barrier->head))
   {
     GNUNET_CONTAINER_DLL_remove (barrier->head, barrier->tail, ctx);
-    GNUNET_SERVER_client_drop (ctx->client);
-    ctx->client = NULL;
-    if (NULL != ctx->tx)
-    {
-      GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
-      ctx->tx = NULL;
-    }
+    cleanup_clientctx (ctx);
   }
   GNUNET_free (barrier->name);
   GNUNET_SERVER_client_drop (barrier->mc);
@@ -532,6 +526,8 @@ disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
   if (NULL == client)
     return;
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
+  if (NULL == client_ctx)
+    return;
   cleanup_clientctx (client_ctx);
 }
 

@@ -1,87 +1,93 @@
 * Description
-The testbed's barriers API facilitates coordination among the peers run by the
-testbed and the experiment driver.  The concept is similar to the barrier
-synchronisation mechanism found in parallel programming or multithreading
-paradigms - a peer waits at a barrier upon reaching it until the barrier is
-crossed i.e, the barrier is reached by a predefined number of peers.  This
-predefined number peers required to cross a barrier is also called quorum.  We
-say a peer has reached a barrier if the peer is waiting for the barrier to be
-crossed.  Similarly a barrier is said to be reached if the required quorum of
-peers reach the barrier.
+The testbed subsystem's barriers API facilitates coordination among the peers
+run by the testbed and the experiment driver.  The concept is similar to the
+barrier synchronisation mechanism found in parallel programming or
+multi-threading paradigms - a peer waits at a barrier upon reaching it until the
+barrier is reached by a predefined number of peers.  This predefined number of
+peers required to cross a barrier is also called quorum.  We say a peer has
+reached a barrier if the peer is waiting for the barrier to be crossed.
+Similarly a barrier is said to be reached if the required quorum of peers reach
+the barrier.  A barrier which is reached is deemed as crossed after all the
+peers waiting on it are notified.
 
 The barriers API provides the following functions:
+1) GNUNET_TESTBED_barrier_init(): function to initialse a barrier in the
+   experiment
+2) GNUNET_TESTBED_barrier_cancel(): function to cancel a barrier which has been
+   initialised before
+3) GNUNET_TESTBED_barrier_wait(): function to signal barrier service that the
+    caller has reached a barrier and is waiting for it to be crossed
+4) GNUNET_TESTBED_barrier_wait_cancel(): function to stop waiting for a barrier
+   to be crossed
 
-1) barrier_init():  function to initialse a barrier in the experiment
-2) barrier_cancel(): function to cancel a barrier which has been initialised
-    before
-3) barrier_wait(): function to signal barrier service that the caller has reached
-    a barrier and is waiting for it to be crossed
-4) barrier_wait_cancel(): function to stop waiting for a barrier to be crossed
+Among the above functions, the first two, namely GNUNET_TESTBED_barrier_init()
+and GNUNET_TESTBED_barrier_cacel() are used by experiment drivers.  All barriers
+should be initialised by the experiment driver by calling
+GNUNET_TESTBED_barrier_init().  This function takes a name to identify the
+barrier, the quorum required for the barrier to be crossed and a notification
+callback for notifying the experiment driver when the barrier is crossed.  The
+GNUNET_TESTBED_function barrier_cancel() cancels an initialised barrier and
+frees the resources allocated for it.  This function can be called upon a
+initialised barrier before it is crossed.
 
-Among the above functions, the first two, namely barrier_init() and
-barrier_cacel() are used by experiment drivers.  All barriers should be
-initialised by the experiment driver by calling barrier_init().  This function
-takes a name to identify the barrier, the quorum required for the barrier to be
-crossed and a notification callback for notifying the experiment driver when the
-barrier is crossed.  The function barrier_cancel() cancels an initialised
-barrier and frees the resources allocated for it.  This function can be called
-upon a initialised barrier before it is crossed.
-
-The remaining two functions barrier_wait() and barrier_wait_cancel() are used in
-the peer's processes.  barrier_wait() connects to the local barrier service
-running on the same host the peer is running on and registers that the caller
-has reached the barrier and is waiting for the barrier to be crossed.  Note that
-this function can only be used by peers which are started by testbed as this
-function tries to access the local barrier service which is part of the testbed
-controller service.  Calling barrier_wait() on an uninitialised barrier barrier
-results in failure.  barrier_wait_cancel() cancels the notification registered
-by barrier_wait().
+The remaining two functions GNUNET_TESTBED_barrier_wait() and
+GNUNET_TESTBED_barrier_wait_cancel() are used in the peer's processes.
+GNUNET_TESTBED_barrier_wait() connects to the local barrier service running on
+the same host the peer is running on and registers that the caller has reached
+the barrier and is waiting for the barrier to be crossed.  Note that this
+function can only be used by peers which are started by testbed as this function
+tries to access the local barrier service which is part of the testbed
+controller service.  Calling GNUNET_TESTBED_barrier_wait() on an uninitialised
+barrier results in failure.  GNUNET_TESTBED_barrier_wait_cancel() cancels the
+notification registered by GNUNET_TESTBED_barrier_wait().
 
 
 * Implementation
 Since barriers involve coordination between experiment driver and peers, the
 barrier service in the testbed controller is split into two components.  The
 first component responds to the message generated by the barrier API used by the
-experiment driver (functions barrier_init() and barrier_cancel()) and the second
-component to the messages generated by barrier API used by peers (functions
-barrier_wait() and barrier_wait_cancel())
+experiment driver (functions GNUNET_TESTBED_barrier_init() and
+GNUNET_TESTBED_barrier_cancel()) and the second component to the messages
+generated by barrier API used by peers (functions GNUNET_TESTBED_barrier_wait()
+and GNUNET_TESTBED_barrier_wait_cancel()).
 
-Calling barrier_init() sends a BARRIER_INIT message to the master controller.
-The master controller then registers a barrier and calls barrier_init() for each
-its subcontrollers.  In this way barrier initialisation is propagated to the
-controller hierarchy.  While propagating initialisation, any errors at a
-subcontroller such as timeout during further propagation are reported up the
-hierarchy back to the experiment driver.
+Calling GNUNET_TESTBED_barrier_init() sends a BARRIER_INIT message to the master
+controller.  The master controller then registers a barrier and calls
+GNUNET_TESTBED_barrier_init() for each its subcontrollers.  In this way barrier
+initialisation is propagated to the controller hierarchy.  While propagating
+initialisation, any errors at a subcontroller such as timeout during further
+propagation are reported up the hierarchy back to the experiment driver.
 
-Similar to barrier_init(), barrier_cancel() propagates BARRIER_CANCEL message
-which causes controllers to remove an initialised barrier.
+Similar to GNUNET_TESTBED_barrier_init(), GNUNET_TESTBED_barrier_cancel()
+propagates BARRIER_CANCEL message which causes controllers to remove an
+initialised barrier.
 
 The second component is implemented as a separate service in the binary
 `gnunet-service-testbed' which already has the testbed controller service.
 Although this deviates from the gnunet process architecture of having one
 service per binary, it is needed in this case as this component needs access to
 barrier data created by the first component.  This component responds to
-BARRIER_WAIT messages from local peers when they call barrier_wait().  Upon
-receiving BARRIER_WAIT message, the service checks if the requested barrier has
-been initialised before and if it was not initialised, an error status is sent
-through BARRIER_STATUS message to the local peer and the connection from the
-peer is terminated.  If the barrier is initialised before, the barrier's counter
-for reached peers is incremented and a notification is registered to notify the
-peer when the barrier is reached.  The connection from the peer is left open.
+BARRIER_WAIT messages from local peers when they call
+GNUNET_TESTBED_barrier_wait().  Upon receiving BARRIER_WAIT message, the service
+checks if the requested barrier has been initialised before and if it was not
+initialised, an error status is sent through BARRIER_STATUS message to the local
+peer and the connection from the peer is terminated.  If the barrier is
+initialised before, the barrier's counter for reached peers is incremented and a
+notification is registered to notify the peer when the barrier is reached.  The
+connection from the peer is left open.
 
 When enough peers required to attain the quorum send BARRIER_WAIT messages, the
 controller sends a BARRIER_STATUS message to its parent informing that the
 barrier is crossed.  If the controller has started further subcontrollers, it
-delays this message until it receives a notification from each of those
-subcontrollers that the barrier is crossed.  Finally, the barriers API at the
-experiment driver receives the BARRIER_STATUS when the barrier is reached at all
-the controllers.
+delays this message until it receives a similar notification from each of those
+subcontrollers.  Finally, the barriers API at the experiment driver receives the
+BARRIER_STATUS when the barrier is reached at all the controllers.
 
 The barriers API at the experiment driver responds to the BARRIER_STATUS message
 by echoing it back to the master controller and notifying the experiment
 controller through the notification callback that a barrier has been crossed.
 The echoed BARRIER_STATUS message is propagated by the master controller to the
-controller hierarchy.  This progation triggers the notifications registered by
+controller hierarchy.  This propagation triggers the notifications registered by
 peers at each of the controllers in the hierarchy.  Note the difference between
 this downward propagation of the BARRIER_STATUS message from its upward
 propagation -- the upward propagation is needed for ensuring that the barrier is
