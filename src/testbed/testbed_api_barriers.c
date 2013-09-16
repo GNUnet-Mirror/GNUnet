@@ -377,6 +377,11 @@ receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
   const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
   uint16_t msize;
   
+  if (NULL == message)
+  {
+    GNUNET_break_op (0);
+    goto fail;
+  }
   if (GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS != ntohs (message->type))
   {
     GNUNET_break_op (0);
