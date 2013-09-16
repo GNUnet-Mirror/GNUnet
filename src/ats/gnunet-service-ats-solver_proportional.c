@@ -967,15 +967,13 @@ GAS_proportional_get_preferred_address (void *solver,
    * - update quota for previous address network
    * - update quota for this address network
    */
-
   prev = get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, peer);
   if (NULL != prev)
   {
       net_prev = (struct Network *) prev->solver_information;
       prev->active = GNUNET_NO; /* No active any longer */
-      prev->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      prev->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0); /* no bw assigned */
-      s->bw_changed (s->bw_changed_cls, prev); /* notify about bw change, REQUIRED? */
+      prev->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
+      prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
       if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
      	distribute_bandwidth_in_network (s, net_prev, NULL);
@@ -988,7 +986,7 @@ GAS_proportional_get_preferred_address (void *solver,
   }
 
   fba_ctx.best->active = GNUNET_YES;
-  addresse_increment(s, net_cur, GNUNET_NO, GNUNET_YES);
+  addresse_increment (s, net_cur, GNUNET_NO, GNUNET_YES);
   distribute_bandwidth_in_network (s, net_cur, fba_ctx.best);
   return fba_ctx.best;
 }
@@ -1004,6 +1002,21 @@ void
 GAS_proportional_stop_get_preferred_address (void *solver,
                                      const struct GNUNET_PeerIdentity *peer)
 {
+  struct GAS_PROPORTIONAL_Handle *s = solver;
+	struct ATS_Address *cur;
+	struct Network *cur_net;
+  cur = get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, peer);
+  if (NULL != cur)
+  {
+  	/* Disabling current address */
+  	cur_net = (struct Network *) cur->solver_information;
+  	cur->active = GNUNET_NO; /* No active any longer */
+  	cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
+  	cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+		if (GNUNET_SYSERR == addresse_decrement (s, cur_net, GNUNET_NO, GNUNET_YES))
+			GNUNET_break (0);
+		distribute_bandwidth_in_network (s, cur_net, NULL);
+  }
 	return;
 }
 
@@ -1069,9 +1082,19 @@ GAS_proportional_address_delete (void *solver,
   {
       /* Address was active, remove from network and update quotas*/
       address->active = GNUNET_NO;
+      address->assigned_bw_in = BANDWIDTH_ZERO;
+      address->assigned_bw_out = BANDWIDTH_ZERO;
+
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
       distribute_bandwidth_in_network (s, net, NULL);
+
+      /* Address was active, requesting alternative address */
+			if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
+			{
+				/* No alternative address found, disconnect peer */
+				s->bw_changed  (s->bw_changed_cls, address);
+			}
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
@@ -1264,31 +1287,40 @@ GAS_proportional_address_change_network (void *solver,
 			 GNUNET_ATS_print_network_type (new_network));
 
   save_active = address->active;
-	/* remove from old network */
+
+  /* Disable and assign no bandwidth */
+	address->active = GNUNET_NO;
+	address->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
+	address->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+
+	/* Remove from old network */
 	GAS_proportional_address_delete (solver, address, GNUNET_NO);
 
-	/* set new network type */
-	new_net = get_network (solver, new_network);
-	if (NULL == new_net)
+	/* Set new network type */
+	if (NULL == (new_net = get_network (solver, new_network)))
 	{
 		/* Address changed to invalid network... */
-		LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot find network of type `%u' %s\n"),
+		LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid network type `%u' `%s': Disconnect!\n"),
 				new_network, GNUNET_ATS_print_network_type (new_network));
-		address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
-		address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
-		s->bw_changed  (s->bw_changed_cls, address);
+
+		/* Find new address to suggest since no bandwidth in network*/
+		if (NULL == (new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer)))
+		{
+			/* No alternative address found, disconnect peer */
+			s->bw_changed  (s->bw_changed_cls, address);
+		}
 		return;
 	}
-	address->solver_information = new_net;
 
 	/* Add to new network and update*/
+	address->solver_information = new_net;
 	GAS_proportional_address_add (solver, address, new_network);
 	if (GNUNET_YES == save_active)
 	{
 		/* check if bandwidth available in new network */
 		if (GNUNET_YES == (is_bandwidth_available_in_network (new_net)))
 		{
-				/* Suggest updated address */
+				/* Assign bandwidth to updated address */
 				address->active = GNUNET_YES;
 				addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
 				distribute_bandwidth_in_network (solver, new_net, NULL);
@@ -1296,18 +1328,11 @@ GAS_proportional_address_change_network (void *solver,
 		else
 		{
 			LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough bandwidth in new network, suggesting alternative address ..\n");
-
-			/* Set old address to zero bw */
-			address->assigned_bw_in = GNUNET_BANDWIDTH_value_init (0);
-			address->assigned_bw_out = GNUNET_BANDWIDTH_value_init (0);
-			s->bw_changed  (s->bw_changed_cls, address);
-
 			/* Find new address to suggest since no bandwidth in network*/
-			new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer);
-			if (NULL != new)
+			if (NULL == (new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer)))
 			{
-					/* Have an alternative address to suggest */
-					s->bw_changed  (s->bw_changed_cls, new);
+				/* No alternative address found, disconnect peer */
+				s->bw_changed  (s->bw_changed_cls, address);
 			}
 		}
   }
