@@ -511,7 +511,7 @@ zone_to_name_cb (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
-  struct GNUNET_CRYPTO_ShortHashCode pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey pub;
   
   request->qe = NULL;
   if (NULL != name)
@@ -523,6 +523,8 @@ zone_to_name_cb (void *cls,
     run_httpd_now ();
     return;
   }
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (zone_key,
+						  &pub);
   r.data = &pub;
   r.data_size = sizeof (pub);
   r.expiration_time = UINT64_MAX;
