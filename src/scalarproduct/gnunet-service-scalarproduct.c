@@ -682,6 +682,8 @@ handle_client_disconnect (void *cls,
 {
   struct ServiceSession *session;
   
+  if (client == NULL)
+    return;
   session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if (NULL == session)
     return;
@@ -740,9 +742,9 @@ prepare_client_end_notification (void * cls,
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
   msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
-  // 0 size and the first char in the product is 0, which should never be zero if encoding is used.
+  // signal error if not signalized, positive result-range field but zero length. 
   msg->product_length = htonl (0);
-  msg->range = 1;
+  msg->range = (session->state == FINALIZED)? 0 : -1;
   
   session->msg = &msg->header;
 
@@ -883,7 +885,6 @@ prepare_service_response (gcry_mpi_t * r,
                                                  msg_length,
                                                  &do_send_message,
                                                  request);
-      // we don't care if it could be send or not. either way, the session is over for us.
       request->state = FINALIZED;
     }
   else
@@ -893,7 +894,7 @@ prepare_service_response (gcry_mpi_t * r,
   if ( NULL == request->service_transmit_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
-      
+
       response->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         response);
@@ -1493,7 +1494,6 @@ tunnel_destruction_handler (void *cls,
     }
   }
   else { //(BOB == session->role) service session
-            
     // remove the session, unless it has already been dequeued, but somehow still active
     // this could bug without the IF in case the queue is empty and the service session was the only one know to the service
     // scenario: disconnect before alice can send her message to bob.
@@ -1515,6 +1515,7 @@ tunnel_destruction_handler (void *cls,
     // or if it was a responder, no point in adding more statefulness
     if (client_session && (!do_shutdown))
     {
+      client_session->state = FINALIZED;
       client_session->client_notification_task = 
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         client_session);
@@ -1657,7 +1658,7 @@ prepare_client_response (void *cls,
       
       // get representation as string
       if (range
-          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_USG,
+          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_STD,
                                              &product_exported,
                                              &product_length,
                                              value)))){
@@ -2053,6 +2054,10 @@ shutdown_task (void *cls,
     {
       GNUNET_SCHEDULER_cancel (session->service_request_task);
       session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (NULL != session->client){
+      GNUNET_SERVER_client_disconnect(session->client);
+      session->client = NULL;
     }
   }
   for (session = from_service_head; NULL != session; session = session->next)
