@@ -94,8 +94,8 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 rd_decrypt_cb (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd)
+               unsigned int rd_count,
+               const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   char rd_cmp_data[TEST_RECORD_DATALEN];
 
@@ -116,7 +116,7 @@ rd_decrypt_cb (void *cls,
 
 static void
 name_lookup_proc (void *cls,
-						 	 	 	const struct GNUNET_NAMESTORE_Block *block)
+                  const struct GNUNET_NAMESTORE_Block *block)
 {
   const char *name = cls;
   nsqe = NULL;

@@ -31,9 +31,6 @@
 #include "gnunet_psycstore_service.h"
 #include "gnunet_testing_lib.h"
 
-#define ASSERT(x) do { if (! (x)) { printf ("Error at %s:%d\n", __FILE__, __LINE__); cleanup (); return; } } while (0)
-#define ASSERRT(x) do { if (! (x)) { printf ("Error at %s:%d\n", __FILE__, __LINE__); cleanup (); return GNUNET_SYSERR; } } while (0)
-
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 #define DEBUG_SERVICE 0
@@ -161,7 +158,7 @@ state_reset_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_reset_result:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_state_reset (h, &channel_pub_key,
                                      &state_reset_result, cls);
@@ -191,7 +188,7 @@ state_result (void *cls, const char *name, const void *value, size_t value_size)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "  variable %s differs\nReceived: %.*s\nExpected: %.*s\n",
                 name, value_size, value, val_size, val);
-    ASSERRT (0);
+    GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
 }
@@ -203,7 +200,7 @@ state_get_prefix_result (void *cls, int64_t result, const char *err_msg)
   struct StateClosure *scls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_prefix_result:\t%d\n", result);
-  ASSERT (GNUNET_OK == result && 2 == scls->n);
+  GNUNET_assert (GNUNET_OK == result && 2 == scls->n);
 
   op = GNUNET_PSYCSTORE_state_reset (h, &channel_pub_key,
                                      &state_reset_result, cls);
@@ -215,7 +212,7 @@ state_get_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_result:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   scls.n = 0;
 
@@ -244,7 +241,7 @@ counters_slave_result (void *cls, uint64_t max_state_msg_id)
     result = 1;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "counters_get_slave:\t%d\n", result);
-  ASSERT (result == 1);
+  GNUNET_assert (result == 1);
 
   scls.n = 0;
   scls.name[0] = "_bar";
@@ -261,7 +258,7 @@ state_modify_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_modify_result:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_counters_get_slave (h, &channel_pub_key,
                                             &counters_slave_result, cls);
@@ -274,7 +271,7 @@ state_sync_result (void *cls, int64_t result, const char *err_msg)
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_sync_result:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   modifiers[0] = (struct GNUNET_ENV_Modifier) {
     .oper = '=',
@@ -309,7 +306,7 @@ counters_master_result (void *cls, uint64_t fragment_id, uint64_t message_id,
     result = 1;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "counters_get_master:\t%d\n", result);
-  ASSERT (result == 1);
+  GNUNET_assert (result == 1);
 
   modifiers[0] = (struct GNUNET_ENV_Modifier) {
     .oper = '=',
@@ -350,7 +347,7 @@ fragment_result (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  fragment %llu differs\n",
                 GNUNET_ntohll (msg->fragment_id));
-    ASSERRT (0);
+    GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
 }
@@ -362,7 +359,7 @@ message_get_result (void *cls, int64_t result, const char *err_msg)
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%d\n", result);
-  ASSERT (result > 0 && fcls->n && fcls->n_expected);
+  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
 
   op = GNUNET_PSYCSTORE_counters_get_master (h, &channel_pub_key,
                                              &counters_master_result, fcls);
@@ -375,7 +372,7 @@ message_get_fragment_result (void *cls, int64_t result, const char *err_msg)
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_fragment:\t%d\n", result);
-  ASSERT (result > 0 && fcls->n && fcls->n_expected);
+  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
 
   fcls->n = 0;
   fcls->n_expected = 3;
@@ -392,7 +389,7 @@ fragment_get_result (void *cls, int64_t result, const char *err_msg)
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_get:\t%d\n", result);
-  ASSERT (result > 0 && fcls->n && fcls->n_expected);
+  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
 
   fcls->n = 1;
   fcls->n_expected = 2;
@@ -411,7 +408,7 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_store:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   if ((intptr_t) cls == GNUNET_YES)
   {
@@ -430,12 +427,12 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   struct GNUNET_MULTICAST_MessageHeader *msg;
   fcls.flags[0] = GNUNET_PSYCSTORE_MESSAGE_STATE;
   fcls.msg[0] = msg = GNUNET_malloc (sizeof (*msg) + sizeof (channel_pub_key));
-  ASSERT (msg != NULL);
+  GNUNET_assert (msg != NULL);
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->header.size = htons (sizeof (*msg) + sizeof (channel_pub_key));
@@ -454,8 +451,8 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (234);
-  ASSERT (GNUNET_OK == GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose,
-                                               &msg->signature));
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose,
+                                                      &msg->signature));
 
   op = GNUNET_PSYCSTORE_fragment_store (h, &channel_pub_key, msg, fcls.flags[0],
                                         &fragment_store_result, GNUNET_NO);
@@ -484,7 +481,7 @@ membership_store_result (void *cls, int64_t result, const char *err_msg)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_store:\t%d\n", result);
-  ASSERT (GNUNET_OK == result);
+  GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_membership_test (h, &channel_pub_key, &slave_pub_key,
                                          4, 1,
@@ -511,7 +508,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                                  &end_badly, NULL);
   h = GNUNET_PSYCSTORE_connect (cfg);
-  ASSERT (NULL != h);
+  GNUNET_assert (NULL != h);
 
   channel_key = GNUNET_CRYPTO_ecc_key_create ();
   slave_key = GNUNET_CRYPTO_ecc_key_create ();
