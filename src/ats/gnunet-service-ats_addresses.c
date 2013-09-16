@@ -412,7 +412,7 @@ struct GAS_Addresses_Handle
  */
 static unsigned int
 disassemble_ats_information (struct ATS_Address *dest,
-														 const struct GNUNET_ATS_Information *update,
+                             const struct GNUNET_ATS_Information *update,
                              uint32_t update_count,
                              struct GNUNET_ATS_Information **delta_dest,
                              uint32_t *delta_count)
@@ -438,71 +438,71 @@ disassemble_ats_information (struct ATS_Address *dest,
 
   if (NULL == dest->atsi)
   {
-  		/* Create performance information */
-  		dest->atsi = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
-  		dest->atsi_count = update_count;
-  		memcpy (dest->atsi, update, update_count * sizeof (struct GNUNET_ATS_Information));
-  		(*delta_dest) = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
-  		for (c1 = 0; c1 < update_count; c1 ++)
-  		{
-  			(*delta_dest)[c1].type = update[c1].type;
-  			(*delta_dest)[c1].value = htonl(GNUNET_ATS_VALUE_UNDEFINED);
-  		}
-  		(*delta_count) = update_count;
-  		return GNUNET_YES;
+    /* Create performance information */
+    dest->atsi = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
+    dest->atsi_count = update_count;
+    memcpy (dest->atsi, update, update_count * sizeof (struct GNUNET_ATS_Information));
+    (*delta_dest) = GNUNET_malloc (update_count * sizeof (struct GNUNET_ATS_Information));
+    for (c1 = 0; c1 < update_count; c1 ++)
+    {
+      (*delta_dest)[c1].type = update[c1].type;
+      (*delta_dest)[c1].value = htonl(GNUNET_ATS_VALUE_UNDEFINED);
+    }
+    (*delta_count) = update_count;
+    return GNUNET_YES;
   }
 
   for (c1 = 0; c1 < update_count; c1++)
   {
-  	/* Update existing performance information */
-  	found = GNUNET_NO;
-  	for (c2 = 0; c2 < dest->atsi_count; c2++)
-  	{
-			if (update[c1].type == dest->atsi[c2].type)
-			{
-				if (update[c1].value != dest->atsi[c2].value)
-				{
-						/* Save previous value in delta */
-						delta_atsi[delta_atsi_count] = dest->atsi[c2];
-						delta_atsi_count ++;
-						/* Set new value */
-						dest->atsi[c2].value = update[c1].value;
-						change = GNUNET_YES;
-				}
-				found = GNUNET_YES;
-				break;
-			}
-  	}
-		if (GNUNET_NO == found)
-		{
-				add_atsi[add_atsi_count] = update[c1];
-				add_atsi_count ++;
-				delta_atsi[delta_atsi_count].type = update[c1].type;
-				delta_atsi[delta_atsi_count].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
-				delta_atsi_count ++;
-		}
+    /* Update existing performance information */
+    found = GNUNET_NO;
+    for (c2 = 0; c2 < dest->atsi_count; c2++)
+    {
+      if (update[c1].type == dest->atsi[c2].type)
+      {
+        if (update[c1].value != dest->atsi[c2].value)
+        {
+          /* Save previous value in delta */
+          delta_atsi[delta_atsi_count] = dest->atsi[c2];
+          delta_atsi_count ++;
+          /* Set new value */
+          dest->atsi[c2].value = update[c1].value;
+          change = GNUNET_YES;
+        }
+        found = GNUNET_YES;
+        break;
+      }
+    }
+    if (GNUNET_NO == found)
+    {
+      add_atsi[add_atsi_count] = update[c1];
+      add_atsi_count ++;
+      delta_atsi[delta_atsi_count].type = update[c1].type;
+      delta_atsi[delta_atsi_count].value = htonl (GNUNET_ATS_VALUE_UNDEFINED);
+      delta_atsi_count ++;
+    }
   }
 
   if (add_atsi_count > 0)
   {
-  		/* Extend ats performance information */
+    /* Extend ats performance information */
 
-  		tmp_atsi = GNUNET_malloc ((dest->atsi_count + add_atsi_count) *
-  															(sizeof (struct GNUNET_ATS_Information)));
-  		memcpy (tmp_atsi, dest->atsi, dest->atsi_count * sizeof (struct GNUNET_ATS_Information));
-  		memcpy (&tmp_atsi[dest->atsi_count], add_atsi, add_atsi_count * sizeof (struct GNUNET_ATS_Information));
-  		GNUNET_free (dest->atsi);
-  		dest->atsi = tmp_atsi;
-  		dest->atsi_count = dest->atsi_count + add_atsi_count;
-			change = GNUNET_YES;
+    tmp_atsi = GNUNET_malloc ((dest->atsi_count + add_atsi_count) *
+                              (sizeof (struct GNUNET_ATS_Information)));
+    memcpy (tmp_atsi, dest->atsi, dest->atsi_count * sizeof (struct GNUNET_ATS_Information));
+    memcpy (&tmp_atsi[dest->atsi_count], add_atsi, add_atsi_count * sizeof (struct GNUNET_ATS_Information));
+    GNUNET_free (dest->atsi);
+    dest->atsi = tmp_atsi;
+    dest->atsi_count = dest->atsi_count + add_atsi_count;
+    change = GNUNET_YES;
   }
 
   if (delta_atsi_count > 0)
   {
-  		/* Copy delta */
-  		(*delta_dest) = GNUNET_malloc (delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
-  		memcpy ((*delta_dest), delta_atsi, delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
-  		(*delta_count) = delta_atsi_count;
+    /* Copy delta */
+    (*delta_dest) = GNUNET_malloc (delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
+    memcpy ((*delta_dest), delta_atsi, delta_atsi_count * sizeof (struct GNUNET_ATS_Information));
+    (*delta_count) = delta_atsi_count;
   }
 
   return change;
@@ -853,37 +853,35 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   atsi_delta_count = 0;
   if (GNUNET_YES == disassemble_ats_information (existing_address, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
-  	/* Notify performance clients about properties */
-		GAS_performance_notify_all_clients (&existing_address->peer,
-				existing_address->plugin,
-				existing_address->addr, existing_address->addr_len,
-				existing_address->session_id,
-				existing_address->atsi, existing_address->atsi_count,
-				existing_address->assigned_bw_out,
-				existing_address->assigned_bw_in);
+    /* Notify performance clients about properties */
+    GAS_performance_notify_all_clients (&existing_address->peer,
+                existing_address->plugin,
+                existing_address->addr, existing_address->addr_len,
+                existing_address->session_id,
+                existing_address->atsi, existing_address->atsi_count,
+                existing_address->assigned_bw_out,
+                existing_address->assigned_bw_in);
 
-		for (c1 = 0; c1 < atsi_delta_count; c1++)
-		{
-			if ((GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type)) &&
-					(addr_net != ntohl (atsi_delta[c1].value)))
-			{
-				/* Network type changed */
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address for peer `%s' %p changed from network %s to %s\n",
-	           GNUNET_i2s (peer),
-	           existing_address,
-	           GNUNET_ATS_print_network_type (addr_net),
-	           GNUNET_ATS_print_network_type (ntohl (atsi_delta[c1].value)));
-  			handle->s_address_update_network (handle->solver, existing_address,
-  					ntohl (atsi_delta[c1].value),
-  					get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE));
-  			addr_net = get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE);
-			}
-		}
-
-		/* Notify solver about update with atsi information and session */
-	  handle->s_bulk_start (handle->solver);
-	  GAS_normalization_normalize_property (handle->addresses, existing_address, atsi, atsi_count);
-	  handle->s_bulk_stop (handle->solver);
+    for (c1 = 0; c1 < atsi_delta_count; c1++)
+    {
+      if ((GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type)) &&
+              (addr_net != ntohl (atsi_delta[c1].value)))
+      {
+          /* Network type changed */
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Address for peer `%s' %p changed from network %s to %s\n",
+                  GNUNET_i2s (peer), existing_address,
+                  GNUNET_ATS_print_network_type (addr_net),
+                  GNUNET_ATS_print_network_type (ntohl (atsi_delta[c1].value)));
+          handle->s_address_update_network (handle->solver, existing_address,
+                  ntohl (atsi_delta[c1].value),
+                  get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE));
+          addr_net = get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE);
+      }
+    }
+    /* Notify solver about update with atsi information and session */
+    handle->s_bulk_start (handle->solver);
+    GAS_normalization_normalize_property (handle->addresses, existing_address, atsi, atsi_count);
+    handle->s_bulk_stop (handle->solver);
   }
   GNUNET_free_non_null (atsi_delta);
 
@@ -942,7 +940,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 
   /* Get existing address */
   aa = find_exact_address (handle, peer, plugin_name,
-  												 plugin_addr, plugin_addr_len, session_id);
+        plugin_addr, plugin_addr_len, session_id);
   if (aa == NULL)
   {
     /* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n", */
@@ -976,30 +974,30 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   atsi_delta_count = 0;
   if (GNUNET_YES == disassemble_ats_information (aa, atsi, atsi_count, &atsi_delta, &atsi_delta_count))
   {
-  	/* ATS properties changed */
-  	for (c1 = 0; c1 < atsi_delta_count; c1++)
-  	{
-  		if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
-  		{
-  			/* Network type changed */
-  			handle->s_address_update_network (handle->solver, aa,
-  					ntohl (atsi_delta[c1].value),
-  					get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE));
-  		}
-  	}
+    /* ATS properties changed */
+    for (c1 = 0; c1 < atsi_delta_count; c1++)
+    {
+        if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
+        {
+            /* Network type changed */
+            handle->s_address_update_network (handle->solver, aa,
+                      ntohl (atsi_delta[c1].value),
+                      get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE));
+        }
+    }
 
-		/* Notify performance clients about updated address */
-		GAS_performance_notify_all_clients (&aa->peer,
-				aa->plugin,
-				aa->addr, aa->addr_len,
-				aa->session_id,
-				aa->atsi, aa->atsi_count,
-				aa->assigned_bw_out,
-				aa->assigned_bw_in);
+    /* Notify performance clients about updated address */
+    GAS_performance_notify_all_clients (&aa->peer,
+                    aa->plugin,
+                    aa->addr, aa->addr_len,
+                    aa->session_id,
+                    aa->atsi, aa->atsi_count,
+                    aa->assigned_bw_out,
+                    aa->assigned_bw_in);
 
-		handle->s_bulk_start (handle->solver);
-		GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
-		handle->s_bulk_stop (handle->solver);
+    handle->s_bulk_start (handle->solver);
+    GAS_normalization_normalize_property (handle->addresses, aa, atsi, atsi_count);
+    handle->s_bulk_stop (handle->solver);
   }
   GNUNET_free_non_null (atsi_delta);
 }
@@ -1410,12 +1408,13 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  */
 static void
 normalized_preference_changed_cb (void *cls,
-								  const struct GNUNET_PeerIdentity *peer,
-								  enum GNUNET_ATS_PreferenceKind kind,
-								  double pref_rel)
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  enum GNUNET_ATS_PreferenceKind kind,
+                                  double pref_rel)
 {
-	GNUNET_assert (NULL != cls);
-	struct GAS_Addresses_Handle *handle = cls;
+  GNUNET_assert (NULL != cls);
+  struct GAS_Addresses_Handle *handle = cls;
+
   /* Tell solver about update */
   handle->s_pref (handle->solver, peer, kind, pref_rel);
 }
@@ -1431,24 +1430,20 @@ normalized_preference_changed_cb (void *cls,
  */
 static void
 normalized_property_changed_cb (void *cls,
-								  						  struct ATS_Address *address,
-								  						  uint32_t type,
-								  						  double prop_rel)
+                                struct ATS_Address *address,
+                                uint32_t type,
+                                double prop_rel)
 {
-	struct GAS_Addresses_Handle *ah = (struct GAS_Addresses_Handle *) cls;
-	GNUNET_assert (NULL != ah);
+  struct GAS_Addresses_Handle *ah = (struct GAS_Addresses_Handle *) cls;
+  GNUNET_assert (NULL != ah);
 
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Normalized property %s for peer `%s' changed to %.3f \n",
-              GNUNET_ATS_print_property_type (type),
-              GNUNET_i2s (&address->peer),
-              prop_rel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Normalized property %s for peer `%s' changed to %.3f \n",
+        GNUNET_ATS_print_property_type (type),
+        GNUNET_i2s (&address->peer),
+        prop_rel);
 
-	ah->s_address_update_property (ah->solver,
-	    															address,
-	    															type,
-	    															0,
-	    															prop_rel);
+  ah->s_address_update_property (ah->solver, address, type, 0, prop_rel);
 }
 
 
@@ -1496,10 +1491,10 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score_abs)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s' for client %p\n",
-              "CHANGE PREFERENCE",
-              GNUNET_i2s (peer), client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Received `%s' for peer `%s' for client %p\n",
+        "CHANGE PREFERENCE",
+        GNUNET_i2s (peer), client);
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1571,7 +1566,10 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
  * @return number of networks loaded
  */
 static unsigned int
-load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
+            unsigned long long *out_dest,
+            unsigned long long *in_dest,
+            int dest_length)
 {
   char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char * entry_in = NULL;
