@@ -1533,16 +1533,16 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
-																		void *application,
-																		const struct GNUNET_PeerIdentity *peer,
-																		const struct GNUNET_TIME_Relative scope,
-																		enum GNUNET_ATS_PreferenceKind kind,
-																		float score_abs)
+                                  void *application,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_TIME_Relative scope,
+                                  enum GNUNET_ATS_PreferenceKind kind,
+                                  float score_abs)
 {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s' for client %p\n",
-              "PREFERENCE FEEDBACK",
-              GNUNET_i2s (peer), application);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Received `%s' for peer `%s' for client %p\n",
+        "PREFERENCE FEEDBACK",
+        GNUNET_i2s (peer), application);
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1550,11 +1550,11 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (handle->addresses,
                                                           &peer->hashPubKey))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Received `%s' for unknown peer `%s' from client %p\n",
-                  "PREFERENCE FEEDBACK",
-                  GNUNET_i2s (peer), application);
-      return;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received `%s' for unknown peer `%s' from client %p\n",
+                "PREFERENCE FEEDBACK",
+                GNUNET_i2s (peer), application);
+    return;
   }
 
   handle->s_feedback (handle->solver, application, peer, scope, kind, score_abs);
@@ -1706,17 +1706,17 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   if ((0 == ntohl (address->assigned_bw_in.value__)) &&
   		(0 == ntohl (address->assigned_bw_out.value__)))
   {
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-								"Telling transport to disconnect peer `%s'\n",
-								GNUNET_i2s (&address->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Telling transport to disconnect peer `%s'\n",
+                GNUNET_i2s (&address->peer));
   }
   else
   {
-		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-								"Sending bandwidth update for peer `%s': %llu %llu\n",
-								GNUNET_i2s (&address->peer),
-								address->assigned_bw_out,
-								address->assigned_bw_out);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Sending bandwidth update for peer `%s': %llu %llu\n",
+                GNUNET_i2s (&address->peer),
+                address->assigned_bw_out,
+                address->assigned_bw_out);
   }
 
   /* *Notify scheduling clients about suggestion */
