@@ -407,68 +407,68 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
     size_t msg_size, struct GNUNET_TIME_Relative timeout,
     GST_NeighbourSendContinuation cont, void *cont_cls)
 {
-	struct TM_Peer *tmp;
-	struct DelayQueueEntry *dqe;
-	struct GNUNET_TIME_Relative delay;
+  struct TM_Peer *tmp;
+  struct DelayQueueEntry *dqe;
+  struct GNUNET_TIME_Relative delay;
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &target->hashPubKey)))
-	{
-			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
-			/* Manipulate here */
-			/* Delay */
-			if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
-			{
-					/* We have a delay */
-					delay.rel_value_us = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
-					dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
-					dqe->id = *target;
-					dqe->tmp = tmp;
-					dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
-					dqe->cont = cont;
-					dqe->cont_cls = cont_cls;
-					dqe->msg = &dqe[1];
-					dqe->msg_size = msg_size;
-					dqe->timeout = timeout;
-					memcpy (dqe->msg, msg, msg_size);
-					GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head, tmp->send_tail, dqe);
-					if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
-						tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
-					GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-							"Delaying %u byte message to peer `%s' with generic delay for %ms\n",
-							msg_size, GNUNET_i2s (target),
-						    GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-					return;
-			}
-	}
-	else if (UINT32_MAX != find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
-	{
-			GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
-			/* We have a delay */
-			delay.rel_value_us = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
-			dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
-			dqe->id = *target;
-			dqe->tmp = NULL;
-			dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
-			dqe->cont = cont;
-			dqe->cont_cls = cont_cls;
-			dqe->msg = &dqe[1];
-			dqe->msg_size = msg_size;
-			dqe->timeout = timeout;
-			memcpy (dqe->msg, msg, msg_size);
-			GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head, generic_dqe_tail, dqe);
-			if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
-			{
-				generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
-			}
-			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-				    "Delaying %u byte message to peer `%s' with peer specific delay for %s\n",
-				    msg_size, GNUNET_i2s (target),
-				    GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-			return;
-	}
+  if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &target->hashPubKey)))
+  {
+    GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
+    /* Manipulate here */
+    /* Delay */
+    if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
+    {
+      /* We have a delay */
+      delay.rel_value_us = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
+      dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
+      dqe->id = *target;
+      dqe->tmp = tmp;
+      dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
+      dqe->cont = cont;
+      dqe->cont_cls = cont_cls;
+      dqe->msg = &dqe[1];
+      dqe->msg_size = msg_size;
+      dqe->timeout = timeout;
+      memcpy (dqe->msg, msg, msg_size);
+      GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head, tmp->send_tail, dqe);
+      if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
+        tmp->send_delay_task =GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Delaying %u byte message to peer `%s' with generic delay for %ms\n",
+          msg_size, GNUNET_i2s (target),
+          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+      return;
+    }
+  }
+  else if (UINT32_MAX != find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
+  {
+    GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
+    /* We have a delay */
+    delay.rel_value_us = find_metric (&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
+    dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
+    dqe->id = *target;
+    dqe->tmp = NULL;
+    dqe->sent_at = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), delay);
+    dqe->cont = cont;
+    dqe->cont_cls = cont_cls;
+    dqe->msg = &dqe[1];
+    dqe->msg_size = msg_size;
+    dqe->timeout = timeout;
+    memcpy (dqe->msg, msg, msg_size);
+    GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head, generic_dqe_tail, dqe);
+    if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
+    {
+        generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay, &send_delayed, dqe);
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Delaying %u byte message to peer `%s' with peer specific delay for %s\n",
+        msg_size, GNUNET_i2s (target),
+        GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    return;
+  }
 
-	/* Normal sending */
-	GST_neighbours_send (target, msg, msg_size, timeout, cont, cont_cls);
+  /* Normal sending */
+  GST_neighbours_send (target, msg, msg_size, timeout, cont, cont_cls);
 }
 
 
