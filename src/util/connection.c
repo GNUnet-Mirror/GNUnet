@@ -1001,8 +1001,10 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
     if (GNUNET_YES != connection->persist)
       GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
     else
-      GNUNET_free (connection->sock); /* at least no memory leak (we deliberately
-				       * leak the socket in this special case) ... */
+    {
+      GNUNET_NETWORK_socket_free_memory_only_ (connection->sock); /* at least no memory leak (we deliberately
+								   * leak the socket in this special case) ... */
+    }
   }
   GNUNET_free_non_null (connection->addr);
   GNUNET_free_non_null (connection->hostname);

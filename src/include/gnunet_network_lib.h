@@ -156,10 +156,19 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
  * Close a socket.
  *
  * @param desc socket to close
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc);
+
+
+/**
+ * Only free memory of a socket, keep the file descriptor untouched.
+ *
+ * @param desc socket
+ */
+void
+GNUNET_NETWORK_socket_free_memory_only_ (struct GNUNET_NETWORK_Handle *desc);
 
 
 /**

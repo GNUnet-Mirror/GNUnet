@@ -473,9 +473,21 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   }
 #endif
 #endif
+  GNUNET_NETWORK_socket_free_memory_only_ (desc);
+  return (ret == 0) ? GNUNET_OK : GNUNET_SYSERR;
+}
+
+
+/**
+ * Only free memory of a socket, keep the file descriptor untouched.
+ *
+ * @param desc socket
+ */
+void
+GNUNET_NETWORK_socket_free_memory_only_ (struct GNUNET_NETWORK_Handle *desc)
+{
   GNUNET_free_non_null (desc->addr);
   GNUNET_free (desc);
-  return (ret == 0) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
 
