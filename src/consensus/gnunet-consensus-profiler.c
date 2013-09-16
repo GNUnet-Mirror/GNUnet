@@ -347,6 +347,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   static char *session_str = "gnunet-consensus/test";
   char *topology;
+  int topology_cmp_result;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed", "OVERLAY_TOPOLOGY", &topology))
   {
@@ -355,14 +356,15 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  if (0 == strcasecmp (topology, "NONE"))
+  topology_cmp_result = strcasecmp (topology, "NONE");
+  GNUNET_free (topology);
+
+  if (0 == topology_cmp_result)
   {
     fprintf (stderr, "'OVERLAY_TOPOLOGY' set to 'NONE', "
                      "seems like you passed the wrong configuration file\n");
     return;
   }
-
-  GNUNET_free (topology);
 
   if (num_peers < replication)
   {

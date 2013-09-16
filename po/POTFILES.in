@@ -14,6 +14,7 @@ src/ats/gnunet-service-ats_reservations.c
 src/ats/gnunet-service-ats_scheduling.c
 src/ats/gnunet-service-ats-solver_mlp.c
 src/ats/gnunet-service-ats-solver_proportional.c
+src/ats/gnunet-service-ats-solver_ril.c
 src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
@@ -88,7 +89,6 @@ src/fs/fs_getopt.c
 src/fs/fs_list_indexed.c
 src/fs/fs_misc.c
 src/fs/fs_namespace.c
-src/fs/fs_pseudonym.c
 src/fs/fs_publish.c
 src/fs/fs_publish_ksk.c
 src/fs/fs_publish_ublock.c
@@ -105,7 +105,6 @@ src/fs/gnunet-download.c
 src/fs/gnunet-fs.c
 src/fs/gnunet-fs-profiler.c
 src/fs/gnunet-helper-fs-publish.c
-src/fs/gnunet-pseudonym.c
 src/fs/gnunet-publish.c
 src/fs/gnunet-search.c
 src/fs/gnunet-service-fs.c
@@ -159,6 +158,9 @@ src/mesh/mesh_path.c
 src/mesh/mesh_test_lib.c
 src/mesh/mesh_tunnel_tree.c
 src/mesh/plugin_block_mesh.c
+src/multicast/gnunet-multicast.c
+src/multicast/gnunet-service-multicast.c
+src/multicast/multicast_api.c
 src/mysql/mysql.c
 src/namestore/gnunet-namestore.c
 src/namestore/gnunet-namestore-fcfsd.c
@@ -187,6 +189,7 @@ src/peerinfo-tool/gnunet-peerinfo.c
 src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/postgres/postgres.c
 src/psycstore/gnunet-service-psycstore.c
+src/psycstore/plugin_psycstore_sqlite.c
 src/psycstore/psycstore_api.c
 src/pt/gnunet-daemon-pt.c
 src/regex/gnunet-daemon-regexprofiler.c
@@ -220,6 +223,8 @@ src/template/gnunet-service-template.c
 src/template/gnunet-template.c
 src/testbed/gnunet-helper-testbed.c
 src/testbed/gnunet_mpi_test.c
+src/testbed/gnunet-service-test-barriers.c
+src/testbed/gnunet-service-testbed_barriers.c
 src/testbed/gnunet-service-testbed.c
 src/testbed/gnunet-service-testbed_cache.c
 src/testbed/gnunet-service-testbed_cpustatus.c
@@ -232,6 +237,7 @@ src/testbed/gnunet_testbed_ll_master.c
 src/testbed/gnunet_testbed_ll_monitor.c
 src/testbed/gnunet_testbed_mpi_spawn.c
 src/testbed/gnunet-testbed-profiler.c
+src/testbed/testbed_api_barriers.c
 src/testbed/testbed_api.c
 src/testbed/testbed_api_hosts.c
 src/testbed/testbed_api_operations.c
@@ -346,5 +352,6 @@ src/include/gnunet_postgres_lib.h
 src/include/gnunet_time_lib.h
 src/mesh/mesh_protocol_enc.h
 src/mesh/mesh_protocol.h
+src/scalarproduct/scalarproduct.h
 src/testbed/testbed_api.h
 src/testbed/testbed_api_operations.h
