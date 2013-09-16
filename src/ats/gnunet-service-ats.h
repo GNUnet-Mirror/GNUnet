@@ -31,6 +31,8 @@
 
 #define GAS_normalization_queue_length 3
 
+#define BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init (0)
+
 /**
  * Handle for statistics.
  */
