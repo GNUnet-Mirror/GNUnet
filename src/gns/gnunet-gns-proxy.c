@@ -1916,11 +1916,12 @@ create_response (void *cls,
     
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "MHD: Adding new curl task for %s\n", ctask->host);
-
+#if 0
     GNUNET_GNS_get_authority (gns_handle,
                               ctask->host,
                               &process_get_authority,
                               ctask);
+#endif
     ctask->ready_to_queue = GNUNET_NO;
     ctask->fin = GNUNET_NO;
     ctask->curl_running = GNUNET_YES;
@@ -1948,11 +1949,12 @@ create_response (void *cls,
         
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "MHD: Adding new curl task for %s\n", ctask->host);
-
+#if 0
         GNUNET_GNS_get_authority (gns_handle,
                                   ctask->host,
                                   &process_get_authority,
                                   ctask);
+#endif
         ctask->ready_to_queue = GNUNET_NO;
         ctask->fin = GNUNET_NO;
         ctask->curl_running = GNUNET_YES;
@@ -2006,11 +2008,12 @@ create_response (void *cls,
 
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "MHD: Adding new curl task for %s\n", ctask->host);
-
+#if 0
         GNUNET_GNS_get_authority (gns_handle,
                                   ctask->host,
                                   &process_get_authority,
                                   ctask);
+#endif
         ctask->ready_to_queue = GNUNET_YES;
         ctask->fin = GNUNET_NO;
         ctask->curl_running = GNUNET_YES;
@@ -2277,17 +2280,20 @@ do_read_remote (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return whatever #MHD_add_connection returns
  */
 static int
-add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, struct MHD_Daemon *daemon)
+add_handle_to_mhd (struct GNUNET_NETWORK_Handle *h, 
+		   struct MHD_Daemon *daemon)
 {
   int fd;
   struct sockaddr *addr;
   socklen_t len;
+  int ret;
 
-  fd = dup (GNUNET_NETWORK_get_fd (h));
+  fd = GNUNET_NETWORK_get_fd (h);
   addr = GNUNET_NETWORK_get_addr (h);
   len = GNUNET_NETWORK_get_addrlen (h);
-
-  return MHD_add_connection (daemon, fd, addr, len);
+  ret = MHD_add_connection (daemon, fd, addr, len);
+  GNUNET_NETWORK_socket_free_memory_only_ (h);
+  return ret;
 }
 
 
@@ -2327,10 +2333,11 @@ load_file (const char* filename,
  *
  * @param key where to store the data
  * @param keyfile path to the PEM file
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
-load_key_from_file (gnutls_x509_privkey_t key, const char* keyfile)
+load_key_from_file (gnutls_x509_privkey_t key, 
+		    const char* keyfile)
 {
   gnutls_datum_t key_data;
   int ret;
@@ -2358,7 +2365,8 @@ load_key_from_file (gnutls_x509_privkey_t key, const char* keyfile)
  * @return #GNUNET_OK on success
  */
 static int
-load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
+load_cert_from_file (gnutls_x509_crt_t crt, 
+		     const char* certfile)
 {
   gnutls_datum_t cert_data;
   int ret;
@@ -2386,107 +2394,50 @@ load_cert_from_file (gnutls_x509_crt_t crt, char* certfile)
 static struct ProxyGNSCertificate *
 generate_gns_certificate (const char *name)
 {
-  int ret;
   unsigned int serial;
   size_t key_buf_size;
   size_t cert_buf_size;
   gnutls_x509_crt_t request;
   time_t etime;
   struct tm *tm_data;
+  struct ProxyGNSCertificate *pgc;
 
-  ret = gnutls_x509_crt_init (&request);
-
-  if (GNUTLS_E_SUCCESS != ret)
-  {
-    GNUNET_break (0);
-  }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Generating cert for `%s'\n", 
+	      name);
+  GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&request));
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_key (request, proxy_ca.key));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Generating cert\n");
-
-  struct ProxyGNSCertificate *pgc =
-    GNUNET_new (struct ProxyGNSCertificate);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding DNs\n");
-  
+  pgc = GNUNET_new (struct ProxyGNSCertificate);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COUNTRY_NAME,
-                                 0, "DE", 2);
+                                 0, "TNR", 2);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_ORGANIZATION_NAME,
-                                 0, "GADS", 4);
+                                 0, "GNU Name System", 4);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COMMON_NAME,
                                  0, name, strlen (name));
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_version (request, 3));
-
-  ret = gnutls_rnd (GNUTLS_RND_NONCE, &serial, sizeof (serial));
-
+  gnutls_rnd (GNUTLS_RND_NONCE, &serial, sizeof (serial));
+  gnutls_x509_crt_set_serial (request,
+			      &serial,
+			      sizeof (serial));
   etime = time (NULL);
   tm_data = localtime (&etime);  
-
-  ret = gnutls_x509_crt_set_serial (request,
-                                    &serial,
-                                    sizeof (serial));
-
-  ret = gnutls_x509_crt_set_activation_time (request,
-                                             etime);
+  gnutls_x509_crt_set_activation_time (request,
+				       etime);
   tm_data->tm_year++;
   etime = mktime (tm_data);
-
-  if (-1 == etime)
-  {
-    GNUNET_break (0);
-  }
-
-  ret = gnutls_x509_crt_set_expiration_time (request,
-                                             etime);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Signing...\n");
-
-  ret = gnutls_x509_crt_sign (request, proxy_ca.cert, proxy_ca.key);
-
+  gnutls_x509_crt_set_expiration_time (request,
+				       etime);
+  gnutls_x509_crt_sign (request, 
+			proxy_ca.cert, 
+			proxy_ca.key);
   key_buf_size = sizeof (pgc->key);
   cert_buf_size = sizeof (pgc->cert);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exporting certificate...\n");
-  
   gnutls_x509_crt_export (request, GNUTLS_X509_FMT_PEM,
                           pgc->cert, &cert_buf_size);
-
   gnutls_x509_privkey_export (proxy_ca.key, GNUTLS_X509_FMT_PEM,
-                          pgc->key, &key_buf_size);
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
+			      pgc->key, &key_buf_size);
   gnutls_x509_crt_deinit (request);
-
   return pgc;
-
-}
-
-
-/**
- * Accept policy for mhdaemons
- *
- * @param cls NULL
- * @param addr the sockaddr
- * @param addrlen the sockaddr length
- * @return MHD_NO if sockaddr is wrong or number of connections is too high
- */
-static int
-accept_cb (void* cls, const struct sockaddr *addr, socklen_t addrlen)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "In MHD accept policy cb\n");
-
-  if (addr != NULL)
-  {
-    if (addr->sa_family == AF_UNIX)
-      return MHD_NO;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection accepted\n");
-
-  return MHD_YES;
 }
 
 
@@ -2520,7 +2471,7 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h,
     hd->proxy_cert = pgc;
     hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_SSL | MHD_USE_NO_LISTEN_SOCKET,
                                    0,
-                                   &accept_cb, NULL,
+                                   NULL, NULL,
                                    &create_response, hd,
                                    MHD_OPTION_CONNECTION_LIMIT,
                                    MHD_MAX_CONNECTIONS,
@@ -2628,7 +2579,7 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                     "Requested connection is HTTP\n");
-        ret = add_handle_to_mhd ( s5r->sock, httpd );
+        ret = add_handle_to_mhd (s5r->sock, httpd );
       }
 
       if (ret != MHD_YES)
@@ -2967,7 +2918,7 @@ run_cont ()
   strcpy (hd->domain, "");
   hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
 				 0,
-				 &accept_cb, NULL,
+				 NULL, NULL,
 				 &create_response, hd,
 				 MHD_OPTION_CONNECTION_LIMIT, MHD_MAX_CONNECTIONS,
 				 MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
