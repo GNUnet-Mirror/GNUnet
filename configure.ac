@@ -1345,6 +1345,7 @@ src/statistics/statistics.conf
 src/template/Makefile
 src/testbed/Makefile
 src/testbed/testbed.conf
+src/testbed/test_testbed_api_barriers.conf
 src/testing/Makefile
 src/topology/Makefile
 src/transport/Makefile

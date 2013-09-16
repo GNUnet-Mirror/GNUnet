@@ -13,7 +13,7 @@ PORT = 12366
 [test-barriers]
 AUTOSTART = YES
 PORT = 12114                    #not really used
-BINARY = gnunet-service-test-barriers
+BINARY = @abs_srcdir@/gnunet-service-test-barriers
 
 [fs]
 AUTOSTART = NO
