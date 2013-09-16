@@ -39,8 +39,8 @@ CLEANFILES = $(check_SCRIPTS) \
   buildvars.pyc
 
 noinst_PROGRAMS = \
-  gnunet-service-test-barriers
-
+  gnunet-service-test-barriers \
+  test-getcwd
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.h \
   gnunet-service-testbed.c \
@@ -400,3 +400,5 @@ EXTRA_DIST = \
   sample.job \
   buildvars.py.in \
   test_testbed_api_barriers.py
+
+test_getcwd_SOURCES = test_getcwd.c
