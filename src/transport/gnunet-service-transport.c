@@ -595,8 +595,10 @@ plugin_env_session_start (void *cls,
  * @param cls closure
  * @param address address to use (for peer given in address)
  * @param session session to use (if available)
- * @param bandwidth_out assigned outbound bandwidth for the connection, 0 to disconnect from peer
- * @param bandwidth_in assigned inbound bandwidth for the connection, 0 to disconnect from peer
+ * @param bandwidth_out assigned outbound bandwidth for the connection in NBO,
+ * 	0 to disconnect from peer
+ * @param bandwidth_in assigned inbound bandwidth for the connection in NBO,
+ * 	0 to disconnect from peer
  * @param ats ATS information
  * @param ats_count number of ATS elements
  */
@@ -615,7 +617,7 @@ ats_request_address_change (void *cls,
   /* ATS tells me to disconnect from peer */
   if ((bw_in == 0) && (bw_out == 0))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ATS tells me to disconnect from peer `%s'\n",
                 GNUNET_i2s (&address->peer));
     GST_neighbours_force_disconnect (&address->peer);

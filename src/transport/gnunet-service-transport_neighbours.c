@@ -2294,8 +2294,10 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
  * @param session session to use (or NULL)
  * @param ats performance data
  * @param ats_count number of entries in ats
- * @param bandwidth_in inbound quota to be used when connection is up
- * @param bandwidth_out outbound quota to be used when connection is up
+ * @param bandwidth_in inbound quota to be used when connection is up,
+ * 	0 to disconnect from peer
+ * @param bandwidth_out outbound quota to be used when connection is up,
+ * 	0 to disconnect from peer
  */
 void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
