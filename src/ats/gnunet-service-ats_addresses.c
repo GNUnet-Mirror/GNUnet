@@ -775,7 +775,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   uint32_t previous_session;
   int c1;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' for peer `%s'\n",
               "ADDRESS ADD",
               GNUNET_i2s (peer));
@@ -1678,7 +1678,8 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   GNUNET_assert (handle != NULL);
   GNUNET_assert (address != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Bandwidth assignment changed for peer %s \n", GNUNET_i2s(&address->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bandwidth assignment changed for peer %s \n",
+  		GNUNET_i2s(&address->peer));
 
   /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
@@ -1702,8 +1703,21 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Sending bandwidth update for peer `%s'\n",GNUNET_i2s (&address->peer));
+  if ((0 == ntohl (address->assigned_bw_in.value__)) &&
+  		(0 == ntohl (address->assigned_bw_out.value__)))
+  {
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+								"Telling transport to disconnect peer `%s'\n",
+								GNUNET_i2s (&address->peer));
+  }
+  else
+  {
+		GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+								"Sending bandwidth update for peer `%s': %llu %llu\n",
+								GNUNET_i2s (&address->peer),
+								address->assigned_bw_out,
+								address->assigned_bw_out);
+  }
 
   /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer,
