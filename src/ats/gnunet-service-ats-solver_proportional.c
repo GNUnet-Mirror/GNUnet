@@ -1088,13 +1088,6 @@ GAS_proportional_address_delete (void *solver,
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break (0);
       distribute_bandwidth_in_network (s, net, NULL);
-
-      /* Address was active, requesting alternative address */
-			if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
-			{
-				/* No alternative address found, disconnect peer */
-				s->bw_changed  (s->bw_changed_cls, address);
-			}
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses,
