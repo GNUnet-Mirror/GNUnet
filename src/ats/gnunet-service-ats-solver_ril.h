@@ -1,22 +1,22 @@
 /*
-     This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+ This file is part of GNUnet.
+ (C) 2011 Christian Grothoff (and other contributing authors)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+ GNUnet is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published
+ by the Free Software Foundation; either version 3, or (at your
+ option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
+ GNUnet is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ General Public License for more details.
 
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+ You should have received a copy of the GNU General Public License
+ along with GNUnet; see the file COPYING.  If not, write to the
+ Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ Boston, MA 02111-1307, USA.
+ */
 
 /**
  * @file ats/gnunet-service-ats-solver_ril.h
@@ -34,7 +34,6 @@
  * General description
  */
 
-
 /**
  * Changes the preferences for a peer in the problem
  *
@@ -45,10 +44,9 @@
  */
 void
 GAS_ril_address_change_preference (void *solver,
-								 	 	 	const struct GNUNET_PeerIdentity *peer,
-								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
-								 	 	 	double pref_rel);
-
+    const struct GNUNET_PeerIdentity *peer,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double pref_rel);
 
 /**
  * Init the reinforcement learning problem solver
@@ -81,18 +79,18 @@ GAS_ril_address_change_preference (void *solver,
  */
 void *
 GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                     const struct GNUNET_STATISTICS_Handle *stats,
-                     const struct GNUNET_CONTAINER_MultiHashMap *addresses,
-                     int *network,
-                     unsigned long long *out_quota,
-                     unsigned long long *in_quota,
-                     int dest_length,
-                     GAS_bandwidth_changed_cb bw_changed_cb,
-                     void *bw_changed_cb_cls,
-                     GAS_get_preferences get_preference,
-                     void *get_preference_cls,
-                     GAS_get_properties get_properties,
-                     void *get_properties_cls);
+    const struct GNUNET_STATISTICS_Handle *stats,
+    const struct GNUNET_CONTAINER_MultiHashMap *addresses,
+    int *network,
+    unsigned long long *out_quota,
+    unsigned long long *in_quota,
+    int dest_length,
+    GAS_bandwidth_changed_cb bw_changed_cb,
+    void *bw_changed_cb_cls,
+    GAS_get_preferences get_preference,
+    void *get_preference_cls,
+    GAS_get_properties get_properties,
+    void *get_properties_cls);
 
 /**
  * Shutdown the reinforcement learning problem solver
@@ -101,7 +99,6 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GAS_ril_done (void * solver);
-
 
 /**
  * Add a single address within a network to the solver
@@ -112,9 +109,8 @@ GAS_ril_done (void * solver);
  */
 void
 GAS_ril_address_add (void *solver,
-							struct ATS_Address *address,
-							uint32_t network);
-
+    struct ATS_Address *address,
+    uint32_t network);
 
 /**
  * Transport properties for this address have changed
@@ -127,11 +123,10 @@ GAS_ril_address_add (void *solver,
  */
 void
 GAS_ril_address_property_changed (void *solver,
-    															struct ATS_Address *address,
-    															uint32_t type,
-    															uint32_t abs_value,
-    															double rel_value);
-
+    struct ATS_Address *address,
+    uint32_t type,
+    uint32_t abs_value,
+    double rel_value);
 
 /**
  * Transport session for this address has changed
@@ -145,10 +140,9 @@ GAS_ril_address_property_changed (void *solver,
  */
 void
 GAS_ril_address_session_changed (void *solver,
-    															struct ATS_Address *address,
-    															uint32_t cur_session,
-    															uint32_t new_session);
-
+    struct ATS_Address *address,
+    uint32_t cur_session,
+    uint32_t new_session);
 
 /**
  * Usage for this address has changed
@@ -161,8 +155,8 @@ GAS_ril_address_session_changed (void *solver,
  */
 void
 GAS_ril_address_inuse_changed (void *solver,
-    															struct ATS_Address *address,
-    															int in_use);
+    struct ATS_Address *address,
+    int in_use);
 
 /**
  * Network scope for this address has changed
@@ -176,9 +170,9 @@ GAS_ril_address_inuse_changed (void *solver,
  */
 void
 GAS_ril_address_change_network (void *solver,
-																	   struct ATS_Address *address,
-																	   uint32_t current_network,
-																	   uint32_t new_network);
+    struct ATS_Address *address,
+    uint32_t current_network,
+    uint32_t new_network);
 
 /**
  * Remove an address from the solver
@@ -189,7 +183,8 @@ GAS_ril_address_change_network (void *solver,
  */
 void
 GAS_ril_address_delete (void *solver,
-    struct ATS_Address *address, int session_only);
+    struct ATS_Address *address,
+    int session_only);
 
 /**
  * Get application feedback for a peer
@@ -203,11 +198,11 @@ GAS_ril_address_delete (void *solver,
  */
 void
 GAS_ril_address_preference_feedback (void *solver,
-											void *application,
-								 	 	 	const struct GNUNET_PeerIdentity *peer,
-								 	 	 	const struct GNUNET_TIME_Relative scope,
-								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
-								 	 	 	double score);
+    void *application,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_TIME_Relative scope,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double score);
 
 /**
  * Start a bulk operation
@@ -216,7 +211,6 @@ GAS_ril_address_preference_feedback (void *solver,
  */
 void
 GAS_ril_bulk_start (void *solver);
-
 
 /**
  * Bulk operation done
@@ -232,8 +226,7 @@ GAS_ril_bulk_stop (void *solver);
  */
 void
 GAS_ril_stop_get_preferred_address (void *solver,
-                                     const struct GNUNET_PeerIdentity *peer);
-
+    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Get the prefered address for a specific peer
@@ -243,6 +236,6 @@ GAS_ril_stop_get_preferred_address (void *solver,
  */
 const struct ATS_Address *
 GAS_ril_get_preferred_address (void *solver,
-                               const struct GNUNET_PeerIdentity *peer);
+    const struct GNUNET_PeerIdentity *peer);
 
 /* end of gnunet-service-ats-solver_ril.h */
