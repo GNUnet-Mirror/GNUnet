@@ -2,8 +2,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 if MINGW
   WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
-else
-  TEST_API_BARRIERS= test_testbed_api_barriers.py
 endif
 
 if USE_COVERAGE
@@ -39,8 +37,8 @@ CLEANFILES = $(check_SCRIPTS) \
   buildvars.pyc
 
 noinst_PROGRAMS = \
-  gnunet-service-test-barriers \
-  test-getcwd
+  gnunet-service-test-barriers
+
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.h \
   gnunet-service-testbed.c \
@@ -193,7 +191,7 @@ if ENABLE_TEST_RUN
   test_testbed_api_testbed_run_topologysmallworldring \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
-  $(TEST_API_BARRIERS)
+  test_testbed_api_barriers
 endif
 
 test_testbed_api_hosts_SOURCES = \
@@ -371,11 +369,6 @@ test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
-do_subst = sed -e 's,[@]libexecdir[@],$(libexecdir),g' -e 's,[@]exec_prefix[@],$(exec_prefix),g'
-
-buildvars.py: buildvars.py.in Makefile
-	$(do_subst) < $(srcdir)/buildvars.py.in > $@
-
 gnunet_service_test_barriers_SOURCES = \
   gnunet-service-test-barriers.c \
   test_testbed_api_barriers.h
@@ -395,10 +388,7 @@ EXTRA_DIST = \
   test_testbed_api_testbed_run_topologysmallworld.conf \
   test_testbed_api_testbed_run_topologyfromfile.conf \
   test_testbed_api_testbed_run_topologyscalefree.conf \
+  test_testbed_api_barriers.conf.in \
   overlay_topology.txt \
   sample_hosts.txt \
-  sample.job \
-  buildvars.py.in \
-  test_testbed_api_barriers.py
-
-test_getcwd_SOURCES = test_getcwd.c
+  sample.job
