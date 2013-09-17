@@ -11,7 +11,7 @@ DEFAULTSERVICES = core transport test-barriers
 PORT = 12366
 
 [test-barriers]
-AUTOSTART = YES
+AUTOSTART = NO
 PORT = 12114
 BINARY = /will/be/overwriten/in/test_testbed_api_barriers/
 
