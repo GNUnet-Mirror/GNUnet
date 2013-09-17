@@ -3398,6 +3398,8 @@ do_shutdown (void *cls,
     GNUNET_SCHEDULER_cancel (ltask);
     ltask = GNUNET_SCHEDULER_NO_TASK;
   }
+  gnutls_x509_crt_deinit (proxy_ca.cert);
+  gnutls_x509_privkey_deinit (proxy_ca.key);
   gnutls_global_deinit ();
 }
 
@@ -3607,7 +3609,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Failed to load SSL/TLS key and certificate from `%s'\n"),
 		cafile);
-    // FIXME: release resources...
+    gnutls_x509_crt_deinit (proxy_ca.cert);
+    gnutls_x509_privkey_deinit (proxy_ca.key);
+    gnutls_global_deinit ();
     GNUNET_free_non_null (cafile_cfg);  
     return;
   }
@@ -3616,6 +3620,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unable to connect to GNS!\n");
+    gnutls_x509_crt_deinit (proxy_ca.cert);
+    gnutls_x509_privkey_deinit (proxy_ca.key);
+    gnutls_global_deinit ();
     return;
   }
   identity = GNUNET_IDENTITY_connect (cfg,
