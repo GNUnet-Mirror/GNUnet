@@ -2079,7 +2079,7 @@ shutdown_task (void *cls,
       session->client = NULL;
     }
   }
-  for (session = from_service_head; NULL != session; session = from_service_head)
+  for (session = from_service_head; NULL != session; session = session->next)
     if (NULL != session->tunnel){
       GNUNET_MESH_tunnel_destroy (session->tunnel);
     session->tunnel = NULL;
