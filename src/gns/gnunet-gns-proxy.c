@@ -60,6 +60,13 @@
 #define POSTBUFFERSIZE 4096
 
 /**
+ * Size of the read/write buffers for Socks.   Uses
+ * 256 bytes for the hostname (at most), plus a few
+ * bytes overhead for the messages.
+ */
+#define SOCKS_BUFFERSIZE (256 + 32)
+
+/**
  * Port for plaintext HTTP.
  */
 #define HTTP_PORT 80
@@ -97,22 +104,89 @@
 
 
 /**
- * The socks phases 
+ * Commands in Socks5.
+ */ 
+enum Socks5Commands
+{
+  /**
+   * Establish TCP/IP stream.
+   */
+  SOCKS5_CMD_TCP_STREAM = 1,
+
+  /**
+   * Establish TCP port binding.
+   */
+  SOCKS5_CMD_TCP_PORT = 2,
+
+  /**
+   * Establish UDP port binding.
+   */
+  SOCKS5_CMD_UDP_PORT = 3
+};
+
+
+/**
+ * Address types in Socks5.
+ */ 
+enum Socks5AddressType
+{
+  /**
+   * IPv4 address.
+   */
+  SOCKS5_AT_IPV4 = 1,
+
+  /**
+   * IPv4 address.
+   */
+  SOCKS5_AT_DOMAINNAME = 3,
+
+  /**
+   * IPv6 address.
+   */
+  SOCKS5_AT_IPV6 = 4
+
+};
+
+
+/**
+ * Status codes in Socks5 response.
+ */
+enum Socks5StatusCode
+{
+  SOCKS5_STATUS_REQUEST_GRANTED = 0,
+  SOCKS5_STATUS_GENERAL_FAILURE = 1,
+  SOCKS5_STATUS_CONNECTION_NOT_ALLOWED_BY_RULE = 2,
+  SOCKS5_STATUS_NETWORK_UNREACHABLE = 3,
+  SOCKS5_STATUS_HOST_UNREACHABLE = 4,
+  SOCKS5_STATUS_CONNECTION_REFUSED_BY_HOST = 5,
+  SOCKS5_STATUS_TTL_EXPIRED = 6,
+  SOCKS5_STATUS_COMMAND_NOT_SUPPORTED = 7,
+  SOCKS5_STATUS_ADDRESS_TYPE_NOT_SUPPORTED = 8
+};
+
+
+/**
+ * The socks phases.  
  */
 enum SocksPhase
 {
   /**
-   * We're waiting to get the request.
+   * We're waiting to get the client hello.
    */
   SOCKS5_INIT,
 
   /**
-   * FIXME.
+   * We're waiting to get the initial request.
    */
   SOCKS5_REQUEST,
 
   /**
-   * FIXME.
+   * We are currently resolving the destination.
+   */
+  SOCKS5_RESOLVING,
+
+  /**
+   * We're in transfer mode.
    */
   SOCKS5_DATA_TRANSFER
 };
@@ -190,11 +264,6 @@ struct Socks5Request
   struct GNUNET_NETWORK_Handle *remote_sock;
   
   /**
-   * The socks state 
-   */
-  enum SocksPhase state;
-  
-  /**
    * Client socket read task 
    */
   GNUNET_SCHEDULER_TaskIdentifier rtask;
@@ -217,22 +286,32 @@ struct Socks5Request
   /**
    * Read buffer 
    */
-  char rbuf[2048];
+  char rbuf[SOCKS_BUFFERSIZE];
 
   /**
    * Write buffer 
    */
-  char wbuf[2048];
+  char wbuf[SOCKS_BUFFERSIZE];
 
   /**
-   * Length of data in read buffer 
+   * Number of bytes already in read buffer 
    */
-  unsigned int rbuf_len;
+  size_t rbuf_len;
 
   /**
-   * Length of data in write buffer 
+   * Number of bytes already in write buffer 
    */
-  unsigned int wbuf_len;
+  size_t wbuf_len;
+  
+  /**
+   * Once known, what's the target address for the connection?
+   */
+  struct sockaddr_storage destination_address;
+
+  /**
+   * The socks state 
+   */
+  enum SocksPhase state;
 
   /**
    * This handle is scheduled for cleanup? 
@@ -538,42 +617,8 @@ struct Socks5ClientHelloMessage
    */
   uint8_t num_auth_methods;
 
-  /**
-   * FIXME: this is not a message format...
-   */
-  char* auth_methods;
-};
+  /* followed by supported authentication methods, 1 byte per method */
 
-
-/**
- * Client socks request in Socks5 protocol.
- */
-struct Socks5ClientRequestMessage
-{
-  /**
-   * Should be #SOCKS_VERSION_5.
-   */
-  uint8_t version;
-
-  /**
-   * FIXME: what goes here?
-   */
-  uint8_t command;
-
-  /**
-   * FIXME: what goes here?
-   */
-  uint8_t resvd;
-
-  /**
-   * FIXME: what goes here?
-   */
-  uint8_t addr_type;
-
-  /* 
-   * followed by either an ip4/ipv6 address
-   * or a domain name with a length field in front
-   */
 };
 
 
@@ -588,9 +633,43 @@ struct Socks5ServerHelloMessage
   uint8_t version;
 
   /**
-   * FIXME: what goes here?
+   * Chosen authentication method, for us always #SOCKS_AUTH_NONE,
+   * which skips the authentication step.
    */
   uint8_t auth_method;
+};
+
+
+/**
+ * Client socks request in Socks5 protocol.
+ */
+struct Socks5ClientRequestMessage
+{
+  /**
+   * Should be #SOCKS_VERSION_5.
+   */
+  uint8_t version;
+
+  /**
+   * Command code, we only uspport #SOCKS5_CMD_TCP_STREAM.
+   */
+  uint8_t command;
+
+  /**
+   * Reserved, always zero.
+   */
+  uint8_t resvd;
+
+  /**
+   * Address type, an `enum Socks5AddressType`.
+   */
+  uint8_t addr_type;
+
+  /* 
+   * Followed by either an ip4/ipv6 address or a domain name with a
+   * length field (uint8_t) in front (depending on @e addr_type).
+   * followed by port number in network byte order (uint16_t).
+   */
 };
 
 
@@ -605,24 +684,26 @@ struct Socks5ServerResponseMessage
   uint8_t version;
 
   /**
-   * FIXME: what goes here?
+   * Status code, an `enum Socks5StatusCode`
    */
   uint8_t reply;
 
   /**
-   * FIXME: what goes here?
+   * Always zero.
    */
   uint8_t reserved;
 
   /**
-   * FIXME: what goes here?
+   * Address type, an `enum Socks5AddressType`.
    */
   uint8_t addr_type;
 
-  /**
-   * FIXME: what goes here?
+  /* 
+   * Followed by either an ip4/ipv6 address or a domain name with a
+   * length field (uint8_t) in front (depending on @e addr_type).
+   * followed by port number in network byte order (uint16_t).
    */
-  uint8_t add_port[18];
+
 };
 
 
@@ -747,6 +828,7 @@ static struct GNUNET_IDENTITY_Operation *id_op;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+
 /**
  * Clean up s5r handles
  *
@@ -770,6 +852,24 @@ cleanup_s5r (struct Socks5Request *s5r)
 			       s5r_tail,
 			       s5r);
   GNUNET_free(s5r);
+}
+
+
+/**
+ * Remove the first @a len bytes from the beginning of the read buffer.
+ *
+ * @param s5r the handle clear the read buffer for
+ * @param len number of bytes in read buffer to advance
+ */
+static void
+clear_from_s5r_rbuf (struct Socks5Request *s5r,
+		     size_t len)
+{
+  GNUNET_assert (len <= s5r->rbuf_len);
+  memmove (s5r->rbuf,
+	   &s5r->rbuf[len],
+	   s5r->rbuf_len - len);
+  s5r->rbuf_len -= len;
 }
 
 
@@ -2665,6 +2765,63 @@ add_handle_to_ssl_mhd (struct GNUNET_NETWORK_Handle *h,
 
 
 /**
+ * Return a server response message indicating a failure to the client.
+ *
+ * @param s5r request to return failure code for
+ * @param sc status code to return
+ */
+static void
+signal_socks_failure (struct Socks5Request *s5r,
+		      enum Socks5StatusCode sc)
+{
+  struct Socks5ServerResponseMessage *s_resp;
+
+  s_resp = (struct Socks5ServerResponseMessage *) &s5r->wbuf[s5r->wbuf_len];
+  memset (s_resp, 0, sizeof (struct Socks5ServerResponseMessage));
+  s_resp->version = SOCKS_VERSION_5;
+  s_resp->reply = sc;
+  s5r->cleanup = GNUNET_YES;
+  s5r->cleanup_sock = GNUNET_YES;
+  if (GNUNET_SCHEDULER_NO_TASK != s5r->wtask)
+    s5r->wtask = 
+      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+				      s5r->sock,
+				      &do_write, s5r);
+}
+
+
+/**
+ * Return a server response message indicating success.
+ *
+ * @param s5r request to return success status message for
+ */
+static void
+signal_socks_success (struct Socks5Request *s5r)
+{
+  struct Socks5ServerResponseMessage *s_resp;
+
+  s_resp = (struct Socks5ServerResponseMessage *) &s5r->wbuf[s5r->wbuf_len];
+  s_resp->version = SOCKS_VERSION_5;
+  s_resp->reply = SOCKS5_STATUS_REQUEST_GRANTED;
+  s_resp->reserved = 0;
+  s_resp->addr_type = SOCKS5_AT_IPV4;
+  /* zero out IPv4 address and port */
+  memset (&s_resp[1], 
+	  0, 
+	  sizeof (struct in_addr) + sizeof (uint16_t));
+  s5r->wbuf_len += sizeof (struct Socks5ServerResponseMessage) +
+    sizeof (struct in_addr) + sizeof (uint16_t);
+  s5r->cleanup = GNUNET_YES;
+  s5r->cleanup_sock = GNUNET_NO;    
+  if (GNUNET_SCHEDULER_NO_TASK == s5r->wtask)      
+    s5r->wtask =
+      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+				      s5r->sock,
+				      &do_write, s5r); 
+}
+
+
+/**
  * Read data from incoming Socks5 connection
  *
  * @param cls the closure with the `struct Socks5Request`
@@ -2674,213 +2831,249 @@ static void
 do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Socks5Request *s5r = cls;
-  struct Socks5ClientHelloMessage *c_hello;
+  const struct Socks5ClientHelloMessage *c_hello;
   struct Socks5ServerHelloMessage *s_hello;
-  struct Socks5ClientRequestMessage *c_req;
-  struct Socks5ServerResponseMessage *s_resp;
+  const struct Socks5ClientRequestMessage *c_req;
   int ret;
-  char domain[256];
-  uint8_t dom_len;
-  uint16_t req_port;
-  struct hostent *phost;
-  uint32_t remote_ip;
-  struct sockaddr_in remote_addr;
-  struct in_addr *r_sin_addr;
+  ssize_t rlen;
+  size_t alen;
 
   s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
   if ( (NULL != tc->read_ready) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) )
-    s5r->rbuf_len = GNUNET_NETWORK_socket_recv (s5r->sock, s5r->rbuf,
-						sizeof (s5r->rbuf));
-  else
-    s5r->rbuf_len = 0;
-  if (0 == s5r->rbuf_len)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"socks5 client disconnected.\n");
-    cleanup_s5r (s5r);
-    return;
+    rlen = GNUNET_NETWORK_socket_recv (s5r->sock, 
+				       &s5r->rbuf[s5r->rbuf_len],
+				       sizeof (s5r->rbuf) - s5r->rbuf_len);
+    if (rlen <= 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "socks5 client disconnected.\n");
+      cleanup_s5r (s5r);
+      return;
+    }
+    s5r->rbuf_len += rlen;
   }
+  s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+					      s5r->sock,
+					      &do_s5r_read, s5r);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Processing socks data in state %d\n",
+	      "Processing %u bytes of socks data in state %d\n",
+	      s5r->rbuf_len,
 	      s5r->state);
   switch (s5r->state)
   {
   case SOCKS5_INIT:
-    /* FIXME: failed to check if we got enough data yet! */
-    c_hello = (struct Socks5ClientHelloMessage*) &s5r->rbuf;
-    GNUNET_assert (c_hello->version == SOCKS_VERSION_5);
-    s_hello = (struct Socks5ServerHelloMessage*) &s5r->wbuf;
-    s5r->wbuf_len = sizeof( struct Socks5ServerHelloMessage );
-    s_hello->version = c_hello->version;
+    c_hello = (const struct Socks5ClientHelloMessage*) &s5r->rbuf;
+    if ( (s5r->rbuf_len < sizeof (struct Socks5ClientHelloMessage)) ||
+	 (s5r->rbuf_len < sizeof (struct Socks5ClientHelloMessage) + c_hello->num_auth_methods) )
+      return; /* need more data */
+    if (SOCKS_VERSION_5 != c_hello->version)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unsupported socks version %d\n"),
+		  (int) c_hello->version);
+      cleanup_s5r (s5r);
+      return;
+    }
+    clear_from_s5r_rbuf (s5r,
+			 sizeof (struct Socks5ClientHelloMessage) + c_hello->num_auth_methods);
+    GNUNET_assert (0 == s5r->wbuf_len);
+    s_hello = (struct Socks5ServerHelloMessage *) &s5r->wbuf;
+    s5r->wbuf_len = sizeof (struct Socks5ServerHelloMessage);
+    s_hello->version = SOCKS_VERSION_5;
     s_hello->auth_method = SOCKS_AUTH_NONE;
-    /* Write response to client */
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s5r->wtask);
     s5r->wtask = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 						 s5r->sock,
 						 &do_write, s5r);
-    s5r->rtask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                s5r->sock,
-                                                &do_s5r_read, s5r);
     s5r->state = SOCKS5_REQUEST;
     return;
   case SOCKS5_REQUEST:
-    /* FIXME: failed to check if we got enough data yet!? */
-    c_req = (struct Socks5ClientRequestMessage *) &s5r->rbuf;
-    s_resp = (struct Socks5ServerResponseMessage *) &s5r->wbuf;
-    //Only 10 byte for ipv4 response!
-    s5r->wbuf_len = 10;//sizeof (struct Socks5ServerResponseMessage);
-    GNUNET_assert (c_req->addr_type == 3);
-    dom_len = *((uint8_t*)(&(c_req->addr_type) + 1));
-    memset(domain, 0, sizeof(domain));
-    strncpy(domain, (char*)(&(c_req->addr_type) + 2), dom_len);
-    req_port = *((uint16_t*)(&(c_req->addr_type) + 2 + dom_len));
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Requested connection is to %s:%d\n",
-                domain,
-                ntohs(req_port));
-    if (is_tld (domain, GNUNET_GNS_TLD) ||
-        is_tld (domain, GNUNET_GNS_TLD_ZKEY))
+    c_req = (const struct Socks5ClientRequestMessage *) &s5r->rbuf;
+    if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage))
+      return;
+    switch (c_req->command)
     {
-      /* GNS TLD */
-      ret = MHD_NO;
-      if (ntohs (req_port) == HTTPS_PORT)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Requested connection is HTTPS\n");
-        ret = add_handle_to_ssl_mhd ( s5r->sock, domain );
-      }
-      else if (NULL != httpd)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Requested connection is HTTP\n");
-        ret = add_handle_to_mhd (s5r->sock, httpd );
-      }
-
-      if (ret != MHD_YES)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    _("Failed to start HTTP server\n"));
-        s_resp->version = 0x05;
-        s_resp->reply = 0x01;
-        s5r->cleanup = GNUNET_YES;
-        s5r->cleanup_sock = GNUNET_YES;
-        s5r->wtask = 
-          GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        s5r->sock,
-                                        &do_write, s5r);
-        return;
-      }
-      
-      /* Signal success */
-      s_resp->version = 0x05;
-      s_resp->reply = 0x00;
-      s_resp->reserved = 0x00;
-      s_resp->addr_type = 0x01;
-      
-      s5r->cleanup = GNUNET_YES;
-      s5r->cleanup_sock = GNUNET_NO;
-      s5r->wtask =
-        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        s5r->sock,
-                                        &do_write, s5r);
-      run_httpds ();
+    case SOCKS5_CMD_TCP_STREAM:
+      /* handled below */
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unsupported socks command %d\n"),
+		  (int) c_req->command);
+      signal_socks_failure (s5r,
+			    SOCKS5_STATUS_COMMAND_NOT_SUPPORTED);
       return;
     }
-    else
+    switch (c_req->addr_type)
     {
-      /* non-GNS TLD, use DNS to resolve */
-      /* FIXME: make asynchronous! */
-      phost = (struct hostent *) gethostbyname (domain);
-      if (phost == NULL)
+    case SOCKS5_AT_IPV4:
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Resolve %s error!\n", domain );
-        s_resp->version = 0x05;
-        s_resp->reply = 0x01;
-        s5r->cleanup = GNUNET_YES;
-        s5r->cleanup_sock = GNUNET_YES;
-        s5r->wtask = 
-          GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                          s5r->sock,
-                                          &do_write, s5r);
-        return;
-      }
+	const struct in_addr *v4 = (const struct in_addr *) &c_req[1];
+	const uint16_t *port = (const uint16_t *) &v4[1];
+	struct sockaddr_in *in;
 
-      s5r->remote_sock = GNUNET_NETWORK_socket_create (AF_INET,
-                                                       SOCK_STREAM,
-                                                       0);
-      r_sin_addr = (struct in_addr*)(phost->h_addr);
-      remote_ip = r_sin_addr->s_addr;
-      memset(&remote_addr, 0, sizeof(remote_addr));
-      remote_addr.sin_family = AF_INET;
+	alen = sizeof (struct in_addr);
+	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
+	    alen + sizeof (uint16_t))
+	  return; /* need more data */
+	in = (struct sockaddr_in *) &s5r->destination_address;
+	in->sin_family = AF_INET;
+	in->sin_addr = *v4;
+	in->sin_port = *port;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-      remote_addr.sin_len = sizeof (remote_addr);
+	in->sin_len = sizeof (*in);
 #endif
-      remote_addr.sin_addr.s_addr = remote_ip;
-      remote_addr.sin_port = req_port;
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "target server: %s:%u\n", inet_ntoa(remote_addr.sin_addr),
-                  ntohs(req_port));
-
-      if ((GNUNET_OK !=
-          GNUNET_NETWORK_socket_connect ( s5r->remote_sock,
-                                          (const struct sockaddr*)&remote_addr,
-                                          sizeof (remote_addr)))
-          && (errno != EINPROGRESS))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "socket request error...\n");
-        s_resp->version = 0x05;
-        s_resp->reply = 0x01;
-        s5r->wtask =
-          GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                          s5r->sock,
-                                          &do_write, s5r);
-        //TODO see above
-        return;
+	s5r->state = SOCKS5_DATA_TRANSFER;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "new remote connection\n");
-      s_resp->version = 0x05;
-      s_resp->reply = 0x00;
-      s_resp->reserved = 0x00;
-      s_resp->addr_type = 0x01;
-      s5r->state = SOCKS5_DATA_TRANSFER;
-      s5r->wtask =
-        GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                        s5r->sock,
-                                        &do_write, s5r);
-      s5r->rtask =
-        GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                       s5r->sock,
-                                       &do_s5r_read, s5r);
+      break;
+    case SOCKS5_AT_DOMAINNAME:
+      {
+	const uint8_t *dom_len;
+	const char *dom_name;
+	const uint16_t *port;
+	char domain[256];
+	struct hostent *phost;
+	uint32_t remote_ip;
+	struct sockaddr_in remote_addr;
+	struct in_addr *r_sin_addr;
+	
+	dom_len = (const uint8_t *) &c_req[1];
+	alen = *dom_len + 1;
+	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
+	    alen + sizeof (uint16_t))
+	  return; /* need more data */
+	dom_name = (const char *) &dom_len[1];
+	port = (const uint16_t*) &dom_name[*dom_len];
+
+
+	strncpy (domain, dom_name, *dom_len);
+	domain[*dom_len] = '\0';
+
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Requested connection is to %s:%d\n",
+		    domain,
+		    ntohs (*port));
+
+	if (is_tld (domain, GNUNET_GNS_TLD) ||
+	    is_tld (domain, GNUNET_GNS_TLD_ZKEY))
+	{
+	  /* GNS TLD */
+	  ret = MHD_NO;
+	  if (ntohs (*port) == HTTPS_PORT)
+	  {
+	    ret = add_handle_to_ssl_mhd (s5r->sock, domain);
+	  }
+	  else 
+	  {
+	    ret = add_handle_to_mhd (s5r->sock, httpd);
+	  }
+	  if (ret != MHD_YES)
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+			_("Failed to start HTTP server\n"));
+	    signal_socks_failure (s5r,
+				  SOCKS5_STATUS_GENERAL_FAILURE);
+	    return;
+	  }
+	}	
+	else
+	{
+	  /* non-GNS TLD, use DNS to resolve */
+	  /* FIXME: make asynchronous! */
+	  phost = (struct hostent *) gethostbyname (domain);
+	  if (phost == NULL)
+	  {
+	    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+			"Failed to resolve `%s'!\n",
+			domain);
+	    signal_socks_failure (s5r,
+				  SOCKS5_STATUS_GENERAL_FAILURE);
+	    return;
+	  }
+	  
+	  s5r->remote_sock = GNUNET_NETWORK_socket_create (AF_INET,
+							   SOCK_STREAM,
+							   0);
+	  r_sin_addr = (struct in_addr*)(phost->h_addr);
+	  remote_ip = r_sin_addr->s_addr;
+	  memset(&remote_addr, 0, sizeof(remote_addr));
+	  remote_addr.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	  remote_addr.sin_len = sizeof (remote_addr);
+#endif
+	  remote_addr.sin_addr.s_addr = remote_ip;
+	  remote_addr.sin_port = *port;
+	  
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "target server: %s:%u\n", 
+		      inet_ntoa(remote_addr.sin_addr),
+		      ntohs(*port));
+	  
+	  if ((GNUNET_OK !=
+	       GNUNET_NETWORK_socket_connect ( s5r->remote_sock,
+					       (const struct sockaddr*)&remote_addr,
+					       sizeof (remote_addr)))
+	      && (errno != EINPROGRESS))
+	  {
+	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
+	    signal_socks_failure (s5r,
+				  SOCKS5_STATUS_NETWORK_UNREACHABLE);
+	    return;
+	  }
+	  s5r->state = SOCKS5_DATA_TRANSFER;
+	}
+	break;
+      }
+    case SOCKS5_AT_IPV6:
+      {
+	const struct in6_addr *v6 = (const struct in6_addr *) &c_req[1];
+	const uint16_t *port = (const uint16_t *) &v6[1];
+	struct sockaddr_in6 *in;
+
+	alen = sizeof (struct in6_addr);
+	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
+	    alen + sizeof (uint16_t))
+	  return; /* need more data */
+	in = (struct sockaddr_in6 *) &s5r->destination_address;
+	in->sin6_family = AF_INET6;
+	in->sin6_addr = *v6;
+	in->sin6_port = *port;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+	in->sin6_len = sizeof (*in);
+#endif
+	s5r->state = SOCKS5_DATA_TRANSFER;
+      }
+      break;
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Unsupported socks address type %d\n"),
+		  (int) c_req->addr_type);
+      signal_socks_failure (s5r,
+			    SOCKS5_STATUS_ADDRESS_TYPE_NOT_SUPPORTED);
+      return;
     }
+    clear_from_s5r_rbuf (s5r,
+			 sizeof (struct Socks5ClientRequestMessage) +
+			 alen + sizeof (uint16_t));
+    if (0 != s5r->rbuf_len)
+    {
+      /* read more bytes than healthy, why did the client send more? */
+      GNUNET_break_op (0);
+      signal_socks_failure (s5r,
+			    SOCKS5_STATUS_GENERAL_FAILURE);
+      return;	    
+    }
+    signal_socks_success (s5r);
+    run_httpds (); // needed here!?
     return;
   case SOCKS5_DATA_TRANSFER:
-    {
-      if ((s5r->remote_sock == NULL) || (s5r->rbuf_len == 0))
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Closing connection to client\n");
-	cleanup_s5r (s5r);
-	return;
-      }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "forwarding %d bytes from client\n", s5r->rbuf_len);      
-      s5r->fwdwtask =
-	GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					s5r->remote_sock,
-					&do_write_remote, s5r);      
-      if (s5r->fwdrtask == GNUNET_SCHEDULER_NO_TASK)
-      {
-	s5r->fwdrtask =
-	  GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-					 s5r->remote_sock,
-					 &do_read_remote, s5r);
-      }
-    }
+    GNUNET_assert (0 < s5r->rbuf_len);
+    if (GNUNET_SCHEDULER_NO_TASK == s5r->wtask)
+      GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
+				      s5r->remote_sock,
+				      &do_write /* _remote */, s5r);      
     return;
   default:
     GNUNET_break (0);
