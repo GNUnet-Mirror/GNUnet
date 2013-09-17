@@ -44,14 +44,14 @@
  */
 enum SessionState
 {
-    CLIENT_REQUEST_RECEIVED,
-    WAITING_FOR_BOBS_CONNECT,
-    CLIENT_RESPONSE_RECEIVED,
-    WAITING_FOR_SERVICE_REQUEST,
-    WAITING_FOR_SERVICE_RESPONSE,
-    SERVICE_REQUEST_RECEIVED,
-    SERVICE_RESPONSE_RECEIVED,
-    FINALIZED
+  CLIENT_REQUEST_RECEIVED,
+  WAITING_FOR_BOBS_CONNECT,
+  CLIENT_RESPONSE_RECEIVED,
+  WAITING_FOR_SERVICE_REQUEST,
+  WAITING_FOR_SERVICE_RESPONSE,
+  SERVICE_REQUEST_RECEIVED,
+  SERVICE_RESPONSE_RECEIVED,
+  FINALIZED
 };
 
 /**
@@ -59,10 +59,9 @@ enum SessionState
  */
 enum PeerRole
 {
-    ALICE,
-    BOB
+  ALICE,
+  BOB
 };
-
 
 /**
  * A scalarproduct session which tracks:
@@ -73,105 +72,105 @@ enum PeerRole
  */
 struct ServiceSession
 {
-    /**
-     * the role this peer has
-     */
-    enum PeerRole role;
+  /**
+   * the role this peer has
+   */
+  enum PeerRole role;
 
-    /**
-     * session information is kept in a DLL
-     */
-    struct ServiceSession *next;
+  /**
+   * session information is kept in a DLL
+   */
+  struct ServiceSession *next;
 
-    /**
-     * session information is kept in a DLL
-     */
-    struct ServiceSession *prev;
+  /**
+   * session information is kept in a DLL
+   */
+  struct ServiceSession *prev;
 
-    /**
-     * (hopefully) unique transaction ID
-     */
-    struct GNUNET_HashCode key;
+  /**
+   * (hopefully) unique transaction ID
+   */
+  struct GNUNET_HashCode key;
 
-    /** 
-     * state of the session
-     */
-    enum SessionState state;
+  /** 
+   * state of the session
+   */
+  enum SessionState state;
 
-    /**
-     * Alice or Bob's peerID
-     */
-    struct GNUNET_PeerIdentity peer;
+  /**
+   * Alice or Bob's peerID
+   */
+  struct GNUNET_PeerIdentity peer;
 
-    /**
-     * the client this request is related to
-     */
-    struct GNUNET_SERVER_Client * client;
+  /**
+   * the client this request is related to
+   */
+  struct GNUNET_SERVER_Client * client;
 
-    /**
-     * The message to send
-     */
-    struct GNUNET_MessageHeader * msg;
-    
-    /**
-     * how many elements we were supplied with from the client
-     */
-    uint32_t element_count;
+  /**
+   * The message to send
+   */
+  struct GNUNET_MessageHeader * msg;
 
-    /**
-     * how many elements actually are used after applying the mask
-     */
-    uint32_t used_element_count;
+  /**
+   * how many elements we were supplied with from the client
+   */
+  uint32_t element_count;
 
-    /**
-     * how many bytes the mask is long. 
-     * just for convenience so we don't have to re-re-re calculate it each time
-     */
-    uint32_t mask_length;
+  /**
+   * how many elements actually are used after applying the mask
+   */
+  uint32_t used_element_count;
 
-    /**
-     * all the vector elements we received
-     */
-    int32_t * vector;
+  /**
+   * how many bytes the mask is long. 
+   * just for convenience so we don't have to re-re-re calculate it each time
+   */
+  uint32_t mask_length;
 
-    /**
-     * mask of which elements to check
-     */
-    unsigned char * mask;
+  /**
+   * all the vector elements we received
+   */
+  int32_t * vector;
 
-    /**
-     * Public key of the remote service, only used by bob
-     */
-    gcry_sexp_t remote_pubkey;
+  /**
+   * mask of which elements to check
+   */
+  unsigned char * mask;
 
-    /**
-     * E(ai)(Bob) or ai(Alice) after applying the mask
-     */
-    gcry_mpi_t * a;
+  /**
+   * Public key of the remote service, only used by bob
+   */
+  gcry_sexp_t remote_pubkey;
 
-    /**
-     * The computed scalar 
-     */
-    gcry_mpi_t product;
+  /**
+   * E(ai)(Bob) or ai(Alice) after applying the mask
+   */
+  gcry_mpi_t * a;
 
-    /**
-     * My transmit handle for the current message to a alice/bob
-     */
-    struct GNUNET_MESH_TransmitHandle * service_transmit_handle;
+  /**
+   * The computed scalar 
+   */
+  gcry_mpi_t product;
 
-    /**
-     * My transmit handle for the current message to the client
-     */
-    struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
+  /**
+   * My transmit handle for the current message to a alice/bob
+   */
+  struct GNUNET_MESH_TransmitHandle * service_transmit_handle;
 
-    /**
-     * tunnel-handle associated with our mesh handle
-     */
-    struct GNUNET_MESH_Tunnel * tunnel;
-    
-    GNUNET_SCHEDULER_TaskIdentifier client_notification_task;
-    
-    GNUNET_SCHEDULER_TaskIdentifier service_request_task;
+  /**
+   * My transmit handle for the current message to the client
+   */
+  struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
+
+  /**
+   * tunnel-handle associated with our mesh handle
+   */
+  struct GNUNET_MESH_Tunnel * tunnel;
+
+  GNUNET_SCHEDULER_TaskIdentifier client_notification_task;
+
+  GNUNET_SCHEDULER_TaskIdentifier service_request_task;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -265,6 +264,7 @@ static int do_shutdown;
 //                      Helper Functions
 ///////////////////////////////////////////////////////////////////////////////
 
+
 /**
  * Generates an Paillier private/public keyset and extracts the values using libgrcypt only
  */
@@ -324,27 +324,27 @@ generate_keyset ()
   // generate a g
   gcry_mpi_mul (my_nsquare, my_n, my_n);
   do
+  {
+    // find a matching g
+    do
     {
-      // find a matching g
-      do
-        {
-          gcry_mpi_randomize (my_g, KEYBITS * 2, GCRY_WEAK_RANDOM);
-          // g must be smaller than n^2
-          if (0 >= gcry_mpi_cmp (my_g, my_nsquare))
-            continue;
+      gcry_mpi_randomize (my_g, KEYBITS * 2, GCRY_WEAK_RANDOM);
+      // g must be smaller than n^2
+      if (0 >= gcry_mpi_cmp (my_g, my_nsquare))
+        continue;
 
-          // g must have gcd == 1 with n^2
-          gcry_mpi_gcd (gcd, my_g, my_nsquare);
-        }
-      while (gcry_mpi_cmp_ui (gcd, 1));
-
-      // is this a valid g?
-      // if so, gcd(((g^lambda mod n^2)-1 )/n, n) = 1
-      gcry_mpi_powm (tmp1, my_g, my_lambda, my_nsquare);
-      gcry_mpi_sub_ui (tmp1, tmp1, 1);
-      gcry_mpi_div (tmp1, NULL, tmp1, my_n, 0);
-      gcry_mpi_gcd (gcd, tmp1, my_n);
+      // g must have gcd == 1 with n^2
+      gcry_mpi_gcd (gcd, my_g, my_nsquare);
     }
+    while (gcry_mpi_cmp_ui (gcd, 1));
+
+    // is this a valid g?
+    // if so, gcd(((g^lambda mod n^2)-1 )/n, n) = 1
+    gcry_mpi_powm (tmp1, my_g, my_lambda, my_nsquare);
+    gcry_mpi_sub_ui (tmp1, tmp1, 1);
+    gcry_mpi_div (tmp1, NULL, tmp1, my_n, 0);
+    gcry_mpi_gcd (gcd, tmp1, my_n);
+  }
   while (gcry_mpi_cmp_ui (gcd, 1));
 
   // calculate our mu based on g and n.
@@ -371,12 +371,12 @@ generate_keyset ()
                     my_pubkey_external_length);
 
   gcry_sexp_release (key);
-  
+
   // offset has to be sufficiently small to allow computation of:
   // m1+m2 mod n == (S + a) + (S + b) mod n, 
   // if we have more complex operations, this factor needs to be lowered
-  my_offset = gcry_mpi_new(KEYBITS/3);
-  gcry_mpi_set_bit(my_offset, KEYBITS/3);
+  my_offset = gcry_mpi_new (KEYBITS / 3);
+  gcry_mpi_set_bit (my_offset, KEYBITS / 3);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Generated key set with key length %d bits.\n"), KEYBITS);
 }
@@ -395,10 +395,10 @@ static void
 adjust (unsigned char *buf, size_t size, size_t target)
 {
   if (size < target)
-    {
-      memmove (&buf[target - size], buf, size);
-      memset (buf, 0, target - size);
-    }
+  {
+    memmove (&buf[target - size], buf, size);
+    memset (buf, 0, target - size);
+  }
 }
 
 
@@ -419,10 +419,10 @@ encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mp
   GNUNET_assert (tmp = gcry_mpi_new (0));
 
   while (0 >= gcry_mpi_cmp_ui (tmp, 1))
-    {
-      gcry_mpi_randomize (tmp, KEYBITS / 3, GCRY_WEAK_RANDOM);
-      // r must be 1 < r < n
-    }
+  {
+    gcry_mpi_randomize (tmp, KEYBITS / 3, GCRY_WEAK_RANDOM);
+    // r must be 1 < r < n
+  }
 
   gcry_mpi_powm (c, g, m, n_square);
   gcry_mpi_powm (tmp, tmp, n, n_square);
@@ -430,6 +430,7 @@ encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mp
 
   gcry_mpi_release (tmp);
 }
+
 
 /**
  * decrypts an element using the paillier crypto system
@@ -470,10 +471,10 @@ compute_square_sum (gcry_mpi_t * vector, uint32_t length)
 
   // calculare E(sum (ai ^ 2), publickey)
   for (i = 0; i < length; i++)
-    {
-      gcry_mpi_mul (elem, vector[i], vector[i]);
-      gcry_mpi_add (sum, sum, elem);
-    }
+  {
+    gcry_mpi_mul (elem, vector[i], vector[i]);
+    gcry_mpi_add (sum, sum, elem);
+  }
   gcry_mpi_release (elem);
 
   return sum;
@@ -499,26 +500,27 @@ do_send_message (void *cls, size_t size, void *buf)
   GNUNET_assert (buf);
 
   if (ntohs (session->msg->size) == size)
-    {
-      memcpy (buf, session->msg, size);
-      written = size;
-    }
-
-  switch (ntohs(session->msg->type)){
-    case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT:
-      session->state = FINALIZED;
-      session->client_transmit_handle = NULL;
-      break;
-    default:
-      session->service_transmit_handle = NULL;
+  {
+    memcpy (buf, session->msg, size);
+    written = size;
   }
-    
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sent a message of type %hu.\n", 
-	      ntohs (session->msg->type));
-  GNUNET_free(session->msg);
+
+  switch (ntohs (session->msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT:
+    session->state = FINALIZED;
+    session->client_transmit_handle = NULL;
+    break;
+  default:
+    session->service_transmit_handle = NULL;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sent a message of type %hu.\n",
+              ntohs (session->msg->type));
+  GNUNET_free (session->msg);
   session->msg = NULL;
-  
+
   return written;
 }
 
@@ -585,17 +587,17 @@ generate_random_vector (uint32_t length)
 
   random_vector = initialize_mpi_vector (length);
   for (i = 0; i < length; i++)
-    {
-      value = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  {
+    value = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
 
-      // long to gcry_mpi_t
-      if (value < 0)
-        gcry_mpi_sub_ui (random_vector[i],
-                         random_vector[i],
-                         -value);
-      else
-        random_vector[i] = gcry_mpi_set_ui (random_vector[i], value);
-    }
+    // long to gcry_mpi_t
+    if (value < 0)
+      gcry_mpi_sub_ui (random_vector[i],
+                       random_vector[i],
+                       -value);
+    else
+      random_vector[i] = gcry_mpi_set_ui (random_vector[i], value);
+  }
 
   return random_vector;
 }
@@ -620,22 +622,22 @@ find_matching_session (struct ServiceSession * tail,
   struct ServiceSession * curr;
 
   for (curr = tail; NULL != curr; curr = curr->prev)
+  {
+    // if the key matches, and the element_count is same
+    if ((!memcmp (&curr->key, key, sizeof (struct GNUNET_HashCode)))
+        && (curr->element_count == element_count))
     {
-      // if the key matches, and the element_count is same
-      if ((!memcmp (&curr->key, key, sizeof (struct GNUNET_HashCode)))
-          && (curr->element_count == element_count))
-        {
-          // if incoming state is NULL OR is same as state of the queued request
-          if ((NULL == state) || (curr->state == *state))
-            {
-              // if peerid is NULL OR same as the peer Id in the queued request
-              if ((NULL == peerid)
-                  || (!memcmp (&curr->peer, peerid, sizeof (struct GNUNET_PeerIdentity))))
-                // matches and is not an already terminated session
-                return curr;
-            }
-        }
+      // if incoming state is NULL OR is same as state of the queued request
+      if ((NULL == state) || (curr->state == *state))
+      {
+        // if peerid is NULL OR same as the peer Id in the queued request
+        if ((NULL == peerid)
+            || (!memcmp (&curr->peer, peerid, sizeof (struct GNUNET_PeerIdentity))))
+          // matches and is not an already terminated session
+          return curr;
+      }
     }
+  }
 
   return NULL;
 }
@@ -666,6 +668,7 @@ free_session (struct ServiceSession * session)
 //                      Event and Message Handlers
 ///////////////////////////////////////////////////////////////////////////////
 
+
 /**
  * A client disconnected. 
  * 
@@ -681,39 +684,39 @@ handle_client_disconnect (void *cls,
                           struct GNUNET_SERVER_Client *client)
 {
   struct ServiceSession *session;
-  
+
   if (client == NULL)
     return;
   session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if (NULL == session)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      _ ("Client (%p) disconnected from us.\n"), client);
+              _ ("Client (%p) disconnected from us.\n"), client);
   GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-  
+
   if (!(session->role == BOB && session->state == FINALIZED))
-    {
-      //we MUST terminate any client message underway
-      if (session->service_transmit_handle && session->tunnel)
-        GNUNET_MESH_notify_transmit_ready_cancel (session->service_transmit_handle);
-      if (session->tunnel && session->state == WAITING_FOR_SERVICE_RESPONSE)
-        GNUNET_MESH_tunnel_destroy (session->tunnel);
-    }
+  {
+    //we MUST terminate any client message underway
+    if (session->service_transmit_handle && session->tunnel)
+      GNUNET_MESH_notify_transmit_ready_cancel (session->service_transmit_handle);
+    if (session->tunnel && session->state == WAITING_FOR_SERVICE_RESPONSE)
+      GNUNET_MESH_tunnel_destroy (session->tunnel);
+  }
   if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task)
-    {
-      GNUNET_SCHEDULER_cancel (session->client_notification_task);
-      session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (session->client_notification_task);
+    session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != session->service_request_task)
-    {
-      GNUNET_SCHEDULER_cancel (session->service_request_task);
-      session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+  {
+    GNUNET_SCHEDULER_cancel (session->service_request_task);
+    session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != session->client_transmit_handle)
-    {
-      GNUNET_SERVER_notify_transmit_ready_cancel (session->client_transmit_handle);
-      session->client_transmit_handle = NULL;
-    }
+  {
+    GNUNET_SERVER_notify_transmit_ready_cancel (session->client_transmit_handle);
+    session->client_transmit_handle = NULL;
+  }
   free_session (session);
 }
 
@@ -734,7 +737,7 @@ prepare_client_end_notification (void * cls,
 {
   struct ServiceSession * session = cls;
   struct GNUNET_SCALARPRODUCT_client_response * msg;
-  
+
   session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
   msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_client_response);
@@ -744,8 +747,8 @@ prepare_client_end_notification (void * cls,
   msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
   // signal error if not signalized, positive result-range field but zero length. 
   msg->product_length = htonl (0);
-  msg->range = (session->state == FINALIZED)? 0 : -1;
-  
+  msg->range = (session->state == FINALIZED) ? 0 : -1;
+
   session->msg = &msg->header;
 
   //transmit this message to our client
@@ -757,16 +760,16 @@ prepare_client_end_notification (void * cls,
                                                session);
 
   // if we could not even queue our request, something is wrong
-  if ( NULL == session->client_transmit_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not send message to client (%p)!\n"), session->client);
-      // usually gets freed by do_send_message
-      session->msg = NULL;
-      GNUNET_free (msg);
-    }
+  if (NULL == session->client_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not send message to client (%p)!\n"), session->client);
+    // usually gets freed by do_send_message
+    session->msg = NULL;
+    GNUNET_free (msg);
+  }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Sending session-end notification to client (%p) for session %s\n"), &session->client, GNUNET_h2s (&session->key));
-  
+
 }
 
 
@@ -848,58 +851,58 @@ prepare_service_response (gcry_mpi_t * r,
 
   // convert kp[]
   for (i = 0; i < request->used_element_count; i++)
-    {
-      element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-      GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                          element_exported, PAILLIER_ELEMENT_LENGTH,
-                                          &element_length,
-                                          r[i]));
-      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-      GNUNET_free (element_exported);
-      current += PAILLIER_ELEMENT_LENGTH;
-    }
+  {
+    element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
+    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                        element_exported, PAILLIER_ELEMENT_LENGTH,
+                                        &element_length,
+                                        r[i]));
+    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+    GNUNET_free (element_exported);
+    current += PAILLIER_ELEMENT_LENGTH;
+  }
 
 
   // convert kq[]
   for (i = 0; i < request->used_element_count; i++)
-    {
-      element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-      GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                          element_exported, PAILLIER_ELEMENT_LENGTH,
-                                          &element_length,
-                                          r_prime[i]));
-      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-      GNUNET_free (element_exported);
-      current += PAILLIER_ELEMENT_LENGTH;
-    }
+  {
+    element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
+    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                        element_exported, PAILLIER_ELEMENT_LENGTH,
+                                        &element_length,
+                                        r_prime[i]));
+    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+    GNUNET_free (element_exported);
+    current += PAILLIER_ELEMENT_LENGTH;
+  }
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE >= msg_length)
-    {
-      request->msg = (struct GNUNET_MessageHeader *) msg;
-      request->service_transmit_handle =
-              GNUNET_MESH_notify_transmit_ready (request->tunnel,
-                                                 GNUNET_YES,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 msg_length,
-                                                 &do_send_message,
-                                                 request);
-      request->state = FINALIZED;
-    }
+  {
+    request->msg = (struct GNUNET_MessageHeader *) msg;
+    request->service_transmit_handle =
+            GNUNET_MESH_notify_transmit_ready (request->tunnel,
+                                               GNUNET_YES,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               msg_length,
+                                               &do_send_message,
+                                               request);
+    request->state = FINALIZED;
+  }
   else
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!)\n"));
 
   //disconnect our client
-  if ( NULL == request->service_transmit_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
+  if (NULL == request->service_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
 
-      response->client_notification_task = 
-              GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                        response);
-      return GNUNET_NO;
-    }
+    response->client_notification_task =
+            GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                      response);
+    return GNUNET_NO;
+  }
   return GNUNET_OK;
 }
 
@@ -955,61 +958,61 @@ compute_service_response (struct ServiceSession * request,
 
   // convert responder session to from long to mpi
   for (i = 0, j = 0; i < response->element_count && j < count; i++)
+  {
+    if (request->mask[i / 8] & (1 << (i % 8)))
     {
-      if (request->mask[i / 8] & (1 << (i % 8)))
-        {
-          value = response->vector[i] >= 0 ? response->vector[i] : -response->vector[i];
-          // long to gcry_mpi_t
-          if (0 > response->vector[i])
-            {
-              b[j] = gcry_mpi_new (0);
-              gcry_mpi_sub_ui (b[j], b[j], value);
-            }
-          else
-            {
-              b[j] = gcry_mpi_set_ui (NULL, value);
-            }
-          j++;
-        }
+      value = response->vector[i] >= 0 ? response->vector[i] : -response->vector[i];
+      // long to gcry_mpi_t
+      if (0 > response->vector[i])
+      {
+        b[j] = gcry_mpi_new (0);
+        gcry_mpi_sub_ui (b[j], b[j], value);
+      }
+      else
+      {
+        b[j] = gcry_mpi_set_ui (NULL, value);
+      }
+      j++;
     }
+  }
   GNUNET_free (response->vector);
   response->vector = NULL;
 
   tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "n", 0);
-  if ( ! tmp_exp)
-    {
-      GNUNET_break_op (0);
-      gcry_sexp_release (request->remote_pubkey);
-      request->remote_pubkey = NULL;
-      goto except;
-    }
+  if (!tmp_exp)
+  {
+    GNUNET_break_op (0);
+    gcry_sexp_release (request->remote_pubkey);
+    request->remote_pubkey = NULL;
+    goto except;
+  }
   remote_n = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if ( ! remote_n)
-    {
-      GNUNET_break (0);
-      gcry_sexp_release (tmp_exp);
-      goto except;
-    }
+  if (!remote_n)
+  {
+    GNUNET_break (0);
+    gcry_sexp_release (tmp_exp);
+    goto except;
+  }
   remote_nsquare = gcry_mpi_new (KEYBITS + 1);
   gcry_mpi_mul (remote_nsquare, remote_n, remote_n);
   gcry_sexp_release (tmp_exp);
   tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "g", 0);
   gcry_sexp_release (request->remote_pubkey);
   request->remote_pubkey = NULL;
-  if ( ! tmp_exp)
-    {
-      GNUNET_break_op (0);
-      gcry_mpi_release (remote_n);
-      goto except;
-    }
+  if (!tmp_exp)
+  {
+    GNUNET_break_op (0);
+    gcry_mpi_release (remote_n);
+    goto except;
+  }
   remote_g = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if ( ! remote_g)
-    {
-      GNUNET_break (0);
-      gcry_mpi_release (remote_n);
-      gcry_sexp_release (tmp_exp);
-      goto except;
-    }
+  if (!remote_g)
+  {
+    GNUNET_break (0);
+    gcry_mpi_release (remote_n);
+    gcry_sexp_release (tmp_exp);
+    goto except;
+  }
   gcry_sexp_release (tmp_exp);
 
   // generate r, p and q
@@ -1041,29 +1044,29 @@ compute_service_response (struct ServiceSession * request,
   // however, ap/aq are not absolutely necessary but are just abstraction
   // Calculate Kp = E(S + a_pi) (+) E(S - r_pi - b_pi)
   for (i = 0; i < count; i++)
-    {
-      // E(S - r_pi - b_pi)
-      gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
-      gcry_mpi_sub (r[i], r[i], b_pi[i]);
-      encrypt_element (r[i], r[i], remote_g, remote_n, remote_nsquare);
+  {
+    // E(S - r_pi - b_pi)
+    gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
+    gcry_mpi_sub (r[i], r[i], b_pi[i]);
+    encrypt_element (r[i], r[i], remote_g, remote_n, remote_nsquare);
 
-      // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-      gcry_mpi_mulm (r[i], r[i], a_pi[i], remote_nsquare);
-    }
+    // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
+    gcry_mpi_mulm (r[i], r[i], a_pi[i], remote_nsquare);
+  }
   GNUNET_free (a_pi);
   GNUNET_free (b_pi);
   GNUNET_free (rand_pi);
 
   // Calculate Kq = E(S + a_qi) (+) E(S - r_qi)
   for (i = 0; i < count; i++)
-    {
-      // E(S - r_qi)
-      gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
-      encrypt_element (r_prime[i], r_prime[i], remote_g, remote_n, remote_nsquare);
+  {
+    // E(S - r_qi)
+    gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
+    encrypt_element (r_prime[i], r_prime[i], remote_g, remote_n, remote_nsquare);
 
-      // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-      gcry_mpi_mulm (r_prime[i], r_prime[i], a_pi_prime[i], remote_nsquare);
-    }
+    // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
+    gcry_mpi_mulm (r_prime[i], r_prime[i], a_pi_prime[i], remote_nsquare);
+  }
   GNUNET_free (a_pi_prime);
   GNUNET_free (rand_pi_prime);
 
@@ -1073,9 +1076,9 @@ compute_service_response (struct ServiceSession * request,
 
   // Calculate S = E(SUM( (r_i + b_i)^2 ))
   for (i = 0; i < count; i++)
-    {
-      gcry_mpi_add (rand[i], rand[i], b[i]);
-    }
+  {
+    gcry_mpi_add (rand[i], rand[i], b[i]);
+  }
   s = compute_square_sum (rand, count);
   encrypt_element (s, s, remote_g, remote_n, remote_nsquare);
   gcry_mpi_release (remote_n);
@@ -1089,26 +1092,26 @@ compute_service_response (struct ServiceSession * request,
 
   // copy the Kp[], Kq[], S and Stick into a new message
   if (GNUNET_YES != prepare_service_response (r, r_prime, s, s_prime, request, response))
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Failed to communicate with `%s', scalar product calculation aborted.\n"),
-		GNUNET_i2s (&request->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Failed to communicate with `%s', scalar product calculation aborted.\n"),
+                GNUNET_i2s (&request->peer));
   else
     ret = GNUNET_OK;
 
   for (i = 0; i < count; i++)
-    {
-      gcry_mpi_release (r_prime[i]);
-      gcry_mpi_release (r[i]);
-    }
+  {
+    gcry_mpi_release (r_prime[i]);
+    gcry_mpi_release (r[i]);
+  }
 
   gcry_mpi_release (s);
   gcry_mpi_release (s_prime);
 
 except:
   for (i = 0; i < count; i++)
-    {
-      gcry_mpi_release (b[i]);
-      gcry_mpi_release (request->a[i]);
-    }
+  {
+    gcry_mpi_release (b[i]);
+    gcry_mpi_release (request->a[i]);
+  }
 
   GNUNET_free (b);
   GNUNET_free (request->a);
@@ -1139,28 +1142,28 @@ prepare_service_request (void *cls,
   size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
-  
+
   session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
-          + session->used_element_count * PAILLIER_ELEMENT_LENGTH
+          +session->used_element_count * PAILLIER_ELEMENT_LENGTH
           + session->mask_length
           + my_pubkey_external_length;
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE < sizeof (struct GNUNET_SCALARPRODUCT_service_request)
-      + session->used_element_count * PAILLIER_ELEMENT_LENGTH
+      +session->used_element_count * PAILLIER_ELEMENT_LENGTH
       + session->mask_length
       + my_pubkey_external_length)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
-      session->client_notification_task = 
-              GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                        session);
-      return;
-    }
-  
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
+    session->client_notification_task =
+            GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                      session);
+    return;
+  }
+
   msg = GNUNET_malloc (msg_length);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
@@ -1178,49 +1181,49 @@ prepare_service_request (void *cls,
   current += session->mask_length;
   memcpy (current, my_pubkey_external, my_pubkey_external_length);
   current += my_pubkey_external_length;
-  
+
   // now copy over the element vector
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
   a = gcry_mpi_new (KEYBITS * 2);
   // encrypt our vector and generate string representations
   for (i = 0, j = 0; i < session->element_count; i++)
+  {
+    // if this is a used element...
+    if (session->mask[i / 8] & 1 << (i % 8))
     {
-      // if this is a used element...
-      if (session->mask[i / 8] & 1 << (i % 8))
-        {
-          unsigned char * element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-          value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
+      unsigned char * element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
+      value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
 
-          a = gcry_mpi_set_ui (a, 0);
-          // long to gcry_mpi_t
-          if (session->vector[i] < 0)
-            gcry_mpi_sub_ui (a, a, value);
-          else
-            gcry_mpi_add_ui (a, a, value);
+      a = gcry_mpi_set_ui (a, 0);
+      // long to gcry_mpi_t
+      if (session->vector[i] < 0)
+        gcry_mpi_sub_ui (a, a, value);
+      else
+        gcry_mpi_add_ui (a, a, value);
 
-          session->a[j++] = gcry_mpi_set (NULL, a);
-          gcry_mpi_add (a, a, my_offset);
-          encrypt_element (a, a, my_g, my_n, my_nsquare);
+      session->a[j++] = gcry_mpi_set (NULL, a);
+      gcry_mpi_add (a, a, my_offset);
+      encrypt_element (a, a, my_g, my_n, my_nsquare);
 
-          // get representation as string
-          // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
-          GNUNET_assert ( ! gcry_mpi_print (GCRYMPI_FMT_USG,
-                                              element_exported, PAILLIER_ELEMENT_LENGTH,
-                                              &element_length,
-                                              a));
+      // get representation as string
+      // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
+      GNUNET_assert (!gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      element_exported, PAILLIER_ELEMENT_LENGTH,
+                                      &element_length,
+                                      a));
 
-          // move buffer content to the end of the buffer so it can easily be read by libgcrypt. also this now has fixed size
-          adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+      // move buffer content to the end of the buffer so it can easily be read by libgcrypt. also this now has fixed size
+      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
 
-          // copy over to the message
-          memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-          current += PAILLIER_ELEMENT_LENGTH;
-        }
+      // copy over to the message
+      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+      current += PAILLIER_ELEMENT_LENGTH;
     }
+  }
   gcry_mpi_release (a);
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transmitting service request.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
   //transmit via mesh messaging
   session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
@@ -1228,18 +1231,19 @@ prepare_service_request (void *cls,
                                                                         msg_length,
                                                                         &do_send_message,
                                                                         session);
-  if ( ! session->service_transmit_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not send mutlicast message to tunnel!\n"));
-      GNUNET_free (msg);
-      session->msg = NULL;
-      session->client_notification_task = 
-              GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                        session);
-      return;
-    }
+  if (!session->service_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send mutlicast message to tunnel!\n"));
+    GNUNET_free (msg);
+    session->msg = NULL;
+    session->client_notification_task =
+            GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                      session);
+    return;
+  }
   session->state = WAITING_FOR_SERVICE_RESPONSE;
 }
+
 
 /**
  * Handler for a client request message. 
@@ -1266,51 +1270,53 @@ handle_client_request (void *cls,
 
   // only one concurrent session per client connection allowed, simplifies logics a lot...
   session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
-  if ((NULL != session) && (session->state != FINALIZED)){
+  if ((NULL != session) && (session->state != FINALIZED))
+  {
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  else if(NULL != session){
+  else if (NULL != session)
+  {
     // old session is already completed, clean it up
     GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-    free_session(session);
+    free_session (session);
   }
 
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_client_request) > ntohs (msg->header.size))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _ ("Too short message received from client!\n"));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Too short message received from client!\n"));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   msg_type = ntohs (msg->header.type);
   element_count = ntohl (msg->element_count);
   mask_length = ntohl (msg->mask_length);
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if (( ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) + element_count * sizeof (int32_t) + mask_length))
+  if ((ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_length))
       || (0 == element_count))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _ ("Invalid message received from client, session information incorrect!\n"));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Invalid message received from client, session information incorrect!\n"));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   // do we have a duplicate session here already?
   if (NULL != find_matching_session (from_client_tail,
                                      &msg->key,
                                      element_count,
                                      NULL, NULL))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		  _ ("Duplicate session information received, cannot create new session with key `%s'\n"), 
-		  GNUNET_h2s (&msg->key));
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Duplicate session information received, cannot create new session with key `%s'\n"),
+                GNUNET_h2s (&msg->key));
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   session = GNUNET_new (struct ServiceSession);
   session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1325,108 +1331,109 @@ handle_client_request (void *cls,
   vector = (int32_t *) & msg[1];
 
   if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                _ ("Got client-request-session with key %s, preparing tunnel to remote service.\n"),
+                GNUNET_h2s (&session->key));
+
+    session->role = ALICE;
+    // fill in the mask
+    session->mask = GNUNET_malloc (mask_length);
+    memcpy (session->mask, &vector[element_count], mask_length);
+
+    // copy over the elements
+    session->used_element_count = 0;
+    for (i = 0; i < element_count; i++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		  _ ("Got client-request-session with key %s, preparing tunnel to remote service.\n"), 
-		  GNUNET_h2s (&session->key));
-
-      session->role = ALICE;
-      // fill in the mask
-      session->mask = GNUNET_malloc (mask_length);
-      memcpy (session->mask, &vector[element_count], mask_length);
-
-      // copy over the elements
-      session->used_element_count = 0;
-      for (i = 0; i < element_count; i++)
-        {
-          session->vector[i] = ntohl (vector[i]);
-          if (session->vector[i] == 0)
-            session->mask[i / 8] &= ~(1 << (i % 8));
-          if (session->mask[i / 8] & (1 << (i % 8)))
-            session->used_element_count++;
-        }
-
-      if ( 0 == session->used_element_count)
-        {
-          GNUNET_break_op (0);
-          GNUNET_free (session->vector);
-          GNUNET_free (session);
-          GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-          return;
-        }
-      //session with ourself makes no sense!
-      if ( ! memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
-        {
-          GNUNET_break (0);
-          GNUNET_free (session->vector);
-          GNUNET_free (session);
-          GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-          return;
-        }
-      // get our peer ID
-      memcpy (&session->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		  _ ("Creating new tunnel to for session with key %s.\n"), 
-		  GNUNET_h2s (&session->key));
-      session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
-                                                   &session->peer,
-                                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-                                                   GNUNET_NO,
-                                                   GNUNET_YES);
-      //prepare_service_request, tunnel_peer_disconnect_handler,
-      if ( ! session->tunnel)
-        {
-          GNUNET_break (0);
-          GNUNET_free (session->vector);
-          GNUNET_free (session);
-          GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-          return;
-        }
-      GNUNET_SERVER_client_set_user_context (client, session);
-      GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
-      
-      session->state = CLIENT_REQUEST_RECEIVED;
-      session->service_request_task = 
-              GNUNET_SCHEDULER_add_now (&prepare_service_request, 
-                                        session);
-      
+      session->vector[i] = ntohl (vector[i]);
+      if (session->vector[i] == 0)
+        session->mask[i / 8] &= ~(1 << (i % 8));
+      if (session->mask[i / 8] & (1 << (i % 8)))
+        session->used_element_count++;
     }
+
+    if (0 == session->used_element_count)
+    {
+      GNUNET_break_op (0);
+      GNUNET_free (session->vector);
+      GNUNET_free (session);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    //session with ourself makes no sense!
+    if (!memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      GNUNET_free (session->vector);
+      GNUNET_free (session);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    // get our peer ID
+    memcpy (&session->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("Creating new tunnel to for session with key %s.\n"),
+                GNUNET_h2s (&session->key));
+    session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
+                                                 &session->peer,
+                                                 GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
+                                                 GNUNET_NO,
+                                                 GNUNET_YES);
+    //prepare_service_request, tunnel_peer_disconnect_handler,
+    if (!session->tunnel)
+    {
+      GNUNET_break (0);
+      GNUNET_free (session->vector);
+      GNUNET_free (session);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
+    GNUNET_SERVER_client_set_user_context (client, session);
+    GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
+
+    session->state = CLIENT_REQUEST_RECEIVED;
+    session->service_request_task =
+            GNUNET_SCHEDULER_add_now (&prepare_service_request,
+                                      session);
+
+  }
   else
+  {
+    struct ServiceSession * requesting_session;
+    enum SessionState needed_state = SERVICE_REQUEST_RECEIVED;
+
+    session->role = BOB;
+    session->mask = NULL;
+    // copy over the elements
+    session->used_element_count = element_count;
+    for (i = 0; i < element_count; i++)
+      session->vector[i] = ntohl (vector[i]);
+    session->state = CLIENT_RESPONSE_RECEIVED;
+
+    GNUNET_SERVER_client_set_user_context (client, session);
+    GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
+
+    //check if service queue contains a matching request 
+    requesting_session = find_matching_session (from_service_tail,
+                                                &session->key,
+                                                session->element_count,
+                                                &needed_state, NULL);
+    if (NULL != requesting_session)
     {
-      struct ServiceSession * requesting_session;
-      enum SessionState needed_state = SERVICE_REQUEST_RECEIVED;
-      
-      session->role = BOB;
-      session->mask = NULL;
-      // copy over the elements
-      session->used_element_count = element_count;
-      for (i = 0; i < element_count; i++)
-        session->vector[i] = ntohl (vector[i]);
-      session->state = CLIENT_RESPONSE_RECEIVED;
-      
-      GNUNET_SERVER_client_set_user_context (client, session);
-      GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
-      
-      //check if service queue contains a matching request 
-      requesting_session = find_matching_session (from_service_tail,
-                                                  &session->key,
-                                                  session->element_count,
-                                                  &needed_state, NULL);
-      if (NULL != requesting_session)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"), GNUNET_h2s (&session->key));
-          if (GNUNET_OK != compute_service_response (requesting_session, session))
-              session->client_notification_task = 
-                      GNUNET_SCHEDULER_add_now (&prepare_client_end_notification, 
-                                                session);
-              
-        }
-      else{
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"), GNUNET_h2s (&session->key));
-        // no matching session exists yet, store the response
-        // for later processing by handle_service_request()
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"), GNUNET_h2s (&session->key));
+      if (GNUNET_OK != compute_service_response (requesting_session, session))
+        session->client_notification_task =
+              GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                        session);
+
     }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"), GNUNET_h2s (&session->key));
+      // no matching session exists yet, store the response
+      // for later processing by handle_service_request()
+    }
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_YES);
 }
 
@@ -1442,7 +1449,7 @@ handle_client_request (void *cls,
  *         (can be NULL -- that's not an error)
  */
 static void *
-tunnel_incoming_handler (void *cls, 
+tunnel_incoming_handler (void *cls,
                          struct GNUNET_MESH_Tunnel *tunnel,
                          const struct GNUNET_PeerIdentity *initiator,
                          uint32_t port)
@@ -1476,24 +1483,26 @@ tunnel_destruction_handler (void *cls,
   struct ServiceSession * session = tunnel_ctx;
   struct ServiceSession * client_session;
   struct ServiceSession * curr;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      _("Peer disconnected, terminating session %s with peer (%s)\n"), 
-	      GNUNET_h2s (&session->key), 
-	      GNUNET_i2s (&session->peer));
-  if (ALICE == session->role) {
+              _ ("Peer disconnected, terminating session %s with peer (%s)\n"),
+              GNUNET_h2s (&session->key),
+              GNUNET_i2s (&session->peer));
+  if (ALICE == session->role)
+  {
     // as we have only one peer connected in each session, just remove the session
 
     if ((SERVICE_RESPONSE_RECEIVED > session->state) && (!do_shutdown))
     {
       session->tunnel = NULL;
       // if this happened before we received the answer, we must terminate the session
-      session->client_notification_task = 
+      session->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
     }
   }
-  else { //(BOB == session->role) service session
+  else
+  { //(BOB == session->role) service session
     // remove the session, unless it has already been dequeued, but somehow still active
     // this could bug without the IF in case the queue is empty and the service session was the only one know to the service
     // scenario: disconnect before alice can send her message to bob.
@@ -1516,7 +1525,7 @@ tunnel_destruction_handler (void *cls,
     if (client_session && (!do_shutdown))
     {
       client_session->state = FINALIZED;
-      client_session->client_notification_task = 
+      client_session->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         client_session);
     }
@@ -1557,14 +1566,14 @@ compute_scalar_product (struct ServiceSession * session,
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
   for (i = 0; i < count; i++)
-    {
-      decrypt_element (r[i], r[i], my_mu, my_lambda, my_n, my_nsquare);
-      gcry_mpi_sub(r[i],r[i],my_offset);
-      gcry_mpi_sub(r[i],r[i],my_offset);
-      decrypt_element (r_prime[i], r_prime[i], my_mu, my_lambda, my_n, my_nsquare);
-      gcry_mpi_sub(r_prime[i],r_prime[i],my_offset);
-      gcry_mpi_sub(r_prime[i],r_prime[i],my_offset);
-    }
+  {
+    decrypt_element (r[i], r[i], my_mu, my_lambda, my_n, my_nsquare);
+    gcry_mpi_sub (r[i], r[i], my_offset);
+    gcry_mpi_sub (r[i], r[i], my_offset);
+    decrypt_element (r_prime[i], r_prime[i], my_mu, my_lambda, my_n, my_nsquare);
+    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
+    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
+  }
 
   // calculate t = sum(ai)
   t = compute_square_sum (session->a, count);
@@ -1586,7 +1595,7 @@ compute_scalar_product (struct ServiceSession * session,
   // compute P
   decrypt_element (s, s, my_mu, my_lambda, my_n, my_nsquare);
   decrypt_element (s_prime, s_prime, my_mu, my_lambda, my_n, my_nsquare);
-  
+
   // compute P
   gcry_mpi_add (p, s, t);
   gcry_mpi_add (p, p, u);
@@ -1610,7 +1619,7 @@ compute_scalar_product (struct ServiceSession * session,
     gcry_mpi_release (session->a[i]);
   GNUNET_free (session->a);
   session->a = NULL;
-  
+
   return p;
 }
 
@@ -1633,79 +1642,83 @@ prepare_client_response (void *cls,
   int8_t range = -1;
   gcry_error_t rc;
   int sign;
-  
+
   session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
   if (session->product)
-    {
-      gcry_mpi_t value = gcry_mpi_new(0);
-      
-      sign = gcry_mpi_cmp_ui(session->product, 0);
-      // libgcrypt can not handle a print of a negative number
-      // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
-      if (0 > sign){
-          gcry_mpi_sub(value, value, session->product);
-      }
-      else if(0 < sign){
-          range = 1;
-          gcry_mpi_add(value, value, session->product);
-      }
-      else
-        range = 0;
-      
-      gcry_mpi_release (session->product);
-      session->product = NULL;
-      
-      // get representation as string
-      if (range
-          && (0 != (rc =  gcry_mpi_aprint (GCRYMPI_FMT_STD,
-                                             &product_exported,
-                                             &product_length,
-                                             value)))){
-        LOG_GCRY(GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
-        product_length = 0;
-        range = -1; // signal error with product-length = 0 and range = -1
-      }
-      gcry_mpi_release (value);
-    }
+  {
+    gcry_mpi_t value = gcry_mpi_new (0);
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) + product_length;
+    sign = gcry_mpi_cmp_ui (session->product, 0);
+    // libgcrypt can not handle a print of a negative number
+    // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
+    if (0 > sign)
+    {
+      gcry_mpi_sub (value, value, session->product);
+    }
+    else if (0 < sign)
+    {
+      range = 1;
+      gcry_mpi_add (value, value, session->product);
+    }
+    else
+      range = 0;
+
+    gcry_mpi_release (session->product);
+    session->product = NULL;
+
+    // get representation as string
+    if (range
+        && (0 != (rc = gcry_mpi_aprint (GCRYMPI_FMT_STD,
+                                        &product_exported,
+                                        &product_length,
+                                        value))))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+      product_length = 0;
+      range = -1; // signal error with product-length = 0 and range = -1
+    }
+    gcry_mpi_release (value);
+  }
+
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) +product_length;
   msg = GNUNET_malloc (msg_length);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
-  if (product_exported != NULL){
+  if (product_exported != NULL)
+  {
     memcpy (&msg[1], product_exported, product_length);
-    GNUNET_free(product_exported);
+    GNUNET_free (product_exported);
   }
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT);
   msg->header.size = htons (msg_length);
   msg->range = range;
   msg->product_length = htonl (product_length);
-  
+
   session->msg = (struct GNUNET_MessageHeader *) msg;
   //transmit this message to our client
-  session->client_transmit_handle = 
+  session->client_transmit_handle =
           GNUNET_SERVER_notify_transmit_ready (session->client,
                                                msg_length,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                &do_send_message,
                                                session);
-  if ( NULL == session->client_transmit_handle)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _ ("Could not send message to client (%p)!\n"), 
-		  session->client);
-      session->client = NULL;
-      // callback was not called!
-      GNUNET_free (msg);
-      session->msg = NULL;
-    }
+  if (NULL == session->client_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _ ("Could not send message to client (%p)!\n"),
+                session->client);
+    session->client = NULL;
+    // callback was not called!
+    GNUNET_free (msg);
+    session->msg = NULL;
+  }
   else
-      // gracefully sent message, just terminate session structure
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		  _ ("Sent result to client (%p), this session (%s) has ended!\n"), 
-		  session->client, 
-		  GNUNET_h2s (&session->key));
+    // gracefully sent message, just terminate session structure
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _ ("Sent result to client (%p), this session (%s) has ended!\n"),
+                session->client,
+                GNUNET_h2s (&session->key));
 }
 
 
@@ -1740,58 +1753,59 @@ handle_service_request (void *cls,
   enum SessionState needed_state;
 
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (BOB != session->role){
-    GNUNET_break_op(0);
+  if (BOB != session->role)
+  {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   // is this tunnel already in use?
-  if ( (session->next) || (from_service_head == session))
-    {
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  if ((session->next) || (from_service_head == session))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   // Check if message was sent by me, which would be bad!
-  if ( ! memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_free (session);
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
+  if (!memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_free (session);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
 
   //we need at least a peer and one message id to compare
   if (ntohs (msg->header.size) < sizeof (struct GNUNET_SCALARPRODUCT_service_request))
-    {
-      GNUNET_free (session);
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (session);
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   mask_length = ntohl (msg->mask_length);
   pk_length = ntohl (msg->pk_length);
   used_elements = ntohl (msg->used_element_count);
   element_count = ntohl (msg->element_count);
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
-               + mask_length + pk_length + used_elements * PAILLIER_ELEMENT_LENGTH;
+          +mask_length + pk_length + used_elements * PAILLIER_ELEMENT_LENGTH;
 
   //sanity check: is the message as long as the message_count fields suggests?
   if ((ntohs (msg->header.size) != msg_length) || (element_count < used_elements)
       || (used_elements == 0) || (mask_length != (element_count / 8 + (element_count % 8 ? 1 : 0)))
       )
-    {
-      GNUNET_free (session);
-      GNUNET_break_op(0);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_free (session);
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if (find_matching_session (from_service_tail,
                              &msg->key,
                              element_count,
                              NULL,
                              NULL))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"), (const char *) &(msg->key));
-      GNUNET_free (session);
-      return GNUNET_SYSERR;
-    }
-  
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"), (const char *) &(msg->key));
+    GNUNET_free (session);
+    return GNUNET_SYSERR;
+  }
+
   memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
   session->state = SERVICE_REQUEST_RECEIVED;
   session->element_count = ntohl (msg->element_count);
@@ -1809,12 +1823,12 @@ handle_service_request (void *cls,
 
   //convert the publickey to sexp
   if (gcry_sexp_new (&session->remote_pubkey, current, pk_length, 1))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate remote public key to sexpression!\n"));
-      GNUNET_free (session->mask);
-      GNUNET_free (session);
-      return GNUNET_SYSERR;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate remote public key to sexpression!\n"));
+    GNUNET_free (session->mask);
+    GNUNET_free (session);
+    return GNUNET_SYSERR;
+  }
 
   current += pk_length;
 
@@ -1831,48 +1845,48 @@ handle_service_request (void *cls,
       +pk_length
       + mask_length
       + used_elements * PAILLIER_ELEMENT_LENGTH)
+  {
+    gcry_error_t ret = 0;
+    session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
+    // Convert each vector element to MPI_value
+    for (i = 0; i < used_elements; i++)
     {
-      gcry_error_t ret = 0;
-      session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
-      // Convert each vector element to MPI_value
-      for (i = 0; i < used_elements; i++)
-        {
-          size_t read = 0;
+      size_t read = 0;
 
-          ret = gcry_mpi_scan (&session->a[i],
-                               GCRYMPI_FMT_USG,
-                               &current[i * PAILLIER_ELEMENT_LENGTH],
-                               PAILLIER_ELEMENT_LENGTH,
-                               &read);
-          if (ret)
-            {
-              GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate E[a%d] to MPI!\n%s/%s\n"),
-                          i, gcry_strsource (ret), gcry_strerror (ret));
-              goto except;
-            }
-        }
-      GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, session);
-      if (responder_session)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
-          if (GNUNET_OK != compute_service_response (session, responder_session))
-            {
-              //something went wrong, remove it again...
-              GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
-              goto except;
-            }
-        }
-      else
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s without a matching element set, queueing.\n"), GNUNET_h2s (&session->key));
-      
-      return GNUNET_OK;
+      ret = gcry_mpi_scan (&session->a[i],
+                           GCRYMPI_FMT_USG,
+                           &current[i * PAILLIER_ELEMENT_LENGTH],
+                           PAILLIER_ELEMENT_LENGTH,
+                           &read);
+      if (ret)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate E[a%d] to MPI!\n%s/%s\n"),
+                    i, gcry_strsource (ret), gcry_strerror (ret));
+        goto except;
+      }
     }
-  else
+    GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, session);
+    if (responder_session)
     {
-      // TODO FEATURE: fallback to fragmentation, in case the message is too long
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
-      goto except;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
+      if (GNUNET_OK != compute_service_response (session, responder_session))
+      {
+        //something went wrong, remove it again...
+        GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+        goto except;
+      }
     }
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s without a matching element set, queueing.\n"), GNUNET_h2s (&session->key));
+
+    return GNUNET_OK;
+  }
+  else
+  {
+    // TODO FEATURE: fallback to fragmentation, in case the message is too long
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Message too large, fragmentation is currently not supported!\n"));
+    goto except;
+  }
 except:
   for (i = 0; i < used_elements; i++)
     if (session->a[i])
@@ -1884,10 +1898,10 @@ except:
   free_session (session);
   // and notify our client-session that we could not complete the session
   if (responder_session)
-      // we just found the responder session in this queue
-      responder_session->client_notification_task = 
-              GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
-                                        responder_session);
+    // we just found the responder session in this queue
+    responder_session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    responder_session);
   return GNUNET_SYSERR;
 }
 
@@ -1926,82 +1940,83 @@ handle_service_response (void *cls,
 
   GNUNET_assert (NULL != message);
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (ALICE != session->role){
-    GNUNET_break_op(0);
+  if (ALICE != session->role)
+  {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  
+
   count = session->used_element_count;
   session->product = NULL;
   session->state = SERVICE_RESPONSE_RECEIVED;
 
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size))
-    {
-      GNUNET_break_op (0);
-      goto invalid_msg;
-    }
+  {
+    GNUNET_break_op (0);
+    goto invalid_msg;
+  }
   used_element_count = ntohl (msg->used_element_count);
   msg_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * used_element_count * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
   if ((ntohs (msg->header.size) != msg_size) || (count != used_element_count))
-    {
-      GNUNET_break_op (0);
-      goto invalid_msg;
-    }
+  {
+    GNUNET_break_op (0);
+    goto invalid_msg;
+  }
 
   //convert s
   current = (unsigned char *) &msg[1];
-  if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current, 
-                     PAILLIER_ELEMENT_LENGTH, &read)))
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
-      goto invalid_msg;
-    }
+  if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current,
+                                PAILLIER_ELEMENT_LENGTH, &read)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+    GNUNET_break_op (0);
+    goto invalid_msg;
+  }
   current += PAILLIER_ELEMENT_LENGTH;
   //convert stick
   if (0 != (rc = gcry_mpi_scan (&s_prime, GCRYMPI_FMT_USG, current,
-                       PAILLIER_ELEMENT_LENGTH, &read)))
-    {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
-      goto invalid_msg;
-    }
+                                PAILLIER_ELEMENT_LENGTH, &read)))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+    GNUNET_break_op (0);
+    goto invalid_msg;
+  }
   current += PAILLIER_ELEMENT_LENGTH;
 
   r = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   // Convert each kp[] to its MPI_value
   for (i = 0; i < count; i++)
+  {
+    if (0 != (rc = gcry_mpi_scan (&r[i], GCRYMPI_FMT_USG, current,
+                                  PAILLIER_ELEMENT_LENGTH, &read)))
     {
-      if (0 != (rc = gcry_mpi_scan (&r[i], GCRYMPI_FMT_USG, current,
-                           PAILLIER_ELEMENT_LENGTH, &read)))
-        {
-          LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-          GNUNET_break_op (0);
-          goto invalid_msg;
-        }
-      current += PAILLIER_ELEMENT_LENGTH;
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
+      goto invalid_msg;
     }
+    current += PAILLIER_ELEMENT_LENGTH;
+  }
 
 
   r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   // Convert each kq[] to its MPI_value
   for (i = 0; i < count; i++)
+  {
+    if (0 != (rc = gcry_mpi_scan (&r_prime[i], GCRYMPI_FMT_USG, current,
+                                  PAILLIER_ELEMENT_LENGTH, &read)))
     {
-      if (0 != (rc = gcry_mpi_scan (&r_prime[i], GCRYMPI_FMT_USG, current,
-                           PAILLIER_ELEMENT_LENGTH, &read)))
-        {
-          LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-          GNUNET_break_op (0);
-          goto invalid_msg;
-        }
-      current += PAILLIER_ELEMENT_LENGTH;
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
+      goto invalid_msg;
     }
+    current += PAILLIER_ELEMENT_LENGTH;
+  }
   session->product = compute_scalar_product (session, r, r_prime, s, s_prime);
-  
+
 invalid_msg:
   if (s)
     gcry_mpi_release (s);
@@ -2013,17 +2028,18 @@ invalid_msg:
     if (r_prime[i]) gcry_mpi_release (r_prime[i]);
   GNUNET_free_non_null (r);
   GNUNET_free_non_null (r_prime);
-  
+
   session->tunnel = NULL;
   // send message with product to client
-  session->client_notification_task = 
-             GNUNET_SCHEDULER_add_now (&prepare_client_response, 
-                                        session);
+  session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                    session);
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   // just close the connection, as recommended by Christian
   return GNUNET_SYSERR;
 }
+
 
 /**
  * Task run during shutdown.
@@ -2043,8 +2059,10 @@ shutdown_task (void *cls,
   // terminate all owned open tunnels.
   for (session = from_client_head; NULL != session; session = session->next)
   {
-    if (FINALIZED != session->state)
+    if ((FINALIZED != session->state) && (NULL != session->tunnel)){
       GNUNET_MESH_tunnel_destroy (session->tunnel);
+      session->tunnel = NULL;
+    }
     if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task)
     {
       GNUNET_SCHEDULER_cancel (session->client_notification_task);
@@ -2055,18 +2073,23 @@ shutdown_task (void *cls,
       GNUNET_SCHEDULER_cancel (session->service_request_task);
       session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    if (NULL != session->client){
-      GNUNET_SERVER_client_disconnect(session->client);
+    if (NULL != session->client)
+    {
+      GNUNET_SERVER_client_disconnect (session->client);
       session->client = NULL;
     }
   }
-  for (session = from_service_head; NULL != session; session = session->next)
-
-    if (my_mesh)
-    {
-      GNUNET_MESH_disconnect (my_mesh);
-      my_mesh = NULL;
+  for (session = from_service_head; NULL != session; session = from_service_head)
+    if (NULL != session->tunnel){
+      GNUNET_MESH_tunnel_destroy (session->tunnel);
+    session->tunnel = NULL;
     }
+
+  if (my_mesh)
+  {
+    GNUNET_MESH_disconnect (my_mesh);
+    my_mesh = NULL;
+  }
 }
 
 
@@ -2105,18 +2128,18 @@ run (void *cls,
                                    &handle_client_disconnect,
                                    NULL);
   GNUNET_break (GNUNET_OK ==
-		GNUNET_CRYPTO_get_host_identity (c,
-						 &me));
+                GNUNET_CRYPTO_get_host_identity (c,
+                                                 &me));
   my_mesh = GNUNET_MESH_connect (c, NULL,
                                  &tunnel_incoming_handler,
                                  &tunnel_destruction_handler,
                                  mesh_handlers, ports);
   if (!my_mesh)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to MESH failed\n"));
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to MESH failed\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Mesh initialized\n"));
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
