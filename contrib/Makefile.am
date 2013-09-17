@@ -84,7 +84,7 @@ test_gnunet_prefix_SOURCES = \
  test_gnunet_prefix.c
 
 test_gnunet_prefix_CPPFLAGS = \
-  $(LTDLINCL)
+  $(LTDLINCL) $(AM_CPPFLAGS)
 
 test_gnunet_prefix_LDADD = \
   $(GCLIBADD) $(WINLIB) \
