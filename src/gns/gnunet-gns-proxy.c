@@ -523,41 +523,105 @@ struct ProxyUploadData
 
 
 
-/* Client hello */
-struct socks5_client_hello
+/**
+ * Client hello in Socks5 protocol.
+ */
+struct Socks5ClientHelloMessage
 {
+  /**
+   * Should be #SOCKS_VERSION_5.
+   */
   uint8_t version;
+
+  /**
+   * How many authentication methods does the client support.
+   */
   uint8_t num_auth_methods;
+
+  /**
+   * FIXME: this is not a message format...
+   */
   char* auth_methods;
 };
 
-/* Client socks request */
-struct socks5_client_request
+
+/**
+ * Client socks request in Socks5 protocol.
+ */
+struct Socks5ClientRequestMessage
 {
+  /**
+   * Should be #SOCKS_VERSION_5.
+   */
   uint8_t version;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t command;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t resvd;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t addr_type;
+
   /* 
    * followed by either an ip4/ipv6 address
    * or a domain name with a length field in front
    */
 };
 
-/* Server hello */
-struct socks5_server_hello
+
+/**
+ * Server hello in Socks5 protocol.
+ */
+struct Socks5ServerHelloMessage
 {
+  /**
+   * Should be #SOCKS_VERSION_5.
+   */
   uint8_t version;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t auth_method;
 };
 
-/* Server response to client requests */
-struct socks5_server_response
+
+/**
+ * Server response to client requests in Socks5 protocol.
+ */
+struct Socks5ServerResponseMessage
 {
+  /**
+   * Should be #SOCKS_VERSION_5.
+   */
   uint8_t version;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t reply;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t reserved;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t addr_type;
+
+  /**
+   * FIXME: what goes here?
+   */
   uint8_t add_port[18];
 };
 
@@ -2610,10 +2674,10 @@ static void
 do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Socks5Request *s5r = cls;
-  struct socks5_client_hello *c_hello;
-  struct socks5_server_hello *s_hello;
-  struct socks5_client_request *c_req;
-  struct socks5_server_response *s_resp;
+  struct Socks5ClientHelloMessage *c_hello;
+  struct Socks5ServerHelloMessage *s_hello;
+  struct Socks5ClientRequestMessage *c_req;
+  struct Socks5ServerResponseMessage *s_resp;
   int ret;
   char domain[256];
   uint8_t dom_len;
@@ -2644,10 +2708,10 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
   case SOCKS5_INIT:
     /* FIXME: failed to check if we got enough data yet! */
-    c_hello = (struct socks5_client_hello*) &s5r->rbuf;
+    c_hello = (struct Socks5ClientHelloMessage*) &s5r->rbuf;
     GNUNET_assert (c_hello->version == SOCKS_VERSION_5);
-    s_hello = (struct socks5_server_hello*) &s5r->wbuf;
-    s5r->wbuf_len = sizeof( struct socks5_server_hello );
+    s_hello = (struct Socks5ServerHelloMessage*) &s5r->wbuf;
+    s5r->wbuf_len = sizeof( struct Socks5ServerHelloMessage );
     s_hello->version = c_hello->version;
     s_hello->auth_method = SOCKS_AUTH_NONE;
     /* Write response to client */
@@ -2661,10 +2725,10 @@ do_s5r_read (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   case SOCKS5_REQUEST:
     /* FIXME: failed to check if we got enough data yet!? */
-    c_req = (struct socks5_client_request *) &s5r->rbuf;
-    s_resp = (struct socks5_server_response *) &s5r->wbuf;
+    c_req = (struct Socks5ClientRequestMessage *) &s5r->rbuf;
+    s_resp = (struct Socks5ServerResponseMessage *) &s5r->wbuf;
     //Only 10 byte for ipv4 response!
-    s5r->wbuf_len = 10;//sizeof (struct socks5_server_response);
+    s5r->wbuf_len = 10;//sizeof (struct Socks5ServerResponseMessage);
     GNUNET_assert (c_req->addr_type == 3);
     dom_len = *((uint8_t*)(&(c_req->addr_type) + 1));
     memset(domain, 0, sizeof(domain));
