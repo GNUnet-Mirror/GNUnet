@@ -15,9 +15,21 @@ def iterate_dll (head, field, match, pfield):
     if symbol is None:
         print "Can't find symbol: " + head
         return    
-    while not symbol:
+    while symbol:
         symbol_val = symbol.value().derefence
-        if match == symbol_val[field]:
+        field_val = symbol_val[field]
+        if field_val.type.code == gdb.TYPE_CODE_INT:
+            val = int(field_val)
+            res = (match == val)
+        if (field_val.type.code == gdb.TYPE_CODE_STRING)
+           or (filed_val.type.code == gdb.TYPE_CODE_ARRAY):
+            val = str (field_val)
+            res = (match == val)
+        if (field_val.type.code == gdb.TYPE_CODE_TYPEDEF):
+            val = str (field_val)
+            res = match in val
+
+        if res:
             if pfield is None:
                 print symbol_val
             else:
