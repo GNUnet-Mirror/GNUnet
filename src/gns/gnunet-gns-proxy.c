@@ -19,9 +19,17 @@
 */
 /**
  * @author Martin Schanzenbach
+ * @author Christian Grothoff
  * @file src/gns/gnunet-gns-proxy.c
  * @brief HTTP(S) proxy that rewrites URIs and fakes certificats to make GNS work
  *        with legacy browsers
+ *
+ * TODO:
+ * - make DNS lookup asynchronous
+ * - simplify POST/PUT processing
+ * - double-check queueing logic
+ * - figure out what to do with the 'authority' issue
+ * - document better
  */
 #include "platform.h"
 #include <microhttpd.h>
@@ -34,21 +42,38 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_identity_service.h"
-#include "gns_proxy_proto.h"
 #include "gns.h"
 
 
+/**
+ * Default Socks5 listen port.
+ */ 
 #define GNUNET_GNS_PROXY_PORT 7777
 
 #define MHD_MAX_CONNECTIONS 300
 
+/**
+ * Maximum supported length for a URI.
+ */
 #define MAX_HTTP_URI_LENGTH 2048
 
 #define POSTBUFFERSIZE 4096
 
+/**
+ * Port for plaintext HTTP.
+ */
 #define HTTP_PORT 80
 
+/**
+ * Port for HTTPS.
+ */
 #define HTTPS_PORT 443
+
+/**
+ * Largest allowed size for a PEM certificate.
+ */
+#define MAX_PEM_SIZE (10 * 1024)
+
 
 /**
  * Log curl error.
@@ -60,12 +85,48 @@
 #define LOG_CURL_EASY(level,fun,rc) GNUNET_log(level, _("%s failed at %s:%d: `%s'\n"), fun, __FILE__, __LINE__, curl_easy_strerror (rc))
 
 
+/**
+ * Which SOCKS version do we speak?
+ */
+#define SOCKS_VERSION_5 0x05
+
+/**
+ * Flag to set for 'no authentication'.
+ */
+#define SOCKS_AUTH_NONE 0
+
+
+/**
+ * The socks phases 
+ */
+enum SocksPhase
+{
+  /**
+   * We're waiting to get the request.
+   */
+  SOCKS5_INIT,
+
+  /**
+   * FIXME.
+   */
+  SOCKS5_REQUEST,
+
+  /**
+   * FIXME.
+   */
+  SOCKS5_DATA_TRANSFER
+};
+
+
+
+/**
+ * State machine for the IO buffer.
+ */
 enum BufferStatus
   {
     BUF_WAIT_FOR_CURL,
     BUF_WAIT_FOR_MHD
   };
-
 
 
 /**
@@ -84,17 +145,20 @@ struct ProxyCA
   gnutls_x509_privkey_t key;
 };
 
-#define MAX_PEM_SIZE (10 * 1024)
 
 /**
  * Structure for GNS certificates
  */
 struct ProxyGNSCertificate
 {
-  /* The certificate as PEM */
+  /**
+   * The certificate as PEM 
+   */
   char cert[MAX_PEM_SIZE];
 
-  /* The private key as PEM */
+  /**
+   * The private key as PEM 
+   */
   char key[MAX_PEM_SIZE];
 };
 
@@ -128,7 +192,7 @@ struct Socks5Request
   /**
    * The socks state 
    */
-  int state;
+  enum SocksPhase state;
   
   /**
    * Client socket read task 
@@ -329,13 +393,19 @@ struct ProxyCurlTask
   /* Cookies to set */
   struct ProxySetCookieHeader *set_cookies_tail;
 
-  /* The authority of the corresponding host (site of origin) */
+  /**
+   * The authority of the corresponding host (site of origin) 
+   */
   char authority[256];
 
-  /* The hostname (Host header field) */
+  /**
+   * The hostname (Host header field) 
+   */
   char host[256];
 
-  /* The LEgacy HOstname (can be empty) */
+  /**
+   * The LEgacy HOstname (can be empty) 
+   */
   char leho[256];
 
   /**
@@ -449,6 +519,46 @@ struct ProxyUploadData
    * size 
    */
   size_t total_bytes;
+};
+
+
+
+/* Client hello */
+struct socks5_client_hello
+{
+  uint8_t version;
+  uint8_t num_auth_methods;
+  char* auth_methods;
+};
+
+/* Client socks request */
+struct socks5_client_request
+{
+  uint8_t version;
+  uint8_t command;
+  uint8_t resvd;
+  uint8_t addr_type;
+  /* 
+   * followed by either an ip4/ipv6 address
+   * or a domain name with a length field in front
+   */
+};
+
+/* Server hello */
+struct socks5_server_hello
+{
+  uint8_t version;
+  uint8_t auth_method;
+};
+
+/* Server response to client requests */
+struct socks5_server_response
+{
+  uint8_t version;
+  uint8_t reply;
+  uint8_t reserved;
+  uint8_t addr_type;
+  uint8_t add_port[18];
 };
 
 
@@ -2785,7 +2895,7 @@ do_shutdown (void *cls,
     GNUNET_free_non_null (hd->proxy_cert);
     GNUNET_free (hd);
   }
-  for (ctask=ctasks_head; ctask != NULL; ctask=ctask_tmp)
+  for (ctask=ctasks_head; NULL != ctask; ctask=ctask_tmp)
   {
     ctask_tmp = ctask->next;
     if (NULL != ctask->curl)
@@ -2915,7 +3025,6 @@ run_cont ()
 
   /* start MHD daemon for HTTP */
   hd = GNUNET_new (struct MhdHttpList);
-  strcpy (hd->domain, "");
   hd->daemon = MHD_start_daemon (MHD_USE_DEBUG | MHD_USE_NO_LISTEN_SOCKET,
 				 0,
 				 NULL, NULL,
