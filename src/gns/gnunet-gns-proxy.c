@@ -965,10 +965,18 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     }
     GNUNET_free (leho_host);
   }
-  GNUNET_break (MHD_YES ==
-		MHD_add_response_header (s5r->response,
-					 hdr_type,
-					 hdr_val));
+  /* MHD does not allow certain characters in values, remove those */
+  if (NULL != (tok = strchr (hdr_val, '\n')))
+    *tok = '\0';
+  if (NULL != (tok = strchr (hdr_val, '\r')))
+    *tok = '\0';
+  if (NULL != (tok = strchr (hdr_val, '\t')))
+    *tok = '\0';
+  if (0 != strlen (hdr_val))
+    GNUNET_break (MHD_YES ==
+		  MHD_add_response_header (s5r->response,
+					   hdr_type,
+					   hdr_val));
   GNUNET_free (ndup);
   GNUNET_free_non_null (new_cookie_hdr);
   GNUNET_free_non_null (new_location);
@@ -1226,7 +1234,9 @@ curl_task_download (void *cls,
 /**
  * Read HTTP request header field from the request.  Copies the fields
  * over to the 'headers' that will be given to curl.  However, 'Host'
- * is substituted with the LEHO if present.
+ * is substituted with the LEHO if present.  We also change the
+ * 'Connection' header value to "close" as the proxy does not support
+ * pipelining.
  *
  * @param cls our `struct Socks5Request`
  * @param kind value kind
@@ -1246,6 +1256,8 @@ con_val_iter (void *cls,
   if ( (0 == strcasecmp (MHD_HTTP_HEADER_HOST, key)) &&
        (NULL != s5r->leho) )
     value = s5r->leho;
+  if (0 == strcasecmp (MHD_HTTP_HEADER_CONNECTION, key))
+    value = "Close";
   GNUNET_asprintf (&hdr,
 		   "%s: %s",
 		   key,
