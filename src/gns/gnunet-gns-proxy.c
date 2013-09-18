@@ -1638,7 +1638,10 @@ kill_httpd (struct MhdHttpList *hd)
   GNUNET_free_non_null (hd->domain);
   MHD_stop_daemon (hd->daemon);
   if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
+  {
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
+    hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free_non_null (hd->proxy_cert);
   if (hd == httpd)
     httpd = NULL;
@@ -1657,7 +1660,8 @@ kill_httpd_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MhdHttpList *hd = cls;
-  
+
+  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
   kill_httpd (hd);
 }
 

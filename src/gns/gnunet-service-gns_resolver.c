@@ -638,9 +638,12 @@ handle_dns_result (void *cls,
   const struct sockaddr_in *sa4;
   const struct sockaddr_in6 *sa6;
 
-  rh->std_resolve = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %u bytes of DNS IP data\n",
+	      addrlen);
   if (NULL == addr)
   {
+    rh->std_resolve = NULL;
     transmit_lookup_dns_result (rh);
     return;
   }
@@ -1916,6 +1919,8 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
   }
   if (NULL != rh->std_resolve)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Canceling standard DNS resolution\n");
     GNUNET_RESOLVER_request_cancel (rh->std_resolve);
     rh->std_resolve = NULL;
   }
