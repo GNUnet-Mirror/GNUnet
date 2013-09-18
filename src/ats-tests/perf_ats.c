@@ -232,6 +232,11 @@ struct BenchmarkState
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
 /**
+ * Progress task
+ */
+static GNUNET_SCHEDULER_TaskIdentifier progress_task;
+
+/**
  * Test result
  */
 static int result;
@@ -323,6 +328,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int c_op;
 
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != progress_task)
+  {
+    fprintf (stderr, "\n");
+    GNUNET_SCHEDULER_cancel (progress_task);
+  }
+  progress_task = GNUNET_SCHEDULER_NO_TASK;
+
   evaluate();
   state.benchmarking = GNUNET_NO;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
@@ -482,6 +494,17 @@ core_send_ready (void *cls, size_t size, void *buf)
   return TEST_MESSAGE_SIZE;
 }
 
+static void
+print_progress ()
+{
+  progress_task = GNUNET_SCHEDULER_NO_TASK;
+
+  fprintf (stderr, ".");
+
+  progress_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+      &print_progress, NULL );
+}
+
 
 static void
 do_benchmark ()
@@ -502,6 +525,8 @@ do_benchmark ()
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (BENCHMARK_DURATION,
       &do_shutdown, NULL );
+
+  progress_task = GNUNET_SCHEDULER_add_now (&print_progress, NULL );
 
   /* Start sending test messages */
   for (c_m = 0; c_m < num_masters; c_m++)
