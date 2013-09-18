@@ -692,7 +692,8 @@ cleanup_s5r (struct Socks5Request *s5r)
     s5r->curl = NULL;
   }
   curl_slist_free_all (s5r->headers);
-  if (NULL != s5r->response)
+  if ( (NULL != s5r->response) &&
+       (curl_failure_response != s5r->response) )
     MHD_destroy_response (s5r->response);
   if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
     GNUNET_SCHEDULER_cancel (s5r->rtask);
@@ -704,7 +705,7 @@ cleanup_s5r (struct Socks5Request *s5r)
     GNUNET_GNS_lookup_cancel (s5r->gns_lookup);
   if (NULL != s5r->sock) 
   {
-    if (SOCKS5_SOCKET_WITH_MHD == s5r->state)
+    if (SOCKS5_SOCKET_WITH_MHD <= s5r->state)
       GNUNET_NETWORK_socket_free_memory_only_ (s5r->sock);
     else
       GNUNET_NETWORK_socket_close (s5r->sock);
@@ -1238,7 +1239,7 @@ curl_task_download (void *cls,
 	curl_easy_cleanup (s5r->curl);
 	s5r->curl = NULL;
 	if (NULL == s5r->response)
-	  cleanup_s5r (s5r); /* curl failed to yield response, close Socks socket as well */
+	  s5r->response = curl_failure_response;
 	break;
       case CURLMSG_LAST:
 	/* documentation says this is not used */
@@ -1411,7 +1412,6 @@ create_response (void *cls,
     curl_easy_setopt (s5r->curl, CURLOPT_HEADERDATA, s5r);
     curl_easy_setopt (s5r->curl, CURLOPT_FOLLOWLOCATION, 0);
     curl_easy_setopt (s5r->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-    curl_easy_setopt (s5r->curl, CURLOPT_FAILONERROR, 1); /* not sure we want this */
     curl_easy_setopt (s5r->curl, CURLOPT_CONNECTTIMEOUT, 600L);
     curl_easy_setopt (s5r->curl, CURLOPT_TIMEOUT, 600L);
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
