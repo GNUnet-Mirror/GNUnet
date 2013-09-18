@@ -25,11 +25,10 @@
  *        with legacy browsers
  *
  * TODO:
- * - actually check SSL certificates 
  * - double-check queueing logic
  * - handle cookie rewriting
- * - handle location rewriting
- * - improve IPv6 support
+ * - improve IPv6 support (#3037)
+ * - actually check SSL certificates (#3038)
  */
 #include "platform.h"
 #include <microhttpd.h>
@@ -790,19 +789,20 @@ check_ssl_certificate (struct Socks5Request *s5r)
 			 CURLINFO_CERTINFO, 
 			 &ptr.to_info))
     return GNUNET_SYSERR;
-  /* FIXME: for now, we just output the certs to stderr */
+  /* FIXME: for now, we just output the certs to stderr, we should
+     check them against LEHO / TLSA record information here! (#3038) */
   if(NULL != ptr.to_info) 
   {     
-    fprintf (stderr,
-	     "Got %d certs!\n", 
-	     ptr.to_certinfo->num_of_certs);      
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Got %d certs!\n", 
+		ptr.to_certinfo->num_of_certs);      
     for (i = 0; i < ptr.to_certinfo->num_of_certs; i++) 
     {    
       for (slist = ptr.to_certinfo->certinfo[i]; NULL != slist; slist = slist->next)
-	fprintf (stderr,
-		 "%d: %s\n",
-		 i,
-		 slist->data);	
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Certificate #%d: %s\n",
+		    i,
+		    slist->data);	
     }
   }
   return GNUNET_OK;
@@ -832,6 +832,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   const char *hdr_val;
   long resp_code;
   char *new_cookie_hdr;
+  char *new_location;
 
   if (NULL == s5r->response)
   {
@@ -947,34 +948,38 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     new_cookie_hdr = NULL;
   }
 
-#if 0
-  /* FIXME: adjust handling */
+  new_location = NULL;
   if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION, hdr_type))
   {
-    if (ctask->mhd->is_ssl)
+    char *leho_host;
+    
+    GNUNET_asprintf (&leho_host,
+		     (HTTPS_PORT != s5r->port)
+		     ? "http://%s"
+		     : "https://%s",
+		     s5r->leho);
+    if (0 == strncmp (leho_host, 
+		      hdr_val, 
+		      strlen (leho_host)))
     {
-      sprintf (leho_host, "https://%s", ctask->leho);
-      sprintf (real_host, "https://%s", ctask->host);
-    }
-    else
-    {
-      sprintf (leho_host, "http://%s", ctask->leho);
-      sprintf (real_host, "http://%s", ctask->host);
-    }
-
-    if (0 == memcmp (leho_host, hdr_val, strlen (leho_host)))
-    {
-      sprintf (new_location, "%s%s", real_host, hdr_val+strlen (leho_host));
+      GNUNET_asprintf (&new_location,
+		       "%s%s%s",
+		       (HTTPS_PORT != s5r->port)
+		       ? "http://"
+		       : "https://",
+		       s5r->domain,
+		       hdr_val + strlen (leho_host));
       hdr_val = new_location;
     }
+    GNUNET_free (leho_host);
   }
-#endif
   GNUNET_break (MHD_YES ==
 		MHD_add_response_header (s5r->response,
 					 hdr_type,
 					 hdr_val));
   GNUNET_free (ndup);
   GNUNET_free_non_null (new_cookie_hdr);
+  GNUNET_free_non_null (new_location);
   return bytes;
 }
 
