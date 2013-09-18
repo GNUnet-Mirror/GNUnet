@@ -406,7 +406,7 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     /*  Dummy messages for testing / benchmarking, just discard */
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _
                 ("Unsupported message of type %u (%u bytes) received from peer `%s'\n"),
                 (unsigned int) type, (unsigned int) ntohs (message->size),
