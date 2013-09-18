@@ -71,6 +71,9 @@
   /* Maximum size of the interface's name */
   #define IFNAMSIZ 16
 
+  #ifndef NS_BTH
+    #define NS_BTH 16
+  #endif
   /**
    * A copy of the MAC Address.
    */
