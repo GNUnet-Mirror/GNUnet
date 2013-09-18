@@ -1,0 +1,43 @@
+Index: Makefile.am
+===================================================================
+--- Makefile.am	(revision 29343)
++++ Makefile.am	(working copy)
+@@ -59,7 +59,7 @@
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/arm/libgnunetarm.la \
+- $(LTLIBINTL) $(Z_LIBS)
++ $(LTLIBINTL) $(Z_LIBS) -lprofiler
+ gnunet_service_testbed_DEPENDENCIES = \
+  libgnunettestbed.la
+ 
+Index: gnunet-service-testbed.c
+===================================================================
+--- gnunet-service-testbed.c	(revision 29341)
++++ gnunet-service-testbed.c	(working copy)
+@@ -26,6 +26,7 @@
+ 
+ #include "gnunet-service-testbed.h"
+ #include "gnunet-service-testbed_barriers.h"
++#include <gperftools/profiler.h>
+ 
+ /***********/
+ /* Globals */
+@@ -956,9 +957,14 @@
+ main (int argc, char *const *argv)
+ {
+   //sleep (15);                 /* Debugging */
+-  return (GNUNET_OK ==
+-          GNUNET_SERVICE_run (argc, argv, "testbed", GNUNET_SERVICE_OPTION_NONE,
+-                              &testbed_run, NULL)) ? 0 : 1;
++  int ret;
++
++  ProfilerStart (NULL);
++  ret = GNUNET_SERVICE_run (argc, argv, "testbed", GNUNET_SERVICE_OPTION_NONE,
++                            &testbed_run, NULL);
++  ProfilerStop ();
++  return (GNUNET_OK == ret) ? 0 : 1;
++  
+ }
+ 
+ /* end of gnunet-service-testbed.c */
