@@ -28,7 +28,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
-#include "perf_ats_logging.h"
+#include "perf_ats.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -44,52 +44,6 @@
 #define TEST_MESSAGE_TYPE_PONG 12346
 #define TEST_MESSAGE_SIZE 1000
 #define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-
-/**
- * Information about a benchmarking partner
- */
-struct BenchmarkPartner
-{
-  /**
-   * The peer itself this partner belongs to
-   */
-  struct BenchmarkPeer *me;
-
-  /**
-   * The partner peer
-   */
-  struct BenchmarkPeer *dest;
-
-  /**
-   * Core transmit handles
-   */
-  struct GNUNET_CORE_TransmitHandle *cth;
-
-  /**
-   * Transport transmit handles
-   */
-  struct GNUNET_TRANSPORT_TransmitHandle *tth;
-
-  /**
-   * Number of messages sent to this partner
-   */
-  unsigned int messages_sent;
-
-  /**
-   * Number of bytes sent to this partner
-   */
-  unsigned int bytes_sent;
-
-  /**
-   * Number of messages received from this partner
-   */
-  unsigned int messages_received;
-
-  /**
-   * Number of bytes received from this partner
-   */
-  unsigned int bytes_received;
-};
 
 /**
  * Connect peers with testbed
@@ -110,123 +64,6 @@ struct TestbedConnectOperation
    * Testbed operation to connect peers
    */
   struct GNUNET_TESTBED_Operation *connect_op;
-};
-
-/**
- * Information we track for a peer in the testbed.
- */
-struct BenchmarkPeer
-{
-  /**
-   * Handle with testbed.
-   */
-  struct GNUNET_TESTBED_Peer *peer;
-
-  /**
-   * Unique identifier
-   */
-  int no;
-
-  /**
-   * Is this peer a measter: GNUNET_YES/GNUNET_NO
-   */
-  int master;
-
-  /**
-   *  Peer ID
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
-   * Testbed operation to get peer information
-   */
-  struct GNUNET_TESTBED_Operation *peer_id_op;
-
-  /**
-   * Testbed operation to connect to ATS performance service
-   */
-  struct GNUNET_TESTBED_Operation *ats_perf_op;
-
-  /**
-   * Testbed operation to connect to core
-   */
-  struct GNUNET_TESTBED_Operation *comm_op;
-
-  /**
-   * ATS performance handle
-   */
-  struct GNUNET_ATS_PerformanceHandle *ats_perf_handle;
-
-  /**
-   * Masters only:
-   * Testbed connect operations to connect masters to slaves
-   */
-  struct TestbedConnectOperation *core_connect_ops;
-
-  /**
-   *  Core handle
-   */
-  struct GNUNET_CORE_Handle *ch;
-
-  /**
-   *  Core handle
-   */
-  struct GNUNET_TRANSPORT_Handle *th;
-
-  /**
-   * Masters only:
-   * Peer to set ATS preferences for
-   */
-  struct BenchmarkPeer *pref_partner;
-
-  /**
-   * Masters only
-   * Progress task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier ats_task;
-
-  /**
-   * Masters only
-   * Progress task
-   */
-  double pref_value;
-
-  /**
-   * Array of partners with num_slaves entries (if master) or
-   * num_master entries (if slave)
-   */
-  struct BenchmarkPartner *partners;
-
-  /**
-   * Number of core connections
-   */
-  int core_connections;
-
-  /**
-   * Masters only:
-   * Number of connections to slave peers
-   */
-  int core_slave_connections;
-
-  /**
-   * Total number of messages this peer has sent
-   */
-  unsigned int total_messages_sent;
-
-  /**
-   * Total number of bytes this peer has sent
-   */
-  unsigned int total_bytes_sent;
-
-  /**
-   * Total number of messages this peer has received
-   */
-  unsigned int total_messages_received;
-
-  /**
-   * Total number of bytes this peer has received
-   */
-  unsigned int total_bytes_received;
 };
 
 /**
@@ -614,7 +451,7 @@ do_benchmark ()
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
   if (GNUNET_YES == logging)
-    perf_logging_start();
+    perf_logging_start (mps, num_masters);
 }
 
 static void
@@ -1209,6 +1046,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
     mps[c_m].pref_value = TEST_ATS_PREFRENCE_START;
     mps[c_m].partners =
         GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
+    mps[c_m].num_partners = num_slaves;
     /* Initialize partners */
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
@@ -1228,6 +1066,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
     sps[c_s].master = GNUNET_NO;
     sps[c_s].partners =
         GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
+    sps[c_s].num_partners = num_masters;
     /* Initialize partners */
     for (c_m = 0; c_m < num_masters; c_m++)
     {
