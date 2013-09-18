@@ -79,6 +79,9 @@ gnunet_gns_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_gns_DEPENDENCIES = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetgns.la
 
 gnunet_dns2gns_SOURCES = \
@@ -108,6 +111,8 @@ gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_gns_proxy_DEPENDENCIES = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetgns.la
 
 gnunet_gns_helper_service_w32_SOURCES = \
@@ -117,6 +122,7 @@ gnunet_gns_helper_service_w32_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_gns_helper_service_w32_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetgns.la
 
 w32nsp_install_SOURCES = \
