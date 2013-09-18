@@ -48,7 +48,7 @@ TESTS = $(check_PROGRAMS)
 endif
 
 perf_ats_proportional_core_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c
 perf_ats_proportional_core_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -57,7 +57,7 @@ perf_ats_proportional_core_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_proportional_transport_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c
 perf_ats_proportional_transport_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \

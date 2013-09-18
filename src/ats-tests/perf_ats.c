@@ -28,6 +28,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
+#include "perf_ats_logging.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -264,6 +265,11 @@ static GNUNET_SCHEDULER_TaskIdentifier progress_task;
  */
 static int result;
 
+/**
+ * Test result logging
+ */
+static int logging;
+
 /**Test core (GNUNET_YES) or transport (GNUNET_NO)
  */
 static int test_core;
@@ -352,6 +358,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int c_m;
   int c_s;
   int c_op;
+
+  if (GNUNET_YES == logging)
+    perf_logging_stop();
 
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != progress_task)
@@ -604,6 +613,8 @@ do_benchmark ()
     if (pref_val != GNUNET_ATS_PREFERENCE_END)
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
+  if (GNUNET_YES == logging)
+    perf_logging_start();
 }
 
 static void
@@ -953,8 +964,6 @@ transport_recv_cb (void *cls,
                    const struct GNUNET_PeerIdentity * peer,
                    const struct GNUNET_MessageHeader * message)
 {
-  struct BenchmarkPeer *me = cls;
-
   if (TEST_MESSAGE_SIZE != ntohs (message->size) ||
       (TEST_MESSAGE_TYPE_PING != ntohs (message->type) &&
       TEST_MESSAGE_TYPE_PONG != ntohs (message->type)))
@@ -1352,6 +1361,14 @@ main (int argc, char *argv[])
   else
     num_masters = DEFAULT_MASTERS_NUM;
 
+  logging = GNUNET_NO;
+  for (c = 0; c < argc; c++)
+  {
+    if (0 == strcmp (argv[c], "-l"))
+      logging = GNUNET_YES;
+  }
+
+
   if (num_slaves < num_masters)
   {
     fprintf (stderr, "Number of master peers is lower than slaves! exit...\n");
@@ -1376,7 +1393,7 @@ main (int argc, char *argv[])
   event_mask = 0;
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  (void) GNUNET_TESTBED_test_run ("perf_ats", conf_name,
+  (void) GNUNET_TESTBED_test_run ("perf-ats", conf_name,
       num_slaves + num_masters, event_mask, &controller_event_cb, NULL,
       &main_run, NULL );
 
