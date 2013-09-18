@@ -26,7 +26,6 @@
  *
  * TODO:
  * - double-check queueing logic
- * - handle cookie rewriting
  * - improve IPv6 support (#3037)
  * - actually check SSL certificates (#3038)
  */
@@ -829,10 +828,15 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   size_t bytes = size * nmemb;
   char *ndup;
   const char *hdr_type;
-  const char *hdr_val;
+  const char *cookie_domain;
+  char *hdr_val;
   long resp_code;
   char *new_cookie_hdr;
   char *new_location;
+  size_t offset;
+  size_t delta_cdomain;
+  int domain_matched;
+  char *tok;
 
   if (NULL == s5r->response)
   {
@@ -892,60 +896,48 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
     hdr_val++;
 
   /* custom logic for certain header types */
+  new_cookie_hdr = NULL;
   if (0 == strcasecmp (hdr_type,
 		       MHD_HTTP_HEADER_SET_COOKIE))
   {
-#if 0
-    // FIXME: adjust code...
+    new_cookie_hdr = GNUNET_malloc (strlen (hdr_val) + 
+				    strlen (s5r->domain) + 1);
+    offset = 0;
+    domain_matched = GNUNET_NO; /* make sure we match domain at most once */
     for (tok = strtok (hdr_val, ";"); NULL != tok; tok = strtok (NULL, ";"))
     {
-      if (0 == memcmp (tok, " domain", strlen (" domain")))
+      if ( (0 == strncasecmp (tok, " domain", strlen (" domain"))) &&
+	   (GNUNET_NO == domain_matched) )
       {
+	domain_matched = GNUNET_YES;
         cookie_domain = tok + strlen (" domain") + 1;
         if (strlen (cookie_domain) < strlen (s5r->leho))
         {
-          delta_cdomain = strlen (ctask->leho) - strlen (cookie_domain);
-          if (0 == strcmp (cookie_domain, ctask->leho + (delta_cdomain)))
-          {
-            GNUNET_snprintf (new_cookie_hdr+offset,
-                             sizeof (new_cookie_hdr),
-                             " domain=%s", ctask->authority);
-            offset += strlen (" domain=") + strlen (ctask->authority);
-            new_cookie_hdr[offset] = ';';
-            offset++;
+          delta_cdomain = strlen (s5r->leho) - strlen (cookie_domain);
+          if (0 == strcasecmp (cookie_domain, s5r->leho + delta_cdomain))
+	  {
+            offset += sprintf (new_cookie_hdr + offset,
+			       " domain=%s;", 
+			       s5r->domain);
             continue;
           }
         }
-        else if (strlen (cookie_domain) == strlen (ctask->leho))
+        else if (0 == strcmp (cookie_domain, s5r->leho))
         {
-          if (0 == strcmp (cookie_domain, ctask->leho))
-          {
-            GNUNET_snprintf (new_cookie_hdr+offset,
-                             sizeof (new_cookie_hdr),
-                             " domain=%s", ctask->host);
-            offset += strlen (" domain=") + strlen (ctask->host);
-            new_cookie_hdr[offset] = ';';
-            offset++;
-            continue;
-          }
+	  offset += sprintf (new_cookie_hdr + offset,
+			     " domain=%s;", 
+			     s5r->domain);
+	  continue;          
         }
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Cookie domain invalid\n");        
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _("Cookie domain `%s' supplied by server is invalid\n"),
+		    tok);
       }
       memcpy (new_cookie_hdr + offset, tok, strlen (tok));
       offset += strlen (tok);
-      new_cookie_hdr[offset] = ';';
-      offset++;
+      new_cookie_hdr[offset++] = ';';
     }
     hdr_val = new_cookie_hdr;
-
-#else
-    new_cookie_hdr = NULL;
-#endif
-  }
-  else
-  {
-    new_cookie_hdr = NULL;
   }
 
   new_location = NULL;
@@ -2102,7 +2094,7 @@ signal_socks_success (struct Socks5Request *s5r)
 /**
  * Process GNS results for target domain.
  *
- * @param cls the ctask
+ * @param cls the `struct Socks5Request`
  * @param rd_count number of records returned
  * @param rd record data
  */
