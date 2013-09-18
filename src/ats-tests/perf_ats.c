@@ -40,25 +40,45 @@
 #define TEST_MESSAGE_SIZE 1000
 #define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
+
 /**
- * Information we track for a peer in the testbed.
+ * Information about a benchmarking partner
  */
 struct BenchmarkPartner
 {
-  struct BenchmarkPeer *src;
+  /**
+   * The peer itself this partner belongs to
+   */
+  struct BenchmarkPeer *me;
 
+  /**
+   * The partner peer
+   */
   struct BenchmarkPeer *dest;
+
   /**
    * Core transmit handles
    */
   void *cth;
 
+  /**
+   * Number of messages sent to this partner
+   */
   unsigned int messages_sent;
 
+  /**
+   * Number of bytes sent to this partner
+   */
   unsigned int bytes_sent;
 
+  /**
+     * Number of messages received from this partner
+     */
   unsigned int messages_received;
 
+  /**
+   * Number of bytes received from this partner
+   */
   unsigned int bytes_received;
 };
 
@@ -73,13 +93,20 @@ struct MasterInformation
   struct TestbedConnectOperation *core_connect_ops;
 };
 
+
 /**
  * Connect peers with testbed
  */
 struct TestbedConnectOperation
 {
+  /**
+   * The benchmarking master initiating this connection
+   */
   struct BenchmarkPeer *master;
 
+  /**
+   * The benchmarking slave to connect to
+   */
   struct BenchmarkPeer *slave;
 
   /**
@@ -105,6 +132,9 @@ struct BenchmarkPeer
    */
   int no;
 
+  /**
+   * Is this peer a measter: GNUNET_YES/GNUNET_NO
+   */
   int master;
 
   /**
@@ -137,18 +167,41 @@ struct BenchmarkPeer
    */
   struct GNUNET_CORE_Handle *ch;
 
+  /**
+   * Array of partners with num_slaves entries (if master) or
+   * num_master entries (if slave)
+   */
   struct BenchmarkPartner *partners;
 
   int core_connections;
 
   struct MasterInformation mi;
 
+  /**
+   * Total number of messages this peer has sent
+   */
   unsigned int total_messages_sent;
+
+  /**
+   * Total number of bytes this peer has sent
+   */
   unsigned int total_bytes_sent;
+
+  /**
+   * Total number of messages this peer has received
+   */
   unsigned int total_messages_received;
+
+  /**
+   * Total number of bytes this peer has received
+   */
   unsigned int total_bytes_received;
 };
 
+
+/**
+ * Overall state of the performance benchmark
+ */
 struct BenchmarkState
 {
   /* Are we connected to ATS service of all peers: GNUNET_YES/NO */
@@ -403,12 +456,12 @@ core_send_ready (void *cls, size_t size, void *buf)
 
   partner->cth = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
-        partner->src->no, partner->dest->no);
+        partner->me->no, partner->dest->no);
 
   partner->messages_sent ++;
   partner->bytes_sent += TEST_MESSAGE_SIZE;
-  partner->src->total_messages_sent ++;
-  partner->src->total_bytes_sent += TEST_MESSAGE_SIZE;
+  partner->me->total_messages_sent ++;
+  partner->me->total_bytes_sent += TEST_MESSAGE_SIZE;
 
   msg = (struct GNUNET_MessageHeader *) &msgbuf;
   memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
@@ -445,7 +498,7 @@ do_benchmark ()
     for (c_m = 0; c_m < num_masters; c_m++)
     {
 
-      sps[c_s].partners[c_m].src = &sps[c_s];
+      sps[c_s].partners[c_m].me = &sps[c_s];
       sps[c_s].partners[c_m].dest = &mps[c_m];
     }
   }
@@ -454,7 +507,7 @@ do_benchmark ()
   {
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
-      mps[c_m].partners[c_s].src = &mps[c_m];
+      mps[c_m].partners[c_s].me = &mps[c_m];
       mps[c_m].partners[c_s].dest = &sps[c_s];
       mps[c_m].partners[c_s].cth = GNUNET_CORE_notify_transmit_ready (mps[c_m].ch,
           GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &sps[c_s].id,
@@ -646,8 +699,8 @@ core_send_echo_ready (void *cls, size_t size, void *buf)
 
   p->messages_sent ++;
   p->bytes_sent += TEST_MESSAGE_SIZE;
-  p->src->total_messages_sent ++;
-  p->src->total_bytes_sent += TEST_MESSAGE_SIZE;
+  p->me->total_messages_sent ++;
+  p->me->total_bytes_sent += TEST_MESSAGE_SIZE;
 
   msg = (struct GNUNET_MessageHeader *) &msgbuf;
   memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
@@ -687,8 +740,8 @@ core_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
 
   p->messages_received ++;
   p->bytes_received += TEST_MESSAGE_SIZE;
-  p->src->total_messages_received ++;
-  p->src->total_bytes_received += TEST_MESSAGE_SIZE;
+  p->me->total_messages_received ++;
+  p->me->total_bytes_received += TEST_MESSAGE_SIZE;
 
   p->cth = GNUNET_CORE_notify_transmit_ready (me->ch, GNUNET_NO, 0,
       GNUNET_TIME_UNIT_MINUTES, &p->dest->id, TEST_MESSAGE_SIZE,
@@ -725,8 +778,8 @@ core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
 
   p->messages_received ++;
   p->bytes_received += TEST_MESSAGE_SIZE;
-  p->src->total_messages_received ++;
-  p->src->total_bytes_received += TEST_MESSAGE_SIZE;
+  p->me->total_messages_received ++;
+  p->me->total_bytes_received += TEST_MESSAGE_SIZE;
 
   p->cth = GNUNET_CORE_notify_transmit_ready (me->ch,
             GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
@@ -1022,47 +1075,54 @@ main (int argc, char *argv[])
   tmp = strstr (argv[0], TESTNAME_PREFIX);
   if (NULL == tmp)
   {
-  	fprintf (stderr, "Unable to parse test name `%s'\n", argv[0]);
-  	return GNUNET_SYSERR;
+    fprintf (stderr, "Unable to parse test name `%s'\n", argv[0]);
+    return GNUNET_SYSERR;
   }
-  tmp += strlen(TESTNAME_PREFIX);
+  tmp += strlen (TESTNAME_PREFIX);
   solver = GNUNET_strdup (tmp);
-  if (NULL != (dotexe = strstr (solver, ".exe")) &&
-      dotexe[4] == '\0')
+  if (NULL != (dotexe = strstr (solver, ".exe")) && dotexe[4] == '\0')
     dotexe[0] = '\0';
   tmp_sep = strchr (solver, '_');
   if (NULL == tmp_sep)
   {
-  	fprintf (stderr, "Unable to parse test name `%s'\n", argv[0]);
-  	GNUNET_free (solver);
-  	return GNUNET_SYSERR;
+    fprintf (stderr, "Unable to parse test name `%s'\n", argv[0]);
+    GNUNET_free(solver);
+    return GNUNET_SYSERR;
   }
   tmp_sep[0] = '\0';
   pref_str = GNUNET_strdup(tmp_sep + 1);
 
-  GNUNET_asprintf(&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver, pref_str);
-  GNUNET_asprintf(&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, pref_str);
+  GNUNET_asprintf (&conf_name, "%s%s_%s.conf", TESTNAME_PREFIX, solver,
+      pref_str);
+  GNUNET_asprintf (&test_name, "%s%s_%s", TESTNAME_PREFIX, solver, pref_str);
 
   for (c = 0; c <= strlen (pref_str); c++)
-  {
-  	pref_str[c] = toupper(pref_str[c]);
-  }
+    pref_str[c] = toupper (pref_str[c]);
   pref_val = -1;
-	for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
-	{
-		if (0 == strcmp (pref_str, prefs[c]))
-		{
-			pref_val = c;
-			break;
-		}
-	}
-	if (-1 == pref_val)
-	{
-		fprintf (stderr, "Unknown preference: `%s'\n", pref_str);
-	  GNUNET_free (solver);
-	  GNUNET_free (pref_str);
-	  return -1;
-	}
+
+  if (0 != strcmp (pref_str, "NONE"))
+  {
+    for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+    {
+      if (0 == strcmp (pref_str, prefs[c]))
+      {
+        pref_val = c;
+        break;
+      }
+    }
+  }
+  else
+  {
+    /* abuse terminator to indicate no pref */
+    pref_val = GNUNET_ATS_PREFERENCE_END;
+  }
+  if (-1 == pref_val)
+  {
+    fprintf (stderr, "Unknown preference: `%s'\n", pref_str);
+    GNUNET_free (solver);
+    GNUNET_free (pref_str);
+    return -1;
+  }
 
   for (c = 0; c < (argc -1); c++)
   {
