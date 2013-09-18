@@ -35,6 +35,10 @@
 #define DEFAULT_SLAVES_NUM 3
 #define DEFAULT_MASTERS_NUM 1
 
+#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_ATS_PREFRENCE_START 1.0
+#define TEST_ATS_PREFRENCE_DELTA 1.0
+
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
 #define TEST_MESSAGE_SIZE 1000
@@ -163,6 +167,18 @@ struct BenchmarkPeer
    * Peer to set ATS preferences for
    */
   struct BenchmarkPeer *pref_partner;
+
+  /**
+   * Masters only
+   * Progress task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier ats_task;
+
+  /**
+   * Masters only
+   * Progress task
+   */
+  double pref_value;
 
   /**
    * Array of partners with num_slaves entries (if master) or
@@ -299,10 +315,13 @@ evaluate ()
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
       fprintf (stderr,
-          "Master [%u] -> Slave [%u]: sent %u KiB/s, received %u KiB/s \n",
+          "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f \%), received %u KiB/s (%.2f \%)\n",
+          (mp->pref_partner == mp->partners[c_s].dest) ? '*' : ' ',
           mp->no, mp->partners[c_s].dest->no,
           (mp->partners[c_s].bytes_sent / 1024) / duration,
-          (mp->partners[c_s].bytes_received / 1024) / duration);
+          ((double) mp->partners[c_s].bytes_sent * 100) / mp->total_bytes_sent,
+          (mp->partners[c_s].bytes_received / 1024) / duration,
+          ((double) mp->partners[c_s].bytes_received * 100) / mp->total_bytes_received );
     }
   }
 }
@@ -339,6 +358,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTBED_operation_done (mps[c_m].peer_id_op);
       mps[c_m].peer_id_op = NULL;
     }
+
+    if (GNUNET_SCHEDULER_NO_TASK != mps[c_m].ats_task)
+      GNUNET_SCHEDULER_cancel (mps[c_m].ats_task);
+    mps[c_m].ats_task = GNUNET_SCHEDULER_NO_TASK;
 
     for (c_op = 0; c_op < num_slaves; c_op++)
     {
@@ -494,6 +517,23 @@ print_progress ()
 }
 
 static void
+ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct BenchmarkPeer *me = cls;
+
+  me->ats_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, " Master [%u] set preference for slave [%u] to %f\n",
+      me->no, me->pref_partner->no, me->pref_value);
+  GNUNET_ATS_performance_change_preference (me->ats_perf_handle,
+      &me->pref_partner->id,
+      pref_val, me->pref_value, GNUNET_ATS_PREFERENCE_END);
+  me->pref_value += TEST_ATS_PREFRENCE_DELTA;
+  me->ats_task = GNUNET_SCHEDULER_add_delayed (TEST_ATS_PREFRENCE_FREQUENCY,
+      &ats_pref_task, cls);
+}
+
+static void
 do_benchmark ()
 {
   int c_m;
@@ -524,6 +564,8 @@ do_benchmark ()
           mps[c_m].ch, GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &sps[c_s].id,
           TEST_MESSAGE_SIZE, &core_send_ready, &mps[c_m].partners[c_s]);
     }
+    if (pref_val != GNUNET_ATS_PREFERENCE_END)
+      mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
 }
 
@@ -1037,6 +1079,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
     mps[c_m].no = c_m;
     mps[c_m].master = GNUNET_YES;
     mps[c_m].pref_partner = &sps[c_m];
+    mps[c_m].pref_value = TEST_ATS_PREFRENCE_START;
     mps[c_m].partners =
         GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
     /* Initialize partners */
