@@ -1950,7 +1950,7 @@ setup_data_transfer (struct Socks5Request *s5r)
     break;
   case HTTP_PORT:
   default:
-    GNUNET_assert (NULL == httpd);
+    GNUNET_assert (NULL != httpd);
     hd = httpd;
     break;
   }
