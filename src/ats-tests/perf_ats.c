@@ -30,7 +30,7 @@
 #include "gnunet_core_service.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 3
 #define DEFAULT_MASTERS_NUM 1
@@ -90,7 +90,6 @@ struct MasterInformation
   /**
    * Testbed connect operation
    */
-  struct TestbedConnectOperation *core_connect_ops;
 };
 
 
@@ -161,6 +160,12 @@ struct BenchmarkPeer
    * ATS performance handle
    */
   struct GNUNET_ATS_PerformanceHandle *ats_perf_handle;
+
+  /**
+   * Testbed connect operations to connect masters to slaves
+   * For masters peers only
+   */
+  struct TestbedConnectOperation *core_connect_ops;
 
   /**
    *  Core handle
@@ -339,13 +344,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         mps[c_m].partners[c_op].cth = NULL;
       }
 
-      if (NULL != mps[c_m].mi.core_connect_ops[c_op].connect_op)
+      if (NULL != mps[c_m].core_connect_ops[c_op].connect_op)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_INFO,
             _("Failed to connect peer 0 and %u\n"), c_op);
         GNUNET_TESTBED_operation_done (
-            mps[c_m].mi.core_connect_ops[c_op].connect_op);
-        mps[c_m].mi.core_connect_ops[c_op].connect_op = NULL;
+            mps[c_m].core_connect_ops[c_op].connect_op);
+        mps[c_m].core_connect_ops[c_op].connect_op = NULL;
         result = 1;
       }
     }
@@ -361,6 +366,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTBED_operation_done (mps[c_m].core_op);
       mps[c_m].core_op = NULL;
     }
+    GNUNET_free (mps[c_m].core_connect_ops);
+    GNUNET_free (mps[c_m].partners);
+    mps[c_m].partners = NULL;
   }
 
 
@@ -392,6 +400,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTBED_operation_done (sps[c_s].core_op);
       sps[c_s].core_op = NULL;
     }
+
+    GNUNET_free (sps[c_s].partners);
+    sps[c_s].partners = NULL;
   }
 
   GNUNET_SCHEDULER_shutdown ();
@@ -544,8 +555,8 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
   ops++;
   for (c = 0; c < num_slaves; c++)
   {
-    if (cop == &cop->master->mi.core_connect_ops[c])
-      cop->master->mi.core_connect_ops[c].connect_op = NULL;
+    if (cop == &cop->master->core_connect_ops[c])
+      cop->master->core_connect_ops[c].connect_op = NULL;
   }
   if (ops == num_masters * num_slaves)
   {
@@ -573,7 +584,7 @@ do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     p = &mps[c_m];
-    p->mi.core_connect_ops = GNUNET_malloc (num_slaves *
+    p->core_connect_ops = GNUNET_malloc (num_slaves *
         sizeof (struct TestbedConnectOperation));
 
     for (c_s = 0; c_s < num_slaves; c_s++)
@@ -581,12 +592,12 @@ do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           _("Connecting master peer %u with slave peer %u\n"), p->no,
           sps[c_s].no);
-      p->mi.core_connect_ops[c_s].master = p;
-      p->mi.core_connect_ops[c_s].slave = &sps[c_s];
-      p->mi.core_connect_ops[c_s].connect_op = GNUNET_TESTBED_overlay_connect (NULL,
-          &connect_completion_callback, &p->mi.core_connect_ops[c_s],
+      p->core_connect_ops[c_s].master = p;
+      p->core_connect_ops[c_s].slave = &sps[c_s];
+      p->core_connect_ops[c_s].connect_op = GNUNET_TESTBED_overlay_connect (NULL,
+          &connect_completion_callback, &p->core_connect_ops[c_s],
           sps[c_s].peer, p->peer);
-      if (NULL == p->mi.core_connect_ops[c_s].connect_op)
+      if (NULL == p->core_connect_ops[c_s].connect_op)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
             _("Could not connect master peer %u and slave peer %u\n"), p->no,
