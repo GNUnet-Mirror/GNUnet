@@ -206,15 +206,14 @@ check_config ()
     return;
   }
   i = 0;
-  while (loopback[i] != NULL)
+  while (NULL != loopback[i])
     if (0 == strcasecmp (loopback[i++], hostname))
     {
       GNUNET_free (hostname);
       return;
     }
   LOG (GNUNET_ERROR_TYPE_ERROR,
-       _
-       ("Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"),
+       _("Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"),
        "localhost", "HOSTNAME", "resolver");
   GNUNET_free (hostname);
   GNUNET_assert (0);
@@ -250,12 +249,12 @@ GNUNET_RESOLVER_disconnect ()
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
   }
-  if (r_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != r_task)
   {
     GNUNET_SCHEDULER_cancel (r_task);
     r_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (s_task != GNUNET_SCHEDULER_NO_TASK)
+  if (GNUNET_SCHEDULER_NO_TASK != s_task)
   {
     GNUNET_SCHEDULER_cancel (s_task);
     s_task = GNUNET_SCHEDULER_NO_TASK;
@@ -333,8 +332,9 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   uint16_t size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving response from DNS service\n");
-  if (msg == NULL)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Receiving response from DNS service\n");
+  if (NULL == msg)
   {
     char buf[INET6_ADDRSTRLEN];
 
@@ -347,7 +347,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
            _("Timeout trying to resolve hostname `%s'.\n"),
            (const char *) &rh[1]);
     /* check if request was canceled */
-    if (rh->was_transmitted != GNUNET_SYSERR)
+    if (GNUNET_SYSERR != rh->was_transmitted)
     {
       if (NULL != rh->name_callback)
       {
@@ -582,10 +582,12 @@ loopback_resolution (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task executed on system shutdown.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   s_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_RESOLVER_disconnect ();
+  backoff = GNUNET_TIME_UNIT_MILLISECONDS;
 }
 
 
@@ -633,6 +635,7 @@ process_requests ()
   {
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
+    GNUNET_break (0);
     reconnect ();
     return;
   }
@@ -654,11 +657,13 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;                     /* no work pending */
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying to connect to DNS service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to connect to DNS service\n");
   client = GNUNET_CLIENT_connect ("resolver", resolver_cfg);
   if (NULL == client)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to connect, will try again later\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Failed to connect, will try again later\n");
     reconnect ();
     return;
   }
@@ -914,7 +919,9 @@ GNUNET_RESOLVER_hostname_resolve (int af,
                   "gethostname");
     return NULL;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Resolving our hostname `%s'\n", hostname);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resolving our hostname `%s'\n", 
+       hostname);
   return GNUNET_RESOLVER_ip_get (hostname, af, timeout, callback, cls);
 }
 
