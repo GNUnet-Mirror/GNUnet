@@ -39,6 +39,10 @@
 #include "gnunet_fragmentation_lib.h"
 #include "gnunet_constants.h"
 
+#ifdef MINGW
+ #undef interface
+#endif
+
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-bluetooth",__VA_ARGS__)
 
 #define PLUGIN_NAME "bluetooth"
