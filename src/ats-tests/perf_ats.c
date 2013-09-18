@@ -526,14 +526,15 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (NULL == emsg)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        _("Connected master peer %u with peer %u\n"), cop->master->no,
+        _("Connected master [%u] with slave [%u]\n"),
+        cop->master->no,
         cop->slave->no);
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        _("Failed to connect master peer%u with peer %u\n"), cop->master->no,
-        cop->slave->no);
+        _("Failed to connect master peer [%u] with slave [%u]\n"),
+        cop->master->no, cop->slave->no);
     GNUNET_break(0);
     if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
       GNUNET_SCHEDULER_cancel (shutdown_task);
@@ -563,9 +564,7 @@ do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if ((state.connected_ATS_service == GNUNET_NO)
       || (state.connected_CORE_service == GNUNET_NO))
-  {
     return;
-  }
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Connecting peers on CORE level\n"));
 
@@ -578,7 +577,7 @@ do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          _("Connecting master peer %u with slave peer %u\n"), p->no,
+          _("Connecting master [%u] with slave [%u]\n"), p->no,
           sps[c_s].no);
       p->core_connect_ops[c_s].master = p;
       p->core_connect_ops[c_s].slave = &sps[c_s];
@@ -588,7 +587,7 @@ do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL == p->core_connect_ops[c_s].connect_op)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-            _("Could not connect master peer %u and slave peer %u\n"), p->no,
+            _("Could not connect master [%u] and slave [%u]\n"), p->no,
             sps[c_s].no);
         GNUNET_break(0);
         if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
@@ -611,32 +610,32 @@ static void
 core_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
 {
   struct BenchmarkPeer *p = cls;
-  struct BenchmarkPeer *t;
+  struct BenchmarkPeer *remote;
   char *id;
   int c;
   int completed;
 
-  t = find_peer (peer);
-  if (NULL == t)
+  remote = find_peer (peer);
+  if (NULL == remote)
   {
     GNUNET_break(0);
     return;
   }
 
   id = GNUNET_strdup (GNUNET_i2s (&p->id));
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s %s connected to %s %s\n",
-      (p->master == GNUNET_YES) ? "Master": "Slave", id,
-      (t->master == GNUNET_YES) ? "Master": "Slave", GNUNET_i2s (peer));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s [%u] `%s' connected to %s [%u] %s\n",
+      (p->master == GNUNET_YES) ? "Master": "Slave", p->no, id,
+      (remote->master == GNUNET_YES) ? "Master": "Slave", remote->no, GNUNET_i2s (peer));
 
   p->core_connections++;
-  if ((GNUNET_YES == p->master) && (GNUNET_NO == t->master)
+  if ((GNUNET_YES == p->master) && (GNUNET_NO == remote->master)
       && (GNUNET_NO == state.connected_CORE))
   {
     p->mi.core_slave_connections++;
 
     if (p->mi.core_slave_connections == num_slaves)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Master %u connected all slaves\n",
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Master [%u] connected all slaves\n",
           p->no);
     }
     completed = GNUNET_YES;
@@ -983,8 +982,9 @@ peerinformation_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_assert (pinfo->pit == GNUNET_TESTBED_PIT_IDENTITY);
 
   p->id = *pinfo->result.id;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "[%c %03u] Peers %s\n",
-      (p->master == GNUNET_YES) ? 'M' : 'S', p->no, GNUNET_i2s (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%s [%u] has peer id `%s'\n",
+      (p->master == GNUNET_YES) ? "Master" : "Slave",
+       p->no, GNUNET_i2s_full (&p->id));
 
   GNUNET_TESTBED_operation_done (op);
   p->peer_id_op = NULL;
@@ -1167,6 +1167,8 @@ main (int argc, char *argv[])
 
   state.connected_ATS_service = GNUNET_NO;
   state.connected_CORE_service = GNUNET_NO;
+  state.connected_PEERS = GNUNET_NO;
+  state.benchmarking = GNUNET_NO;
   state.connected_PEERS = GNUNET_NO;
 
   mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
