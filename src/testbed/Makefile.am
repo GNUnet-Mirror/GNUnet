@@ -30,15 +30,6 @@ bin_PROGRAMS = \
   $(ll_binaries) \
   gnunet-testbed-profiler
 
-check_SCRIPTS = \
-  buildvars.py
-
-CLEANFILES = $(check_SCRIPTS) \
-  buildvars.pyc
-
-noinst_PROGRAMS = \
-  gnunet-service-test-barriers
-
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.h \
   gnunet-service-testbed.c \
@@ -161,6 +152,7 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_topologyscalefree \
   test_testbed_api_testbed_run_waitforever \
   test_testbed_api_statistics \
+  gnunet-service-test-barriers \
   test_testbed_api_barriers
 
 if ENABLE_TEST_RUN
@@ -368,6 +360,8 @@ test_testbed_api_barriers_SOURCES = \
 test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
+test_testbed_api_barriers_DEPENDENCIES = \
+ gnunet-service-test-barriers
 
 gnunet_service_test_barriers_SOURCES = \
   gnunet-service-test-barriers.c \
