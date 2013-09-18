@@ -1764,9 +1764,8 @@ load_key_from_file (gnutls_x509_privkey_t key,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Unable to import private key from file `%s'\n"),
 		keyfile);
-    GNUNET_break (0);
   }
-  GNUNET_free (key_data.data);
+  GNUNET_free_non_null (key_data.data);
   return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
@@ -1792,9 +1791,8 @@ load_cert_from_file (gnutls_x509_crt_t crt,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                _("Unable to import certificate %s\n"), certfile);
-    GNUNET_break (0);
   }
-  GNUNET_free (cert_data.data);
+  GNUNET_free_non_null (cert_data.data);
   return (GNUTLS_E_SUCCESS != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
