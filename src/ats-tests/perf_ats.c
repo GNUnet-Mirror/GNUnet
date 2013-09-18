@@ -504,22 +504,10 @@ do_benchmark ()
       &do_shutdown, NULL );
 
   /* Start sending test messages */
-  for (c_s = 0; c_s < num_slaves; c_s++)
-  {
-    for (c_m = 0; c_m < num_masters; c_m++)
-    {
-
-      sps[c_s].partners[c_m].me = &sps[c_s];
-      sps[c_s].partners[c_m].dest = &mps[c_m];
-    }
-  }
-
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
-      mps[c_m].partners[c_s].me = &mps[c_m];
-      mps[c_m].partners[c_s].dest = &sps[c_s];
       mps[c_m].partners[c_s].cth = GNUNET_CORE_notify_transmit_ready (mps[c_m].ch,
           GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &sps[c_s].id,
           TEST_MESSAGE_SIZE, &core_send_ready, &mps[c_m].partners[c_s]);
@@ -1048,6 +1036,12 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     mps[c_m].no = c_m;
     mps[c_m].master = GNUNET_YES;
     mps[c_m].partners = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
+    /* Initialize partners */
+    for (c_s = 0; c_s < num_slaves; c_s++)
+    {
+      mps[c_m].partners[c_s].me = &mps[c_m];
+      mps[c_m].partners[c_s].dest = &sps[c_s];
+    }
     mps[c_m].peer_id_op = GNUNET_TESTBED_peer_get_information (
             mps[c_m].peer, GNUNET_TESTBED_PIT_IDENTITY,
             &peerinformation_cb,
@@ -1062,6 +1056,12 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     sps[c_s].no = c_s + num_masters;
     sps[c_s].master = GNUNET_NO;
     sps[c_s].partners = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
+    /* Initialize partners */
+    for (c_m = 0; c_m < num_masters; c_m++)
+    {
+      sps[c_s].partners[c_m].me = &sps[c_s];
+      sps[c_s].partners[c_m].dest = &mps[c_m];
+    }
     sps[c_s].peer_id_op = GNUNET_TESTBED_peer_get_information (
             sps[c_s].peer, GNUNET_TESTBED_PIT_IDENTITY,
             &peerinformation_cb,
