@@ -13,17 +13,21 @@ if USE_COVERAGE
 endif
 
 if HAVE_LIBGLPK
+ PERF_MLP_NONE = perf_ats_mlp_none
  PERF_MLP_BANDWIDTH = perf_ats_mlp_bandwidth
  PERF_MLP_LATENCY = perf_ats_mlp_latency
 endif
 
 if HAVE_TESTING
 TESTING_TESTS = \
+ perf_ats_proportional_none \
  perf_ats_proportional_bandwidth \
- perf_ats_proportional_latency
- #perf_ats_ril_bandwidth \
- #perf_ats_ril_latency \
- #$(PERF_MLP_BANDWIDTH) $(PERF_MLP_LATENCY)
+ perf_ats_proportional_latency \
+ #perf_ats_mlp_none
+ #perf_ats_mlp_bandwidth
+ #perf_ats_ril_none 
+ #perf_ats_ril_bandwidth
+ #perf_ats_ril_latency
 endif
 
 check_PROGRAMS = \
@@ -32,6 +36,14 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
+
+perf_ats_proportional_none_SOURCES = \
+  perf_ats.c  
+perf_ats_proportional_none_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/core/libgnunetcore.la  
 
 perf_ats_proportional_bandwidth_SOURCES = \
   perf_ats.c  
@@ -50,6 +62,14 @@ perf_ats_proportional_latency_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la  
   
 if HAVE_LIBGLPK
+perf_ats_mlp_none_SOURCES = \
+  perf_ats.c  
+perf_ats_mlp_none_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/core/libgnunetcore.la  
+  
 perf_ats_mlp_bandwidth_SOURCES = \
   perf_ats.c  
 perf_ats_mlp_bandwidth_LDADD = \
@@ -66,6 +86,14 @@ perf_ats_mlp_latency_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/core/libgnunetcore.la
 endif
+
+perf_ats_ril_none_SOURCES = \
+  perf_ats.c  
+perf_ats_ril_none_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/core/libgnunetcore.la  
 
 perf_ats_ril_bandwidth_SOURCES = \
   perf_ats.c  
@@ -84,9 +112,12 @@ perf_ats_ril_latency_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la
 
 EXTRA_DIST = \
+  perf_ats_proportional_none.conf \
   perf_ats_proportional_bandwidth.conf \
   perf_ats_proportional_latency.conf \
+  perf_ats_mlp_none.conf \
   perf_ats_mlp_bandwidth.conf \
   perf_ats_mlp_latency.conf \
+  perf_ats_ril_none.conf \
   perf_ats_ril_bandwidth.conf \
   perf_ats_ril_latency.conf
