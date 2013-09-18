@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "perf_ats.h"
 
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
 
 static GNUNET_SCHEDULER_TaskIdentifier log_task;
 
@@ -37,10 +37,30 @@ static char *name;
 
 struct LoggingTimestep
 {
-  struct GNUNET_TIME_Absolute timestamp;
-
   struct LoggingTimestep *next;
   struct LoggingTimestep *prev;
+
+  struct GNUNET_TIME_Absolute timestamp;
+
+  /**
+   * Total number of messages this peer has sent
+   */
+  unsigned int total_messages_sent;
+
+  /**
+   * Total number of bytes this peer has sent
+   */
+  unsigned int total_bytes_sent;
+
+  /**
+   * Total number of messages this peer has received
+   */
+  unsigned int total_messages_received;
+
+  /**
+   * Total number of bytes this peer has received
+   */
+  unsigned int total_bytes_received;
 };
 
 struct LoggingPeer
@@ -67,6 +87,9 @@ write_to_file ()
   char *data;
   struct LoggingTimestep *cur;
   int c_m;
+  unsigned int throughput_recv;
+  unsigned int throughput_send;
+  double mult;
 
   GNUNET_asprintf (&filename, "%llu_%s.data", GNUNET_TIME_absolute_get().abs_value_us,name);
 
@@ -84,15 +107,36 @@ write_to_file ()
   {
     for (cur = lp[c_m].head; NULL != cur; cur = cur->next)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Master [%u]: timestamp %llu \n", lp[c_m].peer->no, cur->timestamp);
+      mult = (1.0 * 1000 * 1000) /  (LOGGING_FREQUENCY.rel_value_us);
+      if (NULL != cur->prev)
+      {
+        throughput_send = cur->total_bytes_sent - cur->prev->total_bytes_sent;
+        throughput_recv = cur->total_bytes_received - cur->prev->total_bytes_received;
+      }
+      else
+      {
+        throughput_send = cur->total_bytes_sent;
+        throughput_recv = cur->total_bytes_received;
+      }
+      throughput_send *= mult;
+      throughput_recv *= mult;
 
-      GNUNET_asprintf (&data, "%llu;\n", cur->timestamp);
+
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Master [%u]: timestamp %llu %llu %u %u %u ; %u %u %u\n", lp[c_m].peer->no,
+          cur->timestamp, GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur->timestamp).rel_value_us / 1000,
+          cur->total_messages_sent, cur->total_bytes_sent, throughput_send,
+          cur->total_messages_received, cur->total_bytes_received, throughput_recv);
+
+      GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u\n",
+          cur->timestamp,
+          GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur->timestamp).rel_value_us / 1000,
+          cur->total_messages_sent, cur->total_bytes_sent, throughput_send,
+          cur->total_messages_received, cur->total_bytes_received, throughput_recv);
 
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
       GNUNET_free (data);
-
     }
   }
 
@@ -121,15 +165,22 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     lt = GNUNET_malloc (sizeof (struct LoggingTimestep));
     GNUNET_CONTAINER_DLL_insert_tail(lp[c_m].head, lp[c_m].tail, lt);
+
+    /* Collect data */
     lt->timestamp = GNUNET_TIME_absolute_get();
+    lt->total_bytes_sent = lp[c_m].peer->total_bytes_sent;
+    lt->total_messages_sent = lp[c_m].peer->total_messages_sent;
+    lt->total_bytes_received = lp[c_m].peer->total_bytes_received;
+    lt->total_messages_received = lp[c_m].peer->total_messages_received;
 
     for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
     {
       p = &peers[c_m].partners[c_s];
-
+/*
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Master [%u]: slave [%u]\n",
           lp->peer->no, p->dest->no);
+*/
     }
   }
 

@@ -437,6 +437,8 @@ do_benchmark ()
   progress_task = GNUNET_SCHEDULER_add_now (&print_progress, NULL );
 
   /* Start sending test messages */
+  if (GNUNET_YES == logging)
+    perf_logging_start (testname, mps, num_masters);
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     for (c_s = 0; c_s < num_slaves; c_s++)
@@ -455,8 +457,7 @@ do_benchmark ()
     if (pref_val != GNUNET_ATS_PREFERENCE_END)
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
-  if (GNUNET_YES == logging)
-    perf_logging_start (testname, mps, num_masters);
+
 }
 
 static void
