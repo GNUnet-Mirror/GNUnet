@@ -32,7 +32,12 @@
 /**
  * Number fo bytes in a mac address.
  */
-#define MAC_ADDR_SIZE 6
+#ifdef MINGW
+  #define MAC_ADDR_SIZE 8
+  typedef uint8_t u_int8_t;
+#else
+  #define MAC_ADDR_SIZE 6
+#endif
 
 /**
  * Value for "Management" in the 'frame_control' field of the

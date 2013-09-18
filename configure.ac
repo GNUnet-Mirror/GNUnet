@@ -368,6 +368,10 @@ then
 else
   AM_CONDITIONAL(HAVE_LIBBLUETOOTH, false)
 fi
+if test "$build_target" = "mingw"
+then
+  bluetooth=1
+fi
 
 
 # libcurl
