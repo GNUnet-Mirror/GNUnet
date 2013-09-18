@@ -207,6 +207,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SERVER_notification_context_destroy (nc);  
   while (NULL != (clh = clh_head))
   {
+    GNUNET_SERVER_client_set_user_context (clh->client, NULL);
     GNS_resolver_lookup_cancel (clh->lookup);
     GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
     GNUNET_free (clh);
