@@ -25,11 +25,11 @@
  *        with legacy browsers
  *
  * TODO:
- * - make DNS lookup asynchronous
- * - simplify POST/PUT processing
+ * - actually check SSL certificates 
  * - double-check queueing logic
- * - figure out what to do with the 'authority' issue
- * - document better
+ * - handle cookie rewriting
+ * - handle location rewriting
+ * - improve IPv6 support
  */
 #include "platform.h"
 #include <microhttpd.h>
@@ -57,10 +57,10 @@
 #define MAX_HTTP_URI_LENGTH 2048
 
 /**
- * Some buffer size. @deprecated
+ * Size of the buffer for the data upload / download.  Must be
+ * enough for curl, thus CURL_MAX_WRITE_SIZE is needed here (16k).
  */
-#define POSTBUFFERSIZE 4096
-
+#define IO_BUFFERSIZE CURL_MAX_WRITE_SIZE
 
 /**
  * Size of the read/write buffers for Socks.   Uses
@@ -286,140 +286,6 @@ struct Socks5ServerResponseMessage
 };
 
 
-/* ***************** Datastructures for Socks handling **************** */
-
-
-/**
- * The socks phases.  
- */
-enum SocksPhase
-{
-  /**
-   * We're waiting to get the client hello.
-   */
-  SOCKS5_INIT,
-
-  /**
-   * We're waiting to get the initial request.
-   */
-  SOCKS5_REQUEST,
-
-  /**
-   * We are currently resolving the destination.
-   */
-  SOCKS5_RESOLVING,
-
-  /**
-   * We're in transfer mode.
-   */
-  SOCKS5_DATA_TRANSFER,
-
-  /**
-   * Finish writing the write buffer, then clean up.
-   */
-  SOCKS5_WRITE_THEN_CLEANUP,
-
-  /**
-   * Socket has been passed to MHD, do not close it anymore.
-   */
-  SOCKS5_SOCKET_WITH_MHD
-};
-
-
-
-/**
- * A structure for socks requests
- */
-struct Socks5Request
-{
-
-  /**
-   * DLL.
-   */
-  struct Socks5Request *next;
-
-  /**
-   * DLL.
-   */
-  struct Socks5Request *prev;
-
-  /**
-   * The client socket 
-   */
-  struct GNUNET_NETWORK_Handle *sock;
-
-  /**
-   * Handle to GNS lookup, during #SOCKS5_RESOLVING phase.
-   */
-  struct GNUNET_GNS_LookupRequest *gns_lookup;
-
-  /**
-   * Client socket read task 
-   */
-  GNUNET_SCHEDULER_TaskIdentifier rtask;
-
-  /**
-   * Client socket write task 
-   */
-  GNUNET_SCHEDULER_TaskIdentifier wtask;
-
-  /**
-   * Timeout task 
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-  /**
-   * Read buffer 
-   */
-  char rbuf[SOCKS_BUFFERSIZE];
-
-  /**
-   * Write buffer 
-   */
-  char wbuf[SOCKS_BUFFERSIZE];
-
-  /**
-   * the domain name to server (only important for SSL) 
-   */
-  char *domain;
-
-  /**
-   * DNS Legacy Host Name as given by GNS, NULL if not given.
-   */
-  char *leho;
-
-  /**
-   * The URL to fetch 
-   */
-  char *url;
-
-  /**
-   * Number of bytes already in read buffer 
-   */
-  size_t rbuf_len;
-
-  /**
-   * Number of bytes already in write buffer 
-   */
-  size_t wbuf_len;
-  
-  /**
-   * Once known, what's the target address for the connection?
-   */
-  struct sockaddr_storage destination_address;
-
-  /**
-   * The socks state 
-   */
-  enum SocksPhase state;
-
-  /**
-   * Desired destination port.
-   */
-  uint16_t port;
-
-};
-
 
 /* *********************** Datastructures for HTTP handling ****************** */
 
@@ -501,33 +367,147 @@ struct MhdHttpList
 };
 
 
-/* ***************** possibly deprecated data structures ****************** */
+/* ***************** Datastructures for Socks handling **************** */
 
 
 /**
- * State machine for the IO buffer.
+ * The socks phases.  
  */
-enum BufferStatus
-  {
-    BUF_WAIT_FOR_CURL,
-    BUF_WAIT_FOR_MHD
-  };
-
-
-/**
- * A structure for MHD<->cURL streams
- */
-struct ProxyCurlTask
+enum SocksPhase
 {
   /**
-   * DLL for tasks 
+   * We're waiting to get the client hello.
    */
-  struct ProxyCurlTask *prev;
+  SOCKS5_INIT,
 
   /**
-   * DLL for tasks 
+   * We're waiting to get the initial request.
    */
-  struct ProxyCurlTask *next;
+  SOCKS5_REQUEST,
+
+  /**
+   * We are currently resolving the destination.
+   */
+  SOCKS5_RESOLVING,
+
+  /**
+   * We're in transfer mode.
+   */
+  SOCKS5_DATA_TRANSFER,
+
+  /**
+   * Finish writing the write buffer, then clean up.
+   */
+  SOCKS5_WRITE_THEN_CLEANUP,
+
+  /**
+   * Socket has been passed to MHD, do not close it anymore.
+   */
+  SOCKS5_SOCKET_WITH_MHD,
+
+  /**
+   * We've finished receiving upload data from MHD.
+   */
+  SOCKS5_SOCKET_UPLOAD_STARTED,
+
+  /**
+   * We've finished receiving upload data from MHD.
+   */
+  SOCKS5_SOCKET_UPLOAD_DONE,
+
+  /**
+   * We've finished uploading data via CURL and can now download.
+   */
+  SOCKS5_SOCKET_DOWNLOAD_STARTED,
+
+  /**
+   * We've finished receiving download data from cURL.
+   */
+  SOCKS5_SOCKET_DOWNLOAD_DONE
+};
+
+
+
+/**
+ * A structure for socks requests
+ */
+struct Socks5Request
+{
+
+  /**
+   * DLL.
+   */
+  struct Socks5Request *next;
+
+  /**
+   * DLL.
+   */
+  struct Socks5Request *prev;
+
+  /**
+   * The client socket 
+   */
+  struct GNUNET_NETWORK_Handle *sock;
+
+  /**
+   * Handle to GNS lookup, during #SOCKS5_RESOLVING phase.
+   */
+  struct GNUNET_GNS_LookupRequest *gns_lookup;
+
+  /**
+   * Client socket read task 
+   */
+  GNUNET_SCHEDULER_TaskIdentifier rtask;
+
+  /**
+   * Client socket write task 
+   */
+  GNUNET_SCHEDULER_TaskIdentifier wtask;
+
+  /**
+   * Timeout task 
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Read buffer 
+   */
+  char rbuf[SOCKS_BUFFERSIZE];
+
+  /**
+   * Write buffer 
+   */
+  char wbuf[SOCKS_BUFFERSIZE];
+
+  /**
+   * Buffer we use for moving data between MHD and curl (in both directions).
+   */
+  char io_buf[IO_BUFFERSIZE];
+
+  /**
+   * MHD HTTP instance handling this request, NULL for none.
+   */
+  struct MhdHttpList *hd;
+
+  /**
+   * MHD response object for this request.
+   */
+  struct MHD_Response *response;
+
+  /**
+   * the domain name to server (only important for SSL) 
+   */
+  char *domain;
+
+  /**
+   * DNS Legacy Host Name as given by GNS, NULL if not given.
+   */
+  char *leho;
+
+  /**
+   * The URL to fetch 
+   */
+  char *url;
 
   /**
    * Handle to cURL 
@@ -535,216 +515,47 @@ struct ProxyCurlTask
   CURL *curl;
 
   /**
-   * Optional header replacements for curl (LEHO) 
+   * HTTP request headers for the curl request.
    */
   struct curl_slist *headers;
-
+  
   /**
-   * Optional resolver replacements for curl (LEHO) 
+   * HTTP response code to give to MHD for the response.
    */
-  struct curl_slist *resolver;
+  unsigned int response_code;
 
   /**
-   * curl response code 
+   * Number of bytes already in read buffer 
    */
-  long curl_response_code;
+  size_t rbuf_len;
 
   /**
-   * The cURL write buffer / MHD read buffer 
+   * Number of bytes already in write buffer 
    */
-  char buffer[CURL_MAX_WRITE_SIZE];
-
+  size_t wbuf_len;
+  
   /**
-   * Should die. @deprecated
+   * Number of bytes already in the IO buffer.
    */
-  char url[MAX_HTTP_URI_LENGTH];
+  size_t io_len;
 
   /**
-   * Read pos of the data in the buffer 
+   * Once known, what's the target address for the connection?
    */
-  char *buffer_read_ptr;
+  struct sockaddr_storage destination_address;
 
   /**
-   * Write pos in the buffer 
+   * The socks state 
    */
-  char *buffer_write_ptr;
+  enum SocksPhase state;
 
   /**
-   * connection 
-   */
-  struct MHD_Connection *connection;
-
-  /**
-   * put
-   */
-  size_t put_read_offset;
-  size_t put_read_size;
-
-  /**
-   *post
-   */
-  struct MHD_PostProcessor *post_handler;
-
-  /* post data */
-  struct ProxyUploadData *upload_data_head;
-  struct ProxyUploadData *upload_data_tail;
-
-  /**
-   * the type of POST encoding 
-   */
-  char* post_type;
-
-  struct curl_httppost *httppost;
-
-  struct curl_httppost *httppost_last;
-
-  /**
-   * Number of bytes in buffer 
-   */
-  unsigned int bytes_in_buffer;
-
-  /* PP task */
-  GNUNET_SCHEDULER_TaskIdentifier pp_task;
-
-  /* The associated daemon list entry */
-  struct MhdHttpList *mhd;
-
-  /* The associated response */
-  struct MHD_Response *response;
-
-  /* Cookies to set */
-  struct ProxySetCookieHeader *set_cookies_head;
-
-  /* Cookies to set */
-  struct ProxySetCookieHeader *set_cookies_tail;
-
-  /**
-   * The authority of the corresponding host (site of origin) 
-   */
-  char authority[256];
-
-  /**
-   * The hostname (Host header field) 
-   */
-  char host[256];
-
-  /**
-   * The LEgacy HOstname (can be empty) 
-   */
-  char leho[256];
-
-  /**
-   * The port 
+   * Desired destination port.
    */
   uint16_t port;
 
-  /**
-   * The buffer status (BUF_WAIT_FOR_CURL or BUF_WAIT_FOR_MHD) 
-   */
-  enum BufferStatus buf_status;
-
-  /**
-   * connection status 
-   */
-  int ready_to_queue;
-
-  /**
-   * is curl running? 
-   */
-  int curl_running;
-  
-  /**
-   * are we done 
-   */
-  int fin;
-
-  /**
-   * Already accepted 
-   */
-  int accepted;
-
-  /**
-   * Indicates wheather the download is in progress 
-   */
-  int download_in_progress;
-
-  /**
-   * Indicates wheather the download was successful 
-   */
-  int download_is_finished;
-
-  /**
-   * Indicates wheather the download failed 
-   */
-  int download_error;
-
-  int post_done;
-
-  int is_httppost;
-  
 };
 
-
-/**
- * Struct for set-cookies
- */
-struct ProxySetCookieHeader
-{
-  /**
-   * DLL 
-   */
-  struct ProxySetCookieHeader *next;
-
-  /**
-   * DLL 
-   */
-  struct ProxySetCookieHeader *prev;
-
-  /**
-   * the cookie 
-   */
-  char *cookie;
-};
-
-
-/**
- * Post data structure
- */
-struct ProxyUploadData
-{
-  /**
-   * DLL 
-   */
-  struct ProxyUploadData *next;
-
-  /**
-   * DLL 
-   */
-  struct ProxyUploadData *prev;
-
-  char *key;
-
-  char *filename;
-
-  char *content_type;
-
-  size_t content_length;
-  
-  /**
-   * value 
-   */
-  char *value;
-
-  /**
-   * to copy 
-   */
-  size_t bytes_left;
-
-  /**
-   * size 
-   */
-  size_t total_bytes;
-};
 
 
 /* *********************** Globals **************************** */
@@ -784,16 +595,6 @@ static CURLM *curl_multi;
  * Handle to the GNS service 
  */
 static struct GNUNET_GNS_Handle *gns_handle;
-
-/**
- * DLL for ProxyCurlTasks 
- */
-static struct ProxyCurlTask *ctasks_head;
-
-/**
- * DLL for ProxyCurlTasks 
- */
-static struct ProxyCurlTask *ctasks_tail;
 
 /**
  * DLL for http/https daemons 
@@ -873,6 +674,15 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static void
 cleanup_s5r (struct Socks5Request *s5r)
 {
+  if (NULL != s5r->curl)
+  {    
+    curl_multi_remove_handle (curl_multi, s5r->curl);
+    curl_easy_cleanup (s5r->curl);
+    s5r->curl = NULL;
+  }
+  curl_slist_free_all (s5r->headers);
+  if (NULL != s5r->response)
+    MHD_destroy_response (s5r->response);
   if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
     GNUNET_SCHEDULER_cancel (s5r->rtask);
   if (GNUNET_SCHEDULER_NO_TASK != s5r->timeout_task)
@@ -907,384 +717,191 @@ static void
 run_mhd_now (struct MhdHttpList *hd);
 
 
-/* *************************** netcat mode *********************** */
-
-#if 0
-
-
-
-
-/**
- * Given a TCP stream and a destination address, forward the stream
- * in both directions.
- *
- * @param cls FIXME
- * @param tc  FIXME
- */
-static void
-forward_socket_like_ncat (void *cls,
-			  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct hostent *phost;
-  uint32_t remote_ip;
-  struct sockaddr_in remote_addr;
-  struct in_addr *r_sin_addr;
-
-  s5r->remote_sock = GNUNET_NETWORK_socket_create (AF_INET,
-						   SOCK_STREAM,
-						   0);
-  r_sin_addr = (struct in_addr*)(phost->h_addr);
-  remote_ip = r_sin_addr->s_addr;
-  memset(&remote_addr, 0, sizeof(remote_addr));
-  remote_addr.sin_family = AF_INET;
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  remote_addr.sin_len = sizeof (remote_addr);
-#endif
-  remote_addr.sin_addr.s_addr = remote_ip;
-  remote_addr.sin_port = *port;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "target server: %s:%u\n", 
-	      inet_ntoa(remote_addr.sin_addr),
-	      ntohs(*port));
-  
-  if ((GNUNET_OK !=
-       GNUNET_NETWORK_socket_connect ( s5r->remote_sock,
-				       (const struct sockaddr*)&remote_addr,
-				       sizeof (remote_addr)))
-      && (errno != EINPROGRESS))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "connect");
-      signal_socks_failure (s5r,
-			    SOCKS5_STATUS_NETWORK_UNREACHABLE);
-      return;
-    }
-}
-#endif
-
-
 /* ************************* HTTP handling with cURL *********************** */
 
-static int
-con_post_data_iter (void *cls,
-                  enum MHD_ValueKind kind,
-                  const char *key,
-                  const char *filename,
-                  const char *content_type,
-                  const char *transfer_encoding,
-                  const char *data,
-                  uint64_t off,
-                  size_t size)
-{
-  struct ProxyCurlTask* ctask = cls;
-  struct ProxyUploadData* pdata;
-  char* enc;
-  char* new_value;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got POST data (file: %s, content type: %s): '%s=%.*s' at offset %llu size %llu\n",
-	      filename, content_type,
-              key, (int) size, data, 
-	      (unsigned long long) off, 
-	      (unsigned long long) size);
-  GNUNET_assert (NULL != ctask->post_type);
-
-  if (0 == strcasecmp (MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA,
-                       ctask->post_type))
-  {
-    ctask->is_httppost = GNUNET_YES;
-    /* new part */
-    if (0 == off)
-    {
-      pdata = GNUNET_new (struct ProxyUploadData);
-      pdata->key = GNUNET_strdup (key);
-
-      if (NULL != filename)
-        pdata->filename = GNUNET_strdup (filename);
-      if (NULL != content_type)
-        pdata->content_type = GNUNET_strdup (content_type);
-      pdata->value = GNUNET_malloc (size);
-      pdata->total_bytes = size;
-      memcpy (pdata->value, data, size);
-      GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
-                                        ctask->upload_data_tail,
-                                        pdata);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Copied %llu bytes of POST Data\n", 
-		  (unsigned long long) size);
-      return MHD_YES;
-    }
-    
-    pdata = ctask->upload_data_tail;
-    new_value = GNUNET_malloc (size + pdata->total_bytes);
-    memcpy (new_value, pdata->value, pdata->total_bytes);
-    memcpy (new_value+off, data, size);
-    GNUNET_free (pdata->value);
-    pdata->value = new_value;
-    pdata->total_bytes += size;
-
-    return MHD_YES;
-  }
-
-  if (0 != strcasecmp (MHD_HTTP_POST_ENCODING_FORM_URLENCODED,
-                       ctask->post_type))
-  {
-    return MHD_NO;
-  }
-
-  ctask->is_httppost = GNUNET_NO;
-  
-  if (NULL != ctask->curl)
-    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
-
-  if (0 == off)
-  {
-    enc = curl_easy_escape (ctask->curl, key, 0);
-    if (NULL == enc)
-      {
-	GNUNET_break (0);
-	return MHD_NO;
-      }
-    /* a key */
-    pdata = GNUNET_new (struct ProxyUploadData);
-    pdata->value = GNUNET_malloc (strlen (enc) + 3);
-    if (NULL != ctask->upload_data_head)
-    {
-      pdata->value[0] = '&';
-      memcpy (pdata->value+1, enc, strlen (enc));
-    }
-    else
-      memcpy (pdata->value, enc, strlen (enc));
-    pdata->value[strlen (pdata->value)] = '=';
-    pdata->bytes_left = strlen (pdata->value);
-    pdata->total_bytes = pdata->bytes_left;
-    curl_free (enc);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Escaped POST key: '%s'\n",
-                pdata->value);
-
-    GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
-                                      ctask->upload_data_tail,
-                                      pdata);
-  }
-
-  /* a value */
-  enc = curl_easy_escape (ctask->curl, data, 0);
-  if (NULL == enc)
-    {
-      GNUNET_break (0);
-      return MHD_NO;
-    }
-  pdata = GNUNET_new (struct ProxyUploadData);
-  pdata->value = GNUNET_malloc (strlen (enc) + 1);
-  memcpy (pdata->value, enc, strlen (enc));
-  pdata->bytes_left = strlen (pdata->value);
-  pdata->total_bytes = pdata->bytes_left;
-  curl_free (enc);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Escaped POST value: '%s'\n",
-              pdata->value);
-
-  GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
-                                    ctask->upload_data_tail,
-                                    pdata);
-  return MHD_YES;
-}
-
 
 /**
- * Read HTTP request header field 'Host'
+ * Callback for MHD response generation.  This function is called from
+ * MHD whenever MHD expects to get data back.  Copies data from the
+ * io_buf, if available.
  *
- * @param cls buffer to write to
- * @param kind value kind
- * @param key field key
- * @param value field value
- * @return #MHD_NO when Host found
- */
-static int
-con_val_iter (void *cls,
-              enum MHD_ValueKind kind,
-              const char *key,
-              const char *value)
-{
-  struct ProxyCurlTask *ctask = cls;
-  char* buf = ctask->host;
-  char* port;
-  char* cstr;
-  const char* hdr_val;
-  unsigned int uport;
-
-  if (0 == strcmp ("Host", key))
-  {
-    port = strchr (value, ':');
-    if (NULL != port)
-    {
-      strncpy (buf, value, port-value);
-      port++;
-      if ((1 != sscanf (port, "%u", &uport)) ||
-           (uport > UINT16_MAX) ||
-           (0 == uport))
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Unable to parse port!\n");
-      else
-        ctask->port = (uint16_t) uport;
-    }
-    else
-      strcpy (buf, value);
-    return MHD_YES;
-  }
-
-  if (0 == strcmp (MHD_HTTP_HEADER_ACCEPT_ENCODING, key))
-    hdr_val = "";
-  else
-    hdr_val = value;
-
-  if (0 == strcasecmp (MHD_HTTP_HEADER_CONTENT_TYPE,
-                   key))
-  {
-    if (0 == strncasecmp (value,
-                     MHD_HTTP_POST_ENCODING_FORM_URLENCODED,
-                     strlen (MHD_HTTP_POST_ENCODING_FORM_URLENCODED)))
-      ctask->post_type = MHD_HTTP_POST_ENCODING_FORM_URLENCODED;
-    else if (0 == strncasecmp (value,
-                          MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA,
-                          strlen (MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA)))
-      ctask->post_type = MHD_HTTP_POST_ENCODING_MULTIPART_FORMDATA;
-    else
-      ctask->post_type = NULL;
-
-  }
-
-  cstr = GNUNET_malloc (strlen (key) + strlen (hdr_val) + 3);
-  GNUNET_snprintf (cstr, strlen (key) + strlen (hdr_val) + 3,
-                   "%s: %s", key, hdr_val);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client Header: %s\n", cstr);
-
-  ctask->headers = curl_slist_append (ctask->headers, cstr);
-  GNUNET_free (cstr);
-
-  return MHD_YES;
-}
-
-
-/**
- * Callback for MHD response
- *
- * @param cls closure
+ * @param cls closure with our `struct Socks5Request`
  * @param pos in buffer
- * @param buf buffer
- * @param max space in buffer
- * @return number of bytes written
+ * @param buf where to copy data
+ * @param max available space in @a buf
+ * @return number of bytes written to @a buf
  */
 static ssize_t
 mhd_content_cb (void *cls,
                 uint64_t pos,
                 char* buf,
-                size_t max);
+                size_t max)
+{
+  struct Socks5Request *s5r = cls;
+  size_t bytes_to_copy;
+
+  if ( (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state) ||
+       (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
+  {
+    /* we're still not done with the upload, do not yet
+       start the download, the IO buffer is still full
+       with upload data. */
+    return 0; /* not yet ready for data download */
+  }
+  bytes_to_copy = GNUNET_MIN (max,
+			      s5r->io_len);
+  if ( (0 == bytes_to_copy) &&
+       (SOCKS5_SOCKET_DOWNLOAD_DONE != s5r->state) )
+    return 0; /* more data later */
+  if ( (0 == bytes_to_copy) &&
+       (SOCKS5_SOCKET_DOWNLOAD_DONE == s5r->state) )
+    return MHD_CONTENT_READER_END_OF_STREAM;
+  memcpy (buf, s5r->io_buf, bytes_to_copy);
+  memmove (s5r->io_buf,
+	   &s5r->io_buf[bytes_to_copy],
+	   s5r->io_len - bytes_to_copy);
+  s5r->io_len -= bytes_to_copy;
+  curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+  return bytes_to_copy;
+}
 
 
 /**
- * Check HTTP response header for mime
+ * Check that the website has presented us with a valid SSL certificate.
+ * The certificate must either match the domain name or the LEHO name
+ * (or, if available, the TLSA record).
  *
- * @param buffer curl buffer
+ * @param s5r request to check for.
+ * @return #GNUNET_OK if the certificate is valid
+ */
+static int
+check_ssl_certificate (struct Socks5Request *s5r)
+{
+  union {
+    struct curl_slist    *to_info;
+    struct curl_certinfo *to_certinfo;
+  } ptr;
+  int i;
+  struct curl_slist *slist;
+  
+  ptr.to_info = NULL;  
+  if (CURLE_OK != 
+      curl_easy_getinfo (s5r->curl, 
+			 CURLINFO_CERTINFO, 
+			 &ptr.to_info))
+    return GNUNET_SYSERR;
+  /* FIXME: for now, we just output the certs to stderr */
+  if(NULL != ptr.to_info) 
+  {     
+    fprintf (stderr,
+	     "Got %d certs!\n", 
+	     ptr.to_certinfo->num_of_certs);      
+    for (i = 0; i < ptr.to_certinfo->num_of_certs; i++) 
+    {    
+      for (slist = ptr.to_certinfo->certinfo[i]; NULL != slist; slist = slist->next)
+	fprintf (stderr,
+		 "%d: %s\n",
+		 i,
+		 slist->data);	
+    }
+  }
+  return GNUNET_OK;
+}
+
+
+ 
+/**
+ * We're getting an HTTP response header from cURL.  Convert it to the
+ * MHD response headers.  Mostly copies the headers, but makes special
+ * adjustments to "Set-Cookie" and "Location" headers as those may need
+ * to be changed from the LEHO to the domain the browser expects.
+ *
+ * @param buffer curl buffer with a single line of header data; not 0-terminated!
  * @param size curl blocksize
  * @param nmemb curl blocknumber
- * @param cls handle
- * @return size of read bytes
+ * @param cls our `struct Socks5Request *`
+ * @return size of processed bytes
  */
 static size_t
 curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 {
+  struct Socks5Request *s5r = cls;
   size_t bytes = size * nmemb;
-  struct ProxyCurlTask *ctask = cls;
-  int cookie_hdr_len = strlen (MHD_HTTP_HEADER_SET_COOKIE);
-  char hdr_generic[bytes+1];
-  char new_cookie_hdr[bytes+strlen (ctask->leho)+1];
-  char new_location[MAX_HTTP_URI_LENGTH+500];
-  char real_host[264];
-  char leho_host[264];
-  char* ndup;
-  char* tok;
-  char* cookie_domain;
-  char* hdr_type;
-  char* hdr_val;
-  int delta_cdomain;
-  size_t offset = 0;
-  char cors_hdr[strlen (ctask->leho) + strlen ("https://")];
-  
-  if (NULL == ctask->response)
+  char *ndup;
+  const char *hdr_type;
+  const char *hdr_val;
+  long resp_code;
+  char *new_cookie_hdr;
+
+  if (NULL == s5r->response)
   {
-    /* FIXME: get total size from curl (if available) */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Creating response for %s\n", ctask->url);
-    ctask->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-							 sizeof (ctask->buffer),
-							 &mhd_content_cb,
-							 ctask,
-							 NULL);
+    /* first, check SSL certificate */
+    if ( (HTTPS_PORT == s5r->port) &&
+	 (GNUNET_OK != check_ssl_certificate (s5r)) )
+      return 0;
 
-    /* if we have a leho add a CORS header */
-    if (0 != strcmp ("", ctask->leho))
+    GNUNET_break (CURLE_OK == 
+		  curl_easy_getinfo (s5r->curl,
+				     CURLINFO_RESPONSE_CODE,
+				     &resp_code));
+    s5r->response_code = resp_code;
+    s5r->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
+						       IO_BUFFERSIZE,
+						       &mhd_content_cb,
+						       s5r,
+						       NULL);
+    if (NULL != s5r->leho)
     {
-      /* We could also allow ssl and http here */
-      if (ctask->mhd->is_ssl)
-        sprintf (cors_hdr, "https://%s", ctask->leho);
-      else
-        sprintf (cors_hdr, "http://%s", ctask->leho);
-
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Adding CORS header field %s\n",
-                  cors_hdr);
-
-      if (GNUNET_NO == MHD_add_response_header (ctask->response,
-                                              "Access-Control-Allow-Origin",
-                                              cors_hdr))
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "MHD: Error adding CORS header field %s\n",
-                  cors_hdr);
-      }
+      char *cors_hdr;
+      
+      GNUNET_asprintf (&cors_hdr, 
+		       (HTTPS_PORT == s5r->port)
+		       ? "https://%s"
+		       : "http://%s",
+		       s5r->leho);
+      
+      GNUNET_break (MHD_YES == 
+		    MHD_add_response_header (s5r->response,
+					     MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+					     cors_hdr));
+      GNUNET_free (cors_hdr);
     }
-    ctask->ready_to_queue = GNUNET_YES;
+    /* force connection to be closed after each request, as we 
+       do not support HTTP pipelining */
+    GNUNET_break (MHD_YES == 
+		  MHD_add_response_header (s5r->response,
+					   MHD_HTTP_HEADER_CONNECTION,
+					   "close"));
   }
-  if (cookie_hdr_len > bytes)
-    return bytes;
-
-  memcpy (hdr_generic, buffer, bytes);
-  hdr_generic[bytes] = '\0';
-  /* remove crlf */
-  if ('\n' == hdr_generic[bytes-1])
-    hdr_generic[bytes-1] = '\0';
-
-  if (hdr_generic[bytes-2] == '\r')
-    hdr_generic[bytes-2] = '\0';
   
-  if (0 == memcmp (hdr_generic,
-                   MHD_HTTP_HEADER_SET_COOKIE,
-                   cookie_hdr_len))
+  ndup = GNUNET_strndup (buffer, bytes);
+  hdr_type = strtok (ndup, ":");
+  if (NULL == hdr_type)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Looking for cookie in: `%s'\n", hdr_generic);    
-    ndup = GNUNET_strdup (hdr_generic+cookie_hdr_len+1);
-    memset (new_cookie_hdr, 0, sizeof (new_cookie_hdr));
-    for (tok = strtok (ndup, ";"); tok != NULL; tok = strtok (NULL, ";"))
+    GNUNET_free (ndup);
+    return bytes;
+  }
+  hdr_val = strtok (NULL, "");
+  if (NULL == hdr_val)
+  {
+    GNUNET_free (ndup);
+    return bytes;
+  }
+  if (' ' == *hdr_val)
+    hdr_val++;
+
+  /* custom logic for certain header types */
+  if (0 == strcasecmp (hdr_type,
+		       MHD_HTTP_HEADER_SET_COOKIE))
+  {
+#if 0
+    // FIXME: adjust code...
+    for (tok = strtok (hdr_val, ";"); NULL != tok; tok = strtok (NULL, ";"))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Got Cookie token: %s\n", tok);
-      //memcpy (new_cookie_hdr+offset, tok, strlen (tok));
       if (0 == memcmp (tok, " domain", strlen (" domain")))
       {
         cookie_domain = tok + strlen (" domain") + 1;
-
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Got Set-Cookie Domain: %s\n", cookie_domain);
-
-        if (strlen (cookie_domain) < strlen (ctask->leho))
+        if (strlen (cookie_domain) < strlen (s5r->leho))
         {
           delta_cdomain = strlen (ctask->leho) - strlen (cookie_domain);
           if (0 == strcmp (cookie_domain, ctask->leho + (delta_cdomain)))
@@ -1312,51 +929,26 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
           }
         }
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                    "Cookie domain invalid\n");
-
-        
+                    "Cookie domain invalid\n");        
       }
-      memcpy (new_cookie_hdr+offset, tok, strlen (tok));
+      memcpy (new_cookie_hdr + offset, tok, strlen (tok));
       offset += strlen (tok);
       new_cookie_hdr[offset] = ';';
       offset++;
     }
-    
-    GNUNET_free (ndup);
+    hdr_val = new_cookie_hdr;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Got Set-Cookie HTTP header %s\n", new_cookie_hdr);
-
-    if (GNUNET_NO == MHD_add_response_header (ctask->response,
-                                              MHD_HTTP_HEADER_SET_COOKIE,
-                                              new_cookie_hdr))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "MHD: Error adding set-cookie header field %s\n",
-                  hdr_generic+cookie_hdr_len+1);
-    }
-    return bytes;
+#else
+    new_cookie_hdr = NULL;
+#endif
   }
-
-  ndup = GNUNET_strdup (hdr_generic);
-  hdr_type = strtok (ndup, ":");
-
-  if (NULL == hdr_type)
+  else
   {
-    GNUNET_free (ndup);
-    return bytes;
+    new_cookie_hdr = NULL;
   }
 
-  hdr_val = strtok (NULL, "");
-
-  if (NULL == hdr_val)
-  {
-    GNUNET_free (ndup);
-    return bytes;
-  }
-
-  hdr_val++;
-
+#if 0
+  /* FIXME: adjust handling */
   if (0 == strcasecmp (MHD_HTTP_HEADER_LOCATION, hdr_type))
   {
     if (ctask->mhd->is_ssl)
@@ -1376,308 +968,99 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
       hdr_val = new_location;
     }
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Trying to set %s: %s\n",
-              hdr_type,
-              hdr_val);
-  if (GNUNET_NO == MHD_add_response_header (ctask->response,
-                                            hdr_type,
-                                            hdr_val))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "MHD: Error adding %s header field %s\n",
-                hdr_type,
-                hdr_val);
-  }
+#endif
+  GNUNET_break (MHD_YES ==
+		MHD_add_response_header (s5r->response,
+					 hdr_type,
+					 hdr_val));
   GNUNET_free (ndup);
+  GNUNET_free_non_null (new_cookie_hdr);
   return bytes;
 }
 
 
-
 /**
- * Ask cURL for the select sets and schedule download
- */
-static void
-curl_download_prepare (void);
-
-
-/**
- * Callback to free content
- *
- * @param cls content to free
- * @param tc task context
- */
-static void
-mhd_content_free (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ProxyCurlTask *ctask = cls;
-  struct ProxyUploadData *pdata;
-
-  if (NULL != ctask->headers)
-    curl_slist_free_all (ctask->headers);
-
-  if (NULL != ctask->headers)
-    curl_slist_free_all (ctask->resolver);
-
-  if (NULL != ctask->response)
-    MHD_destroy_response (ctask->response);
-
-  if (NULL != ctask->post_handler)
-    MHD_destroy_post_processor (ctask->post_handler);
-
-  if (GNUNET_SCHEDULER_NO_TASK != ctask->pp_task)
-    GNUNET_SCHEDULER_cancel (ctask->pp_task);
-
-  for (pdata = ctask->upload_data_head; NULL != pdata; pdata = ctask->upload_data_head)
-  {
-    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                 ctask->upload_data_tail,
-                                 pdata);
-    GNUNET_free_non_null (pdata->filename);
-    GNUNET_free_non_null (pdata->content_type);
-    GNUNET_free_non_null (pdata->key);
-    GNUNET_free_non_null (pdata->value);
-    GNUNET_free (pdata);
-  }
-  GNUNET_free (ctask);
-}
-
-
-/**
- * Callback for MHD response
- *
- * @param cls closure
- * @param pos in buffer
- * @param buf buffer
- * @param max space in buffer
- * @return number of bytes written
- */
-static ssize_t
-mhd_content_cb (void *cls,
-                uint64_t pos,
-                char* buf,
-                size_t max)
-{
-  struct ProxyCurlTask *ctask = cls;
-  ssize_t copied = 0;
-  size_t bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: content cb for %s. To copy: %u\n",
-              ctask->url, (unsigned int) bytes_to_copy);
-  if ((GNUNET_YES == ctask->download_is_finished) &&
-      (GNUNET_NO == ctask->download_error) &&
-      (0 == bytes_to_copy))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "MHD: sending response for %s\n", ctask->url);
-    ctask->download_in_progress = GNUNET_NO;
-    run_mhd_now (ctask->mhd);
-    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
-    return MHD_CONTENT_READER_END_OF_STREAM;
-  }
-  
-  if ((GNUNET_YES == ctask->download_error) &&
-      (GNUNET_YES == ctask->download_is_finished) &&
-      (0 == bytes_to_copy))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "MHD: sending error response\n");
-    ctask->download_in_progress = GNUNET_NO;
-    run_mhd_now (ctask->mhd);
-    GNUNET_SCHEDULER_add_now (&mhd_content_free, ctask);
-    return MHD_CONTENT_READER_END_WITH_ERROR;
-  }
-
-  if ( ctask->buf_status == BUF_WAIT_FOR_CURL )
-    return 0;
-  
-  copied = 0;
-  bytes_to_copy = ctask->buffer_write_ptr - ctask->buffer_read_ptr;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: copied: %d left: %u, space left in buf: %d\n",
-              copied,
-              (unsigned int) bytes_to_copy, (int) (max - copied));
-  
-  if (GNUNET_NO == ctask->download_is_finished)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: Purging buffer\n");
-    memmove (ctask->buffer, ctask->buffer_read_ptr, bytes_to_copy);
-    ctask->buffer_read_ptr = ctask->buffer;
-    ctask->buffer_write_ptr = ctask->buffer + bytes_to_copy;
-    ctask->buffer[bytes_to_copy] = '\0';
-  }
-  
-  if (bytes_to_copy + copied > max)
-    bytes_to_copy = max - copied;
-  memcpy (buf+copied, ctask->buffer_read_ptr, bytes_to_copy);
-  ctask->buffer_read_ptr += bytes_to_copy;
-  copied += bytes_to_copy;
-  ctask->buf_status = BUF_WAIT_FOR_CURL;
-  
-  if (NULL != ctask->curl)
-    curl_easy_pause (ctask->curl, CURLPAUSE_CONT);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: copied %d bytes\n", (int) copied);
-  run_mhd_now (ctask->mhd);
-  return copied;
-}
-
-
-/**
- * Handle data from cURL
+ * Handle response payload data from cURL.  Copies it into our `io_buf` to make
+ * it available to MHD.
  *
  * @param ptr pointer to the data
  * @param size number of blocks of data
  * @param nmemb blocksize
- * @param ctx the curlproxytask
+ * @param ctx our `struct Socks5Request *`
  * @return number of bytes handled
  */
 static size_t
 curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
 {
-  const char *cbuf = ptr;
+  struct Socks5Request *s5r = ctx;
   size_t total = size * nmemb;
-  struct ProxyCurlTask *ctask = ctx;
-  size_t buf_space = sizeof (ctask->buffer) - (ctask->buffer_write_ptr - ctask->buffer);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Got %d. %d free in buffer\n",
-              (int) total,
-	      (int) buf_space);
-  if (0 == buf_space)
+  if ( (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state) ||
+       (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
-    ctask->buf_status = BUF_WAIT_FOR_MHD;
-    run_mhd_now (ctask->mhd);
-    return CURL_WRITEFUNC_PAUSE;
+    /* we're still not done with the upload, do not yet
+       start the download, the IO buffer is still full
+       with upload data. */
+    return CURL_WRITEFUNC_PAUSE; /* not yet ready for data download */
   }
-  if (total > buf_space)
-    total = buf_space;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: Copying %d bytes to buffer (%s)\n", 
-	      total, ctask->url);
-  memcpy (ctask->buffer_write_ptr, cbuf, total);
-  ctask->bytes_in_buffer += total;
-  ctask->buffer_write_ptr += total;
-  if (ctask->bytes_in_buffer > 0)
-  {
-    ctask->buf_status = BUF_WAIT_FOR_MHD;
-    run_mhd_now (ctask->mhd);
-  }
+  if (sizeof (s5r->io_buf) - s5r->io_len < total)
+    return CURL_WRITEFUNC_PAUSE; /* not enough space */
+  memcpy (&s5r->io_buf[s5r->io_len], 
+	  ptr,
+	  total);
+  s5r->io_len += total;
+  if (s5r->io_len == total)
+    run_mhd_now (s5r->hd);  
   return total;
 }
 
 
 /**
- * cURL callback for put data
+ * cURL callback for uploaded (PUT/POST) data.  Copies it into our `io_buf`
+ * to make it available to MHD.
+ *
+ * @param buf where to write the data
+ * @param size number of bytes per member
+ * @param nmemb number of members available in @a buf
+ * @param cls our `struct Socks5Request` that generated the data
+ * @return number of bytes copied to @a buf
  */
 static size_t
-put_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
+curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
 {
-  struct ProxyCurlTask *ctask = cls;
-  struct ProxyUploadData *pdata = ctask->upload_data_head;
+  struct Socks5Request *s5r = cls;
   size_t len = size * nmemb;
   size_t to_copy;
-  char* pos;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: put read callback\n");
-
-  if (NULL == pdata)
+  if ( (0 == s5r->io_len) &&
+       (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
     return CURL_READFUNC_PAUSE;
-  
-  //fin
-  if (NULL == pdata->value)
+  if ( (0 == s5r->io_len) &&
+       (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "CURL: Terminating PUT\n");
-
-    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                 ctask->upload_data_tail,
-                                 pdata);
-    GNUNET_free (pdata);
-    return 0;
+    s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+    return 0; /* upload finished, can now download */
   }
- 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: read callback value %s\n", pdata->value); 
-  
-  to_copy = pdata->bytes_left;
-  if (to_copy > len)
-    to_copy = len;
-  
-  pos = pdata->value + (pdata->total_bytes - pdata->bytes_left);
-  memcpy (buf, pos, to_copy);
-  pdata->bytes_left -= to_copy;
-  if (pdata->bytes_left <= 0)
+  if ( (SOCKS5_SOCKET_UPLOAD_STARTED != s5r->state) ||
+       (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
   {
-    GNUNET_free (pdata->value);
-    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                 ctask->upload_data_tail,
-                                 pdata);
-    GNUNET_free (pdata);
+    GNUNET_break (0);
+    return CURL_READFUNC_ABORT;
   }
+  to_copy = GNUNET_MIN (s5r->io_len,
+			len);
+  memcpy (buf, s5r->io_buf, to_copy);
+  memmove (s5r->io_buf,
+	   &s5r->io_buf[to_copy],
+	   s5r->io_len - to_copy);
+  s5r->io_len -= to_copy;
+  if (s5r->io_len + to_copy == sizeof (s5r->io_buf))
+    run_mhd_now (s5r->hd); /* got more space for upload now */
   return to_copy;
 }
 
 
-/**
- * cURL callback for post data
- */
-static size_t
-post_read_callback (void *buf, size_t size, size_t nmemb, void *cls)
-{
-  struct ProxyCurlTask *ctask = cls;
-  struct ProxyUploadData *pdata = ctask->upload_data_head;
-  size_t len = size * nmemb;
-  size_t to_copy;
-  char* pos;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: read callback\n");
-
-  if (NULL == pdata)
-    return CURL_READFUNC_PAUSE;
-  
-  //fin
-  if (NULL == pdata->value)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "CURL: Terminating POST data\n");
-
-    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                 ctask->upload_data_tail,
-                                 pdata);
-    GNUNET_free (pdata);
-    return 0;
-  }
- 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "CURL: read callback value %s\n", pdata->value); 
-  
-  to_copy = pdata->bytes_left;
-  if (to_copy > len)
-    to_copy = len;
-  
-  pos = pdata->value + (pdata->total_bytes - pdata->bytes_left);
-  memcpy (buf, pos, to_copy);
-  pdata->bytes_left -= to_copy;
-  if (pdata->bytes_left <= 0)
-  {
-    GNUNET_free (pdata->value);
-    GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                 ctask->upload_data_tail,
-                                 pdata);
-    GNUNET_free (pdata);
-  }
-  return to_copy;
-}
+/* ************************** main loop of cURL interaction ****************** */
 
 
 /**
@@ -1692,7 +1075,7 @@ curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Ask cURL for the select sets and schedule download
+ * Ask cURL for the select() sets and schedule cURL operations.
  */
 static void
 curl_download_prepare ()
@@ -1707,6 +1090,11 @@ curl_download_prepare ()
   long to;
   struct GNUNET_TIME_Relative rtime;
 
+  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
+  {
+    GNUNET_SCHEDULER_cancel (curl_download_task);
+    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   max = -1;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -1717,311 +1105,159 @@ curl_download_prepare ()
                 "%s failed at %s:%d: `%s'\n",
                 "curl_multi_fdset", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
-    //TODO cleanup here?
     return;
   }
   to = -1;
   GNUNET_break (CURLM_OK == curl_multi_timeout (curl_multi, &to));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "cURL multi fds: max=%d timeout=%lld\n", max, (long long) to);
   if (-1 == to)
     rtime = GNUNET_TIME_UNIT_FOREVER_REL;
   else
     rtime = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-  if (curl_download_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (curl_download_task);  
   if (-1 != max)
   {
-    curl_download_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   rtime,
-                                   grs, gws,
-                                   &curl_task_download, curl_multi);
+    grs = GNUNET_NETWORK_fdset_create ();
+    gws = GNUNET_NETWORK_fdset_create ();
+    GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+    GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+    curl_download_task = GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+						      rtime,
+						      grs, gws,
+						      &curl_task_download, curl_multi);
+    GNUNET_NETWORK_fdset_destroy (gws);
+    GNUNET_NETWORK_fdset_destroy (grs);
   }
-  else if (NULL != ctasks_head)
+  else 
   {
-    /* as specified in curl docs */
-    curl_download_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
+    curl_download_task = GNUNET_SCHEDULER_add_delayed (rtime,
                                                        &curl_task_download,
                                                        curl_multi);
   }
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
 }
 
 
 /**
- * Task that is run when we are ready to receive more data
- * from curl
+ * Task that is run when we are ready to receive more data from curl.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param tc task context
  */
 static void
-curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+curl_task_download (void *cls, 
+		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int running;
   int msgnum;
   struct CURLMsg *msg;
   CURLMcode mret;
-  struct ProxyCurlTask *ctask;
-  int num_ctasks;
-  long resp_code;
-  struct ProxyCurlTask *clean_head = NULL;
-  struct ProxyCurlTask *clean_tail = NULL;
+  struct Socks5Request *s5r;
 
   curl_download_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Shutdown requested while trying to download\n");
-    //TODO cleanup
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Ready to dl\n");
-
   do
   {
-    running = 0;
-    num_ctasks = 0;
-    
+    running = 0;    
     mret = curl_multi_perform (curl_multi, &running);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Running curl tasks: %d\n", running);
-    for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
+    while (NULL != (msg = curl_multi_info_read (curl_multi, &msgnum)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "CTask: %s\n", ctask->url);
-      num_ctasks++;
-    }
-
-    do
-    {
-      
-      msg = curl_multi_info_read (curl_multi, &msgnum);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Messages left: %d\n", msgnum);
-      
-      if (msg == NULL)
-        break;
+      GNUNET_break (CURLE_OK ==
+		    curl_easy_getinfo (msg->easy_handle,
+				       CURLINFO_PRIVATE,
+				       &s5r));
+      if (NULL == s5r)
+      {
+	GNUNET_break (0);
+	continue;
+      }
       switch (msg->msg)
       {
-       case CURLMSG_DONE:
-         if ((msg->data.result != CURLE_OK) &&
-             (msg->data.result != CURLE_GOT_NOTHING))
-         {
-           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                       "Download curl failed");
-            
-           for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
-           {
-             if (NULL == ctask->curl)
-               continue;
-
-             if (memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)) != 0)
-               continue;
-             
-             GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                         "CURL: Download failed for task %s: %s.\n",
-                         ctask->url,
-                         curl_easy_strerror (msg->data.result));
-             ctask->download_is_finished = GNUNET_YES;
-             ctask->download_error = GNUNET_YES;
-             if (CURLE_OK == curl_easy_getinfo (ctask->curl,
-                                                CURLINFO_RESPONSE_CODE,
-                                                &resp_code))
-               ctask->curl_response_code = resp_code;
-             ctask->ready_to_queue = MHD_YES;
-             ctask->buf_status = BUF_WAIT_FOR_MHD;
-             run_mhd_now (ctask->mhd);
-             
-             GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
-                                          ctask);
-             GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
-             break;
-           }
-           GNUNET_assert (ctask != NULL);
-         }
-         else
-         {
-           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                       "CURL: download completed.\n");
-
-           for (ctask = ctasks_head; NULL != ctask; ctask = ctask->next)
-           {
-             if (NULL == ctask->curl)
-               continue;
-
-             if (0 != memcmp (msg->easy_handle, ctask->curl, sizeof (CURL)))
-               continue;
-             
-             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                         "CURL: completed task %s found.\n", ctask->url);
-             if (CURLE_OK == curl_easy_getinfo (ctask->curl,
-                                                CURLINFO_RESPONSE_CODE,
-                                                &resp_code))
-               ctask->curl_response_code = resp_code;
-
-
-             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                         "CURL: Completed ctask!\n");
-             if (GNUNET_SCHEDULER_NO_TASK == ctask->pp_task)
-	     {
-	       ctask->buf_status = BUF_WAIT_FOR_MHD;
-	       run_mhd_now (ctask->mhd);
-             }
-
-             ctask->ready_to_queue = MHD_YES;
-             ctask->download_is_finished = GNUNET_YES;
-
-             /* We MUST not modify the multi handle else we loose messages */
-             GNUNET_CONTAINER_DLL_remove (ctasks_head, ctasks_tail,
-                                          ctask);
-             GNUNET_CONTAINER_DLL_insert (clean_head, clean_tail, ctask);
-
-             break;
-           }
-           GNUNET_assert (ctask != NULL);
-         }
-         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                     "CURL: %s\n", curl_easy_strerror(msg->data.result));
-         break;
-       default:
-         GNUNET_assert (0);
-         break;
+      case CURLMSG_NONE:
+	/* documentation says this is not used */
+	GNUNET_break (0);
+	break;
+      case CURLMSG_DONE:
+	switch (msg->data.result)
+	{
+	case CURLE_OK:
+	case CURLE_GOT_NOTHING:
+	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		      "CURL download completed.\n");
+	  s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;	  
+	  run_mhd_now (s5r->hd);
+	  break;
+	default:
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      "Download curl failed: %s\n",
+		      curl_easy_strerror (msg->data.result));
+	  /* FIXME: indicate error somehow? close MHD connection badly as well? */
+	  s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
+	  run_mhd_now (s5r->hd);	  
+	  break;
+	}
+	GNUNET_break (NULL != s5r->response);
+	curl_multi_remove_handle (curl_multi, s5r->curl);
+	curl_easy_cleanup (s5r->curl);
+	s5r->curl = NULL;
+	break;
+      case CURLMSG_LAST:
+	/* documentation says this is not used */
+	GNUNET_break (0);
+	break;
+      default:
+	/* unexpected status code */
+	GNUNET_break (0);
+	break;
       }
-    } while (msgnum > 0);
-
-    for (ctask=clean_head; NULL != ctask; ctask = ctask->next)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "CURL: Removing task %s.\n", ctask->url);
-      curl_multi_remove_handle (curl_multi, ctask->curl);
-      curl_easy_cleanup (ctask->curl);
-      ctask->curl = NULL;
-    }
-    
-    num_ctasks=0;
-    for (ctask=ctasks_head; NULL != ctask; ctask = ctask->next)    
-      num_ctasks++; 
-    GNUNET_assert (num_ctasks == running);
-
-  } while (mret == CURLM_CALL_MULTI_PERFORM);
-  
-  if (mret != CURLM_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "CURL: %s failed at %s:%d: `%s'\n",
+    };
+  } while (mret == CURLM_CALL_MULTI_PERFORM);  
+  if (CURLM_OK != mret)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"%s failed at %s:%d: `%s'\n",
                 "curl_multi_perform", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
+                curl_multi_strerror (mret));  
+  if (0 == running)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Suspending cURL multi loop, no more events pending\n");
+    return; /* nothing more in progress */
   }
   curl_download_prepare();
 }
 
 
+/* ********************************* MHD response generation ******************* */
+
+
 /**
- * Process LEHO lookup
+ * Read HTTP request header field from the request.  Copies the fields
+ * over to the 'headers' that will be given to curl.  However, 'Host'
+ * is substituted with the LEHO if present.
  *
- * @param cls the ctask
- * @param rd_count number of records returned
- * @param rd record data
+ * @param cls our `struct Socks5Request`
+ * @param kind value kind
+ * @param key field key
+ * @param value field value
+ * @return #MHD_YES to continue to iterate
  */
-static void
-process_leho_lookup (void *cls,
-                     uint32_t rd_count,
-                     const struct GNUNET_NAMESTORE_RecordData *rd)
+static int
+con_val_iter (void *cls,
+              enum MHD_ValueKind kind,
+              const char *key,
+              const char *value)
 {
-  struct ProxyCurlTask *ctask = cls;
-  char hosthdr[262]; //256 + "Host: "
-  int i;
-  CURLcode ret;
-  CURLMcode mret;
-  struct hostent *phost;
-  char *ssl_ip;
-  char resolvename[512];
-  char curlurl[512];
+  struct Socks5Request *s5r = cls;
+  char *hdr;
 
-  
-  strcpy (ctask->leho, "");
-
-  if (rd_count == 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No LEHO present!\n");
-
-  for (i=0; i<rd_count; i++)
-  {
-    if (rd[i].record_type != GNUNET_NAMESTORE_TYPE_LEHO)
-      continue;
-
-    memcpy (ctask->leho, rd[i].data, rd[i].data_size);
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Found LEHO %s for %s\n", ctask->leho, ctask->url);
-  }
-
-  if (0 != strcmp (ctask->leho, ""))
-  {
-    sprintf (hosthdr, "%s%s:%d", "Host: ", ctask->leho, ctask->port);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "New HTTP header value: %s\n", hosthdr);
-    ctask->headers = curl_slist_append (ctask->headers, hosthdr);
-    GNUNET_assert (NULL != ctask->headers);
-    if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_HTTPHEADER, ctask->headers)))
-      LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
-  }
-
-  if (ctask->mhd->is_ssl)
-  {
-    phost = (struct hostent*)gethostbyname (ctask->host);
-
-    if (phost!=NULL)
-    {
-      ssl_ip = inet_ntoa(*((struct in_addr*)(phost->h_addr)));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "SSL target server: %s\n", ssl_ip);
-      sprintf (resolvename, "%s:%d:%s", ctask->leho, HTTPS_PORT, ssl_ip);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Curl resolve: %s\n", resolvename);
-      ctask->resolver = curl_slist_append ( ctask->resolver, resolvename);
-      if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_RESOLVE, ctask->resolver)))
-	LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
-      sprintf (curlurl, "https://%s:%d%s", ctask->leho, ctask->port, ctask->url);
-      if (CURLE_OK != (ret = curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl)))
-	LOG_CURL_EASY(GNUNET_ERROR_TYPE_WARNING,"curl_easy_setopt",ret);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "gethostbyname failed for %s!\n",
-		  ctask->host);
-      ctask->download_is_finished = GNUNET_YES;
-      ctask->download_error = GNUNET_YES;
-      return;
-    }
-  }
-
-  if (CURLM_OK != (mret=curl_multi_add_handle (curl_multi, ctask->curl)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "%s failed at %s:%d: `%s'\n",
-                "curl_multi_add_handle", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
-    ctask->download_is_finished = GNUNET_YES;
-    ctask->download_error = GNUNET_YES;
-    return;
-  }
-  GNUNET_CONTAINER_DLL_insert (ctasks_head, ctasks_tail, ctask);
-
-  curl_download_prepare ();
+  if ( (0 == strcasecmp (MHD_HTTP_HEADER_HOST, key)) &&
+       (NULL != s5r->leho) )
+    value = s5r->leho;
+  GNUNET_asprintf (&hdr,
+		   "%s: %s",
+		   key,
+		   value);
+  s5r->headers = curl_slist_append (s5r->headers,
+				    hdr);
+  GNUNET_free (hdr);
+  return MHD_YES;
 }
-
-
 
 
 /**
@@ -2057,246 +1293,196 @@ create_response (void *cls,
                  size_t *upload_data_size,
                  void **con_cls)
 {
-  struct MhdHttpList* hd = cls;  
-  char curlurl[MAX_HTTP_URI_LENGTH]; // buffer overflow!
-  int ret = MHD_YES;
-  int i;
-  struct ProxyCurlTask *ctask = *con_cls;
-  struct ProxyUploadData *fin_post;
-  struct curl_forms forms[5];
-  struct ProxyUploadData *upload_data_iter;
-  
-  //FIXME handle
-  if ((0 != strcasecmp (meth, MHD_HTTP_METHOD_GET)) &&
-      (0 != strcasecmp (meth, MHD_HTTP_METHOD_PUT)) &&
-      (0 != strcasecmp (meth, MHD_HTTP_METHOD_POST)) &&
-      (0 != strcasecmp (meth, MHD_HTTP_METHOD_HEAD)))
+  /* struct MhdHttpList* hd = cls;  */
+  struct Socks5Request *s5r = *con_cls;
+  char *curlurl;
+  char ipstring[INET6_ADDRSTRLEN];
+  char ipaddr[INET6_ADDRSTRLEN + 2];
+  const struct sockaddr *sa;
+  const struct sockaddr_in *s4;
+  const struct sockaddr_in6 *s6;
+  uint16_t port;
+  size_t left;
+
+  if (NULL == s5r)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "MHD: %s NOT IMPLEMENTED!\n", meth);
+    GNUNET_break (0);
     return MHD_NO;
   }
-
-
-  if (GNUNET_NO == ctask->accepted)
+  if (NULL == s5r->curl)
   {
-
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Got %s request for %s\n", meth, url);
-    ctask->mhd = hd;
-    ctask->curl = curl_easy_init();
-    ctask->curl_running = GNUNET_NO;
-    if (NULL == ctask->curl)
+    /* first time here, initialize curl handle */
+    sa = (const struct sockaddr *) &s5r->destination_address;
+    switch (sa->sa_family)
     {
-      ret = MHD_queue_response (con,
-                                MHD_HTTP_OK,
-                                curl_failure_response);
-      GNUNET_free (ctask);
-      return ret;
+    case AF_INET:
+      s4 = (const struct sockaddr_in *) &s5r->destination_address;
+      if (NULL == inet_ntop (AF_INET,
+			     &s4->sin_addr,
+			     ipstring,
+			     sizeof (ipstring)))
+      {
+	GNUNET_break (0);
+	return MHD_NO;
+      }
+      GNUNET_snprintf (ipaddr,
+		       sizeof (ipaddr),
+		       "%s",
+		       ipstring);
+      port = ntohs (s4->sin_port);
+      break;
+    case AF_INET6:
+      s6 = (const struct sockaddr_in6 *) &s5r->destination_address;
+      if (NULL == inet_ntop (AF_INET6,
+			     &s6->sin6_addr,
+			     ipstring,
+			     sizeof (ipstring)))
+      {
+	GNUNET_break (0);
+	return MHD_NO;
+      }
+      GNUNET_snprintf (ipaddr,
+		       sizeof (ipaddr),
+		       "[%s]",
+		       ipstring);
+      port = ntohs (s6->sin6_port);
+      break;
+    default:
+      GNUNET_break (0);
+      return MHD_NO;
     }
-    
-    if (ctask->mhd->is_ssl)
-      ctask->port = HTTPS_PORT;
-    else
-      ctask->port = HTTP_PORT;
-
-    MHD_get_connection_values (con,
-                               MHD_HEADER_KIND,
-                               &con_val_iter, ctask);
-    
-    curl_easy_setopt (ctask->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
-    curl_easy_setopt (ctask->curl, CURLOPT_HEADERDATA, ctask);
-    curl_easy_setopt (ctask->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
-    curl_easy_setopt (ctask->curl, CURLOPT_WRITEDATA, ctask);
-    curl_easy_setopt (ctask->curl, CURLOPT_FOLLOWLOCATION, 0);
-    curl_easy_setopt (ctask->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-
-    if (GNUNET_NO == ctask->mhd->is_ssl)
-    {
-      sprintf (curlurl, "http://%s:%d%s", ctask->host, ctask->port, ctask->url);
-      curl_easy_setopt (ctask->curl, CURLOPT_URL, curlurl);
-    }
-    
-
-    curl_easy_setopt (ctask->curl, CURLOPT_FAILONERROR, 1);
-    curl_easy_setopt (ctask->curl, CURLOPT_CONNECTTIMEOUT, 600L);
-    curl_easy_setopt (ctask->curl, CURLOPT_TIMEOUT, 600L);
-    
-    /* Add GNS header */
-    ctask->headers = curl_slist_append (ctask->headers,
-                                          "GNS: YES");
-    ctask->accepted = GNUNET_YES;
-    ctask->download_in_progress = GNUNET_YES;
-    ctask->buf_status = BUF_WAIT_FOR_CURL;
-    ctask->connection = con;
-    ctask->curl_response_code = MHD_HTTP_OK;
-    ctask->buffer_read_ptr = ctask->buffer;
-    ctask->buffer_write_ptr = ctask->buffer;
-    ctask->pp_task = GNUNET_SCHEDULER_NO_TASK;
-    
+    s5r->curl = curl_easy_init ();
+    if (NULL == s5r->curl)
+      return MHD_queue_response (con,
+				 MHD_HTTP_INTERNAL_SERVER_ERROR,
+				 curl_failure_response);    
+    curl_easy_setopt (s5r->curl, CURLOPT_HEADERFUNCTION, &curl_check_hdr);
+    curl_easy_setopt (s5r->curl, CURLOPT_HEADERDATA, s5r);
+    curl_easy_setopt (s5r->curl, CURLOPT_FOLLOWLOCATION, 0);
+    curl_easy_setopt (s5r->curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    curl_easy_setopt (s5r->curl, CURLOPT_FAILONERROR, 1); /* not sure we want this */
+    curl_easy_setopt (s5r->curl, CURLOPT_CONNECTTIMEOUT, 600L);
+    curl_easy_setopt (s5r->curl, CURLOPT_TIMEOUT, 600L);
+    curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_CONTENT_DECODING, 0);
+    curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
+    curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
+    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 1); // FIXME: remove later
+    GNUNET_asprintf (&curlurl,
+		     (HTTPS_PORT != s5r->port)
+		     ? "http://%s:%d%s"
+		     : "https://%s:%d%s",
+		     ipaddr,
+		     port, 
+		     s5r->url);   
+    curl_easy_setopt (s5r->curl,
+		      CURLOPT_URL, 
+		      curlurl);   
+    GNUNET_free (curlurl);
 
     if (0 == strcasecmp (meth, MHD_HTTP_METHOD_PUT))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Setting up PUT\n");
-      
-      curl_easy_setopt (ctask->curl, CURLOPT_UPLOAD, 1);
-      curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
-      curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION, &put_read_callback);
-      ctask->headers = curl_slist_append (ctask->headers,
-                                          "Transfer-Encoding: chunked");
-    }
-
-    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
+      s5r->state = SOCKS5_SOCKET_UPLOAD_STARTED;
+      curl_easy_setopt (s5r->curl, CURLOPT_UPLOAD, 1);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
+      curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
+    } 
+    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
     {
-      //FIXME handle multipart
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Setting up POST processor\n");
-      ctask->post_handler = MHD_create_post_processor (con,
-						       POSTBUFFERSIZE,
-						       &con_post_data_iter,
-						       ctask);
-      ctask->headers = curl_slist_append (ctask->headers,
-                                         "Transfer-Encoding: chunked");
-      return MHD_YES;
+      s5r->state = SOCKS5_SOCKET_UPLOAD_STARTED;    
+      curl_easy_setopt (s5r->curl, CURLOPT_POST, 1);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
+      curl_easy_setopt (s5r->curl, CURLOPT_READFUNCTION, &curl_upload_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_READDATA, s5r);
     }
-
-    if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
+    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_HEAD))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Setting NOBODY\n");
-      curl_easy_setopt (ctask->curl, CURLOPT_NOBODY, 1);
+      s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;    
+      curl_easy_setopt (s5r->curl, CURLOPT_NOBODY, 1);
     }
-
+    else if (0 == strcasecmp (meth, MHD_HTTP_METHOD_GET))
+    {
+      s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;    
+      curl_easy_setopt (s5r->curl, CURLOPT_HTTPGET, 1);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEFUNCTION, &curl_download_cb);
+      curl_easy_setopt (s5r->curl, CURLOPT_WRITEDATA, s5r);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		  _("Unsupported HTTP method `%s'\n"),
+		  meth);
+      curl_easy_cleanup (s5r->curl);
+      s5r->curl = NULL;      
+      return MHD_NO;
+    }
     
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Adding new curl task for %s\n", ctask->host);
-#if 0
-    GNUNET_GNS_get_authority (gns_handle,
-                              ctask->host,
-                              &process_get_authority,
-                              ctask);
-#endif
-    ctask->ready_to_queue = GNUNET_NO;
-    ctask->fin = GNUNET_NO;
-    ctask->curl_running = GNUNET_YES;
-    return MHD_YES;
-  }
+    if (0 == strcasecmp (ver, MHD_HTTP_VERSION_1_0))
+    {
+      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+    }
+    else if (0 == strcasecmp (ver, MHD_HTTP_VERSION_1_1))
+    {
+      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+    }
+    else
+    {
+      curl_easy_setopt (s5r->curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_NONE);
+    }
+    
+    if (HTTPS_PORT == s5r->port)
+    {
+      curl_easy_setopt (s5r->curl, CURLOPT_USE_SSL, CURLUSESSL_ALL);
+      curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYPEER, 1L);
+      /* Disable cURL checking the hostname, as we will check ourselves
+	 as only we have the domain name or the LEHO or the DANE record */
+      curl_easy_setopt (s5r->curl, CURLOPT_SSL_VERIFYHOST, 0L);      
+    }
+    else
+    {
+      curl_easy_setopt (s5r->curl, CURLOPT_USE_SSL, CURLUSESSL_NONE);   
+    }
 
-  ctask = (struct ProxyCurlTask *) *con_cls;
-  if (0 == strcasecmp (meth, MHD_HTTP_METHOD_POST))
+    if (CURLM_OK != curl_multi_add_handle (curl_multi, s5r->curl))
+    {
+      GNUNET_break (0);
+      curl_easy_cleanup (s5r->curl);
+      s5r->curl = NULL;      
+      return MHD_NO;      
+    }
+    MHD_get_connection_values (con,
+			       MHD_HEADER_KIND,
+			       &con_val_iter, s5r);
+    curl_easy_setopt (s5r->curl, CURLOPT_HTTPHEADER, s5r->headers);
+    curl_download_prepare ();
+    return MHD_YES;
+  } 
+
+  /* continuing to process request */
+  if (0 != *upload_data_size)
   {
-    if (0 != *upload_data_size)
-    {
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Invoking POST processor\n");
-      MHD_post_process (ctask->post_handler,
-                        upload_data, *upload_data_size);
-      *upload_data_size = 0;
-      if ((GNUNET_NO == ctask->is_httppost) &&
-          (GNUNET_NO == ctask->curl_running))
-      {
-        curl_easy_setopt (ctask->curl, CURLOPT_POST, 1);
-        curl_easy_setopt (ctask->curl, CURLOPT_READFUNCTION,
-                          &post_read_callback);
-        curl_easy_setopt (ctask->curl, CURLOPT_READDATA, ctask);
-        
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "MHD: Adding new curl task for %s\n", ctask->host);
-#if 0
-        GNUNET_GNS_get_authority (gns_handle,
-                                  ctask->host,
-                                  &process_get_authority,
-                                  ctask);
-#endif
-        ctask->ready_to_queue = GNUNET_NO;
-        ctask->fin = GNUNET_NO;
-        ctask->curl_running = GNUNET_YES;
-      }
-      return MHD_YES;
-    }
-    else if (GNUNET_NO == ctask->post_done)
-    {
-      if (GNUNET_YES == ctask->is_httppost)
-      {
-        for (upload_data_iter = ctask->upload_data_head;
-             NULL != upload_data_iter;
-             upload_data_iter = upload_data_iter->next)
-        {
-          i = 0;
-          if (NULL != upload_data_iter->filename)
-          {
-            forms[i].option = CURLFORM_FILENAME;
-            forms[i].value = upload_data_iter->filename;
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Adding filename %s\n",
-                        forms[i].value);
-            i++;
-          }
-          if (NULL != upload_data_iter->content_type)
-          {
-            forms[i].option = CURLFORM_CONTENTTYPE;
-            forms[i].value = upload_data_iter->content_type;
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                        "Adding content type %s\n",
-                        forms[i].value);
-            i++;
-          }
-          forms[i].option = CURLFORM_PTRCONTENTS;
-          forms[i].value = upload_data_iter->value;
-          forms[i+1].option = CURLFORM_END;
-
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Adding formdata for %s (len=%lld)\n",
-                      upload_data_iter->key,
-                      upload_data_iter->total_bytes);
-
-          curl_formadd(&ctask->httppost, &ctask->httppost_last,
-                       CURLFORM_COPYNAME, upload_data_iter->key,
-                       CURLFORM_CONTENTSLENGTH, upload_data_iter->total_bytes,
-                       CURLFORM_ARRAY, forms,
-                       CURLFORM_END);
-        }
-        curl_easy_setopt (ctask->curl, CURLOPT_HTTPPOST,
-                          ctask->httppost);
-
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "MHD: Adding new curl task for %s\n", ctask->host);
-#if 0
-        GNUNET_GNS_get_authority (gns_handle,
-                                  ctask->host,
-                                  &process_get_authority,
-                                  ctask);
-#endif
-        ctask->ready_to_queue = GNUNET_YES;
-        ctask->fin = GNUNET_NO;
-        ctask->curl_running = GNUNET_YES;
-        ctask->post_done = GNUNET_YES;
-        return MHD_YES;
-      }
-
-      fin_post = GNUNET_new (struct ProxyUploadData);
-      GNUNET_CONTAINER_DLL_insert_tail (ctask->upload_data_head,
-                                        ctask->upload_data_tail,
-                                        fin_post);
-      ctask->post_done = GNUNET_YES;
-      return MHD_YES;
-    }
-  }
-  
-  if (GNUNET_YES != ctask->ready_to_queue)
-    return MHD_YES; /* wait longer */
-  
-  if (GNUNET_YES == ctask->fin)
+    left = GNUNET_MIN (*upload_data_size,
+		       sizeof (s5r->io_buf) - s5r->io_len);
+    memcpy (&s5r->io_buf[s5r->io_len], 
+	    upload_data,
+	    left);
+    s5r->io_len += left;
+    *upload_data_size -= left;
+    if (s5r->io_len == left)
+      curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+    curl_download_prepare ();
     return MHD_YES;
-
-  ctask->fin = GNUNET_YES;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "MHD: Queueing response for %s\n", ctask->url);
-  ret = MHD_queue_response (con, ctask->curl_response_code, ctask->response);
-  run_mhd_now (ctask->mhd);
-  return ret;
+  }
+  s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
+  if (NULL == s5r->response) 
+    return MHD_YES; /* too early to queue response, did not yet get headers from cURL */
+  return MHD_queue_response (con,
+			     s5r->response_code, 
+			     s5r->response);
 }
 
 
@@ -2738,28 +1924,6 @@ timeout_s5r_handshake (void *cls,
 
 
 /**
- * Checks if name is in given @a tld.
- *
- * @param name the name to check 
- * @param tld the TLD to check for (must NOT begin with ".")
- * @return #GNUNET_YES or #GNUNET_NO
- */
-static int
-is_tld (const char* name, const char* tld)
-{
-  size_t name_len = strlen (name);
-  size_t tld_len = strlen (tld);
-
-  GNUNET_break ('.' != tld[0]);
-  return ( (tld_len < name_len) &&
-	   ( ('.' == name[name_len - tld_len - 1]) || (name_len == tld_len) ) &&
-	   (0 == memcmp (tld,
-			 name + (name_len - tld_len),
-			 tld_len)) );
-}
-
-
-/**
  * We're done with the Socks5 protocol, now we need to pass the
  * connection data through to the final destination, either 
  * direct (if the protocol might not be HTTP), or via MHD
@@ -2775,60 +1939,41 @@ setup_data_transfer (struct Socks5Request *s5r)
   const struct sockaddr *addr;
   socklen_t len;
 
-  if (is_tld (s5r->domain, GNUNET_GNS_TLD) ||
-      is_tld (s5r->domain, GNUNET_GNS_TLD_ZKEY))
+  switch (s5r->port)
   {
-    /* GNS TLD, setup MHD server for destination */
-    switch (s5r->port)
+  case HTTPS_PORT:
+    hd = lookup_ssl_httpd (s5r->domain);
+    if (NULL == hd)
     {
-    case HTTPS_PORT:
-      hd = lookup_ssl_httpd (s5r->domain);
-      if (NULL == hd)
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to start HTTPS server for `%s'\n"),
-		    s5r->domain);
-	cleanup_s5r (s5r);
-	return;
-      }
-      break;
-    case HTTP_PORT:
-      GNUNET_assert (NULL == httpd);
-      hd = httpd;
-      break;
-    default:
-      hd = NULL; /* netcat */
-      break;
-    }
-  }
-  else
-  {
-    hd = NULL; /* netcat */
-  }
-  if (NULL != hd)
-  {
-    fd = GNUNET_NETWORK_get_fd (s5r->sock);
-    addr = GNUNET_NETWORK_get_addr (s5r->sock);
-    len = GNUNET_NETWORK_get_addrlen (s5r->sock);
-    s5r->state = SOCKS5_SOCKET_WITH_MHD;
-    if (MHD_YES != MHD_add_connection (hd->daemon, fd, addr, len))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to pass client to MHD\n"));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to start HTTPS server for `%s'\n"),
+		  s5r->domain);
       cleanup_s5r (s5r);
       return;
     }
-    schedule_httpd (hd);
-    s5r->timeout_task = GNUNET_SCHEDULER_add_delayed (HTTP_HANDSHAKE_TIMEOUT,
-						      &timeout_s5r_handshake,
-						      s5r);
+    break;
+  case HTTP_PORT:
+  default:
+    GNUNET_assert (NULL == httpd);
+    hd = httpd;
+    break;
   }
-  else
+  fd = GNUNET_NETWORK_get_fd (s5r->sock);
+  addr = GNUNET_NETWORK_get_addr (s5r->sock);
+  len = GNUNET_NETWORK_get_addrlen (s5r->sock);
+  s5r->state = SOCKS5_SOCKET_WITH_MHD;
+  if (MHD_YES != MHD_add_connection (hd->daemon, fd, addr, len))
   {
-    // FIXME: not implemented
-    GNUNET_break (0);
-    /* start netcat mode here! */
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("Failed to pass client to MHD\n"));
+    cleanup_s5r (s5r);
+    return;
   }
+  s5r->hd = hd;
+  schedule_httpd (hd);
+  s5r->timeout_task = GNUNET_SCHEDULER_add_delayed (HTTP_HANDSHAKE_TIMEOUT,
+						    &timeout_s5r_handshake,
+						    s5r);
 }
 
 
@@ -3319,50 +2464,10 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ProxyCurlTask *ctask;
-  struct ProxyCurlTask *ctask_tmp;
-  struct ProxyUploadData *pdata;
-  
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
   while (NULL != mhd_httpd_head)
     kill_httpd (mhd_httpd_head);
-  for (ctask=ctasks_head; NULL != ctask; ctask=ctask_tmp)
-  {
-    ctask_tmp = ctask->next;
-    if (NULL != ctask->curl)
-    {
-      curl_easy_cleanup (ctask->curl);
-      ctask->curl = NULL;
-    }
-    if (NULL != ctask->headers)
-    {
-      curl_slist_free_all (ctask->headers);
-      ctask->headers = NULL;
-    }
-    if (NULL != ctask->resolver)
-    {
-      curl_slist_free_all (ctask->resolver);
-      ctask->resolver = NULL;
-    }
-    if (NULL != ctask->response)
-    {
-      MHD_destroy_response (ctask->response);
-      ctask->response = NULL;
-    }    
-    for (pdata = ctask->upload_data_head; NULL != pdata; pdata = ctask->upload_data_head)
-    {
-      GNUNET_CONTAINER_DLL_remove (ctask->upload_data_head,
-                                   ctask->upload_data_tail,
-                                   pdata);
-      GNUNET_free_non_null (pdata->filename);
-      GNUNET_free_non_null (pdata->content_type);
-      GNUNET_free_non_null (pdata->key);
-      GNUNET_free_non_null (pdata->value);
-      GNUNET_free (pdata);
-    }
-    GNUNET_free (ctask);
-  }
   if (NULL != lsock)
   {
     GNUNET_NETWORK_socket_close (lsock);
