@@ -35,13 +35,38 @@ static struct BenchmarkPeer *peers;
 static int num_peers;
 static char *name;
 
+struct LoggingTimestep
+{
+  struct GNUNET_TIME_Absolute timestamp;
+
+  struct LoggingTimestep *next;
+  struct LoggingTimestep *prev;
+};
+
+struct LoggingPeer
+{
+  struct BenchmarkPeer *peer;
+
+  struct GNUNET_TIME_Absolute start;
+
+  struct LoggingTimestep *head;
+  struct LoggingTimestep *tail;
+};
+
+/**
+ * Log structure of length num_peers
+ */
+static struct LoggingPeer *lp;
+
 
 static void
 write_to_file ()
 {
   struct GNUNET_DISK_FileHandle *f;
   char * filename;
-
+  char *data;
+  struct LoggingTimestep *cur;
+  int c_m;
 
   GNUNET_asprintf (&filename, "%llu_%s.data", GNUNET_TIME_absolute_get().abs_value_us,name);
 
@@ -55,11 +80,20 @@ write_to_file ()
     return;
   }
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, "TEST", strlen("TEST")))
+  for (c_m = 0; c_m < num_peers; c_m++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
-    GNUNET_free (filename);
-    return;
+    for (cur = lp[c_m].head; NULL != cur; cur = cur->next)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Master [%u]: timestamp %llu \n", lp[c_m].peer->no, cur->timestamp);
+
+      GNUNET_asprintf (&data, "%llu;\n", cur->timestamp);
+
+      if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
+      GNUNET_free (data);
+
+    }
   }
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
@@ -78,20 +112,24 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int c_m;
   int c_s;
-  log_task = GNUNET_SCHEDULER_NO_TASK;
-
-  struct BenchmarkPeer *m;
+  struct LoggingTimestep *lt;
   struct BenchmarkPartner *p;
+
+  log_task = GNUNET_SCHEDULER_NO_TASK;
 
   for (c_m = 0; c_m < num_peers; c_m++)
   {
-    m = &peers[c_m];
-    for (c_s = 0; c_s < m->num_partners; c_s++)
+    lt = GNUNET_malloc (sizeof (struct LoggingTimestep));
+    GNUNET_CONTAINER_DLL_insert_tail(lp[c_m].head, lp[c_m].tail, lt);
+    lt->timestamp = GNUNET_TIME_absolute_get();
+
+    for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
     {
       p = &peers[c_m].partners[c_s];
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Master [%u]: slave [%u]\n",
-          m->no, p->dest->no);
+          lp->peer->no, p->dest->no);
     }
   }
 
@@ -106,7 +144,9 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 perf_logging_stop ()
 {
+  int c_m;
   struct GNUNET_SCHEDULER_TaskContext tc;
+  struct LoggingTimestep *cur;
 
   if (GNUNET_SCHEDULER_NO_TASK != log_task)
     GNUNET_SCHEDULER_cancel (log_task);
@@ -118,17 +158,37 @@ perf_logging_stop ()
       _("Stop logging\n"));
 
   write_to_file ();
+
+  for (c_m = 0; c_m < num_peers; c_m++)
+  {
+    while (NULL != (cur = lp[c_m].head))
+    {
+      GNUNET_CONTAINER_DLL_remove (lp[c_m].head, lp[c_m].tail, cur);
+      GNUNET_free (cur);
+    }
+  }
+
+  GNUNET_free (lp);
 }
 
 void
 perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_masters)
 {
+  int c_m;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Start logging `%s'\n"), testname);
 
   peers = masters;
   num_peers = num_masters;
   name = testname;
+
+  lp = GNUNET_malloc (num_masters * sizeof (struct LoggingPeer));
+
+  for (c_m = 0; c_m < num_masters; c_m ++)
+  {
+    lp[c_m].peer = &masters[c_m];
+    lp[c_m].start = GNUNET_TIME_absolute_get();
+  }
 
   /* Schedule logging task */
   log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, NULL);
