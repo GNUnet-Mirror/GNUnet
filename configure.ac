@@ -737,7 +737,7 @@ AC_ARG_WITH(microhttpd,
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093001 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
@@ -756,7 +756,7 @@ AC_ARG_WITH(microhttpd,
                AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093001 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
@@ -774,7 +774,7 @@ AC_ARG_WITH(microhttpd,
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
 		#include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093001 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
