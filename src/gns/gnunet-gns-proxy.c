@@ -2647,14 +2647,15 @@ identity_master_cb (void *cls,
   if (NULL == ego)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("No ego configured for `master-zone`\n"));
+		_("No ego configured for `%s`\n"),
+		"gns-proxy");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego,
 				      &local_gns_zone);
   id_op = GNUNET_IDENTITY_get (identity,
-			       "shorten-zone",
+			       "gns-short",
 			       &identity_shorten_cb,
 			       NULL);
 }
@@ -2728,7 +2729,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   identity = GNUNET_IDENTITY_connect (cfg,
 				      NULL, NULL);  
   id_op = GNUNET_IDENTITY_get (identity,
-			       "master-zone",
+			       "gns-proxy",
 			       &identity_master_cb,
 			       NULL);  
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
