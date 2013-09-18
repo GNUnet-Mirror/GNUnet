@@ -577,7 +577,9 @@ transmit_lookup_dns_result (struct GNS_ResolverHandle *rh)
 	rd[i].flags = GNUNET_NAMESTORE_RF_NONE;
 	rd[i].expiration_time = pos->expiration_time;
       }
-    }      
+      i++;
+    }
+    GNUNET_assert (i == n);
     rh->proc (rh->proc_cls,
 	      n,
 	      rd);

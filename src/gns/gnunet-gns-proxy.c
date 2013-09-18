@@ -665,6 +665,15 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
 /**
+ * Run MHD now, we have extra data ready for the callback.
+ *
+ * @param hd the daemon to run now.
+ */
+static void
+run_mhd_now (struct MhdHttpList *hd);
+
+
+/**
  * Clean up s5r handles.
  *
  * @param s5r the handle to destroy
@@ -672,8 +681,12 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static void
 cleanup_s5r (struct Socks5Request *s5r)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Cleaning up socks request\n");   
   if (NULL != s5r->curl)
-  {    
+  { 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Cleaning up cURL handle\n");   
     curl_multi_remove_handle (curl_multi, s5r->curl);
     curl_easy_cleanup (s5r->curl);
     s5r->curl = NULL;
@@ -706,15 +719,6 @@ cleanup_s5r (struct Socks5Request *s5r)
 }
 
 
-/**
- * Run MHD now, we have extra data ready for the callback.
- *
- * @param hd the daemon to run now.
- */
-static void
-run_mhd_now (struct MhdHttpList *hd);
-
-
 /* ************************* HTTP handling with cURL *********************** */
 
 
@@ -744,22 +748,33 @@ mhd_content_cb (void *cls,
     /* we're still not done with the upload, do not yet
        start the download, the IO buffer is still full
        with upload data. */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Pausing MHD download, not yet ready for download\n");
     return 0; /* not yet ready for data download */
   }
   bytes_to_copy = GNUNET_MIN (max,
 			      s5r->io_len);
   if ( (0 == bytes_to_copy) &&
        (SOCKS5_SOCKET_DOWNLOAD_DONE != s5r->state) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Pausing MHD download, no data available\n");
     return 0; /* more data later */
+  }
   if ( (0 == bytes_to_copy) &&
        (SOCKS5_SOCKET_DOWNLOAD_DONE == s5r->state) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Completed MHD download\n");
     return MHD_CONTENT_READER_END_OF_STREAM;
+  }
   memcpy (buf, s5r->io_buf, bytes_to_copy);
   memmove (s5r->io_buf,
 	   &s5r->io_buf[bytes_to_copy],
 	   s5r->io_len - bytes_to_copy);
   s5r->io_len -= bytes_to_copy;
-  curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+  if (NULL != s5r->curl)
+    curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
   return bytes_to_copy;
 }
 
@@ -807,7 +822,6 @@ check_ssl_certificate (struct Socks5Request *s5r)
   return GNUNET_OK;
 }
 
-
  
 /**
  * We're getting an HTTP response header from cURL.  Convert it to the
@@ -849,6 +863,9 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 		  curl_easy_getinfo (s5r->curl,
 				     CURLINFO_RESPONSE_CODE,
 				     &resp_code));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Creating MHD response with code %d\n",
+		(int) resp_code);
     s5r->response_code = resp_code;
     s5r->response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
 						       IO_BUFFERSIZE,
@@ -973,10 +990,16 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
   if (NULL != (tok = strchr (hdr_val, '\t')))
     *tok = '\0';
   if (0 != strlen (hdr_val))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Adding header %s: %s to MHD response\n",
+		hdr_type,
+		hdr_val);
     GNUNET_break (MHD_YES ==
 		  MHD_add_response_header (s5r->response,
 					   hdr_type,
 					   hdr_val));
+  }
   GNUNET_free (ndup);
   GNUNET_free_non_null (new_cookie_hdr);
   GNUNET_free_non_null (new_location);
@@ -1006,10 +1029,16 @@ curl_download_cb (void *ptr, size_t size, size_t nmemb, void* ctx)
     /* we're still not done with the upload, do not yet
        start the download, the IO buffer is still full
        with upload data. */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Pausing CURL download, waiting for UPLOAD to finish\n");
     return CURL_WRITEFUNC_PAUSE; /* not yet ready for data download */
   }
   if (sizeof (s5r->io_buf) - s5r->io_len < total)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Pausing CURL download, not enough space\n");
     return CURL_WRITEFUNC_PAUSE; /* not enough space */
+  }
   memcpy (&s5r->io_buf[s5r->io_len], 
 	  ptr,
 	  total);
@@ -1039,11 +1068,17 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
 
   if ( (0 == s5r->io_len) &&
        (SOCKS5_SOCKET_UPLOAD_DONE != s5r->state) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Pausing CURL UPLOAD, need more data\n");
     return CURL_READFUNC_PAUSE;
+  }
   if ( (0 == s5r->io_len) &&
        (SOCKS5_SOCKET_UPLOAD_DONE == s5r->state) )
   {
     s5r->state = SOCKS5_SOCKET_DOWNLOAD_STARTED;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Completed CURL UPLOAD\n");
     return 0; /* upload finished, can now download */
   }
   if ( (SOCKS5_SOCKET_UPLOAD_STARTED != s5r->state) ||
@@ -1197,10 +1232,13 @@ curl_task_download (void *cls,
 	  run_mhd_now (s5r->hd);	  
 	  break;
 	}
-	GNUNET_break (NULL != s5r->response);
+	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Cleaning up cURL handle\n");
 	curl_multi_remove_handle (curl_multi, s5r->curl);
 	curl_easy_cleanup (s5r->curl);
 	s5r->curl = NULL;
+	if (NULL == s5r->response)
+	  cleanup_s5r (s5r); /* curl failed to yield response, close Socks socket as well */
 	break;
       case CURLMSG_LAST:
 	/* documentation says this is not used */
@@ -1262,6 +1300,9 @@ con_val_iter (void *cls,
 		   "%s: %s",
 		   key,
 		   value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Adding HEADER `%s' to HTTP request\n",
+	      hdr);
   s5r->headers = curl_slist_append (s5r->headers,
 				    hdr);
   GNUNET_free (hdr);
@@ -1318,7 +1359,8 @@ create_response (void *cls,
     GNUNET_break (0);
     return MHD_NO;
   }
-  if (NULL == s5r->curl)
+  if ( (NULL == s5r->curl) &&
+       (SOCKS5_SOCKET_WITH_MHD == s5r->state) )
   {
     /* first time here, initialize curl handle */
     sa = (const struct sockaddr *) &s5r->destination_address;
@@ -1377,7 +1419,7 @@ create_response (void *cls,
     curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
-    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 1); // FIXME: remove later
+    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0); // FIXME: remove later
     GNUNET_asprintf (&curlurl,
 		     (HTTPS_PORT != s5r->port)
 		     ? "http://%s:%d%s"
@@ -1480,15 +1522,22 @@ create_response (void *cls,
 	    upload_data,
 	    left);
     s5r->io_len += left;
-    *upload_data_size -= left;
-    if (s5r->io_len == left)
-      curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
+    *upload_data_size -= left;   
+    GNUNET_assert (NULL != s5r->curl);
+    curl_easy_pause (s5r->curl, CURLPAUSE_CONT);
     curl_download_prepare ();
     return MHD_YES;
   }
-  s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
+  if (SOCKS5_SOCKET_UPLOAD_STARTED == s5r->state)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Finished processing UPLOAD\n");
+    s5r->state = SOCKS5_SOCKET_UPLOAD_DONE;
+  }
   if (NULL == s5r->response) 
     return MHD_YES; /* too early to queue response, did not yet get headers from cURL */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Queueing response with MHD\n");
   return MHD_queue_response (con,
 			     s5r->response_code, 
 			     s5r->response);
@@ -1517,6 +1566,10 @@ mhd_completed_cb (void *cls,
 
   if (NULL == s5r)
     return;
+  if (MHD_REQUEST_TERMINATED_COMPLETED_OK != toe)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"MHD encountered error handling request: %d\n",
+		toe);
   cleanup_s5r (s5r);
   *con_cls = NULL;  
 }
@@ -2436,6 +2489,9 @@ do_accept (void *cls,
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
 
+  ltask = GNUNET_SCHEDULER_NO_TASK;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          lsock,
                                          &do_accept, NULL);
@@ -2476,6 +2532,8 @@ do_shutdown (void *cls,
               "Shutting down...\n");
   while (NULL != mhd_httpd_head)
     kill_httpd (mhd_httpd_head);
+  while (NULL != s5r_head)
+    cleanup_s5r (s5r_head);
   if (NULL != lsock)
   {
     GNUNET_NETWORK_socket_close (lsock);
