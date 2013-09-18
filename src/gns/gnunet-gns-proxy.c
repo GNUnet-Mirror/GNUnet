@@ -915,8 +915,10 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
 
   /* custom logic for certain header types */
   new_cookie_hdr = NULL;
-  if (0 == strcasecmp (hdr_type,
-		       MHD_HTTP_HEADER_SET_COOKIE))
+  if ( (NULL != s5r->leho) &&
+       (0 == strcasecmp (hdr_type,
+			 MHD_HTTP_HEADER_SET_COOKIE)) )
+      
   {
     new_cookie_hdr = GNUNET_malloc (strlen (hdr_val) + 
 				    strlen (s5r->domain) + 1);
