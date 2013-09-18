@@ -1615,6 +1615,8 @@ mhd_log_callback (void *cls,
 	return NULL;
       }
       s5r->url = GNUNET_strdup (url);
+      GNUNET_SCHEDULER_cancel (s5r->timeout_task);
+      s5r->timeout_task = GNUNET_SCHEDULER_NO_TASK;
       return s5r;
     }
   }

@@ -580,6 +580,9 @@ transmit_lookup_dns_result (struct GNS_ResolverHandle *rh)
       i++;
     }
     GNUNET_assert (i == n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Transmitting standard DNS result with %u records\n",
+		n);
     rh->proc (rh->proc_cls,
 	      n,
 	      rd);
@@ -1755,7 +1758,10 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
     default:
       af = AF_UNSPEC;
       break;
-    }
+    }  
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Doing standard DNS lookup for `%s'\n",
+		rh->name);
     rh->std_resolve = GNUNET_RESOLVER_ip_get (rh->name, 
 					      af,
 					      DNS_LOOKUP_TIMEOUT,
