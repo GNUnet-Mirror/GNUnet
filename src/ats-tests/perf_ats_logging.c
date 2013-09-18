@@ -27,8 +27,16 @@
 #include "gnunet_util_lib.h"
 
 void
-perf_logging_stop ();
+perf_logging_stop ()
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      _("Start logging\n"));
+}
 
 void
-perf_logging_start ();
+perf_logging_start ()
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      _("Start logging\n"));
+}
 /* end of file perf_ats_logging.c */

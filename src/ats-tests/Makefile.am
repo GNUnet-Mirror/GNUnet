@@ -66,7 +66,7 @@ perf_ats_proportional_transport_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_proportional_core_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c
 perf_ats_proportional_core_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -75,7 +75,7 @@ perf_ats_proportional_core_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_proportional_transport_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c
 perf_ats_proportional_transport_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -84,7 +84,7 @@ perf_ats_proportional_transport_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_proportional_core_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c
 perf_ats_proportional_core_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -93,7 +93,7 @@ perf_ats_proportional_core_latency_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_proportional_transport_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_proportional_transport_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -103,7 +103,7 @@ perf_ats_proportional_transport_latency_LDADD = \
   
 if HAVE_LIBGLPK
 perf_ats_mlp_core_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_core_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -112,7 +112,7 @@ perf_ats_mlp_core_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_mlp_transport_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_transport_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -121,7 +121,7 @@ perf_ats_mlp_transport_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_mlp_core_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_core_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -130,7 +130,7 @@ perf_ats_mlp_core_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_mlp_transport_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_transport_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -139,7 +139,7 @@ perf_ats_mlp_transport_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_mlp_core_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_core_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -148,7 +148,7 @@ perf_ats_mlp_core_latency_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_mlp_transport_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_mlp_transport_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -158,7 +158,7 @@ perf_ats_mlp_transport_latency_LDADD = \
 endif
 
 perf_ats_ril_core_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_core_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -167,7 +167,7 @@ perf_ats_ril_core_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_ril_transport_none_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_transport_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -176,7 +176,7 @@ perf_ats_ril_transport_none_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_ril_core_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_core_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -185,7 +185,7 @@ perf_ats_ril_core_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_ril_transport_bandwidth_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_transport_bandwidth_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -194,7 +194,7 @@ perf_ats_ril_transport_bandwidth_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_ril_core_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_core_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
@@ -203,7 +203,7 @@ perf_ats_ril_core_latency_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la    
 
 perf_ats_ril_transport_latency_SOURCES = \
-  perf_ats.c  
+  perf_ats.c perf_ats_logging.c 
 perf_ats_ril_transport_latency_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
