@@ -33,11 +33,44 @@ static GNUNET_SCHEDULER_TaskIdentifier log_task;
 
 static struct BenchmarkPeer *peers;
 static int num_peers;
+static char *name;
+
 
 static void
 write_to_file ()
 {
+  struct GNUNET_DISK_FileHandle *f;
+  char * filename;
 
+
+  GNUNET_asprintf (&filename, "%llu_%s.data", GNUNET_TIME_absolute_get().abs_value_us,name);
+
+  f = GNUNET_DISK_file_open (filename,
+      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == f)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename);
+    GNUNET_free (filename);
+    return;
+  }
+
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, "TEST", strlen("TEST")))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
+    GNUNET_free (filename);
+    return;
+  }
+
+  if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", filename);
+    GNUNET_free (filename);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data file successfully written to log file `%s'\n", filename);
+  GNUNET_free (filename);
 }
 
 static void
@@ -88,13 +121,14 @@ perf_logging_stop ()
 }
 
 void
-perf_logging_start (struct BenchmarkPeer *masters, int num_masters)
+perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_masters)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      _("Start logging\n"));
+      _("Start logging `%s'\n"), testname);
 
   peers = masters;
   num_peers = num_masters;
+  name = testname;
 
   /* Schedule logging task */
   log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, NULL);

@@ -119,6 +119,11 @@ static char *solver;
 /**
  * Preference string
  */
+static char *testname;
+
+/**
+ * Preference string
+ */
 static char *pref_str;
 
 /**
@@ -451,7 +456,7 @@ do_benchmark ()
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
   if (GNUNET_YES == logging)
-    perf_logging_start (mps, num_masters);
+    perf_logging_start (testname, mps, num_masters);
 }
 
 static void
@@ -1207,6 +1212,7 @@ main (int argc, char *argv[])
       logging = GNUNET_YES;
   }
 
+  GNUNET_asprintf (&testname, "%s_%s_%s",solver, comm_name, pref_str);
 
   if (num_slaves < num_masters)
   {
@@ -1240,6 +1246,7 @@ main (int argc, char *argv[])
   GNUNET_free(pref_str);
   GNUNET_free(conf_name);
   GNUNET_free(test_name);
+  GNUNET_free(testname);
   GNUNET_free (comm_name);
   GNUNET_free(mps);
   GNUNET_free(sps);

@@ -218,7 +218,7 @@ void
 perf_logging_stop ();
 
 void
-perf_logging_start (struct BenchmarkPeer *masters, int num_masters);
+perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_masters);
 
 
 /* end of file perf_ats.h */
