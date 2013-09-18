@@ -1866,7 +1866,8 @@ lookup_ssl_httpd (const char* domain)
   struct ProxyGNSCertificate *pgc;
 
   for (hd = mhd_httpd_head; NULL != hd; hd = hd->next)
-    if (0 == strcmp (hd->domain, domain))
+    if ( (NULL != hd->domain) &&
+	 (0 == strcmp (hd->domain, domain)) )
       return hd;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting fresh MHD HTTPS instance for domain `%s'\n",
