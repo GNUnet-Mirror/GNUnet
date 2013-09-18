@@ -755,7 +755,7 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int af,
   }
   /* then, check if this is a loopback address */
   i = 0;
-  while (loopback[i] != NULL)
+  while (NULL != loopback[i])
     if (0 == strcasecmp (loopback[i++], hostname))
     {
       rh->task = GNUNET_SCHEDULER_add_now (&loopback_resolution, rh);
