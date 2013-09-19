@@ -82,11 +82,6 @@ if MINGW
  BT_BIN = gnunet-helper-transport-bluetooth
  BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
  BT_PLUGIN_TEST = test_plugin_bluetooth
- BT_API_TEST = test_transport_api_bluetooth
- BT_REL_TEST = test_transport_api_reliability_bluetooth
- BT_UREL_TEST = test_transport_api_unreliability_bluetooth
- BT_QUOTA_TEST = test_quota_compliance_bluetooth \
-    test_quota_compliance_bluetooth_asymmetric
 endif
 endif
 

@@ -82,7 +82,10 @@
     UINT8 mac[MAC_ADDR_SIZE];
   };
 
-  // {31191E56-FA7E-4517-870E-71B86BBCC52F}
+  /** 
+   * The UUID used for the SDP service.
+   * {31191E56-FA7E-4517-870E-71B86BBCC52F}
+   */
   #define GNUNET_BLUETOOTH_SDP_UUID \
     { \
       0x31, 0x19, 0x1E, 0x56, \
@@ -614,12 +617,12 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
   print_last_error()
   {
     LPVOID lpMsgBuf = NULL;
-    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                    NULL, GetLastError(), 0, (LPTSTR) &lpMsgBuf, 0, NULL);
-    fprintf (stderr, "%s\n", (char *)lpMsgBuf) ;
-    //FIXME : it crashes
-    // if (lpMsgBuf)
-    //   free (lpMsgBuf);
+
+    if (FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                    NULL, GetLastError(), 0, (LPTSTR) &lpMsgBuf, 0, NULL))
+      fprintf (stderr, "%s\n", (char *)lpMsgBuf);
+    else
+      fprintf (stderr, "Failed to format the message for the last error! Error number : %d\n", GetLastError());
   }
 
   /**
