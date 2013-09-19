@@ -157,11 +157,14 @@ write_to_file ()
   struct GNUNET_DISK_FileHandle *f;
   char * filename;
   char *data;
-  struct PeerLoggingTimestep *cur;
+  struct PeerLoggingTimestep *cur_lt;
+  struct PartnerLoggingTimestep *plt;
   int c_m;
-  //int c_s;
+  int c_s;
   unsigned int throughput_recv;
   unsigned int throughput_send;
+  unsigned int throughput_recv_slave;
+  unsigned int throughput_send_slave;
   double mult;
 
   GNUNET_asprintf (&filename, "%llu_%s.data", GNUNET_TIME_absolute_get().abs_value_us,name);
@@ -178,36 +181,57 @@ write_to_file ()
 
   for (c_m = 0; c_m < num_peers; c_m++)
   {
-    for (cur = lp[c_m].head; NULL != cur; cur = cur->next)
+    for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
       mult = (1.0 * 1000 * 1000) /  (LOGGING_FREQUENCY.rel_value_us);
-      if (NULL != cur->prev)
+      if (NULL != cur_lt->prev)
       {
-        throughput_send = cur->total_bytes_sent - cur->prev->total_bytes_sent;
-        throughput_recv = cur->total_bytes_received - cur->prev->total_bytes_received;
+        throughput_send = cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent;
+        throughput_recv = cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received;
       }
       else
       {
-        throughput_send = cur->total_bytes_sent;
-        throughput_recv = cur->total_bytes_received;
+        throughput_send = cur_lt->total_bytes_sent;
+        throughput_recv = cur_lt->total_bytes_received;
       }
       throughput_send *= mult;
       throughput_recv *= mult;
 
 
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Master [%u]: timestamp %llu %llu %u %u %u ; %u %u %u\n", lp[c_m].peer->no,
-          cur->timestamp, GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur->timestamp).rel_value_us / 1000,
-          cur->total_messages_sent, cur->total_bytes_sent, throughput_send,
-          cur->total_messages_received, cur->total_bytes_received, throughput_recv);
+          "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n", lp[c_m].peer->no,
+          cur_lt->timestamp, GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
+          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
+          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv);
 
-//      for ()
+      for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
+      {
+        /* Log partners */
+        plt = &cur_lt->slaves_log[c_s];
+        if (NULL != cur_lt->prev)
+        {
+          throughput_send_slave = plt->total_bytes_sent - cur_lt->prev->slaves_log[c_s].total_bytes_sent;
+          throughput_recv_slave = plt->total_bytes_received - cur_lt->prev->slaves_log[c_s].total_bytes_received;
+        }
+        else
+        {
+          throughput_send_slave = plt->total_bytes_sent;
+          throughput_recv_slave = plt->total_bytes_received;
+        }
+        throughput_send_slave *= mult;
+        throughput_recv_slave *= mult;
+
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+            "\t Slave [%u]: %u %u %u ; %u %u %u \n", plt->slave->no,
+            plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
+            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave);
+      }
 
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u\n",
-          cur->timestamp,
-          GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur->timestamp).rel_value_us / 1000,
-          cur->total_messages_sent, cur->total_bytes_sent, throughput_send,
-          cur->total_messages_received, cur->total_bytes_received, throughput_recv);
+          cur_lt->timestamp,
+          GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
+          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
+          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv);
 
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
