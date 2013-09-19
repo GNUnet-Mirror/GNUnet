@@ -29,7 +29,7 @@
 
 #define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
-#define template "#!/usr/bin/gnuplot \n" \
+#define THROUGHPUT_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Throughput\" \n" \
 "set xlabel \"Time in ms\" \n" \
@@ -160,10 +160,13 @@ static struct LoggingPeer *lp;
 static void
 write_gnuplot_script (char * fn, struct LoggingPeer *lp)
 {
-  char * gfn;
   struct GNUNET_DISK_FileHandle *f;
-  GNUNET_asprintf (&gfn, "gnuplot_%s",fn);
+  char * gfn;
+  char *data;
+  int c_s;
+  int index;
 
+  GNUNET_asprintf (&gfn, "gnuplot_%s",fn);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
@@ -176,12 +179,31 @@ write_gnuplot_script (char * fn, struct LoggingPeer *lp)
 
   /* Write header */
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, template, strlen(template)))
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, THROUGHPUT_TEMPLATE, strlen(THROUGHPUT_TEMPLATE)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 
-  /* Write data */
+  /* Write master data */
+  GNUNET_asprintf (&data, "plot '%s' using 2:%u with lines title 'Master %u send', \\\n" \
+                           "'%s' using 2:%u with lines title 'Master %u receive', \\\n",
+                           fn, 5, lp->peer->no,
+                           fn, 8, lp->peer->no);
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
+  GNUNET_free (data);
 
-
+  index = 11;
+  for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
+  {
+    GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Slave %u send', \\\n" \
+                            "'%s' using 2:%u with lines title 'Slave %u receive'%s\n",
+                            fn, index, lp->peer->no,
+                            fn, index+3, lp->peer->no,
+                            (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
+    GNUNET_free (data);
+    index += 6;
+  }
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close gnuplot file `%s'\n", gfn);
@@ -209,7 +231,7 @@ write_to_file ()
 
   for (c_m = 0; c_m < num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename, "%llu_master_[%u]_%s_%s.data", GNUNET_TIME_absolute_get().abs_value_us,
+    GNUNET_asprintf (&filename, "%llu_master_%u_%s_%s.data", GNUNET_TIME_absolute_get().abs_value_us,
         lp[c_m].peer->no, GNUNET_i2s(&lp[c_m].peer->id), name);
 
     f = GNUNET_DISK_file_open (filename,
