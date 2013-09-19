@@ -698,7 +698,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
   static int
   register_service (struct HardwareInfos *dev) 
   {
-    // advertise the service
+    /* advertise the service */
     CSADDR_INFO addr_info;
     WSAQUERYSET wqs;
     GUID guid;
@@ -744,7 +744,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
     wqs.lpServiceClassId = &guid;
     wqs.dwNumberOfCsAddrs = 1;
     wqs.lpcsaBuffer = &addr_info ;
-    wqs.lpBlob = 0; //FIXME it should be 0 for a new entry
+    wqs.lpBlob = 0;
 
     if (SOCKET_ERROR == WSASetService (&wqs , RNRSERVICE_REGISTER, 0)) 
     {
@@ -906,7 +906,6 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
         {
         case WSAEFAULT:
           free (wqs);
-          //fprintf (stderr, "WSAFAULT error! (the memory allocated wasn't enought\n");
           wqs = (WSAQUERYSET*)malloc (wqs_len);
           break;
         case WSANO_DATA:
@@ -915,7 +914,6 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
           break;
         case WSA_E_NO_MORE:
           done = 1;
-          // fprintf (stderr, "No matching service found\n");
           break;
         default:
           fprintf (stderr, "Failed to look over the services: ");
@@ -970,7 +968,6 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
     {
      fprintf (stderr, "Failed to connect to the SDP server on interface `%.*s': %s\n",
               IFNAMSIZ, dev->iface, strerror (errno));
-     //FIXME exit?
      return -1;
     }
     
@@ -984,7 +981,6 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
       for (it = response_list; it; it = it->next)
       {
         sdp_record_t *record = (sdp_record_t*) it->data;
-        //TODO print some record informations to be sure everything is good
         sdp_list_t *proto_list = 0;
         if (sdp_get_access_protos (record, &proto_list) == 0)
         {
@@ -1047,7 +1043,7 @@ read_from_the_socket (void *sock,
   }
   
   #ifdef LINUX
-   /* Get the channel used */ //FIXME probably not needed anymore
+   /* Get the channel used */
    int len;
    struct sockaddr_rc  rc_addr = { 0 }; 
 
@@ -1086,12 +1082,11 @@ open_device (struct HardwareInfos *dev)
   #ifdef MINGW
     SOCKADDR_BTH addr;
 
-    /* bind the hci socket to the interface */
+    /* bind the RFCOMM socket to the interface */
     addr.addressFamily = AF_BTH;
     addr.btAddr = 0;
     addr.port = BT_PORT_ANY;
 
-    //FIXME flags parameter
     if (GNUNET_NETWORK_socket_bind (dev->handle, (const SOCKADDR*)&addr, sizeof (SOCKADDR_BTH), 0) != GNUNET_OK)
     {
       fprintf (stderr, "Failed to bind the socket: ");
@@ -1661,7 +1656,7 @@ main (int argc, char *argv[])
 
     if (-1 == dev.fd_rfcomm)
     {
-      fprintf (stderr, "Failed to create a HCI socket: %s\n", strerror (raw_eno));
+      fprintf (stderr, "Failed to create a RFCOMM socket: %s\n", strerror (raw_eno));
       return 1;
     }
     if (dev.fd_rfcomm >= FD_SETSIZE)
@@ -1720,11 +1715,8 @@ main (int argc, char *argv[])
     stdin_mst = mst_create (&stdin_send_hw, &dev);  
     stdin_open = 1;
     
-    fprintf (stderr, "\n-----------------------------------------------\n      Check if the program exits\n-----------------------------------------------\n");
    /**
-    * TODO : When a connection fails I should ignore only the CONTROL messages. 
-    * For DATA messages I should retry to send the message until it doesn't fail
-    * Also I should make the time out of a mac endpoint smaller and check if the rate 
+    * TODO : I should make the time out of a mac endpoint smaller and check if the rate 
     * from get_wlan_header (plugin_transport_bluetooth.c) is correct.
     */ 
    while (1)
@@ -1772,14 +1764,12 @@ main (int argc, char *argv[])
                   sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress)) == 0)
         {
           fprintf (stderr, "LOG : %s has a broadcast message (pos %d, size %d)\n", dev.iface, neighbours.pos, neighbours.size); //FIXME: debugging message
-          // broadcast = 1; // IF I HAVE A BROADCAST MESSAGE I skip.
-          // memset (&write_pout, 0, sizeof (write_pout));
          
           if (send_broadcast(&dev, &sendsocket) != 0) //if the searching wasn't successful don't get stuck on the select stage
           {
             broadcast = 1;
             memset (&write_pout, 0, sizeof (write_pout)); //remove the message
-            fprintf (stderr, "LOG : Skip the broadcast message (pos %d, size %d)\n", neighbours.pos, neighbours.size);
+            fprintf (stderr, "LOG : Skipping the broadcast message (pos %d, size %d)\n", neighbours.pos, neighbours.size);
           }
           else
           {
@@ -2170,8 +2160,7 @@ main (int argc, char *argv[])
       pos = 0;
       stdin_pos = -1;
       stdout_pos = -1;
-      sendsocket = NULL; //FIXME memleaks
-      fprintf (stderr, "---------------------------------------------------\n");
+      sendsocket = NULL; //FIXME ???memleaks
       
       GNUNET_NETWORK_fdset_zero (rfds);    
       if ((0 == write_pout.size) && (1 == stdin_open))
@@ -2179,7 +2168,7 @@ main (int argc, char *argv[])
         stdin_pos = pos;
         pos +=1;
         fprintf (stderr, "LOG: set STDIN_FILENO\n");
-        GNUNET_NETWORK_fdset_handle_set (rfds, (struct GNUNET_DISK_FileHandle*) &stdin_handle); //FIXME create a GNUNET_STRUCT handle for stdin
+        GNUNET_NETWORK_fdset_handle_set (rfds, (struct GNUNET_DISK_FileHandle*) &stdin_handle); 
       }
 
       if (0 == write_std.size)
@@ -2202,7 +2191,6 @@ main (int argc, char *argv[])
         stdout_pos = pos;
         fprintf (stderr, "LOG: set STDOUT_FILENO\n");
         GNUNET_NETWORK_fdset_handle_set (wfds, (struct GNUNET_DISK_FileHandle*) &stdout_handle);
-        fprintf (stderr, "LOG: after setting STDOUT_FILENO\n");
         // printf ("%s\n", write_std.buf);
         // memset (write_std.buf, 0, write_std.size);
         // write_std.size = 0; 
@@ -2211,7 +2199,7 @@ main (int argc, char *argv[])
       if (0 < write_pout.size)
       {   
         if (strcmp (argv[1], "ff:ff:ff:ff:ff:ff") == 0) {
-          fprintf(stderr, "BROADCAST\n");
+          fprintf(stderr, "BROADCAST! Skipping the message\n");
           // skip the message
           broadcast = 1;
           memset (write_pout.buf, 0, write_pout.size);
@@ -2239,7 +2227,7 @@ main (int argc, char *argv[])
             print_last_error();
             ExitProcess ( 2 ) ;
           }
-          addr.port = get_channel (argv[1]); //crapa aici
+          addr.port = get_channel (argv[1]);
           if (addr.port == -1)
           {
             fprintf (stderr, "Couldn't find the sdp service for the address: %s\n", argv[1]);
@@ -2249,8 +2237,6 @@ main (int argc, char *argv[])
           }
           else
           {
-            fprintf (stderr, "got the channel %d\n", addr.port);
-
             if (GNUNET_OK != GNUNET_NETWORK_socket_connect (sendsocket, (LPSOCKADDR)&addr, addr_len))
             {
               fprintf (stderr, "Failed to connect: ");
@@ -2294,8 +2280,7 @@ main (int argc, char *argv[])
             print_last_error();
             break;
           }
-          fprintf (stderr, "--->sended: %d\n", ret);
-          Sleep(5000);
+
           if (ret <= 0)
           {
             fprintf (stderr, "Failed to write to STDOUT\n");
@@ -2313,7 +2298,6 @@ main (int argc, char *argv[])
         {
           if (GNUNET_NETWORK_fdset_isset (wfds, sendsocket))
           {
-            fprintf (stderr, "-------------SEND------------\n");
             ssize_t ret;
             ret = GNUNET_NETWORK_socket_send (sendsocket, write_pout.buf + write_pout.pos, 
                  write_pout.size - write_pout.pos);
@@ -2328,7 +2312,6 @@ main (int argc, char *argv[])
                 print_last_error();
               }
               ExitProcess (2);
-              //break;
             }
             else
             {
@@ -2354,7 +2337,7 @@ main (int argc, char *argv[])
         }
         
         //if (GNUNET_NETWORK_fdset_isset (rfds, (struct GNUNET_NETWORK_Handle*)&stdin_handle))
-        if (retval == stdin_pos) //FALSEEE!!!! NUUUUU EEE VOOIEE!!_----------------------------------------------------------?
+        if (retval == stdin_pos)
         {
           fprintf (stderr, "-------------STDIN------------\n");
           //ssize_t ret; 
@@ -2379,7 +2362,6 @@ main (int argc, char *argv[])
         else
         if (GNUNET_NETWORK_fdset_isset (rfds, dev.handle))
         {
-          fprintf (stderr, "-------------ACCEPT------------\n");
           fprintf (stderr, "LOG: accepting connection\n");
           struct GNUNET_NETWORK_Handle *readsocket;
           readsocket = GNUNET_NETWORK_socket_accept (dev.handle, (LPSOCKADDR)&acc_addr, &addr_len);  
