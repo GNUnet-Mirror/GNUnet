@@ -81,7 +81,6 @@ else
 if MINGW
  BT_BIN = gnunet-helper-transport-bluetooth
  BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
- BT_PLUGIN_TEST = test_plugin_bluetooth
 endif
 endif
 
