@@ -30,11 +30,6 @@
 #include "gnunet_core_service.h"
 #include "perf_ats.h"
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-#define TESTNAME_PREFIX "perf_ats_"
-#define DEFAULT_SLAVES_NUM 3
-#define DEFAULT_MASTERS_NUM 1
 
 #define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 #define TEST_ATS_PREFRENCE_START 1.0
@@ -139,7 +134,7 @@ static int num_masters;
 /**
  * Array of master peers
  */
-struct BenchmarkPeer *mps;
+static  struct BenchmarkPeer *mps;
 
 /**
  * Number slave peers
@@ -148,7 +143,12 @@ static int num_slaves;
 /**
  * Array of slave peers
  */
-struct BenchmarkPeer *sps;
+static struct BenchmarkPeer *sps;
+
+/**
+ * Benchmark duration
+ */
+static struct GNUNET_TIME_Relative perf_duration;
 
 /**
  * Benchmark state
@@ -163,7 +163,7 @@ evaluate ()
   unsigned int duration;
   struct BenchmarkPeer *mp;
 
-  duration = (BENCHMARK_DURATION.rel_value_us / (1000 * 1000));
+  duration = (perf_duration.rel_value_us / (1000 * 1000));
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     mp = &mps[c_m];
@@ -390,7 +390,7 @@ print_progress ()
   progress_task = GNUNET_SCHEDULER_NO_TASK;
 
   fprintf (stderr, "%llu..",
-      (long long unsigned) BENCHMARK_DURATION.rel_value_us / (1000 * 1000) - calls);
+      (long long unsigned) perf_duration.rel_value_us / (1000 * 1000) - calls);
   calls++;
 
   progress_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -431,7 +431,7 @@ do_benchmark ()
 
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (BENCHMARK_DURATION,
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (perf_duration,
       &do_shutdown, NULL );
 
   progress_task = GNUNET_SCHEDULER_add_now (&print_progress, NULL );
@@ -1173,6 +1173,22 @@ main (int argc, char *argv[])
     GNUNET_free (comm_name);
     return -1;
   }
+
+  for (c = 0; c < (argc - 1); c++)
+  {
+    if (0 == strcmp (argv[c], "-d"))
+      break;
+  }
+  if (c < argc - 1)
+  {
+    if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_relative (argv[c + 1], &perf_duration))
+        fprintf (stderr, "Failed to parse duration `%s'\n", argv[c + 1]);
+  }
+  else
+  {
+    perf_duration = BENCHMARK_DURATION;
+  }
+  fprintf (stderr, "Running benchmark for %llu secs\n", (unsigned long long) (perf_duration.rel_value_us) / (1000 * 1000));
 
   for (c = 0; c < (argc - 1); c++)
   {
