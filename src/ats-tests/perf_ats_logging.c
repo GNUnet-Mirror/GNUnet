@@ -39,6 +39,7 @@ static GNUNET_SCHEDULER_TaskIdentifier log_task;
  * Reference to perf_ats' masters
  */
 static int num_peers;
+static int running;
 static char *name;
 
 /**
@@ -157,6 +158,8 @@ write_to_file ()
   struct GNUNET_DISK_FileHandle *f;
   char * filename;
   char *data;
+  char *slave_string;
+  char *slave_string_tmp;
   struct PeerLoggingTimestep *cur_lt;
   struct PartnerLoggingTimestep *plt;
   int c_m;
@@ -167,20 +170,22 @@ write_to_file ()
   unsigned int throughput_send_slave;
   double mult;
 
-  GNUNET_asprintf (&filename, "%llu_%s.data", GNUNET_TIME_absolute_get().abs_value_us,name);
-
-  f = GNUNET_DISK_file_open (filename,
-      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-      GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == f)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename);
-    GNUNET_free (filename);
-    return;
-  }
-
   for (c_m = 0; c_m < num_peers; c_m++)
   {
+    GNUNET_asprintf (&filename, "%llu_master_[%u]_%s _%s.data", GNUNET_TIME_absolute_get().abs_value_us,
+        lp[c_m].peer->no, GNUNET_i2s(&lp[c_m].peer->id), name);
+
+    f = GNUNET_DISK_file_open (filename,
+        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+        GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == f)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename);
+      GNUNET_free (filename);
+      return;
+    }
+
+
     for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
       mult = (1.0 * 1000 * 1000) /  (LOGGING_FREQUENCY.rel_value_us);
@@ -204,6 +209,7 @@ write_to_file ()
           cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
           cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv);
 
+      slave_string = GNUNET_strdup (";");
       for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
       {
         /* Log partners */
@@ -225,29 +231,37 @@ write_to_file ()
             "\t Slave [%u]: %u %u %u ; %u %u %u \n", plt->slave->no,
             plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
             plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave);
+
+
+        GNUNET_asprintf(&slave_string_tmp, "%s%u;%u;%u;%u;%u;%u;",slave_string,
+            plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
+            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave);
+        GNUNET_free (slave_string);
+        slave_string = slave_string_tmp;
       }
 
-      GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u\n",
+      GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u%s\n",
           cur_lt->timestamp,
           GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
           cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
-          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv);
+          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv,
+          slave_string);
+      GNUNET_free (slave_string);
 
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
       GNUNET_free (data);
     }
-  }
+    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", filename);
+      GNUNET_free (filename);
+      return;
+    }
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", filename);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data file successfully written to log file `%s'\n", filename);
     GNUNET_free (filename);
-    return;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data file successfully written to log file `%s'\n", filename);
-  GNUNET_free (filename);
 }
 
 static void
@@ -286,9 +300,9 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       slt->total_bytes_received = p->dest->total_bytes_received;
       slt->total_messages_received = p->dest->total_messages_received;
 
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Master [%u]: slave [%u]\n",
-          lp->peer->no, p->dest->no);
+          lp[c_m].peer->no, p->dest->no);
     }
   }
 
@@ -306,6 +320,9 @@ perf_logging_stop ()
   int c_m;
   struct GNUNET_SCHEDULER_TaskContext tc;
   struct PeerLoggingTimestep *cur;
+
+  if (GNUNET_YES!= running)
+    return;
 
   if (GNUNET_SCHEDULER_NO_TASK != log_task)
     GNUNET_SCHEDULER_cancel (log_task);
@@ -351,6 +368,7 @@ perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_mast
 
   /* Schedule logging task */
   log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, NULL);
+  running = GNUNET_YES;
 }
 /* end of file perf_ats_logging.c */
 
