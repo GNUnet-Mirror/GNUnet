@@ -151,6 +151,11 @@ static struct BenchmarkPeer *sps;
 static struct GNUNET_TIME_Relative perf_duration;
 
 /**
+ * Logging frequency
+ */
+static struct GNUNET_TIME_Relative log_frequency;
+
+/**
  * Benchmark state
  */
 static struct BenchmarkState state;
@@ -456,7 +461,7 @@ do_benchmark ()
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
   if (GNUNET_YES == logging)
-    perf_logging_start (testname, mps, num_masters);
+    perf_logging_start (log_frequency, testname, mps, num_masters);
 
 }
 
@@ -1227,6 +1232,26 @@ main (int argc, char *argv[])
   {
     if (0 == strcmp (argv[c], "-l"))
       logging = GNUNET_YES;
+  }
+
+  if (GNUNET_YES == logging)
+  {
+    for (c = 0; c < (argc - 1); c++)
+    {
+      if (0 == strcmp (argv[c], "-f"))
+        break;
+    }
+    if (c < argc - 1)
+    {
+      if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_relative (argv[c + 1], &log_frequency))
+          fprintf (stderr, "Failed to parse duration `%s'\n", argv[c + 1]);
+    }
+    else
+    {
+      log_frequency = LOGGING_FREQUENCY;
+    }
+    fprintf (stderr, "Using log frequency %llu ms\n",
+        (unsigned long long) (log_frequency.rel_value_us) / (1000));
   }
 
   GNUNET_asprintf (&testname, "%s_%s_%s",solver, comm_name, pref_str);

@@ -31,6 +31,7 @@
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 3
 #define DEFAULT_MASTERS_NUM 1
@@ -218,7 +219,8 @@ void
 perf_logging_stop ();
 
 void
-perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_masters);
+perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
+    char * testname, struct BenchmarkPeer *masters, int num_masters);
 
 
 /* end of file perf_ats.h */

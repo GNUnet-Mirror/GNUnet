@@ -27,8 +27,6 @@
 #include "gnunet_util_lib.h"
 #include "perf_ats.h"
 
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
-
 #define THROUGHPUT_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Throughput\" \n" \
@@ -46,6 +44,7 @@ static GNUNET_SCHEDULER_TaskIdentifier log_task;
 static int num_peers;
 static int running;
 static char *name;
+static struct GNUNET_TIME_Relative frequency;
 
 /**
  * A single logging time step for a partner
@@ -370,7 +369,7 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  log_task = GNUNET_SCHEDULER_add_delayed (LOGGING_FREQUENCY,
+  log_task = GNUNET_SCHEDULER_add_delayed (frequency,
       &collect_log_task, NULL);
 }
 
@@ -410,7 +409,8 @@ perf_logging_stop ()
 }
 
 void
-perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_masters)
+perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
+    char * testname, struct BenchmarkPeer *masters, int num_masters)
 {
   int c_m;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -418,6 +418,7 @@ perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_mast
 
   num_peers = num_masters;
   name = testname;
+  frequency = log_frequency;
 
   lp = GNUNET_malloc (num_masters * sizeof (struct LoggingPeer));
 
