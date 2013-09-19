@@ -329,6 +329,7 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   unsigned char fail;
 
   list = NULL;
+  rcount = 0;
   if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
