@@ -31,7 +31,7 @@
 #include "perf_ats.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define TESTNAME_PREFIX "perf_ats_"
 #define DEFAULT_SLAVES_NUM 3
 #define DEFAULT_MASTERS_NUM 1
@@ -437,8 +437,6 @@ do_benchmark ()
   progress_task = GNUNET_SCHEDULER_add_now (&print_progress, NULL );
 
   /* Start sending test messages */
-  if (GNUNET_YES == logging)
-    perf_logging_start (testname, mps, num_masters);
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     for (c_s = 0; c_s < num_slaves; c_s++)
@@ -457,6 +455,8 @@ do_benchmark ()
     if (pref_val != GNUNET_ATS_PREFERENCE_END)
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
+  if (GNUNET_YES == logging)
+    perf_logging_start (testname, mps, num_masters);
 
 }
 
