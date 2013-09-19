@@ -390,17 +390,7 @@ REGEX_TEST_read_from_file (const char *filename)
     offset += len + 1;
     if (len < 1)
       continue;
-    if (len < 6 || strncmp (&regex[len - 6], "(0|1)*", 6) != 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%s (line %u) does not end in \"(0|1)*\"\n",
-                  buffer, nr);
-    }
-    else
-    {
-      len -= 6;
-      regex[len] = '\0';
-    }
+    regex[len] = '\0';
     regex = GNUNET_realloc (regex, len + 1);
     GNUNET_array_grow (regexes, nr, nr + 1);
     GNUNET_assert (NULL == regexes[nr - 2]);
