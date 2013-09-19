@@ -24,7 +24,8 @@ pkgcfg_DATA = \
 libexec_PROGRAMS = \
   gnunet-service-testbed \
   gnunet-helper-testbed \
-  gnunet-service-testbed-logger
+  gnunet-service-testbed-logger \
+  gnunet-daemon-testbed-blacklist
 
 bin_PROGRAMS = \
   $(ll_binaries) \
@@ -58,6 +59,8 @@ gnunet_service_testbed_logger_SOURCES = \
   gnunet-service-testbed-logger.c
 gnunet_service_testbed_logger_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
+gnunet_service_testbed_logger_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
@@ -65,6 +68,7 @@ gnunet_testbed_profiler_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 gnunet_testbed_profiler_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
 gnunet_helper_testbed_SOURCES = \
@@ -77,6 +81,15 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
 gnunet_helper_testbed_DEPENDENCIES = \
   gnunet-service-testbed.$(OBJEXT) \
   libgnunettestbed.la
+
+gnunet_daemon_testbed_blacklist_SOURCES = gnunet-daemon-testbed-blacklist.c
+gnunet_daemon_testbed_blacklist_LDADD = $(XLIB) \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL)
+gnunet_daemon_testbed_blacklist_DEPENDENCIES = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_testbed_mpi_spawn_SOURCES = gnunet_testbed_mpi_spawn.c
 gnunet_testbed_mpi_spawn_LDADD = $(XLIB) \
