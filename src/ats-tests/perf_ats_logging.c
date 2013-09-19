@@ -27,20 +27,29 @@
 #include "gnunet_util_lib.h"
 #include "perf_ats.h"
 
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
+
+/**
+ * Logging task
+ */
 static GNUNET_SCHEDULER_TaskIdentifier log_task;
 
-static struct BenchmarkPeer *peers;
+/**
+ * Reference to perf_ats' masters
+ */
 static int num_peers;
 static char *name;
 
-struct LoggingTimestep
+/**
+ * A single logging time step for a partner
+ */
+struct PartnerLoggingTimestep
 {
-  struct LoggingTimestep *next;
-  struct LoggingTimestep *prev;
-
-  struct GNUNET_TIME_Absolute timestamp;
+  /**
+   * Peer
+   */
+  struct BenchmarkPeer *slave;
 
   /**
    * Total number of messages this peer has sent
@@ -63,14 +72,77 @@ struct LoggingTimestep
   unsigned int total_bytes_received;
 };
 
+
+/**
+ * A single logging time step for a peer
+ */
+struct PeerLoggingTimestep
+{
+  /**
+   * Next in DLL
+   */
+  struct PeerLoggingTimestep *next;
+
+  /**
+   * Prev in DLL
+   */
+  struct PeerLoggingTimestep *prev;
+
+  /**
+   * Logging timestamp
+   */
+  struct GNUNET_TIME_Absolute timestamp;
+
+  /**
+   * Total number of messages this peer has sent
+   */
+  unsigned int total_messages_sent;
+
+  /**
+   * Total number of bytes this peer has sent
+   */
+  unsigned int total_bytes_sent;
+
+  /**
+   * Total number of messages this peer has received
+   */
+  unsigned int total_messages_received;
+
+  /**
+   * Total number of bytes this peer has received
+   */
+  unsigned int total_bytes_received;
+
+  /**
+   * Logs for slaves
+   */
+  struct PartnerLoggingTimestep *slaves_log;
+};
+
+/**
+ * Entry for a benchmark peer
+ */
 struct LoggingPeer
 {
+  /**
+   * Peer
+   */
   struct BenchmarkPeer *peer;
 
+  /**
+   * Start time
+   */
   struct GNUNET_TIME_Absolute start;
 
-  struct LoggingTimestep *head;
-  struct LoggingTimestep *tail;
+  /**
+   * DLL for logging entries: head
+   */
+  struct PeerLoggingTimestep *head;
+
+  /**
+   * DLL for logging entries: tail
+   */
+  struct PeerLoggingTimestep *tail;
 };
 
 /**
@@ -85,8 +157,9 @@ write_to_file ()
   struct GNUNET_DISK_FileHandle *f;
   char * filename;
   char *data;
-  struct LoggingTimestep *cur;
+  struct PeerLoggingTimestep *cur;
   int c_m;
+  //int c_s;
   unsigned int throughput_recv;
   unsigned int throughput_send;
   double mult;
@@ -128,6 +201,8 @@ write_to_file ()
           cur->total_messages_sent, cur->total_bytes_sent, throughput_send,
           cur->total_messages_received, cur->total_bytes_received, throughput_recv);
 
+//      for ()
+
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u\n",
           cur->timestamp,
           GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur->timestamp).rel_value_us / 1000,
@@ -156,31 +231,40 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int c_m;
   int c_s;
-  struct LoggingTimestep *lt;
+  struct PeerLoggingTimestep *mlt;
+  struct PartnerLoggingTimestep *slt;
   struct BenchmarkPartner *p;
 
   log_task = GNUNET_SCHEDULER_NO_TASK;
 
   for (c_m = 0; c_m < num_peers; c_m++)
   {
-    lt = GNUNET_malloc (sizeof (struct LoggingTimestep));
-    GNUNET_CONTAINER_DLL_insert_tail(lp[c_m].head, lp[c_m].tail, lt);
+    mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
+    GNUNET_CONTAINER_DLL_insert_tail(lp[c_m].head, lp[c_m].tail, mlt);
 
     /* Collect data */
-    lt->timestamp = GNUNET_TIME_absolute_get();
-    lt->total_bytes_sent = lp[c_m].peer->total_bytes_sent;
-    lt->total_messages_sent = lp[c_m].peer->total_messages_sent;
-    lt->total_bytes_received = lp[c_m].peer->total_bytes_received;
-    lt->total_messages_received = lp[c_m].peer->total_messages_received;
+    mlt->timestamp = GNUNET_TIME_absolute_get();
+    mlt->total_bytes_sent = lp[c_m].peer->total_bytes_sent;
+    mlt->total_messages_sent = lp[c_m].peer->total_messages_sent;
+    mlt->total_bytes_received = lp[c_m].peer->total_bytes_received;
+    mlt->total_messages_received = lp[c_m].peer->total_messages_received;
+
+    mlt->slaves_log = GNUNET_malloc (lp[c_m].peer->num_partners *
+        sizeof (struct PartnerLoggingTimestep));
 
     for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
     {
-      p = &peers[c_m].partners[c_s];
-/*
+      p = &lp[c_m].peer->partners[c_s];
+      slt = &mlt->slaves_log[c_s];
+      slt->slave = p->dest;
+      slt->total_bytes_sent = p->dest->total_bytes_sent;
+      slt->total_messages_sent = p->dest->total_messages_sent;
+      slt->total_bytes_received = p->dest->total_bytes_received;
+      slt->total_messages_received = p->dest->total_messages_received;
+
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Master [%u]: slave [%u]\n",
           lp->peer->no, p->dest->no);
-*/
     }
   }
 
@@ -197,7 +281,7 @@ perf_logging_stop ()
 {
   int c_m;
   struct GNUNET_SCHEDULER_TaskContext tc;
-  struct LoggingTimestep *cur;
+  struct PeerLoggingTimestep *cur;
 
   if (GNUNET_SCHEDULER_NO_TASK != log_task)
     GNUNET_SCHEDULER_cancel (log_task);
@@ -215,6 +299,7 @@ perf_logging_stop ()
     while (NULL != (cur = lp[c_m].head))
     {
       GNUNET_CONTAINER_DLL_remove (lp[c_m].head, lp[c_m].tail, cur);
+      GNUNET_free (cur->slaves_log);
       GNUNET_free (cur);
     }
   }
@@ -229,7 +314,6 @@ perf_logging_start (char * testname, struct BenchmarkPeer *masters, int num_mast
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Start logging `%s'\n"), testname);
 
-  peers = masters;
   num_peers = num_masters;
   name = testname;
 

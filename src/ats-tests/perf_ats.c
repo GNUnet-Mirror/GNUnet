@@ -359,21 +359,21 @@ static size_t
 comm_send_ready (void *cls, size_t size, void *buf)
 {
   static char msgbuf[TEST_MESSAGE_SIZE];
-  struct BenchmarkPartner *partner = cls;
+  struct BenchmarkPartner *p = cls;
   struct GNUNET_MessageHeader *msg;
 
   if (GNUNET_YES == test_core)
-    partner->cth = NULL;
+    p->cth = NULL;
   else
-    partner->tth = NULL;
+    p->tth = NULL;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
-      partner->me->no, partner->dest->no);
+      p->me->no, p->dest->no);
 
-  partner->messages_sent++;
-  partner->bytes_sent += TEST_MESSAGE_SIZE;
-  partner->me->total_messages_sent++;
-  partner->me->total_bytes_sent += TEST_MESSAGE_SIZE;
+  p->messages_sent++;
+  p->bytes_sent += TEST_MESSAGE_SIZE;
+  p->me->total_messages_sent++;
+  p->me->total_bytes_sent += TEST_MESSAGE_SIZE;
 
   msg = (struct GNUNET_MessageHeader *) &msgbuf;
   memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
@@ -661,8 +661,8 @@ comm_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
   struct BenchmarkPartner *p = NULL;
   for (c_m = 0; c_m < num_masters; c_m++)
   {
-    if (0
-        == memcmp (other, &me->partners[c_m].dest->id,
+    /* Find a partner with other as destination */
+    if (0 == memcmp (other, &me->partners[c_m].dest->id,
             sizeof(struct GNUNET_PeerIdentity)))
     {
       p = &me->partners[c_m];
