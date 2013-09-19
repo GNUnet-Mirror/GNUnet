@@ -1092,6 +1092,11 @@ open_device (struct HardwareInfos *dev)
     if (GNUNET_NETWORK_socket_bind (dev->handle, (const SOCKADDR*)&addr, sizeof (SOCKADDR_BTH), 0) != GNUNET_OK)
     {
       fprintf (stderr, "Failed to bind the socket: ");
+      if (GetLastError() == WSAENETDOWN)
+      {
+        fprintf (stderr, "Please make sure that your Bluetooth device is ON!\n");
+        ExitProcess (2);
+      }
       print_last_error();
       return -1;
     }
