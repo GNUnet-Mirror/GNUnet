@@ -905,32 +905,46 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct BenchmarkPeer *me = cls;
+  struct BenchmarkPartner *p;
+  int c_s;
   int c_a;
   char *peer_id;
 
-  peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
-  for (c_a = 0; c_a < ats_count; c_a++)
+  p = NULL;
+  for (c_s = 0; c_s < me->num_partners; c_s++)
   {
-    /*GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("%c %03u: %s %s %u\n"),
-     (GNUNET_YES == p->master) ? 'M' : 'S',
-     p->no,
-     GNUNET_i2s (&address->peer),
-     GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
-     ntohl(ats[c_a].value));*/
-  }
-#if 0
-  if ((GNUNET_YES == me->master)
-      && (0 == memcmp (&address->peer, &me->destination->id,
-              sizeof(struct GNUNET_PeerIdentity))))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Bandwidth for master %u: %lu %lu\n",
-        me->no, (long unsigned int ) ntohl (bandwidth_in.value__),
-        (long unsigned int ) ntohl (bandwidth_in.value__));
+
+    if (0 == memcmp (&address->peer, &me->partners[c_s].dest->id,
+        sizeof (struct GNUNET_PeerIdentity)))
+    {
+      p = &me->partners[c_s];
+      break;
+    }
+
   }
 
-  store_information (&bp->id, address, address_active, bandwidth_in,
-      bandwidth_out, ats, ats_count);
-#endif
+  if (NULL == p)
+  {
+    /* This is not one of my partners
+     * Will happen since the peers will connect to each other due to gossiping
+     */
+    return;
+  }
+
+  peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
+
+  for (c_a = 0; c_a < ats_count; c_a++)
+  {
+    /*
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%c %03u: %s %s %u\n"),
+     (GNUNET_YES == p->me->master) ? 'M' : 'S',
+     p->me->no,
+     GNUNET_i2s (&address->peer),
+     GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
+     ntohl(ats[c_a].value));
+     */
+  }
+
   GNUNET_free(peer_id);
 }
 

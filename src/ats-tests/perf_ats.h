@@ -100,9 +100,15 @@ struct BenchmarkPartner
    */
   unsigned int bytes_received;
 
+  /* Current ATS properties */
 
+  uint32_t ats_distance;
 
+  uint32_t ats_delay;
 
+  uint32_t bandwidth_in;
+
+  uint32_t bandwidth_out;
 };
 
 
