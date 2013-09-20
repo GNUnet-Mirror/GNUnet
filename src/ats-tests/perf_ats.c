@@ -372,6 +372,17 @@ comm_send_ready (void *cls, size_t size, void *buf)
   else
     p->tth = NULL;
 
+  if (NULL == buf)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if (size < TEST_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
       p->me->no, p->dest->no);
 
@@ -386,6 +397,24 @@ comm_send_ready (void *cls, size_t size, void *buf)
   msg->size = htons (TEST_MESSAGE_SIZE);
   memcpy (buf, msg, TEST_MESSAGE_SIZE);
   return TEST_MESSAGE_SIZE;
+}
+
+static void
+comm_schedule_send (struct BenchmarkPartner *p)
+{
+  if (GNUNET_YES == test_core)
+  {
+    p->cth = GNUNET_CORE_notify_transmit_ready (
+      p->me->ch, GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
+      TEST_MESSAGE_SIZE, &comm_send_ready, p);
+  }
+  else
+  {
+    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (
+      p->me->th, &p->dest->id, TEST_MESSAGE_SIZE, 0,GNUNET_TIME_UNIT_MINUTES,
+      &comm_send_ready, p);
+  }
+
 }
 
 static void
@@ -445,18 +474,7 @@ do_benchmark ()
   for (c_m = 0; c_m < num_masters; c_m++)
   {
     for (c_s = 0; c_s < num_slaves; c_s++)
-    {
-      if (GNUNET_YES == test_core)
-        mps[c_m].partners[c_s].cth = GNUNET_CORE_notify_transmit_ready (
-          mps[c_m].ch, GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &sps[c_s].id,
-          TEST_MESSAGE_SIZE, &comm_send_ready, &mps[c_m].partners[c_s]);
-      else
-      {
-        mps[c_m].partners[c_s].tth = GNUNET_TRANSPORT_notify_transmit_ready (
-          mps[c_m].th, &sps[c_s].id, TEST_MESSAGE_SIZE, 0,GNUNET_TIME_UNIT_MINUTES,
-          &comm_send_ready, &mps[c_m].partners[c_s]);
-      }
-    }
+      comm_schedule_send (&mps[c_m].partners[c_s]);
     if (pref_val != GNUNET_ATS_PREFERENCE_END)
       mps[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &mps[c_m]);
   }
@@ -739,21 +757,7 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
   p->me->total_messages_received++;
   p->me->total_bytes_received += TEST_MESSAGE_SIZE;
 
-  if (GNUNET_YES == test_core)
-  {
-    GNUNET_assert (NULL == p->cth);
-    p->cth = GNUNET_CORE_notify_transmit_ready (me->ch, GNUNET_NO, 0,
-        GNUNET_TIME_UNIT_MINUTES, &p->dest->id, TEST_MESSAGE_SIZE,
-        &comm_send_ready, p);
-  }
-  else
-  {
-    GNUNET_assert (NULL == p->tth);
-    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (
-      me->th, &p->dest->id, TEST_MESSAGE_SIZE, 0,GNUNET_TIME_UNIT_MINUTES,
-      &comm_send_ready, p);
-  }
-
+  comm_schedule_send (p);
   return GNUNET_OK;
 }
 
