@@ -60,35 +60,37 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
                       size_t reply_block_size)
 {
   if (NULL == reply_block)
-    {
-      if (0 != xquery_size)
-	{
-	  const char *s;  
-	  
-	  s = (const char *) xquery;
-	  if ('\0' != s[xquery_size - 1]) /* must be valid 0-terminated string */
-	    {
-	      GNUNET_break_op (0);
-	      return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
-	    }
-	}
-      return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
-    }
+  {
+    if (0 != xquery_size)
+      {
+        const char *s;
+
+        s = (const char *) xquery;
+        if ('\0' != s[xquery_size - 1]) /* must be valid 0-terminated string */
+          {
+            GNUNET_break_op (0);
+            return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
+          }
+      }
+    return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  }
   if (0 != xquery_size)
   {
-    const char *query;
+    const char *s;
 
-    query = (const char *) xquery;
-    if ('\0' != query[xquery_size - 1]) /* must be valid 0-terminated string */
+    s = (const char *) xquery;
+    if ('\0' != s[xquery_size - 1]) /* must be valid 0-terminated string */
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
     }
   }
-  else 
+  else if (NULL != query)
   {
     /* xquery is required for regex, at least an empty string */
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "type %d, query %p, xquery %p\n",
+                type, query, xquery);
     return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
   }
   switch (REGEX_BLOCK_check (reply_block,
