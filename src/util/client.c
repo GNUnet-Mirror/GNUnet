@@ -263,6 +263,8 @@ try_unixpath (const char *service_name,
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       LOG (GNUNET_ERROR_TYPE_INFO,
 	   _("Using `%s' instead\n"), unixpath);
+      if (NULL == unixpath)
+	return NULL;
     }
     connection = GNUNET_CONNECTION_create_from_connect_to_unixpath (cfg, unixpath);
     if (NULL != connection)
