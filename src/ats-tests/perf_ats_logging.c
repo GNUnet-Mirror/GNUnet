@@ -40,6 +40,16 @@
 "set ylabel \"ms\" \n"
 
 #define LOG_ITEMS_PER_PEER 7
+#define LOG_ITEMS_TIME 2
+
+#define LOG_ITEMS_BYTES_SENT 1
+#define LOG_ITEMS_MSGS_SENT 2
+#define LOG_ITEMS_THROUGHPUT_SENT 3
+#define LOG_ITEMS_BYTES_RECV 4
+#define LOG_ITEMS_MSGS_RECV 5
+#define LOG_ITEMS_THROUGHPUT_RECV 6
+#define LOG_ITEMS_APP_RTT 7
+
 
 /**
  * Logging task
@@ -182,7 +192,7 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
   char * gfn;
   char *data;
   int c_s;
-  int index;
+  int peer_index;
 
   GNUNET_asprintf (&gfn, "gnuplot_throughput_%s",fn);
   f = GNUNET_DISK_file_open (gfn,
@@ -201,26 +211,27 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 
   /* Write master data */
+  peer_index = LOG_ITEMS_TIME;
   GNUNET_asprintf (&data, "plot '%s' using 2:%u with lines title 'Master %u send total', \\\n" \
                            "'%s' using 2:%u with lines title 'Master %u receive total', \\\n",
-                           fn, 5, lp->peer->no,
-                           fn, 8, lp->peer->no);
+                           fn, peer_index + LOG_ITEMS_THROUGHPUT_SENT, lp->peer->no,
+                           fn, peer_index + LOG_ITEMS_THROUGHPUT_RECV, lp->peer->no);
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
   GNUNET_free (data);
 
-  index = 2 + LOG_ITEMS_PER_PEER + 3 ;
+  peer_index = LOG_ITEMS_TIME + LOG_ITEMS_PER_PEER ;
   for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
   {
-    GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Master - Slave %u send', \\\n" \
-                            "'%s' using 2:%u with lines title 'Master - Slave %u receive'%s\n",
-                            fn, index, lp->peer->partners[c_s].dest->no,
-                            fn, index+3, lp->peer->partners[c_s].dest->no,
+    GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Master %u - Slave %u send', \\\n" \
+                            "'%s' using 2:%u with lines title 'Master %u - Slave %u receive'%s\n",
+                            fn, peer_index + LOG_ITEMS_THROUGHPUT_SENT, lp->peer->no, lp->peer->partners[c_s].dest->no,
+                            fn, peer_index + LOG_ITEMS_THROUGHPUT_RECV, lp->peer->no, lp->peer->partners[c_s].dest->no,
                             (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
     GNUNET_free (data);
-    index += LOG_ITEMS_PER_PEER;
+    peer_index += LOG_ITEMS_PER_PEER;
   }
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
@@ -257,13 +268,12 @@ write_rtt_gnuplot_script (char * fn, struct LoggingPeer *lp)
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, RTT_TEMPLATE, strlen(RTT_TEMPLATE)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 
-  /* 1st column: 2 * timestamp _+ 7 * master + 7 */
-  index = 2 + LOG_ITEMS_PER_PEER + LOG_ITEMS_PER_PEER;
+  index = LOG_ITEMS_TIME + LOG_ITEMS_PER_PEER;
   for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
   {
-    GNUNET_asprintf (&data, "%s'%s' using 2:%u with lines title 'Master - Slave %u '%s\n",
+    GNUNET_asprintf (&data, "%s'%s' using 2:%u with lines title 'Master %u - Slave %u '%s\n",
         (0 == c_s) ? "plot " :"",
-        fn, index, lp->peer->partners[c_s].dest->no,
+        fn, index + LOG_ITEMS_APP_RTT, lp->peer->no, lp->peer->partners[c_s].dest->no,
         (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
