@@ -109,6 +109,18 @@ struct BenchmarkPartner
   uint32_t bandwidth_in;
 
   uint32_t bandwidth_out;
+
+  uint32_t ats_utilization_up;
+
+  uint32_t ats_utilization_down;
+
+  uint32_t ats_network_type;
+
+  uint32_t ats_cost_wan;
+
+  uint32_t ats_cost_lan;
+
+  uint32_t ats_cost_wlan;
 };
 
 
@@ -234,6 +246,9 @@ struct BenchmarkPeer
   unsigned int total_bytes_received;
 };
 
+
+void
+collect_log_now (void);
 
 void
 perf_logging_stop ();

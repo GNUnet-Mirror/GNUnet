@@ -935,16 +935,48 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
   for (c_a = 0; c_a < ats_count; c_a++)
   {
-    /*
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%c %03u: %s %s %u\n"),
-     (GNUNET_YES == p->me->master) ? 'M' : 'S',
-     p->me->no,
-     GNUNET_i2s (&address->peer),
-     GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
-     ntohl(ats[c_a].value));
-     */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s %s %u\n",
+        (GNUNET_YES == p->me->master) ? "Master" : "Slave",
+        p->me->no,
+        GNUNET_i2s (&p->dest->id),
+        GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
+        ntohl(ats[c_a].value));
+    switch (ntohl (ats[c_a].type ))
+    {
+      case GNUNET_ATS_ARRAY_TERMINATOR:
+        break;
+      case GNUNET_ATS_UTILIZATION_UP:
+        p->ats_utilization_up = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_UTILIZATION_DOWN:
+        p->ats_utilization_down = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_NETWORK_TYPE:
+        p->ats_network_type = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_QUALITY_NET_DELAY:
+        p->ats_delay = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_QUALITY_NET_DISTANCE:
+        p->ats_distance = ntohl (ats[c_a].value);
+        GNUNET_break (0);
+        break;
+      case GNUNET_ATS_COST_WAN:
+        p->ats_cost_wan = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_COST_LAN:
+        p->ats_cost_lan = ntohl (ats[c_a].value);
+        break;
+      case GNUNET_ATS_COST_WLAN:
+        p->ats_cost_wlan = ntohl (ats[c_a].value);
+        break;
+        break;
+      default:
+        break;
+    }
   }
-
+  if (GNUNET_YES == logging)
+    collect_log_now();
   GNUNET_free(peer_id);
 }
 

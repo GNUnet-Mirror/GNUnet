@@ -99,11 +99,32 @@ struct PartnerLoggingTimestep
    */
   unsigned int total_app_rtt;
 
-
   /**
    * Current application level delay
    */
   unsigned int app_rtt;
+
+  /* Current ATS properties */
+
+  uint32_t ats_distance;
+
+  uint32_t ats_delay;
+
+  uint32_t bandwidth_in;
+
+  uint32_t bandwidth_out;
+
+  uint32_t ats_utilization_up;
+
+  uint32_t ats_utilization_down;
+
+  uint32_t ats_network_type;
+
+  uint32_t ats_cost_wan;
+
+  uint32_t ats_cost_lan;
+
+  uint32_t ats_cost_wlan;
 };
 
 
@@ -292,6 +313,7 @@ static void
 write_to_file ()
 {
   struct GNUNET_DISK_FileHandle *f;
+  struct GNUNET_TIME_Relative delta;
   char * filename;
   char *data;
   char *slave_string;
@@ -324,7 +346,15 @@ write_to_file ()
 
     for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
-      mult = (1.0 * 1000 * 1000) /  (LOGGING_FREQUENCY.rel_value_us);
+      if (NULL == cur_lt->prev)
+      {
+        delta = GNUNET_TIME_absolute_get_difference (lp[c_m].start, cur_lt->timestamp);
+      }
+      else
+        delta = GNUNET_TIME_absolute_get_difference (cur_lt->prev->timestamp, cur_lt->timestamp);
+
+      /* Multiplication factor for throughput calculation */
+      mult = (1.0 * 1000 * 1000) / (delta.rel_value_us);
       if (NULL != cur_lt->prev)
       {
         throughput_send = cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent;
@@ -364,9 +394,10 @@ write_to_file ()
         throughput_recv_slave *= mult;
         /* Assembling slave string */
         GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-            "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u \n", plt->slave->no,
+            "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %u \n", plt->slave->no,
             plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
-            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave, plt->app_rtt);
+            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave,
+            plt->app_rtt, plt->ats_delay);
 
 
         GNUNET_asprintf(&slave_string_tmp, "%s%u;%u;%u;%u;%u;%u;%.3f;",slave_string,
@@ -405,103 +436,96 @@ write_to_file ()
 }
 
 
-static void
-collect_log_now (struct LoggingPeer *bp)
+void
+collect_log_now (void)
 {
+  struct LoggingPeer *bp;
   struct PeerLoggingTimestep *mlt;
   struct PartnerLoggingTimestep *slt;
   struct PartnerLoggingTimestep *prev_log_slt;
   struct BenchmarkPartner *p;
   int c_s;
+  int c_m;
   unsigned int app_rtt;
 
-  mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
-  GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
+  if (GNUNET_YES != running)
+    return;
 
-  /* Collect data */
-
-  /* Current master state */
-  mlt->timestamp = GNUNET_TIME_absolute_get();
-  mlt->total_bytes_sent = bp->peer->total_bytes_sent;
-  mlt->total_messages_sent = bp->peer->total_messages_sent;
-  mlt->total_bytes_received = bp->peer->total_bytes_received;
-  mlt->total_messages_received = bp->peer->total_messages_received;
-
-  mlt->slaves_log = GNUNET_malloc (bp->peer->num_partners *
-      sizeof (struct PartnerLoggingTimestep));
-
-  for (c_s = 0; c_s < bp->peer->num_partners; c_s++)
+  for (c_m = 0; c_m < num_peers; c_m++)
   {
-    p = &bp->peer->partners[c_s];
-    slt = &mlt->slaves_log[c_s];
+    bp = &lp[c_m];
+    mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
+    GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
 
-    slt->slave = p->dest;
-    /* Bytes sent from master to this slave */
-    slt->total_bytes_sent = p->bytes_sent;
-    /* Messages sent from master to this slave */
-    slt->total_messages_sent = p->messages_sent;
-    /* Bytes master received from this slave */
-    slt->total_bytes_received = p->bytes_received;
-    /* Messages master received from this slave */
-    slt->total_messages_received = p->messages_received;
-    slt->total_app_rtt = p->total_app_rtt;
+    /* Collect data */
 
-    /* Total application level rtt  */
-    /*
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Master [%u]: slave [%u]: partner total rtt %u / %u = %u\n",
-        bp->peer->no, p->dest->no,
-        p->total_app_rtt, p->messages_sent, (p->messages_sent != 0)?p->total_app_rtt / p->messages_sent : 0);
-*/
-    if (NULL == mlt->prev)
+    /* Current master state */
+    mlt->timestamp = GNUNET_TIME_absolute_get();
+    mlt->total_bytes_sent = bp->peer->total_bytes_sent;
+    mlt->total_messages_sent = bp->peer->total_messages_sent;
+    mlt->total_bytes_received = bp->peer->total_bytes_received;
+    mlt->total_messages_received = bp->peer->total_messages_received;
+
+    mlt->slaves_log = GNUNET_malloc (bp->peer->num_partners *
+        sizeof (struct PartnerLoggingTimestep));
+
+    for (c_s = 0; c_s < bp->peer->num_partners; c_s++)
     {
-      if (0 != slt->total_messages_sent)
-        app_rtt = slt->total_app_rtt / slt->total_messages_sent;
+      p = &bp->peer->partners[c_s];
+      slt = &mlt->slaves_log[c_s];
+
+      slt->slave = p->dest;
+      /* Bytes sent from master to this slave */
+      slt->total_bytes_sent = p->bytes_sent;
+      /* Messages sent from master to this slave */
+      slt->total_messages_sent = p->messages_sent;
+      /* Bytes master received from this slave */
+      slt->total_bytes_received = p->bytes_received;
+      /* Messages master received from this slave */
+      slt->total_messages_received = p->messages_received;
+      slt->total_app_rtt = p->total_app_rtt;
+      /* ats performance information */
+      slt->ats_cost_lan = p->ats_cost_lan;
+      slt->ats_cost_wan = p->ats_cost_wan;
+      slt->ats_cost_wlan = p->ats_cost_wlan;
+      slt->ats_delay = p->ats_delay;
+      slt->ats_distance = p->ats_distance;
+      slt->ats_network_type = p->ats_network_type;
+      slt->ats_utilization_down = p->ats_utilization_down;
+      slt->ats_utilization_up = p->ats_utilization_up;
+
+
+      /* Total application level rtt  */
+      if (NULL == mlt->prev)
+      {
+        if (0 != slt->total_messages_sent)
+          app_rtt = slt->total_app_rtt / slt->total_messages_sent;
+        else
+          app_rtt = 0;
+      }
       else
-        app_rtt = 0;
+      {
+        prev_log_slt =  &mlt->prev->slaves_log[c_s];
+        if ((slt->total_messages_sent - prev_log_slt->total_messages_sent) > 0)
+          app_rtt = (slt->total_app_rtt - prev_log_slt->total_app_rtt) /
+                  (slt->total_messages_sent - prev_log_slt->total_messages_sent);
+        else
+          app_rtt = 0;
+      }
+      slt->app_rtt = app_rtt;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Master [%u]: slave [%u]\n",
+          bp->peer->no, p->dest->no);
     }
-    else
-    {
-      prev_log_slt =  &mlt->prev->slaves_log[c_s];
-/*
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-          "Master [%u]: slave [%u]: %u - %u = %u  .....   delta messages %u - %u = %u \n",
-          bp->peer->no, p->dest->no,
-          slt->total_app_rtt, prev_log_slt->total_app_rtt, slt->total_app_rtt - prev_log_slt->total_app_rtt,
-          slt->total_messages_sent, prev_log_slt->total_messages_sent, slt->total_messages_sent - prev_log_slt->total_messages_sent
-          );
-*/
-
-      app_rtt = (slt->total_app_rtt - prev_log_slt->total_app_rtt) /
-                (slt->total_messages_sent - prev_log_slt->total_messages_sent);
-
-    }
-
-
-    /*
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Master [%u]: slave [%u]: %u \ncurrent total rtt %u previous total rtt %u delta total rtt %u\n",
-        bp->peer->no, p->dest->no,
-        p->total_app_rtt,
-        slt->total_app_rtt, prev_log_slt->total_app_rtt, (slt->total_app_rtt - prev_log_slt->total_app_rtt) ,
-        app_rtt);*/
-    slt->app_rtt = app_rtt;
-
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Master [%u]: slave [%u]\n",
-        bp->peer->no, p->dest->no);
   }
 }
 
 static void
 collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int c_m;
-
   log_task = GNUNET_SCHEDULER_NO_TASK;
 
-  for (c_m = 0; c_m < num_peers; c_m++)
-    collect_log_now (&lp[c_m]);
+  collect_log_now();
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
