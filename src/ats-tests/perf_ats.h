@@ -71,6 +71,16 @@ struct BenchmarkPartner
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
 
   /**
+   * Timestamp to calculate communication layer delay
+   */
+  struct GNUNET_TIME_Absolute last_message_sent;
+
+  /**
+   * Accumulated delay for all messages
+   */
+  unsigned int total_app_delay;
+
+  /**
    * Number of messages sent to this partner
    */
   unsigned int messages_sent;
@@ -89,6 +99,10 @@ struct BenchmarkPartner
    * Number of bytes received from this partner
    */
   unsigned int bytes_received;
+
+
+
+
 };
 
 

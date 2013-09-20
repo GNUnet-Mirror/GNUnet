@@ -167,6 +167,7 @@ evaluate ()
   int c_s;
   unsigned int duration;
   struct BenchmarkPeer *mp;
+  struct BenchmarkPartner *p;
 
   duration = (perf_duration.rel_value_us / (1000 * 1000));
   for (c_m = 0; c_m < num_masters; c_m++)
@@ -181,14 +182,20 @@ evaluate ()
 
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
+      p = &mp->partners[c_s];
       fprintf (stderr,
           "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f \%), received %u KiB/s (%.2f \%)\n",
-          (mp->pref_partner == mp->partners[c_s].dest) ? '*' : ' ',
-          mp->no, mp->partners[c_s].dest->no,
-          (mp->partners[c_s].bytes_sent / 1024) / duration,
-          ((double) mp->partners[c_s].bytes_sent * 100) / mp->total_bytes_sent,
-          (mp->partners[c_s].bytes_received / 1024) / duration,
-          ((double) mp->partners[c_s].bytes_received * 100) / mp->total_bytes_received );
+          (mp->pref_partner == p->dest) ? '*' : ' ',
+          mp->no, p->dest->no,
+          (p->bytes_sent / 1024) / duration,
+          ((double) p->bytes_sent * 100) / mp->total_bytes_sent,
+          (p->bytes_received / 1024) / duration,
+          ((double) p->bytes_received * 100) / mp->total_bytes_received );
+      fprintf (stderr,
+          "%c Master [%u] -> Slave [%u]: Average application layer RTT: %u ms\n",
+          (mp->pref_partner == p->dest) ? '*' : ' ',
+          mp->no, p->dest->no,
+          p->total_app_delay / (1000 * p->messages_sent));
     }
   }
 }
@@ -402,6 +409,7 @@ comm_send_ready (void *cls, size_t size, void *buf)
 static void
 comm_schedule_send (struct BenchmarkPartner *p)
 {
+  p->last_message_sent = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == test_core)
   {
     p->cth = GNUNET_CORE_notify_transmit_ready (
@@ -748,6 +756,7 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   }
 
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Master [%u]: Received PONG from [%u], next message\n", me->no,
       p->dest->no);
@@ -756,6 +765,8 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
   p->bytes_received += TEST_MESSAGE_SIZE;
   p->me->total_messages_received++;
   p->me->total_bytes_received += TEST_MESSAGE_SIZE;
+  p->total_app_delay += GNUNET_TIME_absolute_get_difference(p->last_message_sent,
+      GNUNET_TIME_absolute_get()).rel_value_us;
 
   comm_schedule_send (p);
   return GNUNET_OK;
