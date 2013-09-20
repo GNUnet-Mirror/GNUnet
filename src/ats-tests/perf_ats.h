@@ -76,9 +76,9 @@ struct BenchmarkPartner
   struct GNUNET_TIME_Absolute last_message_sent;
 
   /**
-   * Accumulated delay for all messages
+   * Accumulated RTT for all messages
    */
-  unsigned int total_app_delay;
+  unsigned int total_app_rtt;
 
   /**
    * Number of messages sent to this partner

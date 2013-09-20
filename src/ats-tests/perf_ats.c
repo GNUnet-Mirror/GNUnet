@@ -195,7 +195,7 @@ evaluate ()
           "%c Master [%u] -> Slave [%u]: Average application layer RTT: %u ms\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
           mp->no, p->dest->no,
-          p->total_app_delay / (1000 * p->messages_sent));
+          p->total_app_rtt / (1000 * p->messages_sent));
     }
   }
 }
@@ -765,7 +765,7 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
   p->bytes_received += TEST_MESSAGE_SIZE;
   p->me->total_messages_received++;
   p->me->total_bytes_received += TEST_MESSAGE_SIZE;
-  p->total_app_delay += GNUNET_TIME_absolute_get_difference(p->last_message_sent,
+  p->total_app_rtt += GNUNET_TIME_absolute_get_difference(p->last_message_sent,
       GNUNET_TIME_absolute_get()).rel_value_us;
 
   comm_schedule_send (p);
