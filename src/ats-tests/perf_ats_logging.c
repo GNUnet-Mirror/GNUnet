@@ -326,6 +326,8 @@ write_to_file ()
   unsigned int throughput_send;
   unsigned int throughput_recv_slave;
   unsigned int throughput_send_slave;
+  int last_throughput_send;
+  int last_throughput_recv;
   double mult;
 
   for (c_m = 0; c_m < num_peers; c_m++)
@@ -343,6 +345,8 @@ write_to_file ()
       return;
     }
 
+    last_throughput_recv = 0;
+    last_throughput_send = 0;
 
     for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
@@ -357,16 +361,39 @@ write_to_file ()
       mult = (1.0 * 1000 * 1000) / (delta.rel_value_us);
       if (NULL != cur_lt->prev)
       {
-        throughput_send = cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent;
-        throughput_recv = cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received;
+        if (cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent > 0)
+        {
+          throughput_send = cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent;
+          throughput_send *= mult;
+        }
+        else
+        {
+          //GNUNET_break (0);
+          throughput_send = last_throughput_send; /* no msgs received */
+        }
+
+        if (cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received > 0)
+        {
+          throughput_recv = cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received;
+          throughput_recv *= mult;
+        }
+        else
+        {
+         // GNUNET_break (0);
+          throughput_recv = last_throughput_recv; /* no msgs received */
+        }
       }
       else
       {
         throughput_send = cur_lt->total_bytes_sent;
         throughput_recv = cur_lt->total_bytes_received;
+
+        throughput_send *= mult;
+        throughput_recv *= mult;
+
       }
-      throughput_send *= mult;
-      throughput_recv *= mult;
+      last_throughput_send = throughput_send;
+      last_throughput_recv = throughput_recv;
 
 
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -510,7 +537,7 @@ collect_log_now (void)
           app_rtt = (slt->total_app_rtt - prev_log_slt->total_app_rtt) /
                   (slt->total_messages_sent - prev_log_slt->total_messages_sent);
         else
-          app_rtt = 0;
+          app_rtt = prev_log_slt->app_rtt; /* No messages were */
       }
       slt->app_rtt = app_rtt;
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
