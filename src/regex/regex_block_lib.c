@@ -211,6 +211,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
   struct CheckEdgeContext ctx;
   int res;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Block check\n");
   if (GNUNET_OK != 
       REGEX_BLOCK_get_key (block, size,
 			   &key))
@@ -218,16 +219,22 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (0 != memcmp (&key,
-		   query,
-		   sizeof (struct GNUNET_HashCode)))
+  if (NULL != query &&
+      0 != memcmp (&key,
+                   query,
+                   sizeof (struct GNUNET_HashCode)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   if ( (GNUNET_YES == ntohs (block->is_accepting)) &&
        ( (NULL == xquery) || ('\0' == xquery[0]) ) )
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  out! Is accepting: %u, xquery %p\n",
+       ntohs(block->is_accepting), xquery);
     return GNUNET_OK;
+  }
   ctx.xquery = xquery;
   ctx.found = GNUNET_NO;
   res = REGEX_BLOCK_iterate (block, size, &check_edge, &ctx);
@@ -235,6 +242,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
     return GNUNET_SYSERR;
   if (NULL == xquery)
     return GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Result %d\n", ctx.found);
   return ctx.found;
 }
 
@@ -312,6 +320,7 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
   unsigned int n;
   size_t off;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Block iterate\n");
   if (size < sizeof (struct RegexBlock)) 
   {
     GNUNET_break_op (0);
@@ -347,8 +356,9 @@ REGEX_BLOCK_iterate (const struct RegexBlock *block,
   for (n=0;n<num_edges;n++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Edge %u, off %u tokenlen %u\n", n, off,
-	 ntohs (edges[n].token_length));
+	 " Edge %u/%u, off %u tokenlen %u (%.*s)\n", n+1, num_edges, off,
+	 ntohs (edges[n].token_length), ntohs (edges[n].token_length),
+         &aux[off]);
     if (NULL != iterator)
       if (GNUNET_NO == iterator (iter_cls, 
 				 &aux[off], 

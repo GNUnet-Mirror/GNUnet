@@ -595,11 +595,12 @@ regex_next_edge (const struct RegexBlock *block,
   const char *rest;
   int result;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Next edge\n");
   /* Find the longest match for the current string position, 
    * among tokens in the given block */
   ctx->longest_match = 0;
   result = REGEX_BLOCK_iterate (block, size,
-				&regex_edge_iterator, ctx);
+                                &regex_edge_iterator, ctx);
   GNUNET_break (GNUNET_OK == result);
 
   /* Did anything match? */

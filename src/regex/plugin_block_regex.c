@@ -87,7 +87,7 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
   }
   else if (NULL != query)
   {
-    /* xquery is required for regex, at least an empty string */
+    /* xquery is required for regex GETs, at least an empty string */
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "type %d, query %p, xquery %p\n",
                 type, query, xquery);
