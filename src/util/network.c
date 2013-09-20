@@ -123,7 +123,7 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
   if (slen < upm)
     return unixpath; /* no shortening required */
   GNUNET_CRYPTO_hash (unixpath, slen, &sh);
-  while (sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 
+  while (16 +
 	 strlen (unixpath) >= upm)
   {
     if (NULL == (end = strrchr (unixpath, '/')))
@@ -137,7 +137,7 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
     *end = '\0';
   }
   GNUNET_CRYPTO_hash_to_enc (&sh, &ae);
-  strcat (unixpath, (char*) ae.encoding);
+  strncat (unixpath, (char*) ae.encoding, 16);
   return unixpath;
 }
 
