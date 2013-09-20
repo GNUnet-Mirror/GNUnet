@@ -240,10 +240,10 @@ static struct GNUNET_SERVER_NotificationContext *notifier;
 /**
  * Transmit a status result message.
  *
- * @param cls pointer to "unit16_t*" with message type
- * @param size number of bytes available in buf
+ * @param cls a `unit16_t *` with message type
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 write_result (void *cls, size_t size, void *buf)
@@ -259,7 +259,8 @@ write_result (void *cls, size_t size, void *buf)
     return 0;			/* error, not much we can do */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending status response %u to client\n", (unsigned int) msg->result);
+	      "Sending status response %u to client\n", 
+	      (unsigned int) msg->result);
   msize = msg->arm_msg.header.size;
   GNUNET_assert (size >= msize);
   msg->arm_msg.header.size = htons (msg->arm_msg.header.size);
@@ -271,13 +272,14 @@ write_result (void *cls, size_t size, void *buf)
   return msize;
 }
 
+
 /**
  * Transmit the list of running services.
  * 
- * @param cls pointer to struct GNUNET_ARM_ListResultMessage with the message
- * @param size number of bytes available in buf
+ * @param cls pointer to `struct GNUNET_ARM_ListResultMessage` with the message
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 write_list_result (void *cls, size_t size, void *buf)
@@ -317,8 +319,10 @@ write_list_result (void *cls, size_t size, void *buf)
  * @return NULL if it was not found
  */
 static void
-signal_result (struct GNUNET_SERVER_Client *client, const char *name,
-	       uint64_t request_id, enum GNUNET_ARM_Result result)
+signal_result (struct GNUNET_SERVER_Client *client, 
+	       const char *name,
+	       uint64_t request_id,
+	       enum GNUNET_ARM_Result result)
 {
   struct GNUNET_ARM_ResultMessage *msg;
   size_t msize;
@@ -331,7 +335,8 @@ signal_result (struct GNUNET_SERVER_Client *client, const char *name,
   msg->arm_msg.request_id = request_id;
 
   GNUNET_SERVER_notify_transmit_ready (client, msize,
-      GNUNET_TIME_UNIT_FOREVER_REL, write_result, msg);
+				       GNUNET_TIME_UNIT_FOREVER_REL, 
+				       write_result, msg);
 }
 
 
@@ -344,8 +349,9 @@ signal_result (struct GNUNET_SERVER_Client *client, const char *name,
  *                otherwise, send to all clients in the notifier
  */
 static void
-broadcast_status (const char *name, enum GNUNET_ARM_ServiceStatus status,
-    struct GNUNET_SERVER_Client *unicast)
+broadcast_status (const char *name,
+		  enum GNUNET_ARM_ServiceStatus status,
+		  struct GNUNET_SERVER_Client *unicast)
 {
   struct GNUNET_ARM_StatusMessage *msg;
   size_t namelen;
@@ -544,7 +550,7 @@ find_service (const char *name)
  * First connection has come to the listening socket associated with the service,
  * create the service in order to relay the incoming connection to it
  *
- * @param cls callback data, struct ServiceListeningInfo describing a listen socket
+ * @param cls callback data, `struct ServiceListeningInfo` describing a listen socket
  * @param tc context
  */
 static void
@@ -566,7 +572,7 @@ accept_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * wait for the first incoming connection to it
  *
  * @param sa address associated with the service
- * @param addr_len length of sa
+ * @param addr_len length of @a sa
  * @param sl service entry for the service in question
  */
 static void
@@ -674,8 +680,8 @@ free_service (struct ServiceList *sl)
  * @param cls closure (always NULL)
  * @param client identification of the client
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
 handle_start (void *cls, struct GNUNET_SERVER_Client *client,
@@ -743,8 +749,8 @@ trigger_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure (always NULL)
  * @param client identification of the client
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
 handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
@@ -823,6 +829,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
  * Handle LIST-message.
  *
@@ -885,6 +892,7 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
  * We are done with everything.  Stop remaining
  * tasks, signal handler and the server.
@@ -910,15 +918,20 @@ do_shutdown ()
     }
 }
 
-unsigned int
+
+static unsigned int
 list_count (struct ServiceList *running_head)
 {
   struct ServiceList *i;
   unsigned int res = 0;
+
   for (res = 0, i = running_head; i; i = i->next, res++)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s\n", i->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"%s\n",
+		i->name);
   return res;
 }
+
 
 /**
  * Task run for shutdown.
@@ -933,7 +946,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceList *nxt;
   struct ServiceListeningInfo *sli;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "First shutdown phase\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "First shutdown phase\n");
   if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
   {
     GNUNET_SCHEDULER_cancel (child_restart_task);
@@ -965,7 +979,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     nxt = pos->next;
     if (pos->proc != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping service `%s'\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		  "Stopping service `%s'\n",
 		  pos->name);
       pos->killed_at = GNUNET_TIME_absolute_get ();
       if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
@@ -981,7 +996,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     do_shutdown ();
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Delaying shutdown, have %u childs still running\n", list_count (running_head));
+		"Delaying shutdown, have %u childs still running\n", 
+		list_count (running_head));
 }
 
 
@@ -1218,7 +1234,7 @@ sighandler_child_death ()
  *
  * @param cls unused
  * @param section a section in the configuration file
- * @return GNUNET_OK (continue)
+ * @return #GNUNET_OK (continue)
  */
 static void
 setup_service (void *cls, const char *section)
@@ -1266,7 +1282,7 @@ setup_service (void *cls, const char *section)
       config = NULL;
     }
   }
-  sl = GNUNET_malloc (sizeof (struct ServiceList));
+  sl = GNUNET_new (struct ServiceList);
   sl->name = GNUNET_strdup (section);
   sl->binary = binary;
   sl->config = config;
@@ -1309,14 +1325,15 @@ handle_client_connecting (void *cls, struct GNUNET_SERVER_Client *client)
     GNUNET_SERVER_client_mark_monitor (client);
 }
 
+
 /**
  * Handle MONITOR-message.
  *
  * @param cls closure (always NULL)
  * @param client identification of the client
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
 handle_monitor (void *cls, struct GNUNET_SERVER_Client *client,
@@ -1330,6 +1347,7 @@ handle_monitor (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
   }
 }
+
 
 /**
  * Process arm requests.
