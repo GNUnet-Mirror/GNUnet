@@ -29,7 +29,7 @@
 
 #define THROUGHPUT_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
-"set title \"Throughput\" \n" \
+"set title \"Throughput between Master and Slaves\" \n" \
 "set xlabel \"Time in ms\" \n" \
 "set ylabel \"Bytes/s\" \n"
 
@@ -182,8 +182,8 @@ write_gnuplot_script (char * fn, struct LoggingPeer *lp)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 
   /* Write master data */
-  GNUNET_asprintf (&data, "plot '%s' using 2:%u with lines title 'Master %u send', \\\n" \
-                           "'%s' using 2:%u with lines title 'Master %u receive', \\\n",
+  GNUNET_asprintf (&data, "plot '%s' using 2:%u with lines title 'Master %u send total', \\\n" \
+                           "'%s' using 2:%u with lines title 'Master %u receive total', \\\n",
                            fn, 5, lp->peer->no,
                            fn, 8, lp->peer->no);
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
@@ -193,8 +193,8 @@ write_gnuplot_script (char * fn, struct LoggingPeer *lp)
   index = 11;
   for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
   {
-    GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Slave %u send', \\\n" \
-                            "'%s' using 2:%u with lines title 'Slave %u receive'%s\n",
+    GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Master - Slave %u send', \\\n" \
+                            "'%s' using 2:%u with lines title 'Master - Slave %u receive'%s\n",
                             fn, index, lp->peer->no,
                             fn, index+3, lp->peer->no,
                             (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
@@ -324,47 +324,61 @@ write_to_file ()
   }
 }
 
+
+static void
+collect_log_now (struct LoggingPeer *bp)
+{
+  struct PeerLoggingTimestep *mlt;
+  struct PartnerLoggingTimestep *slt;
+  struct BenchmarkPartner *p;
+  int c_s;
+
+  mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
+  GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
+
+  /* Collect data */
+
+  /* Current master state */
+  mlt->timestamp = GNUNET_TIME_absolute_get();
+  mlt->total_bytes_sent = bp->peer->total_bytes_sent;
+  mlt->total_messages_sent = bp->peer->total_messages_sent;
+  mlt->total_bytes_received = bp->peer->total_bytes_received;
+  mlt->total_messages_received = bp->peer->total_messages_received;
+
+  mlt->slaves_log = GNUNET_malloc (bp->peer->num_partners *
+      sizeof (struct PartnerLoggingTimestep));
+
+  for (c_s = 0; c_s < bp->peer->num_partners; c_s++)
+  {
+    p = &bp->peer->partners[c_s];
+    slt = &mlt->slaves_log[c_s];
+    slt->slave = p->dest;
+    /* Bytes sent from master to this slave */
+    slt->total_bytes_sent = p->bytes_sent;
+    /* Messages sent from master to this slave */
+    slt->total_messages_sent = p->messages_sent;
+    /* Bytes master received from this slave */
+    slt->total_bytes_received = p->bytes_received;
+    /* Messages master received from this slave */
+    slt->total_messages_received = p->messages_received;
+
+
+
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "Master [%u]: slave [%u]\n",
+        bp->peer->no, p->dest->no);
+  }
+}
+
 static void
 collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int c_m;
-  int c_s;
-  struct PeerLoggingTimestep *mlt;
-  struct PartnerLoggingTimestep *slt;
-  struct BenchmarkPartner *p;
 
   log_task = GNUNET_SCHEDULER_NO_TASK;
 
   for (c_m = 0; c_m < num_peers; c_m++)
-  {
-    mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
-    GNUNET_CONTAINER_DLL_insert_tail(lp[c_m].head, lp[c_m].tail, mlt);
-
-    /* Collect data */
-    mlt->timestamp = GNUNET_TIME_absolute_get();
-    mlt->total_bytes_sent = lp[c_m].peer->total_bytes_sent;
-    mlt->total_messages_sent = lp[c_m].peer->total_messages_sent;
-    mlt->total_bytes_received = lp[c_m].peer->total_bytes_received;
-    mlt->total_messages_received = lp[c_m].peer->total_messages_received;
-
-    mlt->slaves_log = GNUNET_malloc (lp[c_m].peer->num_partners *
-        sizeof (struct PartnerLoggingTimestep));
-
-    for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
-    {
-      p = &lp[c_m].peer->partners[c_s];
-      slt = &mlt->slaves_log[c_s];
-      slt->slave = p->dest;
-      slt->total_bytes_sent = p->dest->total_bytes_sent;
-      slt->total_messages_sent = p->dest->total_messages_sent;
-      slt->total_bytes_received = p->dest->total_bytes_received;
-      slt->total_messages_received = p->dest->total_messages_received;
-
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Master [%u]: slave [%u]\n",
-          lp[c_m].peer->no, p->dest->no);
-    }
-  }
+    collect_log_now (&lp[c_m]);
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
