@@ -1519,25 +1519,25 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel)
  *
  * @return Union with an answer to the query.
  */
-const union MeshTunnelInfo *
+const union GNUNET_MESH_TunnelInfo *
 GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel,
                              enum MeshTunnelOption option, ...)
 {
-  const union MeshTunnelInfo *ret;
+  const union GNUNET_MESH_TunnelInfo *ret;
 
   switch (option)
   {
     case GNUNET_MESH_OPTION_NOBUFFER:
-      ret = (const union MeshTunnelInfo *) &tunnel->nobuffer;
+      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->nobuffer;
       break;
     case GNUNET_MESH_OPTION_RELIABLE:
-      ret = (const union MeshTunnelInfo *) &tunnel->reliable;
+      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->reliable;
       break;
     case GNUNET_MESH_OPTION_OOORDER:
-      ret = (const union MeshTunnelInfo *) &tunnel->ooorder;
+      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->ooorder;
       break;
     case GNUNET_MESH_OPTION_PEER:
-      ret = (const union MeshTunnelInfo *) &tunnel->peer;
+      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->peer;
       break;
     default:
       GNUNET_break (0);

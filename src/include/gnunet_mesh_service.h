@@ -259,10 +259,11 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
 /**
  * Struct to retrieve info about a tunnel.
  */
-union MeshTunnelInfo {
+union GNUNET_MESH_TunnelInfo 
+{
 
   /**
-   * GNUNET_YES / GNUNET_NO, for binary flags.
+   * #GNUNET_YES / #GNUNET_NO, for binary flags.
    */
   int yes_no;
 
@@ -282,7 +283,7 @@ union MeshTunnelInfo {
  *
  * @return Union with an answer to the query.
  */
-const union MeshTunnelInfo *
+const union GNUNET_MESH_TunnelInfo *
 GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel,
                              enum MeshTunnelOption option, ...);
 
