@@ -95,6 +95,16 @@ struct PartnerLoggingTimestep
   unsigned int total_bytes_received;
 
   /**
+   * Total outbound throughput for master in Bytes / s
+   */
+  unsigned int throughput_sent;
+
+  /**
+   * Total inbound throughput for master in Bytes / s
+   */
+  unsigned int throughput_recv;
+
+  /**
    * Accumulated RTT for all messages
    */
   unsigned int total_app_rtt;
@@ -167,6 +177,16 @@ struct PeerLoggingTimestep
    * Total number of bytes this peer has received
    */
   unsigned int total_bytes_received;
+
+  /**
+   * Total outbound throughput for master in Bytes / s
+   */
+  unsigned int total_throughput_send;
+
+  /**
+   * Total inbound throughput for master in Bytes / s
+   */
+  unsigned int total_throughput_recv;
 
   /**
    * Logs for slaves
@@ -313,7 +333,7 @@ static void
 write_to_file ()
 {
   struct GNUNET_DISK_FileHandle *f;
-  struct GNUNET_TIME_Relative delta;
+
   char * filename;
   char *data;
   char *slave_string;
@@ -322,13 +342,6 @@ write_to_file ()
   struct PartnerLoggingTimestep *plt;
   int c_m;
   int c_s;
-  unsigned int throughput_recv;
-  unsigned int throughput_send;
-  unsigned int throughput_recv_slave;
-  unsigned int throughput_send_slave;
-  int last_throughput_send;
-  int last_throughput_recv;
-  double mult;
 
   for (c_m = 0; c_m < num_peers; c_m++)
   {
@@ -345,91 +358,31 @@ write_to_file ()
       return;
     }
 
-    last_throughput_recv = 0;
-    last_throughput_send = 0;
-
     for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
-      if (NULL == cur_lt->prev)
-      {
-        delta = GNUNET_TIME_absolute_get_difference (lp[c_m].start, cur_lt->timestamp);
-      }
-      else
-        delta = GNUNET_TIME_absolute_get_difference (cur_lt->prev->timestamp, cur_lt->timestamp);
-
-      /* Multiplication factor for throughput calculation */
-      mult = (1.0 * 1000 * 1000) / (delta.rel_value_us);
-      if (NULL != cur_lt->prev)
-      {
-        if (cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent > 0)
-        {
-          throughput_send = cur_lt->total_bytes_sent - cur_lt->prev->total_bytes_sent;
-          throughput_send *= mult;
-        }
-        else
-        {
-          //GNUNET_break (0);
-          throughput_send = last_throughput_send; /* no msgs received */
-        }
-
-        if (cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received > 0)
-        {
-          throughput_recv = cur_lt->total_bytes_received - cur_lt->prev->total_bytes_received;
-          throughput_recv *= mult;
-        }
-        else
-        {
-         // GNUNET_break (0);
-          throughput_recv = last_throughput_recv; /* no msgs received */
-        }
-      }
-      else
-      {
-        throughput_send = cur_lt->total_bytes_sent;
-        throughput_recv = cur_lt->total_bytes_received;
-
-        throughput_send *= mult;
-        throughput_recv *= mult;
-
-      }
-      last_throughput_send = throughput_send;
-      last_throughput_recv = throughput_recv;
-
-
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n", lp[c_m].peer->no,
           cur_lt->timestamp, GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
-          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
-          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv);
+          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, cur_lt->total_throughput_send,
+          cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv);
 
       slave_string = GNUNET_strdup (";");
       for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
       {
-        /* Log partners */
         plt = &cur_lt->slaves_log[c_s];
-        if (NULL != cur_lt->prev)
-        {
-          throughput_send_slave = plt->total_bytes_sent - cur_lt->prev->slaves_log[c_s].total_bytes_sent;
-          throughput_recv_slave = plt->total_bytes_received - cur_lt->prev->slaves_log[c_s].total_bytes_received;
-        }
-        else
-        {
-          throughput_send_slave = plt->total_bytes_sent;
-          throughput_recv_slave = plt->total_bytes_received;
-        }
-        throughput_send_slave *= mult;
-        throughput_recv_slave *= mult;
+        /* Log partners */
+
         /* Assembling slave string */
         GNUNET_log(GNUNET_ERROR_TYPE_INFO,
             "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %u \n", plt->slave->no,
-            plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
-            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave,
+            plt->total_messages_sent, plt->total_bytes_sent, plt->throughput_sent,
+            plt->total_messages_received, plt->total_bytes_received, plt->throughput_recv,
             plt->app_rtt, plt->ats_delay);
 
 
         GNUNET_asprintf(&slave_string_tmp, "%s%u;%u;%u;%u;%u;%u;%.3f;",slave_string,
-            plt->total_messages_sent, plt->total_bytes_sent, throughput_send_slave,
-            plt->total_messages_received, plt->total_bytes_received, throughput_recv_slave,
+            plt->total_messages_sent, plt->total_bytes_sent,  plt->throughput_sent,
+            plt->total_messages_received, plt->total_bytes_received,  plt->throughput_sent,
             (double) plt->app_rtt / 1000);
         GNUNET_free (slave_string);
         slave_string = slave_string_tmp;
@@ -438,8 +391,8 @@ write_to_file ()
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u;%s\n",
           cur_lt->timestamp,
           GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
-          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, throughput_send,
-          cur_lt->total_messages_received, cur_lt->total_bytes_received, throughput_recv,
+          cur_lt->total_messages_sent, cur_lt->total_bytes_sent,  cur_lt->total_throughput_send,
+          cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv,
           slave_string);
       GNUNET_free (slave_string);
 
@@ -468,12 +421,15 @@ collect_log_now (void)
 {
   struct LoggingPeer *bp;
   struct PeerLoggingTimestep *mlt;
+  struct PeerLoggingTimestep *prev_log_mlt;
   struct PartnerLoggingTimestep *slt;
   struct PartnerLoggingTimestep *prev_log_slt;
   struct BenchmarkPartner *p;
+  struct GNUNET_TIME_Relative delta;
   int c_s;
   int c_m;
   unsigned int app_rtt;
+  double mult;
 
   if (GNUNET_YES != running)
     return;
@@ -483,6 +439,7 @@ collect_log_now (void)
     bp = &lp[c_m];
     mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
     GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
+    prev_log_mlt = mlt->prev;
 
     /* Collect data */
 
@@ -492,6 +449,40 @@ collect_log_now (void)
     mlt->total_messages_sent = bp->peer->total_messages_sent;
     mlt->total_bytes_received = bp->peer->total_bytes_received;
     mlt->total_messages_received = bp->peer->total_messages_received;
+
+    /* Throughput */
+    if (NULL == prev_log_mlt)
+     {
+       /* Get difference to start */
+       delta = GNUNET_TIME_absolute_get_difference (lp[c_m].start, mlt->timestamp);
+     }
+     else
+     {
+       /* Get difference to last timestep */
+       delta = GNUNET_TIME_absolute_get_difference (mlt->prev->timestamp, mlt->timestamp);
+     }
+
+     /* Multiplication factor for throughput calculation */
+     mult = (1.0 * 1000 * 1000) / (delta.rel_value_us);
+
+     /* Total throughput */
+     if (NULL != prev_log_mlt)
+     {
+       if (mlt->total_bytes_sent - mlt->prev->total_bytes_sent > 0)
+         mlt->total_throughput_send = mult * (mlt->total_bytes_sent - mlt->prev->total_bytes_sent);
+       else
+         mlt->total_throughput_send = prev_log_mlt->total_throughput_send; /* no msgs send */
+
+       if (mlt->total_bytes_received - mlt->prev->total_bytes_received > 0)
+         mlt->total_throughput_recv = mult * (mlt->total_bytes_received - mlt->prev->total_bytes_received);
+       else
+         mlt->total_throughput_recv = prev_log_mlt->total_throughput_recv; /* no msgs received */
+     }
+     else
+     {
+       mlt->total_throughput_send = mult * mlt->total_bytes_sent;
+       mlt->total_throughput_send = mult * mlt->total_bytes_received;
+     }
 
     mlt->slaves_log = GNUNET_malloc (bp->peer->num_partners *
         sizeof (struct PartnerLoggingTimestep));
@@ -522,7 +513,7 @@ collect_log_now (void)
       slt->ats_utilization_up = p->ats_utilization_up;
 
       /* Total application level rtt  */
-      if (NULL == mlt->prev)
+      if (NULL == prev_log_mlt)
       {
         if (0 != slt->total_messages_sent)
           app_rtt = slt->total_app_rtt / slt->total_messages_sent;
@@ -531,7 +522,7 @@ collect_log_now (void)
       }
       else
       {
-        prev_log_slt =  &mlt->prev->slaves_log[c_s];
+        prev_log_slt =  &prev_log_mlt->slaves_log[c_s];
         if ((slt->total_messages_sent - prev_log_slt->total_messages_sent) > 0)
           app_rtt = (slt->total_app_rtt - prev_log_slt->total_app_rtt) /
                   (slt->total_messages_sent - prev_log_slt->total_messages_sent);
@@ -539,6 +530,27 @@ collect_log_now (void)
           app_rtt = prev_log_slt->app_rtt; /* No messages were */
       }
       slt->app_rtt = app_rtt;
+
+      /* Partner throughput */
+      if (NULL != prev_log_mlt)
+      {
+        prev_log_slt =  &prev_log_mlt->slaves_log[c_s];
+        if (slt->total_bytes_sent - prev_log_slt->total_bytes_sent > 0)
+          slt->throughput_sent = mult * (slt->total_bytes_sent - prev_log_slt->total_bytes_sent);
+        else
+          slt->throughput_sent = prev_log_slt->throughput_sent; /* no msgs send */
+
+        if (slt->total_bytes_received - prev_log_slt->total_bytes_received > 0)
+          slt->throughput_recv = mult * (slt->total_bytes_received - prev_log_slt->total_bytes_received);
+        else
+          slt->throughput_recv = prev_log_slt->throughput_recv; /* no msgs received */
+      }
+      else
+      {
+        slt->throughput_sent = mult * slt->total_bytes_sent;
+        slt->throughput_sent = mult * slt->total_bytes_received;
+      }
+
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Master [%u]: slave [%u]\n",
           bp->peer->no, p->dest->no);
