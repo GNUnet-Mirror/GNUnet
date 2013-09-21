@@ -750,26 +750,14 @@ static int
 comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
     const struct GNUNET_MessageHeader *message)
 {
-  int c_s;
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p = NULL;
 
-  for (c_s = 0; c_s < num_slaves; c_s++)
-  {
-    if (0
-        == memcmp (other, &me->partners[c_s].dest->id,
-            sizeof(struct GNUNET_PeerIdentity)))
-    {
-      p = &me->partners[c_s];
-      break;
-    }
-  }
-  if (NULL == p)
+  if (NULL == (p = find_partner (me, other)))
   {
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Master [%u]: Received PONG from [%u], next message\n", me->no,
@@ -920,23 +908,11 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
-  int c_s;
   int c_a;
+  int log;
   char *peer_id;
 
-  p = NULL;
-  for (c_s = 0; c_s < me->num_partners; c_s++)
-  {
-
-    if (0 == memcmp (&address->peer, &me->partners[c_s].dest->id,
-        sizeof (struct GNUNET_PeerIdentity)))
-    {
-      p = &me->partners[c_s];
-      break;
-    }
-
-  }
-
+  p = find_partner (me, &address->peer);
   if (NULL == p)
   {
     /* This is not one of my partners
@@ -944,8 +920,14 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
      */
     return;
   }
-
   peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
+
+  log = GNUNET_NO;
+  if ((p->bandwidth_in != ntohl (bandwidth_in.value__)) ||
+      (p->bandwidth_out != ntohl (bandwidth_out.value__)))
+      log = GNUNET_YES;
+  p->bandwidth_in = ntohl (bandwidth_in.value__);
+  p->bandwidth_out = ntohl (bandwidth_out.value__);
 
   for (c_a = 0; c_a < ats_count; c_a++)
   {
@@ -960,36 +942,52 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       case GNUNET_ATS_ARRAY_TERMINATOR:
         break;
       case GNUNET_ATS_UTILIZATION_UP:
+        if (p->ats_utilization_up != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_utilization_up = ntohl (ats[c_a].value);
+
         break;
       case GNUNET_ATS_UTILIZATION_DOWN:
+        if (p->ats_utilization_down != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_utilization_down = ntohl (ats[c_a].value);
         break;
       case GNUNET_ATS_NETWORK_TYPE:
+        if (p->ats_network_type != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_network_type = ntohl (ats[c_a].value);
         break;
       case GNUNET_ATS_QUALITY_NET_DELAY:
+        if (p->ats_delay != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_delay = ntohl (ats[c_a].value);
         break;
       case GNUNET_ATS_QUALITY_NET_DISTANCE:
+        if (p->ats_distance != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_distance = ntohl (ats[c_a].value);
         GNUNET_break (0);
         break;
       case GNUNET_ATS_COST_WAN:
+        if (p->ats_cost_wan != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_cost_wan = ntohl (ats[c_a].value);
         break;
       case GNUNET_ATS_COST_LAN:
+        if (p->ats_cost_lan != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_cost_lan = ntohl (ats[c_a].value);
         break;
       case GNUNET_ATS_COST_WLAN:
+        if (p->ats_cost_wlan != ntohl (ats[c_a].value))
+            log = GNUNET_YES;
         p->ats_cost_wlan = ntohl (ats[c_a].value);
-        break;
         break;
       default:
         break;
     }
   }
-  if (GNUNET_YES == logging)
+  if ((GNUNET_YES == logging) && (GNUNET_YES == log))
     collect_log_now();
   GNUNET_free(peer_id);
 }

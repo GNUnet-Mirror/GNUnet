@@ -521,7 +521,6 @@ collect_log_now (void)
       slt->ats_utilization_down = p->ats_utilization_down;
       slt->ats_utilization_up = p->ats_utilization_up;
 
-
       /* Total application level rtt  */
       if (NULL == mlt->prev)
       {
