@@ -434,7 +434,7 @@ decode_public_sign_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 void
 GNUNET_CRYPTO_ecc_key_clear (struct GNUNET_CRYPTO_EccPrivateKey *pk)
 {
-  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EccPrivateKey);
+  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
 }
 
 
