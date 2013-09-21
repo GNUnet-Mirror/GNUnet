@@ -82,8 +82,8 @@ struct DestinationEntry
   struct GNUNET_CONTAINER_HeapNode *heap_node;
 
   /**
-   * GNUNET_NO if this is a tunnel to an Internet-exit,
-   * GNUNET_YES if this tunnel is to a service.
+   * #GNUNET_NO if this is a tunnel to an Internet-exit,
+   * #GNUNET_YES if this tunnel is to a service.
    */
   int is_service;
 
@@ -581,7 +581,7 @@ free_tunnel_state (struct TunnelState *ts)
 /**
  * Destroy the mesh tunnel.
  *
- * @param cls the 'struct TunnelState' with the tunnel to destroy
+ * @param cls the `struct TunnelState` with the tunnel to destroy
  * @param tc scheduler context
  */
 static void
@@ -611,7 +611,7 @@ destroy_tunnel_task (void *cls,
 void
 tunnel_peer_disconnect_handler (void *cls,
 				const struct
-				GNUNET_PeerIdentity * peer)
+				GNUNET_PeerIdentity *peer)
 {
   struct TunnelState *ts = cls;
 
@@ -647,8 +647,7 @@ tunnel_peer_disconnect_handler (void *cls,
  */
 void
 tunnel_peer_connect_handler (void *cls,
-			     const struct GNUNET_PeerIdentity
-			     * peer,
+			     const struct GNUNET_PeerIdentity *peer,
 			     const struct
 			     GNUNET_ATS_Information * atsi)
 {
@@ -673,10 +672,10 @@ tunnel_peer_connect_handler (void *cls,
 /**
  * Send a message from the message queue via mesh.
  *
- * @param cls the 'struct TunnelState' with the message queue
- * @param size number of bytes available in buf
+ * @param cls the `struct TunnelState` with the message queue
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 send_to_peer_notify_callback (void *cls, size_t size, void *buf)
@@ -814,7 +813,7 @@ create_tunnel_to_destination (struct DestinationEntry *de,
 			    gettext_noop ("# Mesh tunnels created"),
 			    1, GNUNET_NO);
   GNUNET_assert (NULL == de->ts);
-  ts = GNUNET_malloc (sizeof (struct TunnelState));
+  ts = GNUNET_new (struct TunnelState);
   ts->af = client_af;
   if (NULL != client)
   {
@@ -1599,11 +1598,6 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 				   &pkt6->destination_address,
 				   &key);
       de = GNUNET_CONTAINER_multihashmap_get (destination_map, &key);
-      /* FIXME: do we need to guard against hash collision? 
-	 (if so, we need to also store the local destination IP in the
-	 destination entry and then compare here; however, the risk
-	 of collision seems minimal AND the impact is unlikely to be
-	 super-problematic as well... */
       if (NULL == de)
       {
 	char buf[INET6_ADDRSTRLEN];
@@ -1640,11 +1634,6 @@ message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
 				   &pkt4->destination_address,
 				   &key);
       de = GNUNET_CONTAINER_multihashmap_get (destination_map, &key);
-      /* FIXME: do we need to guard against hash collision? 
-	 (if so, we need to also store the local destination IP in the
-	 destination entry and then compare here; however, the risk
-	 of collision seems minimal AND the impact is unlikely to be
-	 super-problematic as well... */
       if (NULL == de)
       {
 	char buf[INET_ADDRSTRLEN];
@@ -1742,9 +1731,8 @@ make_up_icmpv6_payload (struct TunnelState *ts,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- * 
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -2081,9 +2069,8 @@ receive_icmp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- * 
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -2234,11 +2221,10 @@ receive_udp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  *
  * @param cls closure, NULL
  * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param tunnel_ctx pointer to our `struct TunnelState *`
  * @param message the actual message
- * 
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */ 
 static int
 receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -2375,8 +2361,8 @@ receive_tcp_back (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * for a new redirection.
  *
  * @param v4 where to store the address
- * @return GNUNET_OK on success,
- *         GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error
  */
 static int
 allocate_v4_address (struct in_addr *v4)
@@ -2426,8 +2412,8 @@ allocate_v4_address (struct in_addr *v4)
  * for a new redirection.
  *
  * @param v6 where to store the address
- * @return GNUNET_OK on success,
- *         GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error
  */
 static int
 allocate_v6_address (struct in6_addr *v6)
@@ -2544,7 +2530,7 @@ expire_destination (struct DestinationEntry *except)
  *         storage location was used; set to NULL if allocation failed
  * @param v4 storage space for an IPv4 address
  * @param v6 storage space for an IPv6 address
- * @return GNUNET_OK normally, GNUNET_SYSERR if '*result_af' was
+ * @return #GNUNET_OK normally, #GNUNET_SYSERR if `* result_af` was
  *         an unsupported address family (not AF_INET, AF_INET6 or AF_UNSPEC)
  */
 static int
@@ -2599,7 +2585,7 @@ allocate_response_ip (int *result_af,
  *
  * @param cls unused
  * @param client requesting client
- * @param message redirection request (a 'struct RedirectToIpRequestMessage')
+ * @param message redirection request (a `struct RedirectToIpRequestMessage`)
  */
 static void
 service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
@@ -2689,7 +2675,7 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   }
   
   /* setup destination record */
-  de = GNUNET_malloc (sizeof (struct DestinationEntry));
+  de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_NO;
   de->details.exit_destination.af = addr_af;
   memcpy (&de->details.exit_destination.ip,
@@ -2741,7 +2727,7 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
  *
  * @param cls unused
  * @param client requesting client
- * @param message redirection request (a 'struct RedirectToPeerRequestMessage')
+ * @param message redirection request (a `struct RedirectToPeerRequestMessage`)
  */
 static void
 service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
@@ -2797,7 +2783,7 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   }
   
   /* setup destination record */
-  de = GNUNET_malloc (sizeof (struct DestinationEntry));
+  de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_YES;
   de->details.service_destination.service_descriptor = msg->service_descriptor;
   de->details.service_destination.target = msg->target;
@@ -2841,13 +2827,15 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
  * 
  * FIXME now its also user for disconnections
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored (our 'struct TunnelState')
+ *                   with the tunnel is stored (our `struct TunnelState`)
  */ 
 static void
-tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+tunnel_cleaner (void *cls, 
+		const struct GNUNET_MESH_Tunnel *tunnel, 
+		void *tunnel_ctx)
 {
   /* we don't have inbound tunnels, so this function should never be called */
   GNUNET_break (0);
@@ -2859,8 +2847,8 @@ tunnel_cleaner (void *cls, const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel
  *
  * @param cls unused
  * @param key unused
- * @param value a 'struct DestinationEntry *'
- * @return GNUNET_OK (continue to iterate)
+ * @param value a `struct DestinationEntry *`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 cleanup_destination (void *cls,
@@ -2879,8 +2867,8 @@ cleanup_destination (void *cls,
  *
  * @param cls unused
  * @param key unused
- * @param value a 'struct TunnelState *'
- * @return GNUNET_OK (continue to iterate)
+ * @param value a `struct TunnelState *`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 cleanup_tunnel (void *cls,
@@ -2901,7 +2889,7 @@ cleanup_tunnel (void *cls,
  * @param tc unused
  */
 static void
-cleanup (void *cls GNUNET_UNUSED,
+cleanup (void *cls,
          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
@@ -2949,7 +2937,7 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-  if (stats != NULL)
+  if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
@@ -2964,8 +2952,8 @@ cleanup (void *cls GNUNET_UNUSED,
  *
  * @param cls the client that disconnected
  * @param key unused
- * @param value a 'struct TunnelState *'
- * @return GNUNET_OK (continue to iterate)
+ * @param value a `struct TunnelState *`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 cleanup_tunnel_client (void *cls,
@@ -2986,8 +2974,8 @@ cleanup_tunnel_client (void *cls,
  *
  * @param cls the client that disconnected
  * @param key unused
- * @param value a 'struct DestinationEntry *'
- * @return GNUNET_OK (continue to iterate)
+ * @param value a `struct DestinationEntry *`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 cleanup_destination_client (void *cls,
@@ -3014,7 +3002,8 @@ cleanup_destination_client (void *cls,
  * @param client handle to the client that disconnected
  */
 static void
-client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+client_disconnect (void *cls, 
+		   struct GNUNET_SERVER_Client *client)
 {
   if (NULL != tunnel_map)
     GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
