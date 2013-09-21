@@ -212,6 +212,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int c_m;
   int c_s;
   int c_op;
+  struct BenchmarkPeer *p;
 
   if (GNUNET_YES == logging)
     perf_logging_stop();
@@ -230,94 +231,90 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (c_m = 0; c_m < num_masters; c_m++)
   {
+    p = &mps[c_m];
     if (NULL != mps[c_m].peer_id_op)
     {
-      GNUNET_TESTBED_operation_done (mps[c_m].peer_id_op);
-      mps[c_m].peer_id_op = NULL;
+      GNUNET_TESTBED_operation_done (p->peer_id_op);
+      p->peer_id_op = NULL;
     }
 
-    if (GNUNET_SCHEDULER_NO_TASK != mps[c_m].ats_task)
-      GNUNET_SCHEDULER_cancel (mps[c_m].ats_task);
-    mps[c_m].ats_task = GNUNET_SCHEDULER_NO_TASK;
+    if (GNUNET_SCHEDULER_NO_TASK != p->ats_task)
+      GNUNET_SCHEDULER_cancel (p->ats_task);
+    p->ats_task = GNUNET_SCHEDULER_NO_TASK;
 
-    for (c_op = 0; c_op < num_slaves; c_op++)
+    for (c_op = 0; c_op < p->num_partners; c_op++)
     {
-
-      if (NULL != mps[c_m].partners[c_op].cth)
+      if (NULL != p->partners[c_op].cth)
       {
-        GNUNET_CORE_notify_transmit_ready_cancel (mps[c_m].partners[c_op].cth);
-        mps[c_m].partners[c_op].cth = NULL;
+        GNUNET_CORE_notify_transmit_ready_cancel (p->partners[c_op].cth);
+        p->partners[c_op].cth = NULL;
       }
-      if (NULL != mps[c_m].partners[c_op].tth)
+      if (NULL != p->partners[c_op].tth)
       {
-        GNUNET_TRANSPORT_notify_transmit_ready_cancel (mps[c_m].partners[c_op].tth);
-        mps[c_m].partners[c_op].tth = NULL;
+        GNUNET_TRANSPORT_notify_transmit_ready_cancel (p->partners[c_op].tth);
+        p->partners[c_op].tth = NULL;
       }
-
-
-      if (NULL != mps[c_m].core_connect_ops[c_op].connect_op)
+      if (NULL != p->core_connect_ops[c_op].connect_op)
       {
         GNUNET_log(GNUNET_ERROR_TYPE_INFO,
             _("Failed to connect peer 0 and %u\n"), c_op);
         GNUNET_TESTBED_operation_done (
-            mps[c_m].core_connect_ops[c_op].connect_op);
-        mps[c_m].core_connect_ops[c_op].connect_op = NULL;
+            p->core_connect_ops[c_op].connect_op);
+        p->core_connect_ops[c_op].connect_op = NULL;
         result = 1;
       }
     }
 
-    if (NULL != mps[c_m].ats_perf_op)
+    if (NULL != p->ats_perf_op)
     {
-      GNUNET_TESTBED_operation_done (mps[c_m].ats_perf_op);
-      mps[c_m].ats_perf_op = NULL;
+      GNUNET_TESTBED_operation_done (p->ats_perf_op);
+      p->ats_perf_op = NULL;
     }
 
-    if (NULL != mps[c_m].comm_op)
+    if (NULL != p->comm_op)
     {
-      GNUNET_TESTBED_operation_done (mps[c_m].comm_op);
-      mps[c_m].comm_op = NULL;
+      GNUNET_TESTBED_operation_done (p->comm_op);
+      p->comm_op = NULL;
     }
-    GNUNET_free(mps[c_m].core_connect_ops);
-    GNUNET_free(mps[c_m].partners);
-    mps[c_m].partners = NULL;
+    GNUNET_free(p->core_connect_ops);
+    GNUNET_free(p->partners);
+    p->partners = NULL;
   }
 
   for (c_s = 0; c_s < num_slaves; c_s++)
   {
-    if (NULL != sps[c_s].peer_id_op)
+    p = &sps[c_s];
+    if (NULL != p->peer_id_op)
     {
-      GNUNET_TESTBED_operation_done (sps[c_s].peer_id_op);
-      sps[c_s].peer_id_op = NULL;
+      GNUNET_TESTBED_operation_done (p->peer_id_op);
+      p->peer_id_op = NULL;
     }
 
-    for (c_op = 0; c_op < num_slaves; c_op++)
+    for (c_op = 0; c_op < p->num_partners; c_op++)
     {
-      if (NULL != sps[c_s].partners[c_op].cth)
+      if (NULL != p->partners[c_op].cth)
       {
-        GNUNET_CORE_notify_transmit_ready_cancel (sps[c_s].partners[c_op].cth);
-        sps[c_s].partners[c_op].cth = NULL;
+        GNUNET_CORE_notify_transmit_ready_cancel (p->partners[c_op].cth);
+        p->partners[c_op].cth = NULL;
       }
-
-      if (NULL != sps[c_s].partners[c_op].tth)
+      if (NULL != p->partners[c_op].tth)
       {
-        GNUNET_TRANSPORT_notify_transmit_ready_cancel (sps[c_s].partners[c_op].tth);
-        sps[c_s].partners[c_op].tth = NULL;
+        GNUNET_TRANSPORT_notify_transmit_ready_cancel (p->partners[c_op].tth);
+        p->partners[c_op].tth = NULL;
       }
     }
-
-    if (NULL != sps[c_s].ats_perf_op)
+    if (NULL != p->ats_perf_op)
     {
-      GNUNET_TESTBED_operation_done (sps[c_s].ats_perf_op);
-      sps[c_s].ats_perf_op = NULL;
+      GNUNET_TESTBED_operation_done (p->ats_perf_op);
+      p->ats_perf_op = NULL;
     }
-    if (NULL != sps[c_s].comm_op)
+    if (NULL != p->comm_op)
     {
-      GNUNET_TESTBED_operation_done (sps[c_s].comm_op);
-      sps[c_s].comm_op = NULL;
+      GNUNET_TESTBED_operation_done (p->comm_op);
+      p->comm_op = NULL;
     }
-
-    GNUNET_free(sps[c_s].partners);
-    sps[c_s].partners = NULL;
+    GNUNET_free(p->partners);
+    p->partners = NULL;
   }
 
   GNUNET_SCHEDULER_shutdown ();
@@ -628,19 +625,35 @@ comm_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
   GNUNET_free(id);
 }
 
+static struct BenchmarkPartner *
+find_partner (struct BenchmarkPeer *me, const struct GNUNET_PeerIdentity * peer)
+{
+  int c_m;
+  GNUNET_assert (NULL != me);
+  GNUNET_assert (NULL != peer);
+
+  for (c_m = 0; c_m < me->num_partners; c_m++)
+  {
+    /* Find a partner with other as destination */
+    if (0 == memcmp (peer, &me->partners[c_m].dest->id,
+            sizeof(struct GNUNET_PeerIdentity)))
+    {
+      return &me->partners[c_m];
+    }
+  }
+
+  return NULL;
+}
+
 static void
 comm_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
 {
   struct BenchmarkPeer *me = cls;
-  struct BenchmarkPeer *remote;
+  struct BenchmarkPartner *p;
   char *id;
 
-  remote = find_peer (peer);
-  if (NULL == remote)
-  {
-    GNUNET_break(0);
+  if (NULL == (p = find_partner (me, peer)))
     return;
-  }
 
   id = GNUNET_strdup (GNUNET_i2s (&me->id));
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "%s disconnected from %s \n", id,
@@ -649,10 +662,20 @@ comm_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
   me->core_connections--;
 
   if ((GNUNET_YES == state.benchmarking)
-      && ((GNUNET_YES == me->master) || (GNUNET_YES == remote->master)))
+      && ((GNUNET_YES == me->master) || (GNUNET_YES == p->dest->master)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "%s disconnected from %s while benchmarking \n", id, GNUNET_i2s (peer));
+    if (NULL != p->tth)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (p->tth);
+      p->tth = NULL;
+    }
+    if (NULL != p->cth)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (p->cth);
+      p->cth = NULL;
+    }
   }
   GNUNET_free(id);
 }
@@ -687,20 +710,11 @@ static int
 comm_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
     const struct GNUNET_MessageHeader *message)
 {
-  int c_m;
+
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p = NULL;
-  for (c_m = 0; c_m < num_masters; c_m++)
-  {
-    /* Find a partner with other as destination */
-    if (0 == memcmp (other, &me->partners[c_m].dest->id,
-            sizeof(struct GNUNET_PeerIdentity)))
-    {
-      p = &me->partners[c_m];
-      break;
-    }
-  }
-  if (NULL == p)
+
+  if (NULL == (p = find_partner(me, other)))
   {
     GNUNET_break(0);
     return GNUNET_SYSERR;
