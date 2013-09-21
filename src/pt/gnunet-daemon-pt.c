@@ -29,9 +29,11 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_tun_lib.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_vpn_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_applications.h"
+#include "block_dns.h"
 
 #define PORT_PT 4242 // FIXME
 
@@ -56,27 +58,27 @@
  * Which group of DNS records are we currently processing?
  */
 enum RequestGroup
-  {
-    /**
-     * DNS answers
-     */
-    ANSWERS = 0, 
+{
+  /**
+   * DNS answers
+   */
+  ANSWERS = 0, 
 
-    /**
-     * DNS authority records
-     */
-    AUTHORITY_RECORDS = 1,
+  /**
+   * DNS authority records
+   */
+  AUTHORITY_RECORDS = 1,
 
-    /**
-     * DNS additional records
-     */
-    ADDITIONAL_RECORDS = 2,
+  /**
+   * DNS additional records
+   */
+  ADDITIONAL_RECORDS = 2,
 
-    /**
-     * We're done processing.
-     */
-    END = 3
-  };
+  /**
+   * We're done processing.
+   */
+  END = 3
+};
 
 
 /**
@@ -154,8 +156,8 @@ struct RequestContext
   uint16_t dns_id;
 
   /**
-   * GNUNET_NO if this request is still in the transmit_queue,
-   * GNUNET_YES if we are in the receive_queue.
+   * #GNUNET_NO if this request is still in the transmit_queue,
+   * #GNUNET_YES if we are in the receive_queue.
    */ 
   int16_t was_transmitted;
 
@@ -179,6 +181,8 @@ static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * Tunnel we use for DNS requests over MESH.
+ * FIXME: we might want to keep multiple tunnels open
+ * at all times...
  */
 static struct GNUNET_MESH_Tunnel *mesh_tunnel;
 
@@ -221,6 +225,16 @@ static struct GNUNET_DNS_Handle *dns_post_handle;
  * The handle to DNS pre-resolution modifications.
  */
 static struct GNUNET_DNS_Handle *dns_pre_handle;
+
+/**
+ * Handle to access the DHT.
+ */
+static struct GNUNET_DHT_Handle *dht;
+
+/**
+ * Our DHT GET operation to find DNS exits.
+ */
+static struct GNUNET_DHT_GetHandle *dht_get;
 
 /**
  * Are we doing IPv4-pt?
@@ -519,7 +533,7 @@ dns_post_request_handler (void *cls,
     GNUNET_DNSPARSER_free_packet (dns);
     return;
   }
-  rc = GNUNET_malloc (sizeof (struct ReplyContext));
+  rc = GNUNET_new (struct ReplyContext);
   rc->rh = rh;
   rc->dns = dns;
   rc->offset = 0;
@@ -769,62 +783,18 @@ abort_all_requests ()
 
 
 /**
- * Method called whenever a peer has disconnected from the tunnel.
- *
- * FIXME merge with inbound cleaner
- * 
- * @param cls closure
- * @param peer peer identity the tunnel stopped working with
- */
-void
-mesh_disconnect_handler (void *cls,
-			 const struct
-			 GNUNET_PeerIdentity * peer)
-{
-  GNUNET_assert (dns_exit_available > 0);
-  dns_exit_available--;
-  if (0 == dns_exit_available)
-  {
-    if (NULL != mesh_th)
-    {
-      GNUNET_MESH_notify_transmit_ready_cancel (mesh_th);
-      mesh_th = NULL;
-    }
-    abort_all_requests ();
-  }
-}
-
-
-/**
- * Method called whenever a peer has connected to the tunnel.
- *
- * FIXME find anouther way (in tmt_ready_callback ?)
- * 
- * @param cls closure
- * @param peer peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- */
-void
-mesh_connect_handler (void *cls,
-		      const struct GNUNET_PeerIdentity
-		      * peer,
-		      const struct
-		      GNUNET_ATS_Information * atsi)
-{
-  dns_exit_available++;
-}
-
-
-/**
  * Function scheduled as very last function, cleans up after us
+ *
+ * @param cls closure, NULL
+ * @param tskctx scheduler context, unused
  */
 static void
-cleanup (void *cls GNUNET_UNUSED,
+cleanup (void *cls,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Protocol translation daemon is shutting down now\n");
-  if (vpn_handle != NULL)
+  if (NULL != vpn_handle)
   {
     GNUNET_VPN_disconnect (vpn_handle);
     vpn_handle = NULL;
@@ -839,27 +809,112 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_MESH_tunnel_destroy (mesh_tunnel);
     mesh_tunnel = NULL;
   }
-  if (mesh_handle != NULL)
+  if (NULL != mesh_handle)
   {
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
   }
   abort_all_requests ();
-  if (dns_post_handle != NULL)
+  if (NULL != dns_post_handle)
   {
     GNUNET_DNS_disconnect (dns_post_handle);
     dns_post_handle = NULL;
   }
-  if (dns_pre_handle != NULL)
+  if (NULL != dns_pre_handle)
   {
     GNUNET_DNS_disconnect (dns_pre_handle);
     dns_pre_handle = NULL;
   }
-  if (stats != NULL)
+  if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
     stats = NULL;
   }
+  if (NULL != dht_get)
+  {
+    GNUNET_DHT_get_stop (dht_get);
+    dht_get = NULL;
+  }
+  if (NULL != dht)
+  {
+    GNUNET_DHT_disconnect (dht);
+    dht = NULL;
+  }
+}
+
+
+
+/**
+ * Function called whenever a tunnel is destroyed.  Should clean up
+ * the associated state and attempt to build a new one.
+ * 
+ * It must NOT call #GNUNET_MESH_tunnel_destroy on the tunnel.
+ *
+ * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param tunnel connection to the other end (henceforth invalid)
+ * @param tunnel_ctx place where local state associated
+ *                   with the tunnel is stored
+ */
+static void
+mesh_tunnel_end_cb (void *cls,
+		    const struct GNUNET_MESH_Tunnel *tunnel, 
+		    void *tunnel_ctx)
+{
+  // FIXME: do cleanup here!
+}
+
+
+/**
+ * Function called whenever we find an advertisement for a 
+ * DNS exit in the DHT.  If we don't have a mesh tunnel,
+ * we should build one; otherwise, we should save the
+ * advertisement for later use.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path peers on reply path (or NULL if not recorded)
+ *                 [0] = datastore's first neighbor, [length - 1] = local peer
+ * @param get_path_length number of entries in @a get_path
+ * @param put_path peers on the PUT path (or NULL if not recorded)
+ *                 [0] = origin, [length - 1] = datastore
+ * @param put_path_length number of entries in @a put_path
+ * @param type type of the result
+ * @param size number of bytes in @a data
+ * @param data pointer to the result data
+ */
+static void
+handle_dht_result (void *cls,
+		   struct GNUNET_TIME_Absolute exp,
+		   const struct GNUNET_HashCode *key,
+		   const struct GNUNET_PeerIdentity *get_path, 
+		   unsigned int get_path_length,
+		   const struct GNUNET_PeerIdentity *put_path,
+		   unsigned int put_path_length,
+		   enum GNUNET_BLOCK_Type type,
+		   size_t size, const void *data)
+{
+  const struct GNUNET_DNS_Advertisement *ad;
+  struct GNUNET_PeerIdentity pid;
+
+  if (sizeof (struct GNUNET_DNS_Advertisement) != size)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  ad = data;
+  GNUNET_CRYPTO_hash (&ad->peer,
+		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		      &pid.hashPubKey);
+  /* FIXME: decide between creating more mesh tunnels and
+     just remembering the peer ID */
+  mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+					   NULL /* FIXME: tunnel ctx */,
+					   &pid,
+					   PORT_PT, /* FIXME: DNS port, right? */
+					   GNUNET_YES /* no buffer */,
+					   GNUNET_NO /* reliable */);
+
 }
 
 
@@ -876,6 +931,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
      const char *cfgfile GNUNET_UNUSED,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
+  struct GNUNET_HashCode dns_key;
+
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("pt", cfg);
   ipv4_pt = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_IPV4");
@@ -932,7 +989,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL, NULL, // FIXME use end handler
+    mesh_handle = GNUNET_MESH_connect (cfg, NULL, NULL,
+				       &mesh_tunnel_end_cb,
 				       mesh_handlers, NULL);
     if (NULL == mesh_handle)
     {
@@ -942,14 +1000,23 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
-    mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-                                             NULL,
-                                             NULL, /* FIXME peer ID*/
-                                             PORT_PT,
-                                             GNUNET_YES,
-                                             GNUNET_NO);
-//     GNUNET_MESH_peer_request_connect_by_type (mesh_tunnel, FIXME use regex
-// 					      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER); 
+    dht = GNUNET_DHT_connect (cfg, 1);
+    if (NULL == dht)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to connect to %s service.  Exiting.\n"),
+		  "DHT");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    GNUNET_CRYPTO_hash ("dns", strlen ("dns"), &dns_key);
+    dht_get = GNUNET_DHT_get_start (dht,
+				    GNUNET_BLOCK_TYPE_DNS,
+				    &dns_key,
+				    1,
+				    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+				    NULL, 0,
+				    &handle_dht_result, NULL);
   }
 }
 
