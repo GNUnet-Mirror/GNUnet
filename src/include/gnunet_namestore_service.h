@@ -67,11 +67,6 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_VPN 65539
 
 /**
- * Record type for zone revocation
- */
-#define GNUNET_NAMESTORE_TYPE_REV 65540
-
-/**
  * Record type for a social place.
  */
 #define GNUNET_NAMESTORE_TYPE_PLACE 65541

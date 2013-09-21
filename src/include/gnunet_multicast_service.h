@@ -459,8 +459,6 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param cfg Configuration to use.
  * @param priv_key ECC key that will be used to sign messages for this
  *        multicast session; public key is used to identify the multicast group;
- *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
- *        one in the future.
  * @param last_fragment_id Last fragment ID to continue counting fragments from
  *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
@@ -489,6 +487,12 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Function called to provide data for a transmission from the origin to all
  * members.
+ * FIXME: what if origin needs to pause transmission for a while?
+ *
+ * @param cls closure
+ * @param data_size number of bytes available in @a data
+ * @param data where to copy the message
+ * @return number of bytes copied to @a data? (FIXME: size_t?), or status code?
  */
 typedef int
 (*GNUNET_MULTICAST_OriginTransmitNotify) (void *cls,
@@ -510,8 +514,11 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param group_generation Group generation of the message.  Documented in
  *             GNUNET_MULTICAST_MessageHeader.
- * @param size Number of bytes to transmit.
+ * @param size Number of bytes to transmit.  
  *        FIXME: Needed? The end of the message can be flagged with a last fragment flag.
+ *        FIXME: what last fragment flag? OriginTransmitNotify is not that well documented...
+ *        FIXME: size_t? If this is a total size, uint64_t might be better!
+ *        FIXME: do we reserve "MAX" to indicate 'unknown'?
  * @param notify Function to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (i.e. request already pending).
