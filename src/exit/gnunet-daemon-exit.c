@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010, 2012 Christian Grothoff
+     (C) 2010-2013 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -38,14 +38,18 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
+#include "gnunet_dht_service.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dnsstub_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_constants.h"
+#include "gnunet_signatures.h"
 #include "gnunet_tun_lib.h"
 #include "gnunet_regex_service.h"
 #include "exit.h"
+#include "block_dns.h"
+
 
 /**
  * Maximum path compression length for mesh regex announcing for IPv4 address
@@ -63,6 +67,17 @@
  * How frequently do we re-announce the regex for the exit?
  */
 #define REGEX_REFRESH_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
+ * How frequently do we re-announce the DNS exit in the DHT?
+ */
+#define DHT_PUT_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
+
+/**
+ * How long do we typically sign the DNS exit advertisement for?
+ */
+#define DNS_ADVERTISEMENT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 3)
+
 
 /**
  * Generic logging shorthand
@@ -220,9 +235,9 @@ struct TunnelState
   struct GNUNET_MESH_TransmitHandle *th;
 
   /**
-   * GNUNET_NO if this is a tunnel for TCP/UDP, 
-   * GNUNET_YES if this is a tunnel for DNS,
-   * GNUNET_SYSERR if the tunnel is not yet initialized.
+   * #GNUNET_NO if this is a tunnel for TCP/UDP, 
+   * #GNUNET_YES if this is a tunnel for DNS,
+   * #GNUNET_SYSERR if the tunnel is not yet initialized.
    */
   int is_dns;
 
@@ -395,6 +410,37 @@ static struct TunnelState *tunnels[UINT16_MAX + 1];
 static struct GNUNET_DNSSTUB_Context *dnsstub;
 
 /**
+ * Handle for ongoing DHT PUT operations to advertise exit service.
+ */ 
+static struct GNUNET_DHT_PutHandle *dht_put;
+
+/**
+ * Handle to the DHT.
+ */
+static struct GNUNET_DHT_Handle *dht;
+
+/**
+ * Task for doing DHT PUTs to advertise exit service.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier dht_task;
+
+/**
+ * Advertisement message we put into the DHT to advertise us
+ * as a DNS exit.
+ */
+static struct GNUNET_DNS_Advertisement dns_advertisement;
+
+/**
+ * Key we store the DNS advertismenet under.
+ */
+static struct GNUNET_HashCode dht_put_key;
+
+/**
+ * Private key for this peer.
+ */
+static struct GNUNET_CRYPTO_EccPrivateKey *peer_key;
+
+/**
  * Are we an IPv4-exit?
  */
 static int ipv4_exit;
@@ -510,11 +556,11 @@ process_dns_result (void *cls,
  *
  * @param cls closure, NULL
  * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param tunnel_ctx pointer to our `struct TunnelState *`
  * @param message the actual message
  * 
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -2969,7 +3015,7 @@ static void *
 new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
             const struct GNUNET_PeerIdentity *initiator, uint32_t port)
 {
-  struct TunnelState *s = GNUNET_malloc (sizeof (struct TunnelState));
+  struct TunnelState *s = GNUNET_new (struct TunnelState);
 
   s->is_dns = GNUNET_SYSERR;
   s->peer = *initiator;
@@ -3117,7 +3163,27 @@ cleanup (void *cls GNUNET_UNUSED,
     GNUNET_DNSSTUB_stop (dnsstub);
     dnsstub = NULL;
   }
-  if (stats != NULL)
+  if (NULL != peer_key)
+  {
+    GNUNET_free (peer_key);
+    peer_key = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != dht_task)
+  {
+    GNUNET_SCHEDULER_cancel (dht_task);
+    dht_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != dht_put)
+  {
+    GNUNET_DHT_put_cancel (dht_put);
+    dht_put = NULL;
+  }
+  if (NULL != dht)
+  {
+    GNUNET_DHT_disconnect (dht);
+    dht = NULL;
+  }
+  if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
@@ -3186,7 +3252,7 @@ add_services (int proto,
       continue;
     }
 
-    serv = GNUNET_malloc (sizeof (struct LocalService));
+    serv = GNUNET_new (struct LocalService);
     serv->address.proto = proto;
     serv->my_port = (uint16_t) local_port;
     serv->address.port = remote_port;
@@ -3294,6 +3360,75 @@ read_service_conf (void *cls GNUNET_UNUSED, const char *section)
     add_services (IPPROTO_TCP, cpy, section);
     GNUNET_free (cpy);
   }
+}
+
+
+/**
+ * We are running a DNS exit service, advertise it in the
+ * DHT.  This task is run periodically to do the DHT PUT.
+ *
+ * @param cls closure
+ * @param tc scheduler context
+ */
+static void
+do_dht_put (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
+ * Function called when the DHT PUT operation is complete.
+ * Schedules the next PUT.
+ *
+ * @param cls closure, NULL
+ * @param success #GNUNET_OK if the operation worked (unused)
+ */
+static void
+dht_put_cont (void *cls,
+	      int success)
+{
+  dht_put = NULL;
+  dht_task = GNUNET_SCHEDULER_add_delayed (DHT_PUT_FREQUENCY,
+					   &do_dht_put, 
+					   NULL);
+}
+
+
+/**
+ * We are running a DNS exit service, advertise it in the
+ * DHT.  This task is run periodically to do the DHT PUT.
+ *
+ * @param cls closure
+ * @param tc scheduler context
+ */
+static void
+do_dht_put (void *cls,
+	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TIME_Absolute expiration;
+
+  dht_task = GNUNET_SCHEDULER_NO_TASK;
+  expiration = GNUNET_TIME_absolute_ntoh (dns_advertisement.expiration_time);
+  if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us < 
+      GNUNET_TIME_UNIT_HOURS.rel_value_us)
+  {
+    /* refresh advertisement */
+    expiration = GNUNET_TIME_relative_to_absolute (DNS_ADVERTISEMENT_TIMEOUT);
+    dns_advertisement.expiration_time = GNUNET_TIME_absolute_hton (expiration);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CRYPTO_ecc_sign (peer_key,
+					   &dns_advertisement.purpose,
+					   &dns_advertisement.signature));
+  }
+  dht_put = GNUNET_DHT_put (dht,
+			    &dht_put_key,
+			    1 /* replication */,
+			    GNUNET_DHT_RO_NONE,
+			    GNUNET_BLOCK_TYPE_DNS,
+			    sizeof (struct GNUNET_DNS_Advertisement), 
+			    &dns_advertisement,
+			    expiration,
+			    GNUNET_TIME_UNIT_FOREVER_REL,
+			    &dht_put_cont, NULL);
 }
 
 
@@ -3411,8 +3546,9 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
 	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "dns", "DNS_RESOLVER",
-		_("need a valid IPv4 or IPv6 address\n"));
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, 
+			       "dns", "DNS_RESOLVER",
+			       _("need a valid IPv4 or IPv6 address\n"));
     GNUNET_free_non_null (dns_exit);
     dns_exit = NULL;
   }
@@ -3435,7 +3571,18 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   }
   if (NULL != dns_exit)
   {
-    // FIXME use regex to put info
+    dht = GNUNET_DHT_connect (cfg, 1);
+    peer_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (peer_key,
+						    &dns_advertisement.peer);
+    dns_advertisement.purpose.size = htonl (sizeof (struct GNUNET_DNS_Advertisement) - 
+					    sizeof (struct GNUNET_CRYPTO_EccSignature));
+    dns_advertisement.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD);
+    GNUNET_CRYPTO_hash ("dns", 
+			strlen ("dns"),
+			&dht_put_key);
+    dht_task = GNUNET_SCHEDULER_add_now (&do_dht_put, 
+					 NULL);
     apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
     app_idx++;
   }
@@ -3450,8 +3597,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "TUN_IFNAME", &tun_ifname))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "No entry 'TUN_IFNAME' in configuration!\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "TUN_IFNAME");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -3461,8 +3607,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     if (GNUNET_SYSERR ==
 	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "EXIT_IFNAME", &exit_ifname))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No entry 'EXIT_IFNAME' in configuration!\n");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "EXIT_IFNAME");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3481,8 +3626,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 						 &ipv6addr) ||
 	  (1 != inet_pton (AF_INET6, ipv6addr, &exit_ipv6addr))) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No valid entry 'IPV6ADDR' in configuration!\n");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6ADDR");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3491,8 +3635,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 	GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV6PREFIX",
 					       &ipv6prefix_s))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No entry 'IPV6PREFIX' in configuration!\n");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6PREFIX");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3503,6 +3646,8 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 						 &ipv6prefix)) ||
 	 (ipv6prefix >= 127) )
     {
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV6PREFIX",
+				 _("Must be a number"));
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
@@ -3520,8 +3665,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 						 &ipv4addr) ||
 	  (1 != inet_pton (AF_INET, ipv4addr, &exit_ipv4addr))) )
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "No valid entry for 'IPV4ADDR' in configuration!\n");
+	GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4ADDR");
 	GNUNET_SCHEDULER_shutdown ();
 	return;
       }
@@ -3531,8 +3675,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 						 &ipv4mask) ||
 	  (1 != inet_pton (AF_INET, ipv4mask, &exit_ipv4mask))) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "No valid entry 'IPV4MASK' in configuration!\n");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4MASK");
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
