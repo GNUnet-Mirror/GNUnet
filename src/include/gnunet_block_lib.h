@@ -97,7 +97,7 @@ enum GNUNET_BLOCK_Type
   GNUNET_BLOCK_TYPE_FS_UBLOCK = 9,
 
   /**
-   * Block for storing .gnunet-domains
+   * Block for storing DNS exit service advertisements.
    */
   GNUNET_BLOCK_TYPE_DNS = 10,
 

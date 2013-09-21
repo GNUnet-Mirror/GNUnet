@@ -105,8 +105,8 @@ enum MeshTunnelOption
  * @param tunnel_ctx Place to store local state associated with the tunnel.
  * @param message The actual message.
  * 
- * @return GNUNET_OK to keep the tunnel open,
- *         GNUNET_SYSERR to close it (signal serious error).
+ * @return #GNUNET_OK to keep the tunnel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
  */
 typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             struct GNUNET_MESH_Tunnel *tunnel,
@@ -143,7 +143,7 @@ struct GNUNET_MESH_MessageHandler
  * Method called whenever another peer has added us to a tunnel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in GNUNET_MESH_connect. A call to GNUNET_MESH_tunnel_destroy
+ * subscribed to in #GNUNET_MESH_connect. A call to #GNUNET_MESH_tunnel_destroy
  * causes te tunnel to be ignored and no further notifications are sent about
  * the same tunnel.
  *
@@ -168,9 +168,9 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
  * Function called whenever a tunnel is destroyed.  Should clean up
  * any associated state. 
  * 
- * It must NOT call GNUNET_MESH_tunnel_destroy on the tunnel.
+ * It must NOT call #GNUNET_MESH_tunnel_destroy on the tunnel.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored
@@ -232,7 +232,6 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param port Port number.
  * @param nobuffer Flag for disabling buffering on relay nodes.
  * @param reliable Flag for end-to-end reliability.
- *
  * @return handle to the tunnel
  */
 struct GNUNET_MESH_Tunnel *
@@ -295,7 +294,7 @@ struct GNUNET_MESH_TransmitHandle;
 
 
 /**
- * Ask the mesh to call "notify" once it is ready to transmit the
+ * Ask the mesh to call @a notify once it is ready to transmit the
  * given number of bytes to the specified tunnel.
  * Only one call can be active at any time, to issue another request,
  * wait for the callback or cancel the current request.
@@ -303,12 +302,12 @@ struct GNUNET_MESH_TransmitHandle;
  * @param tunnel tunnel to use for transmission
  * @param cork is corking allowed for this transmission?
  * @param maxdelay how long can the message wait?
- * @param notify_size how many bytes of buffer space does notify want?
+ * @param notify_size how many bytes of buffer space does @a notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout or if the overall queue
  *        for this peer is larger than queue_size and this is currently
  *        the message with the lowest priority
- * @param notify_cls closure for notify
+ * @param notify_cls closure for @a notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (insufficient
  *         memory); if NULL is returned, "notify" will NOT be called.
@@ -411,7 +410,7 @@ GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
  * @param initiator ID of the owner of the tunnel.
  * @param tunnel_number Tunnel number.
  * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
+ * @param callback_cls Closure for @a callback.
  */
 void
 GNUNET_MESH_show_tunnel (struct GNUNET_MESH_Handle *h,

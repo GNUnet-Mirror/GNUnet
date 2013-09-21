@@ -91,7 +91,7 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_RESOLVER_RESPONSE 10
 
 /**
- * Signature of an GNUNET_DNS_Record
+ * Signature of an GNUNET_DNS_Advertisement
  */
 #define GNUNET_SIGNATURE_PURPOSE_DNS_RECORD 11
 
