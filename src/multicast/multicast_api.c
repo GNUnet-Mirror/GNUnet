@@ -272,8 +272,6 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param cfg Configuration to use.
  * @param priv_key ECC key that will be used to sign messages for this
  *        multicast session; public key is used to identify the multicast group;
- *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
- *        one in the future.
  * @param last_fragment_id Last fragment ID to continue counting fragments from
  *        when restarting the origin.  0 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
@@ -318,7 +316,7 @@ struct GNUNET_MULTICAST_OriginMessageHandle
  * @param origin Handle to the multicast group.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param group_generation Group generation of the message.  Documented in
- *             GNUNET_MULTICAST_MessageHeader.
+ *             `struct GNUNET_MULTICAST_MessageHeader`.
  * @param size Number of bytes to transmit.
  *        FIXME: Needed? The end of the message can be flagged with a last fragment flag.
  * @param notify Function to call to get the message.
@@ -405,7 +403,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EccPublicSignKey *group_key,
                               const struct GNUNET_CRYPTO_EccPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
-                              size_t relay_count,
+                              uint32_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_request,
                               GNUNET_MULTICAST_JoinCallback join_cb,
@@ -451,7 +449,7 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
 
 
 /** 
- * Request a message fr to be replayed.
+ * Request a message fragment to be replayed.
  *
  * Useful if messages below the @e max_known_fragment_id given when joining are
  * needed and not known to the client.
