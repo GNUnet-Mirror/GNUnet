@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,16 +20,18 @@
 
 /**
  * @file dns/plugin_block_dns.c
- * @brief block plugin for storing .gnunet-bindings
- * @author Philipp Tölke
+ * @brief block plugin for advertising a DNS exit service
+ * @author Christian Grothoff
+ *
+ * Note that this plugin might more belong with EXIT and PT
+ * as those two are using this type of block.  Still, this
+ * might be a natural enough place for people to find the code...
  */
-
 #include "platform.h"
 #include "gnunet_block_plugin.h"
 #include "block_dns.h"
 #include "gnunet_signatures.h"
 
-#define DEBUG_DHT GNUNET_EXTRA_LOGGING
 
 /**
  * Function called to validate a reply or a request.  For
@@ -41,9 +43,9 @@
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for bf
  * @param xquery extended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
@@ -54,55 +56,48 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                            size_t xquery_size, const void *reply_block,
                            size_t reply_block_size)
 {
+  const struct GNUNET_DNS_Advertisement *ad;
+
   switch (type)
   {
   case GNUNET_BLOCK_TYPE_DNS:
-    if (xquery_size != 0)
+    if (0 != xquery_size)
       return GNUNET_BLOCK_EVALUATION_REQUEST_INVALID;
 
-    if (reply_block_size == 0)
+    if (0 == reply_block_size)
       return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
 
-    if (reply_block_size != sizeof (struct GNUNET_DNS_Record))
+    if (sizeof (struct GNUNET_DNS_Advertisement) != reply_block_size)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "DNS-Block is invalid: reply_block_size=%d != %d\n",
-                  reply_block_size, sizeof (struct GNUNET_DNS_Record));
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
+    ad = reply_block;
 
-    const struct GNUNET_DNS_Record *rec = reply_block;
-
-    if (ntohl (rec->purpose.size) !=
-        sizeof (struct GNUNET_DNS_Record) -
+    if (ntohl (ad->purpose.size) !=
+        sizeof (struct GNUNET_DNS_Advertisement) -
         sizeof (struct GNUNET_CRYPTO_EccSignature))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "DNS-Block is invalid: rec->purpose.size=%d != %d\n",
-                  ntohl (rec->purpose.size),
-                  sizeof (struct GNUNET_DNS_Record) -
-                  sizeof (struct GNUNET_CRYPTO_EccSignature));
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-
     if (0 ==
         GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh
-                                            (rec->expiration_time)).rel_value_us)
+                                            (ad->expiration_time)).rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DNS-Block is invalid: Timeout\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "DNS advertisement has expired\n");
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_verify (htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD),
-                                  &rec->purpose, &rec->signature, &rec->peer))
+        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
+				  &ad->purpose, 
+				  &ad->signature, 
+				  &ad->peer))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "DNS-Block is invalid: invalid signature\n");
+      GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-
-    /* How to decide whether there are no more? */
     return GNUNET_BLOCK_EVALUATION_OK_MORE;
   default:
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
@@ -116,23 +111,22 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param cls closure
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                          const void *block, size_t block_size,
-                          struct GNUNET_HashCode * key)
+block_plugin_dns_get_key (void *cls, 
+			  enum GNUNET_BLOCK_Type type,
+                          const void *block, 
+			  size_t block_size,
+                          struct GNUNET_HashCode *key)
 {
-  if (type != GNUNET_BLOCK_TYPE_DNS)
-    return GNUNET_SYSERR;
-  const struct GNUNET_DNS_Record *rec = block;
-
-  memcpy (key, &rec->service_descriptor, sizeof (struct GNUNET_HashCode));
-  return GNUNET_OK;
+  /* we cannot extract a key from a block of this type */
+  return GNUNET_SYSERR;
 }
+
 
 /**
  * Entry point for the plugin.
@@ -147,7 +141,7 @@ libgnunet_plugin_block_dns_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_dns_evaluate;
   api->get_key = &block_plugin_dns_get_key;
   api->types = types;
@@ -161,7 +155,7 @@ libgnunet_plugin_block_dns_init (void *cls)
 void *
 libgnunet_plugin_block_dns_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;

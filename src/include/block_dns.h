@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,29 +20,19 @@
 
 /**
  * @file include/block_dns.h
- * @author Philipp Toelke
+ * @author Christian Grothoff
  */
-#ifndef _GNVPN_BLOCKDNS_H_
-#define _GNVPN_BLOCKDNS_H_
+#ifndef BLOCK_DNS_H
+#define BLOCK_DNS_H
 
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
-
-/**
- * Bitmask describing what IP-protocols are supported by the service
- */
-enum GNUNET_DNS_ServiceTypes
-{
-  GNUNET_DNS_SERVICE_TYPE_UDP = 1,
-  GNUNET_DNS_SERVICE_TYPE_TCP = 2
-};
+#include "gnunet_util_lib.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * This is the structure describing an dns-record such as www.gnunet.
+ * This is the structure describing an DNS exit service.
  */
-struct GNUNET_DNS_Record
+struct GNUNET_DNS_Advertisement
 {
   /**
    * Signature of the peer affirming that he is offering the service.
@@ -56,31 +46,15 @@ struct GNUNET_DNS_Record
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
-   * The peer providing this service
-   */
-  struct GNUNET_CRYPTO_EccPublicSignKey peer;
-
-  /**
-   * The descriptor for the service
-   * (a peer may provide more than one service)
-   */
-  struct GNUNET_HashCode service_descriptor;
-
-  /**
-   * When does this record expire?
+   * When does this signature expire?
    */
   struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
-   * Four TCP and UDP-Ports that are used by this service, big endian format
+   * The peer providing this service
    */
-  uint64_t ports GNUNET_PACKED;
+  struct GNUNET_CRYPTO_EccPublicSignKey peer;
 
-  /**
-   * What connection-types (UDP, TCP, ...) are supported by the service.
-   * Contains an 'enum GNUNET_DNS_ServiceTypes' in big endian format.
-   */
-  uint32_t service_type GNUNET_PACKED;
 };
 GNUNET_NETWORK_STRUCT_END
 
