@@ -2855,6 +2855,7 @@ main (int argc, char *const *argv)
                            &run, NULL)) ? 0 : 1;
   MHD_destroy_response (curl_failure_response);
   GNUNET_free_non_null ((char *) argv);
+  GNUNET_CRYPTO_ecc_key_clear (&local_shorten_zone);
   return ret;
 }
 

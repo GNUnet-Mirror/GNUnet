@@ -1030,6 +1030,7 @@ main (int argc, char *const *argv)
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
+  GNUNET_CRYPTO_ecc_key_clear (&fcfs_zone_pkey);
   return ret;
 }
 

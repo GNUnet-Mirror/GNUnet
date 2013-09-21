@@ -426,6 +426,19 @@ decode_public_sign_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 
 
 /**
+ * @ingroup crypto
+ * Clear memory that was used to store a private key. 
+ *
+ * @param pk location of the key
+ */
+void
+GNUNET_CRYPTO_ecc_key_clear (struct GNUNET_CRYPTO_EccPrivateKey *pk)
+{
+  memset (pk, 0, sizeof (struct GNUNET_CRYPTO_EccPrivateKey);
+}
+
+
+/**
  * Create a new private key. Caller must free return value.
  *
  * @return fresh private key

@@ -901,6 +901,16 @@ GNUNET_CRYPTO_ecc_key_create (void);
 
 /**
  * @ingroup crypto
+ * Clear memory that was used to store a private key. 
+ *
+ * @param pk location of the key
+ */
+void
+GNUNET_CRYPTO_ecc_key_clear (struct GNUNET_CRYPTO_EccPrivateKey *pk);
+
+
+/**
+ * @ingroup crypto
  * Get the shared private key we use for anonymous users.
  *
  * @return "anonymous" private key; do not free

@@ -748,9 +748,11 @@ main (int argc, char *const *argv)
 			  &run, NULL))
   {
     GNUNET_free ((void*) argv);
+    GNUNET_CRYPTO_ecc_key_clear (&zone_pkey);
     return 1;
   }
   GNUNET_free ((void*) argv);
+  GNUNET_CRYPTO_ecc_key_clear (&zone_pkey);
   return ret;
 }
 
