@@ -243,7 +243,9 @@ struct MulticastReplayRequestMessage
 {
 
   /**
-   *
+   * The message type can be either 
+   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST or
+   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL.
    */
   struct GNUNET_MessageHeader header;
 
@@ -253,19 +255,76 @@ struct MulticastReplayRequestMessage
   uint32_t uid;
 
   /**
-   * 
+   * ID of the message that is being requested.
    */
   uint64_t message_id;
 
   /**
-   * 
+   * Offset of the fragment that is being requested.
    */
   uint64_t fragment_offset;
 
   /**
-   * 
+   * Additional flags for the request.
    */
   uint64_t flags;
+
+};
+
+
+
+/**
+ * Message sent from the client to the service to unicast to the group origin.
+ */
+struct MulticastUnicastToOriginMessage
+{
+
+  /**
+   *
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved (always 0).
+   */
+  uint32_t reserved;
+
+  /**
+   * Message ID.
+   */
+  uint64_t message_id;
+
+  /**
+   * Total message size.
+   */
+  uint64_t total_size;
+
+  /* followed by payload */
+
+};
+
+
+/**
+ * Message sent from the client to the service to
+ * cancel unicast to the group origin.
+ */
+struct MulticastUnicastToOriginCancelMessage
+{
+
+  /**
+   *
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved (always 0).
+   */
+  uint32_t reserved;
+
+  /**
+   * Message ID.
+   */
+  uint64_t message_id;
 
 };
 

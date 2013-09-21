@@ -515,7 +515,8 @@ struct GNUNET_MULTICAST_MemberRequestHandle
  * 
  * @param member Membership handle.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
- * @param size Number of bytes we want to send to origin.
+ * @param size Number of bytes we want to send to origin. 
+ *             FIXME: this should probably be a uint64_t?
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).

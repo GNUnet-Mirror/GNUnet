@@ -259,6 +259,13 @@ typedef void
  * Function called whenever a group member has transmitted a request
  * to the origin (other than joining or leaving).
  *
+ * FIXME: need to distinguish between origin cancelling a message (some fragments
+ * were sent, then the rest 'discarded') and the case where we got disconnected;
+ * right now, both would mean 'msg' is NULL, but they could be quite different...
+ * So the semantics from the receiver side of 
+ * GNUNET_MULTICAST_member_to_origin_cancel() are not clear here.   Maybe we
+ * should do something with the flags in this case?
+ *
  * @param cls Closure (set from GNUNET_MULTICAST_origin_start).
  * @param sender Identity of the sender.
  * @param req Request to the origin.
@@ -278,6 +285,12 @@ typedef void
  * If admission to the group is denied, this function is called once with the
  * response of the @e origin (as given to GNUNET_MULTICAST_join_decision()) and
  * then a second time with NULL to indicate that the connection failed for good.
+ *
+ * FIXME: need to distinguish between origin cancelling a message (some fragments
+ * were sent, then the rest 'discarded') and the case where we got disconnected;
+ * right now, both would mean 'msg' is NULL, but they could be quite different...
+ * So the semantics from the receiver side of 
+ * GNUNET_MULTICAST_origin_to_all_cancel() are not clear here.
  *
  * @param cls Closure (set from GNUNET_MULTICAST_member_join())
  * @param msg Message from the origin, NULL if the origin shut down
@@ -705,6 +718,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * @param member Membership handle.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param size Number of bytes we want to send to origin.
+ *             FIXME: this should probably be a uint64_t?
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
