@@ -35,14 +35,11 @@
 #include "gnunet_applications.h"
 #include "block_dns.h"
 
-#define PORT_PT 4242 // FIXME
-
 
 /**
  * After how long do we time out if we could not get an IP from VPN or MESH?
  */
 #define TIMEOUT GNUNET_TIME_UNIT_MINUTES
-
 
 /**
  * How many bytes of payload do we allow at most for a DNS reply?
@@ -312,7 +309,7 @@ submit_request (struct ReplyContext *rc);
  * record and then continue with 'submit_request' to look at
  * the other records.
  *
- * @param cls our 'struct ReplyContext'
+ * @param cls our `struct ReplyContext`
  * @param af address family, AF_INET or AF_INET6; AF_UNSPEC on error;
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
@@ -463,8 +460,8 @@ submit_request (struct ReplyContext *rc)
  * Test if any of the given records need protocol-translation work.
  *
  * @param ra array of records
- * @param ra_len number of entries in ra
- * @return GNUNET_YES if any of the given records require protocol-translation
+ * @param ra_len number of entries in @a ra
+ * @return #GNUNET_YES if any of the given records require protocol-translation
  */
 static int
 work_test (const struct GNUNET_DNSPARSER_Record *ra,
@@ -696,11 +693,10 @@ dns_pre_request_handler (void *cls,
  *
  * @param cls closure, NULL
  * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param tunnel_ctx FIXME
  * @param message the actual message
- * 
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -910,7 +906,7 @@ handle_dht_result (void *cls,
   mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					   NULL /* FIXME: tunnel ctx */,
 					   &pid,
-					   PORT_PT, /* FIXME: DNS port, right? */
+					   GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
 					   GNUNET_YES /* no buffer */,
 					   GNUNET_NO /* reliable */);
 
