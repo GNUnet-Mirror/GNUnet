@@ -218,11 +218,6 @@ struct TunnelState
   struct DestinationEntry destination;
 
   /**
-   * Task scheduled to destroy the tunnel (or NO_TASK).
-   */
-  GNUNET_SCHEDULER_TaskIdentifier destroy_task;
-
-  /**
    * Addess family used for this tunnel on the local TUN interface.
    */
   int af;
@@ -536,11 +531,6 @@ free_tunnel_state (struct TunnelState *ts)
     GNUNET_REGEX_search_cancel (ts->search);
     ts->search = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ts->destroy_task)
-  {
-    GNUNET_SCHEDULER_cancel (ts->destroy_task);
-    ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   if (NULL != ts->heap_node)
   {
     GNUNET_CONTAINER_heap_remove_node (ts->heap_node);
@@ -564,63 +554,6 @@ free_tunnel_state (struct TunnelState *ts)
     ts->destination_container = NULL;
   }
   GNUNET_free (ts);
-}
-
-
-/**
- * Destroy the mesh tunnel.
- *
- * @param cls the `struct TunnelState` with the tunnel to destroy
- * @param tc scheduler context
- */
-static void
-destroy_tunnel_task (void *cls,
-		     const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct TunnelState *ts = cls;
-  struct GNUNET_MESH_Tunnel *tunnel;
-
-  ts->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_assert (NULL != ts->tunnel);
-  tunnel = ts->tunnel;
-  ts->tunnel = NULL;
-  GNUNET_MESH_tunnel_destroy (tunnel);
-  free_tunnel_state (ts);
-}
-
-
-/**
- * Method called whenever a peer has disconnected from the tunnel.
- *
- * FIXME merge with inbound_cleaner
- * 
- * @param cls closure
- * @param peer peer identity the tunnel stopped working with
- */
-void
-tunnel_peer_disconnect_handler (void *cls,
-				const struct
-				GNUNET_PeerIdentity *peer)
-{
-  struct TunnelState *ts = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peer %s disconnected from tunnel.\n",
-	      GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# peers connected to mesh tunnels"),
-			    -1, GNUNET_NO);
-  if (NULL != ts->th)
-  {
-    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-    ts->th = NULL;
-  }
-  if (ts->destination.is_service)
-    return; /* hope for reconnect eventually */
-  /* as we are most likely going to change the exit node now,
-     we should just destroy the tunnel entirely... */
-  if (GNUNET_SCHEDULER_NO_TASK == ts->destroy_task)
-    ts->destroy_task = GNUNET_SCHEDULER_add_now (&destroy_tunnel_task, ts);
 }
 
 
@@ -752,13 +685,11 @@ handle_regex_result (void *cls,
  *
  * @param de destination entry for which we need to setup a tunnel
  * @param client_af address family of the address returned to the client
- * @param request_id request ID to send in client notification (unused if client is NULL)
  * @return tunnel state of the tunnel that was created
  */
 static struct TunnelState *
 create_tunnel_to_destination (struct DestinationEntry *de,
-			      int client_af,
-			      uint64_t request_id)
+			      int client_af)
 {
   struct TunnelState *ts;
 
@@ -1041,7 +972,7 @@ route_packet (struct DestinationEntry *destination,
        available) or create a fresh one */
     is_new = GNUNET_YES;
     if (NULL == destination->ts)
-      ts = create_tunnel_to_destination (destination, af, 0);
+      ts = create_tunnel_to_destination (destination, af);
     else
       ts = destination->ts;
     if (NULL == ts)
@@ -2646,8 +2577,7 @@ service_redirect_to_ip (void *cls,
   
   /* setup tunnel to destination */
   ts = create_tunnel_to_destination (de, 
-				     result_af,
-				     msg->request_id);
+				     result_af);
   switch (result_af)
   {
   case AF_INET:
@@ -2741,8 +2671,7 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
   ts = create_tunnel_to_destination (de,
-				     result_af,
-				     msg->request_id);
+				     result_af);
   switch (result_af)
   {
   case AF_INET:
