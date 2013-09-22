@@ -2148,8 +2148,6 @@ main (int argc, char *argv[])
    
     stdin_mst = mst_create (&stdin_send_hw, &dev);  
     stdin_open = 1;
-    
-    fprintf (stderr, "\n-----------------------------------------------\n      Check if the program exits\n-----------------------------------------------\n");
 
     int pos = 0;
     int stdin_pos = -1;
@@ -2167,21 +2165,18 @@ main (int argc, char *argv[])
       {
         stdin_pos = pos;
         pos +=1;
-        fprintf (stderr, "LOG: set STDIN_FILENO\n");
         GNUNET_NETWORK_fdset_handle_set (rfds, (struct GNUNET_DISK_FileHandle*) &stdin_handle); 
       }
 
       if (0 == write_std.size)
       {
         pos += 1;
-        fprintf (stderr, "LOG: set the listening socket %d\n", GNUNET_NETWORK_get_fd (dev.handle));
         GNUNET_NETWORK_fdset_set (rfds, dev.handle);
       }
       
       for (i = 0; i < crt_rfds; i++)
       {
         pos += 1;
-        fprintf (stderr, "LOG: adding %d read socket\n", i);
         GNUNET_NETWORK_fdset_set (rfds, rfds_list[i]);
       }
 
@@ -2189,7 +2184,6 @@ main (int argc, char *argv[])
       if (0 < write_std.size)
       {
         stdout_pos = pos;
-        fprintf (stderr, "LOG: set STDOUT_FILENO\n");
         GNUNET_NETWORK_fdset_handle_set (wfds, (struct GNUNET_DISK_FileHandle*) &stdout_handle);
         // printf ("%s\n", write_std.buf);
         // memset (write_std.buf, 0, write_std.size);
@@ -2199,7 +2193,7 @@ main (int argc, char *argv[])
       if (0 < write_pout.size)
       {   
         if (strcmp (argv[1], "ff:ff:ff:ff:ff:ff") == 0) {
-          fprintf(stderr, "BROADCAST! Skipping the message\n");
+          fprintf(stderr, "LOG: BROADCAST! Skipping the message\n");
           // skip the message
           broadcast = 1;
           memset (write_pout.buf, 0, write_pout.size);
@@ -2257,18 +2251,15 @@ main (int argc, char *argv[])
      
       if (broadcast == 0)
       {
-        fprintf (stderr, "before select\n");
         int retval = GNUNET_NETWORK_socket_select (rfds, wfds, NULL, GNUNET_TIME_relative_get_forever_());
-        fprintf (stderr, "after select %d\n", retval);
         if (retval < 0)
         {
-          fprintf (stderr, "select error\n");
+          fprintf (stderr, "Select error\n");
           ExitProcess (2);
         }
         //if (GNUNET_NETWORK_fdset_isset (wfds, (struct GNUNET_NETWORK_Handle*)&stdout_handle))
         if (retval == stdout_pos)
         {
-          fprintf (stderr, "-------------STDOUT------------\n");
           fprintf(stderr, "LOG : sends a message to STDOUT\n"); //FIXME: debugging message
           //ssize_t ret;
           //ret = GNUNET_NETWORK_socket_send ((struct GNUNET_NETWORK_Handle *)&stdout_handle,  write_std.buf + write_std.pos, write_std.size - write_std.pos);
@@ -2339,7 +2330,6 @@ main (int argc, char *argv[])
         //if (GNUNET_NETWORK_fdset_isset (rfds, (struct GNUNET_NETWORK_Handle*)&stdin_handle))
         if (retval == stdin_pos)
         {
-          fprintf (stderr, "-------------STDIN------------\n");
           //ssize_t ret; 
           //ret = GNUNET_NETWORK_socket_recv ((struct GNUNET_NETWORK_Handle *)&stdin_handle, readbuf, sizeof (write_pout.buf));
           //ret = read (STDIN_FILENO, readbuf, sizeof (readbuf));
@@ -2403,7 +2393,6 @@ main (int argc, char *argv[])
                   - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
                   + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
                   rrm);
-            fprintf (stderr, "MESSAGE: %s\n", readbuf);
             if (0 >= ret)
             {
 
