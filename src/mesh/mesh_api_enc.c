@@ -1499,25 +1499,25 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel)
  *
  * @return Union with an answer to the query.
  */
-const union MeshChannelInfo *
+const union GNUNET_MESH_ChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
                              enum MeshOption option, ...)
 {
-  const union MeshChannelInfo *ret;
+  const union GNUNET_MESH_ChannelInfo *ret;
 
   switch (option)
   {
     case GNUNET_MESH_OPTION_NOBUFFER:
-      ret = (const union MeshChannelInfo *) &channel->nobuffer;
+      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->nobuffer;
       break;
     case GNUNET_MESH_OPTION_RELIABLE:
-      ret = (const union MeshChannelInfo *) &channel->reliable;
+      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->reliable;
       break;
     case GNUNET_MESH_OPTION_OOORDER:
-      ret = (const union MeshChannelInfo *) &channel->ooorder;
+      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->ooorder;
       break;
     case GNUNET_MESH_OPTION_PEER:
-      ret = (const union MeshChannelInfo *) &channel->peer;
+      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->peer;
       break;
     default:
       GNUNET_break (0);

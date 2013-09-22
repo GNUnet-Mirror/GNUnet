@@ -92,17 +92,16 @@ enum MeshOption
  * Functions with this signature are called whenever a message is
  * received.
  * 
- * Each time the function must call GNUNET_MESH_receive_done on the channel
+ * Each time the function must call #GNUNET_MESH_receive_done on the channel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
  *
- * @param cls Closure (set from GNUNET_MESH_connect).
+ * @param cls Closure (set from #GNUNET_MESH_connect).
  * @param channel Connection to the other end.
  * @param channel_ctx Place to store local state associated with the channel.
  * @param message The actual message.
- * 
- * @return GNUNET_OK to keep the channel open,
- *         GNUNET_SYSERR to close it (signal serious error).
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
  */
 typedef int (*GNUNET_MESH_MessageCallback) (void *cls,
                                             struct GNUNET_MESH_Channel *channel,
@@ -139,7 +138,7 @@ struct GNUNET_MESH_MessageHandler
  * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in GNUNET_MESH_connect. A call to GNUNET_MESH_channel_destroy
+ * subscribed to in #GNUNET_MESH_connect. A call to #GNUNET_MESH_channel_destroy
  * causes te channel to be ignored and no further notifications are sent about
  * the same channel.
  *
@@ -164,9 +163,9 @@ typedef void *(GNUNET_MESH_InboundChannelNotificationHandler) (void *cls,
  * Function called whenever a channel is destroyed.  Should clean up
  * any associated state. 
  * 
- * It must NOT call GNUNET_MESH_channel_destroy on the channel.
+ * It must NOT call #GNUNET_MESH_channel_destroy on the channel.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
@@ -185,16 +184,16 @@ typedef void (GNUNET_MESH_ChannelEndHandler) (void *cls,
  *            handlers in the handlers array).
  * @param new_channel Function called when an *incoming* channel is created.
  *                    Can be NULL if no inbound channels are desired.
- *                    See @c ports.
+ *                    See @a ports.
  * @param cleaner Function called when a channel is destroyed by the remote peer.
- *                It is NOT called if GNUNET_MESH_channel_destroy is called on
+ *                It is NOT called if #GNUNET_MESH_channel_destroy is called on
  *                the channel.
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
- *                 one must call GNUNET_MESH_receive_done on the channel to
+ *                 one must call #GNUNET_MESH_receive_done on the channel to
  *                 receive the next message.  Messages of a type that is not
  *                 in the handlers array are ignored if received. 
  * @param ports NULL or 0-terminated array of port numbers for incoming channels.
- *              See @c new_channel.
+ *              See @a new_channel.
  * 
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
@@ -229,7 +228,6 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param port Port number.
  * @param nobuffer Flag for disabling buffering on relay nodes.
  * @param reliable Flag for end-to-end reliability.
- *
  * @return handle to the channel
  */
 struct GNUNET_MESH_Channel *
@@ -257,17 +255,18 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel);
 /**
  * Struct to retrieve info about a channel.
  */
-union MeshChannelInfo {
+union GNUNET_MESH_ChannelInfo 
+{
 
   /**
-   * GNUNET_YES / GNUNET_NO, for binary flags.
+   * #GNUNET_YES / #GNUNET_NO, for binary flags.
    */
   int yes_no;
 
   /**
    * Peer on the other side of the channel
    */
-  struct GNUNET_PeerIdentity *peer;
+  const struct GNUNET_PeerIdentity *peer;
 };
 
 
@@ -277,10 +276,9 @@ union MeshChannelInfo {
  * @param channel Channel handle.
  * @param option Query type GNUNET_MESH_OPTION_*
  * @param ... dependant on option, currently not used
- *
  * @return Union with an answer to the query.
  */
-const union MeshChannelInfo *
+const union GNUNET_MESH_ChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
                               enum MeshOption option, ...);
 
@@ -292,7 +290,7 @@ struct GNUNET_MESH_TransmitHandle;
 
 
 /**
- * Ask the mesh to call "notify" once it is ready to transmit the
+ * Ask the mesh to call @a notify once it is ready to transmit the
  * given number of bytes to the specified channel.
  * Only one call can be active at any time, to issue another request,
  * wait for the callback or cancel the current request.
@@ -305,10 +303,10 @@ struct GNUNET_MESH_TransmitHandle;
  *        will be called with NULL on timeout or if the overall queue
  *        for this peer is larger than queue_size and this is currently
  *        the message with the lowest priority
- * @param notify_cls closure for notify
+ * @param notify_cls closure for @a notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (insufficient
- *         memory); if NULL is returned, "notify" will NOT be called.
+ *         memory); if NULL is returned, @a notify will NOT be called.
  */
 struct GNUNET_MESH_TransmitHandle *
 GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Channel *channel,

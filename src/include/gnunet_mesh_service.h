@@ -190,7 +190,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *                   Can be NULL if no inbound tunnels are desired.
  *                   See @c ports.
  * @param cleaner Function called when a tunnel is destroyed by the remote peer.
- *                It is NOT called if GNUNET_MESH_tunnel_destroy is called on
+ *                It is NOT called if #GNUNET_MESH_tunnel_destroy is called on
  *                the tunnel.
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
  *                 one must call #GNUNET_MESH_receive_done on the tunnel to
@@ -270,7 +270,7 @@ union GNUNET_MESH_TunnelInfo
   /**
    * Peer on the other side of the tunnel
    */
-  struct GNUNET_PeerIdentity *peer;
+  const struct GNUNET_PeerIdentity *peer;
 };
 
 

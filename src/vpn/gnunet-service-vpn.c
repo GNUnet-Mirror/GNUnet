@@ -828,10 +828,10 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   {
     ts->tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
 					    ts,
-                        &de->details.service_destination.target,
+					    &de->details.service_destination.target,
 					    PORT_VPN,
-                        GNUNET_YES,
-                        GNUNET_NO);
+					    GNUNET_YES,
+					    GNUNET_NO);
     if (NULL == ts->tunnel)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -2822,11 +2822,9 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
 
 
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * Function called whenever a tunnel is destroyed.  Should clean up
  * any associated state.
  * 
- * FIXME now its also user for disconnections
- *
  * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
@@ -2837,8 +2835,10 @@ tunnel_cleaner (void *cls,
 		const struct GNUNET_MESH_Tunnel *tunnel, 
 		void *tunnel_ctx)
 {
-  /* we don't have inbound tunnels, so this function should never be called */
-  GNUNET_break (0);
+  struct TunnelState *ts = tunnel_ctx;
+
+  ts->tunnel = NULL; /* we must not call GNUNET_MESH_tunnel_destroy() anymore */
+  free_tunnel_state (ts);
 }
 
 
