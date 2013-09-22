@@ -384,7 +384,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   default:
     GNUNET_assert (0);
   }
-  rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr, GNUNET_YES,
+  rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr, 
                                   GNUNET_TIME_UNIT_FOREVER_ABS, &allocation_cb,
                                   NULL);
   ctrl_c_task_id =

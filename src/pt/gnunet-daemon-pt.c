@@ -390,7 +390,6 @@ modify_address (struct ReplyContext *rc,
   rc->rr = GNUNET_VPN_redirect_to_ip (vpn_handle,
 				      af, af,
 				      rec->data.raw.data,
-				      GNUNET_NO /* nac */,
 				      GNUNET_TIME_relative_to_absolute (TIMEOUT),
 				      &vpn_allocation_callback,
 				      rc);

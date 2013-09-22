@@ -143,12 +143,6 @@ struct GNUNET_VPN_RedirectionRequest
   int addr_af;
   
   /**
-   * GNUNET_YES if we are to call the callback only after successful
-   * mesh tunnel creation.
-   */
-  int nac;
-  
-  /**
    * For service redirection, IPPROT_UDP or IPPROTO_TCP.
    */
   uint8_t protocol;
@@ -285,7 +279,7 @@ transmit_request (void *cls,
     GNUNET_assert (ret <= size);
     rs.header.size = htons ((uint16_t) ret);
     rs.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE);
-    rs.nac = htonl (rr->nac);
+    rs.reserved = htonl (0);
     rs.expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
     rs.protocol = htonl (rr->protocol);
     rs.result_af = htonl (rr->result_af);
@@ -312,7 +306,7 @@ transmit_request (void *cls,
     GNUNET_assert (ret <= size);
     rip.header.size = htons ((uint16_t) ret);
     rip.header.type = htons (GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP);
-    rip.nac = htonl (rr->nac);
+    rip.reserved = htonl (0);
     rip.expiration_time = GNUNET_TIME_absolute_hton (rr->expiration_time);
     rip.result_af = htonl (rr->result_af);
     rip.addr_af = htonl (rr->addr_af);
@@ -448,9 +442,6 @@ GNUNET_VPN_cancel_request (struct GNUNET_VPN_RedirectionRequest *rr)
  * @param protocol protocol, IPPROTO_UDP or IPPROTO_TCP
  * @param peer target peer for the redirection
  * @param serv service descriptor to give to the peer
- * @param nac GNUNET_YES to notify via callback only after completion of
- *            the MESH-level connection,
- *            GNUNET_NO to notify as soon as the IP has been reserved
  * @param expiration_time at what time should the redirection expire?
  *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
@@ -465,14 +456,13 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
 			     uint8_t protocol,
 			     const struct GNUNET_PeerIdentity *peer,
 			     const struct GNUNET_HashCode *serv,
-			     int nac,
 			     struct GNUNET_TIME_Absolute expiration_time,
 			     GNUNET_VPN_AllocationCallback cb,
 			     void *cb_cls)
 {
   struct GNUNET_VPN_RedirectionRequest *rr;
 
-  rr = GNUNET_malloc (sizeof (struct GNUNET_VPN_RedirectionRequest));
+  rr = GNUNET_new (struct GNUNET_VPN_RedirectionRequest);
   rr->vh = vh;
   rr->cb = cb;
   rr->cb_cls = cb_cls;
@@ -480,7 +470,6 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
   rr->serv = *serv;
   rr->expiration_time = expiration_time;
   rr->result_af = result_af;
-  rr->nac = nac;
   rr->protocol = protocol;
   queue_request (rr);
   return rr;
@@ -501,9 +490,6 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
  * @param addr_af address family for 'addr', AF_INET or AF_INET6
  * @param addr destination IP address on the Internet; destination
  *             port is to be taken from the VPN packet itself
- * @param nac GNUNET_YES to notify via callback only after completion of
- *            the MESH-level connection,
- *            GNUNET_NO to notify as soon as the IP has been reserved
  * @param expiration_time at what time should the redirection expire?
  *        (this should not impact connections that are active at that time)
  * @param cb function to call with the IP
@@ -517,7 +503,6 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
 			   int result_af,
 			   int addr_af,
 			   const void *addr,
-			   int nac,
 			   struct GNUNET_TIME_Absolute expiration_time,
 			   GNUNET_VPN_AllocationCallback cb,
 			   void *cb_cls)
@@ -545,7 +530,6 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
   rr->expiration_time = expiration_time;
   rr->result_af = result_af;
   rr->addr_af = addr_af;
-  rr->nac = nac;
   memcpy (&rr[1], addr, alen);
   queue_request (rr);
   return rr;
@@ -563,7 +547,7 @@ GNUNET_VPN_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_VPN_Handle *vh;
 
-  vh = GNUNET_malloc (sizeof (struct GNUNET_VPN_Handle));
+  vh = GNUNET_new (struct GNUNET_VPN_Handle);
   vh->cfg = cfg;
   vh->client = GNUNET_CLIENT_connect ("vpn", cfg);
   if (NULL == vh->client)

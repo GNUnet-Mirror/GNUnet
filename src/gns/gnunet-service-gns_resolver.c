@@ -1152,7 +1152,6 @@ handle_gns_resolution_result (void *cls,
 							      ntohs (vpn->proto),
 							      &vpn->peer,
 							      &vhash,
-							      GNUNET_NO,
 							      GNUNET_TIME_relative_to_absolute (VPN_TIMEOUT),
 							      &vpn_allocation_cb,
 							      rh);

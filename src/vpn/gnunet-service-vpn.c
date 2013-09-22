@@ -204,21 +204,10 @@ struct TunnelState
   struct TunnelMessageQueueEntry *tmq_tail;  
 
   /**
-   * Client that needs to be notified about the tunnel being
-   * up as soon as a peer is connected; NULL for none.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
    * Destination entry that has a pointer to this tunnel state;
    * NULL if this tunnel state is in the tunnel map.
    */
   struct DestinationEntry *destination_container;
-
-  /**
-   * ID of the client request that caused us to setup this entry.
-   */ 
-  uint64_t request_id;
 
   /**
    * Destination to which this tunnel leads.  Note that
@@ -636,40 +625,6 @@ tunnel_peer_disconnect_handler (void *cls,
 
 
 /**
- * Method called whenever a peer has connected to the tunnel.  Notifies
- * the waiting client that the tunnel is now up.
- *
- * FIXME merge with tunnel_create
- * 
- * @param cls closure
- * @param peer peer identity the tunnel was created to, NULL on timeout
- * @param atsi performance data for the connection
- */
-void
-tunnel_peer_connect_handler (void *cls,
-			     const struct GNUNET_PeerIdentity *peer,
-			     const struct
-			     GNUNET_ATS_Information * atsi)
-{
-  struct TunnelState *ts = cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Peer %s connected to tunnel.\n",
-	      GNUNET_i2s (peer));
-  GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# peers connected to mesh tunnels"),
-			    1, GNUNET_NO);
-  if (NULL == ts->client)
-    return; /* nothing to do */
-  send_client_reply (ts->client,
-		     ts->request_id,
-		     ts->af,
-		     &ts->destination_ip);
-  ts->client = NULL;
-}
-
-
-/**
  * Send a message from the message queue via mesh.
  *
  * @param cls the `struct TunnelState` with the message queue
@@ -796,14 +751,12 @@ handle_regex_result (void *cls,
  * Initialize the given destination entry's mesh tunnel.
  *
  * @param de destination entry for which we need to setup a tunnel
- * @param client client to notify on successful tunnel setup, or NULL for none
  * @param client_af address family of the address returned to the client
  * @param request_id request ID to send in client notification (unused if client is NULL)
  * @return tunnel state of the tunnel that was created
  */
 static struct TunnelState *
 create_tunnel_to_destination (struct DestinationEntry *de,
-			      struct GNUNET_SERVER_Client *client,
 			      int client_af,
 			      uint64_t request_id)
 {
@@ -815,11 +768,6 @@ create_tunnel_to_destination (struct DestinationEntry *de,
   GNUNET_assert (NULL == de->ts);
   ts = GNUNET_new (struct TunnelState);
   ts->af = client_af;
-  if (NULL != client)
-  {
-    ts->request_id = request_id;
-    ts->client = client;
-  }
   ts->destination = *de;
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
   de->ts = ts;
@@ -1093,7 +1041,7 @@ route_packet (struct DestinationEntry *destination,
        available) or create a fresh one */
     is_new = GNUNET_YES;
     if (NULL == destination->ts)
-      ts = create_tunnel_to_destination (destination, NULL, af, 0);
+      ts = create_tunnel_to_destination (destination, af, 0);
     else
       ts = destination->ts;
     if (NULL == ts)
@@ -2579,16 +2527,17 @@ allocate_response_ip (int *result_af,
 
 
 /**
- * A client asks us to setup a redirection via some exit
- * node to a particular IP.  Setup the redirection and
- * give the client the allocated IP.
+ * A client asks us to setup a redirection via some exit node to a
+ * particular IP.  Setup the redirection and give the client the
+ * allocated IP.
  *
  * @param cls unused
  * @param client requesting client
  * @param message redirection request (a `struct RedirectToIpRequestMessage`)
  */
 static void
-service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *client,
+service_redirect_to_ip (void *cls,
+			struct GNUNET_SERVER_Client *client,
 			const struct GNUNET_MessageHeader *message)
 {
   size_t mlen;
@@ -2647,15 +2596,11 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;      
   }
-  if ( (result_af == AF_UNSPEC) ||
-       (GNUNET_NO == ntohl (msg->nac)) )
-  {
-    /* send reply "instantly" */
-    send_client_reply (client,
-		       msg->request_id,
-		       result_af,
-		       addr);
-  }
+  /* send reply with our IP address */
+  send_client_reply (client,
+		     msg->request_id,
+		     result_af,
+		     addr);  
   if (result_af == AF_UNSPEC)
   {
     /* failure, we're done */
@@ -2701,7 +2646,6 @@ service_redirect_to_ip (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Client *cl
   
   /* setup tunnel to destination */
   ts = create_tunnel_to_destination (de, 
-				     (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
 				     result_af,
 				     msg->request_id);
   switch (result_af)
@@ -2754,15 +2698,10 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;      
   }
-  if ( (result_af == AF_UNSPEC) ||
-       (GNUNET_NO == ntohl (msg->nac)) )
-  {
-    /* send reply "instantly" */
-    send_client_reply (client,
-		       msg->request_id,
-		       result_af,
-		       addr);
-  }
+  send_client_reply (client,
+		     msg->request_id,
+		     result_af,
+		     addr);  
   if (result_af == AF_UNSPEC)
   {
     /* failure, we're done */
@@ -2802,7 +2741,6 @@ service_redirect_to_service (void *cls GNUNET_UNUSED, struct GNUNET_SERVER_Clien
   while (GNUNET_CONTAINER_multihashmap_size (destination_map) > max_destination_mappings)
     expire_destination (de);
   ts = create_tunnel_to_destination (de,
-				     (GNUNET_NO == ntohl (msg->nac)) ? NULL : client,
 				     result_af,
 				     msg->request_id);
   switch (result_af)
@@ -2944,75 +2882,6 @@ cleanup (void *cls,
   }
   for (i=0;i<5;i++)
     GNUNET_free_non_null (vpn_argv[i]);
-}
-
-
-/**
- * A client disconnected, clean up all references to it.
- *
- * @param cls the client that disconnected
- * @param key unused
- * @param value a `struct TunnelState *`
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-cleanup_tunnel_client (void *cls,
-		       const struct GNUNET_HashCode *key,
-		       void *value)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  struct TunnelState *ts = value;
-
-  if (client == ts->client)
-    ts->client = NULL;
-  return GNUNET_OK;
-}
-
-
-/**
- * A client disconnected, clean up all references to it.
- *
- * @param cls the client that disconnected
- * @param key unused
- * @param value a `struct DestinationEntry *`
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-cleanup_destination_client (void *cls,
-			    const struct GNUNET_HashCode *key,
-			    void *value)
-{
-  struct GNUNET_SERVER_Client *client = cls;
-  struct DestinationEntry *de = value;
-  struct TunnelState *ts;
-
-  if (NULL == (ts = de->ts))
-    return GNUNET_OK;
-  if (client == ts->client)
-    ts->client = NULL;
-  return GNUNET_OK;
-}
-
-  
-/**
- * A client has disconnected from us.  If we are currently building
- * a tunnel for it, cancel the operation.
- *
- * @param cls unused
- * @param client handle to the client that disconnected
- */
-static void
-client_disconnect (void *cls, 
-		   struct GNUNET_SERVER_Client *client)
-{
-  if (NULL != tunnel_map)
-    GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
-					   &cleanup_tunnel_client,
-					   client);
-  if (NULL != destination_map)
-    GNUNET_CONTAINER_multihashmap_iterate (destination_map,
-					   &cleanup_destination_client,
-					   client);
 }
 
 
@@ -3176,7 +3045,6 @@ run (void *cls,
 				       &message_token, NULL, NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 }
 

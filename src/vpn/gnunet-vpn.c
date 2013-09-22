@@ -80,11 +80,6 @@ static int udp;
 static int verbosity;
 
 /**
- * Option '-a':  Notify only once the tunnel is connected?
- */
-static int nac;
-
-/**
  * Global return value.
  */
 static int ret;
@@ -246,7 +241,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 					   protocol,
 					   &peer,
 					   &sd,
-					   nac,
 					   etime,
 					   &allocation_cb, NULL);
   }
@@ -275,7 +269,6 @@ run (void *cls, char *const *args, const char *cfgfile,
 					 req_af,
 					 dst_af,
 					 addr,
-					 nac,
 					 etime,
 					 &allocation_cb, NULL);
   }
@@ -296,9 +289,6 @@ main (int argc, char *const *argv)
      0, &GNUNET_GETOPT_set_one, &ipv4},
     {'6', "ipv6", NULL,
      gettext_noop ("request that result should be an IPv6 address"),
-     0, &GNUNET_GETOPT_set_one, &ipv6},
-    {'a', "after-connect", NULL,
-     gettext_noop ("print IP address only after mesh tunnel has been created"),
      0, &GNUNET_GETOPT_set_one, &ipv6},
     {'d', "duration", "TIME",
      gettext_noop ("how long should the mapping be valid for new tunnels?"),

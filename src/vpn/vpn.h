@@ -38,15 +38,14 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct RedirectToIpRequestMessage
 {
   /**
-   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * GNUNET_YES to notify only after completion of the mesh-level connection,
-   * GNUNET_NO to notify as soon as an address was allocated (in nbo).
+   * Always zero.
    */
-  int32_t nac GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
   
   /**
    * How long should the redirection be maintained at most?
@@ -82,15 +81,14 @@ struct RedirectToIpRequestMessage
 struct RedirectToServiceRequestMessage
 {
   /**
-   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * GNUNET_YES to notify only after completion of the mesh-level connection,
-   * GNUNET_NO to notify as soon as an address was allocated (in nbo).
+   * Always zero.
    */
-  int32_t nac GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
   
   /**
    * How long should the redirection be maintained at most?
@@ -134,7 +132,7 @@ struct RedirectToIpResponseMessage
 {
   
   /**
-   * Type is  GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
+   * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
    */
   struct GNUNET_MessageHeader header;
 
