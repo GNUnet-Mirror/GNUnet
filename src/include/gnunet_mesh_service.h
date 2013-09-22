@@ -155,9 +155,7 @@ struct GNUNET_MESH_MessageHandler
  *         (can be NULL -- that's not an error)
  */
 typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
-                                                              struct
-                                                              GNUNET_MESH_Tunnel
-                                                              * tunnel,
+                                                              struct GNUNET_MESH_Tunnel *tunnel,
                                                               const struct
                                                               GNUNET_PeerIdentity
                                                               * initiator,
@@ -203,7 +201,8 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  *         (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+		     void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
                      const struct GNUNET_MESH_MessageHandler *handlers,

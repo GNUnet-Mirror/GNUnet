@@ -50,6 +50,11 @@
  */
 #define MAX_DNS_SIZE (8 * 1024)
 
+/**
+ * How many tunnels do we open at most at the same time?
+ */
+#define MAX_OPEN_TUNNELS 4
+
 
 /**
  * Which group of DNS records are we currently processing?
@@ -117,6 +122,79 @@ struct ReplyContext
 
 
 /**
+ * Handle to a peer that advertised that it is willing to serve
+ * as a DNS exit.  We try to keep a few tunnels open and a few
+ * peers in reserve.
+ */
+struct MeshExit
+{
+
+  /**
+   * Kept in a DLL.
+   */
+  struct MeshExit *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct MeshExit *prev;
+
+  /**
+   * Tunnel we use for DNS requests over MESH, NULL if we did
+   * not initialze a tunnel to this peer yet.
+   */
+  struct GNUNET_MESH_Tunnel *mesh_tunnel;
+  
+  /**
+   * At what time did the peer's advertisement expire?
+   */
+  struct GNUNET_TIME_Absolute expiration;
+
+  /**
+   * Head of DLL of requests waiting for a response.
+   */
+  struct RequestContext *receive_queue_head;
+
+  /**
+   * Tail of DLL of requests waiting for a response.
+   */
+  struct RequestContext *receive_queue_tail;
+
+  /**
+   * Head of DLL of requests to be transmitted to a mesh_tunnel.
+   */
+  struct RequestContext *transmit_queue_head;
+
+  /**
+   * Tail of DLL of requests to be transmitted to a mesh_tunnel.
+   */
+  struct RequestContext *transmit_queue_tail;
+
+  /**
+   * Active transmission request for this tunnel (or NULL).
+   */
+  struct GNUNET_MESH_TransmitHandle *mesh_th;
+
+  /**
+   * Identity of the peer that is providing the exit for us.
+   */ 
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * How many DNS requests did we transmit via this tunnel?
+   */
+  unsigned int num_transmitted;
+
+  /**
+   * How many DNS requests were answered via this tunnel?
+   */
+  unsigned int num_answered;
+
+};
+
+
+
+/**
  * State we keep for a request that is going out via MESH.
  */
 struct RequestContext
@@ -130,6 +208,11 @@ struct RequestContext
    * We keep these in a DLL.
    */
   struct RequestContext *prev;
+
+  /**
+   * Exit that was chosen for this request.
+   */
+  struct MeshExit *exit;
 
   /**
    * Handle for interaction with DNS service.
@@ -148,6 +231,11 @@ struct RequestContext
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
+   * Length of the request message that follows this struct.
+   */
+  uint16_t mlen;
+
+  /**
    * ID of the original DNS request (used to match the reply).
    */
   uint16_t dns_id;
@@ -160,6 +248,18 @@ struct RequestContext
 
 };
 
+
+/**
+ * Head of DLL of mesh exits.  Mesh exits with an open tunnel are
+ * always at the beginning (so we do not have to traverse the entire
+ * list to find them).
+ */
+static struct MeshExit *exit_head;
+
+/**
+ * Tail of DLL of mesh exits.
+ */
+static struct MeshExit *exit_tail;
 
 /**
  * The handle to the configuration used throughout the process
@@ -175,38 +275,6 @@ static struct GNUNET_VPN_Handle *vpn_handle;
  * The handle to the MESH service
  */
 static struct GNUNET_MESH_Handle *mesh_handle;
-
-/**
- * Tunnel we use for DNS requests over MESH.
- * FIXME: we might want to keep multiple tunnels open
- * at all times...
- */
-static struct GNUNET_MESH_Tunnel *mesh_tunnel;
-
-/**
- * Active transmission request with MESH (or NULL).
- */
-static struct GNUNET_MESH_TransmitHandle *mesh_th;
-
-/**
- * Head of DLL of requests to be transmitted to mesh_tunnel.
- */
-static struct RequestContext *transmit_queue_head;
-
-/**
- * Tail of DLL of requests to be transmitted to mesh_tunnel.
- */
-static struct RequestContext *transmit_queue_tail;
-
-/**
- * Head of DLL of requests waiting for a response.
- */
-static struct RequestContext *receive_queue_head;
-
-/**
- * Tail of DLL of requests waiting for a response.
- */
-static struct RequestContext *receive_queue_tail;
 
 /**
  * Statistics.
@@ -250,9 +318,147 @@ static int dns_tunnel;
 
 /**
  * Number of DNS exit peers we currently have in the mesh tunnel.
- * Used to see if using the mesh tunnel makes any sense right now.
+ * Used to see if using the mesh tunnel makes any sense right now,
+ * as well as to decide if we should open new tunnels.
  */
 static unsigned int dns_exit_available;
+
+
+/**
+ * We are short on mesh exits, try to open another one.
+ */
+static void
+try_open_exit ()
+{
+  struct MeshExit *pos;
+  uint32_t candidate_count;
+  uint32_t candidate_selected;
+
+  candidate_count = 0;
+  for (pos = exit_head; NULL != pos; pos = pos->next)
+    if (NULL == pos->mesh_tunnel)
+      candidate_count++;
+  candidate_selected = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+						 candidate_count);
+  candidate_count = 0;
+  for (pos = exit_head; NULL != pos; pos = pos->next)
+    if (NULL == pos->mesh_tunnel)
+    {
+      candidate_count++;
+      if (candidate_selected < candidate_count)
+      {
+	/* move to the head of the DLL */
+	pos->mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
+						      pos,
+						      &pos->peer,
+						      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
+						      GNUNET_YES /* no buffer */,
+						      GNUNET_NO /* reliable */);
+	if (NULL == pos->mesh_tunnel)
+	{
+	  GNUNET_break (0);
+	  continue;
+	}
+	GNUNET_CONTAINER_DLL_remove (exit_head,
+				     exit_tail,
+				     pos);
+	GNUNET_CONTAINER_DLL_insert (exit_head,
+				     exit_tail,
+				     pos);
+	dns_exit_available++;
+	return;
+      }
+    }
+  GNUNET_assert (NULL == exit_head);
+}
+
+
+/**
+ * Compute the weight of the given exit.  The higher the weight,
+ * the more likely it will be that the tunnel will be chosen.
+ * A weigt of zero means that we should close the tunnel as it
+ * is so bad, that we should not use it.
+ *
+ * @param exit exit to calculate the weight for
+ * @return weight of the tunnel
+ */
+static uint32_t
+get_tunnel_weight (struct MeshExit *exit)
+{
+  uint32_t dropped;
+  uint32_t drop_percent;
+  uint32_t good_percent;
+  
+  GNUNET_assert (exit->num_transmitted >= exit->num_answered);
+  dropped = exit->num_transmitted - exit->num_answered;
+  if (exit->num_transmitted > 0)
+    drop_percent = (uint32_t) ((100LL * dropped) / exit->num_transmitted);
+  else
+    drop_percent = 50; /* no data */
+  if ( (exit->num_transmitted > 20) &&
+       (drop_percent > 25) )
+    return 0; /* statistically significant, and > 25% loss, die */
+  good_percent = 100 - drop_percent;
+  GNUNET_assert (0 != good_percent);
+  if ( UINT32_MAX / good_percent / good_percent < exit->num_transmitted)
+    return UINT32_MAX; /* formula below would overflow */
+  return 1 + good_percent * good_percent * exit->num_transmitted;
+}
+
+
+/**
+ * Choose a mesh exit for a DNS request.  We try to use a tunnel
+ * that is reliable and currently available.  All existing 
+ * tunnels are given a base weight of 1, plus a score relating
+ * to the total number of queries answered in relation to the
+ * total number of queries we sent to that tunnel.  That
+ * score is doubled if the tunnel is currently idle.
+ *
+ * @return NULL if no exit is known, otherwise the
+ *         exit that we should use to queue a message with
+ */
+static struct MeshExit *
+choose_exit ()
+{
+  struct MeshExit *pos;
+  uint64_t total_transmitted;
+  uint64_t selected_offset;
+  uint32_t tunnel_weight;
+
+  total_transmitted = 0;
+  for (pos = exit_head; NULL != pos; pos = pos->next)
+  {
+    if (NULL == pos->mesh_tunnel)
+      break;
+    tunnel_weight = get_tunnel_weight (pos);
+    total_transmitted += tunnel_weight;
+    /* double weight for idle tunnels */
+    if (NULL == pos->mesh_th)
+      total_transmitted += tunnel_weight;
+  }
+  if (0 == total_transmitted)
+  {
+    /* no tunnels available, or only a very bad one... */
+    return exit_head;
+  }
+  selected_offset = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+					      total_transmitted);
+  total_transmitted = 0;
+  for (pos = exit_head; NULL != pos; pos = pos->next)
+  {
+    if (NULL == pos->mesh_tunnel)
+      break;
+    tunnel_weight = get_tunnel_weight (pos);
+    total_transmitted += tunnel_weight;
+    /* double weight for idle tunnels */
+    if (NULL == pos->mesh_th)
+      total_transmitted += tunnel_weight;
+    if (total_transmitted > selected_offset)
+      return pos;
+  }
+  GNUNET_break (0);
+  return NULL;
+}
 
 
 /**
@@ -542,7 +748,7 @@ dns_post_request_handler (void *cls,
  * Transmit a DNS request via MESH and move the request
  * handle to the receive queue.
  *
- * @param cls NULL
+ * @param cls the `struct MeshExit`
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes written to buf
@@ -552,40 +758,41 @@ transmit_dns_request_to_mesh (void *cls,
 			      size_t size,
 			      void *buf)
 {
+  struct MeshExit *exit = cls;
   struct RequestContext *rc;
   size_t mlen;
 
-  mesh_th = NULL;
-  if (NULL == (rc = transmit_queue_head))
+  exit->mesh_th = NULL;
+  if (NULL == (rc = exit->transmit_queue_head))
     return 0;
-  mlen = ntohs (rc->mesh_message->size);
+  mlen = rc->mlen;
   if (mlen > size)
   {
-    mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO,
-						 TIMEOUT,
-						 mlen,
-						 &transmit_dns_request_to_mesh,
-						 NULL);
+    exit->mesh_th = GNUNET_MESH_notify_transmit_ready (exit->mesh_tunnel,
+						       GNUNET_NO,
+						       TIMEOUT,
+						       mlen,
+						       &transmit_dns_request_to_mesh,
+						       exit);
     return 0;
   }
   GNUNET_assert (GNUNET_NO == rc->was_transmitted);
   memcpy (buf, rc->mesh_message, mlen);
-  GNUNET_CONTAINER_DLL_remove (transmit_queue_head,
-			       transmit_queue_tail,
+  GNUNET_CONTAINER_DLL_remove (exit->transmit_queue_head,
+			       exit->transmit_queue_tail,
 			       rc);
   rc->was_transmitted = GNUNET_YES;
-  GNUNET_CONTAINER_DLL_insert (receive_queue_head,
-			       receive_queue_tail,
+  GNUNET_CONTAINER_DLL_insert (exit->receive_queue_head,
+			       exit->receive_queue_tail,
 			       rc);
-  rc = transmit_queue_head;
+  rc = exit->transmit_queue_head;
   if (NULL != rc)
-    mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO,
-						 TIMEOUT,
-						 ntohs (rc->mesh_message->size),
-						 &transmit_dns_request_to_mesh,
-						 NULL);
+    exit->mesh_th = GNUNET_MESH_notify_transmit_ready (exit->mesh_tunnel,
+						       GNUNET_NO,
+						       TIMEOUT,
+						       rc->mlen,
+						       &transmit_dns_request_to_mesh,
+						       exit);
   return mlen;
 }
 
@@ -593,7 +800,7 @@ transmit_dns_request_to_mesh (void *cls,
 /**
  * Task run if the time to answer a DNS request via MESH is over.
  *
- * @param cls the 'struct RequestContext' to abort
+ * @param cls the `struct RequestContext` to abort
  * @param tc scheduler context
  */
 static void
@@ -601,20 +808,52 @@ timeout_request (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestContext *rc = cls;
+  struct MeshExit *exit = rc->exit;
   
   if (rc->was_transmitted)
-    GNUNET_CONTAINER_DLL_remove (receive_queue_head,
-				 receive_queue_tail,
+  {
+    exit->num_transmitted++;
+    GNUNET_CONTAINER_DLL_remove (exit->receive_queue_head,
+				 exit->receive_queue_tail,
 				 rc);
+  }
   else
-    GNUNET_CONTAINER_DLL_remove (transmit_queue_head,
-				 transmit_queue_tail,
+  {
+    GNUNET_CONTAINER_DLL_remove (exit->transmit_queue_head,
+				 exit->transmit_queue_tail,
 				 rc);
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# DNS requests dropped (timeout)"),
 			    1, GNUNET_NO);
   GNUNET_DNS_request_drop (rc->rh);
   GNUNET_free (rc);
+  if ( (0 == get_tunnel_weight (exit)) &&
+       (NULL == exit->receive_queue_head) &&
+       (NULL == exit->transmit_queue_head) )
+  {
+    /* this straw broke the camel's back: this tunnel now has
+       such a low score that it will not be used; close it! */
+    GNUNET_assert (NULL == exit->mesh_th);
+    GNUNET_MESH_tunnel_destroy (exit->mesh_tunnel);
+    exit->mesh_tunnel = NULL;
+    GNUNET_CONTAINER_DLL_remove (exit_head,
+				 exit_tail,
+				 exit);
+    GNUNET_CONTAINER_DLL_insert_tail (exit_head,
+				      exit_tail,
+				      exit);
+    /* go back to semi-innocent: mark as not great, but
+       avoid a prohibitively negative score (see 
+       #get_tunnel_weight, which checks for a certain
+       minimum number of transmissions before making
+       up an opinion) */
+    exit->num_transmitted = 5;
+    exit->num_answered = 0;
+    dns_exit_available--;
+    /* now try to open an alternative exit */
+    try_open_exit ();
+  }
 }
 
 
@@ -639,6 +878,7 @@ dns_pre_request_handler (void *cls,
   size_t mlen;
   struct GNUNET_MessageHeader hdr;
   struct GNUNET_TUN_DnsHeader dns;
+  struct MeshExit *exit;
 
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# DNS requests intercepted"),
@@ -660,49 +900,55 @@ dns_pre_request_handler (void *cls,
     return;
   }
   memcpy (&dns, request, sizeof (dns));
-  GNUNET_assert (NULL != mesh_tunnel);
   mlen = sizeof (struct GNUNET_MessageHeader) + request_length;
+  exit = choose_exit ();
+  GNUNET_assert (NULL != exit);
+  GNUNET_assert (NULL != exit->mesh_tunnel);
   rc = GNUNET_malloc (sizeof (struct RequestContext) + mlen);
+  rc->exit = exit;
   rc->rh = rh;
   rc->mesh_message = (const struct GNUNET_MessageHeader*) &rc[1];
   rc->timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						   &timeout_request,
 						   rc);
   rc->dns_id = dns.id;
+  rc->mlen = mlen;
   hdr.type = htons (GNUNET_MESSAGE_TYPE_VPN_DNS_TO_INTERNET);
   hdr.size = htons (mlen);
   memcpy (&rc[1], &hdr, sizeof (struct GNUNET_MessageHeader));
   memcpy (&(((char*)&rc[1])[sizeof (struct GNUNET_MessageHeader)]),
 	  request,
 	  request_length);
-  GNUNET_CONTAINER_DLL_insert_tail (transmit_queue_head,
-				    transmit_queue_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (exit->transmit_queue_head,
+				    exit->transmit_queue_tail,
 				    rc);
-  if (NULL == mesh_th)
-    mesh_th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
-						 GNUNET_NO,
-						 TIMEOUT,
-						 mlen,
-						 &transmit_dns_request_to_mesh,
-						 NULL);
+  if (NULL == exit->mesh_th)
+    exit->mesh_th = GNUNET_MESH_notify_transmit_ready (exit->mesh_tunnel,
+						       GNUNET_NO,
+						       TIMEOUT,
+						       mlen,
+						       &transmit_dns_request_to_mesh,
+						       exit);
 }
 
 
 /**
  * Process a request via mesh to perform a DNS query.
  *
- * @param cls closure, NULL
+ * @param cls NULL
  * @param tunnel connection to the other end
- * @param tunnel_ctx FIXME
+ * @param tunnel_ctx pointer to our `struct MeshExit`
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+receive_dns_response (void *cls, 
+		      struct GNUNET_MESH_Tunnel *tunnel,
 		      void **tunnel_ctx,
 		      const struct GNUNET_MessageHeader *message)
 {
+  struct MeshExit *exit = *tunnel_ctx;
   struct GNUNET_TUN_DnsHeader dns;
   size_t mlen;
   struct RequestContext *rc;
@@ -715,7 +961,7 @@ receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
     return GNUNET_SYSERR;
   }
   memcpy (&dns, &message[1], sizeof (dns));
-  for (rc = receive_queue_head; NULL != rc; rc = rc->next)
+  for (rc = exit->receive_queue_head; NULL != rc; rc = rc->next)
   {
     GNUNET_assert (GNUNET_YES == rc->was_transmitted);
     if (dns.id == rc->dns_id)
@@ -726,11 +972,13 @@ receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
       GNUNET_DNS_request_answer (rc->rh,
 				 mlen,
 				 (const void*) &message[1]);
-      GNUNET_CONTAINER_DLL_remove (receive_queue_head,
-				   receive_queue_tail,
+      GNUNET_CONTAINER_DLL_remove (exit->receive_queue_head,
+				   exit->receive_queue_tail,
 				   rc);
       GNUNET_SCHEDULER_cancel (rc->timeout_task);
       GNUNET_free (rc);
+      exit->num_answered++;
+      exit->num_transmitted++;
       return GNUNET_OK;      
     }
   }
@@ -742,33 +990,28 @@ receive_dns_response (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
 
 
 /**
- * The MESH DNS tunnel went down.  Abort all pending DNS
- * requests (we're unlikely to get an answer in time).
+ * Abort all pending DNS requests with the given mesh exit.
+ *
+ * @param exit mesh exit to abort requests for
  */ 
 static void
-abort_all_requests ()
+abort_all_requests (struct MeshExit *exit)
 {
   struct RequestContext *rc;
 
-  while (NULL != (rc = receive_queue_head))
+  while (NULL != (rc = exit->receive_queue_head))
   {
-    GNUNET_STATISTICS_update (stats,
-			      gettext_noop ("# DNS requests aborted (tunnel down)"),
-			      1, GNUNET_NO);
-    GNUNET_CONTAINER_DLL_remove (receive_queue_head,
-				 receive_queue_tail,
+    GNUNET_CONTAINER_DLL_remove (exit->receive_queue_head,
+				 exit->receive_queue_tail,
 				 rc);
     GNUNET_DNS_request_drop (rc->rh);
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
     GNUNET_free (rc);    
   }
-  while (NULL != (rc = transmit_queue_head))
+  while (NULL != (rc = exit->transmit_queue_head))
   {
-    GNUNET_STATISTICS_update (stats,
-			      gettext_noop ("# DNS requests aborted (tunnel down)"),
-			      1, GNUNET_NO);
-    GNUNET_CONTAINER_DLL_remove (transmit_queue_head,
-				 transmit_queue_tail,
+    GNUNET_CONTAINER_DLL_remove (exit->transmit_queue_head,
+				 exit->transmit_queue_tail,
 				 rc);
     GNUNET_DNS_request_drop (rc->rh);
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
@@ -787,6 +1030,8 @@ static void
 cleanup (void *cls,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
+  struct MeshExit *exit;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Protocol translation daemon is shutting down now\n");
   if (NULL != vpn_handle)
@@ -794,22 +1039,29 @@ cleanup (void *cls,
     GNUNET_VPN_disconnect (vpn_handle);
     vpn_handle = NULL;
   }
-  if (NULL != mesh_th)
+  while (NULL != (exit = exit_head))
   {
-    GNUNET_MESH_notify_transmit_ready_cancel (mesh_th);
-    mesh_th = NULL;
-  }
-  if (NULL != mesh_tunnel)
-  {
-    GNUNET_MESH_tunnel_destroy (mesh_tunnel);
-    mesh_tunnel = NULL;
+    GNUNET_CONTAINER_DLL_remove (exit_head,
+				 exit_tail,
+				 exit);
+    if (NULL != exit->mesh_th)
+    {
+      GNUNET_MESH_notify_transmit_ready_cancel (exit->mesh_th);
+      exit->mesh_th = NULL;
+    }
+    if (NULL != exit->mesh_tunnel)
+    {
+      GNUNET_MESH_tunnel_destroy (exit->mesh_tunnel);
+      exit->mesh_tunnel = NULL;
+    }
+    abort_all_requests (exit);
+    GNUNET_free (exit);
   }
   if (NULL != mesh_handle)
   {
     GNUNET_MESH_disconnect (mesh_handle);
     mesh_handle = NULL;
   }
-  abort_all_requests ();
   if (NULL != dns_post_handle)
   {
     GNUNET_DNS_disconnect (dns_post_handle);
@@ -838,14 +1090,13 @@ cleanup (void *cls,
 }
 
 
-
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
  * the associated state and attempt to build a new one.
  * 
  * It must NOT call #GNUNET_MESH_tunnel_destroy on the tunnel.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (the `struct MeshExit` set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored
@@ -855,7 +1106,59 @@ mesh_tunnel_end_cb (void *cls,
 		    const struct GNUNET_MESH_Tunnel *tunnel, 
 		    void *tunnel_ctx)
 {
-  // FIXME: do cleanup here!
+  struct MeshExit *exit = tunnel_ctx;
+  struct MeshExit *alt;
+  struct RequestContext *rc;  
+
+  if (NULL != exit->mesh_th)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (exit->mesh_th);
+    exit->mesh_th = NULL;
+  }
+  exit->mesh_tunnel = NULL;
+  dns_exit_available--;
+  /* open alternative tunnels */
+  try_open_exit ();
+  if (NULL == exit->mesh_tunnel)
+  {
+    /* our tunnel is now closed, move our requests to an alternative
+       tunnel */
+    alt = choose_exit ();
+    while (NULL != (rc = exit->transmit_queue_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (exit->transmit_queue_head,
+				   exit->transmit_queue_tail,
+				   rc);
+      rc->exit = alt;
+      GNUNET_CONTAINER_DLL_insert (alt->transmit_queue_head,
+				   alt->transmit_queue_tail,
+				   rc);
+    }
+    while (NULL != (rc = exit->receive_queue_head))
+    {
+      GNUNET_CONTAINER_DLL_remove (exit->receive_queue_head,
+				   exit->receive_queue_tail,
+				   rc);
+      rc->was_transmitted = GNUNET_NO;
+      rc->exit = alt;
+      GNUNET_CONTAINER_DLL_insert (alt->transmit_queue_head,
+				   alt->transmit_queue_tail,
+				   rc);
+    }
+  }
+  else
+  {
+    /* the same peer was chosen, just make sure the queue processing is restarted */
+    alt = exit; 
+  }
+  if ( (NULL == alt->mesh_th) &&
+       (NULL != (rc = alt->transmit_queue_head)) )
+    alt->mesh_th = GNUNET_MESH_notify_transmit_ready (alt->mesh_tunnel,
+						      GNUNET_NO,
+						      TIMEOUT,
+						      rc->mlen,
+						      &transmit_dns_request_to_mesh,
+						      alt);
 }
 
 
@@ -891,6 +1194,7 @@ handle_dht_result (void *cls,
 {
   const struct GNUNET_DNS_Advertisement *ad;
   struct GNUNET_PeerIdentity pid;
+  struct MeshExit *exit;
 
   if (sizeof (struct GNUNET_DNS_Advertisement) != size)
   {
@@ -901,15 +1205,24 @@ handle_dht_result (void *cls,
   GNUNET_CRYPTO_hash (&ad->peer,
 		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 		      &pid.hashPubKey);
-  /* FIXME: decide between creating more mesh tunnels and
-     just remembering the peer ID */
-  mesh_tunnel = GNUNET_MESH_tunnel_create (mesh_handle,
-					   NULL /* FIXME: tunnel ctx */,
-					   &pid,
-					   GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-					   GNUNET_YES /* no buffer */,
-					   GNUNET_NO /* reliable */);
-
+  for (exit = exit_head; NULL != exit; exit = exit->next)  
+    if (0 == memcmp (&pid,
+		     &exit->peer,
+		     sizeof (struct GNUNET_PeerIdentity)))
+      break;
+  if (NULL == exit)
+  {
+    exit = GNUNET_new (struct MeshExit);
+    exit->peer = pid;
+    /* tunnel is closed, so insert at the end */
+    GNUNET_CONTAINER_DLL_insert_tail (exit_head,
+				      exit_tail,
+				      exit);
+  }
+  exit->expiration = GNUNET_TIME_absolute_max (exit->expiration,
+					       GNUNET_TIME_absolute_ntoh (ad->expiration_time));
+  if (dns_exit_available < MAX_OPEN_TUNNELS)
+    try_open_exit ();
 }
 
 
