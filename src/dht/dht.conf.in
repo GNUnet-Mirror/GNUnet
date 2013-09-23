@@ -21,6 +21,8 @@ UNIX_MATCH_GID = YES
 # REJECT_FROM6 =
 # PREFIX =
 
+# Should the DHT cache results that we are routing in the DATACACHE as well?
+CACHE_RESULTS = YES
 
 # Special option to disable DHT calling 'try_connect' (for testing)
 DISABLE_TRY_CONNECT = NO

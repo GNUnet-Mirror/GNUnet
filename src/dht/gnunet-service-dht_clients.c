@@ -312,7 +312,7 @@ find_active_client (struct GNUNET_SERVER_Client *client)
       return pos;
     pos = pos->next;
   }
-  ret = GNUNET_malloc (sizeof (struct ClientList));
+  ret = GNUNET_new (struct ClientList);
   ret->client_handle = client;
   GNUNET_CONTAINER_DLL_insert (client_head, client_tail, ret);
   return ret;
@@ -326,7 +326,7 @@ find_active_client (struct GNUNET_SERVER_Client *client)
  * @param cls client to search for in source routes
  * @param key current key code (ignored)
  * @param value value in the hash map, a ClientQueryRecord
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 remove_client_records (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -359,13 +359,16 @@ remove_client_records (void *cls, const struct GNUNET_HashCode * key, void *valu
  *        for the last call when the server is destroyed
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_disconnect (void *cls,
+			  struct GNUNET_SERVER_Client *client)
 {
   struct ClientList *pos;
   struct PendingMessage *reply;
   struct ClientMonitorRecord *monitor;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Local client %p disconnects\n", client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Local client %p disconnects\n", 
+	      client);
   pos = find_active_client (client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, pos);
   if (pos->transmit_handle != NULL)
@@ -1021,8 +1024,9 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   struct GNUNET_HashCode ch;
   unsigned int i;
 
-  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-RESULT %s @ %u\n",
-               GNUNET_h2s (key), getpid ());
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
+	       "XDHT CLIENT-RESULT %s\n",
+               GNUNET_h2s (key));
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1108,7 +1112,8 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   reply->unique_id = record->unique_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queueing reply to query %s for client %p\n", GNUNET_h2s (key),
+       "Queueing reply to query %s for client %p\n",
+       GNUNET_h2s (key),
        record->client->client_handle);
   add_pending_message (record->client, pm);
   if (GNUNET_YES == do_free)
@@ -1124,12 +1129,12 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
  *
  * @param expiration when will the reply expire
  * @param key the query this reply is for
- * @param get_path_length number of peers in 'get_path'
+ * @param get_path_length number of peers in @a get_path
  * @param get_path path the reply took on get
- * @param put_path_length number of peers in 'put_path'
+ * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
  * @param type type of the reply
- * @param data_size number of bytes in 'data'
+ * @param data_size number of bytes in @a data
  * @param data application payload data
  */
 void
@@ -1148,7 +1153,9 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   struct GNUNET_PeerIdentity *paths;
   size_t msize;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "reply for key %s\n", GNUNET_h2s (key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "reply for key %s\n",
+       GNUNET_h2s (key));
 
   if (NULL == GNUNET_CONTAINER_multihashmap_get (forward_map, key))
   {
