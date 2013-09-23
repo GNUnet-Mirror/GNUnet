@@ -1336,8 +1336,10 @@ handle_gns_resolution_result (void *cls,
 			     &pub,
 			     rh->shorten_key);
 	}
+	rd_off++;
+	break;
       default:
-  rd_off++;
+	rd_off++;
 	break;
       }
     }
