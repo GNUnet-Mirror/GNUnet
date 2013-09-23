@@ -39,6 +39,7 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", links_succeeded, links_failed);
   if ( (4 == num_peers) && (0 == links_failed) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 

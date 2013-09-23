@@ -30,7 +30,6 @@
  */
 static int ok;
 
-
 static void
 test_connection (void *cls,
                  struct GNUNET_TESTBED_RunHandle *h,
@@ -39,6 +38,9 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
+  int c;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", links_succeeded, links_failed);
+
   if ( (4 != num_peers) || (0 != links_failed) )
   {
     fprintf (stderr, "Testbed failed to connect peers\n");
