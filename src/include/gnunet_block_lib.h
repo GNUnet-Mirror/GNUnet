@@ -52,9 +52,9 @@ enum GNUNET_BLOCK_Type
    */
   GNUNET_BLOCK_TYPE_FS_DBLOCK = 1,
 
-    /**
-     * Inner block in the CHK tree.
-     */
+  /**
+   * Inner block in the CHK tree.
+   */
   GNUNET_BLOCK_TYPE_FS_IBLOCK = 2,
 
   /**
@@ -128,46 +128,46 @@ enum GNUNET_BLOCK_Type
  */
 enum GNUNET_BLOCK_EvaluationResult
 {
-    /**
-     * Valid result, and there may be more.
-     */
+  /**
+   * Valid result, and there may be more.
+   */
   GNUNET_BLOCK_EVALUATION_OK_MORE = 0,
-
-    /**
-     * Last possible valid result.
-     */
+  
+  /**
+   * Last possible valid result.
+   */
   GNUNET_BLOCK_EVALUATION_OK_LAST = 1,
 
-    /**
-     * Valid result, but suppressed because it is a duplicate.
-     */
+  /**
+   * Valid result, but suppressed because it is a duplicate.
+   */
   GNUNET_BLOCK_EVALUATION_OK_DUPLICATE = 2,
 
-    /**
-     * Block does not match query (invalid result)
-     */
+  /**
+   * Block does not match query (invalid result)
+   */
   GNUNET_BLOCK_EVALUATION_RESULT_INVALID = 3,
 
-    /**
-     * Block does not match xquery (valid result, not relevant for the request)
-     */
+  /**
+   * Block does not match xquery (valid result, not relevant for the request)
+   */
   GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT = 4,
 
-    /**
-     * Query is valid, no reply given.
-     */
+  /**
+   * Query is valid, no reply given.
+   */
   GNUNET_BLOCK_EVALUATION_REQUEST_VALID = 10,
 
-    /**
-     * Query format does not match block type (invalid query).  For
-     * example, xquery not given or xquery_size not appropriate for
-     * type.
-     */
+  /**
+   * Query format does not match block type (invalid query).  For
+   * example, xquery not given or xquery_size not appropriate for
+   * type.
+   */
   GNUNET_BLOCK_EVALUATION_REQUEST_INVALID = 11,
 
-    /**
-     * Specified block type not supported by this plugin.
-     */
+  /**
+   * Specified block type not supported by this plugin.
+   */
   GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED = 20
 };
 
@@ -220,11 +220,11 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
  * @param type block type
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
- * @param bf_mutator mutation value for bf
+ * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 enum GNUNET_BLOCK_EvaluationResult
@@ -243,11 +243,11 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  * @param ctx block context
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_YES on success,
- *         GNUNET_NO if the block is malformed
- *         GNUNET_SYSERR if type not supported
+ * @return #GNUNET_YES on success,
+ *         #GNUNET_NO if the block is malformed
+ *         #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 int
@@ -263,7 +263,7 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
  *
  * @param bf_mutator mutation value to use
  * @param seen_results results already seen
- * @param seen_results_count number of entries in 'seen_results'
+ * @param seen_results_count number of entries in @a seen_results
  * @return NULL if seen_results_count is 0, otherwise a BF
  *         that would match the given results.
  */

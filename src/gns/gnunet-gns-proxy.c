@@ -791,33 +791,42 @@ mhd_content_cb (void *cls,
 static int
 check_ssl_certificate (struct Socks5Request *s5r)
 {
+  unsigned int i;
   union {
-    struct curl_slist    *to_info;
-    struct curl_certinfo *to_certinfo;
-  } ptr;
-  int i;
-  struct curl_slist *slist;
-  
-  ptr.to_info = NULL;  
+    gnutls_session session;
+    struct curl_slist    * to_slist;
+  } gptr;
+  unsigned int cert_list_size; 
+  const gnutls_datum *chainp;
+
+  gptr.to_slist = NULL;  
   if (CURLE_OK != 
       curl_easy_getinfo (s5r->curl, 
-			 CURLINFO_CERTINFO, 
-			 &ptr.to_info))
+			 CURLINFO_GNUTLS_SESSION, 
+			 &gptr))
     return GNUNET_SYSERR;
-  /* FIXME: for now, we just output the certs to stderr, we should
-     check them against LEHO / TLSA record information here! (#3038) */
-  if(NULL != ptr.to_info) 
-  {     
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Got %d certs!\n", 
-		ptr.to_certinfo->num_of_certs);      
-    for (i = 0; i < ptr.to_certinfo->num_of_certs; i++) 
-    {    
-      for (slist = ptr.to_certinfo->certinfo[i]; NULL != slist; slist = slist->next)
+
+  chainp = gnutls_certificate_get_peers(gptr.session, &cert_list_size);
+  if(!chainp)
+    return GNUNET_SYSERR;
+
+  for(i=0;i<cert_list_size;i++) {
+    gnutls_x509_crt_t cert;
+    gnutls_datum_t dn;
+
+    if(GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&cert)) {
+      if((GNUTLS_E_SUCCESS ==
+	  gnutls_x509_crt_import (cert, &chainp[i],
+				  GNUTLS_X509_FMT_DER)) &&
+	 (GNUTLS_E_SUCCESS ==
+	  gnutls_x509_crt_print (cert,
+				 GNUTLS_CRT_PRINT_FULL,
+				 &dn))) {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Certificate #%d: %s\n",
-		    i,
-		    slist->data);	
+		    "Certificate #%d: %.*s", i, dn.size, dn.data);
+	gnutls_free (dn.data);
+        gnutls_x509_crt_deinit (cert);
+      }
     }
   }
   return GNUNET_OK;

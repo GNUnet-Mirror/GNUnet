@@ -43,11 +43,11 @@
  * @param type block type
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
- * @param bf_mutator mutation value for bf
+ * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
@@ -96,7 +96,7 @@ block_plugin_test_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param cls closure
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
  * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
