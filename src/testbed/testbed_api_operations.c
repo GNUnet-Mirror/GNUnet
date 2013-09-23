@@ -995,7 +995,7 @@ GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
     fctx->max_active_bound = max_active;
     fctx->sd = GNUNET_TESTBED_SD_init_ (10); /* FIXME: Why 10? */
     queue->fctx = fctx;
-    adaptive_queue_set_max_active (queue, 1); /* start with 1 */
+    adaptive_queue_set_max_active (queue, 4); /* start with 4 */
   }
   return queue;
 }
