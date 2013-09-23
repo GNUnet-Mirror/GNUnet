@@ -1053,7 +1053,7 @@ start_process (int pipe_control,
   }
 
   bresult = CreateProcessW (wpath, wcmd, NULL, NULL, GNUNET_YES,
-       DETACHED_PROCESS | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
+       CREATE_NO_WINDOW | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
   error_code = GetLastError ();
 
   if ((NULL == pipe_stdin) && (stdih))
