@@ -793,11 +793,11 @@ check_ssl_certificate (struct Socks5Request *s5r)
 {
   unsigned int i;
   union {
-    gnutls_session session;
+    gnutls_session_t session;
     struct curl_slist    * to_slist;
   } gptr;
   unsigned int cert_list_size; 
-  const gnutls_datum *chainp;
+  const gnutls_datum_t *chainp;
 
   gptr.to_slist = NULL;  
   if (CURLE_OK != 

@@ -52,11 +52,11 @@ endif
 endif
 endif
 
-#  $(DO_PROXY) 
 libexec_PROGRAMS = \
   gnunet-service-gns \
   $(DO_W32_HELPER) \
-  gnunet-dns2gns
+  gnunet-dns2gns 
+#  $(DO_PROXY) 
 
 bin_PROGRAMS = \
   $(DO_W32_NSPTOOLS) \
