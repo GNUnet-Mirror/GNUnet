@@ -47,14 +47,14 @@ lib_LTLIBRARIES = \
 if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBCURL
- DO_PROXY=gnunet-gns-proxy
+# DO_PROXY=gnunet-gns-proxy
 endif
 endif
 endif
 
+#  $(DO_PROXY) 
 libexec_PROGRAMS = \
   gnunet-service-gns \
-  $(DO_PROXY) \
   $(DO_W32_HELPER) \
   gnunet-dns2gns
 
