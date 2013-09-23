@@ -93,5 +93,6 @@ test_transport_blacklist_LDADD = \
 
 EXTRA_DIST = \
   test_transport_dv_data.conf \
-  test_transport_blacklist_data.conf 
+  test_transport_blacklist_data.conf \
+  template_dv.conf
 
