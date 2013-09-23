@@ -1539,15 +1539,15 @@ namestore_cache_continuation (void *cls,
  * Iterator called on each result obtained for a DHT
  * operation that expects a reply
  *
- * @param cls closure with the 'struct GNS_ResolverHandle'
+ * @param cls closure with the `struct GNS_ResolverHandle`
  * @param exp when will this value expire
  * @param key key of the result
  * @param get_path peers on reply path (or NULL if not recorded)
  *                 [0] = datastore's first neighbor, [length - 1] = local peer
- * @param get_path_length number of entries in get_path
+ * @param get_path_length number of entries in @a get_path
  * @param put_path peers on the PUT path (or NULL if not recorded)
  *                 [0] = origin, [length - 1] = datastore
- * @param put_path_length number of entries in get_path
+ * @param put_path_length number of entries in @a get_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -1555,7 +1555,7 @@ namestore_cache_continuation (void *cls,
 static void
 handle_dht_response (void *cls,
 		     struct GNUNET_TIME_Absolute exp,
-		     const struct GNUNET_HashCode * key,
+		     const struct GNUNET_HashCode *key,
 		     const struct GNUNET_PeerIdentity *get_path,
 		     unsigned int get_path_length,
 		     const struct GNUNET_PeerIdentity *put_path, 

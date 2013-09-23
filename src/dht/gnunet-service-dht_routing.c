@@ -153,11 +153,11 @@ struct ProcessContext
 /**
  * Forward the result to the given peer if it matches the request.
  *
- * @param cls the 'struct ProcessContext' with the result
+ * @param cls the `struct ProcessContext` with the result
  * @param key the query
- * @param value the 'struct RecentRequest' with the request
- * @return GNUNET_OK (continue to iterate),
- *         GNUNET_SYSERR if the result is malformed or type unsupported
+ * @param value the `struct RecentRequest` with the request
+ * @return #GNUNET_OK (continue to iterate),
+ *         #GNUNET_SYSERR if the result is malformed or type unsupported
  */
 static int
 process (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -378,10 +378,10 @@ try_combine_recent (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @param options options for processing
  * @param key key for the content
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for reply_bf
-*/
+ * @param reply_bf_mutator mutator for @a reply_bf
+ */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  enum GNUNET_BLOCK_Type type,

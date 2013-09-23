@@ -110,7 +110,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct PeerPutMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_PUT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -167,7 +167,7 @@ struct PeerPutMessage
 struct PeerResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -211,7 +211,7 @@ struct PeerResultMessage
 struct PeerGetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_GET
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_GET
    */
   struct GNUNET_MessageHeader header;
 
@@ -1201,10 +1201,10 @@ get_target_peers (const struct GNUNET_HashCode *key,
  * @param hop_count how many hops has this message traversed so far
  * @param bf Bloom filter of peers this PUT has already traversed
  * @param key key for the content
- * @param put_path_length number of entries in put_path
+ * @param put_path_length number of entries in @a put_path
  * @param put_path peers this request has traversed so far (if tracked)
  * @param data payload to store
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  */
 void
 GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
@@ -1213,7 +1213,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            struct GNUNET_TIME_Absolute expiration_time,
                            uint32_t hop_count,
                            struct GNUNET_CONTAINER_BloomFilter *bf,
-                           const struct GNUNET_HashCode * key,
+                           const struct GNUNET_HashCode *key,
                            unsigned int put_path_length,
                            struct GNUNET_PeerIdentity *put_path,
                            const void *data, size_t data_size)
@@ -1320,9 +1320,9 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @param hop_count how many hops did this request traverse so far?
  * @param key key for the content
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for reply_bf
+ * @param reply_bf_mutator mutator for @a reply_bf
  * @param peer_bf filter for peers not to select (again)
  */
 void
@@ -1434,12 +1434,12 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
- * @param put_path_length number of entries in put_path
+ * @param put_path_length number of entries in @a put_path
  * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in put_path
+ * @param get_path_length number of entries in @a get_path
  * @param get_path peers this reply has traversed so far (if tracked)
  * @param data payload of the reply
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  */
 void
 GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
@@ -1535,11 +1535,12 @@ core_init (void *cls,
  * @param peer sender of the request
  * @param message message
  * @param peer peer identity this notification is about
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
+handle_dht_p2p_put (void *cls, 
+		    const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct PeerPutMessage *put;
@@ -1588,7 +1589,8 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
+		 "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
                  GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
                  ntohl(put->hop_count),
                  GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &put->key),

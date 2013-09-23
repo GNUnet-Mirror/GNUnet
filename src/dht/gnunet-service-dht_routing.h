@@ -41,12 +41,12 @@
  * @param type type of the block
  * @param expiration_time when does the content expire
  * @param key key for the content
- * @param put_path_length number of entries in put_path
+ * @param put_path_length number of entries in @a put_path
  * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in put_path
+ * @param get_path_length number of entries in @a get_path
  * @param get_path peers this reply has traversed so far (if tracked)
  * @param data payload of the reply
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  */
 void
 GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
@@ -66,9 +66,9 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
  * @param options options for processing
  * @param key key for the content
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for reply_bf
+ * @param reply_bf_mutator mutator for @a reply_bf
 */
 void
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
