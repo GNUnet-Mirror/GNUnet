@@ -84,9 +84,9 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg);
  *
  * @param cls closure
  * @param library_name full name of the library (to be used with
- *        'GNUNET_PLUGIN_unload')
+ *        #GNUNET_PLUGIN_unload)
  * @param lib_ret return value from the initialization function
- *        of the library (same as what 'GNUNET_PLUGIN_load' would
+ *        of the library (same as what #GNUNET_PLUGIN_load would
  *        have returned for the given library name)
  */
 typedef void (*GNUNET_PLUGIN_LoaderCallback) (void *cls,
@@ -104,7 +104,7 @@ typedef void (*GNUNET_PLUGIN_LoaderCallback) (void *cls,
  * @param basename basename of the plugins to load
  * @param arg argument to the plugin initialization function
  * @param cb function to call for each plugin found
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  */
 void
 GNUNET_PLUGIN_load_all (const char *basename, void *arg,

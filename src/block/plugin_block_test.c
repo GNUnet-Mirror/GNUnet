@@ -98,7 +98,7 @@ block_plugin_test_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param block block to get the key for
  * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
@@ -114,6 +114,9 @@ block_plugin_test_get_key (void *cls, enum GNUNET_BLOCK_Type type,
 
 /**
  * Entry point for the plugin.
+ *
+ * @param cls NULL
+ * @return the exported block API 
  */
 void *
 libgnunet_plugin_block_test_init (void *cls)
@@ -125,7 +128,7 @@ libgnunet_plugin_block_test_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_test_evaluate;
   api->get_key = &block_plugin_test_get_key;
   api->types = types;
@@ -135,6 +138,9 @@ libgnunet_plugin_block_test_init (void *cls)
 
 /**
  * Exit point from the plugin.
+ *
+ * @param cls the return value from #libgnunet_plugin_block_test_init
+ * @return NULL
  */
 void *
 libgnunet_plugin_block_test_done (void *cls)
