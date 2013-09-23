@@ -425,7 +425,7 @@ init ()
 
   cfg = GNUNET_CONFIGURATION_create ();
   if (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg,
-                                               "test_arm_api_data.conf.in"))
+                                               "test_arm_api_data.conf"))
     return GNUNET_SYSERR;
   if (NULL == getcwd (pwd, PATH_MAX))
     return GNUNET_SYSERR;
