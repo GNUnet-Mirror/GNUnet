@@ -501,8 +501,10 @@ AC_ARG_WITH(ltdl,
     AC_CHECK_HEADERS(ltdl.h,
      AC_CHECK_LIB([ltdl], [lt_dlopenext],
       ltdl=1))])
-if test "$ltdl" != 1
+if test x$ltdl = x1
 then
+ AC_MSG_RESULT([libltdl found])
+else
  AC_MSG_ERROR([GNUnet requires libltdl (from GNU libtool), try installing libltdl-dev])
 fi
 # restore LIBS
