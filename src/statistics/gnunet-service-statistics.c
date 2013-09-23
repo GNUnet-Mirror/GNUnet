@@ -409,7 +409,7 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return NULL;
   }
-  ce = GNUNET_malloc (sizeof (struct ClientEntry));
+  ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
   GNUNET_CONTAINER_DLL_insert (client_head, client_tail, ce);
   GNUNET_SERVER_notification_context_add (nc, client);
@@ -702,7 +702,7 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
                 "New statistic on `%s:%s' with value %llu created.\n", service,
                 name, pos->value);
   }
-  we = GNUNET_malloc (sizeof (struct WatchEntry));
+  we = GNUNET_new (struct WatchEntry);
   we->client = client;
   we->last_value_set = GNUNET_NO;
   we->wid = ce->max_wid++;
