@@ -1,4 +1,5 @@
 #!/bin/bash
+trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 
 TEST_IP="127.0.0.1"
 DELEGATED_PKEY=$(gnunet-ecc -p egos/delegatedego)
