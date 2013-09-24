@@ -1607,6 +1607,7 @@ extern "C"
 /******************************************************************************
  * GNS. FIXME: document!
  *****************************************************************************/
+
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 500
 
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 501
