@@ -1384,7 +1384,7 @@ handle_gns_resolution_result (void *cls,
       /* recurse */
       rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					      rh);
-      break;
+      return;
     case GNUNET_DNSPARSER_TYPE_NS:
       /* resolution continues within DNS */
       if (GNUNET_DNSPARSER_MAX_NAME_LENGTH < rd[i].data_size)
