@@ -954,8 +954,6 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   GNUNET_assert (NULL != h);
   while (NULL != (op = h->op_head))
   {
-    if (NULL != h->th)
-      GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
