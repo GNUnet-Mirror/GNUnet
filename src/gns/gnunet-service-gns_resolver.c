@@ -1581,7 +1581,7 @@ handle_dht_response (void *cls,
   }
   block = data; 
   if (size !=
-      ntohs (block->purpose.size) + 
+      ntohl (block->purpose.size) + 
       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
       sizeof (struct GNUNET_CRYPTO_EccSignature))
   {
