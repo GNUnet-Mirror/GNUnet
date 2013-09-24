@@ -76,7 +76,7 @@ struct LookupBlockMessage
 struct LookupBlockResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE
    */
   struct GNUNET_NAMESTORE_Header gns_header;
 

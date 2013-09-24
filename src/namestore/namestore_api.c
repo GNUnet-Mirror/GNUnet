@@ -253,12 +253,12 @@ force_reconnect (struct GNUNET_NAMESTORE_Handle *h);
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE'
+ * Handle an incoming message of type #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE.
  *
  * @param qe the respective entry in the message queue
  * @param msg the message we received
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -271,6 +271,14 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received `%s'\n", 
        "LOOKUP_BLOCK_RESPONSE");
+  if (0 == GNUNET_TIME_absolute_ntoh (msg->expire).abs_value_us)
+  {
+    /* no match found */
+    if (NULL != qe->block_proc)
+      qe->block_proc (qe->block_proc_cls, NULL);
+    return GNUNET_OK;
+  }
+
   block = (struct GNUNET_NAMESTORE_Block *) buf;
   block->signature = msg->signature;
   block->derived_key = msg->derived_key;
