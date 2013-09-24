@@ -504,8 +504,6 @@ send_lookup_response (void* cls,
 					      &rmsg->header,
 					      GNUNET_NO);
   GNUNET_free (rmsg);
-  GNUNET_SERVER_receive_done (clh->client, 
-			      GNUNET_OK); 
   GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
   GNUNET_SERVER_client_set_user_context (clh->client, NULL);
   GNUNET_free (clh);
@@ -564,6 +562,7 @@ handle_lookup (void *cls,
     return;
   }
   GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK); 
   
   clh = GNUNET_new (struct ClientLookupHandle);
   GNUNET_SERVER_client_set_user_context (client, clh);
