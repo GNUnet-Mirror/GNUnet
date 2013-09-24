@@ -35,8 +35,10 @@
  * structs that use 256 bits, so using a bigger curve will require
  * changes that break stuff badly.  The name of the curve given here
  * must be agreed by all peers and be supported by libgcrypt.
+ * 
+ * NOTE: this will change to Curve25519 before GNUnet 0.10.0.
  */
-#define CURVE "Ed25519"
+#define CURVE "NIST P-256"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -197,7 +199,7 @@ decode_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *priv)
 	    priv->d,
 	    sizeof (priv->d));
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecc(curve \"" CURVE "\")(d %m)))",
+			"(private-key(ecdsa(curve \"" CURVE "\")(d %m)))",
 			d);
   gcry_mpi_release (d);
   if (0 != rc)
@@ -217,6 +219,68 @@ decode_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *priv)
 
 
 /**
+ * Initialize public key struct from the respective point
+ * on the curve.
+ *
+ * @param q point on curve
+ * @param pub public key struct to initialize
+ * @param ctx context to use for ECC operations
+ */ 
+static void
+point_to_public_sign_key (gcry_mpi_point_t q,
+			  gcry_ctx_t ctx,
+			  struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+{
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
+  
+  q_x = gcry_mpi_new (256);
+  q_y = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    return;
+  }
+
+  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
+  gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+}
+
+
+/**
+ * Initialize public key struct from the respective point
+ * on the curve.
+ *
+ * @param q point on curve
+ * @param pub public key struct to initialize
+ * @param ctx context to use for ECC operations
+ */ 
+static void
+point_to_public_encrypt_key (gcry_mpi_point_t q,
+			     gcry_ctx_t ctx,
+			     struct GNUNET_CRYPTO_EccPublicEncryptKey *pub)
+{
+  gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
+  
+  q_x = gcry_mpi_new (256);
+  q_y = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    return;
+  }
+
+  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
+  gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+}
+
+
+/**
  * Extract the public key for the given private key.
  *
  * @param priv the private key
@@ -228,22 +292,16 @@ GNUNET_CRYPTO_ecc_key_get_public_for_signature (const struct GNUNET_CRYPTO_EccPr
 {
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
-  gcry_mpi_t q_y;
+  gcry_mpi_point_t q;
 
   sexp = decode_private_key (priv);
-  gcry_sexp_dump (sexp);
   GNUNET_assert (NULL != sexp);
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
-  if (NULL == (q_y = gcry_mpi_ec_get_mpi ("y", ctx, 0)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, 
-	      "gcry_mpi_ec_get_mpi failed", 0);
-    return;
-  }
-  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  point_to_public_sign_key (q, ctx, pub);
   gcry_ctx_release (ctx);
-  // gcry_mpi_release (q_y); /* needed? we set copy to 0... */
+  gcry_mpi_point_release (q);
 }
 
 
@@ -259,20 +317,16 @@ GNUNET_CRYPTO_ecc_key_get_public_for_encryption (const struct GNUNET_CRYPTO_EccP
 {
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
-  gcry_mpi_t q_x;
+  gcry_mpi_point_t q;
 
   sexp = decode_private_key (priv);
   GNUNET_assert (NULL != sexp);
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
-  if (NULL == (q_x = gcry_mpi_ec_get_mpi ("x", ctx, 0)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, 
-	      "gcry_mpi_ec_get_mpi failed", 0);
-    return;
-  }
-  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  point_to_public_encrypt_key (q, ctx, pub);
   gcry_ctx_release (ctx);
+  gcry_mpi_point_release (q);
 }
 
 
@@ -347,13 +401,22 @@ static gcry_sexp_t
 decode_public_sign_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
   gcry_sexp_t pub_sexp;
+  gcry_mpi_t q_x;
   gcry_mpi_t q_y;
+  gcry_mpi_point_t q;
   gcry_ctx_t ctx;
 
+  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
   mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  gcry_mpi_ec_set_mpi ("y", q_y, ctx);
+  q = gcry_mpi_point_new (256);
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE); 
+  gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
+
+  /* initialize 'ctx' with 'q' */
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  gcry_mpi_ec_set_point ("q", q, ctx);
+  gcry_mpi_point_release (q);
 
   /* convert 'ctx' to 'sexp' */
   GNUNET_assert (0 == gcry_pubkey_get_sexp (&pub_sexp, GCRY_PK_GET_PUBKEY, ctx));
@@ -390,7 +453,7 @@ GNUNET_CRYPTO_ecc_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecc(curve \"" CURVE "\")))")))
+                                  "(genkey(ecdsa(curve \"" CURVE "\")))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -714,7 +777,7 @@ data_to_pkcs1 (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
   GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
-				  "(data(flags eddsa)(hash %s %b))",
+				  "(data(flags rfc6979)(hash %s %b))",
 				  "sha512",
 				  sizeof (hc),
 				  &hc)))
@@ -806,7 +869,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
   mpi_scan (&r, sig->r, sizeof (sig->r));
   mpi_scan (&s, sig->s, sizeof (sig->s));
   if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL, 
-				  "(sig-val(eddsa(r %m)(s %m)))",
+				  "(sig-val(ecdsa(r %m)(s %m)))",
                                   r, s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -850,15 +913,21 @@ decode_public_encrypt_key (const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub)
 {
   gcry_sexp_t pub_sexp;
   gcry_mpi_t q_x;
+  gcry_mpi_t q_y;
+  gcry_mpi_point_t q;
   gcry_ctx_t ctx;
-  int rc;
 
   mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
-  /* initialize 'ctx' with 'x' */
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  if (0 != (rc = gcry_mpi_ec_set_mpi ("x", q_x, ctx)))
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_set_mpi", rc);
+  mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
+  q = gcry_mpi_point_new (256);
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE); 
   gcry_mpi_release (q_x);
+  gcry_mpi_release (q_y);
+
+  /* initialize 'ctx' with 'q' */
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+  gcry_mpi_ec_set_point ("q", q, ctx);
+  gcry_mpi_point_release (q);
 
   /* convert 'ctx' to 'sexp' */
   GNUNET_assert (0 == gcry_pubkey_get_sexp (&pub_sexp, GCRY_PK_GET_PUBKEY, ctx));
@@ -888,7 +957,6 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   gcry_mpi_t result_x;
   gcry_mpi_t result_y;
   unsigned char xbuf[256 / 8];
-  int rc;
 
   /* first, extract the q = dP value from the public key */
   if (! (pub_sexpr = decode_public_encrypt_key (pub)))
@@ -896,11 +964,6 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
   gcry_sexp_release (pub_sexpr);
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  if (NULL == q)
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_get_point", 0);
-    return GNUNET_SYSERR;
-  }
 
   /* second, extract the d value from our private key */
   mpi_scan (&d, priv->d, sizeof (priv->d));
@@ -914,9 +977,9 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
   /* finally, convert point to string for hashing */
   result_x = gcry_mpi_new (256);
   result_y = gcry_mpi_new (256);
-  if (0 != (rc = gcry_mpi_ec_get_affine (result_x, result_y, result, ctx)))
+  if (gcry_mpi_ec_get_affine (result_x, result_y, result, ctx))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_get_affine", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
     gcry_mpi_point_release (result);
     gcry_ctx_release (ctx);
     return GNUNET_SYSERR;
@@ -1024,49 +1087,37 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicSignKey
   gcry_mpi_t h;
   gcry_mpi_t n;
   gcry_mpi_t h_mod_n;
+  gcry_mpi_t q_x;
   gcry_mpi_t q_y;
   gcry_mpi_point_t q;
   gcry_mpi_point_t v;
-  int rc;
 
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
   
-  /* obtain point 'y' from original public key */
+  /* obtain point 'q' from original public key */
+  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
   mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-  if (0 != (rc = gcry_mpi_ec_set_mpi ("y", q_y, ctx)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_set_mpi", rc);
-    GNUNET_assert (0);
-  }
+
+  q = gcry_mpi_point_new (0);
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
+  gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
 
   /* calulcate h_mod_n = h % n */
   h = derive_h (pub, label, context);
   n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
-  GNUNET_assert (NULL != n);
   h_mod_n = gcry_mpi_new (256);
   gcry_mpi_mod (h_mod_n, h, n);
   /* calculate v = h_mod_n * q */
   v = gcry_mpi_point_new (0);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  GNUNET_assert (NULL != q);
   gcry_mpi_ec_mul (v, h_mod_n, q, ctx);
   gcry_mpi_release (h_mod_n);
   gcry_mpi_release (h);
   gcry_mpi_release (n);
   gcry_mpi_point_release (q);
   /* convert point 'v' to public key that we return */
-  if (0 != (rc = gcry_mpi_ec_set_point ("q", v, ctx)))
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_ec_set_point", rc);
+  point_to_public_sign_key (v, ctx, result);
   gcry_mpi_point_release (v);
-  if (NULL == (q_y = gcry_mpi_ec_get_mpi ("y", ctx, 0)))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, 
-	      "gcry_mpi_ec_get_mpi", 0);
-    GNUNET_assert (0);
-  }
-  mpi_print (result->q_y, sizeof (result->q_y), q_y);
-  // gcry_mpi_release (q_y); /* needed? we set copy to 0... */
   gcry_ctx_release (ctx);
 }
 
