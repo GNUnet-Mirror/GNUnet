@@ -2066,6 +2066,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_GROUP_END
 
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL
+
 
 /*******************************************************************************
  * PSYC message types

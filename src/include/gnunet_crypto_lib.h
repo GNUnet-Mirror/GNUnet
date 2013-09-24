@@ -156,14 +156,6 @@ struct GNUNET_CRYPTO_EccPublicSignKey
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
    * given here in affine coordinates.
-   *
-   * FIXME: this coordinate will be removed in the future (compressed point!).
-   */
-  unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
    */
   unsigned char q_y[256 / 8];
 
@@ -181,14 +173,6 @@ struct GNUNET_CRYPTO_EccPublicEncryptKey
    * given here in affine coordinates.
    */
   unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   *
-   * FIXME: this coordinate will be removed in the future (compressed point!).
-   */
-  unsigned char q_y[256 / 8];
 
 };
 

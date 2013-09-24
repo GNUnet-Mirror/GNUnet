@@ -442,8 +442,8 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function called asking for the current (encoded)
  * block to be processed.  After processing the
- * client should either call #GNUNET_FS_tree_encode_next
- * or (on error) #GNUNET_FS_tree_encode_finish.
+ * client should either call #GNUNET_FS_tree_encoder_next
+ * or (on error) #GNUNET_FS_tree_encoder_finish.
  *
  * @param cls closure
  * @param chk content hash key for the block

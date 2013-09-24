@@ -1292,7 +1292,7 @@ curl_task_download (void *cls,
  * @param kind value kind
  * @param key field key
  * @param value field value
- * @return #MHD_YES to continue to iterate
+ * @return MHD_YES to continue to iterate
  */
 static int
 con_val_iter (void *cls,
@@ -1341,8 +1341,8 @@ con_val_iter (void *cls,
  *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param con_cls pointer to location where we store the 'struct Request'
- * @return #MHD_YES if the connection was handled successfully,
- *         #MHD_NO if the socket must be closed due to a serious
+ * @return MHD_YES if the connection was handled successfully,
+ *         MHD_NO if the socket must be closed due to a serious
  *         error while handling the request
  */
 static int
@@ -1564,7 +1564,7 @@ create_response (void *cls,
  * @param cls NULL
  * @param connection connection handle
  * @param con_cls value as set by the last call to
- *        the #MHD_AccessHandlerCallback, should be our `struct Socks5Request`
+ *        the MHD_AccessHandlerCallback, should be our `struct Socks5Request`
  * @param toe reason for request termination (ignored)
  */
 static void
