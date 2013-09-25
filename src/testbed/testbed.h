@@ -37,7 +37,7 @@ struct GNUNET_TESTBED_InitMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_INIT
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_INIT
    */
   struct GNUNET_MessageHeader header;
 
@@ -640,7 +640,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION
+   * Type is #GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION
    */
   struct GNUNET_MessageHeader header;
 
@@ -657,7 +657,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
   /**
    * Identity of the peer.
    */
-  struct GNUNET_PeerIdentity peer_identity;
+  struct GNUNET_PeerIdentity peer_identity GNUNET_PACKED;
 
   /**
    * The size of configuration when uncompressed
@@ -693,7 +693,7 @@ struct GNUNET_TESTBED_SlaveGetConfigurationMessage
 
 
 /**
- * Reply to GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIG message
+ * Reply to #GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIG message
  */
 struct GNUNET_TESTBED_SlaveConfiguration
 {
