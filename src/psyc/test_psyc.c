@@ -28,12 +28,12 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_psycstore_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_psyc_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define DEBUG_SERVICE 0
+#define DEBUG_SERVICE 1
 
 
 /**
@@ -41,11 +41,22 @@
  */
 static int res;
 
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 /**
  * Handle for task for timeout termination.
  */
 static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 
+static struct GNUNET_PSYC_Master *mst;
+static struct GNUNET_PSYC_Slave *slv;
+static struct GNUNET_PSYC_Channel *ch;
+
+static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
+
+static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
+static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
 
 /**
  * Clean up all resources used.
@@ -53,6 +64,11 @@ static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 static void
 cleanup ()
 {
+  if (master != NULL)
+  {
+    GNUNET_PSYC_master_stop (master);
+    master = NULL;
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -100,6 +116,42 @@ end ()
 				&end_normally, NULL);
 }
 
+
+static int
+method (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+        uint64_t message_id, const char *method_name,
+        size_t modifier_count, const struct GNUNET_ENV_Modifier *modifiers,
+        uint64_t data_offset, const void *data, size_t data_size,
+        enum GNUNET_PSYC_MessageFlags flags)
+{
+  return GNUNET_OK;
+}
+
+
+static int
+join (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+      const char *method_name,
+      size_t variable_count, const struct GNUNET_ENV_Modifier *variables,
+      const void *data, size_t data_size, struct GNUNET_PSYC_JoinHandle *jh)
+{
+  return GNUNET_OK;
+}
+
+
+void
+master_started (void *cls, uint64_t max_message_id)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master started: %lu\n", max_message_id);
+}
+
+
+void
+slave_joined (void *cls, uint64_t max_message_id)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave joined: %lu\n", max_message_id);
+}
+
+
 /**
  * Main function of the test, run from scheduler.
  *
@@ -110,14 +162,28 @@ end ()
 static void
 #if DEBUG_SERVICE
 run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 #else
 run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 #endif
 {
+  cfg = c;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+
+  channel_key = GNUNET_CRYPTO_ecc_key_create ();
+  slave_key = GNUNET_CRYPTO_ecc_key_create ();
+
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (channel_key, &channel_pub_key);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (slave_key, &slave_pub_key);
+
+  mst = GNUNET_PSYC_master_start (cfg, channel_key,
+                                  GNUNET_PSYC_CHANNEL_PRIVATE,
+                                  &method, &join, &master_started, NULL);
+
+  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key,
+                                &method, &join, &slave_joined, NULL);
 }
 
 

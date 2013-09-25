@@ -24,12 +24,14 @@ libgnunetpsyc_la_SOURCES = \
   psyc.h
 libgnunetpsyc_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/env/libgnunetenv.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetpsyc_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 libgnunetpsyc_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/env/libgnunetenv.la
 
 bin_PROGRAMS =
 
@@ -41,10 +43,14 @@ gnunet_service_psyc_SOURCES = \
 gnunet_service_psyc_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/multicast/libgnunetmulticast.la \
+  $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
   $(GN_LIBINTL)
 gnunet_service_psyc_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/multicast/libgnunetmulticast.la \
+  $(top_builddir)/src/psycstore/libgnunetpsycstore.la
 
 
 if HAVE_TESTING

@@ -29,7 +29,7 @@
 /*******************************************************************************
  * TODO: we need a way to register message types centrally (via some webpage).
  * For now: unofficial extensions should start at 48k, internal extensions
- * define here should leave some room (4-10 additional messages to the previous
+ * defined here should leave some room (4-10 additional messages to the previous
  * extension).
  ******************************************************************************/
 
@@ -1985,9 +1985,9 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET_FRAGMENT 655
 
-#define GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_MASTER 656
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET 656
 
-#define GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_SLAVE 657
+/* 657 */
 
 #define GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY 658
 
@@ -2008,14 +2008,88 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_FRAGMENT 665
 
-#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_MASTER 666
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS 666
 
-#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_SLAVE 667
+#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE 667
 
-#define GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE 668
+
+/*******************************************************************************
+ * PSYC message types
+ ******************************************************************************/
+
+#define GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE 680
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START 681
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK 682
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MASTER_STOP 683
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN 684
+
+#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK 685
+
+#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_PART 686
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST 687
+
+#define GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION 688
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD 689
+
+#define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM 690
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_METHOD 691
+
+#define GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_MODIFIER 692
+
+#define GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_MOD_CONT 693
+
+#define GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_DATA 694
+
+#define GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_ACK 695
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD 696
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER 697
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT 698
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA 699
+
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK 700
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST 701
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_METHOD 702
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_MODIFIER 703
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_MOD_CONT 704
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_DATA 705
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_ACK 706
+
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STATE_GET 707
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX 708
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STATE_MODIFIER 709
+
+#define GNUNET_MESSAGE_TYPE_PSYC_STATE_MOD_CONT 710
+
 
 /**
- * Next available: 680
+ * Next available: 730
  */
 
 
@@ -2029,7 +2103,7 @@ extern "C"
 /**
  * Multicast message from the origin to all members.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 700
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 730
 
 /**
  * A unicast message from a group member to the origin.
