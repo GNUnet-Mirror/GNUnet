@@ -33,6 +33,7 @@
 #define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
+
 static GNUNET_SCHEDULER_TaskIdentifier wait_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
@@ -124,8 +125,7 @@ run (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %s\n", 
-	      GNUNET_STRINGS_relative_time_to_string (DELAY,
-						      GNUNET_YES));
+	      GNUNET_STRINGS_relative_time_to_string (DELAY, GNUNET_YES));
   wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
 }
 

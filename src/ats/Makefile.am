@@ -62,8 +62,8 @@ gnunet_service_ats_DEPENDENCIES = \
   libgnunetats.la
 
 if HAVE_TESTING
-TESTING_TESTS = 
-# test_ats_api_scheduling_init
+TESTING_TESTS = \ 
+ test_ats_api_scheduling_init
 # test_ats_api_scheduling_add_address
 # test_ats_api_scheduling_add_session
 # test_ats_api_scheduling_min_bw
