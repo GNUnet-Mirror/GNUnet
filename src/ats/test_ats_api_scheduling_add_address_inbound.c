@@ -18,14 +18,10 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling_destroy_session.c
- * @brief test destroying sessions: first add an address with a session,
- *        request the address and compare, delete the session, request and
- *        compare again, delete whole address, request and wait for timeout,
- *        shutdown
+ * @file ats/test_ats_api_scheduling_add_address.c
+ * @brief adding addresses with scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
- *
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -71,7 +67,7 @@ struct GNUNET_HELLO_Address test_hello_address;
 /**
  * Session
  */
-static void *test_session;
+//static void *test_session;
 
 /**
  * Test ats info
@@ -92,22 +88,15 @@ stat_cb(void *cls, const char *subsystem,
         const char *name, uint64_t value,
         int is_persistent)
 {
-  static int first_stat_cb = GNUNET_YES;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
       subsystem,name, value);
-  if ((GNUNET_YES == first_stat_cb) && (1 == value))
+  if (1 == value)
   {
-    GNUNET_ATS_address_add (sched_ats, &test_hello_address, (struct Session *) &test_session, test_ats_info, test_ats_count);
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
   }
-  if ((GNUNET_NO == first_stat_cb) && (1 == value))
+  if (1 < value)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS updated existing address\n");
-  }
-  if (value > 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS did not update existing address, but added 2nd address!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
 
@@ -205,14 +194,16 @@ run (void *cls,
   test_ats_count = 2;
 
   /* Adding address without session */
-  create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
+  create_test_address (&test_addr, "test-plugin", NULL, NULL, 0);
   test_hello_address.peer = p.id;
   test_hello_address.transport_name = test_addr.plugin;
-  test_hello_address.address = test_addr.addr;
-  test_hello_address.address_length = test_addr.addr_len;
+  test_hello_address.address = NULL;
+  test_hello_address.address_length = 0;
 
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+
 }
 
 
@@ -221,9 +212,10 @@ main (int argc, char *argv[])
 {
   ret = 0;
   if (0 != GNUNET_TESTING_peer_run ("test-ats-api",
-                                    "test_ats_api.conf",
-                                    &run, NULL))
+				    "test_ats_api.conf",
+				    &run, NULL))
     return 1;
   return ret;
 }
-/* end of file test_ats_api_scheduling_destroy_session.c */
+
+/* end of file test_ats_api_scheduling_add_address.c */
