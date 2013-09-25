@@ -400,7 +400,6 @@ agent_update_weights (struct RIL_Peer_Agent *agent,
   double delta;
   double *theta = agent->W[agent->a_old];
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "agent_update_weights() MUH a_old = %d\n", agent->a_old);
   delta = reward + agent_estimate_q (agent, s_next, a_prime)
       - agent_estimate_q (agent, agent->s_old, agent->a_old);
   for (i = 0; i < agent->m; i++)
@@ -444,6 +443,45 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
       e[i] = 0;
       break;
     }
+  }
+}
+
+static void
+envi_change_active_address (struct GAS_RIL_Handle *solver,
+    struct RIL_Peer_Agent *agent,
+    struct ATS_Address *new_address,
+    unsigned long long new_bw_in,
+    unsigned long long new_bw_out)
+{
+  int notify = GNUNET_NO;
+
+  if (agent->address != new_address)
+  {
+    agent->address->active = GNUNET_NO;
+    agent->address = new_address;
+    agent->address->active = GNUNET_YES;
+    agent->address->assigned_bw_in.value__ = htonl (agent->bw_in);
+    agent->address->assigned_bw_out.value__ = htonl (agent->bw_out);
+    notify |= GNUNET_YES;
+  }
+  if (agent->bw_in != new_bw_in)
+  {
+    agent->bw_in = new_bw_in;
+    agent->address->assigned_bw_in.value__ = htonl (new_bw_out);
+    notify |= GNUNET_YES;
+  }
+  if (agent->bw_out != new_bw_out)
+  {
+    agent->bw_out = new_bw_out;
+    agent->address->assigned_bw_out.value__ = htonl (new_bw_out);
+    notify |= GNUNET_YES;
+  }
+
+
+  if (notify)
+  {
+    solver->callbacks->bw_changed (solver->callbacks->bw_changed_cls,
+            agent->address);
   }
 }
 
@@ -492,17 +530,11 @@ envi_action_bw_double (struct GAS_RIL_Handle *solver,
 {
   if (direction_in)
   {
-    agent->bw_in *= 2;
-    agent->address->assigned_bw_in.value__ = htonl (agent->bw_in);
-    solver->callbacks->bw_changed (solver->callbacks->bw_changed_cls,
-        agent->address);
+    envi_change_active_address(solver, agent, agent->address, agent->bw_in * 2, agent->bw_out);
   }
   else
   {
-    agent->bw_out *= 2;
-    agent->address->assigned_bw_out.value__ = htonl (agent->bw_out);
-    solver->callbacks->bw_changed (solver->callbacks->bw_changed_cls,
-        agent->address);
+    envi_change_active_address(solver, agent, agent->address, agent->bw_in, agent->bw_out * 2);
   }
 }
 
@@ -511,24 +543,22 @@ envi_action_bw_halven (struct GAS_RIL_Handle *solver,
     struct RIL_Peer_Agent *agent,
     int direction_in)
 {
-  if ((direction_in && 1 == agent->bw_in)
-      || (!direction_in && 1 == agent->bw_out))
-  {
-    return;
-  }
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  unsigned long long new_bw;
+
   if (direction_in)
   {
-    agent->bw_in /= 2;
-    agent->address->assigned_bw_in.value__ = htonl (agent->bw_in);
-    solver->callbacks->bw_changed (solver->callbacks->bw_changed_cls,
-        agent->address);
+    new_bw = agent->bw_in / 2;
+    if (new_bw < min_bw)
+      new_bw = min_bw;
+    envi_change_active_address(solver, agent, agent->address, new_bw, agent->bw_out);
   }
   else
   {
-    agent->bw_out /= 2;
-    agent->address->assigned_bw_out.value__ = htonl (agent->bw_out);
-    solver->callbacks->bw_changed (solver->callbacks->bw_changed_cls,
-        agent->address);
+    new_bw = agent->bw_out / 2;
+    if (new_bw < min_bw)
+      new_bw = min_bw;
+    envi_change_active_address(solver, agent, agent->address, agent->bw_in, new_bw);
   }
 }
 
@@ -720,8 +750,10 @@ ril_remove_agent (struct GAS_RIL_Handle *s, struct RIL_Peer_Agent *agent)
     next_agent = cur_agent->next;
 
     if (agent == cur_agent)
+    {
       GNUNET_CONTAINER_DLL_remove(s->agents_head, s->agents_tail, cur_agent);
       agent_die (s, cur_agent);
+    }
 
     cur_agent = next_agent;
   }
@@ -749,6 +781,8 @@ ril_count_agents (struct GAS_RIL_Handle *solver, int active_only)
   }
   return c;
 }
+
+
 
 /**
  * Returns the agent for a peer
@@ -822,6 +856,27 @@ ril_init_agents_it (void *cls, const struct GNUNET_HashCode *key, void *value)
   return GNUNET_YES;
 }
 
+static void
+ril_get_new_address_or_delete (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+{
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+  //get new address for agent or delete agent
+
+  agent->address = NULL; //forget current address
+  GNUNET_CONTAINER_multihashmap_iterate (solver->addresses, &ril_init_agents_it,
+      solver); //put another address
+
+  if (NULL == agent->address) //no other address available
+  {
+    agent->active = GNUNET_NO;
+    ril_remove_agent(solver, agent);
+  }
+  else
+  {
+    envi_change_active_address(solver, agent, agent->address, min_bw, min_bw);
+  }
+}
+
 /**
  * Lookup network struct by type
  *
@@ -863,7 +918,7 @@ GAS_ril_address_change_preference (void *s,
     double pref_rel)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_change_preference() Preference `%s' for peer `%s' changed to %.2f \n",
+      "API_address_change_preference() Preference '%s' for peer '%s' changed to %.2f \n",
       GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer), pref_rel);
   /*
    * Nothing to do here. Preferences are considered during reward calculation.
@@ -1099,24 +1154,23 @@ GAS_ril_address_delete (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() deleting %s address %p for peer '%s'\n",
+      address->active ? "active" : "inactive",
+      address,
+      GNUNET_i2s(&address->peer));
+
   agent = ril_get_agent (s, &address->peer, GNUNET_NO);
 
   if (NULL == agent)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() deleting address for unallocated agent");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() deleting address for unallocated agent\n");
     return;
   }
 
-  if (0 == memcmp (agent->address->addr, address->addr, address->addr_len)) //if used address deleted
+  if (address == agent->address) //if used address deleted
   {
-    agent->address = NULL; //delete address
-    GNUNET_CONTAINER_multihashmap_iterate (s->addresses, &ril_init_agents_it,
-        solver); //put another address
-    if (NULL == agent->address) //no other address available
-    {
-      agent->active = GNUNET_NO;
-      ril_remove_agent (solver, agent);
-    }
+    address->active = GNUNET_NO;
+    ril_get_new_address_or_delete(s, agent);
   }
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1142,7 +1196,7 @@ GAS_ril_address_property_changed (void *solver,
     double rel_value)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_property_changed() Property `%s' for peer `%s' address %p changed "
+      "API_address_property_changed() Property '%s' for peer '%s' address %p changed "
           "to %.2f \n", GNUNET_ATS_print_property_type (type),
       GNUNET_i2s (&address->peer), address, rel_value);
   /*
@@ -1219,7 +1273,7 @@ GAS_ril_address_change_network (void *solver,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_change_network() Network type changed, moving "
-          "%s address of peer %s from `%s' to `%s'\n",
+          "%s address of peer %s from '%s' to '%s'\n",
       (GNUNET_YES == address->active) ? "active" : "inactive",
       GNUNET_i2s (&address->peer),
       GNUNET_ATS_print_network_type (current_network),
@@ -1238,6 +1292,7 @@ GAS_ril_address_change_network (void *solver,
 
     if (ril_network_is_active(ril_get_network(s, new_network)))
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New network is active\n");
       //add to new network
       net = ril_get_network (s, new_network);
       net->bw_in_assigned += agent->bw_in;
@@ -1249,15 +1304,16 @@ GAS_ril_address_change_network (void *solver,
     }
     else //new network for this address is not active => address must not be considered
     {
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "New network is not active\n");
+
+      net = agent->address->solver_information;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Before: active address %p is %s\n", agent->address, GNUNET_ATS_print_network_type(net->type));
+
       address->active = GNUNET_NO;
-      agent->address = NULL; //delete address
-          GNUNET_CONTAINER_multihashmap_iterate (s->addresses, &ril_init_agents_it,
-              solver); //put another address
-      if (NULL == agent->address) //no other address available
-      {
-        agent->active = GNUNET_NO;
-        ril_remove_agent(s, agent);
-      }
+      ril_get_new_address_or_delete(s, agent);
+
+      net = agent->address->solver_information;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "After: active address %p is %s\n", agent->address, GNUNET_ATS_print_network_type(net->type));
     }
   }
 }
@@ -1281,7 +1337,6 @@ GAS_ril_address_preference_feedback (void *solver,
     double score)
 {
   //TODO! collect reward until next reward calculation
-  //TODO! Find out application
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
           "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
@@ -1340,6 +1395,9 @@ GAS_ril_get_preferred_address (void *solver,
 
   if (NULL == agent)
   {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "API_get_preferred_address() No agent for peer '%s' do not suggest address\n",
+          GNUNET_i2s (peer));
     return NULL;
   }
 
