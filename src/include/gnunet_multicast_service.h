@@ -44,6 +44,10 @@ extern "C"
  */
 #define GNUNET_MULTICAST_VERSION 0x00000000
 
+/**
+ * Maximum size of a multicast message fragment.
+ */
+#define GNUNET_MULTICAST_FRAGMENT_MAX_SIZE 63 * 1024
 
 /** 
  * Opaque handle for a multicast group member.
@@ -500,15 +504,27 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Function called to provide data for a transmission from the origin to all
  * members.
- * FIXME: what if origin needs to pause transmission for a while?
  *
- * @param cls closure
- * @param data_size number of bytes available in @a data
- * @param data where to copy the message
- * @return number of bytes copied to @a data? (FIXME: size_t?), or status code?
+ * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
+ * invalidates the respective transmission handle.
+ *
+ * @param cls Closure.
+ * @param fragment_id Set to the unique fragment ID that was generated for
+ *        this message.
+ * @param[in,out] data_size Initially set to the number of bytes available in
+ *        @a data, should be set to the number of bytes written to data.
+ * @param[out] data Where to write the body of the message to give to the
+ *         method. The function must copy at most @a data_size bytes to @a data.
+ * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
+ *         #GNUNET_NO on success, if more data is to be transmitted later.
+ *         Should be used if @a data_size was not big enough to take all the
+ *         data.  If 0 is returned in @a data_size the transmission is paused,
+ *         and can be resumed with GNUNET_MULTICAST_origin_to_all_resume().
+ *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int
 (*GNUNET_MULTICAST_OriginTransmitNotify) (void *cls,
+                                          uint64_t fragment_id,
                                           size_t *data_size,
                                           void *data);
 
@@ -527,11 +543,6 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param group_generation Group generation of the message.  Documented in
  *             GNUNET_MULTICAST_MessageHeader.
- * @param size Number of bytes to transmit.  
- *        FIXME: Needed? The end of the message can be flagged with a last fragment flag.
- *        FIXME: what last fragment flag? OriginTransmitNotify is not that well documented...
- *        FIXME: size_t? If this is a total size, uint64_t might be better!
- *        FIXME: do we reserve "MAX" to indicate 'unknown'?
  * @param notify Function to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (i.e. request already pending).
@@ -540,9 +551,18 @@ struct GNUNET_MULTICAST_OriginMessageHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 uint64_t message_id,
                                 uint64_t group_generation,
-                                size_t size,
                                 GNUNET_MULTICAST_OriginTransmitNotify notify,
                                 void *notify_cls);
+
+
+
+/** 
+ * Resume message transmission to multicast group.
+ *
+ * @param mh Request to cancel.
+ */
+void
+GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHandle *mh);
 
 
 /** 
@@ -695,13 +715,26 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
 /** 
  * Function called to provide data for a transmission from a member to the origin.
  *
- * @param cls closure
- * @param data_size number of bytes available in @a data
- * @param data where to copy data for transmission
- * @return number of bytes copied to data
+ * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
+ * invalidates the respective transmission handle.
+ *
+ * @param cls Closure.
+ * @param fragment_id Set to the unique fragment ID that was generated for
+ *        this message.
+ * @param[in,out] data_size Initially set to the number of bytes available in
+ *        @a data, should be set to the number of bytes written to data.
+ * @param[out] data Where to write the body of the message to give to the
+ *         method. The function must copy at most @a data_size bytes to @a data.
+ * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
+ *         #GNUNET_NO on success, if more data is to be transmitted later.
+ *         Should be used if @a data_size was not big enough to take all the
+ *         data.  If 0 is returned in @a data_size the transmission is paused,
+ *         and can be resumed with GNUNET_MULTICAST_member_to_origin_resume().
+ *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int
 (*GNUNET_MULTICAST_MemberTransmitNotify) (void *cls,
+                                          uint64_t fragment_id,
                                           size_t *data_size,
                                           void *data);
 
@@ -717,8 +750,6 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * 
  * @param member Membership handle.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
- * @param size Number of bytes we want to send to origin.
- *             FIXME: this should probably be a uint64_t?
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
@@ -726,9 +757,17 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
                                    uint64_t message_id,
-                                   size_t size,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls);
+
+
+/** 
+ * Resume message transmission to origin.
+ *
+ * @param rh Request to cancel.
+ */
+void
+GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestHandle *rh);
 
 
 /** 

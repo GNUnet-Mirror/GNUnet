@@ -268,7 +268,7 @@ send_transmit_ack (struct Channel *ch)
 
 
 static int
-transmit_notify (void *cls, size_t *data_size, void *data)
+transmit_notify (void *cls, uint64_t fragment_id, size_t *data_size, void *data)
 {
   struct Channel *ch = cls;
   struct TransmitMessage *msg = ch->tmit_head;

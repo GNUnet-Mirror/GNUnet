@@ -317,8 +317,6 @@ struct GNUNET_MULTICAST_OriginMessageHandle
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param group_generation Group generation of the message.  Documented in
  *             `struct GNUNET_MULTICAST_MessageHeader`.
- * @param size Number of bytes to transmit.
- *        FIXME: Needed? The end of the message can be flagged with a last fragment flag.
  * @param notify Function to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (i.e. request already pending).
@@ -327,11 +325,22 @@ struct GNUNET_MULTICAST_OriginMessageHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 uint64_t message_id,
                                 uint64_t group_generation,
-                                size_t size,
                                 GNUNET_MULTICAST_OriginTransmitNotify notify,
                                 void *notify_cls)
 {
   return NULL;
+}
+
+
+/** 
+ * Resume message transmission to multicast group.
+ *
+ * @param mh Request to cancel.
+ */
+void
+GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHandle *mh)
+{
+
 }
 
 
@@ -515,8 +524,6 @@ struct GNUNET_MULTICAST_MemberRequestHandle
  * 
  * @param member Membership handle.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
- * @param size Number of bytes we want to send to origin. 
- *             FIXME: this should probably be a uint64_t?
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
@@ -524,11 +531,22 @@ struct GNUNET_MULTICAST_MemberRequestHandle
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
                                    uint64_t message_id,
-                                   size_t size,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls)
 {
   return NULL;
+}
+
+
+/** 
+ * Resume message transmission to origin.
+ *
+ * @param rh Request to cancel.
+ */
+void
+GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestHandle *rh)
+{
+
 }
 
 
