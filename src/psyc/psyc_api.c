@@ -42,46 +42,70 @@
  * Used to match calls to #GNUNET_PSYC_JoinCallback to the
  * corresponding calls to GNUNET_PSYC_join_decision().
  */
-struct GNUNET_PSYC_JoinHandle;
+struct GNUNET_PSYC_JoinHandle
+{
+
+};
 
 
 /** 
  * Handle for the master of a PSYC channel.
  */
-struct GNUNET_PSYC_Master;
+struct GNUNET_PSYC_Master
+{
+
+};
 
 
 /** 
  * Handle for a pending PSYC transmission operation.
  */
-struct GNUNET_PSYC_MasterTransmitHandle;
+struct GNUNET_PSYC_MasterTransmitHandle
+{
+
+};
 
 
 /** 
  * Handle for a PSYC channel slave.
  */
-struct GNUNET_PSYC_Slave;
+struct GNUNET_PSYC_Slave
+{
+
+};
 
 
 /** 
  * Handle for a pending PSYC transmission operation.
  */
-struct GNUNET_PSYC_SlaveTransmitHandle;
+struct GNUNET_PSYC_SlaveTransmitHandle
+{
+
+};
 
 
 /** 
  * Handle to access PSYC channel operations for both the master and slaves.
  */
-struct GNUNET_PSYC_Channel;
+struct GNUNET_PSYC_Channel
+{
+
+};
 
 
 /** 
  * Handle to a story telling operation.
  */
-struct GNUNET_PSYC_Story;
+struct GNUNET_PSYC_Story
+{
+
+};
 
 
-struct GNUNET_PSYC_StateQuery;
+struct GNUNET_PSYC_StateQuery
+{
+
+};
 
 
 /** 
@@ -114,7 +138,10 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
                            const void *data,
-                           size_t data_size);
+                           size_t data_size)
+{
+
+}
 
 
 /** 
@@ -150,7 +177,10 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           enum GNUNET_PSYC_Policy policy,
                           GNUNET_PSYC_Method method,
                           GNUNET_PSYC_JoinCallback join_cb,
-                          void *cls);
+                          void *cls)
+{
+  return NULL;
+}
 
 
 /** 
@@ -171,7 +201,10 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_MasterTransmitNotify notify,
                              void *notify_cls,
-                             enum GNUNET_PSYC_MasterTransmitFlags flags);
+                             enum GNUNET_PSYC_MasterTransmitFlags flags)
+{
+  return NULL;
+}
 
 
 /** 
@@ -180,7 +213,10 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th);
+GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
+{
+
+}
 
 
 /** 
@@ -189,7 +225,10 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
  * @param master PSYC channel master to stop.
  */
 void
-GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master);
+GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master)
+{
+
+}
 
 
 /** 
@@ -234,7 +273,10 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,
                         const void *data,
-                        size_t data_size);
+                        size_t data_size)
+{
+  return NULL;
+}
 
 
 /** 
@@ -246,7 +288,10 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param slave Slave handle.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave)
+{
+
+}
 
 
 /** 
@@ -266,7 +311,10 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
                             const struct GNUNET_ENV_Environment *env,
                             GNUNET_PSYC_SlaveTransmitNotify notify,
                             void *notify_cls,
-                            enum GNUNET_PSYC_SlaveTransmitFlags flags);
+                            enum GNUNET_PSYC_SlaveTransmitFlags flags)
+{
+  return NULL;
+}
 
 
 /** 
@@ -275,7 +323,10 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
  * @param th Handle of the request that is being aborted.
  */
 void
-GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th);
+GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th)
+{
+
+}
 
 
 /** 
@@ -285,7 +336,10 @@ GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th);
  * @return Channel handle, valid for as long as @a master is valid.
  */
 struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
+GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master)
+{
+  return NULL;
+}
 
 
 /** 
@@ -295,7 +349,10 @@ GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
  * @return Channel handle, valid for as long as @a slave is valid.
  */
 struct GNUNET_PSYC_Channel *
-GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
+GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave)
+{
+  return NULL;
+}
 
 
 /** 
@@ -323,7 +380,10 @@ void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
                                const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
                                uint64_t announced_at,
-                               uint64_t effective_since);
+                               uint64_t effective_since)
+{
+
+}
 
 
 /** 
@@ -350,7 +410,10 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
-                                  uint64_t announced_at);
+                                  uint64_t announced_at)
+{
+
+}
 
 
 /** 
@@ -368,7 +431,10 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
  * @param finish_cb Function to call when the requested story has been fully
  *        told (counting message IDs might not suffice, as some messages
  *        might be secret and thus the listener would not know the story is
- *        finished without being told explicitly); once this function
+ *        finished without being told explicitly)
+{
+  return NULL;
+} once this function
  *        has been called, the client must not call
  *        GNUNET_PSYC_channel_story_tell_cancel() anymore.
  * @param cls Closure for the callbacks.
@@ -380,7 +446,10 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t end_message_id,
                                 GNUNET_PSYC_Method method,
                                 GNUNET_PSYC_FinishCallback *finish_cb,
-                                void *cls);
+                                void *cls)
+{
+  return NULL;
+}
 
 
 /** 
@@ -392,7 +461,10 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
  * @param story Story telling operation to stop.
  */
 void
-GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story);
+GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story)
+{
+
+}
 
 
 /** 
@@ -414,7 +486,10 @@ struct GNUNET_PSYC_StateQuery *
 GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
                                const char *full_name,
                                GNUNET_PSYC_StateCallback cb,
-                               void *cb_cls);
+                               void *cb_cls)
+{
+  return NULL;
+}
 
 
 /** 
@@ -437,7 +512,10 @@ struct GNUNET_PSYC_StateQuery *
 GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
                                       const char *name_prefix,
                                       GNUNET_PSYC_StateCallback cb,
-                                      void *cb_cls);
+                                      void *cb_cls)
+{
+  return NULL;
+}
 
 
 /** 
@@ -446,7 +524,10 @@ GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
  * @param query Handle for the operation to cancel.
  */
 void
-GNUNET_PSYC_channel_state_get_cancel (struct GNUNET_PSYC_StateQuery *query);
+GNUNET_PSYC_channel_state_get_cancel (struct GNUNET_PSYC_StateQuery *query)
+{
+
+}
 
 
 /* end of psyc_api.c */

@@ -355,6 +355,7 @@ typedef int
  */
 enum GNUNET_PSYC_MasterTransmitFlags
 {
+  GNUNET_PSYC_MASTER_TRANSMIT_NONE = 0,
   /** 
    * Whether this message should reset the channel state,
    * i.e. remove all previously stored state variables.
@@ -507,7 +508,11 @@ typedef int
 /**
  * Flags for transmitting messages to the channel master by a slave.
  */
-enum GNUNET_PSYC_SlaveTransmitFlags;
+enum GNUNET_PSYC_SlaveTransmitFlags
+{
+  GNUNET_PSYC_SLAVE_TRANSMIT_NONE = 0
+};
+
 
 /** 
  * Handle for a pending PSYC transmission operation.
