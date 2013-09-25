@@ -19,7 +19,7 @@
 */
 /**
  * @file ats/test_ats_api_scheduling_add_address.c
- * @brief test adding addresses in automatic transport selection scheduling API
+ * @brief adding addresses with scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -30,6 +30,8 @@
 #include "test_ats_api_common.h"
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
+
+struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -72,31 +74,59 @@ struct GNUNET_ATS_Information test_ats_info[2];
 uint32_t test_ats_count;
 
 
-static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-  if (sched_ats != NULL)
-    GNUNET_ATS_scheduling_done (sched_ats);
-  free_test_address (&test_addr);
-  ret = GNUNET_SYSERR;
+static int
+stat_cb(void *cls, const char *subsystem,
+        const char *name, uint64_t value,
+        int is_persistent)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
+      subsystem,name, value);
+  if (1 == value)
+  {
+    GNUNET_SCHEDULER_add_now (&end, NULL);
+  }
+  return GNUNET_OK;
 }
 
 
 static void
-end ()
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
   if (NULL != sched_ats)
+  {
     GNUNET_ATS_scheduling_done (sched_ats);
-  sched_ats = NULL;
+    sched_ats = NULL;
+  }
+
+  GNUNET_STATISTICS_watch_cancel (stats, "ats", "# addresses", &stat_cb, NULL);
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
+
   free_test_address (&test_addr);
+
+  ret = 0;
+}
+
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  die_task = GNUNET_SCHEDULER_NO_TASK;
+  end ( NULL, NULL);
+  ret = GNUNET_SYSERR;
 }
 
 static void
@@ -107,40 +137,19 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  static int stage = 0;
-  if (0 == stage)
-  {
-    if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
-    {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with correct address `%s'\n",
-                    GNUNET_i2s (&address->peer));
-        ret = 0;
-    }
-    else
-    {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stage 0: Callback with invalid address `%s'\n",
-                    GNUNET_i2s (&address->peer));
-        ret = 1;
-    }
 
-    if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Stage 0: Callback with incorrect ats info \n");
-      ret = 1;
-    }
-    stage ++;
-    GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-  }
 }
+
 
 static void
 run (void *cls, 
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  stats = GNUNET_STATISTICS_create ("ats", cfg);
+  GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
+
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
@@ -148,7 +157,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
     ret = 1;
-    end ();
+    GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
 
@@ -157,10 +166,9 @@ run (void *cls,
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
       ret = GNUNET_SYSERR;
-      end ();
+      GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
   }
-
   GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
@@ -180,15 +188,16 @@ run (void *cls,
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
   test_hello_address.address_length = test_addr.addr_len;
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
 
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  /* Adding address */
+  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
 }
 
 
 int
 main (int argc, char *argv[])
 {
+  ret = 0;
   if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_add_address",
 				    "test_ats_api.conf",
 				    &run, NULL))
