@@ -27,16 +27,17 @@ gnunet-arm -e -c test_gns_lookup.conf
 
 if [ "$RES_CNAME" == "$TEST_IP_PLUS" ]
 then
-  exit 0
+  echo "PASS: IP resulution from GNS"
 else
-  echo "Failed to resolve to proper IP, got $RES_CNAME."
+  echo "FAIL: IP resolution from GNS, got $RES_CNAME."
   exit 1
 fi
 
 if [ "$RES_CNAME_DNS" == "$TEST_IP_DNS" ]
 then
+  echo "PASS: IP resulution from DNS"
   exit 0
 else
-  echo "Failed to resolve to proper IP from DNS, got $RES_IP."
+  echo "FAIL: IP resulution from DNS, got $RES_IP."
   exit 1
 fi
