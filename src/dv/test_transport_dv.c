@@ -30,6 +30,28 @@
  */
 static int ok;
 
+struct GNUNET_TESTBED_Operation *topology_op;
+
+static void topology_completed (void *cls,
+                                unsigned int nsuccess,
+                                unsigned int nfailures)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", nsuccess, nfailures);
+  GNUNET_TESTBED_operation_done (topology_op);
+  topology_op = NULL;
+
+  if (nfailures > 0)
+  {
+    fprintf (stderr, "Error: links successful %u but %u failed\n", nsuccess, nfailures);
+    ok = 1;
+  }
+  else
+    ok = 0;
+
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
 static void
 test_connection (void *cls,
                  struct GNUNET_TESTBED_RunHandle *h,
@@ -38,22 +60,29 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
-  int c;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", links_succeeded, links_failed);
-
-  if ( (4 != num_peers) || (0 != links_failed) )
+  if (4 != num_peers)
   {
-    fprintf (stderr, "Testbed failed to connect peers\n");
-    GNUNET_SCHEDULER_shutdown ();
+    ok = 1;
+    fprintf (stderr, "Only %u out of 4 peers were started ...\n",
+        num_peers);
+  }
+
+  if (0 != links_failed)
+  {
+    /* All peers except DV peers are connected  */
+    fprintf (stderr, "Testbed failed to connect peers,\n");
+
+    topology_op = GNUNET_TESTBED_overlay_configure_topology(NULL, num_peers, peers, NULL,
+        &topology_completed, NULL,
+        GNUNET_TESTBED_TOPOLOGY_CLIQUE,
+        GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     return;
   }
-  ok = 0;
-  if (1)
-  {
-    GNUNET_SCHEDULER_shutdown ();
-  }
-  else
-    fprintf (stderr, "Test passed, press CTRL-C to shut down\n");
+
+  ok = 1;
+  fprintf (stderr, "Testbed connected peers, should not happen...\n");
+  GNUNET_SCHEDULER_shutdown ();
+
 }
 
 
@@ -61,6 +90,7 @@ int
 main (int argc, char *argv[])
 {
   ok = 1;
+  /* Connecting initial topology */
   (void) GNUNET_TESTBED_test_run ("test-transport-dv",
 				  "test_transport_dv_data.conf",
 				  4,
