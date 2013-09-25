@@ -29,8 +29,14 @@
 #include "ats.h"
 #include "test_ats_api_common.h"
 
+/**
+ * Timeout task
+ */
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
+/**
+ * Statistics handle
+ */
 struct GNUNET_STATISTICS_Handle *stats;
 
 /**
@@ -137,7 +143,9 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
+  GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  return;
 }
 
 
@@ -156,8 +164,7 @@ run (void *cls,
   if (sched_ats == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
-    ret = 1;
-    GNUNET_SCHEDULER_add_now (&end, NULL);
+    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
 
@@ -165,8 +172,7 @@ run (void *cls,
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
-      ret = GNUNET_SYSERR;
-      GNUNET_SCHEDULER_add_now (&end, NULL);
+      GNUNET_SCHEDULER_add_now (&end_badly, NULL);
       return;
   }
   GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
@@ -198,7 +204,7 @@ int
 main (int argc, char *argv[])
 {
   ret = 0;
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_add_address",
+  if (0 != GNUNET_TESTING_peer_run ("test-ats-api",
 				    "test_ats_api.conf",
 				    &run, NULL))
     return 1;
