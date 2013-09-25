@@ -592,7 +592,7 @@ typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
  * controller connects to it as a non master controller. The success or failure
  * of this operation will be signalled through the
  * GNUNET_TESTBED_ControllerCallback() with an event of type
- * GNUNET_TESTBED_ET_OPERATION_FINISHED
+ * #GNUNET_TESTBED_ET_OPERATION_FINISHED
  *
  * @param op_cls the operation closure for the event which is generated to
  *          signal success or failure of this operation
@@ -600,8 +600,8 @@ typedef void (*GNUNET_TESTBED_OperationCompletionCallback) (void *cls,
  * @param delegated_host requests to which host should be delegated; cannot be NULL
  * @param slave_host which host is used to run the slave controller; use NULL to
  *          make the master controller connect to the delegated host
- * @param is_subordinate GNUNET_YES if the controller at delegated_host should
- *          be started by the slave controller; GNUNET_NO if the slave
+ * @param is_subordinate #GNUNET_YES if the controller at delegated_host should
+ *          be started by the slave controller; #GNUNET_NO if the slave
  *          controller has to connect to the already started delegated
  *          controller via TCP/IP
  * @return the operation handle
@@ -619,7 +619,7 @@ GNUNET_TESTBED_controller_link (void *op_cls,
  * completion of the operation is signalled through the controller_cb from
  * GNUNET_TESTBED_controller_connect(). If the operation is successful the
  * handle to the configuration is available in the generic pointer of
- * operation_finished field of struct GNUNET_TESTBED_EventInformation.
+ * operation_finished field of `struct GNUNET_TESTBED_EventInformation`.
  *
  * @param op_cls the closure for the operation
  * @param master the handle to master controller
@@ -661,14 +661,14 @@ typedef void (*GNUNET_TESTBED_PeerCreateCallback) (void *cls,
  * to the remote host is stopped.
  *
  * Creating the peer only creates the handle to manipulate and further
- * configure the peer; use "GNUNET_TESTBED_peer_start" and
- * "GNUNET_TESTBED_peer_stop" to actually start/stop the peer's
+ * configure the peer; use #GNUNET_TESTBED_peer_start and
+ * #GNUNET_TESTBED_peer_stop to actually start/stop the peer's
  * processes.
  *
  * Note that the given configuration will be adjusted by the
  * controller to avoid port/path conflicts with other peers.
  * The "final" configuration can be obtained using
- * 'GNUNET_TESTBED_peer_get_information'.
+ * #GNUNET_TESTBED_peer_get_information.
  *
  * @param controller controller process to use
  * @param host host to run the peer on; cannot be NULL
@@ -716,7 +716,7 @@ GNUNET_TESTBED_peer_start (void *op_cls,
 
 /**
  * Stop the given peer.  The handle remains valid (use
- * "GNUNET_TESTBED_peer_destroy" to fully clean up the
+ * #GNUNET_TESTBED_peer_destroy to fully clean up the
  * state of the peer).
  *
  * @param op_cls the closure for this operation; will be set in the event
@@ -783,7 +783,7 @@ typedef void (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
 
 /**
  * Request information about a peer. The controller callback will not be called
- * with event type GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
+ * with event type #GNUNET_TESTBED_ET_OPERATION_FINISHED when result for this
  * operation is available. Instead, the GNUNET_TESTBED_PeerInfoCallback() will
  * be called.
  * The peer information in the callback is valid until the operation is canceled.
@@ -792,7 +792,7 @@ typedef void (*GNUNET_TESTBED_PeerInfoCallback) (void *cb_cls,
  * @param pit desired information
  * @param cb the convenience callback to be called when results for this
  *          operation are available
- * @param cb_cls the closure for the above callback
+ * @param cb_cls the closure for @a cb
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *
@@ -840,7 +840,7 @@ GNUNET_TESTBED_peer_destroy (struct GNUNET_TESTBED_Peer *peer);
  * @param peer the peer whose service is to be started/stopped
  * @param service_name the name of the service
  * @param cb the operation completion callback
- * @param cb_cls the closure for the operation completion callback
+ * @param cb_cls the closure for @a cb
  * @param start 1 to start the service; 0 to stop the service
  * @return an operation handle; NULL upon error (peer not running)
  */
@@ -888,8 +888,8 @@ enum GNUNET_TESTBED_ConnectOption
 
   /**
    * Allow or disallow a connection between the specified peers.
-   * Followed by GNUNET_NO (int) if a connection is disallowed
-   * or GNUNET_YES if a connection is allowed.  Note that the
+   * Followed by #GNUNET_NO (int) if a connection is disallowed
+   * or #GNUNET_YES if a connection is allowed.  Note that the
    * default (all connections allowed or disallowed) is
    * specified in the configuration of the controller.
    */
@@ -1079,12 +1079,12 @@ GNUNET_TESTBED_underlay_configure_topology (void *op_cls,
 
 /**
  * Both peers must have been started before calling this function.
- * This function then obtains a HELLO from 'p1', gives it to 'p2'
- * and asks 'p2' to connect to 'p1'.
+ * This function then obtains a HELLO from @a p1, gives it to @a p2
+ * and asks @a p2 to connect to @a p1.
  *
  * @param op_cls closure argument to give with the operation event
  * @param cb the callback to call when this operation has finished
- * @param cb_cls the closure for the above callback
+ * @param cb_cls the closure for @a cb
  * @param p1 first peer
  * @param p2 second peer
  * @return handle to the operation, NULL if connecting these two
@@ -1126,7 +1126,7 @@ typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls,
  *          be made to achieve the given topology
  * @param comp_cb the completion callback to call when the topology generation
  *          is completed
- * @param comp_cb_cls closure for the above completion callback
+ * @param comp_cb_cls closure for the @a comp_cb
  * @param topo desired underlay topology to use
  * @param va topology-specific options
  * @return handle to the operation, NULL if connecting these
@@ -1241,20 +1241,21 @@ typedef void (*GNUNET_TESTBED_ServiceConnectCompletionCallback) (void *cls,
  * the request is queued to not overwhelm our ability to create and
  * maintain connections with other systems.  The actual service
  * handle is then returned via the 'op_result' member in the event
- * callback.  The 'ca' callback is used to create the connection
- * when the time is right; the 'da' callback will be used to
- * destroy the connection (upon 'GNUNET_TESTBED_operation_done').
- * 'GNUNET_TESTBED_operation_done' can be used to abort this
+ * callback.  The @a ca callback is used to create the connection
+ * when the time is right; the @a da callback will be used to
+ * destroy the connection (upon #GNUNET_TESTBED_operation_done).
+ * #GNUNET_TESTBED_operation_done can be used to abort this
  * operation until the event callback has been called.
  *
  * @param op_cls closure to pass in operation event // FIXME: didn't we say we'd no longer use the global callback for these? -CG
  * @param peer peer that runs the service
  * @param service_name name of the service to connect to
- * @param cb the callback to call when this operation finishes
- * @param cb_cls closure for the above callback
+ * @param cb the callback to call when this operation is ready (that is,
+ *        right after the connect adapter returns)
+ * @param cb_cls closure for @a cb
  * @param ca helper function to establish the connection
  * @param da helper function to close the connection
- * @param cada_cls closure for ca and da
+ * @param cada_cls closure for @a ca and @a da
  * @return handle for the operation
  */
 struct GNUNET_TESTBED_Operation *
