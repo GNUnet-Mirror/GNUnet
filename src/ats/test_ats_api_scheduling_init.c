@@ -28,71 +28,78 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_testing_lib.h"
 #include "ats.h"
-
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
-#define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
+#include "test_ats_api_common.h"
+/**
+ * Timeout task
+ */
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier wait_task;
+/**
+ * Statistics handle
+ */
+struct GNUNET_STATISTICS_Handle *stats;
 
-static struct GNUNET_ATS_SchedulingHandle *ats;
+/**
+ * Scheduling handle
+ */
+static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
+/**
+ * Return value
+ */
 static int ret;
+
+
+static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static int
+stat_cb(void *cls, const char *subsystem,
+        const char *name, uint64_t value,
+        int is_persistent)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
+      subsystem,name, value);
+  if (0 == value)
+  {
+    GNUNET_SCHEDULER_add_now (&end, NULL);
+  }
+  return GNUNET_OK;
+}
+
+
+static void
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+
+  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (NULL != sched_ats)
+  {
+    GNUNET_ATS_scheduling_done (sched_ats);
+    sched_ats = NULL;
+  }
+
+  GNUNET_STATISTICS_watch_cancel (stats, "ats", "# addresses", &stat_cb, NULL);
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+    stats = NULL;
+  }
+  ret = 0;
+}
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != wait_task)
-  {
-    GNUNET_SCHEDULER_cancel (wait_task);
-    wait_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (ats != NULL)
-  {
-    GNUNET_ATS_scheduling_done (ats);
-    ats = NULL;
-  }
-  ret = 1;
-}
-
-static void
-end_badly_now ()
-{
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-}
-
-static void
-delay (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  static int v_delay = 5;
-  static int v_cur = 0;
-
-  if (v_cur < v_delay)
-  {
-    wait_task = GNUNET_SCHEDULER_NO_TASK;
-    wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
-    fprintf (stderr,".");
-    v_cur ++;
-    return;
-  }
-
-  fprintf (stderr,"\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown ATS\n");
-  GNUNET_ATS_scheduling_done (ats);
-  ats = NULL;
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  ret = 0;
+  end ( NULL, NULL);
+  ret = GNUNET_SYSERR;
 }
 
 static void
@@ -100,11 +107,12 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *ats,
+                    const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received address without asking for it!\n");
-  end_badly_now ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
+  GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  return;
 }
 
 
@@ -113,29 +121,28 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  ret = 1;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  stats = GNUNET_STATISTICS_create ("ats", cfg);
+  GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Initializing ATS\n");
-  ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
-  if (ats == NULL)
+  /* Connect to ATS scheduling */
+  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
+  if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to initialize ATS\n");
-    end_badly_now ();
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for %s\n", 
-	      GNUNET_STRINGS_relative_time_to_string (DELAY, GNUNET_YES));
-  wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &delay, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_scheduling_init",
-				    "test_ats_api.conf",
-				    &run, NULL))
+  ret = 0;
+  if (0 != GNUNET_TESTING_peer_run ("test-ats-api",
+                                    "test_ats_api.conf",
+                                    &run, NULL))
     return 1;
   return ret;
 }
