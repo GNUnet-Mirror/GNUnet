@@ -946,6 +946,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
 {
   size_t nlen;
   char *res;
+  struct AuthorityChain *ac;
 
   nlen = strlen (cname);
   if ( (nlen > 2) &&
@@ -970,6 +971,20 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     }
     GNUNET_free (rh->name);
     rh->name = res;
+    ac = GNUNET_new (struct AuthorityChain);
+    ac->rh = rh;
+    ac->gns_authority = GNUNET_YES;
+    ac->authority_info.gns_authority = rh->ac_tail->authority_info.gns_authority;    
+    ac->label = resolver_lookup_get_next_label (rh);
+    /* tigger shortening */
+    if (NULL != rh->shorten_key)      
+      GNS_shorten_start (rh->ac_tail->label,
+			 &ac->authority_info.gns_authority,
+			 rh->shorten_key);      
+    /* add AC to tail */
+    GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
+				      rh->ac_tail,
+				      ac);
     rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					    rh);
     return;
