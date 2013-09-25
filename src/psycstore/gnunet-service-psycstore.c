@@ -170,7 +170,7 @@ send_state_var (void *cls, const char *name,
   res->op_id = sc->op_id;
   res->name_size = htons (name_size);
   memcpy (&res[1], name, name_size);
-  memcpy ((void *) &res[1] + name_size, value, value_size);
+  memcpy ((char *) &res[1] + name_size, value, value_size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending state variable %s to client\n", name);
   GNUNET_SERVER_notification_context_add (nc, sc->client);
@@ -334,19 +334,21 @@ handle_message_get_fragment (void *cls,
 
 
 static void
-handle_counters_get_master (void *cls,
-                            struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *msg)
+handle_counters_get (void *cls,
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
 {
   const struct OperationRequest *req = (const struct OperationRequest *) msg;
-  struct MasterCountersResult res = { {0} };
+  struct CountersResult res = { {0} };
 
-  int ret = db->counters_get_master (db->cls, &req->channel_key,
-                                     &res.fragment_id, &res.message_id,
-                                     &res.group_generation);
+  int ret = db->counters_message_get (db->cls, &req->channel_key,
+                                      &res.max_fragment_id, &res.max_message_id,
+                                      &res.max_group_generation);
   switch (ret)
   {
   case GNUNET_YES:
+    ret = db->counters_state_get (db->cls, &req->channel_key,
+                                  &res.max_state_message_id);
   case GNUNET_NO:
     break;
   default:
@@ -354,50 +356,14 @@ handle_counters_get_master (void *cls,
                 _("Failed to get master counters!\n"));
   }
 
-  res.header.type
-    = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_MASTER);
+  res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS);
   res.header.size = htons (sizeof (res));
   res.result_code = htonl (ret);
   res.op_id = req->op_id;
-  res.fragment_id = GNUNET_htonll (res.fragment_id);
-  res.message_id = GNUNET_htonll (res.message_id);
-  res.group_generation = GNUNET_htonll (res.group_generation);
-
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
-                                              GNUNET_NO);
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-static void
-handle_counters_get_slave (void *cls,
-                           struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *msg)
-{
-  const struct OperationRequest *req = (const struct OperationRequest *) msg;
-  struct SlaveCountersResult res = { {0} };
-
-  int ret = db->counters_get_slave (db->cls, &req->channel_key,
-                                    &res.max_known_msg_id);
-
-  switch (ret)
-  {
-  case GNUNET_YES:
-  case GNUNET_NO:
-    break;
-  default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to get slave counters!\n"));
-  }
-
-  res.header.type
-    = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_SLAVE);
-  res.header.size = htons (sizeof (res));
-  res.result_code = htonl (ret);
-  res.op_id = req->op_id;
-  res.max_known_msg_id = GNUNET_htonll (res.max_known_msg_id);
+  res.max_fragment_id = GNUNET_htonll (res.max_fragment_id);
+  res.max_message_id = GNUNET_htonll (res.max_message_id);
+  res.max_group_generation = GNUNET_htonll (res.max_group_generation);
+  res.max_state_message_id = GNUNET_htonll (res.max_state_message_id);
 
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
@@ -697,12 +663,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET_FRAGMENT,
       sizeof (struct MessageGetFragmentRequest) },
 
-    { &handle_counters_get_master, NULL,
-      GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_MASTER,
-      sizeof (struct OperationRequest) },
-
-    { &handle_counters_get_slave, NULL,
-      GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_SLAVE,
+    { &handle_counters_get, NULL,
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET,
       sizeof (struct OperationRequest) },
 
     { &handle_state_modify, NULL,

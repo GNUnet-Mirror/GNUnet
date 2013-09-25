@@ -158,30 +158,30 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                            void *cb_cls);
 
   /** 
-   * Retrieve latest values of counters for a channel master.
+   * Retrieve the max. values of message counters for a channel.
    *
-   * @see GNUNET_PSYCSTORE_counters_get_master()
+   * @see GNUNET_PSYCSTORE_counters_get()
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*counters_get_master) (void *cls,
-                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                          uint64_t *fragment_id,
-                          uint64_t *message_id,
-                          uint64_t *group_generation);
+  (*counters_message_get) (void *cls,
+                           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                           uint64_t *max_fragment_id,
+                           uint64_t *max_message_id,
+                           uint64_t *max_group_generation);
 
   /** 
-   * Retrieve latest values of counters for a channel slave.
+   * Retrieve the max. values of state counters for a channel.
    *
-   * @see GNUNET_PSYCSTORE_counters_get_slave()
+   * @see GNUNET_PSYCSTORE_counters_get()
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*counters_get_slave) (void *cls,
+  (*counters_state_get) (void *cls,
                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                         uint64_t *max_state_msg_id);
+                         uint64_t *max_state_message_id);
 
 
   /** 

@@ -143,14 +143,14 @@ struct Plugin
   sqlite3_stmt *select_message_fragment;
 
   /**
-   * Precompiled SQL for counters_get_master()
+   * Precompiled SQL for counters_get_message()
    */
-  sqlite3_stmt *select_counters_master;
+  sqlite3_stmt *select_counters_message;
 
   /**
-   * Precompiled SQL for counters_get_slave()
+   * Precompiled SQL for counters_get_state()
    */
-  sqlite3_stmt *select_max_state_message_id;
+  sqlite3_stmt *select_counters_state;
 
   /**
    * Precompiled SQL for state_modify_end()
@@ -482,13 +482,13 @@ database_setup (struct Plugin *plugin)
                "FROM messages\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "ORDER BY fragment_id DESC LIMIT 1;",
-               &plugin->select_counters_master);
+               &plugin->select_counters_message);
 
   sql_prepare (plugin->dbh,
                "SELECT max_state_message_id\n"
                "FROM channels\n"
                "WHERE pub_key = ? AND max_state_message_id IS NOT NULL;",
-               &plugin->select_max_state_message_id);
+               &plugin->select_counters_state);
 
   sql_prepare (plugin->dbh,
                "UPDATE channels\n"
@@ -1205,21 +1205,21 @@ message_get_fragment (void *cls,
 }
 
 /** 
- * Retrieve latest values of counters for a channel master.
+ * Retrieve the max. values of message counters for a channel.
  *
- * @see GNUNET_PSYCSTORE_counters_get_master()
+ * @see GNUNET_PSYCSTORE_counters_get()
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-counters_get_master (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                     uint64_t *fragment_id,
-                     uint64_t *message_id,
-                     uint64_t *group_generation)
+counters_message_get (void *cls,
+                      const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                      uint64_t *max_fragment_id,
+                      uint64_t *max_message_id,
+                      uint64_t *max_group_generation)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt = plugin->select_counters_master;
+  sqlite3_stmt *stmt = plugin->select_counters_message;
   int ret = GNUNET_SYSERR;
 
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
@@ -1237,9 +1237,9 @@ counters_get_master (void *cls,
       ret = GNUNET_NO;
       break;
     case SQLITE_ROW:
-      *fragment_id = sqlite3_column_int64 (stmt, 0);
-      *message_id = sqlite3_column_int64 (stmt, 1);
-      *group_generation = sqlite3_column_int64 (stmt, 2);
+      *max_fragment_id = sqlite3_column_int64 (stmt, 0);
+      *max_message_id = sqlite3_column_int64 (stmt, 1);
+      *max_group_generation = sqlite3_column_int64 (stmt, 2);
       ret = GNUNET_OK;
       break;
     default:
@@ -1258,19 +1258,19 @@ counters_get_master (void *cls,
 }
 
 /** 
- * Retrieve latest values of counters for a channel slave.
+ * Retrieve the max. values of state counters for a channel.
  *
- * @see GNUNET_PSYCSTORE_counters_get_slave()
+ * @see GNUNET_PSYCSTORE_counters_get()
  * 
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-counters_get_slave (void *cls,
+counters_state_get (void *cls,
                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                    uint64_t *max_state_msg_id)
+                    uint64_t *max_state_message_id)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt = plugin->select_max_state_message_id;
+  sqlite3_stmt *stmt = plugin->select_counters_state;
   int ret = GNUNET_SYSERR;
 
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
@@ -1288,7 +1288,7 @@ counters_get_slave (void *cls,
       ret = GNUNET_NO;
       break;
     case SQLITE_ROW:
-      *max_state_msg_id = sqlite3_column_int64 (stmt, 0);
+      *max_state_message_id = sqlite3_column_int64 (stmt, 0);
       ret = GNUNET_OK;
       break;
     default:
@@ -1779,8 +1779,8 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
   api->fragment_get = &fragment_get;
   api->message_get = &message_get;
   api->message_get_fragment = &message_get_fragment;
-  api->counters_get_master = &counters_get_master;
-  api->counters_get_slave = &counters_get_slave;
+  api->counters_message_get = &counters_message_get;
+  api->counters_state_get = &counters_state_get;
   api->state_modify_begin = &state_modify_begin;
   api->state_modify_set = &state_modify_set;
   api->state_modify_end = &state_modify_end;

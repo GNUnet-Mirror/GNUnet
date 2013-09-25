@@ -28,8 +28,8 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_psycstore_service.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_psycstore_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
@@ -231,16 +231,20 @@ state_get_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-counters_slave_result (void *cls, uint64_t max_state_msg_id)
+counters_result (void *cls, uint64_t max_fragment_id, uint64_t max_message_id,
+                 uint64_t max_group_generation, uint64_t max_state_message_id)
 {
   struct FragmentClosure *fcls = cls;
   int result = 0;
   op = NULL;
 
-  if (max_state_msg_id == GNUNET_ntohll (fcls->msg[0]->message_id))
+  if (max_fragment_id == GNUNET_ntohll (fcls->msg[2]->fragment_id)
+      && max_message_id == GNUNET_ntohll (fcls->msg[2]->message_id)
+      && max_group_generation == GNUNET_ntohll (fcls->msg[2]->group_generation)
+      && max_state_message_id == GNUNET_ntohll (fcls->msg[0]->message_id))
     result = 1;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "counters_get_slave:\t%d\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "counters_get:\t%d\n", result);
   GNUNET_assert (result == 1);
 
   scls.n = 0;
@@ -260,8 +264,8 @@ state_modify_result (void *cls, int64_t result, const char *err_msg)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_modify_result:\t%d\n", result);
   GNUNET_assert (GNUNET_OK == result);
 
-  op = GNUNET_PSYCSTORE_counters_get_slave (h, &channel_pub_key,
-                                            &counters_slave_result, cls);
+  op = GNUNET_PSYCSTORE_counters_get (h, &channel_pub_key,
+                                      &counters_result, cls);
 }
 
 
@@ -289,41 +293,6 @@ state_sync_result (void *cls, int64_t result, const char *err_msg)
   op = GNUNET_PSYCSTORE_state_modify (h, &channel_pub_key,
                                       GNUNET_ntohll (fcls->msg[0]->message_id), 0,
                                       2, modifiers, state_modify_result, fcls);
-}
-
-
-void
-counters_master_result (void *cls, uint64_t fragment_id, uint64_t message_id,
-                        uint64_t group_generation)
-{
-  struct FragmentClosure *fcls = cls;
-  int result = 0;
-  op = NULL;
-
-  if (fragment_id == GNUNET_ntohll (fcls->msg[2]->fragment_id) &&
-      message_id == GNUNET_ntohll (fcls->msg[2]->message_id) &&
-      group_generation == GNUNET_ntohll (fcls->msg[2]->group_generation))
-    result = 1;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "counters_get_master:\t%d\n", result);
-  GNUNET_assert (result == 1);
-
-  modifiers[0] = (struct GNUNET_ENV_Modifier) {
-    .oper = '=',
-    .name = "_sync_foo",
-    .value = "three two one",
-    .value_size = sizeof ("three two one") - 1
-  };
-  modifiers[1] = (struct GNUNET_ENV_Modifier) {
-    .oper = '=',
-    .name = "_sync_bar",
-    .value = "ten eleven twelve",
-    .value_size = sizeof ("ten eleven twelve") - 1
-  };
-
-  op = GNUNET_PSYCSTORE_state_sync (h, &channel_pub_key,
-                                    GNUNET_ntohll (fcls->msg[0]->message_id) + 1,
-                                    2, modifiers, state_sync_result, fcls);
 }
 
 
@@ -361,8 +330,24 @@ message_get_result (void *cls, int64_t result, const char *err_msg)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%d\n", result);
   GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
 
-  op = GNUNET_PSYCSTORE_counters_get_master (h, &channel_pub_key,
-                                             &counters_master_result, fcls);
+
+
+  modifiers[0] = (struct GNUNET_ENV_Modifier) {
+    .oper = '=',
+    .name = "_sync_foo",
+    .value = "three two one",
+    .value_size = sizeof ("three two one") - 1
+  };
+  modifiers[1] = (struct GNUNET_ENV_Modifier) {
+    .oper = '=',
+    .name = "_sync_bar",
+    .value = "ten eleven twelve",
+    .value_size = sizeof ("ten eleven twelve") - 1
+  };
+
+  op = GNUNET_PSYCSTORE_state_sync (h, &channel_pub_key,
+                                    GNUNET_ntohll (fcls->msg[0]->message_id) + 1,
+                                    2, modifiers, state_sync_result, fcls);
 }
 
 

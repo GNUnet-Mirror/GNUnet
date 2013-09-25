@@ -282,72 +282,43 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
 /** 
  * Callback used to return the latest value of counters for the channel master.
  *
- * @see GNUNET_PSYCSTORE_counters_get_master()
+ * @see GNUNET_PSYCSTORE_counters_get()
  *
  * @param cls Closure.
- * @param fragment_id Latest message fragment ID, used by multicast.
- * @param message_id Latest message ID, used by PSYC.
- * @param group_generation Latest group generation, used by PSYC.
+ * @param max_fragment_id Latest message fragment ID, used by multicast.
+ * @param max_message_id Latest message ID, used by PSYC.
+ * @param max_group_generation Latest group generation, used by PSYC.
+ * @param max_state_message_id Latest message ID containing state modifiers that
+ *        was applied to the state store.  Used for the state sync process.
  */
 typedef void
-(*GNUNET_PSYCSTORE_MasterCountersCallback) (void *cls,
-                                            uint64_t fragment_id,
-                                            uint64_t message_id,
-                                            uint64_t group_generation);
+(*GNUNET_PSYCSTORE_CountersCallback) (void *cls,
+                                      uint64_t max_fragment_id,
+                                      uint64_t max_message_id,
+                                      uint64_t max_group_generation,
+                                      uint64_t max_state_message_id);
 
 
 /** 
- * Callback used to return the latest value of counters for a channel slave.
+ * Retrieve latest values of counters for a channel.
  *
- * @see GNUNET_PSYCSTORE_counters_get_slave()
- *
- * @param cls Closure.
- * @param max_state_msg_id Latest message ID containing state modifiers that was
- *        applied to the state store.  Used for the state sync process.
- */
-typedef void
-(*GNUNET_PSYCSTORE_SlaveCountersCallback) (void *cls,
-                                           uint64_t max_state_msg_id);
-
-
-/** 
- * Retrieve latest values of counters for a channel master.
- *
- * The current value of counters are needed when a channel master is restarted,
- * so that it can continue incrementing the counters from their last value.
+ * The current value of counters are needed
+ * - when a channel master is restarted, so that it can continue incrementing
+ *   the counters from their last value.
+ * - when a channel slave rejoins and starts the state synchronization process.
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key Public key that identifies the channel.
- * @param mccb Callback to call with the result.
- * @param mccb_cls Closure for the callback.
+ * @param ccb Callback to call with the result.
+ * @param ccb_cls Closure for the callback.
  * 
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_counters_get_master (struct GNUNET_PSYCSTORE_Handle *h,
-                                      struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                      GNUNET_PSYCSTORE_MasterCountersCallback mccb,
-                                      void *mccb_cls);
-
-
-/** 
- * Retrieve latest values of counters for a channel slave.
- *
- * The current value of counters are needed when a channel slave rejoins
- * and starts the state synchronization process.
- *
- * @param h Handle for the PSYCstore.
- * @param channel_key Public key that identifies the channel.
- * @param sccb Callback to call with the result.
- * @param sccb_cls Closure for the callback.
- * 
- * @return Handle that can be used to cancel the operation.
- */
-struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_counters_get_slave (struct GNUNET_PSYCSTORE_Handle *h,
-                                     struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                     GNUNET_PSYCSTORE_SlaveCountersCallback sccb,
-                                     void *sccb_cls);
+GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
+                               struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                               GNUNET_PSYCSTORE_CountersCallback ccb,
+                               void *ccb_cls);
 
 
 /** 

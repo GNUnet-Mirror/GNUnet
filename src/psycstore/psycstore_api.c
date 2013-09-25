@@ -188,8 +188,7 @@ find_op_by_id (struct GNUNET_PSYCSTORE_Handle *h, uint32_t op_id)
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -239,18 +238,15 @@ transmit_next (struct GNUNET_PSYCSTORE_Handle *h);
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-message_handler (void *cls,
-		 const struct GNUNET_MessageHeader *msg)
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PSYCSTORE_Handle *h = cls;
   struct GNUNET_PSYCSTORE_OperationHandle *op;
   const struct OperationResult *opres;
-  const struct MasterCountersResult *mcres;
-  const struct SlaveCountersResult *scres;
+  const struct CountersResult *cres;
   const struct FragmentResult *fres;
   const struct StateResult *sres;
   const char *str;
-  uint16_t size;
 
   if (NULL == msg)
   {
@@ -260,8 +256,9 @@ message_handler (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message of type %d from PSYCstore service\n",
        ntohs (msg->type));
-  size = ntohs (msg->size);
-  switch (ntohs (msg->type))
+  uint16_t size = ntohs (msg->size);
+  uint16_t type = ntohs (msg->type);
+  switch (type)
   {
   case GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE:
     if (size < sizeof (struct OperationResult))
@@ -269,7 +266,7 @@ message_handler (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received message of type %d with length %lu bytes. "
            "Expected >= %lu\n",
-           ntohs (msg->type), size, sizeof (struct OperationResult));
+           type, size, sizeof (struct OperationResult));
       GNUNET_break (0);
       reschedule_connect (h);
       return;
@@ -291,8 +288,9 @@ message_handler (void *cls,
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result of an unkown operation ID: %ld\n",
-           ntohl (opres->op_id));
+           "Received result message (type %d) "
+           "with an unknown operation ID: %ld\n",
+           type, ntohl (opres->op_id));
     }
     else
     {
@@ -323,67 +321,38 @@ message_handler (void *cls,
     }
     break;
 
-  case GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_MASTER:
-    if (size != sizeof (struct MasterCountersResult))
+  case GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS:
+    if (size != sizeof (struct CountersResult))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received message of type %d with length %lu bytes. "
            "Expected %lu\n",
-           ntohs (msg->type), size, sizeof (struct MasterCountersResult));
+           type, size, sizeof (struct CountersResult));
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
 
-    mcres = (const struct MasterCountersResult *) msg;
+    cres = (const struct CountersResult *) msg;
 
-    op = find_op_by_id (h, ntohl (mcres->op_id));
+    op = find_op_by_id (h, ntohl (cres->op_id));
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result of an unkown operation ID: %ld\n",
-           ntohl (mcres->op_id));
+           "Received counters result message (type %d) "
+           "with an unknown operation ID: %ld\n",
+           ntohl (cres->op_id));
     }
     else
     {
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->data_cb)
-        ((GNUNET_PSYCSTORE_MasterCountersCallback)
+        ((GNUNET_PSYCSTORE_CountersCallback)
          op->data_cb) (op->cls,
-                       GNUNET_ntohll (mcres->fragment_id),
-                       GNUNET_ntohll (mcres->message_id),
-                       GNUNET_ntohll (mcres->group_generation));
-      GNUNET_free (op);
-    }
-    break;
-
-  case GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_SLAVE:
-    if (size != sizeof (struct SlaveCountersResult))
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received message of type %d with length %lu bytes. "
-           "Expected %lu\n",
-           ntohs (msg->type), size, sizeof (struct SlaveCountersResult));
-      GNUNET_break (0);
-      reschedule_connect (h);
-      return;
-    }
-
-    scres = (const struct SlaveCountersResult *) msg;
-
-    op = find_op_by_id (h, ntohl (scres->op_id));
-    if (NULL == op)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result of an unkown operation ID: %ld\n",
-           ntohl (scres->op_id));
-    }
-    else
-    {
-      GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
-      if (NULL != op->data_cb)
-        ((GNUNET_PSYCSTORE_SlaveCountersCallback)
-         op->data_cb) (op->cls, GNUNET_ntohll (scres->max_known_msg_id));
+                       GNUNET_ntohll (cres->max_fragment_id),
+                       GNUNET_ntohll (cres->max_message_id),
+                       GNUNET_ntohll (cres->max_group_generation),
+                       GNUNET_ntohll (cres->max_state_message_id));
       GNUNET_free (op);
     }
     break;
@@ -394,7 +363,7 @@ message_handler (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received message of type %d with length %lu bytes. "
            "Expected >= %lu\n",
-           ntohs (msg->type), size, sizeof (struct FragmentResult));
+           type, size, sizeof (struct FragmentResult));
       GNUNET_break (0);
       reschedule_connect (h);
       return;
@@ -408,7 +377,7 @@ message_handler (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received message of type %d with length %lu bytes. "
            "Expected = %lu\n",
-           ntohs (msg->type), size,
+           type, size,
            sizeof (struct FragmentResult) + ntohs (mmsg->header.size));
       GNUNET_break (0);
       reschedule_connect (h);
@@ -419,8 +388,9 @@ message_handler (void *cls,
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result of an unkown operation ID: %ld\n",
-           ntohl (fres->op_id));
+           "Received fragment result message (type %d) "
+           "with an unknown operation ID: %ld\n",
+           type, ntohl (fres->op_id));
     }
     else
     {
@@ -436,7 +406,7 @@ message_handler (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received message of type %d with length %lu bytes. "
            "Expected >= %lu\n",
-           ntohs (msg->type), size, sizeof (struct StateResult));
+           type, size, sizeof (struct StateResult));
       GNUNET_break (0);
       reschedule_connect (h);
       return;
@@ -450,7 +420,7 @@ message_handler (void *cls,
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Received state result message (type %d) with invalid name.\n",
-           ntohs (msg->type), name_size, name);
+           type);
       GNUNET_break (0);
       reschedule_connect (h);
       return;
@@ -460,14 +430,15 @@ message_handler (void *cls,
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result of an unkown operation ID: %ld\n",
-           ntohl (sres->op_id));
+           "Received state result message (type %d) "
+           "with an unknown operation ID: %ld\n",
+           type, ntohl (sres->op_id));
     }
     else
     {
       if (NULL != op->data_cb)
         ((GNUNET_PSYCSTORE_StateCallback)
-         op->data_cb) (op->cls, name, (void *) &sres[1] + name_size,
+         op->data_cb) (op->cls, name, (char *) &sres[1] + name_size,
                        ntohs (sres->header.size) - sizeof (*sres) - name_size);
     }
     break;
@@ -590,9 +561,8 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 struct GNUNET_PSYCSTORE_Handle *
 GNUNET_PSYCSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_PSYCSTORE_Handle *h;
-
-  h = GNUNET_new (struct GNUNET_PSYCSTORE_Handle);
+  struct GNUNET_PSYCSTORE_Handle *h
+    = GNUNET_new (struct GNUNET_PSYCSTORE_Handle);
   h->cfg = cfg;
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
@@ -609,7 +579,6 @@ void
 GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h)
 {
   GNUNET_assert (NULL != h);
-  GNUNET_assert (h->op_head == h->op_tail);
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
@@ -985,64 +954,21 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_counters_get_master (struct GNUNET_PSYCSTORE_Handle *h,
-                                      struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                      GNUNET_PSYCSTORE_MasterCountersCallback mccb,
-                                      void *mccb_cls)
+GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
+                               struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                               GNUNET_PSYCSTORE_CountersCallback ccb,
+                               void *mccb_cls)
 {
   struct OperationRequest *req;
   struct GNUNET_PSYCSTORE_OperationHandle *op
     = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
-  op->data_cb = mccb;
+  op->data_cb = ccb;
   op->cls = mccb_cls;
 
   req = (struct OperationRequest *) &op[1];
   op->msg = (struct GNUNET_MessageHeader *) req;
-  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_MASTER);
-  req->header.size = htons (sizeof (*req));
-  req->channel_key = *channel_key;
-
-  op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
-
-  GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
-  transmit_next (h);
-
-  return op;
-}
-
-
-
-/** 
- * Retrieve latest values of counters for a channel slave.
- *
- * The current value of counters are needed when a channel slave rejoins
- * and starts the state synchronization process.
- *
- * @param h Handle for the PSYCstore.
- * @param channel_key Public key that identifies the channel.
- * @param sccb Callback to call with the result.
- * @param sccb_cls Closure for the callback.
- * 
- * @return Handle that can be used to cancel the operation.
- */
-struct GNUNET_PSYCSTORE_OperationHandle *
-GNUNET_PSYCSTORE_counters_get_slave (struct GNUNET_PSYCSTORE_Handle *h,
-                                     struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                     GNUNET_PSYCSTORE_SlaveCountersCallback sccb,
-                                     void *sccb_cls)
-{
-  struct OperationRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
-  op->h = h;
-  op->data_cb = sccb;
-  op->cls = sccb_cls;
-
-  req = (struct OperationRequest *) &op[1];
-  op->msg = (struct GNUNET_MessageHeader *) req;
-  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET_SLAVE);
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_COUNTERS_GET);
   req->header.size = htons (sizeof (*req));
   req->channel_key = *channel_key;
 
@@ -1114,7 +1040,7 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
       : 0;
 
     memcpy (&req[1], modifiers[i].name, name_size);
-    memcpy ((void *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
+    memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
 
     op->op_id = get_next_op_id (h);
     req->op_id = htonl (op->op_id);
@@ -1180,7 +1106,7 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
       : 0;
 
     memcpy (&req[1], modifiers[i].name, name_size);
-    memcpy ((void *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
+    memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
 
     op->op_id = get_next_op_id (h);
     req->op_id = htonl (op->op_id);

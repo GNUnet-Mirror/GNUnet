@@ -276,13 +276,13 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                &retfrags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 2 && retfrags == 2);
 
-  /* Master counters */
+  /* Message counters */
 
   uint64_t fragment_id = 0, message_id = 0, group_generation = 0;
   GNUNET_assert (
-    GNUNET_OK == db->counters_get_master (db->cls, &channel_pub_key,
-                                          &fragment_id, &message_id,
-                                          &group_generation)
+    GNUNET_OK == db->counters_message_get (db->cls, &channel_pub_key,
+                                           &fragment_id, &message_id,
+                                           &group_generation)
     && fragment_id == GNUNET_ntohll (msg1->fragment_id)
     && message_id == GNUNET_ntohll (msg1->message_id)
     && group_generation == GNUNET_ntohll (msg1->group_generation));
@@ -334,12 +334,12 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                      state_cb, &scls));
   GNUNET_assert (scls.n == 2);
 
-  /* Slave counters */
+  /* State counters */
 
   uint64_t max_state_msg_id = 0;
-  GNUNET_assert (GNUNET_OK == db->counters_get_slave (db->cls, &channel_pub_key,
-                                               &max_state_msg_id)
-          && max_state_msg_id == message_id);
+  GNUNET_assert (GNUNET_OK == db->counters_state_get (db->cls, &channel_pub_key,
+                                                      &max_state_msg_id)
+                 && max_state_msg_id == message_id);
 
   /* State sync */
 

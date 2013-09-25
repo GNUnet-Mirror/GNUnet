@@ -43,11 +43,14 @@ struct OperationResult
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Status code for the operation.
    */
   int64_t result_code GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
 
   /* followed by 0-terminated error message (on error) */
 
@@ -57,52 +60,32 @@ struct OperationResult
 /**
  * Answer from service to client about master counters.
  *
- * @see GNUNET_PSYCSTORE_counters_get_master()
+ * @see GNUNET_PSYCSTORE_counters_get()
  */
-struct MasterCountersResult
+struct CountersResult
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_MASTER
+   * Type: GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS
    */
   struct GNUNET_MessageHeader header;
 
-  uint64_t fragment_id GNUNET_PACKED;
-
-  uint64_t message_id GNUNET_PACKED;
-
-  uint64_t group_generation GNUNET_PACKED;
+  /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
 
   /**
    * Status code for the operation.
    */
   int64_t result_code GNUNET_PACKED;
 
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t max_fragment_id GNUNET_PACKED;
 
-};
+  uint64_t max_message_id GNUNET_PACKED;
 
+  uint64_t max_group_generation GNUNET_PACKED;
 
-/**
- * Answer from service to client about slave counters.
- *
- * @see GNUNET_PSYCSTORE_counters_get_slave()
- */
-struct SlaveCountersResult
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS_SLAVE
-   */
-  struct GNUNET_MessageHeader header;
-
-  uint64_t max_known_msg_id GNUNET_PACKED;
-
-  /**
-   * Status code for the operation.
-   */
-  int64_t result_code GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
-
+  uint64_t max_state_message_id GNUNET_PACKED;
 };
 
 
@@ -116,6 +99,9 @@ struct FragmentResult
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Operation ID.
+   */
   uint32_t op_id GNUNET_PACKED;
 
   uint32_t psycstore_flags GNUNET_PACKED;
@@ -135,6 +121,9 @@ struct StateResult
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Operation ID.
+   */
   uint32_t op_id GNUNET_PACKED;
 
   uint16_t name_size  GNUNET_PACKED;
@@ -150,9 +139,13 @@ struct OperationRequest
 {
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
-  uint32_t op_id GNUNET_PACKED;
 };
 
 
@@ -167,6 +160,11 @@ struct MembershipStoreRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
@@ -176,12 +174,10 @@ struct MembershipStoreRequest
    */
   struct GNUNET_CRYPTO_EccPublicSignKey slave_key;
 
-  int did_join;
-  uint64_t announced_at;
-  uint64_t effective_since;
-  uint64_t group_generation;
-
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t announced_at GNUNET_PACKED;
+  uint64_t effective_since GNUNET_PACKED;
+  uint64_t group_generation GNUNET_PACKED;
+  int did_join GNUNET_PACKED;
 };
 
 
@@ -196,6 +192,11 @@ struct MembershipTestRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
@@ -208,8 +209,6 @@ struct MembershipTestRequest
   uint64_t message_id GNUNET_PACKED;
 
   uint64_t group_generation GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
 };
 
 
@@ -224,13 +223,16 @@ struct FragmentStoreRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
   uint32_t psycstore_flags GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
 };
 
 
@@ -245,13 +247,16 @@ struct FragmentGetRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
-  uint64_t fragment_id;
-
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t fragment_id GNUNET_PACKED;
 };
 
 
@@ -266,13 +271,16 @@ struct MessageGetRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
-  uint64_t message_id;
-
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t message_id GNUNET_PACKED;
 };
 
 
@@ -287,15 +295,18 @@ struct MessageGetFragmentRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
-  uint64_t message_id;
+  uint64_t message_id GNUNET_PACKED;
 
-  uint64_t fragment_offset;
-
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t fragment_offset GNUNET_PACKED;
 };
 
 
@@ -310,13 +321,16 @@ struct StateHashUpdateRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
   struct GNUNET_HashCode hash;
-
-  uint32_t op_id GNUNET_PACKED;
 };
 
 enum StateOpFlags
@@ -336,6 +350,11 @@ struct StateModifyRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
@@ -343,8 +362,6 @@ struct StateModifyRequest
   uint64_t message_id GNUNET_PACKED;
 
   uint64_t state_delta GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
 
   /**
    * Size of name, including NUL terminator.
@@ -376,13 +393,16 @@ struct StateSyncRequest
   struct GNUNET_MessageHeader header;
 
   /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
   uint64_t message_id GNUNET_PACKED;
-
-  uint32_t op_id GNUNET_PACKED;
 
   /**
    * Size of name, including NUL terminator.
