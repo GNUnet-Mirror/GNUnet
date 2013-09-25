@@ -133,7 +133,7 @@ stat_cb(void *cls, const char *subsystem,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
         "All addresses added, connecting to performance\n");
-    if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL)))
+    if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Failed to connect to performance API\n");

@@ -142,7 +142,7 @@ stat_cb(void *cls, const char *subsystem,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
         "All addresses added, connecting to performance\n");
-    if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL)))
+    if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Failed to connect to performance API\n");
@@ -209,8 +209,6 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-
-
   GNUNET_free_non_null(p0_addresses[0].addr);
   GNUNET_free_non_null(p0_addresses[1].addr);
   GNUNET_free_non_null(p1_addresses[0].addr);
