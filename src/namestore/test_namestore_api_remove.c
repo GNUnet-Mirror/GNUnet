@@ -141,39 +141,21 @@ rd_decrypt_cb (void *cls,
 {
   const char *name = cls;
   char rd_cmp_data[TEST_RECORD_DATALEN];
-  if (GNUNET_NO == removed)
-  {
-    GNUNET_assert (1 == rd_count);
-    GNUNET_assert (NULL != rd);
-    
-    memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-    
-    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-    
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Block was decrypted successfully, removing records \n");
-    
-    nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-					   0, NULL, &remove_cont, (void *) name);
-  }
-  else
-  {
-    if ((0 != rd_count) /*|| (NULL != rd)*/)
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Record was not removed \n"));
-	if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-	  GNUNET_SCHEDULER_cancel (endbadly_task);
-	endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-	return;
-      }
-    
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Record was removed \n"));
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-  }
+
+  GNUNET_assert (GNUNET_NO == removed);
+  GNUNET_assert (1 == rd_count);
+  GNUNET_assert (NULL != rd);  
+  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
+  
+  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
+  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
+  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Block was decrypted successfully, removing records \n");
+  
+  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
+					 0, NULL, &remove_cont, (void *) name);
 }
 
 
@@ -184,6 +166,16 @@ name_lookup_proc (void *cls,
   const char *name = cls;
   nsqe = NULL;
 
+  if (removed && (NULL == block))
+  {
+    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      GNUNET_SCHEDULER_cancel (endbadly_task);
+      endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    GNUNET_SCHEDULER_add_now (&end, NULL);
+    return;
+  }
   GNUNET_assert (NULL != cls);
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -200,7 +192,7 @@ name_lookup_proc (void *cls,
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore returned block, decrypting \n");
   GNUNET_assert (GNUNET_OK == 
 		 GNUNET_NAMESTORE_block_decrypt (block,

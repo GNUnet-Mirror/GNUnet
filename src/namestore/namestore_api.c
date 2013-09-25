@@ -310,7 +310,7 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
  * @param qe the respective entry in the message queue
  * @param msg the message we received
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 handle_block_cache_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -330,12 +330,12 @@ handle_block_cache_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE'
+ * Handle an incoming message of type #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE
  *
  * @param qe the respective entry in the message queue
  * @param msg the message we received
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 handle_record_store_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -360,12 +360,12 @@ handle_record_store_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT'
+ * Handle an incoming message of type #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
  *
  * @param qe the respective entry in the message queue
  * @param msg the message we received
  * @param size the message size
- * @return GNUNET_OK on success, GNUNET_SYSERR on error and we did NOT notify the client
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
  */
 static int
 handle_record_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
@@ -763,7 +763,7 @@ do_transmit (struct GNUNET_NAMESTORE_Handle *h);
 /**
  * We can now transmit a message to NAMESTORE. Do it.
  *
- * @param cls the 'struct GNUNET_NAMESTORE_Handle'
+ * @param cls the `struct GNUNET_NAMESTORE_Handle`
  * @param size number of bytes we can transmit
  * @param buf where to copy the messages
  * @return number of bytes copied into buf
