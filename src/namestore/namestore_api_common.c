@@ -509,7 +509,6 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 				  const void *data,
 				  size_t data_size)
 {
-  uint16_t mx_pref;
   const struct GNUNET_TUN_DnsSoaRecord *soa;
   const struct GNUNET_TUN_GnsVpnRecord *vpn;
   const struct GNUNET_TUN_DnsSrvRecord *srv;
@@ -562,14 +561,26 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_PTR:
     return GNUNET_strndup (data, data_size);
   case GNUNET_DNSPARSER_TYPE_MX:
-    mx_pref = ntohs(*((uint16_t*)data));
-    if (GNUNET_asprintf(&result, "%hu,%s", mx_pref, data+sizeof(uint16_t))
-        != 0)
-      return result;
-    else
     {
-      GNUNET_free (result);
-      return NULL;
+      struct GNUNET_DNSPARSER_MxRecord *mx;
+      size_t off;
+
+      off = 0;
+      mx = GNUNET_DNSPARSER_parse_mx (data,
+				      data_size,
+				      &off);
+      if ( (NULL == mx) ||
+	   (off != data_size) )
+      {
+	GNUNET_break_op (0);
+	return NULL;
+      }
+      GNUNET_asprintf (&result, 
+		       "%hu,%s", 
+		       mx->preference,
+		       mx->mxhost);
+      GNUNET_DNSPARSER_free_mx (mx);
+      return result;
     }
   case GNUNET_DNSPARSER_TYPE_TXT:
     return GNUNET_strndup (data, data_size);
@@ -653,8 +664,8 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
  * @param type type of the record
  * @param s human-readable string
  * @param data set to value in binary encoding (will be allocated)
- * @param data_size set to number of bytes in data
- * @return GNUNET_OK on success
+ * @param data_size set to number of bytes in @a data
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_NAMESTORE_string_to_value (uint32_t type,
@@ -668,7 +679,6 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   struct GNUNET_TUN_DnsSoaRecord *soa;
   struct GNUNET_TUN_GnsVpnRecord *vpn;
   struct GNUNET_TUN_DnsTlsaRecord *tlsa;
-  char result[253 + 1];
   char soa_rname[253 + 1];
   char soa_mname[253 + 1];
   char s_peer[103 + 1];
@@ -678,8 +688,6 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   unsigned int soa_retry;
   unsigned int soa_expire;
   unsigned int soa_min;
-  uint16_t mx_pref;
-  uint16_t mx_pref_n;
   unsigned int proto;
   
   if (NULL == s)
@@ -722,7 +730,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		  s);
       return GNUNET_SYSERR;
     }
-    *data_size = sizeof (struct GNUNET_TUN_DnsSoaRecord)+strlen(soa_rname)+strlen(soa_mname)+2;
+    *data_size = sizeof (struct GNUNET_TUN_DnsSoaRecord) + strlen(soa_rname) + strlen(soa_mname) + 2;
     *data = GNUNET_malloc (*data_size);
     soa = (struct GNUNET_TUN_DnsSoaRecord*)*data;
     soa->serial = htonl(soa_serial);
@@ -738,19 +746,40 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_MX:
-    if (2 != SSCANF(s, "%hu,%253s", &mx_pref, result))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse MX record `%s'\n"),
-		  s);
+      struct GNUNET_DNSPARSER_MxRecord mx;
+      char mxbuf[258];
+      char mxhost[253 + 1];
+      uint16_t mx_pref;
+      size_t off;
+
+      if (2 != SSCANF(s, "%hu,%253s", &mx_pref, mxhost))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Unable to parse MX record `%s'\n"),
+		    s);
       return GNUNET_SYSERR;
+      }
+      mx.preference = mx_pref;
+      mx.mxhost = mxhost;
+      off = 0;
+
+      if (GNUNET_OK !=
+	  GNUNET_DNSPARSER_builder_add_mx (mxbuf,
+					   sizeof (mxbuf),
+					   &off,
+					   &mx))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to serialize MX record with hostname `%s'\n"),
+		    mxhost);
+	return GNUNET_SYSERR;
+      }
+      *data_size = off;
+      *data = GNUNET_malloc (off);
+      memcpy (*data, mxbuf, off);
+      return GNUNET_OK;
     }
-    *data_size = sizeof (uint16_t)+strlen(result)+1;
-    *data = GNUNET_malloc (*data_size);
-    mx_pref_n = htons(mx_pref);
-    memcpy(*data, &mx_pref_n, sizeof (uint16_t));
-    strcpy((*data)+sizeof (uint16_t), result);
-    return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);

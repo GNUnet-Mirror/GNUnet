@@ -822,9 +822,9 @@ do_transmit (struct GNUNET_NAMESTORE_Handle *h)
   if (NULL == h->client)
     return;                     /* currently reconnecting */
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, p->size,
-                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                           GNUNET_NO, &transmit_message_to_namestore,
-                                           h);
+					       GNUNET_TIME_UNIT_FOREVER_REL,
+					       GNUNET_NO, &transmit_message_to_namestore,
+					       h);
 }
 
 
