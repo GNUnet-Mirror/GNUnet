@@ -14,6 +14,7 @@ if HAVE_EXPERIMENTAL
  EXP_DIR = \
   dv \
   multicast \
+  env \
   psyc \
   $(CONSENSUS) \
   $(EXPERIMENTATION)

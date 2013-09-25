@@ -1,22 +1,22 @@
 /*
-     This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
-
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
-
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+ * This file is part of GNUnet.
+ * (C) 2013 Christian Grothoff (and other contributing authors)
+ *
+ * GNUnet is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation; either version 3, or (at your
+ * option) any later version.
+ *
+ * GNUnet is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GNUnet; see the file COPYING.  If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
 
 /** 
  * @file include/gnunet_env_lib.h
@@ -113,6 +113,16 @@ struct GNUNET_ENV_Modifier {
    * Value of variable.
    */
   const void *value;
+
+  /**
+   * Next modifier.
+   */
+  struct GNUNET_ENV_Modifier *next;
+
+  /**
+   * Previous modifier.
+   */
+  struct GNUNET_ENV_Modifier *prev;
 };
 
 
@@ -134,52 +144,54 @@ GNUNET_ENV_environment_create ();
 
 
 /** 
- * Add an operation on a variable to the environment.
+ * Add a modifier to the environment.
  *
  * @param env The environment.
  * @param oper Operation to perform.
  * @param name Name of the variable.
- * @param value_size Size of @a value.
  * @param value Value of the variable.
- * 
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error.
+ * @param value_size Size of @a value.
  */
-int
-GNUNET_ENV_environment_operation (struct GNUNET_ENV_Environment *env,
-                                  enum GNUNET_ENV_Operator oper,
-                                  const char *name,
-                                  size_t value_size, const void *value);
+void
+GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
+                                enum GNUNET_ENV_Operator oper, const char *name,
+                                const void *value, size_t value_size);
 
 
 /** 
- * Get all modifiers in the environment.
+ * Iterator for modifiers in the environment.
  *
- * FIXME: use an iterator instead, as we'll likely use a SList to store the
- *        modifiers in the environment.
+ * @param cls Closure.
+ * @param mod Modifier.
  *
- * @param env The environment.
- * @param[out] modifier_count Set to the number of returned modifiers.
- * 
- * @return Array of modifiers.
+ * @return #GNUNET_YES to continue iterating,
+ *         #GNUNET_NO to stop.
  */
-const struct GNUNET_ENV_Modifier *
-GNUNET_ENV_environment_get_modifiers (const struct GNUNET_ENV_Environment *env,
-                                      size_t *modifier_count);
+typedef int
+(*GNUNET_ENV_Iterator) (void *cls, struct GNUNET_ENV_Modifier *mod);
 
 
 /** 
- * Add list of modifiers to the environment.
+ * Iterate through all modifiers in the environment.
  *
  * @param env The environment.
- * @param modifier_count Number of @a modifiers.
- * @param modifiers Array of modifiers to add.
- * 
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error.
+ * @param it Iterator.
+ * @param it_cls Closure for iterator.
  */
-int
-GNUNET_ENV_environment_set_modifiers (const struct GNUNET_ENV_Environment *env,
-                                      size_t modifier_count,
-                                      const struct GNUNET_ENV_Modifier *modifiers);
+void
+GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
+                                GNUNET_ENV_Iterator it, void *it_cls);
+
+
+/** 
+ * Get the number of modifiers in the environment.
+ *
+ * @param env The environment.
+ *
+ * @return Number of modifiers.
+ */
+size_t
+GNUNET_ENV_environment_get_mod_count (const struct GNUNET_ENV_Environment *env);
 
 
 /** 
