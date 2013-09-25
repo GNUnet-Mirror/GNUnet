@@ -55,7 +55,8 @@ enum RIL_Action_Type
 
 enum RIL_Algorithm
 {
-  RIL_ALGO_SARSA, RIL_ALGO_Q
+  RIL_ALGO_SARSA = 0,
+  RIL_ALGO_Q = 1
 };
 
 enum RIL_E_Modification
@@ -315,7 +316,7 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
 
   for (i = 0; i < agent->m; i++)
   {
-    result += state[i] * (agent->W)[agent->m][action];
+    result += state[i] * agent->W[action][i];
   }
 
   return result;
@@ -353,7 +354,7 @@ agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
   int i;
   int max_i = -1;
   double cur_q;
-  double max_q = DBL_MIN;
+  double max_q = -DBL_MAX;
 
   for (i = 0; i < agent->n; i++)
   {
@@ -397,8 +398,9 @@ agent_update_weights (struct RIL_Peer_Agent *agent,
 {
   int i;
   double delta;
-  double *theta = (agent->W)[agent->a_old];
+  double *theta = agent->W[agent->a_old];
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "agent_update_weights() MUH a_old = %d\n", agent->a_old);
   delta = reward + agent_estimate_q (agent, s_next, a_prime)
       - agent_estimate_q (agent, agent->s_old, agent->a_old);
   for (i = 0; i < agent->m; i++)
@@ -457,13 +459,13 @@ envi_get_state (struct GAS_RIL_Handle *solver)
   struct RIL_Network *net;
   double *state = GNUNET_malloc (sizeof (double) * solver->networks_count * 4);
 
-  for (i = 0; i < solver->networks_count; i += 4)
+  for (i = 0; i < solver->networks_count; i++)
   {
-    net = (&solver->network_entries)[i];
-    state[i] = (double) net->bw_in_assigned;
-    state[i + 1] = (double) net->bw_in_available;
-    state[i + 2] = (double) net->bw_out_assigned;
-    state[i + 3] = (double) net->bw_out_available;
+    net = &solver->network_entries[i];
+    state[i*4 + 0] = (double) net->bw_in_assigned;
+    state[i*4 + 1] = (double) net->bw_in_available;
+    state[i*4 + 2] = (double) net->bw_out_assigned;
+    state[i*4 + 3] = (double) net->bw_out_available;
   }
 
   return state;
@@ -574,6 +576,9 @@ agent_step (struct RIL_Peer_Agent *agent)
   s_next = envi_get_state (agent->envi);
   reward = envi_get_reward (agent->envi, agent);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "agent_step() with algorithm %s\n",
+      agent->envi->parameters.algorithm ? "Q" : "SARSA");
+
   switch (agent->envi->parameters.algorithm)
   {
   case RIL_ALGO_SARSA:
@@ -586,14 +591,16 @@ agent_step (struct RIL_Peer_Agent *agent)
     {
       a_next = agent_get_action_best (agent, s_next);
     }
-    //updates weights with selected action (on-policy)
-    agent_update_weights (agent, reward, s_next, a_next);
+    //updates weights with selected action (on-policy), if not first step
+    if (-1 != agent->a_old)
+      agent_update_weights (agent, reward, s_next, a_next);
     break;
 
   case RIL_ALGO_Q:
-    //updates weights with best action, disregarding actually selected action (off-policy)
+    //updates weights with best action, disregarding actually selected action (off-policy), if not first step
     a_next = agent_get_action_best (agent, s_next);
-    agent_update_weights (agent, reward, s_next, a_next);
+    if (-1 != agent->a_old)
+      agent_update_weights (agent, reward, s_next, a_next);
     if (agent_decide_exploration (agent))
     {
       a_next = agent_get_action_explore (agent, s_next);
@@ -670,7 +677,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->W = (double **) GNUNET_malloc (sizeof (double) * agent->n);
   for (i = 0; i < agent->n; i++)
   {
-    (agent->W)[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
+    agent->W[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   }
   agent->a_old = -1;
   agent->e = (double *) GNUNET_malloc (sizeof (double) * agent->m);
@@ -694,11 +701,30 @@ agent_die (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   for (i = 0; i < agent->n; i++)
   {
-    GNUNET_free((agent->W)[i]);
+    GNUNET_free(agent->W[i]);
   }
   GNUNET_free(agent->W);
   GNUNET_free(agent->e);
   GNUNET_free(agent->s_old);
+}
+
+static void
+ril_remove_agent (struct GAS_RIL_Handle *s, struct RIL_Peer_Agent *agent)
+{
+  struct RIL_Peer_Agent *cur_agent;
+  struct RIL_Peer_Agent *next_agent;
+
+  cur_agent = s->agents_head;
+  while (NULL != cur_agent)
+  {
+    next_agent = cur_agent->next;
+
+    if (agent == cur_agent)
+      GNUNET_CONTAINER_DLL_remove(s->agents_head, s->agents_tail, cur_agent);
+      agent_die (s, cur_agent);
+
+    cur_agent = next_agent;
+  }
 }
 
 /**
@@ -728,11 +754,13 @@ ril_count_agents (struct GAS_RIL_Handle *solver, int active_only)
  * Returns the agent for a peer
  * @param s solver handle
  * @param peer identity of the peer
+ * @param create whether to create an agent if none is allocated yet
  * @return agent
  */
 static struct RIL_Peer_Agent *
 ril_get_agent (struct GAS_RIL_Handle *solver,
-    const struct GNUNET_PeerIdentity *peer)
+    const struct GNUNET_PeerIdentity *peer,
+    int create)
 {
   struct RIL_Peer_Agent *cur;
 
@@ -744,7 +772,19 @@ ril_get_agent (struct GAS_RIL_Handle *solver,
     }
   }
 
-  return agent_init (solver, peer);
+  if (create)
+    return agent_init (solver, peer);
+  return NULL;
+}
+
+static int
+ril_network_is_active (struct RIL_Network *network)
+{
+  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+
+  if (network->bw_out_available < min_bw)
+    return GNUNET_NO;
+  return GNUNET_YES;
 }
 
 /**
@@ -760,23 +800,25 @@ ril_init_agents_it (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GAS_RIL_Handle *solver = cls;
   struct ATS_Address *address = value;
-  struct RIL_Peer_Agent *agent;
+  struct RIL_Peer_Agent *agent = NULL;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
 
-  agent = ril_get_agent (solver, &address->peer);
-
-  GNUNET_assert(NULL != agent);
-
-  if (NULL == agent->address)
+  if (ril_network_is_active(address->solver_information))
   {
-    agent->address = address;
-    agent->address->active = GNUNET_YES;
-    agent->bw_in = min_bw;
-    agent->address->assigned_bw_in.value__ = htonl (min_bw);
-    agent->bw_out = min_bw;
-    agent->address->assigned_bw_out.value__ = htonl (min_bw);
-  }
+    agent = ril_get_agent (solver, &address->peer, GNUNET_YES);
 
+    GNUNET_assert(NULL != agent);
+
+    if (NULL == agent->address)
+    {
+      agent->address = address;
+      agent->address->active = GNUNET_YES;
+      agent->bw_in = min_bw;
+      agent->address->assigned_bw_in.value__ = htonl (min_bw);
+      agent->bw_out = min_bw;
+      agent->address->assigned_bw_out.value__ = htonl (min_bw);
+    }
+  }
   return GNUNET_YES;
 }
 
@@ -791,6 +833,7 @@ static struct RIL_Network *
 ril_get_network (struct GAS_RIL_Handle *s, uint32_t type)
 {
   int i;
+
   for (i = 0; i < s->networks_count; i++)
   {
     if (s->network_entries[i].type == type) {
@@ -893,13 +936,10 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     solver->step_time = RIL_DEFAULT_STEP_TIME;
   }
   if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "RIL_ALGORITHM",
-          &string))
+      == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "RIL_ALGORITHM",
+          &string) && NULL != string && 0 == strcmp (string, "SARSA"))
   {
-    if (0 == strcmp (string, "SARSA"))
-    {
-      solver->parameters.algorithm = RIL_ALGO_SARSA;
-    }
+    solver->parameters.algorithm = RIL_ALGO_SARSA;
   }
   else
   {
@@ -910,7 +950,6 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           &tmp))
   {
     solver->parameters.gamma = (double) tmp / 100;
-    ;
   }
   else
   {
@@ -921,7 +960,6 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           "RIL_GRADIENT_STEP_SIZE", &tmp))
   {
     solver->parameters.alpha = (double) tmp / 100;
-    ;
   }
   else
   {
@@ -932,7 +970,6 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           &tmp))
   {
     solver->parameters.lambda = (double) tmp / 100;
-    ;
   }
   else
   {
@@ -963,13 +1000,6 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     cur->bw_out_available = out_quota[c];
     cur->bw_out_assigned = 0;
   }
-
-  c = GNUNET_CONTAINER_multihashmap_iterate (addresses, &ril_init_agents_it,
-      solver);
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "API_init() Solving ATS for %d addresses and %d peers\n", c,
-      ril_count_agents(solver, GNUNET_NO));
 
   solver->next_step = GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_millisecond_ (),
@@ -1030,6 +1060,8 @@ GAS_ril_address_add (void *solver,
    * and action vector
    */
 
+  address->solver_information = ril_get_network(s, network);
+
   /*
    * reiterate all addresses, create new agent if necessary and give the agent the address
    */
@@ -1067,7 +1099,13 @@ GAS_ril_address_delete (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
-  agent = ril_get_agent (s, &address->peer);
+  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
+
+  if (NULL == agent)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() deleting address for unallocated agent");
+    return;
+  }
 
   if (0 == memcmp (agent->address->addr, address->addr, address->addr_len)) //if used address deleted
   {
@@ -1077,6 +1115,7 @@ GAS_ril_address_delete (void *solver,
     if (NULL == agent->address) //no other address available
     {
       agent->active = GNUNET_NO;
+      ril_remove_agent (solver, agent);
     }
   }
 
@@ -1186,23 +1225,40 @@ GAS_ril_address_change_network (void *solver,
       GNUNET_ATS_print_network_type (current_network),
       GNUNET_ATS_print_network_type (new_network));
 
-  agent = ril_get_agent (s, &address->peer);
+  address->solver_information = ril_get_network(solver, new_network);
 
   if (address->active)
   {
+    agent = ril_get_agent(solver, &address->peer, GNUNET_NO);
+
     //remove from old network
     net = ril_get_network (s, current_network);
     net->bw_in_assigned -= agent->bw_in;
     net->bw_out_assigned -= agent->bw_out;
 
-    //add to new network
-    net = ril_get_network (s, new_network);
-    net->bw_in_assigned += agent->bw_in;
-    net->bw_out_assigned += agent->bw_out;
+    if (ril_network_is_active(ril_get_network(s, new_network)))
+    {
+      //add to new network
+      net = ril_get_network (s, new_network);
+      net->bw_in_assigned += agent->bw_in;
+      net->bw_out_assigned += agent->bw_out;
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "API_address_change_network() Moved %d inbound and %d "
-            "outbound\n", agent->bw_in, agent->bw_out);
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "API_address_change_network() Moved %d inbound and %d "
+              "outbound\n", agent->bw_in, agent->bw_out);
+    }
+    else //new network for this address is not active => address must not be considered
+    {
+      address->active = GNUNET_NO;
+      agent->address = NULL; //delete address
+          GNUNET_CONTAINER_multihashmap_iterate (s->addresses, &ril_init_agents_it,
+              solver); //put another address
+      if (NULL == agent->address) //no other address available
+      {
+        agent->active = GNUNET_NO;
+        ril_remove_agent(s, agent);
+      }
+    }
   }
 }
 
@@ -1246,7 +1302,8 @@ GAS_ril_bulk_start (void *solver)
    * bandwidth assignment triggered anyway. Therefore, changes to addresses can come and go as
    * they want. Consideration: Step-pause during bulk-start-stop period...
    */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start()\n");
+
+  //GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start()\n");
 }
 
 /**
@@ -1259,7 +1316,8 @@ GAS_ril_bulk_stop (void *solver)
   /*
    * bulk counter down, see bulk_start()
    */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop()\n");
+
+  //GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop()\n");
 }
 
 /**
@@ -1278,7 +1336,13 @@ GAS_ril_get_preferred_address (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
-  agent = ril_get_agent (s, peer);
+  agent = ril_get_agent (s, peer, GNUNET_NO);
+
+  if (NULL == agent)
+  {
+    return NULL;
+  }
+
   agent->active = GNUNET_YES;
 
   GNUNET_assert(NULL != agent->address);
@@ -1303,7 +1367,7 @@ GAS_ril_stop_get_preferred_address (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
-  agent = ril_get_agent (s, peer);
+  agent = ril_get_agent (s, peer, GNUNET_NO);
   agent->active = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
