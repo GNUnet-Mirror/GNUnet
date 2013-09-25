@@ -70,12 +70,12 @@ TESTING_TESTS = \
  test_ats_api_scheduling_destroy_address \
  test_ats_api_scheduling_destroy_address_twice \
  test_ats_api_scheduling_add_session \
- test_ats_api_scheduling_destroy_session
+ test_ats_api_scheduling_destroy_session \
+ test_ats_api_performance_list_all_addresses \
+ test_ats_api_performance_list_peer_addresses
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt
 # test_ats_api_scheduling_update_address
-# test_ats_api_scheduling_destroy_address
-# test_ats_api_scheduling_destroy_session
 # test_ats_api_scheduling_destroy_inbound_connection
 # test_ats_api_scheduling_block_and_reset
 # test_ats_normalization_update_quality
@@ -83,7 +83,6 @@ TESTING_TESTS = \
 # test_ats_simplistic
 # test_ats_simplistic_switch_networks
 # test_ats_simplistic_change_preference
-# test_ats_api_performance_list_addresses
 # test_ats_api_performance_address_info
 # test_ats_api_performance_feedback
 endif
@@ -167,134 +166,142 @@ test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la  
 
-#if 0
-
-test_ats_api_scheduling_min_bw_SOURCES = \
- test_ats_api_scheduling_min_bw.c test_ats_api_common.c
-test_ats_api_scheduling_min_bw_LDADD = \
+test_ats_api_performance_list_all_addresses_SOURCES = \
+ test_ats_api_performance_list_all_addresses.c
+test_ats_api_performance_list_all_addresses_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
-test_ats_api_scheduling_check_min_bw_alt_SOURCES = \
- test_ats_api_scheduling_check_min_bw_alt.c test_ats_api_common.c
-test_ats_api_scheduling_check_min_bw_alt_LDADD = \
+test_ats_api_performance_list_peer_addresses_SOURCES = \
+ test_ats_api_performance_list_peer_addresses.c
+test_ats_api_performance_list_peer_addresses_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+
+#test_ats_api_scheduling_min_bw_SOURCES = \
+# test_ats_api_scheduling_min_bw.c test_ats_api_common.c
+#test_ats_api_scheduling_min_bw_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
+#
+#test_ats_api_scheduling_check_min_bw_alt_SOURCES = \
+# test_ats_api_scheduling_check_min_bw_alt.c test_ats_api_common.c
+#test_ats_api_scheduling_check_min_bw_alt_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
 
-test_ats_api_scheduling_update_address_SOURCES = \
- test_ats_api_scheduling_update_address.c test_ats_api_common.c
-test_ats_api_scheduling_update_address_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_api_scheduling_update_address_SOURCES = \
+# test_ats_api_scheduling_update_address.c test_ats_api_common.c
+#test_ats_api_scheduling_update_address_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
   
-test_ats_api_scheduling_destroy_inbound_connection_SOURCES = \
- test_ats_api_scheduling_destroy_inbound_connection.c test_ats_api_common.c
-test_ats_api_scheduling_destroy_inbound_connection_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la
+#test_ats_api_scheduling_destroy_inbound_connection_SOURCES = \
+# test_ats_api_scheduling_destroy_inbound_connection.c test_ats_api_common.c
+#test_ats_api_scheduling_destroy_inbound_connection_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
 
-test_ats_api_scheduling_block_and_reset_SOURCES = \
- test_ats_api_scheduling_block_and_reset.c test_ats_api_common.c
-test_ats_api_scheduling_block_and_reset_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la
+#test_ats_api_scheduling_block_and_reset_SOURCES = \
+# test_ats_api_scheduling_block_and_reset.c test_ats_api_common.c
+#test_ats_api_scheduling_block_and_reset_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
 
-
-
-test_ats_api_performance_feedback_SOURCES = \
- test_ats_api_performance_feedback.c
-test_ats_api_performance_feedback_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/ats/libgnunetats.la    
-
-test_ats_api_performance_list_addresses_SOURCES = \
- test_ats_api_performance_list_addresses.c
-test_ats_api_performance_list_addresses_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/ats/libgnunetats.la    
-
-test_ats_api_performance_address_info_SOURCES = \
- test_ats_api_performance_address_info.c
-test_ats_api_performance_address_info_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/ats/libgnunetats.la
+#test_ats_api_performance_feedback_SOURCES = \
+# test_ats_api_performance_feedback.c
+#test_ats_api_performance_feedback_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/hello/libgnunethello.la \
+#  $(top_builddir)/src/ats/libgnunetats.la    
 
 
-test_ats_simplistic_SOURCES = \
- test_ats_simplistic.c test_ats_api_common.c
-test_ats_simplistic_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/ats/libgnunetats.la    
 
-test_ats_simplistic_switch_networks_SOURCES = \
- test_ats_simplistic_switch_networks.c test_ats_api_common.c
-test_ats_simplistic_switch_networks_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la
+#test_ats_api_performance_address_info_SOURCES = \
+# test_ats_api_performance_address_info.c
+#test_ats_api_performance_address_info_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/hello/libgnunethello.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
 
-test_ats_simplistic_change_preference_SOURCES = \
- test_ats_simplistic_change_preference.c test_ats_api_common.c
-test_ats_simplistic_change_preference_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la
 
-test_ats_change_preference_SOURCES = \
- test_ats_change_preference.c test_ats_api_common.c
-test_ats_change_preference_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la
+#test_ats_simplistic_SOURCES = \
+# test_ats_simplistic.c test_ats_api_common.c
+#test_ats_simplistic_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/hello/libgnunethello.la \
+#  $(top_builddir)/src/ats/libgnunetats.la    
+
+#test_ats_simplistic_switch_networks_SOURCES = \
+# test_ats_simplistic_switch_networks.c test_ats_api_common.c
+#test_ats_simplistic_switch_networks_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
+
+#test_ats_simplistic_change_preference_SOURCES = \
+# test_ats_simplistic_change_preference.c test_ats_api_common.c
+#test_ats_simplistic_change_preference_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
+
+#test_ats_change_preference_SOURCES = \
+# test_ats_change_preference.c test_ats_api_common.c
+#test_ats_change_preference_LDADD = \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la
 
 if HAVE_LIBGLPK
-test_ats_mlp_SOURCES = \
-  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
-test_ats_mlp_LDADD = \
-  $(GN_LIBGLPK) \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_mlp_SOURCES = \
+#  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
+#test_ats_mlp_LDADD = \
+#  $(GN_LIBGLPK) \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
-test_ats_mlp_update_SOURCES = \
-  $(GN_MLP_SRC) test_ats_mlp_update.c test_ats_api_common.c gnunet-service-ats_normalization.c
-test_ats_mlp_update_LDADD = \
-  $(GN_LIBGLPK) \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_mlp_update_SOURCES = \
+#  $(GN_MLP_SRC) test_ats_mlp_update.c test_ats_api_common.c gnunet-service-ats_normalization.c
+#test_ats_mlp_update_LDADD = \
+#  $(GN_LIBGLPK) \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 
-perf_ats_mlp_SOURCES = \
-  $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
-perf_ats_mlp_LDADD = \
-  $(GN_LIBGLPK) \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#perf_ats_mlp_SOURCES = \
+#  $(GN_MLP_SRC) perf_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
+#perf_ats_mlp_LDADD = \
+#  $(GN_LIBGLPK) \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 endif  
 
-test_ats_normalization_update_quality_SOURCES = \
-  test_ats_normalization_update_quality.c test_ats_api_common.c
-test_ats_normalization_update_quality_LDADD = \
-  $(GN_LIBGLPK) \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/ats/libgnunetats.la  
+#test_ats_normalization_update_quality_SOURCES = \
+#  test_ats_normalization_update_quality.c test_ats_api_common.c
+#test_ats_normalization_update_quality_LDADD = \
+#  $(GN_LIBGLPK) \
+#  $(top_builddir)/src/util/libgnunetutil.la \
+#  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+#  $(top_builddir)/src/testing/libgnunettesting.la \
+#  $(top_builddir)/src/ats/libgnunetats.la  
 #endif
 EXTRA_DIST = \
   ats.h \
