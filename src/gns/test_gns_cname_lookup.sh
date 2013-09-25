@@ -1,6 +1,6 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o SERVICEHOME`
+rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o SERVICEHOME`
 TEST_DOMAIN_PLUS="www.gnu"
 TEST_DOMAIN_DNS="www3.gnu"
 TEST_IP_PLUS="127.0.0.1"
