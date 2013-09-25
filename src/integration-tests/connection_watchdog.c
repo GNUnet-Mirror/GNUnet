@@ -205,17 +205,18 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static int
 check_lowlevel_connections (int port, int protocol)
 {
+#ifdef MINGW
+  /* not supported */
+  return count;
+#else
   FILE *f;
   char * cmdline;
   char * proto;
   char line[1024];
   int count = -1;
-#ifdef MINGW
-  /* not supported */
-  return count;
-#else
 
-  switch (protocol) {
+  switch (protocol) 
+  {
     case tcp:
       proto = "-t";
       break;
@@ -252,11 +253,12 @@ check_lowlevel_connections (int port, int protocol)
   {
     /* read */
     //printf ("%s", line);
-    count ++;
+    count++;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%i TCP connections established with port %u\n",
-       count, port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "%i TCP connections established with port %u\n",
+	      count, port);
 
   pclose (f);
   GNUNET_free (cmdline);

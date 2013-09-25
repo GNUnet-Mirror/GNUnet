@@ -1960,8 +1960,10 @@ main (int argc, char *argv[])
           read (i, readbuf, sizeof (readbuf));
               if (0 > ret)
               {
-                fprintf (stderr, "Read error from STDIN: %s\n", strerror (errno));
-                break; break;
+                fprintf (stderr,
+			 "Read error from STDIN: %s\n",
+			 strerror (errno));
+                break; 
               }
               if (0 == ret)
               {

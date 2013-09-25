@@ -357,7 +357,7 @@ remove_address6 (const char *address)
    */
   snprintf (command, LINE_LEN,
             "netsh interface ipv6 delete address \"%s\" store=persistent",
-            device_visible_name, address);
+            device_visible_name);
   /*
    * Set the address
    */
@@ -432,7 +432,7 @@ remove_address4 (const char *address)
    */
   snprintf (command, LINE_LEN,
             "netsh interface ipv4 delete address \"%s\" gateway=all store=persistent",
-            device_visible_name, address);
+            device_visible_name);
   /*
    * Set the address
    */
@@ -1450,6 +1450,8 @@ teardown_final:
       
   CloseHandle (tap_handle);
 }
+
+
 /**
  * Open VPN tunnel interface.
  *
@@ -1475,14 +1477,18 @@ main (int argc, char **argv)
   
   if ( (1 < argc) && (0 != strcmp (argv[1], "-d"))){
       privilege_testing = TRUE;
-      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
+      fprintf (stderr,
+	       "%s",
+	       "DEBUG: Running binary in privilege testing mode.");
       argv++;
       argc--;
     }
   
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit [-d] <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr, 
+	       "%s",
+	       "FATAL: must supply 6 arguments\nUsage:\ngnunet-helper-exit [-d] <if name prefix> <uplink-interface name> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n");
       return 1;
     }
 

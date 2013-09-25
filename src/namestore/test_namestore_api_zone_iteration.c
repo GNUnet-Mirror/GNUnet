@@ -354,26 +354,26 @@ empty_zone_proc (void *cls,
   char *hostkey_file;
 
   GNUNET_assert (nsh == cls);
-	if (NULL != zone)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	  		_("Expected empty zone but received zone private key\n"));
+  if (NULL != zone)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Expected empty zone but received zone private key\n"));
     GNUNET_break (0);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-    	GNUNET_SCHEDULER_cancel (endbadly_task);
+      GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
-	}
-	if ((NULL != label) || (NULL != rd) || (0 != rd))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-	  		_("Expected no zone content but received data\n"));
+  }
+  if ((NULL != label) || (NULL != rd) || (0 != rd_count))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Expected no zone content but received data\n"));
     GNUNET_break (0);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-    	GNUNET_SCHEDULER_cancel (endbadly_task);
+      GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
-	}
+  }
 
 
   zi = NULL;

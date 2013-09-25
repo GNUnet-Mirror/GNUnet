@@ -227,20 +227,19 @@ static void run_experiment_outbound (void *cls,const struct GNUNET_SCHEDULER_Tas
 void
 GED_scheduler_handle_start (struct Node *n, struct Experiment *e)
 {
-	struct ScheduledExperiment *se;
-
-	if ((NULL != (se = find_experiment (waiting_in_head, waiting_in_tail, n, e, GNUNET_NO))) ||
-		 (NULL != (se = find_experiment (running_in_head, running_in_tail, n, e, GNUNET_NO))))
-	{
-		GNUNET_break_op (0);
-		return;
-	}
-
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s message from peer %s for experiment `%s'\n",
-			"START", GNUNET_i2s (&n->id), e->name);
-
-	GED_scheduler_add (n, e, GNUNET_NO);
+  if ((NULL != find_experiment (waiting_in_head, waiting_in_tail, n, e, GNUNET_NO)) ||
+      (NULL != find_experiment (running_in_head, running_in_tail, n, e, GNUNET_NO)))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received %s message from peer %s for experiment `%s'\n",
+	      "START", GNUNET_i2s (&n->id), e->name);
+  GED_scheduler_add (n, e, GNUNET_NO);
 }
+
 
 /**
  * Handle a START_ACK message from a remote node

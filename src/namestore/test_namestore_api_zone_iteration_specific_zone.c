@@ -342,7 +342,7 @@ empty_zone_proc (void *cls,
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
 	}
-	if ((NULL != label) || (NULL != rd) || (0 != rd))
+	if ((NULL != label) || (NULL != rd) || (0 != rd_count))
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 	  		_("Expected no zone content but received data\n"));

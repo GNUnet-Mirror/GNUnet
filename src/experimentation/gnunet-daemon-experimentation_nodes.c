@@ -260,17 +260,17 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param buf the buffer to copy to
  * @return bytes passed
  */
-size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
+static size_t 
+send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 {
-	struct Node *n = cls;
-	struct Experimentation_Request msg;
-	size_t msg_size = sizeof (msg);
-	size_t ri_size = sizeof (struct Experimentation_Issuer) * GSE_my_issuer_count;
-	size_t total_size = msg_size + ri_size;
-
-	memset (buf, '\0', bufsize);
-	n->cth = NULL;
-  if (buf == NULL)
+  struct Node *n = cls;
+  struct Experimentation_Request msg;
+  size_t msg_size = sizeof (msg);
+  size_t ri_size = sizeof (struct Experimentation_Issuer) * GSE_my_issuer_count;
+  size_t total_size = msg_size + ri_size;
+	
+  n->cth = NULL;
+  if (NULL == buf)
   {
     /* client disconnected */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client disconnected\n");
@@ -279,6 +279,7 @@ size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
     GNUNET_SCHEDULER_add_now (&remove_request, n);
     return 0;
   }
+  memset (buf, '\0', bufsize);
   GNUNET_assert (bufsize >= total_size);
 
 	msg.msg.size = htons (total_size);
@@ -299,7 +300,8 @@ size_t send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
  *
  * @param peer the peer to send to
  */
-static void send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
+static void 
+send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 {
 	struct Node *n;
 	struct NodeComCtx *e_ctx;

@@ -1328,7 +1328,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  if (-1 == (num_peers = GNUNET_DISK_directory_scan (policy_dir, NULL, NULL)))
+  if (0 >= (int) (num_peers = GNUNET_DISK_directory_scan (policy_dir, NULL, NULL)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("No files found in `%s'\n"),
@@ -1357,7 +1357,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
-  if (0 >= num_peers || NULL == search_strings)
+  if ( (0 == num_peers) || (NULL == search_strings))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Error loading search strings. Exiting.\n"));
@@ -1388,9 +1388,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Initialize peers */
   peers = GNUNET_malloc (sizeof (struct RegexPeer) * num_peers);
   for (i = 0; i < num_peers; i++)
-  {
     peers[i].id = i;
-  }
 
   GNUNET_CONFIGURATION_set_value_number (cfg,
                                          "TESTBED", "OVERLAY_RANDOM_LINKS",

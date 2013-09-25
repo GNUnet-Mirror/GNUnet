@@ -1275,7 +1275,7 @@ GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *co
     size_t strl;
     /* Hopefully it will allocate us NUL-terminated strings... */
     split_u8argv[i] = (char *) u16_to_u8 (wargv[i], wcslen (wargv[i]) + 1, NULL, &strl);
-    if (split_u8argv == NULL)
+    if (NULL == split_u8argv[i])
     {
       int j;
       for (j = 0; j < i; j++)

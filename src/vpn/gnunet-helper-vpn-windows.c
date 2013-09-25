@@ -357,7 +357,7 @@ remove_address6 (const char *address)
    */
   snprintf (command, LINE_LEN,
             "netsh interface ipv6 delete address \"%s\" store=persistent",
-            device_visible_name, address);
+            device_visible_name);
   /*
    * Set the address
    */
@@ -365,7 +365,9 @@ remove_address6 (const char *address)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, "FATAL: removing IPv6 address failed: %s\n", strerror (ret));
+    fprintf (stderr, 
+	     "FATAL: removing IPv6 address failed: %s\n",
+	     strerror (ret));
 }
 
 
@@ -408,7 +410,9 @@ set_address4 (const char *address, const char *mask)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, "FATAL: Setting IPv4 address failed: %s\n", strerror (ret));
+    fprintf (stderr, 
+	     "FATAL: Setting IPv4 address failed: %s\n", 
+	     strerror (ret));
   return ret;
 }
 
@@ -431,7 +435,7 @@ remove_address4 (const char *address)
    */
   snprintf (command, LINE_LEN,
             "netsh interface ipv4 delete address \"%s\" gateway=all store=persistent",
-            device_visible_name, address);
+            device_visible_name);
   /*
    * Set the address
    */
@@ -1471,14 +1475,18 @@ main (int argc, char **argv)
   
   if (argc > 1 && 0 != strcmp (argv[1], "-d")){
       privilege_testing = TRUE;
-      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
+      fprintf (stderr, 
+	       "%s",
+	       "DEBUG: Running binary in privilege testing mode.");
       argv++;
       argc--;
     }
   
   if (6 != argc)
     {
-      fprintf (stderr, "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn [-d] <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n", argv[0]);
+      fprintf (stderr,
+	       "%s",
+	       "FATAL: must supply 5 arguments\nUsage:\ngnunet-helper-vpn [-d] <if name prefix> <address6 or \"-\"> <netbits6> <address4 or \"-\"> <netmask4>\n");
       return 1;
     }
 

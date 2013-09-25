@@ -471,7 +471,9 @@ main (int argc, char *const *argv)
   
   if (argc > 1 && 0 != strcmp (argv[1], "-d")){
       privilege_testing = TRUE;
-      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
+      fprintf (stderr, 
+	       "%s",
+	       "DEBUG: Running binary in privilege testing mode.");
       argv++;
       argc--;
     }
@@ -479,30 +481,39 @@ main (int argc, char *const *argv)
   if (argc != 4)
   {
     fprintf (stderr,
-             "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
+             "%s",
+	     "This program must be started with our IP, the targets external IP, and our port as arguments.\n");
     return 1;
   }
   if ((1 != inet_pton (AF_INET, argv[1], &external)) ||
       (1 != inet_pton (AF_INET, argv[2], &target)))
   {
-    fprintf (stderr, "Error parsing IPv4 address: %s\n", strerror (errno));
+    fprintf (stderr,
+	     "Error parsing IPv4 address: %s\n", 
+	     strerror (errno));
     return 1;
   }
   if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
   {
-    fprintf (stderr, "Error parsing port value `%s'\n", argv[3]);
+    fprintf (stderr, 
+	     "Error parsing port value `%s'\n", 
+	     argv[3]);
     return 1;
   }
   port = (uint16_t) p;
 
   if (0 != WSAStartup (MAKEWORD (2, 1), &wsaData))
   {
-    fprintf (stderr, "Failed to find Winsock 2.1 or better.\n");
+    fprintf (stderr, 
+	     "%s",
+	     "Failed to find Winsock 2.1 or better.\n");
     return 2;
   }
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
   {
-    fprintf (stderr, "Internal error converting dummy IP to binary.\n");
+    fprintf (stderr, 
+	     "%s",
+	     "Internal error converting dummy IP to binary.\n");
     return 2;
   }
   if (-1 == (rawsock = make_raw_socket ()))

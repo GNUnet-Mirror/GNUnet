@@ -226,6 +226,7 @@ struct GNUNET_MESH_Peer
 
   /**
    * Flag indicating whether service has informed about its connection
+   * FIXME-BART: is this flag used? Seems dead right now...
    */
   int connected;
 

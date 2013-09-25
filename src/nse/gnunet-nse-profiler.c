@@ -84,39 +84,6 @@ struct NSEPeer
 
 
 /**
- * Context for the stats task?
- */
-struct StatsContext
-{
-
-  /**
-   * How many messages have peers received during the test.
-   */
-  unsigned long long total_nse_received_messages;
-
-  /**
-   * How many messages have peers send during the test (should be == received).
-   */
-  unsigned long long total_nse_transmitted_messages;
-
-  /**
-   * How many messages have travelled an edge in both directions.
-   */
-  unsigned long long total_nse_cross;
-
-  /**
-   * How many extra messages per edge (corrections) have been received.
-   */
-  unsigned long long total_nse_extra;
-
-  /**
-   * How many messages have been discarded.
-   */
-  unsigned long long total_discarded;
-};
-
-
-/**
  * Operation map entry
  */
 struct OpListEntry
@@ -413,16 +380,18 @@ nse_disconnect_adapter (void *cls,
 /**
  * Callback function to process statistic values.
  *
- * @param cls struct StatsContext
+ * @param cls `struct NSEPeer`
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
-stat_iterator (void *cls, const char *subsystem, const char *name,
-                     uint64_t value, int is_persistent)
+stat_iterator (void *cls,
+	       const char *subsystem, 
+	       const char *name,
+	       uint64_t value, int is_persistent)
 {
   char *output_buffer;
   struct GNUNET_TIME_Absolute now;

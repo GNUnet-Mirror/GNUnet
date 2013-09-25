@@ -229,9 +229,9 @@ struct GNUNET_MESH_Handle
  */
 struct GNUNET_MESH_Peer
 {
-    /**
-     * ID of the peer in short form
-     */
+  /**
+   * ID of the peer in short form
+   */
   GNUNET_PEER_Id id;
 
   /**
@@ -241,6 +241,7 @@ struct GNUNET_MESH_Peer
 
   /**
    * Flag indicating whether service has informed about its connection
+   * FIXME-BART: is this flag used? Seems dead right now...
    */
   int connected;
 
@@ -478,13 +479,14 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
   struct GNUNET_MESH_TransmitHandle *th;
   struct GNUNET_MESH_TransmitHandle *next;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroy_tunnel %X\n", t->tid);
-
   if (NULL == t)
   {
     GNUNET_break (0);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "destroy_tunnel %X\n", 
+       t->tid);
   h = t->mesh;
 
   GNUNET_CONTAINER_DLL_remove (h->tunnels_head, h->tunnels_tail, t);
@@ -904,15 +906,17 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 
   t = retrieve_tunnel (h, ntohl (dmsg->tid));
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on tunnel %s [%X]\n",
-       t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ? "fwd" : "bck",
-       GNUNET_i2s (GNUNET_PEER_resolve2(t->peer)), ntohl (dmsg->tid));
   if (NULL == t)
   {
     /* Tunnel was ignored/destroyed, probably service didn't get it yet */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  %s data on tunnel %s [%X]\n",
+       t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ? "fwd" : "bck",
+       GNUNET_i2s (GNUNET_PEER_resolve2(t->peer)), 
+       ntohl (dmsg->tid));
   type = ntohs (payload->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %u\n", type);
   for (i = 0; i < h->n_handlers; i++)

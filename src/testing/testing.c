@@ -687,7 +687,7 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  * GNUnet source code.
  *
  * This is primarily a helper function used internally
- * by 'GNUNET_TESTING_peer_configure'.
+ * by #GNUNET_TESTING_peer_configure.
  *
  * @param system the testing system handle
  * @param key_number desired pre-created hostkey to obtain
@@ -716,12 +716,6 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 	  system->hostkeys_data +
 	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
 	  GNUNET_TESTING_HOSTKEYFILESIZE);
-  if (NULL == private_key)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Error while decoding key %u\n"), key_number);
-    return NULL;
-  }
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (private_key, &public_key);
   GNUNET_CRYPTO_hash (&public_key,
                       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),

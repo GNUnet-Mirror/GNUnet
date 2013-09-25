@@ -146,7 +146,9 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
                     int run_without_scheduler)
 {
   struct CommandContext cc;
+#if ENABLE_NLS
   char *path;
+#endif
   char *loglev;
   char *logfile;
   int ret;

@@ -186,7 +186,7 @@ parse_pattern (struct Pattern **head,
 		      "(%llu,%llu,%llu)",
 		      &x, &y, &t))
   {
-    p = GNUNET_malloc (sizeof (struct Pattern));
+    p = GNUNET_new (struct Pattern);
     p->x = x;
     p->y = y;
     p->delay.rel_value_us = (uint64_t) t;

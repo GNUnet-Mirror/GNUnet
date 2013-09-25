@@ -533,12 +533,15 @@ main (int argc, char *const *argv)
   WSADATA wsaData;
   unsigned int alt = 0;
 
-  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
-      privilege_testing = TRUE;
-      fprintf (stderr, "DEBUG: Running binary in privilege testing mode.", argv[0]);
-      argv++;
-      argc--;
-    }
+  if ( (argc > 1) && (0 != strcmp (argv[1], "-d"))) 
+  {
+    privilege_testing = TRUE;
+    fprintf (stderr,
+	     "%s",
+	     "DEBUG: Running binary in privilege testing mode.");
+    argv++;
+    argc--;
+  }
   
   if (2 != argc)
   {
