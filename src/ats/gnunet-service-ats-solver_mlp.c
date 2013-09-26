@@ -935,7 +935,6 @@ mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
   }
 }
 
-
 /**
  * Propagates the results when MLP problem was solved
  *
@@ -998,8 +997,8 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
       mlpi->b_in.value__ = htonl(mlp_bw_in);
       address->assigned_bw_out.value__ = htonl (mlp_bw_out);
       mlpi->b_out.value__ = htonl(mlp_bw_out);
-
-      mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
+        mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
       return GNUNET_OK;
     }
     else if (GNUNET_YES == address->active)
@@ -1014,8 +1013,8 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
           mlpi->b_in.value__ = htonl(mlp_bw_in);
           address->assigned_bw_out.value__ = htonl (mlp_bw_out);
           mlpi->b_out.value__ = htonl(mlp_bw_out);
-
-          mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+          if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
+            mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
           return GNUNET_OK;
       }
     }
@@ -1055,8 +1054,6 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
 
   return GNUNET_OK;
 }
-
-
 
 /**
  * Solves the MLP problem
@@ -1151,7 +1148,9 @@ GAS_mlp_solve_problem (void *solver)
 
   /* Propagate result*/
   if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
+  {
     GNUNET_CONTAINER_multihashmap_iterate (mlp->addresses, &mlp_propagate_results, mlp);
+  }
 
   struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == mlp->write_mip_mps)
@@ -1596,7 +1595,11 @@ GAS_mlp_get_preferred_address (void *solver,
       if ((GNUNET_YES == mlp->mlp_auto_solve)&&
           (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(mlp->addresses,
               &peer->hashPubKey)))
+      {
+        mlp->exclude_peer = peer;
         GAS_mlp_solve_problem (mlp);
+        mlp->exclude_peer = NULL;
+      }
   }
   /* Get prefered address */
   res = NULL;
