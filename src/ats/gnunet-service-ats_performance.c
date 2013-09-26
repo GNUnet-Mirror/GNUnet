@@ -312,6 +312,10 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   pc = GNUNET_malloc (sizeof (struct PerformanceClient));
   pc->client = client;
   pc->flag = flag;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding performance client %s PIC\n",
+      (flag == START_FLAG_PERFORMANCE_WITH_PIC) ? "with" : "without");
+
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
 
