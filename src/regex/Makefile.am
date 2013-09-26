@@ -18,7 +18,9 @@ pkgcfg_DATA = \
   regex.conf
 
 libexec_PROGRAMS = \
-  gnunet-service-regex
+  gnunet-service-regex \
+  gnunet-daemon-regexprofiler
+
 
 gnunet_service_regex_SOURCES =  \
  gnunet-service-regex.c
@@ -111,8 +113,7 @@ libgnunetregextest_a_DEPENDENCIES = \
 if HAVE_TESTING
 noinst_PROGRAMS = $(noinst_mysql_progs) \
   perf-regex \
-  gnunet-regex-profiler \
-  gnunet-daemon-regexprofiler
+  gnunet-regex-profiler
 endif
 
 perf_regex_SOURCES = \
