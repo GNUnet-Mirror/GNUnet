@@ -158,7 +158,7 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
     }
   }
   if (!stop || strcmp (expect_level, level) != 0 || *delay < 0 || *delay > 1000
-      || (!((*delay < delay_lessthan) || !(*delay > delay_morethan)) && c != '1'
+      || (!((*delay < delay_lessthan) || (*delay > delay_morethan)) && c != '1'
           && c != '2'))
     return NULL;
   *len = *len - i;

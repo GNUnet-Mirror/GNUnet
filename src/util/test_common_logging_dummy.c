@@ -35,7 +35,7 @@
 /**
  * Delay introduced between operations, useful for debugging.
  */
-#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 0)
+#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 200)
 
 static void
 my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,
