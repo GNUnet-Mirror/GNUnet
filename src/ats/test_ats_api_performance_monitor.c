@@ -29,6 +29,7 @@
 #include "ats.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define WAIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -104,6 +105,7 @@ ats_perf_cb (void *cls,
 {
   static int peer0 = GNUNET_NO;
   static int peer1 = GNUNET_NO;
+  static int done = GNUNET_NO;
   if ((GNUNET_NO == peer0) && (0 == memcmp (address, &p[0].id, sizeof (p[0].id))))
   {
     peer0 = GNUNET_YES;
@@ -112,11 +114,13 @@ ats_perf_cb (void *cls,
   {
     peer1 = GNUNET_YES;
   }
-  if ((peer0 == GNUNET_YES) && (peer1 = GNUNET_YES))
+  if ((peer0 == GNUNET_YES) && (peer1 = GNUNET_YES) && (GNUNET_NO == done))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
         "Done\n");
+    done = GNUNET_YES;
     GNUNET_SCHEDULER_add_now (&end, NULL);
+
   }
 }
 
@@ -199,8 +203,6 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
-
-
 static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     struct GNUNET_TESTING_Peer *peer)
@@ -215,6 +217,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
         "Failed to connect to performance API\n");
     GNUNET_SCHEDULER_add_now (end_badly, NULL);
   }
+
 
   stats = GNUNET_STATISTICS_create ("ats", cfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
