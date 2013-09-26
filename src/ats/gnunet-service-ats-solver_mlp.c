@@ -991,13 +991,16 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
     if (GNUNET_NO == address->active)
     {
             /* Address was not used before, enabling address */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n", (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-            address->active = GNUNET_YES;
-            address->assigned_bw_in.value__ = htonl (mlp_bw_in);
-            mlpi->b_in.value__ = htonl(mlp_bw_in);
-            address->assigned_bw_out.value__ = htonl (mlp_bw_out);
-            mlpi->b_out.value__ = htonl(mlp_bw_out);
-            mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n",
+          (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+      address->active = GNUNET_YES;
+      address->assigned_bw_in.value__ = htonl (mlp_bw_in);
+      mlpi->b_in.value__ = htonl(mlp_bw_in);
+      address->assigned_bw_out.value__ = htonl (mlp_bw_out);
+      mlpi->b_out.value__ = htonl(mlp_bw_out);
+
+      mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      return GNUNET_OK;
     }
     else if (GNUNET_YES == address->active)
     {
@@ -1011,11 +1014,13 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
           mlpi->b_in.value__ = htonl(mlp_bw_in);
           address->assigned_bw_out.value__ = htonl (mlp_bw_out);
           mlpi->b_out.value__ = htonl(mlp_bw_out);
+
           mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+          return GNUNET_OK;
       }
     }
     else
-            GNUNET_break (0);
+      GNUNET_break (0);
   }
   else if (GLP_NO == mlp_use)
   {
@@ -1026,6 +1031,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
       /* Address was not used before, nothing to do */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : no change\n",
           (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
+      return GNUNET_OK;
     }
     else if (GNUNET_YES == address->active)
     {
@@ -1039,6 +1045,7 @@ mlp_propagate_results (void *cls, const struct GNUNET_HashCode *key, void *value
       address->assigned_bw_out = BANDWIDTH_ZERO;
       mlpi->b_out.value__ = htonl(mlp_bw_out);
       //mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      return GNUNET_OK;
     }
     else
       GNUNET_break (0);

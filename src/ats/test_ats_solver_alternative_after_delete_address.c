@@ -25,7 +25,7 @@
  */
 /**
  * @file ats/test_ats_solver_add_address.c
- * @brief solver test:  add address, request address and wait for suggest
+ * @brief solver test:  add 2 addresses, request address, delete, expect alternative
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -108,9 +108,9 @@ int second_address_deleted = GNUNET_NO;
 
 int second_address_suggested = GNUNET_YES;
 
-static const struct GNUNET_HELLO_Address *first_suggestion = NULL;
+static struct GNUNET_HELLO_Address *first_suggestion = NULL;
 
-static const struct GNUNET_HELLO_Address *second_suggestion = NULL;
+static struct GNUNET_HELLO_Address *second_suggestion = NULL;
 
 
 static int
@@ -140,7 +140,8 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   free_test_address (&test_addr);
-
+  GNUNET_free_non_null (first_suggestion);
+  GNUNET_free_non_null (second_suggestion);
   ret = 0;
 }
 
@@ -185,14 +186,15 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 1st sugggestion for peer `%s' : `%s'\n",
         GNUNET_i2s (&address->peer), (char *) address->address);
 
-      first_suggestion = address;
+      first_suggestion = GNUNET_HELLO_address_copy (address);
       first_address_suggested = GNUNET_YES;
+
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 1st address for peer `%s' : `%s'\n",
         GNUNET_i2s (&address->peer), (char *) address->address);
-
       GNUNET_ATS_address_destroyed (sched_ats, address, session);
       first_address_deleted = GNUNET_YES;
+
       return;
     }
   }
@@ -219,18 +221,19 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         return;
       }
 
-      if (first_suggestion->address_length == address->address_length)
+      if (0 == memcmp (address->address, first_suggestion->address,
+          (first_suggestion->address_length < address->address_length) ? first_suggestion->address_length : address->address_length))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleted address for peer `%s' was suggested after deletion: `%s'\n",
-          GNUNET_i2s (&address->peer), (char *) address->address);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleted 1st address for peer `%s' was suggested after deletion: `%s' `%s'\n",
+          GNUNET_i2s (&address->peer), (char *) address->address, first_suggestion->address);
         GNUNET_break (0);
-        //GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
         return;
       }
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 2nd sugggestion for peer `%s' : `%s'\n",
         GNUNET_i2s (&address->peer), (char *) address->address);
-      second_suggestion = address;
+      second_suggestion = GNUNET_HELLO_address_copy (address);
       second_address_suggested = GNUNET_YES;
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 2nd address for peer `%s' : `%s'\n",
@@ -239,8 +242,9 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       second_address_deleted = GNUNET_YES;
       return;
     }
+
   }
-  if (GNUNET_YES ==second_address_deleted)
+  if (GNUNET_YES == second_address_deleted)
   {
     /* Expecting disconnect */
     if ((ntohl(bandwidth_in.value__) == 0) &&
