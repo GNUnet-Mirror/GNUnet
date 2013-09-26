@@ -257,8 +257,8 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
  */
 int
 REGEX_BLOCK_get_key (const struct RegexBlock *block,
-		     size_t block_len,
-		     struct GNUNET_HashCode *key)
+                     size_t block_len,
+                     struct GNUNET_HashCode *key)
 {
   uint16_t len;
   const struct GNUNET_HashCode *destinations;

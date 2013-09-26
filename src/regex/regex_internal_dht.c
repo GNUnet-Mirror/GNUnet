@@ -92,17 +92,26 @@ regex_iterator (void *cls,
   struct REGEX_INTERNAL_Announcement *h = cls;
   struct RegexBlock *block;
   size_t size;
+  unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_INFO,
        "DHT PUT for state %s with proof `%s' and %u edges\n",
        GNUNET_h2s (key),
        proof,
        num_edges);
+  for (i = 0; i < num_edges; i++)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "  edge %s towards %s (%s)\n",
+         edges[i].label,
+         GNUNET_h2s (&edges[i].destination),
+         proof);
+  }
   if (GNUNET_YES == accepting)
   {
     struct RegexAcceptBlock ab;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_INFO,
          "State %s is accepting, putting own id\n",
          GNUNET_h2s (key));
     size = sizeof (struct RegexAcceptBlock);
@@ -134,15 +143,15 @@ regex_iterator (void *cls,
                     NULL, NULL);
   }
   block = REGEX_BLOCK_create (proof,
-			      num_edges, edges,
-			      accepting,
-			      &size);
+                              num_edges, edges,
+                              accepting,
+                              &size);
   (void)
   GNUNET_DHT_put (h->dht, key,
                   DHT_REPLICATION,
                   DHT_OPT,
                   GNUNET_BLOCK_TYPE_REGEX, 
-		  size, block,
+                  size, block,
                   GNUNET_TIME_relative_to_absolute (DHT_TTL),
                   DHT_TTL,
                   NULL, NULL);
