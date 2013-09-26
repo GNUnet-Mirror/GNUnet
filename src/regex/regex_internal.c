@@ -2822,7 +2822,7 @@ REGEX_INTERNAL_construct_nfa (const char *regex, const size_t len)
         nfa_add_concatenation (&ctx);
       }
       if (poff == psize)
-	GNUNET_array_grow (p, psize, psize * 2 + 4);
+        GNUNET_array_grow (p, psize, psize * 2 + 4); /* FIXME why *2 +4? */
       p[poff].altcount = altcount;
       p[poff].atomcount = atomcount;
       poff++;
@@ -3023,7 +3023,7 @@ construct_dfa_states (struct REGEX_INTERNAL_Context *ctx,
  */
 struct REGEX_INTERNAL_Automaton *
 REGEX_INTERNAL_construct_dfa (const char *regex, const size_t len,
-                            unsigned int max_path_len)
+                              unsigned int max_path_len)
 {
   struct REGEX_INTERNAL_Context ctx;
   struct REGEX_INTERNAL_Automaton *dfa;
@@ -3308,9 +3308,8 @@ REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
 {
   size_t size;
 
-  size =
-      string_len <
-      GNUNET_REGEX_INITIAL_BYTES ? string_len : GNUNET_REGEX_INITIAL_BYTES;
+  size = string_len < GNUNET_REGEX_INITIAL_BYTES ? string_len :
+                                                   GNUNET_REGEX_INITIAL_BYTES;
   if (NULL == input_string)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

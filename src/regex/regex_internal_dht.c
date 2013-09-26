@@ -104,20 +104,19 @@ regex_iterator (void *cls,
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "State %s is accepting, putting own id\n",
-         GNUNET_h2s(key));
+         GNUNET_h2s (key));
     size = sizeof (struct RegexAcceptBlock);
     ab.purpose.size = ntohl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-			     sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-			     sizeof (struct GNUNET_HashCode));
+                             sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+                             sizeof (struct GNUNET_HashCode));
     ab.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
     ab.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
     ab.key = *key;
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (h->priv,
-				      &ab.public_key);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (h->priv, &ab.public_key);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_ecc_sign (h->priv,
-					   &ab.purpose,
-					   &ab.signature));
+                   GNUNET_CRYPTO_ecc_sign (h->priv,
+                                           &ab.purpose,
+                                           &ab.signature));
 
     GNUNET_STATISTICS_update (h->stats, "# regex accepting blocks stored",
                               1, GNUNET_NO);
