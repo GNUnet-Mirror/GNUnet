@@ -132,25 +132,17 @@ GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
 
 
 /**
- * Fail to bind if an address is already in use.
- */
-#define GNUNET_BIND_EXCLUSIVE 0x01
-
-
-/**
  * Bind a socket to a particular address.
  *
  * @param desc socket to bind
  * @param address address to be bound
  * @param address_len length of address
- * @param flags flags affecting bind behaviour
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             const struct sockaddr *address,
-                            socklen_t address_len,
-                            int flags);
+                            socklen_t address_len);
 
 /**
  * Close a socket.

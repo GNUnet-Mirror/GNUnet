@@ -6,6 +6,6 @@ HOME = $SERVICEHOME
 BINARY = gnunet-service-set
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
-UNIXPATH = /tmp/gnunet-service-set.sock
+UNIXPATH = $SERVICEHOME/gnunet-service-set.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES

@@ -42,7 +42,7 @@
 
 #define BINARY "mockup-service"
 
-#define CFGFILENAME "test_arm_api_data.conf"
+#define CFGFILENAME "test_arm_api_data_copy.conf"
 
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;

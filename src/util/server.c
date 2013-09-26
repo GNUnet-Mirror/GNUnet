@@ -469,7 +469,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     return NULL;
   }
   /* bind the socket */
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen, 0))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen))
   {
     eno = errno;
     if (EADDRINUSE != errno)

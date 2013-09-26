@@ -2808,7 +2808,7 @@ setup_sockets (struct Plugin *plugin,
       				 GNUNET_a2s (serverAddr, addrlen));
       		/* binding */
       		if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv6,
-      		                                             serverAddr, addrlen, 0))
+      		                                             serverAddr, addrlen))
       			break;
       		eno = errno;
       		if (0 != plugin->port)
@@ -2885,7 +2885,7 @@ setup_sockets (struct Plugin *plugin,
       
       /* binding */
       if (GNUNET_OK == GNUNET_NETWORK_socket_bind (plugin->sockv4,
-                                                   serverAddr, addrlen, 0))
+                                                   serverAddr, addrlen))
       		break;
       eno = errno;
       if (0 != plugin->port)

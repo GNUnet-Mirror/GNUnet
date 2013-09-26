@@ -622,8 +622,8 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
 			 "setsockopt");
 #endif
 
-  if (GNUNET_NETWORK_socket_bind
-      (sock, (const struct sockaddr *) sa, addr_len, 0) != GNUNET_OK)
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) sa, addr_len))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _

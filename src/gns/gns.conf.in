@@ -3,7 +3,7 @@ AUTOSTART = YES
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-gns
-UNIXPATH = /tmp/gnunet-service-gns.sock
+UNIXPATH = $SERVICEHOME/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
 
 ZONE_DIR = $SERVICEHOME/gns/
@@ -32,7 +32,7 @@ AUTOSTART = NO
 
 # Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
-PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
+PROXY_UNIXPATH = $SERVICEHOME/gnunet-gns-proxy.sock
 
 
 [fcfsd]

@@ -759,13 +759,12 @@ GNUNET_DISK_directory_create (const char *dir)
 
 
 /**
- * Create the directory structure for storing
- * a file.
+ * Create the directory structure for storing a file.
  *
  * @param filename name of a file in the directory
- * @returns GNUNET_OK on success,
- *          GNUNET_SYSERR on failure,
- *          GNUNET_NO if the directory
+ * @returns #GNUNET_OK on success,
+ *          #GNUNET_SYSERR on failure,
+ *          #GNUNET_NO if the directory
  *          exists but is not writeable for us
  */
 int
@@ -792,10 +791,11 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
 
 /**
  * Read the contents of a binary file into a buffer.
+ *
  * @param h handle to an open file
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ * @return the number of bytes read on success, #GNUNET_SYSERR on failure
  */
 ssize_t
 GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,

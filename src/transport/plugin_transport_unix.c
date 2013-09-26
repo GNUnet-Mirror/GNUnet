@@ -572,7 +572,6 @@ unix_real_send (void *cls,
   const void *sb;
   size_t sbs;
   struct sockaddr_un un;
-  size_t slen;
   const char *unix_path;
 
 
@@ -592,21 +591,12 @@ unix_real_send (void *cls,
   unix_path = (const char *)  &addr[1];
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
-  slen =  strlen (unix_path);
-  if (slen >= sizeof (un.sun_path))
-    slen = sizeof (un.sun_path) - 1;
-  GNUNET_assert (slen < sizeof (un.sun_path));
-  memcpy (un.sun_path, unix_path, slen);
-  un.sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
-#if LINUX
-  un.sun_path[0] = '\0';
-#endif
+  strncpy (un.sun_path, unix_path, sizeof (un.sun_path) - 1);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un.sun_len = (u_char) slen;
+  un.sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   sb = (struct sockaddr *) &un;
-  sbs = slen;
+  sbs = sizeof (struct sockaddr_un);
 
 resend:
   /* Send the data */
@@ -1023,19 +1013,18 @@ unix_plugin_select_read (struct Plugin *plugin)
   }
   else
   {
-#if LINUX
-    un.sun_path[0] = '/';
-#endif
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %d bytes from socket %s\n", ret,
-                &un.sun_path[0]);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Read %d bytes from socket %s\n", 
+	 (int) ret,
+	 un.sun_path);
   }
 
   GNUNET_assert (AF_UNIX == (un.sun_family));
-  ua_len = sizeof (struct UnixAddress) + strlen (&un.sun_path[0]) +1;
+  ua_len = sizeof (struct UnixAddress) + strlen (un.sun_path) + 1;
   ua = GNUNET_malloc (ua_len);
   ua->addrlen = htonl (strlen (&un.sun_path[0]) +1);
   ua->options = htonl (0);
-  memcpy (&ua[1], &un.sun_path[0], strlen (&un.sun_path[0]) +1);
+  memcpy (&ua[1], &un.sun_path[0], strlen (un.sun_path) + 1);
 
   msg = (struct UNIXMessage *) buf;
   csize = ntohs (msg->header.size);
@@ -1214,7 +1203,7 @@ unix_plugin_select (void *cls,
  * Create a slew of UNIX sockets.  If possible, use IPv6 and IPv4.
  *
  * @param cls closure for server start, should be a struct Plugin *
- * @return number of sockets created or GNUNET_SYSERR on error
+ * @return number of sockets created or #GNUNET_SYSERR on error
  */
 static int
 unix_transport_server_start (void *cls)
@@ -1223,26 +1212,16 @@ unix_transport_server_start (void *cls)
   struct sockaddr *serverAddr;
   socklen_t addrlen;
   struct sockaddr_un un;
-  size_t slen;
 
   memset (&un, 0, sizeof (un));
   un.sun_family = AF_UNIX;
-  slen = strlen (plugin->unix_socket_path) + 1;
-  if (slen >= sizeof (un.sun_path))
-    slen = sizeof (un.sun_path) - 1;
-
-  memcpy (un.sun_path, plugin->unix_socket_path, slen);
-  un.sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
+  strncpy (un.sun_path, plugin->unix_socket_path, sizeof (un.sun_path) - 1);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un.sun_len = (u_char) slen;
+  un.sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
 
   serverAddr = (struct sockaddr *) &un;
-  addrlen = slen;
-#if LINUX
-  un.sun_path[0] = '\0';
-#endif
+  addrlen = sizeof (struct sockaddr_un);
   plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, serverAddr, addrlen);
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
@@ -1251,8 +1230,8 @@ unix_transport_server_start (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen, 0)
-      != GNUNET_OK)
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
     GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
