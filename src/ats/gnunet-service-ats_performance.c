@@ -258,9 +258,6 @@ peerinfo_it (void *cls,
   if (NULL == id)
     return;
 
-  if (GNUNET_NO == active)
-    return;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Callback for peer `%s' plugin `%s' BW out %llu, BW in %llu \n",
               GNUNET_i2s (id),
