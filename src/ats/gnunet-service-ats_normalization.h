@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_ats_service.h"
 
-#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 #define PREF_AGING_FACTOR 0.95
 #define PREF_EPSILON 0.1
 
