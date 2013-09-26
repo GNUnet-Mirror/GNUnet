@@ -961,14 +961,12 @@ GAS_proportional_get_preferred_address (void *solver,
     prev->active = GNUNET_NO; /* No active any longer */
     prev->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
     prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
-    if (GNUNET_SYSERR
-        == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
+    if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net_prev, NULL );
   }
 
-  if (GNUNET_NO
-      == (is_bandwidth_available_in_network (fba_ctx.best->solver_information)))
+  if (GNUNET_NO == (is_bandwidth_available_in_network (fba_ctx.best->solver_information)))
   {
     GNUNET_break(0); /* This should never happen*/
     return NULL ;
@@ -976,7 +974,7 @@ GAS_proportional_get_preferred_address (void *solver,
 
   fba_ctx.best->active = GNUNET_YES;
   addresse_increment (s, net_cur, GNUNET_NO, GNUNET_YES);
-  distribute_bandwidth_in_network (s, net_cur, NULL );
+  distribute_bandwidth_in_network (s, net_cur, fba_ctx.best );
   return fba_ctx.best;
 }
 
@@ -1030,6 +1028,8 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net;
   struct AddressWrapper *aw;
+  const struct ATS_Address *new_address;
+
 
   /* Remove an adress completely, we have to:
    * - Remove from specific network
@@ -1043,7 +1043,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
 
   if (GNUNET_NO == session_only)
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
+    LOG(GNUNET_ERROR_TYPE_INFO,
         "Deleting %s address %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
         (GNUNET_NO == address->active) ? "inactive" : "active", address,
         GNUNET_i2s (&address->peer), net->desc, net->total_addresses,
@@ -1067,7 +1067,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
   else
   {
     /* Remove session only: remove if active and update */
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
+    LOG(GNUNET_ERROR_TYPE_INFO,
         "Deleting %s session %p for peer `%s' from network `%s' (total: %u/ active: %u)\n",
         (GNUNET_NO == address->active) ? "inactive" : "active", address,
         GNUNET_i2s (&address->peer), net->desc, net->total_addresses,
@@ -1085,10 +1085,14 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net, NULL );
 
-    if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
+    if (NULL == (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
     {
       /* No alternative address found, disconnect peer */
       s->bw_changed (s->bw_changed_cls, address);
+    }
+    else
+    {
+      s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) new_address);
     }
   }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
