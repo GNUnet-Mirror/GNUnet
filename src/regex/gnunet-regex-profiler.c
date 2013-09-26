@@ -596,9 +596,11 @@ stats_cb (void *cls,
   peer_cnt++;
   peer = &peers[peer_cnt];
 
+  fprintf (stderr, "s");
   if (peer_cnt == num_peers)
   {
     struct GNUNET_TIME_Relative delay = { 100 };
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\nCollecting stats finished. Shutting down.\n");
     shutdown_task = GNUNET_SCHEDULER_add_delayed (delay, &do_shutdown, NULL);
     result = GNUNET_OK;
   }
@@ -795,7 +797,7 @@ regex_found_handler (void *cls,
       search_timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Collecting stats and shutting down.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Collecting stats.\n");
     GNUNET_SCHEDULER_add_now (&do_collect_stats, NULL);
   }
 }
