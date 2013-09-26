@@ -572,7 +572,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   lookup_msg->type = htonl (type);
   if (NULL != shorten_zone_key)
   {
-    lookup_msg->have_key = htonl (GNUNET_YES);
+    lookup_msg->have_key = htons (GNUNET_YES);
     lookup_msg->shorten_key = *shorten_zone_key;
   }
   memcpy (&lookup_msg[1], name, strlen (name) + 1);

@@ -549,7 +549,7 @@ handle_lookup (void *cls,
   }
   sh_msg = (const struct GNUNET_GNS_ClientLookupMessage *) message;
   GNUNET_SERVER_notification_context_add (nc, client);
-  if (GNUNET_YES == ntohl (sh_msg->have_key))
+  if (GNUNET_YES == ntohs (sh_msg->have_key))
     key = &sh_msg->shorten_key;
   else
     key = NULL;
