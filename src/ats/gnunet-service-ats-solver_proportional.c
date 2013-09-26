@@ -1084,6 +1084,12 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net, NULL );
+
+    if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
+    {
+      /* No alternative address found, disconnect peer */
+      s->bw_changed (s->bw_changed_cls, address);
+    }
   }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "After deleting address now total %u and active %u addresses in network `%s'\n",
@@ -1278,10 +1284,7 @@ GAS_proportional_address_change_network (void *solver,
         GNUNET_ATS_print_network_type (new_network));
 
     /* Find new address to suggest since no bandwidth in network*/
-    if (NULL
-        == (new =
-            (struct ATS_Address *) GAS_proportional_get_preferred_address (s,
-                &address->peer)))
+    if (NULL == (new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer)))
     {
       /* No alternative address found, disconnect peer */
       s->bw_changed (s->bw_changed_cls, address);
