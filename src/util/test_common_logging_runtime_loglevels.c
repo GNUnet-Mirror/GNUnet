@@ -33,6 +33,7 @@
 #define VERBOSE GNUNET_NO
 
 static int ok;
+
 static int phase = 0;
 
 static struct GNUNET_OS_Process *proc;
@@ -46,6 +47,7 @@ static GNUNET_SCHEDULER_TaskIdentifier read_task;
 
 static void
 runone (void);
+
 
 static void
 end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -82,10 +84,12 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "failing\n");
 }
 
+
 static char *
 read_output_line (int phase_from1, int phase_to1, int phase_from2,
-                  int phase_to2, char c, char *expect_level,
-                  long delay_morethan, long delay_lessthan, int phase, char *p,
+                  int phase_to2, char c, const char *expect_level,
+                  long delay_morethan, long delay_lessthan, int phase, 
+		  const char *p,
                   int *len, long *delay, char level[8])
 {
   char *r = p;
@@ -161,9 +165,12 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   return &r[i];
 }
 
-char buf[20 * 16];
-char *buf_ptr;
-int bytes;
+static char buf[20 * 16];
+
+static char *buf_ptr;
+
+static int bytes;
+
 
 static void
 read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -274,6 +281,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_SCHEDULER_add_now (&end_task, NULL);
 }
 
+
 static void
 runone ()
 {
@@ -355,6 +363,7 @@ runone ()
 					      stdout_read_handle, &read_call,
 					      (void*) stdout_read_handle);
 }
+
 
 static void
 task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
