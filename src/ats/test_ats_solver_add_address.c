@@ -34,6 +34,9 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 
+/**
+ * Result
+ */
 static int ret;
 
 
@@ -95,7 +98,7 @@ main (int argc, char *argv[])
   GNUNET_free (src_filename);
   GNUNET_free (test_filename);
 
-  if (0 != GNUNET_TESTING_peer_run ("test_ats_api_performance",
+  if (0 != GNUNET_TESTING_peer_run ("test-ats-solver",
       config_file, &run, NULL ))
     return GNUNET_SYSERR;
 
