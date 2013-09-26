@@ -308,7 +308,8 @@ transmit_message_to_ats (void *cls, size_t size, void *buf)
     ret += p->size;
     size -= p->size;
     GNUNET_CONTAINER_DLL_remove (ph->pending_head, ph->pending_tail, p);
-    GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
+    if (GNUNET_YES == p->is_init)
+      GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
                             GNUNET_TIME_UNIT_FOREVER_REL);
 
     GNUNET_free (p);
