@@ -25,7 +25,7 @@
  */
 /**
  * @file ats/test_ats_solver_add_address.c
- * @brief solver test: add address
+ * @brief solver test: request address, add address and wait for suggest
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
