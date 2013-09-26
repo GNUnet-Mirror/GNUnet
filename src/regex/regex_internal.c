@@ -3431,7 +3431,7 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 
     num_edges = state_get_edges (s, edges);
     if ( ( (NULL != s->proof) && 
-           (0 <= strlen (s->proof)) ) || s->accepting)
+           (0 < strlen (s->proof)) ) || s->accepting)
       iterator (iterator_cls, &s->hash, s->proof, 
                 s->accepting,
                 num_edges, edges);
