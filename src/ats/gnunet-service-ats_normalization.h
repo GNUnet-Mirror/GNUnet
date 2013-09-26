@@ -38,15 +38,15 @@
 
 typedef void
 (*GAS_Normalization_preference_changed_cb) (void *cls,
-																						const struct GNUNET_PeerIdentity *peer,
-																						enum GNUNET_ATS_PreferenceKind kind,
-																						double pref_rel);
+    const struct GNUNET_PeerIdentity *peer,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double pref_rel);
 
 typedef void
 (*GAS_Normalization_property_changed_cb) (void *cls,
-																				 struct ATS_Address *peer,
-																				 uint32_t type,
-																				 double prop_rel);
+    struct ATS_Address *peer,
+    uint32_t type,
+    double prop_rel);
 
 /**
  * Get the normalized preference values for a specific peer
