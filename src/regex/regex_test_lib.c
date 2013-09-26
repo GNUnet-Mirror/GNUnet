@@ -130,7 +130,7 @@ regex_combine (struct RegexCombineCtx *ctx)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "empty, returning ''\n");
     GNUNET_free (regex);
-    return GNUNET_strdup (ctx->s);
+    return NULL == ctx->s ? NULL : GNUNET_strdup (ctx->s);
   }
 
   if ('|' == regex[len - 1])
