@@ -20,7 +20,7 @@
 
 
 /**
- * @file testbed/gnunet-daemon-testbed-blacklist
+ * @file testbed/gnunet-daemon-testbed-blacklist.c
  * @brief daemon to restrict incoming connections from other peers at the
  *          transport layer of a peer 
  * @author Sree Harsha Totakura <sreeharsha@totakura.in> 

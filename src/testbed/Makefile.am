@@ -42,7 +42,9 @@ gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed_meminfo.c \
   gnunet-service-testbed_meminfo.h \
   gnunet-service-testbed_barriers.c \
-  gnunet-service-testbed_barriers.h
+  gnunet-service-testbed_barriers.h \
+  gnunet-service-testbed_connectionpool.c \
+  gnunet-service-testbed_connectionpool.h
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \

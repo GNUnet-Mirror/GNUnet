@@ -26,6 +26,7 @@
 
 #include "gnunet-service-testbed.h"
 #include "gnunet-service-testbed_barriers.h"
+#include "gnunet-service-testbed_connectionpool.h"
 
 /***********/
 /* Globals */
@@ -826,6 +827,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (hostname);
   /* Free hello cache */
   GST_cache_clear ();
+  GST_connection_pool_destroy ();
   GNUNET_TESTBED_operation_queue_destroy_ (GST_opq_openfds);
   GST_opq_openfds = NULL;
   GST_stats_destroy ();
@@ -922,6 +924,7 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
                                                         "CACHE_SIZE", &num));
   GST_cache_init ((unsigned int) num);
+  GST_connection_pool_init ((unsigned int) num);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg, "TESTBED",
                                                         "MAX_OPEN_FDS", &num));

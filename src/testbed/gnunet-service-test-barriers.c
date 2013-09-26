@@ -99,7 +99,7 @@ do_wait (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls NULL
  * @param args arguments passed to GNUNET_PROGRAM_run
  * @param cfgfile the path to configuration file
- * @param cfg the configuration file handle
+ * @param config the configuration file handle
  */
 static void
 run (void *cls, char *const *args, const char *cfgfile,
