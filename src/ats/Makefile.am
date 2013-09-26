@@ -224,7 +224,8 @@ test_ats_api_performance_monitor_initial_callback_LDADD = \
 	
 # solver tests
 test_ats_solver_add_address_proportional_SOURCES = \
- test_ats_solver_add_address.c	
+ test_ats_solver_add_address.c \
+ test_ats_api_common.c test_ats_api_common.h
 test_ats_solver_add_address_proportional_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
@@ -234,7 +235,8 @@ test_ats_solver_add_address_proportional_LDADD = \
 	
 if HAVE_LIBGLPK	
 test_ats_solver_add_address_mlp_SOURCES = \
- test_ats_solver_add_address.c	
+ test_ats_solver_add_address.c \
+ test_ats_api_common.c test_ats_api_common.h
 test_ats_solver_add_address_mlp_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
@@ -244,7 +246,8 @@ test_ats_solver_add_address_mlp_LDADD = \
 endif  
 			
 test_ats_solver_add_address_ril_SOURCES = \
- test_ats_solver_add_address.c	
+ test_ats_solver_add_address.c \
+ test_ats_api_common.c test_ats_api_common.h
 test_ats_solver_add_address_ril_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
@@ -375,6 +378,7 @@ EXTRA_DIST = \
   ats.h \
   test_ats_api.conf \
   test_ats_mlp.conf \
+  test_ats_solver_default.conf \
   test_ats_solver_proportional.conf \
   test_ats_solver_mlp.conf \
   test_ats_solver_ril.conf 
