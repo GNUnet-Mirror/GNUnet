@@ -109,7 +109,10 @@ main (int argc, char *const *argv)
 	   size, 
 	   regex);
   dfa = REGEX_INTERNAL_construct_dfa (regex, size, compression);
+  printf ("********* ALL EDGES *********'\n");
   REGEX_INTERNAL_iterate_all_edges (dfa, &print_edge, NULL);
+  printf ("\n\n********* REACHABLE EDGES *********'\n");
+  REGEX_INTERNAL_iterate_reachable_edges (dfa, &print_edge, NULL);
   REGEX_INTERNAL_automaton_destroy (dfa);
   GNUNET_free (buffer);
   REGEX_TEST_free_from_file (regexes);

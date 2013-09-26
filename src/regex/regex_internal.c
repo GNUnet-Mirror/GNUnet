@@ -3338,7 +3338,6 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
                       char *consumed_string, struct REGEX_INTERNAL_State *state,
                       REGEX_INTERNAL_KeyIterator iterator, void *iterator_cls)
 {
-  unsigned int i;
   char *temp;
   struct REGEX_INTERNAL_Transition *t;
   unsigned int num_edges = state->transition_count;
@@ -3360,12 +3359,7 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
     {
       if (state->proof != NULL && 0 != strcmp (consumed_string, state->proof))
       {
-        for (i = 0, t = state->transitions_head; NULL != t && i < num_edges;
-             t = t->next, i++)
-        {
-          edges[i].label = t->label;
-          edges[i].destination = t->to_state->hash;
-        }
+        (void) state_get_edges (state, edges);
         GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
         iterator (iterator_cls, &hash, consumed_string, state->accepting,
                   num_edges, edges);
@@ -3385,7 +3379,7 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
         GNUNET_free (temp);
       }
     }
-    else if (max_len < cur_len)
+    else /* cur_len > max_len */
     {
       /* Case where the concatenated labels are longer than max_len, then split. */
       edge[0].label = &consumed_string[max_len];
@@ -3425,8 +3419,8 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
  */
 void
 REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
-                                REGEX_INTERNAL_KeyIterator iterator,
-                                void *iterator_cls)
+                                  REGEX_INTERNAL_KeyIterator iterator,
+                                  void *iterator_cls)
 {
   struct REGEX_INTERNAL_State *s;
 
@@ -3437,19 +3431,202 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 
     num_edges = state_get_edges (s, edges);
     if ( ( (NULL != s->proof) && 
-           (GNUNET_REGEX_INITIAL_BYTES <= strlen (s->proof)) ) || s->accepting)
+           (0 <= strlen (s->proof)) ) || s->accepting)
       iterator (iterator_cls, &s->hash, s->proof, 
                 s->accepting,
                 num_edges, edges);
     s->marked = GNUNET_NO;
   }
 
-  iterate_initial_edge (1,
+  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
                         GNUNET_REGEX_INITIAL_BYTES,
                         NULL, a->start, 
                         iterator, iterator_cls);
+}
+
+/**
+ * Struct to hold all the relevant state information in the HashMap.
+ *
+ * Contains the same info as the Regex Iterator parametes except the key,
+ * which comes directly from the HashMap iterator.
+ */
+struct temporal_state_store {
+  int reachable;
+  char *proof;
+  int accepting;
+  int num_edges;
+  struct REGEX_BLOCK_Edge *edges;
+};
 
 
+/**
+ * Store regex iterator and cls in one place to pass to the hashmap iterator.
+ */
+struct client_iterator {
+  REGEX_INTERNAL_KeyIterator iterator;
+  void *iterator_cls;
+};
+
+
+/**
+ * Iterator over all edges of a dfa. Stores all of them in a HashMap
+ * for later reachability marking.
+ *
+ * @param cls Closure (HashMap)
+ * @param key hash for current state.
+ * @param proof proof for current state
+ * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param num_edges number of edges leaving current state.
+ * @param edges edges leaving current state.
+ */
+static void
+store_all_states (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  const char *proof,
+                  int accepting,
+                  unsigned int num_edges,
+                  const struct REGEX_BLOCK_Edge *edges)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *hm = cls;
+  struct temporal_state_store *tmp;
+  size_t edges_size;
+
+  tmp = GNUNET_new (struct temporal_state_store);
+  tmp->reachable = GNUNET_NO;
+  tmp->proof = GNUNET_strdup (proof);
+  tmp->accepting = accepting;
+  tmp->num_edges = num_edges;
+  edges_size = sizeof (struct REGEX_BLOCK_Edge) * num_edges;
+  tmp->edges = GNUNET_malloc (edges_size);
+  memcpy(tmp->edges, edges, edges_size);
+  GNUNET_CONTAINER_multihashmap_put (hm, key, tmp,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+}
+
+
+/**
+ * Mark state as reachable and call recursively on all its edges.
+ *
+ * If already marked as reachable, do nothing.
+ *
+ * @param state State to mark as reachable.
+ * @param hm HashMap which stores all the states indexed by key.
+ */
+static void
+mark_as_reachable (struct temporal_state_store *state,
+                   struct GNUNET_CONTAINER_MultiHashMap *hm)
+{
+  struct temporal_state_store *child;
+  unsigned int i;
+
+  if (GNUNET_YES == state->reachable)
+    /* visited */
+    return;
+
+  state->reachable = GNUNET_YES;
+  for (i = 0; i < state->num_edges; i++)
+  {
+    child = GNUNET_CONTAINER_multihashmap_get (hm,
+                                               &state->edges[i].destination);
+    if (NULL == child)
+    {
+      GNUNET_break (0);
+      continue;
+    }
+    mark_as_reachable (child, hm);
+  }
+}
+
+
+/**
+ * Iterator over hash map entries to mark the ones that are reachable.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+reachability_iterator (void *cls,
+                       const struct GNUNET_HashCode *key,
+                       void *value)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *hm = cls;
+  struct temporal_state_store *state = value;
+
+  if (GNUNET_YES == state->reachable)
+    /* already visited and marked */
+    return GNUNET_YES;
+
+  if (GNUNET_REGEX_INITIAL_BYTES > strlen (state->proof) &&
+      GNUNET_NO == state->accepting)
+    /* not directly reachable */
+    return GNUNET_YES;
+
+  mark_as_reachable (state, hm);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator over hash map entries.
+ * Calling the callback on the ones marked as reachables.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+iterate_reachables (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
+{
+  struct client_iterator *ci = cls;
+  struct temporal_state_store *state = value;
+
+  if (GNUNET_YES == state->reachable)
+  {
+    ci->iterator (ci->iterator_cls, key,
+                  state->proof, state->accepting,
+                  state->num_edges, state->edges);
+  }
+  GNUNET_free (state->edges);
+  GNUNET_free (state->proof);
+  GNUNET_free (state);
+  return GNUNET_YES;
+
+}
+
+/**
+ * Iterate over all edges of automaton 'a' that are reachable from a state with
+ * a proof of at least GNUNET_REGEX_INITIAL_BYTES characters.
+ *
+ * Call the iterator for each such edge.
+ *
+ * @param a automaton.
+ * @param iterator iterator called for each reachable edge.
+ * @param iterator_cls closure.
+ */
+void
+REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
+                                        REGEX_INTERNAL_KeyIterator iterator,
+                                        void *iterator_cls)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *hm;
+  struct client_iterator ci;
+
+  hm = GNUNET_CONTAINER_multihashmap_create (a->state_count * 2, GNUNET_YES);
+  ci.iterator = iterator;
+  ci.iterator_cls = iterator_cls;
+
+  REGEX_INTERNAL_iterate_all_edges (a, &store_all_states, hm);
+  GNUNET_CONTAINER_multihashmap_iterate (hm, &reachability_iterator, hm);
+  GNUNET_CONTAINER_multihashmap_iterate (hm, &iterate_reachables, &ci);
+
+  GNUNET_CONTAINER_multihashmap_destroy (hm);
 }
 
 

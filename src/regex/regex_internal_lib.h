@@ -139,6 +139,22 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
                                 void *iterator_cls);
 
 
+/**
+ * Iterate over all edges of automaton 'a' that are reachable from a state with
+ * a proof of at least GNUNET_REGEX_INITIAL_BYTES characters.
+ *
+ * Call the iterator for each such edge.
+ *
+ * @param a automaton.
+ * @param iterator iterator called for each reachable edge.
+ * @param iterator_cls closure.
+ */
+void
+REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
+                                        REGEX_INTERNAL_KeyIterator iterator,
+                                        void *iterator_cls);
+
+
 
 /**
  * Handle to store cached data about a regex announce.
