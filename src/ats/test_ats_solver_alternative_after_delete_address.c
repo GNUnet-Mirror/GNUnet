@@ -149,9 +149,21 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
   die_task = GNUNET_SCHEDULER_NO_TASK;
   end ( NULL, NULL);
   ret = GNUNET_SYSERR;
+}
+
+static void
+end_badly_now ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  {
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 static void
@@ -172,14 +184,14 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       if ((NULL == address) || (NULL != session))
       {
         GNUNET_break (0);
-        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        end_badly_now ();
         return;
       }
       if ((ntohl(bandwidth_in.value__) == 0) ||
           (ntohl(bandwidth_out.value__) == 0))
       {
         GNUNET_break (0);
-        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        end_badly_now ();
         return;
       }
 
@@ -210,14 +222,14 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       if ((NULL == address) || (NULL != session))
       {
         GNUNET_break (0);
-        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        end_badly_now ();
         return;
       }
       if ((ntohl(bandwidth_in.value__) == 0) ||
           (ntohl(bandwidth_out.value__) == 0))
       {
         GNUNET_break (0);
-        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        end_badly_now ();
         return;
       }
 
@@ -227,7 +239,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleted 1st address for peer `%s' was suggested after deletion: `%s' `%s'\n",
           GNUNET_i2s (&address->peer), (char *) address->address, first_suggestion->address);
         GNUNET_break (0);
-        GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+        end_badly_now ();
         return;
       }
 
@@ -256,7 +268,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Expected disconnect received address `%s' with bandwidth \n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Expected disconnect but received address `%s' with bandwidth \n",
           (char *) address->address);
     }
   }
@@ -295,7 +307,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   if (sched_ats == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
-    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    end_badly_now ();
     return;
   }
 
@@ -303,7 +315,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
-      GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+      end_badly_now ();
       return;
   }
   GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
