@@ -787,7 +787,10 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   {
     /* Add a new address */
     GNUNET_assert(
-        GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (handle->addresses, &peer->hashPubKey, new_address, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+        GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (handle->addresses,
+            &peer->hashPubKey,
+            new_address,
+            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
     GNUNET_STATISTICS_set (handle->stat, "# addresses",
         GNUNET_CONTAINER_multihashmap_size (handle->addresses), GNUNET_NO);
@@ -1231,23 +1234,6 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
   GNUNET_free(cur);
 }
 
-/*
- static int
- addrinfo_it (void *cls, const struct GNUNET_HashCode *key, void *value)
- {
- static int count = 0;
- struct GNUNET_PeerIdentity *id = cls;
- struct ATS_Address *aa = value;
-
- GNUNET_log (GNUNET_ERROR_TYPE_INFO,
- "[%u] Peer `%s' %s length %u session %u active %s\n",
- count, GNUNET_i2s (id), aa->plugin, aa->addr_len, aa->session_id,
- (GNUNET_YES == aa->active) ? "active" : "inactive");
-
- count ++;
- return GNUNET_OK;
- }
- */
 
 /**
  * Request address suggestions for a peer
@@ -1277,6 +1263,9 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   {
     cur = GNUNET_malloc (sizeof (struct GAS_Addresses_Suggestion_Requests));
     cur->id = (*peer);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "Adding new address suggestion request for `%s'\n",
+         GNUNET_i2s (peer));
     GNUNET_CONTAINER_DLL_insert(handle->r_head, handle->r_tail, cur);
   }
 

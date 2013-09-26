@@ -910,11 +910,12 @@ GAS_proportional_get_preferred_address (void *solver,
   GNUNET_assert(peer != NULL);
 
   /* Add to list of pending requests */
-  if (GNUNET_NO
-      == GNUNET_CONTAINER_multihashmap_contains (s->requests,
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (s->requests,
           &peer->hashPubKey))
-    GNUNET_CONTAINER_multihashmap_put (s->requests, &peer->hashPubKey, NULL,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  {
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (s->requests, &peer->hashPubKey, NULL,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
 
   /* Get address with: stick to current address, lower distance, lower latency */
   fba_ctx.s = s;
@@ -1347,15 +1348,11 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
   aw->addr->solver_information = net;
 
-  if ((GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (s->requests,
-          &address->peer.hashPubKey))
-      && (NULL
-          == get_active_address (s,
-              (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses,
-              &address->peer)))
-    GAS_proportional_get_preferred_address (s, &address->peer);
-
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (s->requests, &address->peer.hashPubKey))
+  {
+    if (NULL == get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, &address->peer))
+      GAS_proportional_get_preferred_address (s, &address->peer);
+  }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "After adding address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses, net->active_addresses, net->desc);
