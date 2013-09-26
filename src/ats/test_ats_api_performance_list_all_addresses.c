@@ -108,6 +108,7 @@ ats_perf_cb (void *cls,
     phal = 0;
     if (4 == counter)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
       GNUNET_SCHEDULER_add_now (end, NULL);
     }
     else
