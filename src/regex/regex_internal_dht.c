@@ -708,6 +708,9 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
   /* Initialize context */
   len = strlen (string);
   size = REGEX_INTERNAL_get_first_key (string, len, &key);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "  initial key for %s: %s (%.*s)\n",
+       string, GNUNET_h2s (&key), size, string);
   ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
   ctx->position = size;
   ctx->info = h;
