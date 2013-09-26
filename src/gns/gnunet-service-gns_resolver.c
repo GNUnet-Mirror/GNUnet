@@ -495,13 +495,15 @@ fail_resolution (void *cls,
 /* Don't have this on W32, here's a naive implementation
  * Was somehow removed on OS X ...  */
 void *
-memrchr (const void *s, int c, size_t n)
+memrchr (const void *s, 
+	 int c, 
+	 size_t n)
 {
-  size_t i;
-  unsigned char *ucs = (unsigned char *) s;
+  unsigned char *ucs = s;
+  ssize_t i;
 
   for (i = n - 1; i >= 0; i--)
-    if (ucs[i] == c)
+    if (c == (int) ucs[i])
       return (void *) &ucs[i];
   return NULL;
 }

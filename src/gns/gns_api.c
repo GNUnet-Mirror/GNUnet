@@ -34,6 +34,8 @@
 #include "gnunet_gns_service.h"
 
 
+#define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+
 /**
  * Handle to a lookup request
  */
@@ -189,8 +191,8 @@ static void
 reconnect (struct GNUNET_GNS_Handle *handle)
 {
   GNUNET_assert (NULL == handle->client);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Trying to connect to GNS\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to connect to GNS\n");
   handle->client = GNUNET_CLIENT_connect ("gns", handle->cfg);
   GNUNET_assert (NULL != handle->client);
   process_pending_messages (handle);
@@ -286,9 +288,9 @@ process_pending_messages (struct GNUNET_GNS_Handle *handle)
   if (NULL == p)
     return; /* no messages pending */
   
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Trying to transmit %u bytes\n", 
-	      (unsigned int) p->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to transmit %u bytes\n", 
+       (unsigned int) p->size);
   handle->th =
     GNUNET_CLIENT_notify_transmit_ready (handle->client,
                                          p->size,
@@ -318,8 +320,8 @@ transmit_pending (void *cls, size_t size, void *buf)
   handle->th = NULL;
   if ((0 == size) || (NULL == buf))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Transmission to GNS service failed!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Transmission to GNS service failed!\n");
     force_reconnect (handle);
     return 0;
   }  
@@ -343,9 +345,9 @@ transmit_pending (void *cls, size_t size, void *buf)
       handle->in_receive = GNUNET_YES;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u bytes\n",
-	      (unsigned int) tsize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending %u bytes\n",
+       (unsigned int) tsize);
   process_pending_messages (handle);
   return tsize;
 }
@@ -381,15 +383,15 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
                                                              rd_count,
                                                              rd))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to serialize lookup reply from GNS service!\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+	 _("Failed to serialize lookup reply from GNS service!\n"));
     qe->lookup_proc (qe->proc_cls, 0, NULL);
   }
   else
   { 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received lookup reply from GNS service (%u records)\n",
-                (unsigned int) rd_count);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Received lookup reply from GNS service (%u records)\n",
+	 (unsigned int) rd_count);
     qe->lookup_proc (qe->proc_cls, rd_count, rd);
   }
   GNUNET_CONTAINER_DLL_remove (handle->lookup_head, handle->lookup_tail, qe);
@@ -419,8 +421,8 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Got LOOKUP_RESULT msg\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Got LOOKUP_RESULT msg\n");
     if (ntohs (msg->size) < sizeof (struct GNUNET_GNS_ClientLookupResultMessage))
     {
       GNUNET_break (0);
@@ -539,9 +541,9 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
     GNUNET_break (0);
     return NULL;
   } 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Trying to lookup `%s' in GNS\n", 
-	      name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to lookup `%s' in GNS\n", 
+       name);
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)
     + strlen (name) + 1;
   if (msize > UINT16_MAX)
