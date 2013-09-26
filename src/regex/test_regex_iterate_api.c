@@ -46,21 +46,16 @@ struct IteratorContext
   int error;
   int should_save_graph;
   FILE *graph_filep;
-  unsigned int valid_string_count;
-  char *const *valid_strings;
+  unsigned int string_count;
+  char *const *strings;
   unsigned int match_count;
-  unsigned int invalid_string_count;
-  char *const *invalid_strings;
-  unsigned int invalid_match_count;
 };
 
 struct RegexStringPair
 {
   char *regex;
-  unsigned int valid_string_count;
-  char *valid_strings[20];
-  unsigned int invalid_string_count;
-  char *invalid_strings[20];
+  unsigned int string_count;
+  char *strings[20];
 };
 
 
@@ -102,17 +97,10 @@ key_iterator (void *cls, const struct GNUNET_HashCode *key,
       transition_counter++;
   }
 
-  for (i = 0; i < ctx->valid_string_count; i++)
+  for (i = 0; i < ctx->string_count; i++)
   {
-    if (0 == strcmp (proof, ctx->valid_strings[i]))
+    if (0 == strcmp (proof, ctx->strings[i]))
       ctx->match_count++;
-  }
-
-  for (i = 0; i < ctx->invalid_string_count; i++)
-  {
-    if (0 == strcmp (proof, ctx->invalid_strings[i])) {
-      ctx->invalid_match_count++;
-    }
   }
 
   if (GNUNET_OK != REGEX_BLOCK_check_proof (proof, strlen (proof), key))
@@ -139,45 +127,36 @@ main (int argc, char *argv[])
 
   error = 0;
 
-  const struct RegexStringPair rxstr[14] = {
+  const struct RegexStringPair rxstr[13] = {
     {INITIAL_PADDING "ab(c|d)+c*(a(b|c)+d)+(bla)+", 2,
-     {INITIAL_PADDING "abcdcdca", INITIAL_PADDING "abcabdbl"}, 2,
-     {INITIAL_PADDING, INITIAL_PADDING "ab"}},
+     {INITIAL_PADDING "abcdcdca", INITIAL_PADDING "abcabdbl"}},
     {INITIAL_PADDING
      "abcdefghixxxxxxxxxxxxxjklmnop*qstoisdjfguisdfguihsdfgbdsuivggsd", 1,
-     {INITIAL_PADDING "abcdefgh"}, 2, {INITIAL_PADDING, INITIAL_PADDING "a"}},
+     {INITIAL_PADDING "abcdefgh"}},
     {INITIAL_PADDING "VPN-4-1(0|1)*", 2,
-     {INITIAL_PADDING "VPN-4-10", INITIAL_PADDING "VPN-4-11"}, 
-     1, {INITIAL_PADDING}},
+     {INITIAL_PADDING "VPN-4-10", INITIAL_PADDING "VPN-4-11"}},
     {INITIAL_PADDING "(a+X*y+c|p|R|Z*K*y*R+w|Y*6+n+h*k*w+V*F|W*B*e*)", 2,
      {INITIAL_PADDING "aaaaaaaa", INITIAL_PADDING "aaXXyyyc"}},
-    {INITIAL_PADDING "a*", 2, {INITIAL_PADDING "aaaaaaaa", INITIAL_PADDING}},
-    {INITIAL_PADDING "xzxzxzxzxz", 1, {INITIAL_PADDING "xzxzxzxz"}, 
-     1, {INITIAL_PADDING}},
-    {INITIAL_PADDING "xyz*", 1, {INITIAL_PADDING "xyzzzzzz"}, 
-     1, {INITIAL_PADDING}},
+    {INITIAL_PADDING "a*", 1, {INITIAL_PADDING "aaaaaaaa"}},
+    {INITIAL_PADDING "xzxzxzxzxz", 1, {INITIAL_PADDING "xzxzxzxz"}},
+    {INITIAL_PADDING "xyz*", 1, {INITIAL_PADDING "xyzzzzzz"}},
     {INITIAL_PADDING
      "abcd:(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1):(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)(0|1)",
-     2, {INITIAL_PADDING "abcd:000", INITIAL_PADDING "abcd:101"}, 
-     1, {INITIAL_PADDING}},
+     2, {INITIAL_PADDING "abcd:000", INITIAL_PADDING "abcd:101"}},
     {INITIAL_PADDING "(x*|(0|1|2)(a|b|c|d)+)", 2,
      {INITIAL_PADDING "xxxxxxxx", INITIAL_PADDING "0abcdbad"}},
-    {INITIAL_PADDING "(0|1)(0|1)23456789ABC", 1, {INITIAL_PADDING "11234567"}, 
-     1, {INITIAL_PADDING}},
+    {INITIAL_PADDING "(0|1)(0|1)23456789ABC", 1, {INITIAL_PADDING "11234567"}},
     {INITIAL_PADDING "0*123456789ABC*", 3,
      {INITIAL_PADDING "00123456", INITIAL_PADDING "00000000",
       INITIAL_PADDING "12345678"}},
     {INITIAL_PADDING "0123456789A*BC", 1, {INITIAL_PADDING "01234567"}},
-    {"GNUNETVPN000100000IPEX6-fc5a:4e1:c2ba::1", 1, {"GNUNETVPN000100000IPEX6-"}, 
-     1, {INITIAL_PADDING}},
-    {"my long prefix - hello world(0|1)*", 0, {"my long prefix - hello world"},
-     1, {"my long prefix"}}
+    {"GNUNETVPN000100000IPEX6-fc5a:4e1:c2ba::1", 1, {"GNUNETVPN000100000IPEX6-"}}
   };
 
   const char *graph_start_str = "digraph G {\nrankdir=LR\n";
   const char *graph_end_str = "\n}\n";
 
-  for (i = 0; i < 14; i++)
+  for (i = 0; i < 13; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Iterating DFA for regex %s\n",
                 rxstr[i].regex);
@@ -209,36 +188,36 @@ main (int argc, char *argv[])
     }
 
     /* Iterate over DFA edges */
-    ctx.valid_string_count = rxstr[i].valid_string_count;
-    ctx.valid_strings = rxstr[i].valid_strings;
+    transition_counter = 0;
+    ctx.string_count = rxstr[i].string_count;
+    ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
-    ctx.invalid_string_count = rxstr[i].invalid_string_count;
-    ctx.invalid_strings = rxstr[i].invalid_strings;
-    ctx.invalid_match_count = 0;
     dfa =
-        REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 1);
+        REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     REGEX_INTERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
+    num_transitions =
+        REGEX_INTERNAL_get_transition_count (dfa) - dfa->start->transition_count;
 
-    if (0 != ctx.invalid_match_count)
+    if (transition_counter < num_transitions)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Found invalid initial states for regex %s\n",
-                  rxstr[i].regex);
-      error += ctx.invalid_match_count;
+                  "Automaton has %d transitions, iterated over %d transitions\n",
+                  num_transitions, transition_counter);
+      error += 1;
     }
 
-    if (ctx.match_count < ctx.valid_string_count)
+    if (ctx.match_count < ctx.string_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Missing initial states for regex %s\n", rxstr[i].regex);
-      error += (ctx.valid_string_count - ctx.match_count);
+      error += (ctx.string_count - ctx.match_count);
     }
-    else if (ctx.match_count > ctx.valid_string_count)
+    else if (ctx.match_count > ctx.string_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Duplicate initial transitions for regex %s\n",
                   rxstr[i].regex);
-      error += (ctx.valid_string_count - ctx.match_count);
+      error += (ctx.string_count - ctx.match_count);
     }
 
     REGEX_INTERNAL_automaton_destroy (dfa);
@@ -254,44 +233,22 @@ main (int argc, char *argv[])
   }
 
 
-  for (i = 0; i < 14; i++)
+  for (i = 0; i < 13; i++)
   {
-    transition_counter = 0;
-    ctx.valid_string_count = rxstr[i].valid_string_count;
-    ctx.valid_strings = rxstr[i].valid_strings;
+    ctx.string_count = rxstr[i].string_count;
+    ctx.strings = rxstr[i].strings;
     ctx.match_count = 0;
-    ctx.invalid_string_count = rxstr[i].invalid_string_count;
-    ctx.invalid_strings = rxstr[i].invalid_strings;
-    ctx.invalid_match_count = 0;
 
     dfa =
         REGEX_INTERNAL_construct_dfa (rxstr[i].regex, strlen (rxstr[i].regex), 0);
     REGEX_INTERNAL_dfa_add_multi_strides (NULL, dfa, 2);
     REGEX_INTERNAL_iterate_all_edges (dfa, key_iterator, &ctx);
-    num_transitions =
-        REGEX_INTERNAL_get_transition_count (dfa) - dfa->start->transition_count;
 
-    if (transition_counter < num_transitions)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Automaton has %d transitions, iterated over %d transitions\n",
-                  num_transitions, transition_counter);
-      error += 1;
-    }
-
-    if (ctx.match_count < ctx.valid_string_count)
+    if (ctx.match_count < ctx.string_count)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Missing initial states for regex %s\n", rxstr[i].regex);
-      error += (ctx.valid_string_count - ctx.match_count);
-    }
-
-    if (0 != ctx.invalid_match_count)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Found invalid initial states for regex %s\n",
-                  rxstr[i].regex);
-      error += ctx.invalid_match_count;
+      error += (ctx.string_count - ctx.match_count);
     }
 
     REGEX_INTERNAL_automaton_destroy (dfa);
