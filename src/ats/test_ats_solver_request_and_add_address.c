@@ -177,8 +177,6 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
-  /* Request */
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
 
   /* Set up peer */
   if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
@@ -206,6 +204,10 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
   test_hello_address.address_length = test_addr.addr_len;
+
+  /* Request */
+  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+
 
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
