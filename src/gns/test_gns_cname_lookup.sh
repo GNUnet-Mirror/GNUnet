@@ -11,14 +11,15 @@ TEST_RECORD_CNAME_DNS="gnunet.org"
 TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
 TEST_RECORD_NAME_DNS="www3"
+which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C testego -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
-RES_CNAME=$(timeout 5 gnunet-gns --raw -z testego -u www.gnu -t A -c test_gns_lookup.conf)
-RES_CNAME_DNS=$(timeout 5 gnunet-gns --raw -z testego -u www3.gnu -t A -c test_gns_lookup.conf)
+RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.gnu -t A -c test_gns_lookup.conf`
+RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www3.gnu -t A -c test_gns_lookup.conf`
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
