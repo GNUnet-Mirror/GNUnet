@@ -765,22 +765,22 @@ ril_remove_agent (struct GAS_RIL_Handle *s, struct RIL_Peer_Agent *agent)
  * @param active_only whether only active agents should be counted
  * @return number of agents
  */
-static int
-ril_count_agents (struct GAS_RIL_Handle *solver, int active_only)
-{
-  int c;
-  struct RIL_Peer_Agent *cur;
-
-  c = 0;
-  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
-  {
-    if ((!active_only) || (active_only && cur->active))
-    {
-      c += 1;
-    }
-  }
-  return c;
-}
+//static int
+//ril_count_agents (struct GAS_RIL_Handle *solver, int active_only)
+//{
+//  int c;
+//  struct RIL_Peer_Agent *cur;
+//
+//  c = 0;
+//  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+//  {
+//    if ((!active_only) || (active_only && cur->active))
+//    {
+//      c += 1;
+//    }
+//  }
+//  return c;
+//}
 
 
 
