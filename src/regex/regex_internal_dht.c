@@ -183,9 +183,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
   h->dht = dht;
   h->stats = stats;
   h->priv = priv;
-  h->dfa = REGEX_INTERNAL_construct_dfa (regex,
-					 strlen (regex),
-					 compression);
+  h->dfa = REGEX_INTERNAL_construct_dfa (regex, strlen (regex), compression);
   REGEX_INTERNAL_reannounce (h);
   return h;
 }
@@ -204,8 +202,7 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
   LOG (GNUNET_ERROR_TYPE_INFO, 
        "REGEX_INTERNAL_reannounce: %s\n",
        h->regex);
-  REGEX_INTERNAL_iterate_all_edges (h->dfa, 
-				    &regex_iterator, h);
+  REGEX_INTERNAL_iterate_reachable_edges (h->dfa, &regex_iterator, h);
 }
 
 
