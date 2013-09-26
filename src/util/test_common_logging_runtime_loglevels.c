@@ -89,7 +89,7 @@ static char *
 read_output_line (int phase_from1, int phase_to1, int phase_from2,
                   int phase_to2, char c, const char *expect_level,
                   long delay_morethan, long delay_lessthan, int phase, 
-		  const char *p,
+		  char *p,
                   int *len, long *delay, char level[8])
 {
   char *r = p;
