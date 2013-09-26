@@ -74,7 +74,8 @@ TESTING_TESTS = \
  test_ats_api_performance_list_all_addresses \
  test_ats_api_performance_list_peer_addresses \
  test_ats_api_performance_list_all_addresses_active \
- test_ats_api_performance_monitor
+ test_ats_api_performance_monitor \
+ test_ats_api_performance_monitor_initial_callback
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt
 # test_ats_api_scheduling_update_address
@@ -204,6 +205,18 @@ test_ats_api_performance_monitor_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 	
+test_ats_api_performance_monitor_initial_callback_SOURCES = \
+ test_ats_api_performance_monitor_initial_callback.c	
+test_ats_api_performance_monitor_initial_callback_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+	
+	
+
+
 	
 
 #test_ats_api_scheduling_min_bw_SOURCES = \
