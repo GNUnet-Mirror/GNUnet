@@ -1340,7 +1340,10 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
+  const struct ATS_Address *new_address;
+
   GNUNET_assert(NULL != s);
+
 
   net = get_network (s, network);
   if (NULL == net)
@@ -1358,7 +1361,10 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (s->requests, &address->peer.hashPubKey))
   {
     if (NULL == get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, &address->peer))
-      GAS_proportional_get_preferred_address (s, &address->peer);
+    {
+      if (NULL != (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
+          s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) address);
+    }
   }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "After adding address now total %u and active %u addresses in network `%s'\n",
