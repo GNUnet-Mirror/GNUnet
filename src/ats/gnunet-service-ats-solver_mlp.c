@@ -1443,6 +1443,7 @@ GAS_mlp_address_delete (void *solver,
   struct ATS_Peer *p;
   struct GAS_MLP_Handle *mlp = solver;
   struct MLP_information *mlpi;
+  int was_active;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != address);
@@ -1454,7 +1455,10 @@ GAS_mlp_address_delete (void *solver,
     GNUNET_free (mlpi);
     address->solver_information = NULL;
   }
+  was_active = address->active;
   address->active = GNUNET_NO;
+  address->assigned_bw_in = BANDWIDTH_ZERO;
+  address->assigned_bw_out = BANDWIDTH_ZERO;
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multihashmap_get (mlp->requested_peers, &address->peer.hashPubKey)))
@@ -1474,6 +1478,15 @@ GAS_mlp_address_delete (void *solver,
   {
     GAS_mlp_solve_problem (solver);
   }
+  if (GNUNET_YES == was_active)
+  {
+    if (NULL == GAS_mlp_get_preferred_address (solver, &address->peer))
+    {
+      /* No alternative address, disconnecting peer */
+      mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+    }
+  }
+
   return;
 }
 
