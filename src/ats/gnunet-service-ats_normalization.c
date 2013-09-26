@@ -349,51 +349,70 @@ update_preference (struct PreferenceClient *c, struct PreferencePeer *p,
 static void
 preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct PreferencePeer *p;
+  struct PreferenceClient *cur_client;
   int i;
   int values_to_update;
   double backup;
-  struct PreferencePeer *p;
-  struct PreferenceClient *pc;
+
   aging_task = GNUNET_SCHEDULER_NO_TASK;
-GNUNET_break (0);
   values_to_update = 0;
-  for (pc = pc_head; NULL != pc; pc =pc->next);
+  cur_client = NULL;
+
+  /*
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "Before for: head: %08x cur_client %08x \n", pc_head, cur_client);
+   */
+
+  //for (cur_client = pc_head; NULL != cur_client; cur_client = cur_client->next);
+  cur_client = pc_head;
+  while (NULL != cur_client)
   {
-    GNUNET_break (0);
-    for (p = pc->p_head; NULL != p; p = p->next)
+    /*
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+        "Aging client head: %p cur_client %p\n", pc_head, cur_client);
+     */
+    for (p = cur_client->p_head; NULL != p; p = p->next)
     {
-      GNUNET_break (0);
       /* Aging absolute values: */
       for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       {
-        GNUNET_break (0);
         if (0 == GNUNET_TIME_absolute_get_remaining(p->next_aging[i]).rel_value_us)
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Aging preferences for peer `%s'\n",
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Aging preference for peer `%s'\n",
               GNUNET_i2s (&p->id));
+          backup = p->f_abs[i];
+          if (p->f_abs[i] > DEFAULT_ABS_PREFERENCE)
+            p->f_abs[i] *= PREF_AGING_FACTOR;
+          if (p->f_abs[i] <= DEFAULT_ABS_PREFERENCE + PREF_EPSILON)
+            p->f_abs[i] = DEFAULT_ABS_PREFERENCE;
+          if ((p->f_abs[i] != DEFAULT_ABS_PREFERENCE) && (backup != p->f_abs[i]))
+          {
+            GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+                "Aged preference for peer `%s' from %.3f to %.3f\n",
+                GNUNET_i2s (&p->id), backup, p->f_abs[i]);
+            recalculate_rel_preferences (p->client, p, i);
+            p->next_aging[i] = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
+                PREF_AGING_INTERVAL);
+            values_to_update ++;
+          }
         }
+      }
+    }
 
-        backup = p->f_abs[i];
-        if (p->f_abs[i] > DEFAULT_ABS_PREFERENCE)
-          p->f_abs[i] *= PREF_AGING_FACTOR;
-        if (p->f_abs[i] <= DEFAULT_ABS_PREFERENCE + PREF_EPSILON)
-          p->f_abs[i] = DEFAULT_ABS_PREFERENCE;
-        if ((p->f_abs[i] != DEFAULT_ABS_PREFERENCE) && (backup != p->f_abs[i]))
-        {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-              "Aged preference for peer `%s' from %.3f to %.3f\n",
-              GNUNET_i2s (&p->id), backup, p->f_abs[i]);
-          recalculate_rel_preferences (p->client, p, i);
-          p->next_aging[i] = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
-              PREF_AGING_INTERVAL);
-          values_to_update ++;
-        }
-      } /* preferences */
-    } /* end: p */
-  } /* end: pc_head */
+    cur_client = cur_client->next;
+  }
+
   if (values_to_update > 0)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Rescheduling aging task due to %u elements to age\n", values_to_update);
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
         &preference_aging, NULL);
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "No values to age left, not rescheduling aging task\n");
 
 }
 
@@ -440,7 +459,9 @@ GAS_normalization_normalize_preference (void *src,
   {
     c_cur = GNUNET_malloc (sizeof (struct PreferenceClient));
     c_cur->client = src;
-    GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, c_cur);
+    GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, c_cur);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "Adding new client %p \n", c_cur);
   }
 
   /* Find entry for peer */
@@ -461,6 +482,7 @@ GAS_normalization_normalize_preference (void *src,
       p_cur->f_abs[i] = DEFAULT_ABS_PREFERENCE;
       /* Default value per peer relative preference for a quality: 1.0 */
       p_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
+      p_cur->next_aging[i] = GNUNET_TIME_UNIT_FOREVER_ABS;
     }
     GNUNET_CONTAINER_DLL_insert(c_cur->p_head, c_cur->p_tail, p_cur);
   }
@@ -821,6 +843,9 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
   pref_changed_cb_cls = pref_ch_cb_cls;
   prop_ch_cb = property_ch_cb;
   prop_ch_cb_cls = pref_ch_cb_cls;
+
+  pc_head = NULL;
+  pc_tail = NULL;
 
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
