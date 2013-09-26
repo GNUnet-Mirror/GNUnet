@@ -32,6 +32,18 @@
 
 #define VERBOSE GNUNET_NO
 
+/**
+ * How much time the child is allowed to waste on skipped log calls, at most.
+ * Raspberry Pi takes 33 microseconds tops, this is 3x that value.
+ */
+#define MAX_SKIP_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 100).rel_value_us
+
+/**
+ * How much time non-skipped log call should take, at least.
+ * Keep in sync with the value in the dummy!
+ */
+#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 200).rel_value_us
+
 static int ok;
 
 static int phase = 0;
@@ -95,6 +107,10 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   char *r = p;
   char t[7];
   int i, j, stop = 0;
+  int level_matches;
+  int delay_is_sane;
+  int delay_is_a_dummy;
+  int delay_outside_of_range;
 
   j = 0;
   int stage = 0;
@@ -157,15 +173,45 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
       break;
     }
   }
-  if (!stop || strcmp (expect_level, level) != 0 || *delay < 0 || *delay > 1000000
-      || (!((*delay < delay_lessthan) || (*delay > delay_morethan)) && c != '1'
-          && c != '2'))
+  level_matches = (strcmp (expect_level, level) == 0);
+  delay_is_sane = (*delay >= 0) && (*delay <= 1000000);
+  delay_is_a_dummy = (c == 'L');
+  /* Delay must be either less than 'lessthan' (log call is skipped)
+   * or more than 'morethan' (log call is not skipped)
+   */
+  delay_outside_of_range = ((*delay < delay_lessthan) || (*delay > delay_morethan));
+  if (delay_is_a_dummy)
+    delay_outside_of_range = 1;
+
+  if (!stop)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong log format?\n");
+  if (!level_matches)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Wrong log level\n");
+  if (!delay_is_sane)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Delay %ld is insane\n", *delay);
+  if (!delay_outside_of_range)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Delay %ld is not outside of range (%ld ; %ld)\n",
+                *delay, delay_lessthan, delay_morethan, c);
+  if (!stop || !level_matches || !delay_is_sane || !delay_outside_of_range)
     return NULL;
   *len = *len - i;
   return &r[i];
 }
 
-static char buf[20 * 16];
+/**
+ * Up to 8 non-skipped GNUNET_log() calls
+ * + extra line with delay for each one
+ */
+#define LOG_MAX_NUM_LINES (8 * 2)
+/**
+ * Actual message is 17 chars at most
+ */
+#define LOG_MAX_LINE_LENGTH (17)
+
+#define LOG_BUFFER_SIZE LOG_MAX_NUM_LINES * LOG_MAX_LINE_LENGTH
+
+static char buf[LOG_BUFFER_SIZE];
 
 static char *buf_ptr;
 
@@ -218,57 +264,73 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   char *p = buf;
 
-  if (bytes == 20 * 16 ||
+  if (bytes == LOG_BUFFER_SIZE ||
       !(p =
-        read_output_line (0, 3, 4, 9, 'L', "ERROR", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (0, 3, 4, 9, 'L', "ERROR", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '1', "ERROR", 200, 400, phase, p, &bytes,
-                          &delays[0], level)) ||
+        read_output_line (0, 3, 4, 9, '1', "ERROR", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[0], level)) ||
       !(p =
-        read_output_line (1, 3, 5, 9, 'L', "WARNING", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (1, 3, 5, 9, 'L', "WARNING", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '1', "WARNING", 200, 400, phase, p,
+        read_output_line (0, 3, 4, 9, '1', "WARNING", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
                           &bytes, &delays[1], level)) ||
       !(p =
-        read_output_line (2, 3, 6, 7, 'L', "INFO", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (2, 3, 6, 7, 'L', "INFO", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '1', "INFO", 200, 400, phase, p, &bytes,
-                          &delays[2], level)) ||
+        read_output_line (0, 3, 4, 9, '1', "INFO", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[2], level)) ||
       !(p =
-        read_output_line (3, 3, 7, 7, 'L', "DEBUG", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (3, 3, 7, 7, 'L', "DEBUG", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '1', "DEBUG", 200, 400, phase, p, &bytes,
-                          &delays[3], level)) ||
+        read_output_line (0, 3, 4, 9, '1', "DEBUG", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[3], level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, 'L', "ERROR", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (0, 3, 4, 9, 'L', "ERROR", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '2', "ERROR", 200, 400, phase, p, &bytes,
-                          &delays[4], level)) ||
+        read_output_line (0, 3, 4, 9, '2', "ERROR", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[4], level)) ||
       !(p =
-        read_output_line (0, 3, 5, 9, 'L', "WARNING", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (0, 3, 5, 9, 'L', "WARNING", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '2', "WARNING", 200, 400, phase, p,
+        read_output_line (0, 3, 4, 9, '2', "WARNING", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
                           &bytes, &delays[5], level)) ||
       !(p =
-        read_output_line (-1, -1, 6, 7, 'L', "INFO", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (-1, -1, 6, 7, 'L', "INFO", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '2', "INFO", 200, 400, phase, p, &bytes,
-                          &delays[6], level)) ||
+        read_output_line (0, 3, 4, 9, '2', "INFO", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[6], level)) ||
       !(p =
-        read_output_line (-1, -1, 7, 7, 'L', "DEBUG", -1, 1, phase, p, &bytes,
-                          &delay, level)) ||
+        read_output_line (-1, -1, 7, 7, 'L', "DEBUG", -1,
+                          1, phase, p,
+                          &bytes, &delay, level)) ||
       !(p =
-        read_output_line (0, 3, 4, 9, '2', "DEBUG", 200, 400, phase, p, &bytes,
-                          &delays[7], level)))
+        read_output_line (0, 3, 4, 9, '2', "DEBUG", OUTPUT_DELAY,
+                          MAX_SKIP_DELAY, phase, p,
+                          &bytes, &delays[7], level)))
   {
-    if (bytes == 20 * 16)
+    if (bytes == LOG_BUFFER_SIZE)
       FPRINTF (stderr, "%s",  "Ran out of buffer space!\n");
     GNUNET_break (0);
     ok = 2;

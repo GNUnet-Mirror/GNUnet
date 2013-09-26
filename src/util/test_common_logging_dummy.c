@@ -33,7 +33,9 @@
 #include "gnunet_network_lib.h"
 
 /**
- * Delay introduced between operations, useful for debugging.
+ * Artificial delay attached to each log call that is not skipped out.
+ * This must be long enough for us to not to mistake skipped log call
+ * on a slow machine for a non-skipped one.
  */
 #define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 200)
 
