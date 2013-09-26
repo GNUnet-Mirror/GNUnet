@@ -274,6 +274,16 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph);
 
 
 /**
+ * Type of a function to call when we receive a message
+ * from the service.
+ *
+ * @param cls the 'struct GNUNET_ATS_SchedulingHandle'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void
+process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg);
+
+/**
  * We can now transmit a message to ATS. Do it.
  *
  * @param cls the 'struct GNUNET_ATS_SchedulingHandle'
@@ -298,6 +308,9 @@ transmit_message_to_ats (void *cls, size_t size, void *buf)
     ret += p->size;
     size -= p->size;
     GNUNET_CONTAINER_DLL_remove (ph->pending_head, ph->pending_tail, p);
+    GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
+                            GNUNET_TIME_UNIT_FOREVER_REL);
+
     GNUNET_free (p);
   }
   do_transmit (ph);
@@ -609,8 +622,6 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
   GNUNET_assert (NULL == ph->client);
   ph->client = GNUNET_CLIENT_connect ("ats", ph->cfg);
   GNUNET_assert (NULL != ph->client);
-  GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
   if ((NULL == (p = ph->pending_head)) || (GNUNET_YES != p->is_init))
   {
     p = GNUNET_malloc (sizeof (struct PendingMessage) +
