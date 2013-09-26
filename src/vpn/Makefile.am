@@ -41,7 +41,7 @@ bin_PROGRAMS = \
 if MINGW
   gnunet_helper_vpn_LDFLAGS = \
     -no-undefined -Wl,--export-all-symbols 
-   
+
   gnunet_helper_vpn_LDADD = \
     -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
     -lcomdlg32 -lgdi32 -liphlpapi
