@@ -3617,7 +3617,7 @@ REGEX_INTERNAL_iterate_reachable_edges (struct REGEX_INTERNAL_Automaton *a,
   struct GNUNET_CONTAINER_MultiHashMap *hm;
   struct client_iterator ci;
 
-  hm = GNUNET_CONTAINER_multihashmap_create (a->state_count * 2, GNUNET_YES);
+  hm = GNUNET_CONTAINER_multihashmap_create (a->state_count * 2, GNUNET_NO);
   ci.iterator = iterator;
   ci.iterator_cls = iterator_cls;
 
