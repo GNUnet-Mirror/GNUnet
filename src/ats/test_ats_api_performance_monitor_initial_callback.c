@@ -106,16 +106,16 @@ ats_perf_cb (void *cls,
   static int peer0 = GNUNET_NO;
   static int peer1 = GNUNET_NO;
   static int done = GNUNET_NO;
-  GNUNET_break (0);
-  if ((GNUNET_NO == peer0) && (0 == memcmp (address, &p[0].id, sizeof (p[0].id))))
+
+  if (0 == memcmp (address, &p[0].id, sizeof (p[0].id)))
   {
-    peer0 = GNUNET_YES;
+    peer0 ++;
   }
   if ((GNUNET_NO == peer0) && (0 == memcmp (address, &p[1].id, sizeof (p[1].id))))
   {
-    peer1 = GNUNET_YES;
+    peer1 ++;
   }
-  if ((peer0 == GNUNET_YES) && (peer1 = GNUNET_YES) && (GNUNET_NO == done))
+  if ((2 == peer0) && (2 == peer1) && (GNUNET_NO == done))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
         "Done\n");
