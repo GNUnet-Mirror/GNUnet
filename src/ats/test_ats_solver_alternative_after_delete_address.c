@@ -262,7 +262,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     if ((ntohl(bandwidth_in.value__) == 0) &&
         (ntohl(bandwidth_out.value__) == 0))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS tells me to disconnect\n");
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
