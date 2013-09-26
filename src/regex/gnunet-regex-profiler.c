@@ -1419,6 +1419,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                                            "SETUP_TIMEOUT",
                                            &abort_time))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+                "SETUP_TIMEOUT not given. Using 15 minutes.\n");
     abort_time =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15);
   }
@@ -1427,6 +1429,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_SCHEDULER_add_delayed (abort_time,
                                     &do_abort,
                                     (void*) __LINE__);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "setup_timeout: %s\n",
+              GNUNET_STRINGS_relative_time_to_string (abort_time, GNUNET_YES));
 }
 
 
