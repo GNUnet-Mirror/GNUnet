@@ -24,7 +24,8 @@ if HAVE_LIBGLPK
   GN_MLP_PERF = perf_ats_mlp
   GN_MLP_ADD_ADDRESS = test_ats_solver_add_address_mlp
   GN_MLP_ADD_REQUEST_ADDRESS = test_ats_solver_add_address_and_request_mlp
-  GN_MLP_REQUEST_ADD_ADDRESS = test_ats_solver_request_and_add_address_mlp  
+  GN_MLP_REQUEST_ADD_ADDRESS = test_ats_solver_request_and_add_address_mlp
+  GN_MLP_REQUEST_DELETE_ADDRESS = test_ats_solver_request_and_delete_address_mlp
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
@@ -87,7 +88,10 @@ TESTING_TESTS = \
  test_ats_solver_add_address_and_request_ril \
  test_ats_solver_request_and_add_address_proportional \
  $(GN_MLP_REQUEST_ADD_ADDRESS) \
- test_ats_solver_request_and_add_address_ril
+ test_ats_solver_request_and_add_address_ril \
+ test_ats_solver_request_and_delete_address_proportional \
+ $(GN_MLP_REQUEST_DELETE_ADDRESS) \
+ test_ats_solver_request_and_delete_address_ril  
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt
 # test_ats_api_scheduling_update_address
@@ -327,6 +331,40 @@ test_ats_solver_request_and_add_address_ril_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
+
+
+test_ats_solver_request_and_delete_address_proportional_SOURCES = \
+ test_ats_solver_request_and_delete_address.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_request_and_delete_address_proportional_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+	
+if HAVE_LIBGLPK	
+test_ats_solver_request_and_delete_address_mlp_SOURCES = \
+ test_ats_solver_request_and_delete_address.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_request_and_delete_address_mlp_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+endif  
+			
+test_ats_solver_request_and_delete_address_ril_SOURCES = \
+ test_ats_solver_request_and_delete_address.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_request_and_delete_address_ril_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+
 
 
 #test_ats_api_scheduling_min_bw_SOURCES = \

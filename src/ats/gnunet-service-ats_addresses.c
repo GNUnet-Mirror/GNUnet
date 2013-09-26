@@ -1122,7 +1122,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
     return;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Received `%s' for peer `%s' address %p session %u\n", "ADDRESS DESTROY",
       GNUNET_i2s (peer), ea, session_id);
 
