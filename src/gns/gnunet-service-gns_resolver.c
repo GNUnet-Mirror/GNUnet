@@ -499,7 +499,7 @@ memrchr (const void *s,
 	 int c, 
 	 size_t n)
 {
-  unsigned char *ucs = s;
+  const unsigned char *ucs = s;
   ssize_t i;
 
   for (i = n - 1; i >= 0; i--)
