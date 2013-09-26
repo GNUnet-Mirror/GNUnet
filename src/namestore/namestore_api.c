@@ -345,7 +345,8 @@ handle_record_store_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   int res;
   const char *emsg;
   
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Received `%s'\n",
        "RECORD_STORE_RESPONSE");
   /* TODO: add actual error message from namestore to response... */
   res = ntohl (msg->op_result);
@@ -1081,8 +1082,9 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_break (rd_ser_len == GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Sending `%s' message for name `%s' with size %u\n", 
-       "NAMESTORE_RECORD_STORE", label, msg_size);
+       "Sending `%s' message for name `%s' with size %u and %u records\n", 
+       "NAMESTORE_RECORD_STORE", label, msg_size,
+       rd_count);
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit(h);
   return qe;

@@ -727,7 +727,10 @@ dns_result_parser (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received DNS response for `%s' with %u answers\n",
+	      rh->ac_tail->label,
+	      (unsigned int) p->num_answers);
   if ( (p->num_answers > 0) &&
        (GNUNET_DNSPARSER_TYPE_CNAME == p->answers[0].type) &&
        (GNUNET_DNSPARSER_TYPE_CNAME != rh->record_type) )
@@ -881,6 +884,9 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
 
   ac = rh->ac_tail;
   GNUNET_assert (NULL != ac);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting DNS lookup for `%s'\n",
+	      ac->label);
   GNUNET_assert (GNUNET_NO == ac->gns_authority);
   switch (((const struct sockaddr *) &ac->authority_info.dns_authority.dns_ip)->sa_family)
   {
@@ -1078,7 +1084,7 @@ vpn_allocation_cb (void *cls,
 /**
  * Process a records that were decrypted from a block.
  *
- * @param cls closure with the 'struct GNS_ResolverHandle'
+ * @param cls closure with the `struct GNS_ResolverHandle`
  * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
@@ -1107,7 +1113,12 @@ handle_gns_resolution_result (void *cls,
   size_t off;
   struct GNUNET_NAMESTORE_RecordData rd_new[rd_count];
   unsigned int rd_off;
-  
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Resolution succeeded for `%s' in zone %s, got %u records\n",
+	      rh->ac_tail->label,
+	      GNUNET_NAMESTORE_z2s (&rh->ac_tail->authority_info.gns_authority),
+	      rd_count);  
   if (0 == rh->name_resolution_pos)
   {
     /* top-level match, are we done yet? */
@@ -1600,7 +1611,7 @@ namestore_cache_continuation (void *cls,
  * @param get_path_length number of entries in @a get_path
  * @param put_path peers on the PUT path (or NULL if not recorded)
  *                 [0] = origin, [length - 1] = datastore
- * @param put_path_length number of entries in @a get_path
+ * @param put_path_length number of entries in @a put_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -1690,6 +1701,10 @@ handle_namestore_block_response (void *cls,
 	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
   {
     /* Namestore knows nothing; try DHT lookup */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Starting DHT lookup for `%s' in zone %s\n",
+		ac->label,
+		GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
     rh->get_handle = GNUNET_DHT_get_start (dht_handle,
 					   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
 					   &query,
@@ -1714,6 +1729,10 @@ handle_namestore_block_response (void *cls,
        (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) )
   {
     /* DHT not permitted and no local result, fail */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Resolution failed for `%s' in zone %s (DHT lookup not permitted by configuration)\n",
+		ac->label,
+		GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
     rh->proc (rh->proc_cls, 0, NULL);
     GNS_resolver_lookup_cancel (rh);
     return;
@@ -1744,6 +1763,10 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
   struct AuthorityChain *ac = rh->ac_tail;
   struct GNUNET_HashCode query;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting GNS resolution for `%s' in zone %s\n",
+	      ac->label,
+	      GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
   GNUNET_NAMESTORE_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
@@ -1776,10 +1799,10 @@ recursive_resolution (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
-  if (GNUNET_YES == rh->ac_tail->gns_authority)
-    recursive_gns_resolution_namestore (rh);
-  else
-    recursive_dns_resolution (rh);
+  if (GNUNET_YES == rh->ac_tail->gns_authority) 
+    recursive_gns_resolution_namestore (rh);  
+  else  
+    recursive_dns_resolution (rh);  
 }
 
 
@@ -1897,6 +1920,9 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
 {
   struct GNS_ResolverHandle *rh;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting lookup for `%s'\n",
+	      name);
   rh = GNUNET_new (struct GNS_ResolverHandle);
   GNUNET_CONTAINER_DLL_insert (rlh_head,
 			       rlh_tail,
