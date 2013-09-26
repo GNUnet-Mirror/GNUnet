@@ -340,16 +340,17 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
  *
  * @param desc bound socket
  * @param address address of the connecting peer, may be NULL
- * @param address_len length of address
+ * @param address_len length of @a address
  * @return client socket
  */
 struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
-                              struct sockaddr *address, socklen_t * address_len)
+                              struct sockaddr *address, 
+			      socklen_t *address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
 #if DEBUG_NETWORK
   {
     struct sockaddr name;
@@ -357,11 +358,17 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
     int gsn = getsockname (desc->fd, &name, &namelen);
 
     if (gsn == 0)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Accepting connection on `%s'\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	   "Accepting connection on `%s'\n",
            GNUNET_a2s (&name, namelen));
   }
 #endif
   ret->fd = accept (desc->fd, address, address_len);
+  if (-1 == ret->fd)
+  {
+    GNUNET_free (ret);
+    return NULL;
+  }
   if (GNUNET_OK != initialize_network_handle (ret,
 					      (NULL != address) ? address->sa_family : desc->af,
 					      SOCK_STREAM))
@@ -375,7 +382,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  *
  * @param desc socket to bind
  * @param address address to be bound
- * @param address_len length of address
+ * @param address_len length of @a address
  * @param flags flags affecting bind behaviour
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
@@ -507,14 +514,14 @@ GNUNET_NETWORK_socket_box_native (SOCKTYPE fd)
   /* FIXME: Find a better call to check that FD is valid */
   if (WSAIoctl (fd, FIONBIO, (void *) &i, sizeof (i), NULL, 0, &d, NULL, NULL) != 0)
     return NULL;                /* invalid FD */
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
   ret->fd = fd;
   ret->af = AF_UNSPEC;
   return ret;
 #else
   if (fcntl (fd, F_GETFD) < 0)
     return NULL;                /* invalid FD */
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
   ret->fd = fd;
   ret->af = AF_UNSPEC;
   return ret;
@@ -527,7 +534,7 @@ GNUNET_NETWORK_socket_box_native (SOCKTYPE fd)
  *
  * @param desc socket
  * @param address peer address
- * @param address_len length of address
+ * @param address_len length of @a address
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
@@ -558,13 +565,13 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
  * @param level protocol level of the option
  * @param optname identifier of the option
  * @param optval options
- * @param optlen length of optval
+ * @param optlen length of @a optval
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_NETWORK_socket_getsockopt (const struct GNUNET_NETWORK_Handle *desc,
                                   int level, int optname, void *optval,
-                                  socklen_t * optlen)
+                                  socklen_t *optlen)
 {
   int ret;
 
@@ -641,10 +648,10 @@ GNUNET_NETWORK_socket_recvfrom_amount (const struct GNUNET_NETWORK_Handle *
  *
  * @param desc socket
  * @param buffer buffer
- * @param length length of buffer
+ * @param length length of @a buffer
  * @param src_addr either the source to recv from, or all zeroes
  *        to be filled in by recvfrom
- * @param addrlen length of the addr
+ * @param addrlen length of the @a src_addr
  */
 ssize_t
 GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
@@ -674,7 +681,7 @@ GNUNET_NETWORK_socket_recvfrom (const struct GNUNET_NETWORK_Handle *desc,
  *
  * @param desc socket
  * @param buffer buffer
- * @param length length of buffer
+ * @param length length of @a buffer
  */
 ssize_t
 GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
@@ -702,8 +709,8 @@ GNUNET_NETWORK_socket_recv (const struct GNUNET_NETWORK_Handle * desc,
  *
  * @param desc socket
  * @param buffer data to send
- * @param length size of the buffer
- * @return number of bytes sent, GNUNET_SYSERR on error
+ * @param length size of the @a buffer
+ * @return number of bytes sent, #GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
@@ -741,7 +748,7 @@ GNUNET_NETWORK_socket_send (const struct GNUNET_NETWORK_Handle * desc,
  * @param message data to send
  * @param length size of the data
  * @param dest_addr destination address
- * @param dest_len length of address
+ * @param dest_len length of @a address
  * @return number of bytes sent, #GNUNET_SYSERR on error
  */
 ssize_t
@@ -811,8 +818,13 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
 {
   struct GNUNET_NETWORK_Handle *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle));
+  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
   ret->fd = socket (domain, type, protocol);
+  if (-1 == ret->fd)
+  {
+    GNUNET_free (ret);
+    return NULL;
+  }
   if (GNUNET_OK !=
       initialize_network_handle (ret, domain, type))
     return NULL;
@@ -1205,7 +1217,7 @@ GNUNET_NETWORK_fdset_create ()
 {
   struct GNUNET_NETWORK_FDSet *fds;
 
-  fds = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_FDSet));
+  fds = GNUNET_new (struct GNUNET_NETWORK_FDSet);
 #ifdef MINGW
   fds->handles = GNUNET_CONTAINER_slist_create ();
 #endif
