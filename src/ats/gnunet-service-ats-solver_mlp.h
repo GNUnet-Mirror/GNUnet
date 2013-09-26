@@ -1,22 +1,21 @@
 /*
-     This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011 Christian Grothoff (and other contributing authors)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+ GNUnet is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published
+ by the Free Software Foundation; either version 3, or (at your
+ option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
+ GNUnet is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ General Public License for more details.
 
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+ You should have received a copy of the GNU General Public License
+ along with GNUnet; see the file COPYING.  If not, write to the
+ Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ Boston, MA 02111-1307, USA.
+ */
 
 /**
  * @file ats/gnunet-service-ats-solver_mlp.h
@@ -54,33 +53,32 @@
 #define GLP_YES 1.0
 #define GLP_NO  0.0
 
-
 struct MLP_Solution
 {
-	struct GNUNET_TIME_Relative build_dur;
-	struct GNUNET_TIME_Relative lp_dur;
-	struct GNUNET_TIME_Relative mip_dur;
+  struct GNUNET_TIME_Relative build_dur;
+  struct GNUNET_TIME_Relative lp_dur;
+  struct GNUNET_TIME_Relative mip_dur;
 
-	int lp_res;
-	int lp_presolv;
-	int mip_res;
-	int mip_presolv;
+  int lp_res;
+  int lp_presolv;
+  int mip_res;
+  int mip_presolv;
 
-	int p_elements;
-	int p_cols;
-	int p_rows;
+  int p_elements;
+  int p_cols;
+  int p_rows;
 
-	int n_peers;
-	int n_addresses;
+  int n_peers;
+  int n_addresses;
 
 };
 
 struct ATS_Peer
 {
-	struct GNUNET_PeerIdentity id;
+  struct GNUNET_PeerIdentity id;
 
-	/* Was this peer already added to the current problem? */
-	int processed;
+  /* Was this peer already added to the current problem? */
+  int processed;
 
   /* constraint 2: 1 address per peer*/
   unsigned int r_c2;
@@ -91,8 +89,6 @@ struct ATS_Peer
   /* Legacy preference value */
   double f;
 };
-
-
 
 struct MLP_Problem
 {
@@ -150,7 +146,7 @@ struct MLP_Problem
 
 struct MLP_Variables
 {
-	/* Big M value for bandwidth capping */
+  /* Big M value for bandwidth capping */
   double BIG_M;
 
   /* ATS Quality metrics
@@ -188,7 +184,7 @@ struct MLP_Variables
 
   /* Quotas */
   /* Array mapping array index to ATS network */
-  int quota_index [GNUNET_ATS_NetworkTypeCount];
+  int quota_index[GNUNET_ATS_NetworkTypeCount];
   /* Outbound quotas */
   unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
   /* Inbound quotas */
@@ -202,7 +198,6 @@ struct MLP_Variables
   int rc[GNUNET_ATS_QualityPropertiesCount];
 
 };
-
 
 /**
  * MLP Handle
@@ -229,8 +224,6 @@ struct GAS_MLP_Handle
    */
   void *bw_changed_cb_cls;
 
-
-
   /**
    * ATS function to get preferences
    */
@@ -251,10 +244,24 @@ struct GAS_MLP_Handle
    */
   void *get_properties_cls;
 
+  /**
+   * Exclude peer from next result propagation
+   */
+  const struct GNUNET_PeerIdentity *exclude_peer;
+
+  /**
+   * Encapsulation for the MLP problem
+   */
   struct MLP_Problem p;
 
+  /**
+   * Encapsulation for the MLP problem variables
+   */
   struct MLP_Variables pv;
 
+  /**
+   * Encapsulation for the MLP solution
+   */
   struct MLP_Solution ps;
 
   /**
@@ -320,14 +327,13 @@ struct GAS_MLP_Handle
 
 };
 
-
 /**
  * Address specific MLP information
  */
 struct MLP_information
 {
 
-	/* Bandwidth assigned */
+  /* Bandwidth assigned */
   struct GNUNET_BANDWIDTH_Value32NBO b_out;
   struct GNUNET_BANDWIDTH_Value32NBO b_in;
 
@@ -358,7 +364,6 @@ struct MLP_information
 int
 GAS_mlp_solve_problem (void *solver);
 
-
 /**
  * Init the MLP problem solving component
  *
@@ -378,19 +383,12 @@ GAS_mlp_solve_problem (void *solver);
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_STATISTICS_Handle *stats,
-              const struct GNUNET_CONTAINER_MultiHashMap *addresses,
-              int *network,
-              unsigned long long *out_dest,
-              unsigned long long *in_dest,
-              int dest_length,
-              GAS_bandwidth_changed_cb bw_changed_cb,
-              void *bw_changed_cb_cls,
-              GAS_get_preferences get_preference,
-              void *get_preference_cls,
-              GAS_get_properties get_properties,
-              void *get_properties_cls);
-
+    const struct GNUNET_STATISTICS_Handle *stats,
+    const struct GNUNET_CONTAINER_MultiHashMap *addresses, int *network,
+    unsigned long long *out_dest, unsigned long long *in_dest, int dest_length,
+    GAS_bandwidth_changed_cb bw_changed_cb, void *bw_changed_cb_cls,
+    GAS_get_preferences get_preference, void *get_preference_cls,
+    GAS_get_properties get_properties, void *get_properties_cls);
 
 /**
  * Add a single address within a network to the solver
@@ -400,10 +398,8 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param network network type of this address
  */
 void
-GAS_mlp_address_add (void *solver,
-										struct ATS_Address *address,
-										uint32_t network);
-
+GAS_mlp_address_add (void *solver, struct ATS_Address *address,
+    uint32_t network);
 
 /**
  * Transport properties for this address have changed
@@ -415,12 +411,8 @@ GAS_mlp_address_add (void *solver,
  * @param rel_value the normalized value
  */
 void
-GAS_mlp_address_property_changed (void *solver,
-    															struct ATS_Address *address,
-    															uint32_t type,
-    															uint32_t abs_value,
-    															double rel_value);
-
+GAS_mlp_address_property_changed (void *solver, struct ATS_Address *address,
+    uint32_t type, uint32_t abs_value, double rel_value);
 
 /**
  * Transport session for this address has changed
@@ -433,11 +425,8 @@ GAS_mlp_address_property_changed (void *solver,
  * @param new_session the new session
  */
 void
-GAS_mlp_address_session_changed (void *solver,
-    														 struct ATS_Address *address,
-    														 uint32_t cur_session,
-    														 uint32_t new_session);
-
+GAS_mlp_address_session_changed (void *solver, struct ATS_Address *address,
+    uint32_t cur_session, uint32_t new_session);
 
 /**
  * Usage for this address has changed
@@ -449,10 +438,8 @@ GAS_mlp_address_session_changed (void *solver,
  * @param in_use usage state
  */
 void
-GAS_mlp_address_inuse_changed (void *solver,
-    													 struct ATS_Address *address,
-    													 int in_use);
-
+GAS_mlp_address_inuse_changed (void *solver, struct ATS_Address *address,
+    int in_use);
 
 /**
  * Network scope for this address has changed
@@ -465,10 +452,8 @@ GAS_mlp_address_inuse_changed (void *solver,
  * @param new_network the new network
  */
 void
-GAS_mlp_address_change_network (void *solver,
-															 struct ATS_Address *address,
-															 uint32_t current_network,
-															 uint32_t new_network);
+GAS_mlp_address_change_network (void *solver, struct ATS_Address *address,
+    uint32_t current_network, uint32_t new_network);
 
 /**
  * Deletes a single address in the MLP problem
@@ -480,10 +465,8 @@ GAS_mlp_address_change_network (void *solver,
  * @param session_only delete only session not whole address
  */
 void
-GAS_mlp_address_delete (void *solver,
-                        struct ATS_Address *address,
-                        int session_only);
-
+GAS_mlp_address_delete (void *solver, struct ATS_Address *address,
+    int session_only);
 
 /**
  * Changes the preferences for a peer in the MLP problem
@@ -495,10 +478,8 @@ GAS_mlp_address_delete (void *solver,
  */
 void
 GAS_mlp_address_change_preference (void *solver,
-								   const struct GNUNET_PeerIdentity *peer,
-								   enum GNUNET_ATS_PreferenceKind kind,
-								   double pref_rel);
-
+    const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
+    double pref_rel);
 
 /**
  * Get application feedback for a peer
@@ -511,14 +492,10 @@ GAS_mlp_address_change_preference (void *solver,
  * @param score the score
  */
 void
-GAS_mlp_address_preference_feedback (void *solver,
-											void *application,
-								 	 	 	const struct GNUNET_PeerIdentity *peer,
-								 	 	 	const struct GNUNET_TIME_Relative scope,
-								 	 	 	enum GNUNET_ATS_PreferenceKind kind,
-								 	 	 	double score);
-
-
+GAS_mlp_address_preference_feedback (void *solver, void *application,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_TIME_Relative scope,
+    enum GNUNET_ATS_PreferenceKind kind, double score);
 
 /**
  * Start a bulk operation
@@ -528,13 +505,11 @@ GAS_mlp_address_preference_feedback (void *solver,
 void
 GAS_mlp_bulk_start (void *solver);
 
-
 /**
  * Bulk operation done
  */
 void
 GAS_mlp_bulk_stop (void *solver);
-
 
 /**
  * Get the preferred address for a specific peer until
@@ -546,8 +521,7 @@ GAS_mlp_bulk_stop (void *solver);
  */
 const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
-                               const struct GNUNET_PeerIdentity *peer);
-
+    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Stop notifying about address and bandwidth changes for this peer
@@ -557,8 +531,7 @@ GAS_mlp_get_preferred_address (void *solver,
  */
 void
 GAS_mlp_stop_get_preferred_address (void *solver,
-                                     const struct GNUNET_PeerIdentity *peer);
-
+    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Shutdown the MLP problem solving component
