@@ -93,7 +93,7 @@ static char *rx_with_pfx;
 /**
  * How many put rounds should we do.
  */
-static unsigned int rounds = 5;
+static unsigned int rounds = 3;
 
 /**
  * Private key for this peer.
