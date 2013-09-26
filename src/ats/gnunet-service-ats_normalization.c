@@ -359,19 +359,8 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   values_to_update = 0;
   cur_client = NULL;
 
-  /*
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-      "Before for: head: %08x cur_client %08x \n", pc_head, cur_client);
-   */
-
-  //for (cur_client = pc_head; NULL != cur_client; cur_client = cur_client->next);
-  cur_client = pc_head;
-  while (NULL != cur_client)
+  for (cur_client = pc_head; NULL != cur_client; cur_client = cur_client->next)
   {
-    /*
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Aging client head: %p cur_client %p\n", pc_head, cur_client);
-     */
     for (p = cur_client->p_head; NULL != p; p = p->next)
     {
       /* Aging absolute values: */
@@ -399,8 +388,6 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
       }
     }
-
-    cur_client = cur_client->next;
   }
 
   if (values_to_update > 0)
