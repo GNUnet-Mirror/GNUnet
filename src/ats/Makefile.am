@@ -22,6 +22,7 @@ if HAVE_LIBGLPK
   GN_MLP_TEST_UPDATE = test_ats_mlp_update
   GN_MLP_TEST_AVG = test_ats_mlp_averaging
   GN_MLP_PERF = perf_ats_mlp
+  GN_MLP_ADDRESS = test_ats_solver_add_address_mlp
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
@@ -77,7 +78,7 @@ TESTING_TESTS = \
  test_ats_api_performance_monitor \
  test_ats_api_performance_monitor_initial_callback \
  test_ats_solver_add_address_proportional \
- test_ats_solver_add_address_mlp \
+ $(GN_MLP_ADDRESS) \
  test_ats_solver_add_address_ril
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt
@@ -231,6 +232,7 @@ test_ats_solver_add_address_proportional_LDADD = \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 	
+if HAVE_LIBGLPK	
 test_ats_solver_add_address_mlp_SOURCES = \
  test_ats_solver_add_address.c	
 test_ats_solver_add_address_mlp_LDADD = \
@@ -239,7 +241,8 @@ test_ats_solver_add_address_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-		
+endif  
+			
 test_ats_solver_add_address_ril_SOURCES = \
  test_ats_solver_add_address.c	
 test_ats_solver_add_address_ril_LDADD = \
@@ -334,7 +337,7 @@ test_ats_solver_add_address_ril_LDADD = \
 #  $(top_builddir)/src/testing/libgnunettesting.la \
 #  $(top_builddir)/src/ats/libgnunetats.la
 
-if HAVE_LIBGLPK
+
 #test_ats_mlp_SOURCES = \
 #  $(GN_MLP_SRC) test_ats_mlp.c test_ats_api_common.c gnunet-service-ats_normalization.c
 #test_ats_mlp_LDADD = \
@@ -358,7 +361,6 @@ if HAVE_LIBGLPK
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la \
 #  $(top_builddir)/src/ats/libgnunetats.la  
-endif  
 
 #test_ats_normalization_update_quality_SOURCES = \
 #  test_ats_normalization_update_quality.c test_ats_api_common.c
@@ -372,4 +374,7 @@ endif
 EXTRA_DIST = \
   ats.h \
   test_ats_api.conf \
-  test_ats_mlp.conf
+  test_ats_mlp.conf \
+  test_ats_solver_proportional.conf \
+  test_ats_solver_mlp.conf \
+  test_ats_solver_ril.conf 
