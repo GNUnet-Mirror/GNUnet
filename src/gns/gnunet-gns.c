@@ -129,7 +129,7 @@ do_shutdown (void *cls,
 
 
 /**
- * Function called with the result of a GADS lookup.
+ * Function called with the result of a GNS lookup.
  *
  * @param cls the 'const char *' name that was resolved
  * @param rd_count number of records returned

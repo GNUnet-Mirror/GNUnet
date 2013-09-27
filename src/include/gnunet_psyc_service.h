@@ -36,7 +36,7 @@
  *   'places' and 'persons' are combined within the same
  *   abstraction, that of a "channel".  Channels are identified
  *   and accessed in this API using a public/private key.
- *   Higher-level applications should use NAMES within GADS
+ *   Higher-level applications should use NAMES within GNS
  *   to obtain public keys, and the distinction between
  *   'places' and 'persons' can then be made with the help
  *   of the naming system (and/or conventions).
@@ -52,7 +52,7 @@
  *   @c \#define for the maximum size of a variable).
  * - PSYC defines standard variables, methods, etc.  This
  *   library deliberately abstracts over all of these; a
- *   higher-level API should combine the naming system (GADS)
+ *   higher-level API should combine the naming system (GNS)
  *   and standard methods (message, join, part, warn,
  *   fail, error) and variables (action, color, time,
  *   tag, etc.).  However, this API does take over the
@@ -407,7 +407,7 @@ typedef void
  * @param channel_key ECC key that will be used to sign messages for this
  *        PSYC session. The public key is used to identify the PSYC channel.
  *        Note that end-users will usually not use the private key directly, but
- *        rather look it up in GADS for places managed by other users, or select
+ *        rather look it up in GNS for places managed by other users, or select
  *        a file with the private key(s) when setting up their own channels
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
