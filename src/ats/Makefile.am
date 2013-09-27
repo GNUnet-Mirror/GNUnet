@@ -83,20 +83,21 @@ TESTING_TESTS = \
  test_ats_api_performance_monitor \
  test_ats_api_performance_monitor_initial_callback \
  test_ats_solver_add_address_proportional \
- $(GN_MLP_ADD_ADDRESS) \
- test_ats_solver_add_address_ril \
  test_ats_solver_add_address_and_request_proportional \
- $(GN_MLP_ADD_REQUEST_ADDRESS) \
- test_ats_solver_add_address_and_request_ril \
  test_ats_solver_request_and_add_address_proportional \
- $(GN_MLP_REQUEST_ADD_ADDRESS) \
- test_ats_solver_request_and_add_address_ril \
  test_ats_solver_request_and_delete_address_proportional \
- $(GN_MLP_REQUEST_DELETE_ADDRESS) \
- test_ats_solver_request_and_delete_address_ril \
  test_ats_solver_alternative_after_delete_address_proportional \
- $(GN_MLP_ALTERNATIVE_DELETE_ADDRESS) \
- test_ats_solver_alternative_after_delete_address_ril  
+ $(GN_MLP_ADD_REQUEST_ADDRESS) \
+ $(GN_MLP_ADD_REQUEST_ADDRESS) \
+ $(GN_MLP_REQUEST_ADD_ADDRESS) \
+ $(GN_MLP_REQUEST_DELETE_ADDRESS) \
+ $(GN_MLP_ALTERNATIVE_DELETE_ADDRESS)
+# test_ats_solver_add_address_ril
+# test_ats_solver_add_address_and_request_ril
+# test_ats_solver_request_and_add_address_ril 
+# test_ats_solver_request_and_delete_address_ril 
+# test_ats_solver_alternative_after_delete_address_ril
+  
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt
 # test_ats_api_scheduling_update_address
