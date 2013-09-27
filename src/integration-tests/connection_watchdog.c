@@ -206,9 +206,11 @@ static int
 check_lowlevel_connections (int port, int protocol)
 {
 #ifdef MINGW
-  /* not supported */
-  return count;
+  #define DEVNULL "NUL"
 #else
+  #define DEVNULL "/dev/null"
+#endif
+
   FILE *f;
   char * cmdline;
   char * proto;
@@ -218,13 +220,25 @@ check_lowlevel_connections (int port, int protocol)
   switch (protocol) 
   {
     case tcp:
+#ifdef MINGW
+      proto = "-p TCP";
+#else
       proto = "-t";
+#endif
       break;
     case udp:
+#ifdef MINGW
+      proto = "-p UDP";
+#else
       proto = "-u";
+#endif
       break;
     case unixdomain:
+#ifdef MINGW
+      proto = "-p UNIX";
+#else
       proto = "-x";
+#endif
       break;
     default:
       proto = "";
@@ -234,8 +248,8 @@ check_lowlevel_connections (int port, int protocol)
   /* Use netstat to get a numeric list of all connections on port 'port' in state 'ESTABLISHED' */
   GNUNET_asprintf(&cmdline, "netstat -n %s | grep %u | grep ESTABLISHED", proto, port);
 
-  if (system ("netstat -n > /dev/null 2> /dev/null"))
-    if (system ("netstat -n > /dev/null 2> /dev/null") == 0)
+  if (system ("netstat -n > " DEVNULL " 2> " DEVNULL))
+    if (system ("netstat -n > " DEVNULL " 2> "DEVNULL) == 0)
       f = popen (cmdline, "r");
     else
       f = NULL;
@@ -263,7 +277,6 @@ check_lowlevel_connections (int port, int protocol)
   pclose (f);
   GNUNET_free (cmdline);
   return count;
-#endif
 }
 
 
