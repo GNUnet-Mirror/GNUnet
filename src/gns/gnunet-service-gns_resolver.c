@@ -1522,7 +1522,7 @@ handle_gns_resolution_result (void *cls,
 	   created from the remainder of the GNS name and the
 	   name in the NS record */
 	GNUNET_asprintf (&ac->label,
-			 "%.*s%s",
+			 "%.*s.%s",
 			 (int) rh->name_resolution_pos,
 			 rh->name,
 			 ns);
