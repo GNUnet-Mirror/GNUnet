@@ -1,0 +1,132 @@
+Index: src/ats/ats_api_scheduling.c
+===================================================================
+--- src/ats/ats_api_scheduling.c	(revision 29617)
++++ src/ats/ats_api_scheduling.c	(working copy)
+@@ -28,7 +28,7 @@
+ #include "ats.h"
+ 
+ 
+-#define INTERFACE_PROCESSING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
++#define INTERFACE_PROCESSING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 1)
+ 
+ #define NOT_FOUND 0
+ 
+Index: src/ats/gnunet-service-ats-solver_proportional.c
+===================================================================
+--- src/ats/gnunet-service-ats-solver_proportional.c	(revision 29617)
++++ src/ats/gnunet-service-ats-solver_proportional.c	(working copy)
+@@ -205,12 +205,12 @@
+  *
+  */
+ 
+-#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
++#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
+ #define PREF_AGING_FACTOR 0.95
+ 
+ #define DEFAULT_REL_PREFERENCE 1.0
+ #define DEFAULT_ABS_PREFERENCE 0.0
+-#define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
++#define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
+ 
+ /**
+  * A handle for the proportional solver
+Index: src/ats/gnunet-service-ats_normalization.h
+===================================================================
+--- src/ats/gnunet-service-ats_normalization.h	(revision 29617)
++++ src/ats/gnunet-service-ats_normalization.h	(working copy)
+@@ -27,7 +27,7 @@
+ #include "platform.h"
+ #include "gnunet_ats_service.h"
+ 
+-#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
++#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
+ #define PREF_AGING_FACTOR 0.95
+ #define PREF_EPSILON 0.1
+ 
+Index: src/include/gnunet_constants.h
+===================================================================
+--- src/include/gnunet_constants.h	(revision 29617)
++++ src/include/gnunet_constants.h	(working copy)
+@@ -49,7 +49,7 @@
+  * After how long do we consider a connection to a peer dead
+  * if we don't receive messages from the peer?
+  */
+-#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
++#define GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 5)
+ 
+ /**
+  * How long do we delay reading more from a peer after a quota violation?
+@@ -61,7 +61,7 @@
+  * even if we assume that the service commonly does not
+  * respond instantly (DNS, Database, etc.).
+  */
+-#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10)
++#define GNUNET_CONSTANTS_SERVICE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 10)
+ 
+ /**
+  * How long do we delay messages to get larger packet sizes (CORKing)?
+Index: src/transport/gnunet-service-transport_neighbours.c
+===================================================================
+--- src/transport/gnunet-service-transport_neighbours.c	(revision 29617)
++++ src/transport/gnunet-service-transport_neighbours.c	(working copy)
+@@ -65,7 +65,7 @@
+  * send 3 keepalives in each interval, so 3 messages would need to be
+  * lost in a row for a disconnect).
+  */
+-#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
++#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 100)
+ 
+ /**
+  * How long are we willing to wait for a response from ATS before timing out?
+Index: src/transport/gnunet-service-transport_validation.c
+===================================================================
+--- src/transport/gnunet-service-transport_validation.c	(revision 29617)
++++ src/transport/gnunet-service-transport_validation.c	(working copy)
+@@ -42,7 +42,7 @@
+  * OTOH, we don't want to spend too much time generating PONG signatures,
+  * so they must have some lifetime to reduce our CPU usage.
+  */
+-#define PONG_SIGNATURE_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
++#define PONG_SIGNATURE_LIFETIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 12)
+ 
+ /**
+  * After how long do we expire an address in a HELLO that we just
+@@ -57,7 +57,7 @@
+  * we cannot validate (because after this time we can destroy the
+  * validation record).
+  */
+-#define UNVALIDATED_PING_KEEPALIVE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
++#define UNVALIDATED_PING_KEEPALIVE GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 4)
+ 
+ /**
+  * How often do we PING an address that we have successfully validated
+@@ -64,17 +64,17 @@
+  * in the past but are not actively using?  Should be (significantly)
+  * smaller than HELLO_ADDRESS_EXPIRATION.
+  */
+-#define VALIDATED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15)
++#define VALIDATED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 6)
+ 
+ /**
+  * How often do we PING an address that we are currently using?
+  */
+-#define CONNECTED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
++#define CONNECTED_PING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_YEARS, 2)
+ 
+ /**
+  * How much delay is acceptable for sending the PING or PONG?
+  */
+-#define ACCEPTABLE_PING_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
++#define ACCEPTABLE_PING_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
+ 
+ /**
+  * Size of the validation map hashmap.
+@@ -807,7 +807,7 @@
+ 	 */
+ 
+ 	validation_next = GNUNET_TIME_absolute_get();
+-	validation_delay.rel_value_us = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2);
++	validation_delay.rel_value_us = GNUNET_TIME_UNIT_MILLISECONDS.rel_value_us;
+ 	validations_fast_start_threshold = (max_fds / 2);
+ 	validations_running = 0;
+ 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
