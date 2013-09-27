@@ -929,6 +929,11 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
                 "Failed to start/stop daemon at peer %u: %s\n", peer->id, emsg);
     GNUNET_abort ();
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Deamon %u started successfully\n", peer->id);
+  }
 
   /* Find a peer to look for a string matching the regex announced */
   search_peer = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
