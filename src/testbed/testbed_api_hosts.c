@@ -1092,6 +1092,9 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     char **rsh_suffix_args;
     const char *username;
     char *port;
+    char *argstr;
+    char *aux;
+    unsigned int cnt;
 
     username = host->username;
     hostname = host->hostname;
@@ -1111,6 +1114,15 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     free_argv (rsh_args);
     free_argv (rsh_suffix_args);
     GNUNET_free (port);
+    argstr = GNUNET_strdup ("");
+    for (cnt = 0; NULL != cp->helper_argv[cnt]; cnt++)
+    {
+      aux = argstr;      
+      GNUNET_assert (0 < GNUNET_asprintf (&argstr, "%s %s", aux, cp->helper_argv[cnt]));
+      GNUNET_free (aux);
+    }
+    LOG_DEBUG ("Helper cmd str: %s\n", argstr);
+    GNUNET_free (argstr);
     cp->helper =
         GNUNET_HELPER_start (GNUNET_NO, cp->helper_argv[0], cp->helper_argv, &helper_mst,
                              &helper_exp_cb, cp);
