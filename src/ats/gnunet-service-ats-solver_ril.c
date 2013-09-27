@@ -539,7 +539,10 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
       agent->address_inuse->active = GNUNET_NO;
     }
     agent->address_inuse = new_address;
-    agent->address_inuse->active = GNUNET_YES;
+    if (agent->active)
+    {
+      agent->address_inuse->active = GNUNET_YES;
+    }
     agent->address_inuse->assigned_bw_in.value__ = htonl (agent->bw_in);
     agent->address_inuse->assigned_bw_out.value__ = htonl (agent->bw_out);
     notify |= GNUNET_YES;
