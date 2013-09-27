@@ -436,8 +436,6 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * invalidates the respective transmission handle.
  *
  * @param cls Closure.
- * @param message_id Set to the unique message ID that was generated for
- *        this message.
  * @param[in,out] data_size Initially set to the number of bytes available in
  *        @a data, should be set to the number of bytes written to data.
  * @param[out] data Where to write the body of the message to give to the
@@ -451,7 +449,6 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 typedef int
 (*GNUNET_PSYC_MasterTransmitNotify) (void *cls,
-                                     uint64_t message_id,
                                      size_t *data_size,
                                      void *data);
 

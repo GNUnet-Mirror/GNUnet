@@ -131,6 +131,10 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT 18
 
+/**
+ * Signature of a multicast message.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE 19
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
