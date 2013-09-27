@@ -1152,48 +1152,53 @@ handle_gns_resolution_result (void *cls,
     {
       for (i=0;i<rd_count;i++)
       {
-	if (GNUNET_NAMESTORE_TYPE_VPN == rd[i].record_type)
+	switch (rd[i].record_type)
 	{
-	  af = (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ? AF_INET : AF_INET6;
-	  if (sizeof (struct GNUNET_TUN_GnsVpnRecord) <
-	      rd[i].data_size)
+	case GNUNET_NAMESTORE_TYPE_VPN:
 	  {
-	    GNUNET_break_op (0);
-	    rh->proc (rh->proc_cls, 0, NULL);
-	    GNS_resolver_lookup_cancel (rh);
-	    return;         
-	  }
-	  vpn = (const struct GNUNET_TUN_GnsVpnRecord *) rd[i].data;
-	  vname = (const char *) &vpn[1];
-	  if ('\0' != vname[rd[i].data_size - 1 - sizeof (struct GNUNET_TUN_GnsVpnRecord)])
-	  {
-	    GNUNET_break_op (0);
-	    rh->proc (rh->proc_cls, 0, NULL);
-	    GNS_resolver_lookup_cancel (rh);
+	    af = (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ? AF_INET : AF_INET6;
+	    if (sizeof (struct GNUNET_TUN_GnsVpnRecord) <
+		rd[i].data_size)
+	    {
+	      GNUNET_break_op (0);
+	      rh->proc (rh->proc_cls, 0, NULL);
+	      GNS_resolver_lookup_cancel (rh);
+	      return;         
+	    }
+	    vpn = (const struct GNUNET_TUN_GnsVpnRecord *) rd[i].data;
+	    vname = (const char *) &vpn[1];
+	    if ('\0' != vname[rd[i].data_size - 1 - sizeof (struct GNUNET_TUN_GnsVpnRecord)])
+	    {
+	      GNUNET_break_op (0);
+	      rh->proc (rh->proc_cls, 0, NULL);
+	      GNS_resolver_lookup_cancel (rh);
+	      return;
+	    }
+	    GNUNET_CRYPTO_hash (vname,
+				strlen (vname), // FIXME: +1?
+				&vhash);
+	    vpn_ctx = GNUNET_new (struct VpnContext);
+	    rh->vpn_ctx = vpn_ctx;
+	    vpn_ctx->rh = rh;
+	    vpn_ctx->rd_data_size = GNUNET_NAMESTORE_records_get_size (rd_count,
+								       rd);
+	    vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
+	    (void) GNUNET_NAMESTORE_records_serialize (rd_count,
+						       rd,
+						       vpn_ctx->rd_data_size,
+						       vpn_ctx->rd_data);
+	    vpn_ctx->vpn_request = GNUNET_VPN_redirect_to_peer (vpn_handle,
+								af,
+								ntohs (vpn->proto),
+								&vpn->peer,
+								&vhash,
+								GNUNET_TIME_relative_to_absolute (VPN_TIMEOUT),
+								&vpn_allocation_cb,
+								rh);
 	    return;
 	  }
-	  GNUNET_CRYPTO_hash (vname,
-			      strlen (vname), // FIXME: +1?
-			      &vhash);
-	  vpn_ctx = GNUNET_new (struct VpnContext);
-	  rh->vpn_ctx = vpn_ctx;
-	  vpn_ctx->rh = rh;
-	  vpn_ctx->rd_data_size = GNUNET_NAMESTORE_records_get_size (rd_count,
-								     rd);
-	  vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
-	  (void) GNUNET_NAMESTORE_records_serialize (rd_count,
-						     rd,
-						     vpn_ctx->rd_data_size,
-						     vpn_ctx->rd_data);
-	  vpn_ctx->vpn_request = GNUNET_VPN_redirect_to_peer (vpn_handle,
-							      af,
-							      ntohs (vpn->proto),
-							      &vpn->peer,
-							      &vhash,
-							      GNUNET_TIME_relative_to_absolute (VPN_TIMEOUT),
-							      &vpn_allocation_cb,
-							      rh);
-	  return;
+	default:
+	  break;
 	}
       }
     }
