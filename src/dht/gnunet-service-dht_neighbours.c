@@ -1602,7 +1602,7 @@ handle_dht_p2p_put (void *cls,
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
     LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-		 "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
+                 "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
                  GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
                  ntohl(put->hop_count),
                  GNUNET_CRYPTO_hash_matching_bits (&peer->hashPubKey, &put->key),
@@ -1617,7 +1617,12 @@ handle_dht_p2p_put (void *cls,
   case GNUNET_YES:
     if (0 != memcmp (&test_key, &put->key, sizeof (struct GNUNET_HashCode)))
     {
+      char *put_s = GNUNET_strdup (GNUNET_h2s (&put->key));
       GNUNET_break_op (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "PUT with key `%s' for block with key %s\n",
+                  put_s, GNUNET_h2s (&test_key));
+      GNUNET_free (put_s);
       return GNUNET_YES;
     }
     break;
