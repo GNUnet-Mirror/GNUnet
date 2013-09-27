@@ -32,6 +32,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
+#define RIL_ACTION_INVALID -1
+
 #define RIL_DEFAULT_STEP_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
 #define RIL_DEFAULT_ALGORITHM RIL_ALGO_Q
 #define RIL_DEFAULT_DISCOUNT_FACTOR 0.5
@@ -46,7 +48,6 @@
  */
 
 /**
- * TODO! implement address administration
  * TODO! implement reward calculation 1 and 2 (i.e. meeting preferences and taking scores)
  */
 
@@ -63,7 +64,6 @@ enum RIL_Action_Type
   RIL_ACTION_BW_OUT_DEC = 8,
   RIL_ACTION_TYPE_NUM = 9
 };
-//TODO! add the rest of the actions
 
 enum RIL_Algorithm
 {
@@ -433,7 +433,7 @@ static int
 agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
-  int max_i = -1;
+  int max_i = RIL_ACTION_INVALID;
   double cur_q;
   double max_q = -DBL_MAX;
 
@@ -447,7 +447,7 @@ agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
     }
   }
 
-  GNUNET_assert(-1 != max_i);
+  GNUNET_assert(RIL_ACTION_INVALID != max_i);
 
   return max_i;
 }
@@ -544,6 +544,7 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
     agent->address_inuse->assigned_bw_out.value__ = htonl (agent->bw_out);
     notify |= GNUNET_YES;
   }
+
   if (agent->bw_in != new_bw_in)
   {
     agent->bw_in = new_bw_in;
@@ -679,6 +680,28 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   }
 }
 
+static void
+envi_action_address_switch (struct GAS_RIL_Handle *solver,
+    struct RIL_Peer_Agent *agent,
+    unsigned int address_index)
+{
+  struct RIL_Address_Wrapped *cur;
+  int i = 0;
+
+  for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
+  {
+    if (i == address_index) {
+      envi_set_active_suggestion(solver, agent, cur->address_naked, agent->bw_in, agent->bw_out);
+      return;
+    }
+
+    i++;
+  }
+
+  //no address with address_index exists
+  GNUNET_assert (GNUNET_NO);
+}
+
 /**
  * Puts the action into effect
  * @param solver solver handle
@@ -687,6 +710,8 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
 static void
 envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int action)
 {
+  unsigned int address_index;
+
   switch (action)
   {
   case RIL_ACTION_NOTHING:
@@ -716,6 +741,16 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
     envi_action_bw_dec (solver, agent, GNUNET_NO);
     break;
   default:
+    if ((action >= RIL_ACTION_TYPE_NUM) && (action < agent->n))
+    {
+      address_index = agent->n - RIL_ACTION_TYPE_NUM;
+
+      GNUNET_assert (address_index >= 0);
+      GNUNET_assert (address_index <= agent_address_get_index (agent, agent->addresses_tail->address_naked));
+
+      envi_action_address_switch (solver, agent, address_index);
+      break;
+    }
     // error - action does not exist
     GNUNET_assert(GNUNET_NO);
   }
@@ -731,7 +766,7 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
 static void
 agent_step (struct RIL_Peer_Agent *agent)
 {
-  int a_next = -1;
+  int a_next = RIL_ACTION_INVALID;
   double *s_next;
   double reward;
 
@@ -753,16 +788,20 @@ agent_step (struct RIL_Peer_Agent *agent)
     {
       a_next = agent_get_action_best (agent, s_next);
     }
-    //updates weights with selected action (on-policy), if not first step
-    if (-1 != agent->a_old)
+    if (RIL_ACTION_INVALID != agent->a_old)
+    {
+      //updates weights with selected action (on-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
+    }
     break;
 
   case RIL_ALGO_Q:
-    //updates weights with best action, disregarding actually selected action (off-policy), if not first step
     a_next = agent_get_action_best (agent, s_next);
-    if (-1 != agent->a_old)
+    if (RIL_ACTION_INVALID != agent->a_old)
+    {
+      //updates weights with best action, disregarding actually selected action (off-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
+    }
     if (agent_decide_exploration (agent))
     {
       a_next = agent_get_action_explore (agent, s_next);
@@ -776,7 +815,7 @@ agent_step (struct RIL_Peer_Agent *agent)
     break;
   }
 
-  GNUNET_assert(-1 != a_next);
+  GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
   agent_modify_eligibility (agent, RIL_E_ACCUMULATE);
 
@@ -839,7 +878,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   {
     agent->W[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   }
-  agent->a_old = -1;
+  agent->a_old = RIL_ACTION_INVALID;
   agent->e = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   agent_modify_eligibility (agent, RIL_E_ZERO);
 
@@ -936,8 +975,9 @@ ril_cut_from_vector (void **old, size_t element_size, unsigned int hole_start, u
   unsigned int bytes_hole;
   unsigned int bytes_after;
 
+//  LOG(GNUNET_ERROR_TYPE_DEBUG, "hole_start = %d, hole_length = %d, old_length = %d\n", hole_start, hole_length, old_length);
   GNUNET_assert(old_length > hole_length);
-  GNUNET_assert(old_length > (hole_start + hole_length - 1));
+  GNUNET_assert(old_length >= (hole_start + hole_length));
 
   size = (old_length - hole_length) * element_size;
 
@@ -1206,7 +1246,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   }
 
   //increase size of old state vector if there is one
-  if (-1 != agent->a_old)
+  if (RIL_ACTION_INVALID != agent->a_old)
   {
     agent->m = m_old;
     GNUNET_array_grow(agent->s_old, agent->m, m_new); //TODO initialize new state features?
@@ -1246,14 +1286,32 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   struct RIL_Network *net;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() Delete %s%s %s address %p for peer '%s'\n",
+        session_only ? "session for " : "",
+            address->active ? "active" : "inactive",
+        address->plugin,
+        address->addr,
+        GNUNET_i2s (&address->peer));
+
   agent = ril_get_agent(s, &address->peer, GNUNET_NO);
   if (NULL == agent)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "No agent allocated for peer\n");
+    net = address->solver_information;
+    GNUNET_assert (!ril_network_is_active(s, net->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "No agent allocated for peer yet, since address was in inactive network\n");
+    return;
   }
 
   address_index = agent_address_get_index(agent, address);
   address_wrapped = agent_address_get(agent, address);
+
+  if (NULL == address_wrapped)
+  {
+    net = address->solver_information;
+    GNUNET_assert (!ril_network_is_active(s, net->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Address not considered by agent, address was in inactive network\n");
+    return;
+  }
 
   GNUNET_CONTAINER_DLL_remove(agent->addresses_head, agent->addresses_tail, address_wrapped);
 
@@ -1263,8 +1321,10 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
 
   for (i = 0; i < agent->n; i++)
   {
-    ril_cut_from_vector((void **) &agent->W[i], sizeof (double), ((s->networks_count * 4) + (i * 5)), 5, agent->m);
+//    LOG (GNUNET_ERROR_TYPE_DEBUG, "first - cut vectors in W\n");
+    ril_cut_from_vector((void **) &agent->W[i], sizeof (double), ((s->networks_count * 4) + (address_index * 5)), 5, agent->m);
   }
+//  LOG (GNUNET_ERROR_TYPE_DEBUG, "second - cut action vector out of W\n");
   ril_cut_from_vector((void **) &agent->W, sizeof (double *), RIL_ACTION_TYPE_NUM + address_index, 1, agent->n);
   //correct last action
   if (agent->a_old > (RIL_ACTION_TYPE_NUM + address_index))
@@ -1273,11 +1333,13 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   }
   else if (agent->a_old == (RIL_ACTION_TYPE_NUM + address_index))
   {
-    agent->a_old = -1; //TODO! macro for invalid action
+    agent->a_old = RIL_ACTION_INVALID;
   }
   //decrease old state vector and eligibility vector
-  ril_cut_from_vector((void **) &agent->s_old, sizeof (double), ((s->networks_count * 4) + (i * 5)), 5, agent->m);
-  ril_cut_from_vector((void **) &agent->e,     sizeof (double), ((s->networks_count * 4) + (i * 5)), 5, agent->m);
+//  LOG (GNUNET_ERROR_TYPE_DEBUG, "third - cut state vector\n");
+  ril_cut_from_vector((void **) &agent->s_old, sizeof (double), ((s->networks_count * 4) + (address_index * 5)), 5, agent->m);
+//  LOG (GNUNET_ERROR_TYPE_DEBUG, "fourth - cut eligibility vector\n");
+  ril_cut_from_vector((void **) &agent->e,     sizeof (double), ((s->networks_count * 4) + (address_index * 5)), 5, agent->m);
   agent->m = m_new;
   agent->n = n_new;
 
@@ -1287,15 +1349,17 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
     net->bw_in_assigned -= agent->bw_in;
     net->bw_out_assigned -= agent->bw_out;
 
+    if (NULL != agent->addresses_head) //if peer has an address left, use it
+    {
     //TODO? check if network/bandwidth update can be done more clever/elegant at different function
-    envi_set_active_suggestion(s, agent, agent->addresses_head->address_naked, min_bw, min_bw);
-    net = agent->addresses_head->address_naked->solver_information;
-    net->bw_in_assigned -= min_bw;
-    net->bw_out_assigned -= min_bw;
+      envi_set_active_suggestion(s, agent, agent->addresses_head->address_naked, min_bw, min_bw);
+      net = agent->addresses_head->address_naked->solver_information;
+      net->bw_in_assigned -= min_bw;
+      net->bw_out_assigned -= min_bw;
+    }
   }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() Deleted %s%s address for peer '%s'\n",
-      session_only ? "session for " : "", address->plugin, GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Address deleted\n");
 }
 
 /**
@@ -1316,7 +1380,7 @@ GAS_ril_address_property_changed (void *solver,
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_property_changed() Property '%s' for peer '%s' address %p changed "
-          "to %.2f \n", GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer), address,
+          "to %.2f \n", GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer), address->addr,
       rel_value);
   /*
    * Nothing to do here, properties are considered in every reward calculation
