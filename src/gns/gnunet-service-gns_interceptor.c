@@ -102,17 +102,22 @@ reply_to_dns (void *cls, uint32_t rd_count,
   struct InterceptLookupHandle *ilh = cls;
   struct GNUNET_DNSPARSER_Packet *packet = ilh->packet;
   struct GNUNET_DNSPARSER_Query *query = &packet->queries[0];
-  uint32_t i;
+  uint32_t i;  
   size_t len;
   int ret;
   char *buf;
   unsigned int num_answers;
+  unsigned int skip_answers;
+  unsigned int skip_additional;
+  size_t off;
     
   /* Put records in the DNS packet */
   num_answers = 0;
   for (i=0; i < rd_count; i++)
     if (rd[i].record_type == query->type)
       num_answers++;
+  skip_answers = 0;
+  skip_additional = 0;
 
   {
     struct GNUNET_DNSPARSER_Record answer_records[num_answers];
@@ -120,7 +125,6 @@ reply_to_dns (void *cls, uint32_t rd_count,
 
     packet->answers = answer_records;
     packet->additional_records = additional_records;
-
     /* FIXME: need to handle #GNUNET_NAMESTORE_RF_SHADOW_RECORD option
        (by ignoring records where this flag is set if there is any
        other record of that type in the result set) */
@@ -128,70 +132,121 @@ reply_to_dns (void *cls, uint32_t rd_count,
     {
       if (rd[i].record_type == query->type)
       {
-	answer_records[i].name = query->name;
-	answer_records[i].type = rd[i].record_type;
+	answer_records[i - skip_answers].name = query->name;
+	answer_records[i - skip_answers].type = rd[i].record_type;
 	switch(rd[i].record_type)
 	{
 	case GNUNET_DNSPARSER_TYPE_NS:
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	case GNUNET_DNSPARSER_TYPE_PTR:
-	  // FIXME: NO! need to use DNSPARSER!
-	  answer_records[i].data.hostname = (char*)rd[i].data;
+	  answer_records[i - skip_answers].data.hostname
+	    = GNUNET_DNSPARSER_parse_name (rd[i].data,
+					   rd[i].data_size,
+					   &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == answer_records[i].data.hostname) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_answers++;
+	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
-	  // FIXME: NO! need to use DNSPARSER!
-	  answer_records[i].data.soa =
-	    (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
+	  answer_records[i - skip_answers].data.soa 
+	    = GNUNET_DNSPARSER_parse_soa (rd[i].data,
+					  rd[i].data_size,
+					  &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == answer_records[i].data.soa) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_answers++;
+	  }
+	  break;
+	case GNUNET_DNSPARSER_TYPE_SRV:
+	  /* FIXME: SRV is not yet supported */
+	  skip_answers++;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
-	  // FIXME: NO! need to use DNSPARSER!
-	  answer_records[i].data.mx =
-	    (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
+	  answer_records[i - skip_answers].data.mx 
+	    = GNUNET_DNSPARSER_parse_mx (rd[i].data,
+					 rd[i].data_size,
+					 &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == answer_records[i].data.hostname) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_answers++;
+	  }
 	  break;
 	default:
-	  answer_records[i].data.raw.data_len = rd[i].data_size;
-	  answer_records[i].data.raw.data = (char*)rd[i].data;
+	  answer_records[i - skip_answers].data.raw.data_len = rd[i].data_size;
+	  answer_records[i - skip_answers].data.raw.data = (char*)rd[i].data;
 	  break;
 	}
-	GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-	answer_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
-	answer_records[i].class = GNUNET_TUN_DNS_CLASS_INTERNET;
+	GNUNET_break (0 == (rd[i - skip_answers].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+	answer_records[i - skip_answers].expiration_time.abs_value_us = rd[i].expiration_time;
+	answer_records[i - skip_answers].class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }
       else
       {
-	additional_records[i].name = query->name;
-	additional_records[i].type = rd[i].record_type;
+	additional_records[i - skip_additional].name = query->name;
+	additional_records[i - skip_additional].type = rd[i].record_type;
 	switch(rd[i].record_type)
 	{
 	case GNUNET_DNSPARSER_TYPE_NS:
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	case GNUNET_DNSPARSER_TYPE_PTR:
-	  // FIXME: NO! need to use DNSPARSER!
-	  additional_records[i].data.hostname = (char*)rd[i].data;
+	  additional_records[i - skip_additional].data.hostname 
+	    = GNUNET_DNSPARSER_parse_name (rd[i].data,
+					   rd[i].data_size,
+					   &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == additional_records[i].data.hostname) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_additional++;
+	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
-	  // FIXME: NO! need to use DNSPARSER!
-	  additional_records[i].data.soa =
-	    (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
+	  additional_records[i - skip_additional].data.soa 
+	    = GNUNET_DNSPARSER_parse_soa (rd[i].data,
+					  rd[i].data_size,
+					  &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == additional_records[i].data.hostname) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_additional++;
+	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
-	  // FIXME: NO! need to use DNSPARSER!
-	  additional_records[i].data.mx =
-	    (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
+	  additional_records[i - skip_additional].data.mx 
+	    = GNUNET_DNSPARSER_parse_mx (rd[i].data,
+					 rd[i].data_size,
+					 &off);
+	  if ( (off != rd[i].data_size) ||
+	       (NULL == additional_records[i].data.hostname) )
+	  {
+	    GNUNET_break_op (0);
+	    skip_additional++;
+	  }
+	  break;
+	case GNUNET_DNSPARSER_TYPE_SRV:
+	  /* FIXME: SRV is not yet supported */
+	  skip_answers++;
 	  break;
 	default:
-	  // FIXME: NO! need to use DNSPARSER!
-	  additional_records[i].data.raw.data_len = rd[i].data_size;
-	  additional_records[i].data.raw.data = (char*)rd[i].data;
+	  additional_records[i - skip_additional].data.raw.data_len = rd[i].data_size;
+	  additional_records[i - skip_additional].data.raw.data = (char*)rd[i].data;
 	  break;
 	}
-	GNUNET_break (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
-	additional_records[i].expiration_time.abs_value_us = rd[i].expiration_time;
-	additional_records[i].class = GNUNET_TUN_DNS_CLASS_INTERNET; 
+	GNUNET_break (0 == (rd[i - skip_additional].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+	additional_records[i - skip_additional].expiration_time.abs_value_us = rd[i].expiration_time;
+	additional_records[i - skip_additional].class = GNUNET_TUN_DNS_CLASS_INTERNET; 
       }
     }
-    packet->num_answers = num_answers;
-    packet->num_additional_records = rd_count - num_answers;
+    packet->num_answers = num_answers - skip_answers;
+    packet->num_additional_records = rd_count - num_answers - skip_additional;
     packet->flags.authoritative_answer = 1;
     if (NULL == rd)
       packet->flags.return_code = GNUNET_TUN_DNS_RETURN_CODE_NAME_ERROR;
