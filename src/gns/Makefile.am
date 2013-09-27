@@ -201,6 +201,7 @@ check_SCRIPTS = \
   test_gns_ipv6_lookup.sh\
   test_gns_txt_lookup.sh\
   test_gns_mx_lookup.sh \
+  test_gns_ns_lookup.sh \
   test_gns_cname_lookup.sh 
 
 if ENABLE_TEST_RUN
