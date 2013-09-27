@@ -19,7 +19,7 @@ OPERATION_TIMEOUT = 30 s
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 
-UNIXPATH = $SERVICEHOME/gnunet-service-testbed.sock
+UNIXPATH = /tmp/gnunet-service-testbed.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
@@ -88,7 +88,7 @@ AUTOSTART = NO
 @UNIXONLY@ PORT = 2102
 HOSTNAME = localhost
 BINARY = gnunet-service-testbed-logger
-UNIXPATH = $SERVICEHOME/gnunet-gnunet-testbed-logger.sock
+UNIXPATH = /tmp/gnunet-gnunet-testbed-logger.sock
 DIR = /tmp
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
@@ -98,6 +98,6 @@ UNIX_MATCH_GID = YES
 AUTOSTART = NO
 @UNIXONLY@ PORT = 2103
 HOSTNAME = localhost
-UNIXPATH = $SERVICEHOME/gnunet-service-testbed-barrier.sock
+UNIXPATH = /tmp/gnunet-service-testbed-barrier.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES

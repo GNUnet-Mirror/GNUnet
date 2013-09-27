@@ -616,7 +616,8 @@ run_dnsd ()
       if (GNUNET_OK !=
 	  GNUNET_NETWORK_socket_bind (listen_socket4,
 				      (struct sockaddr *) &v4,
-				      sizeof (v4)))
+				      sizeof (v4),
+                                      0))
 	{
 	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
 	  GNUNET_NETWORK_socket_close (listen_socket4);
@@ -639,7 +640,8 @@ run_dnsd ()
       if (GNUNET_OK !=
 	  GNUNET_NETWORK_socket_bind (listen_socket6,
 				      (struct sockaddr *) &v6,
-				      sizeof (v6)))
+				      sizeof (v6),
+                                      0))
 	{
 	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
 	  GNUNET_NETWORK_socket_close (listen_socket6);

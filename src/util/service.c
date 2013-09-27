@@ -841,15 +841,24 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
 {
 #ifdef AF_UNIX
   struct sockaddr_un *un;
+  size_t slen;
 
   un = GNUNET_malloc (sizeof (struct sockaddr_un));
   un->sun_family = AF_UNIX;
-  strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
+  slen = strlen (unixpath) + 1;
+  if (slen >= sizeof (un->sun_path))
+    slen = sizeof (un->sun_path) - 1;
+  memcpy (un->sun_path, unixpath, slen);
+  un->sun_path[slen] = '\0';
+  slen = sizeof (struct sockaddr_un);
+#if LINUX
+  un->sun_path[0] = '\0';
+#endif
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un->sun_len = (u_char) sizeof (struct sockaddr_un);
+  un->sun_len = (u_char) slen;
 #endif
   *saddrs = (struct sockaddr *) un;
-  *saddrlens = sizeof (struct sockaddr_un);
+  *saddrlens = slen;
 #else
   /* this function should never be called
    * unless AF_UNIX is defined! */
@@ -971,8 +980,8 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg, service_name, "UNIXPATH")) &&
       (GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "UNIXPATH",
-						&unixpath)) &&
+       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH",
+                                              &unixpath)) &&
       (0 < strlen (unixpath)))
   {
     /* probe UNIX support */
@@ -987,11 +996,6 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       LOG (GNUNET_ERROR_TYPE_INFO,
 	   _("Using `%s' instead\n"), unixpath);
     }
-    if (GNUNET_OK !=
-	GNUNET_DISK_directory_create_for_file (unixpath))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
-				"mkdir",
-				unixpath);
   }
   if (NULL != unixpath)
   {

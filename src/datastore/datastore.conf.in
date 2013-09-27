@@ -1,6 +1,6 @@
 [datastore]
 AUTOSTART = YES
-UNIXPATH = $SERVICEHOME/gnunet-service-datastore.sock
+UNIXPATH = /tmp/gnunet-service-datastore.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 @UNIXONLY@ PORT = 2093

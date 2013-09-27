@@ -3,7 +3,7 @@ AUTOSTART = YES
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-dns
-UNIXPATH = $SERVICEHOME/gnunet-service-dns.sock
+UNIXPATH = /tmp/gnunet-service-dns.sock
 
 # Access to this service can compromise all DNS queries in this
 # system.  Thus access should be restricted to the same UID.

@@ -87,9 +87,7 @@ GNUNET_NETWORK_test_pf (int pf)
   {
     if (EAFNOSUPPORT == errno)
       return GNUNET_NO;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		"Failed to create test socket: %s\n", 
-		STRERROR (errno));
+    fprintf (stderr, "Failed to create test socket: %s\n", STRERROR (errno));
     return GNUNET_SYSERR;
   }
 #if WINDOWS
@@ -385,18 +383,20 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
  * @param desc socket to bind
  * @param address address to be bound
  * @param address_len length of @a address
+ * @param flags flags affecting bind behaviour
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             const struct sockaddr *address,
-                            socklen_t address_len)
+                            socklen_t address_len,
+                            int flags)
 {
   int ret;
   socklen_t bind_address_len = address_len;
 
 #ifdef LINUX
-  if (AF_UNIX == address->sa_family)
+  if (address->sa_family == AF_UNIX)
   {
     const struct sockaddr_un *address_un = (const struct sockaddr_un *)address;
     if (address_un->sun_path[0] == '\0')
@@ -431,6 +431,16 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
 #endif
+#ifndef LINUX
+#ifndef MINGW
+  if (address->sa_family == AF_UNIX && (flags & GNUNET_BIND_EXCLUSIVE) == 0)
+  {
+    const struct sockaddr_un *un = (const struct sockaddr_un *) address;
+
+    (void) unlink (un->sun_path);
+  }
+#endif
+#endif
   ret = bind (desc->fd, address, bind_address_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
@@ -439,9 +449,11 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   if (ret != 0)
     return GNUNET_SYSERR;
 #ifndef MINGW
+#ifndef LINUX
   desc->addr = GNUNET_malloc (address_len);
   memcpy (desc->addr, address, address_len);
   desc->addrlen = address_len;
+#endif
 #endif
   return GNUNET_OK;
 }
@@ -471,16 +483,16 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #else
   ret = close (desc->fd);
 #endif
+#ifndef LINUX
 #ifndef MINGW
   if ((desc->af == AF_UNIX) && (NULL != desc->addr))
   {
     const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
 
     if (0 != unlink (un->sun_path))
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, 
-			 "unlink", 
-			 un->sun_path);
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "unlink", un->sun_path);
   }
+#endif
 #endif
   GNUNET_NETWORK_socket_free_memory_only_ (desc);
   return (ret == 0) ? GNUNET_OK : GNUNET_SYSERR;

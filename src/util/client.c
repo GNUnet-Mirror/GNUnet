@@ -251,9 +251,7 @@ try_unixpath (const char *service_name,
   struct sockaddr_un s_un;
 
   unixpath = NULL;
-  if ((GNUNET_OK == 
-       GNUNET_CONFIGURATION_get_value_filename (cfg, service_name,
-						"UNIXPATH", &unixpath)) && 
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
       (0 < strlen (unixpath)))     
   {
     /* We have a non-NULL unixpath, need to validate it */
@@ -301,8 +299,7 @@ test_service_configuration (const char *service_name,
 #if AF_UNIX
   char *unixpath = NULL;
 
-  if ((GNUNET_OK == 
-       GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "UNIXPATH", &unixpath)) && 
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
       (0 < strlen (unixpath)))     
     ret = GNUNET_OK;
   GNUNET_free_non_null (unixpath);
@@ -832,12 +829,11 @@ GNUNET_CLIENT_service_test (const char *service,
   {
     /* probe UNIX support */
     struct sockaddr_un s_un;
+    size_t slen;
     char *unixpath;
 
     unixpath = NULL;
-    if ((GNUNET_OK == 
-	 GNUNET_CONFIGURATION_get_value_filename (cfg, service, "UNIXPATH", &unixpath)) && 
-	(0 < strlen (unixpath)))  /* We have a non-NULL unixpath, does that mean it's valid? */
+    if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service, "UNIXPATH", &unixpath)) && (0 < strlen (unixpath)))  /* We have a non-NULL unixpath, does that mean it's valid? */
     {
       if (strlen (unixpath) >= sizeof (s_un.sun_path))
       {
@@ -856,13 +852,21 @@ GNUNET_CLIENT_service_test (const char *service,
       {
 	memset (&s_un, 0, sizeof (s_un));
 	s_un.sun_family = AF_UNIX;
-        strncpy (s_un.sun_path, unixpath, sizeof (s_un.sun_path) - 1);
+	slen = strlen (unixpath) + 1;
+	if (slen >= sizeof (s_un.sun_path))
+	  slen = sizeof (s_un.sun_path) - 1;
+	memcpy (s_un.sun_path, unixpath, slen);
+	s_un.sun_path[slen] = '\0';
+	slen = sizeof (struct sockaddr_un);
+#if LINUX
+	s_un.sun_path[0] = '\0';
+#endif
 #if HAVE_SOCKADDR_IN_SIN_LEN
-        s_un.sun_len = (u_char) sizeof (struct sockaddr_un);
+	s_un.sun_len = (u_char) slen;
 #endif
 	if (GNUNET_OK !=
 	    GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_un,
-					sizeof (struct sockaddr_un)))
+					slen, GNUNET_BIND_EXCLUSIVE))
         {
 	  /* failed to bind => service must be running */
 	  GNUNET_free (unixpath);
@@ -912,7 +916,7 @@ GNUNET_CLIENT_service_test (const char *service,
     {
       if (GNUNET_OK !=
           GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_in,
-                                      sizeof (s_in)))
+                                      sizeof (s_in), GNUNET_BIND_EXCLUSIVE))
       {
         /* failed to bind => service must be running */
         GNUNET_free (hostname);
@@ -945,7 +949,7 @@ GNUNET_CLIENT_service_test (const char *service,
     {
       if (GNUNET_OK !=
           GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) &s_in6,
-                                      sizeof (s_in6)))
+                                      sizeof (s_in6), GNUNET_BIND_EXCLUSIVE))
       {
         /* failed to bind => service must be running */
         GNUNET_free (hostname);

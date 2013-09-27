@@ -1,7 +1,7 @@
 [regex]
 AUTOSTART = YES
 @UNIXONLY@ PORT = 2107
-UNIXPATH = $SERVICEHOME/gnunet-service-regex.sock
+UNIXPATH = /tmp/gnunet-service-regex.sock
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-regex

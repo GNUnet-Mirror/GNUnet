@@ -1070,7 +1070,6 @@ read_from_the_socket (void *sock,
   return count;
 }
 
-
 /**
  * Open the bluetooth interface for reading/writing
  *
@@ -1088,8 +1087,7 @@ open_device (struct HardwareInfos *dev)
     addr.btAddr = 0;
     addr.port = BT_PORT_ANY;
 
-    if (GNUNET_OK != 
-	GNUNET_NETWORK_socket_bind (dev->handle, (const SOCKADDR*)&addr, sizeof (SOCKADDR_BTH)))
+    if (GNUNET_NETWORK_socket_bind (dev->handle, (const SOCKADDR*)&addr, sizeof (SOCKADDR_BTH), 0) != GNUNET_OK)
     {
       fprintf (stderr, "Failed to bind the socket: ");
       if (GetLastError() == WSAENETDOWN)
