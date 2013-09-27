@@ -278,7 +278,10 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_connect, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
+                                  GNUNET_TIME_UNIT_SECONDS,
+                                  2),
+                                &do_connect, NULL);
 }
 
 
