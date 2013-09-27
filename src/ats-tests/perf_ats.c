@@ -184,7 +184,7 @@ evaluate ()
     {
       p = &mp->partners[c_s];
       fprintf (stderr,
-          "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f \%), received %u KiB/s (%.2f \%)\n",
+          "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f %%), received %u KiB/s (%.2f %%)\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
           mp->no, p->dest->no,
           (p->bytes_sent / 1024) / duration,
