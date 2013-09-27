@@ -1084,7 +1084,6 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net, NULL );
-
     if (NULL == (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
     {
       /* No alternative address found, disconnect peer */
@@ -1437,7 +1436,7 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->bulk_lock = GNUNET_NO;
   s->addresses = addresses;
 
-  s->requests = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_YES);
+  s->requests = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
 
   for (c = 0; c < dest_length; c++)
   {
