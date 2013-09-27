@@ -18,5 +18,6 @@ if [ "$RES_IP" == "$TEST_IP" ]
 then
   exit 0
 else
+  echo "Failed to resolve to proper IP, got $RES_IP."
   exit 1
 fi
