@@ -67,6 +67,11 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_VPN 65539
 
 /**
+ * Record type for delegation to DNS.
+ */
+#define GNUNET_NAMESTORE_TYPE_GNS2DNS 65540
+
+/**
  * Record type for a social place.
  */
 #define GNUNET_NAMESTORE_TYPE_PLACE 65541

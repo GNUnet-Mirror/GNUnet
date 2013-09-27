@@ -135,13 +135,16 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	case GNUNET_DNSPARSER_TYPE_NS:
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	case GNUNET_DNSPARSER_TYPE_PTR:
+	  // FIXME: NO! need to use DNSPARSER!
 	  answer_records[i].data.hostname = (char*)rd[i].data;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
+	  // FIXME: NO! need to use DNSPARSER!
 	  answer_records[i].data.soa =
 	    (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
+	  // FIXME: NO! need to use DNSPARSER!
 	  answer_records[i].data.mx =
 	    (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
 	  break;
@@ -163,17 +166,21 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	case GNUNET_DNSPARSER_TYPE_NS:
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	case GNUNET_DNSPARSER_TYPE_PTR:
+	  // FIXME: NO! need to use DNSPARSER!
 	  additional_records[i].data.hostname = (char*)rd[i].data;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
+	  // FIXME: NO! need to use DNSPARSER!
 	  additional_records[i].data.soa =
 	    (struct GNUNET_DNSPARSER_SoaRecord *)rd[i].data;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
+	  // FIXME: NO! need to use DNSPARSER!
 	  additional_records[i].data.mx =
 	    (struct GNUNET_DNSPARSER_MxRecord *)rd[i].data;
 	  break;
 	default:
+	  // FIXME: NO! need to use DNSPARSER!
 	  additional_records[i].data.raw.data_len = rd[i].data_size;
 	  additional_records[i].data.raw.data = (char*)rd[i].data;
 	  break;
@@ -288,7 +295,7 @@ handle_dns_request (void *cls,
  *
  * @param gnu_zone the zone to work in
  * @param c the configuration
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNS_interceptor_init (const struct GNUNET_CRYPTO_EccPublicSignKey *gnu_zone,

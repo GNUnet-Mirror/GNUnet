@@ -752,6 +752,7 @@ dns_result_parser (void *cls,
     unsigned int skip;
     char buf[UINT16_MAX];
     size_t buf_off;
+    size_t buf_start;
 
     buf_off = 0;
     skip = 0;
@@ -804,6 +805,7 @@ dns_result_parser (void *cls,
       case GNUNET_DNSPARSER_TYPE_CNAME:
       case GNUNET_DNSPARSER_TYPE_PTR:
       case GNUNET_DNSPARSER_TYPE_NS:
+	buf_start = buf_off;
 	if (GNUNET_OK !=
 	    GNUNET_DNSPARSER_builder_add_name (buf,
 					       sizeof (buf),
@@ -814,8 +816,11 @@ dns_result_parser (void *cls,
 	  skip++;
 	  continue;
 	}
+	rd[i - skip].data_size = buf_off - buf_start;
+	rd[i - skip].data = &buf[buf_start];	
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
+	buf_start = buf_off;
 	if (GNUNET_OK !=
 	    GNUNET_DNSPARSER_builder_add_soa (buf,
 					       sizeof (buf),
@@ -826,8 +831,11 @@ dns_result_parser (void *cls,
 	  skip++;
 	  continue;
 	}
+	rd[i - skip].data_size = buf_off - buf_start;
+	rd[i - skip].data = &buf[buf_start];	
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
+	buf_start = buf_off;
 	if (GNUNET_OK !=
 	    GNUNET_DNSPARSER_builder_add_mx (buf,
 					     sizeof (buf),
@@ -838,8 +846,11 @@ dns_result_parser (void *cls,
 	  skip++;
 	  continue;
 	}
+	rd[i - skip].data_size = buf_off - buf_start;
+	rd[i - skip].data = &buf[buf_start];	
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
+	buf_start = buf_off;
 	if (GNUNET_OK !=
 	    GNUNET_DNSPARSER_builder_add_srv (buf,
 					      sizeof (buf),
@@ -850,6 +861,8 @@ dns_result_parser (void *cls,
 	  skip++;
 	  continue;
 	}
+	rd[i - skip].data_size = buf_off - buf_start;
+	rd[i - skip].data = &buf[buf_start];	
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1197,6 +1210,11 @@ handle_gns_resolution_result (void *cls,
 								rh);
 	    return;
 	  }
+	case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+	  {
+	    /* delegation to DNS */
+	    goto do_recurse;
+	  }
 	default:
 	  break;
 	}
@@ -1392,6 +1410,7 @@ handle_gns_resolution_result (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;         
   }
+ do_recurse:
   /* need to recurse, check if we can */
   for (i=0;i<rd_count;i++)
   {
@@ -1428,7 +1447,7 @@ handle_gns_resolution_result (void *cls,
       rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					      rh);
       return;
-    case GNUNET_DNSPARSER_TYPE_NS:
+    case GNUNET_NAMESTORE_TYPE_GNS2DNS:
       {
 	char *ns;
 	/* resolution continues within DNS */
@@ -1527,9 +1546,10 @@ handle_gns_resolution_result (void *cls,
 	   created from the remainder of the GNS name and the
 	   name in the NS record */
 	GNUNET_asprintf (&ac->label,
-			 "%.*s.%s",
+			 "%.*s%s%s",
 			 (int) rh->name_resolution_pos,
 			 rh->name,
+			 (0 != rh->name_resolution_pos) ? "." : "",
 			 ns);
 	GNUNET_free (ns);
 	GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,

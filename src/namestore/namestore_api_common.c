@@ -501,7 +501,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
  *
  * @param type type of the record
  * @param data value in binary encoding
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @return NULL on error, otherwise human-readable representation of the value
  */
 char *
@@ -660,6 +660,23 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	return NULL;
       }
       return vpn_str;
+    }
+  case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+    {
+      char *ns;
+      size_t off;
+
+      off = 0;
+      ns = GNUNET_DNSPARSER_parse_name (data,
+					data_size,
+					&off);
+      if ( (NULL == ns) ||
+	   (off != data_size) )
+      {
+	GNUNET_break_op (0);
+	return NULL;
+      }      
+      return ns;
     }
   case GNUNET_DNSPARSER_TYPE_SRV:
     {
@@ -971,6 +988,28 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     vpn->proto = htons ((uint16_t) proto);
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
+  case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+    {
+      char nsbuf[256];
+      size_t off;
+    
+      off = 0;
+      if (GNUNET_OK !=
+	  GNUNET_DNSPARSER_builder_add_name (nsbuf,
+					     sizeof (nsbuf),
+					     &off,
+					     s))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    _("Failed to serialize GNS2DNS record with value `%s'\n"),
+		    s);
+	return GNUNET_SYSERR;
+      }
+      *data_size = off;
+      *data = GNUNET_malloc (off);
+      memcpy (*data, nsbuf, off);
+      return GNUNET_OK;
+    }
   case GNUNET_DNSPARSER_TYPE_TLSA:
     *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (s) - 6;
     *data = tlsa = GNUNET_malloc (*data_size);
@@ -1017,6 +1056,7 @@ static struct {
   { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
   { "LEHO",  GNUNET_NAMESTORE_TYPE_LEHO },
   { "VPN", GNUNET_NAMESTORE_TYPE_VPN },
+  { "GNS2DNS", GNUNET_NAMESTORE_TYPE_GNS2DNS },
   { "TLSA", GNUNET_DNSPARSER_TYPE_TLSA },
   { NULL, UINT32_MAX }
 };
