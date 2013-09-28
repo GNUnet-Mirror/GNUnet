@@ -79,7 +79,7 @@ struct GNUNET_DNSPARSER_Query
   /**
    * See GNUNET_TUN_DNS_CLASS_*.
    */
-  uint16_t class;
+  uint16_t dns_traffic_class;
 
 };
 
@@ -318,7 +318,7 @@ struct GNUNET_DNSPARSER_Record
   /**
    * See GNUNET_TUN_DNS_CLASS_*.
    */
-  uint16_t class;
+  uint16_t dns_traffic_class;
 
 };
 

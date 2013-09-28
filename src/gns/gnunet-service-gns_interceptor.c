@@ -185,7 +185,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	}
 	GNUNET_break (0 == (rd[i - skip_answers].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
 	answer_records[i - skip_answers].expiration_time.abs_value_us = rd[i].expiration_time;
-	answer_records[i - skip_answers].class = GNUNET_TUN_DNS_CLASS_INTERNET;
+	answer_records[i - skip_answers].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }
       else
       {
@@ -242,7 +242,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	}
 	GNUNET_break (0 == (rd[i - skip_additional].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
 	additional_records[i - skip_additional].expiration_time.abs_value_us = rd[i].expiration_time;
-	additional_records[i - skip_additional].class = GNUNET_TUN_DNS_CLASS_INTERNET; 
+	additional_records[i - skip_additional].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET; 
       }
     }
     packet->num_answers = num_answers - skip_answers;

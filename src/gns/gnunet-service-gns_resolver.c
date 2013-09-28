@@ -920,7 +920,7 @@ recursive_dns_resolution (struct GNS_ResolverHandle *rh)
   query = GNUNET_new (struct GNUNET_DNSPARSER_Query);
   query->name = GNUNET_strdup (ac->label);
   query->type = rh->record_type;
-  query->class = GNUNET_TUN_DNS_CLASS_INTERNET;
+  query->dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
   p = GNUNET_new (struct GNUNET_DNSPARSER_Packet);
   p->queries = query;
   p->num_queries = 1;

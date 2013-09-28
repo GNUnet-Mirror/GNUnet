@@ -373,7 +373,7 @@ GNUNET_DNSPARSER_parse_query (const char *udp_payload,
   memcpy (&ql, &udp_payload[*off], sizeof (ql));
   *off += sizeof (ql);
   q->type = ntohs (ql.type);
-  q->class = ntohs (ql.class);
+  q->dns_traffic_class = ntohs (ql.dns_traffic_class);
   return GNUNET_OK;
 }
 
@@ -582,7 +582,7 @@ GNUNET_DNSPARSER_parse_record (const char *udp_payload,
   memcpy (&rl, &udp_payload[*off], sizeof (rl));
   (*off) += sizeof (rl);
   r->type = ntohs (rl.type);
-  r->class = ntohs (rl.class);
+  r->dns_traffic_class = ntohs (rl.dns_traffic_class);
   r->expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 											ntohl (rl.ttl)));
   data_len = ntohs (rl.data_len);
@@ -865,7 +865,7 @@ GNUNET_DNSPARSER_builder_add_query (char *dst,
   if (ret != GNUNET_OK)
     return ret;
   ql.type = htons (query->type);
-  ql.class = htons (query->class);
+  ql.dns_traffic_class = htons (query->dns_traffic_class);
   memcpy (&dst[*off], &ql, sizeof (ql));
   (*off) += sizeof (ql);
   return GNUNET_OK;
@@ -1064,7 +1064,7 @@ add_record (char *dst,
     return GNUNET_NO;
   }
   rl.type = htons (record->type);
-  rl.class = htons (record->class);
+  rl.dns_traffic_class = htons (record->dns_traffic_class);
   rl.ttl = htonl (GNUNET_TIME_absolute_get_remaining (record->expiration_time).rel_value_us / 1000LL / 1000LL); /* in seconds */
   rl.data_len = htons ((uint16_t) (pos - (*off + sizeof (struct GNUNET_TUN_DnsRecordLine))));
   memcpy (&dst[*off], &rl, sizeof (struct GNUNET_TUN_DnsRecordLine));

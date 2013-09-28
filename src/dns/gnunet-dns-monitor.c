@@ -113,7 +113,7 @@ display_query (const struct GNUNET_DNSPARSER_Query *query)
 {
   fprintf (stdout,
 	   "\t\t%s %s: %s\n",
-	   get_class (query->class),
+	   get_class (query->dns_traffic_class),
 	   get_type (query->type),
 	   query->name);
 }
@@ -210,7 +210,7 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
   }
   fprintf (stdout,
 	   "\t\t%s %s: %s = %s (%u s)\n",
-	   get_class (record->class),
+	   get_class (record->dns_traffic_class),
 	   get_type (record->type),
 	   record->name,
 	   format,

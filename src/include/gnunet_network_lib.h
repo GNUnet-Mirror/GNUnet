@@ -27,6 +27,8 @@
 #ifndef GNUNET_NETWORK_LIB_H
 #define GNUNET_NETWORK_LIB_H
 
+#include "platform.h"
+
 #ifdef __cplusplus
 extern "C"
 {

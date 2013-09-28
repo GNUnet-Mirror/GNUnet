@@ -324,7 +324,7 @@ result_processor (void *cls,
 	case GNUNET_DNSPARSER_TYPE_A:
 	  GNUNET_assert (sizeof (struct in_addr) == rd[i].data_size);
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
-	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
+	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_A;
 	  rec.data.raw.data = GNUNET_new (struct in_addr);
 	  memcpy (rec.data.raw.data,
@@ -339,7 +339,7 @@ result_processor (void *cls,
 	  GNUNET_assert (sizeof (struct in6_addr) == rd[i].data_size);
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
 	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in6_addr));
-	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
+	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_AAAA;
 	  memcpy (rec.data.raw.data,
 		  rd[i].data,
@@ -352,7 +352,7 @@ result_processor (void *cls,
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
 	  rec.data.hostname = strdup (rd[i].data);
-	  rec.class = GNUNET_TUN_DNS_CLASS_INTERNET;
+	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_CNAME;
 	  memcpy (rec.data.hostname,
 		  rd[i].data,

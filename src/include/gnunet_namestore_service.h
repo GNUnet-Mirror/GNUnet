@@ -563,7 +563,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *typename);
+GNUNET_NAMESTORE_typename_to_number (const char *dns_typename);
 
 
 /**

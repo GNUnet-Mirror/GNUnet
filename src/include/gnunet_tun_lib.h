@@ -601,7 +601,7 @@ struct GNUNET_TUN_DnsQueryLine
   /**
    * Desired class (usually GNUNET_TUN_DNS_CLASS_INTERNET). (NBO)
    */
-  uint16_t class GNUNET_PACKED;
+  uint16_t dns_traffic_class GNUNET_PACKED;
 };
 
 
@@ -618,7 +618,7 @@ struct GNUNET_TUN_DnsRecordLine
   /**
    * Record class (usually GNUNET_TUN_DNS_CLASS_INTERNET). (NBO)
    */
-  uint16_t class GNUNET_PACKED;
+  uint16_t dns_traffic_class GNUNET_PACKED;
 
   /**
    * Expiration for the record (in seconds). (NBO)

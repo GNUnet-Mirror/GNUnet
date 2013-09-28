@@ -1069,13 +1069,13 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *typename)
+GNUNET_NAMESTORE_typename_to_number (const char *dns_typename)
 {
   unsigned int i;
 
   i=0;
   while ( (name_map[i].name != NULL) &&
-	  (0 != strcasecmp (typename, name_map[i].name)) )
+	  (0 != strcasecmp (dns_typename, name_map[i].name)) )
     i++;
   return name_map[i].number;  
 }
