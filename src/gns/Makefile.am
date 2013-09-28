@@ -203,6 +203,7 @@ check_SCRIPTS = \
   test_gns_mx_lookup.sh \
   test_gns_ns_lookup.sh \
   test_gns_dht_lookup.sh\
+  test_gns_pseu_shorten.sh\
   test_gns_cname_lookup.sh 
 
 if ENABLE_TEST_RUN

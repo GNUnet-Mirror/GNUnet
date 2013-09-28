@@ -241,7 +241,7 @@ identity_shorten_cb (void *cls,
   struct GNUNET_CRYPTO_EccPublicSignKey *pkeym = cls;
 
   id_op = NULL;
-  if (NULL == ego) 
+  if (NULL == ego)
     lookup_with_keys (pkeym, NULL);
   else
     lookup_with_keys (pkeym,
@@ -265,7 +265,7 @@ lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
   pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicSignKey);
   *pkeym = *pkey;
   id_op = GNUNET_IDENTITY_get (identity,
-			       "shorten-zone",
+			       "short-zone",
 			       &identity_shorten_cb,
 			       pkeym);
   if (NULL == id_op)
