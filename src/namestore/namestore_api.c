@@ -305,7 +305,7 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 
 /**
- * Handle an incoming message of type 'GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE'
+ * Handle an incoming message of type #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE
  *
  * @param qe the respective entry in the message queue
  * @param msg the message we received
@@ -985,7 +985,9 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
   size_t msg_size;
 
   GNUNET_assert (NULL != h);
-  blen = ntohl (block->purpose.size) - sizeof (struct GNUNET_TIME_AbsoluteNBO);
+  blen = ntohl (block->purpose.size) 
+    - sizeof (struct GNUNET_TIME_AbsoluteNBO) 
+    - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
   rid = get_op_id (h);
   qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
   qe->nsh = h;
