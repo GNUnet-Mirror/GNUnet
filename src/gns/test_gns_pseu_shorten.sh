@@ -28,17 +28,17 @@ gnunet-arm -e -c test_gns_lookup.conf
 
 if [ "$RES_IP" == "$TEST_IP" ]
 then
-  echo "$TEST_NAME resolved , got $RES_IP."
+  echo "PASS: Resolved $TEST_NAME properly to $RES_IP."
 else
-  echo "Failed to resolve $TEST_NAME to proper IP, got $RES_IP."
+  echo "FAIL: Could not resolve $TEST_NAME to proper IP, got $RES_IP."
   exit 1
 fi
 
 if [ "$RES_IP_PSEU" == "$TEST_IP" ]
 then
-  echo "$TEST_NAME_SHORT resolved , got $RES_IP."
+  echo "PASS: Resolved $TEST_NAME_SHORT properly to $RES_IP."
   exit 0
 else
-  echo "Failed to resolve $TEST_NAME_SHORT to proper IP, got $RES_IP_PSEU."
+  echo "FAIL: Could not resolve $TEST_NAME_SHORT to proper IP, got $RES_IP_PSEU."
   exit 1
 fi
