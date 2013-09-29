@@ -48,7 +48,7 @@ struct GNUNET_NAMESTORE_Header
   /**
    * Request ID in NBO
    */
-  uint32_t r_id;
+  uint32_t r_id GNUNET_PACKED;
 };
 
 
@@ -65,7 +65,7 @@ struct LookupBlockMessage
   /**
    * The query.
    */
-  struct GNUNET_HashCode query;
+  struct GNUNET_HashCode query GNUNET_PACKED;
 
 };
 
@@ -141,7 +141,7 @@ struct BlockCacheResponseMessage
   /**
    * #GNUNET_OK on success, #GNUNET_SYSERR error
    */
-  int32_t op_result;
+  int32_t op_result GNUNET_PACKED;
 };
 
 
@@ -163,22 +163,22 @@ struct RecordStoreMessage
   /**
    * Name length
    */
-  uint16_t name_len;
+  uint16_t name_len GNUNET_PACKED;
 
   /**
    * Length of serialized record data
    */
-  uint16_t rd_len;
+  uint16_t rd_len GNUNET_PACKED;
 
   /**
    * Number of records contained 
    */
-  uint16_t rd_count;
+  uint16_t rd_count GNUNET_PACKED;
 
   /**
    * always zero (for alignment)
    */
-  uint16_t reserved;
+  uint16_t reserved GNUNET_PACKED;
 
   /**
    * The private key of the authority.
@@ -205,7 +205,7 @@ struct RecordStoreResponseMessage
   /**
    * #GNUNET_SYSERR on failure, #GNUNET_OK on success
    */
-  int32_t op_result;
+  int32_t op_result GNUNET_PACKED;
 };
 
 
@@ -245,23 +245,23 @@ struct ZoneToNameResponseMessage
   /**
    * Length of the name
    */
-  uint16_t name_len;
+  uint16_t name_len GNUNET_PACKED;
 
   /**
    * Length of serialized record data
    */
-  uint16_t rd_len;
+  uint16_t rd_len GNUNET_PACKED;
 
   /**
    * Number of records contained
    */
-  uint16_t rd_count;
+  uint16_t rd_count GNUNET_PACKED;
 
   /**
    * result in NBO: #GNUNET_OK on success, #GNUNET_NO if there were no
    * results, #GNUNET_SYSERR on error 
    */
-  int16_t res;
+  int16_t res GNUNET_PACKED;
 
   /**
    * The private key of the zone that contained the name.
@@ -289,22 +289,22 @@ struct RecordResultMessage
   /**
    * Name length
    */
-  uint16_t name_len;
+  uint16_t name_len GNUNET_PACKED;
 
   /**
    * Length of serialized record data
    */
-  uint16_t rd_len;
+  uint16_t rd_len GNUNET_PACKED;
 
   /**
    * Number of records contained 
    */
-  uint16_t rd_count;
+  uint16_t rd_count GNUNET_PACKED;
 
   /**
    * always zero (for alignment)
    */
-  uint16_t reserved;
+  uint16_t reserved GNUNET_PACKED;
 
   /**
    * The private key of the authority.
