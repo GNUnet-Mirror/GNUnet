@@ -1417,7 +1417,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   if (NULL != key)
   {
     h->key = GNUNET_new(struct GNUNET_HashCode);
-    h->key = *key;
+    *h->key = *key;
   }
 
   pending = GNUNET_malloc (sizeof (struct GNUNET_DHT_MonitorStartStopMessage) +
