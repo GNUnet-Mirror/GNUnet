@@ -517,12 +517,17 @@ GNS_shorten_start (const char *original_label,
 		   const struct GNUNET_CRYPTO_EccPrivateKey *shorten_zone)
 {
   struct GetPseuAuthorityHandle *gph;
-  
+
+  // if (1) return;
   if (strlen (original_label) > GNUNET_DNSPARSER_MAX_LABEL_LENGTH)
   {
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting shortening process for `%s' with old label `%s'\n",
+	      GNUNET_NAMESTORE_z2s (pub),
+	      original_label);
   gph = GNUNET_new (struct GetPseuAuthorityHandle);
   gph->shorten_zone_key = *shorten_zone;
   gph->target_zone = *pub;
