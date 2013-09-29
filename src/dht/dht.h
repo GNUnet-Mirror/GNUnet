@@ -43,7 +43,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_DHT_ClientGetStopMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_GET_STOP
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_STOP
    */
   struct GNUNET_MessageHeader header;
 
@@ -72,7 +72,7 @@ struct GNUNET_DHT_ClientGetStopMessage
 struct GNUNET_DHT_ClientGetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET
    */
   struct GNUNET_MessageHeader header;
 
@@ -90,12 +90,12 @@ struct GNUNET_DHT_ClientGetMessage
    * The type for the data for the GET request; actually an 'enum
    * GNUNET_BLOCK_Type'.
    */
-  uint32_t type;
+  uint32_t type GNUNET_PACKED;
 
   /**
    * The key to search for
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request, if 0 then
@@ -115,7 +115,7 @@ struct GNUNET_DHT_ClientGetMessage
 struct GNUNET_DHT_ClientGetResultSeenMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN
    */
   struct GNUNET_MessageHeader header;
 
@@ -128,7 +128,7 @@ struct GNUNET_DHT_ClientGetResultSeenMessage
    * The key we are searching for (to make it easy to find the corresponding
    * GET inside the service).
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /**
    * Unique ID identifying this request.
@@ -147,14 +147,14 @@ struct GNUNET_DHT_ClientGetResultSeenMessage
 struct GNUNET_DHT_ClientResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_RESULT
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * The type for the data.
    */
-  uint32_t type;
+  uint32_t type GNUNET_PACKED;
 
   /**
    * Number of peers recorded in the outgoing path from source to the
@@ -181,7 +181,7 @@ struct GNUNET_DHT_ClientResultMessage
   /**
    * The key that was searched for
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* put path, get path and actual data are copied to end of this dealy do */
 
@@ -194,7 +194,7 @@ struct GNUNET_DHT_ClientResultMessage
 struct GNUNET_DHT_ClientPutMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -226,7 +226,7 @@ struct GNUNET_DHT_ClientPutMessage
   /**
    * The key to store the value under.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* DATA copied to end of this message */
 
@@ -239,7 +239,7 @@ struct GNUNET_DHT_ClientPutMessage
 struct GNUNET_DHT_ClientPutConfirmationMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK
    */
   struct GNUNET_MessageHeader header;
 
@@ -263,7 +263,7 @@ struct GNUNET_DHT_ClientPutConfirmationMessage
 struct GNUNET_DHT_MonitorPutMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -301,7 +301,7 @@ struct GNUNET_DHT_MonitorPutMessage
   /**
    * The key to store the value under.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* put path (if tracked) */
 
@@ -316,7 +316,8 @@ struct GNUNET_DHT_MonitorPutMessage
 struct GNUNET_DHT_MonitorStartStopMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_(START|STOP)
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_START or
+   * #GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP
    */
   struct GNUNET_MessageHeader header;
 
@@ -348,7 +349,7 @@ struct GNUNET_DHT_MonitorStartStopMessage
   /**
    * The key to filter messages by.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 };
 
 
@@ -358,7 +359,7 @@ struct GNUNET_DHT_MonitorStartStopMessage
 struct GNUNET_DHT_MonitorGetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_MONITOR_GET
    */
   struct GNUNET_MessageHeader header;
 
@@ -391,7 +392,7 @@ struct GNUNET_DHT_MonitorGetMessage
   /**
    * The key to store the value under.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* get path (if tracked) */
 
@@ -403,7 +404,7 @@ struct GNUNET_DHT_MonitorGetMessage
 struct GNUNET_DHT_MonitorGetRespMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -430,7 +431,7 @@ struct GNUNET_DHT_MonitorGetRespMessage
   /**
    * The key of the corresponding GET request.
    */
-  struct GNUNET_HashCode key;
+  struct GNUNET_HashCode key GNUNET_PACKED;
 
   /* put path (if tracked) */
 
