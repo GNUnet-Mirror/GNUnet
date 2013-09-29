@@ -452,13 +452,16 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   switch (res)
   {
   case GNUNET_SYSERR:
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "An error occured during zone to name operation\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "An error occured during zone to name operation\n");
     break;
   case GNUNET_NO:
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Namestore has no result for zone to name mapping \n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Namestore has no result for zone to name mapping \n");
     break;
   case GNUNET_YES:
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Namestore has result for zone to name mapping \n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+	 "Namestore has result for zone to name mapping \n");
     name_len = ntohs (msg->name_len);
     rd_count = ntohs (msg->rd_count);
     rd_ser_len = ntohs (msg->rd_len);
@@ -472,6 +475,7 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     rd_tmp = &name_tmp[name_len];
     {
       struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+
       if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd))
       {
 	GNUNET_break (0);
@@ -493,7 +497,7 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   /* error case, call continuation with error */
   if (NULL != qe->proc)
     qe->proc (qe->proc_cls, NULL, NULL, 0, NULL);
-  return GNUNET_OK;
+  return GNUNET_NO;
 }
 
 
@@ -594,7 +598,8 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if ((0 == name_len) && (0 == (memcmp (&msg->private_key, &priv_dummy, sizeof (priv_dummy)))))
+  if ( (0 == name_len) && 
+       (0 == (memcmp (&msg->private_key, &priv_dummy, sizeof (priv_dummy)))) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Zone iteration is completed!\n");
@@ -706,12 +711,12 @@ process_namestore_message (void *cls,
   if (NULL != qe)
   {
     ret = manage_record_operations (qe, msg, type, size);
-    if (GNUNET_OK != ret)    
+    if (GNUNET_SYSERR == ret)    
     {
       /* protocol error, need to reconnect */
       h->reconnect = GNUNET_YES;
     }
-    if (GNUNET_SYSERR != ret)
+    else
     {
       /* client was notified about success or failure, clean up 'qe' */
       GNUNET_CONTAINER_DLL_remove (h->op_head,

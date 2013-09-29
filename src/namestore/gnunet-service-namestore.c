@@ -349,7 +349,7 @@ struct LookupBlockContext
 /**
  * A #GNUNET_NAMESTORE_BlockCallback for name lookups in #handle_lookup_block
  *
- * @param cls a 'struct LookupNameContext *' with information about the request
+ * @param cls a `struct LookupNameContext *` with information about the request
  * @param block the block
  */
 static void
