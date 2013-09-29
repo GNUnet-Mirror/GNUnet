@@ -474,7 +474,11 @@ GNUNET_GNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
 {
-  GNUNET_CLIENT_disconnect (handle->client);
+  if (NULL != handle->client)
+  {
+    GNUNET_CLIENT_disconnect (handle->client);
+    handle->client = NULL;
+  }
   if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
