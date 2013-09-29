@@ -1,7 +1,9 @@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 if HAVE_GLIBCNSS
+if INSTALL_NSS
 NSS_SUBDIR = nss
+endif
 endif
 
 SUBDIRS = . $(NSS_SUBDIR)
