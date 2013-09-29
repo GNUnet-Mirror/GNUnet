@@ -51,7 +51,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_GNS_ClientLookupMessage
 {
   /**
-   * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_LOOKUP
+   * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP
    */
   struct GNUNET_MessageHeader header;
 
@@ -78,10 +78,10 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * the type of record to look up
    */
-  int32_t type;
+  int32_t type GNUNET_PACKED;
   
   /**
-   * The key for shorten, if 'have_key' is set 
+   * The key for shorten, if @e have_key is set 
    */
   struct GNUNET_CRYPTO_EccPrivateKey shorten_key;
 
@@ -95,7 +95,7 @@ struct GNUNET_GNS_ClientLookupMessage
 struct GNUNET_GNS_ClientLookupResultMessage
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_GNS_CLIENT_RESULT
+    * Header of type #GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -107,7 +107,7 @@ struct GNUNET_GNS_ClientLookupResultMessage
   /**
    * The number of records contained in response
    */  
-  uint32_t rd_count;
+  uint32_t rd_count GNUNET_PACKED;
 
   /* followed by rd_count GNUNET_NAMESTORE_RecordData structs*/
 
