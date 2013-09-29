@@ -265,7 +265,7 @@ lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
   pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicSignKey);
   *pkeym = *pkey;
   id_op = GNUNET_IDENTITY_get (identity,
-			       "short-zone",
+			       "gns-short",
 			       &identity_shorten_cb,
 			       pkeym);
   if (NULL == id_op)
