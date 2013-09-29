@@ -2001,7 +2001,9 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
   struct GNS_ResolverHandle *rh;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting lookup for `%s'\n",
+	      (NULL == shorten_key)
+	      ? "Starting lookup for `%s' with shortening disabled\n" 
+	      : "Starting lookup for `%s' with shortening enabled\n",
 	      name);
   rh = GNUNET_new (struct GNS_ResolverHandle);
   GNUNET_CONTAINER_DLL_insert (rlh_head,
