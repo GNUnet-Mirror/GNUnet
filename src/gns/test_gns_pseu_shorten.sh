@@ -8,7 +8,7 @@ TEST_NAME="www.mybestfriendalice.gnu"
 TEST_NAME_SHORT="www.alice.short.gnu"
 gnunet-arm -s -c test_gns_lookup.conf
 DELEGATED_PKEY=$(gnunet-identity -d -c test_gns_lookup.conf | grep delegatedego | awk '{print $3}')
-SHORT=$(gnunet-identity -c test_gns_lookup.conf -d | grep short-zone | awk '{print $3}')
+gnunet-identity -c test_gns_lookup.conf -d 
 gnunet-identity -C short-zone -c test_gns_lookup.conf
 gnunet-identity -C delegatedego -c test_gns_lookup.conf
 gnunet-identity -e short-zone -s gns-short -c test_gns_lookup.conf
