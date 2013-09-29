@@ -1605,20 +1605,18 @@ extern "C"
 
 
 /******************************************************************************
- * GNS. FIXME: document!
+ * GNS.
  *****************************************************************************/
 
+/**
+ * Client would like to resolve a name.
+ */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP 500
 
+/**
+ * Service response to name resolution request from client.
+ */
 #define GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT 501
-
-#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN 502
-
-#define GNUNET_MESSAGE_TYPE_GNS_SHORTEN_RESULT 503
-
-#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH 504
-
-#define GNUNET_MESSAGE_TYPE_GNS_GET_AUTH_RESULT 505
 
 
 /*******************************************************************************

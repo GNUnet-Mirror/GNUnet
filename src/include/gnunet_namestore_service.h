@@ -313,6 +313,7 @@ typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
  *
  * @param h handle to the namestore
  * @param derived_hash hash of zone key combined with name to lookup
+ *        then at the end once with NULL
  * @param proc function to call on the matching block, or with
  *        NULL if there is no matching block
  * @param proc_cls closure for @a proc
