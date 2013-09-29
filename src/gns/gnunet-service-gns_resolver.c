@@ -263,7 +263,7 @@ struct GNS_ResolverHandle
   struct GNUNET_RESOLVER_RequestHandle *std_resolve;
 
   /**
-   * Pending Namestore task
+   * Pending Namestore lookup task
    */
   struct GNUNET_NAMESTORE_QueueEntry *namestore_qe;
 
@@ -334,6 +334,30 @@ struct GNS_ResolverHandle
 
 
 /**
+ * Active namestore caching operations.
+ */
+struct CacheOps
+{
+
+  /**
+   * Organized in a DLL.
+   */
+  struct CacheOps *next;
+
+  /**
+   * Organized in a DLL.
+   */
+  struct CacheOps *prev;
+
+  /**
+   * Pending Namestore caching task.
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *namestore_qe_cache;
+
+};
+
+
+/**
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
@@ -372,6 +396,17 @@ static struct GNS_ResolverHandle *rlh_head;
  * Tail of resolver lookup list
  */
 static struct GNS_ResolverHandle *rlh_tail;
+
+/**
+ * Organized in a DLL.
+ */
+static struct CacheOps *co_head;
+
+/**
+ * Organized in a DLL.
+ */
+static struct CacheOps *co_tail;
+
 
 /**
  * Global configuration.
@@ -1607,7 +1642,7 @@ handle_gns_resolution_result (void *cls,
  * Function called once the namestore has completed the request for
  * caching a block.
  *
- * @param cls closure with the 'struct GNS_ResolverHandle'
+ * @param cls closure with the `struct CacheOps`
  * @param success #GNUNET_OK on success
  * @param emsg error message
  */
@@ -1616,13 +1651,17 @@ namestore_cache_continuation (void *cls,
 			      int32_t success,
 			      const char *emsg)
 {
-  struct GNS_ResolverHandle *rh = cls;
+  struct CacheOps *co = cls;
 
-  rh->namestore_qe = NULL;
+  co->namestore_qe_cache = NULL;
   if (NULL != emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to cache GNS resolution: %s\n"),
 		emsg);
+  GNUNET_CONTAINER_DLL_remove (co_head,
+			       co_tail,
+			       co);
+  GNUNET_free (co);
 }
 
 
@@ -1657,11 +1696,14 @@ handle_dht_response (void *cls,
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac = rh->ac_tail;
   const struct GNUNET_NAMESTORE_Block *block;
+  struct CacheOps *co;
   
   GNUNET_DHT_get_stop (rh->get_handle);
   rh->get_handle = NULL;
   GNUNET_CONTAINER_heap_remove_node (rh->dht_heap_node);
   rh->dht_heap_node = NULL;  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Handling response from the DHT\n");
   if (size < sizeof (struct GNUNET_NAMESTORE_Block))
   {
     /* how did this pass DHT block validation!? */
@@ -1695,10 +1737,16 @@ handle_dht_response (void *cls,
     return;
   }
   /* Cache well-formed blocks */
-  rh->namestore_qe = GNUNET_NAMESTORE_block_cache (namestore_handle,
-						   block,
-						   &namestore_cache_continuation,
-						   rh);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Caching response from the DHT in namestore\n");
+  co = GNUNET_new (struct CacheOps);
+  co->namestore_qe_cache = GNUNET_NAMESTORE_block_cache (namestore_handle,
+							 block,
+							 &namestore_cache_continuation,
+							 co);
+  GNUNET_CONTAINER_DLL_insert (co_head,
+			       co_tail,
+			       co);
 }
 
 
@@ -1722,6 +1770,7 @@ handle_namestore_block_response (void *cls,
   GNUNET_NAMESTORE_query_from_public_key (auth,
 					  label,
 					  &query);
+  GNUNET_assert (NULL != rh->namestore_qe);
   rh->namestore_qe = NULL;
   if ( (GNUNET_NO == rh->only_cached) &&
        ( (NULL == block) ||
@@ -1732,6 +1781,7 @@ handle_namestore_block_response (void *cls,
 		"Starting DHT lookup for `%s' in zone %s\n",
 		ac->label,
 		GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
+    GNUNET_assert (NULL == rh->get_handle);
     rh->get_handle = GNUNET_DHT_get_start (dht_handle,
 					   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
 					   &query,
@@ -1764,6 +1814,8 @@ handle_namestore_block_response (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Decrypting block from the namestore\n");
   if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_decrypt (block,
 				      auth,
@@ -1801,6 +1853,7 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
 						    &query,
 						    &handle_namestore_block_response,
 						    rh);
+  GNUNET_assert (NULL != rh->namestore_qe);
 }
 
 
@@ -2092,12 +2145,21 @@ void
 GNS_resolver_done ()
 {
   struct GNS_ResolverHandle *rh;
+  struct CacheOps *co;
 
   /* abort active resolutions */
   while (NULL != (rh = rlh_head))
   {
     rh->proc (rh->proc_cls, 0, NULL);
     GNS_resolver_lookup_cancel (rh);    
+  }
+  while (NULL != (co = co_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (co_head,
+				 co_tail,
+				 co);
+    GNUNET_NAMESTORE_cancel (co->namestore_qe_cache);
+    GNUNET_free (co);
   }
   GNUNET_CONTAINER_heap_destroy (dht_lookup_heap);
   dht_lookup_heap = NULL;
