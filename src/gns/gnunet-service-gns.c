@@ -171,11 +171,6 @@ static GNUNET_SCHEDULER_TaskIdentifier zone_publish_task;
 static int first_zone_iteration;
 
 /**
- * The lookup timeout
- */
-static struct GNUNET_TIME_Relative default_lookup_timeout;
-
-/**
  * #GNUNET_YES if ipv6 is supported
  */
 static int v6_enabled;
@@ -673,17 +668,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 		max_parallel_bg_queries);
   }
 
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_time (c, "gns",
-					   "DEFAULT_LOOKUP_TIMEOUT",
-					   &default_lookup_timeout))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Default lookup timeout: %s\n",
-		GNUNET_STRINGS_relative_time_to_string (default_lookup_timeout,
-							GNUNET_YES));
-  }
-  
   dht_handle = GNUNET_DHT_connect (c,
 				   (unsigned int) max_parallel_bg_queries);
   if (NULL == dht_handle)

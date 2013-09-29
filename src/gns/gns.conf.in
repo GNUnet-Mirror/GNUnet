@@ -18,9 +18,6 @@ UNIX_MATCH_GID = YES
 # How many queries is GADS allowed to perform in the background at the same time?
 MAX_PARALLEL_BACKGROUND_QUERIES = 25
 
-# When do queries fail with timeout?
-DEFAULT_LOOKUP_TIMEOUT = 10 s
-
 # How frequently do we try to publish our full zone?
 ZONE_PUBLISH_TIME_WINDOW = 4 h
 
