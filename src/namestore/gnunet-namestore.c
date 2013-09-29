@@ -644,6 +644,7 @@ identity_cb (void *cls,
     fprintf (stderr, 
 	     _("Ego `%s' not known to identity service\n"),
 	     ego_name);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
