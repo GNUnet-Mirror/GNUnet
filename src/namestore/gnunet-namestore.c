@@ -75,6 +75,11 @@ static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
 /**
+ * Queue entry for the 'list' operation (in combination with a name).
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *list_qe;
+
+/**
  * Desired action is to list records.
  */
 static int list;
@@ -200,6 +205,11 @@ do_shutdown (void *cls,
     GNUNET_NAMESTORE_cancel (add_qe);
     add_qe = NULL;
   }
+  if (NULL != list_qe)
+  {
+    GNUNET_NAMESTORE_cancel (list_qe);
+    list_qe = NULL;
+  }
   if (NULL != add_qe_uri)
   {
     GNUNET_NAMESTORE_cancel (add_qe_uri);
@@ -261,6 +271,7 @@ add_continuation (void *cls,
       ret = 1;
   }
   if ( (NULL == add_qe) &&
+       (NULL == list_qe) &&
        (NULL == add_qe_uri) &&
        (NULL == del_qe) &&
        (NULL == list_it) )
@@ -289,6 +300,7 @@ del_continuation (void *cls,
 	     _("Deleting record failed: %s\n"),
 	     emsg);
   if ( (NULL == add_qe) &&
+       (NULL == list_qe) &&
        (NULL == add_qe_uri) &&
        (NULL == list_it) )
     GNUNET_SCHEDULER_shutdown ();
@@ -319,6 +331,7 @@ display_record (void *cls,
   {
     list_it = NULL;
     if ( (NULL == del_qe) &&
+	 (NULL == list_qe) &&
 	 (NULL == add_qe_uri) &&
 	 (NULL == add_qe) )    
       GNUNET_SCHEDULER_shutdown ();
@@ -417,6 +430,93 @@ get_existing_record (void *cls,
 }
 
 
+
+/**
+ * Process a record that was stored in the namestore in a block.
+ *
+ * @param cls closure, NULL
+ * @param rd_len number of entries in @a rd array
+ * @param rd array of records with data to store
+ */
+static void
+display_records_from_block (void *cls,
+			    unsigned int rd_len,
+			    const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  const char *typestring;
+  char *s;
+  unsigned int i;
+
+  if (0 == rd_len)
+  {
+    FPRINTF (stdout,
+	     _("No records found for `%s'"),
+	     name);
+    return;
+  }
+  FPRINTF (stdout,
+	   "%s:\n",
+	   name);  
+  for (i=0;i<rd_len;i++)
+  {
+    typestring = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
+    s = GNUNET_NAMESTORE_value_to_string (rd[i].record_type,
+					  rd[i].data,
+					  rd[i].data_size);
+    if (NULL == s)
+    {
+      FPRINTF (stdout, _("\tCorrupt or unsupported record of type %u\n"),
+	       (unsigned int) rd[i].record_type);
+      continue;
+    }
+    FPRINTF (stdout, 
+	     "\t%s: %s\n",
+	     typestring, 
+	     s);
+    GNUNET_free (s);    
+  }
+  FPRINTF (stdout, "%s", "\n");
+}
+
+
+/**
+ * Display block obtained from listing (by name).
+ *
+ * @param cls NULL
+ * @param block NULL if not found
+ */
+static void
+handle_block (void *cls,
+	      const struct GNUNET_NAMESTORE_Block *block)
+{
+  struct GNUNET_CRYPTO_EccPublicSignKey zone_pubkey;
+
+  list_qe = NULL;
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
+						  &zone_pubkey);
+  if (NULL == block)
+  {
+    fprintf (stderr,
+	     "No matching block found\n");
+  } 
+  else if (GNUNET_OK !=
+	   GNUNET_NAMESTORE_block_decrypt (block,
+					   &zone_pubkey,
+					   name,
+					   &display_records_from_block,
+					   NULL))
+  {
+    fprintf (stderr,
+	     "Failed to decrypt block!\n");
+  }
+  if ( (NULL == del_qe) &&
+       (NULL == list_it) &&
+       (NULL == add_qe_uri) &&
+       (NULL == add_qe) )    
+    GNUNET_SCHEDULER_shutdown ();
+}
+
+
 /**
  * Function called with the result from the check if the namestore
  * service is actually running.  If it is, we start the actual
@@ -444,6 +544,7 @@ testservice_task (void *cls,
     /* nothing more to be done */  
     fprintf (stderr,
              _("No options given\n"));
+    GNUNET_SCHEDULER_shutdown ();
     return; 
   }
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
@@ -566,10 +667,28 @@ testservice_task (void *cls,
   }
   if (list)
   {
-    list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                     &zone_pkey,
-                                                     &display_record,
-                                                     NULL);
+    if (NULL == name)
+    {
+      list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+						       &zone_pkey,
+						       &display_record,
+						       NULL);
+    }
+    else
+    {
+      struct GNUNET_HashCode query;
+      struct GNUNET_CRYPTO_EccPublicSignKey zone_pubkey;
+
+      GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
+						      &zone_pubkey);
+      GNUNET_NAMESTORE_query_from_public_key (&zone_pubkey,
+					      name,
+					      &query);
+      list_qe = GNUNET_NAMESTORE_lookup_block (ns,
+					       &query,
+					       handle_block,
+					       NULL);
+    }
   }
   if (NULL != uri)
   {
