@@ -90,7 +90,7 @@ GNUNET_CONTAINER_multihashmap32_create (unsigned int len)
   struct GNUNET_CONTAINER_MultiHashMap32 *ret;
 
   GNUNET_assert (len > 0);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_MultiHashMap32));
+  ret = GNUNET_new (struct GNUNET_CONTAINER_MultiHashMap32);
   ret->map = GNUNET_malloc (len * sizeof (struct MapEntry *));
   ret->map_length = len;
   return ret;
@@ -448,7 +448,7 @@ GNUNET_CONTAINER_multihashmap32_put (struct GNUNET_CONTAINER_MultiHashMap32
     grow (map);
     i = idx_of (map, key);
   }
-  e = GNUNET_malloc (sizeof (struct MapEntry));
+  e = GNUNET_new (struct MapEntry);
   e->key = key;
   e->value = value;
   e->next = map->map[i];

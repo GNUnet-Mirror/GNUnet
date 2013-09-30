@@ -470,7 +470,7 @@ delete_by_rowid (struct Plugin *plugin, unsigned long long rid)
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to an error message
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,

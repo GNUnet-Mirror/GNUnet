@@ -73,6 +73,7 @@ libgnunetutil_la_SOURCES = \
   container_heap.c \
   container_meta_data.c \
   container_multihashmap.c \
+  container_multipeermap.c \
   container_multihashmap32.c \
   container_slist.c \
   crypto_symmetric.c \
@@ -204,6 +205,7 @@ check_PROGRAMS = \
  test_container_meta_data \
  test_container_multihashmap \
  test_container_multihashmap32 \
+ test_container_multipeermap \
  test_container_heap \
  test_container_slist \
  test_crypto_symmetric \
@@ -308,6 +310,11 @@ test_container_multihashmap_LDADD = \
 test_container_multihashmap32_SOURCES = \
  test_container_multihashmap32.c
 test_container_multihashmap32_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+test_container_multipeermap_SOURCES = \
+ test_container_multipeermap.c
+test_container_multipeermap_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_container_heap_SOURCES = \
