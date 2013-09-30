@@ -395,16 +395,16 @@ GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_Ha
  */
 void
 GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode *hc,
-                               struct GNUNET_CRYPTO_AesSessionKey *skey,
-                               struct GNUNET_CRYPTO_AesInitializationVector *iv)
+                               struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                               struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
 {
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+                 GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                                     "Hash key derivation", strlen ("Hash key derivation"),
                                     hc, sizeof (struct GNUNET_HashCode),
                                     NULL, 0));
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_AesInitializationVector),
+                 GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector),
                                     "Initialization vector derivation", strlen ("Initialization vector derivation"),
                                     hc, sizeof (struct GNUNET_HashCode),
                                     NULL, 0));
@@ -521,7 +521,7 @@ GNUNET_CRYPTO_hash_xorcmp (const struct GNUNET_HashCode *h1,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
-                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                               const struct GNUNET_CRYPTO_SymmetricSessionKey *rkey,
                                const void *salt, size_t salt_len, ...)
 {
   va_list argp;
@@ -542,13 +542,13 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
-                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *rkey,
                                  const void *salt, size_t salt_len,
                                  va_list argp)
 {
   GNUNET_CRYPTO_kdf_v (key->key, sizeof (key->key), 
                        salt, salt_len, 
-                       rkey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+                       rkey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                        argp);
 }
 

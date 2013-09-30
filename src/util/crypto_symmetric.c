@@ -19,7 +19,7 @@
 */
 
 /**
- * @file util/crypto_aes.c
+ * @file util/crypto_symmetric.c
  * @brief Symmetric encryption services; combined cipher AES+TWOFISH (256-bit each)
  * @author Christian Grothoff
  * @author Ioana Patrascu
@@ -38,7 +38,7 @@
  * @param key session key to initialize
  */
 void
-GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
+GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key)
 {
   gcry_randomize (key->aes_key, 
                   GNUNET_CRYPTO_AES_KEY_LENGTH,
@@ -59,8 +59,8 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
  */
 static int
 setup_cipher_aes (gcry_cipher_hd_t *handle,
-                  const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
-                  const struct GNUNET_CRYPTO_AesInitializationVector *iv)
+                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                  const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
 {
   int rc;
 
@@ -89,8 +89,8 @@ setup_cipher_aes (gcry_cipher_hd_t *handle,
  */
 static int
 setup_cipher_twofish (gcry_cipher_hd_t *handle,
-                      const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
-                      const struct GNUNET_CRYPTO_AesInitializationVector *iv)
+                      const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                      const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv)
 {
   int rc;
 
@@ -122,10 +122,10 @@ setup_cipher_twofish (gcry_cipher_hd_t *handle,
  * @returns the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
-                           const struct GNUNET_CRYPTO_AesSessionKey *
+GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
+                           const struct GNUNET_CRYPTO_SymmetricSessionKey *
                            sessionkey,
-                           const struct GNUNET_CRYPTO_AesInitializationVector *
+                           const struct GNUNET_CRYPTO_SymmetricInitializationVector *
                            iv, void *result)
 {
   gcry_cipher_hd_t handle;
@@ -156,9 +156,9 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
  * @return -1 on failure, size of decrypted block on success
  */
 ssize_t
-GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_AesInitializationVector *iv, 
+GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
+                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                           const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
                            void *result)
 {
   gcry_cipher_hd_t handle;
@@ -187,14 +187,14 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
  * @param ... pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                             const struct GNUNET_CRYPTO_AesSessionKey *skey,
+GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                             const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
                              const void *salt, size_t salt_len, ...)
 {
   va_list argp;
 
   va_start (argp, salt_len);
-  GNUNET_CRYPTO_aes_derive_iv_v (iv, skey, salt, salt_len, argp);
+  GNUNET_CRYPTO_symmetric_derive_iv_v (iv, skey, salt, salt_len, argp);
   va_end (argp);
 }
 
@@ -209,8 +209,8 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  * @param argp pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                               const struct GNUNET_CRYPTO_AesSessionKey *skey,
+GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                               const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
                                const void *salt, size_t salt_len, va_list argp)
 {
   char aes_salt[salt_len + 4];

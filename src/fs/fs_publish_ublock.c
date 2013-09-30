@@ -43,8 +43,8 @@
  * @param pub public key to use for key derivation
  */ 
 static void
-derive_ublock_encryption_key (struct GNUNET_CRYPTO_AesSessionKey *skey,
-			      struct GNUNET_CRYPTO_AesInitializationVector *iv,
+derive_ublock_encryption_key (struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+			      struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 			      const char *label,
 			      const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
@@ -77,12 +77,12 @@ GNUNET_FS_ublock_decrypt_ (const void *input,
 			   const char *label,
 			   void *output)
 {
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
 
   derive_ublock_encryption_key (&skey, &iv,
 				label, ns);
-  GNUNET_CRYPTO_aes_decrypt (input, input_len,
+  GNUNET_CRYPTO_symmetric_decrypt (input, input_len,
 			     &skey, &iv,
                              output);
 }
@@ -167,8 +167,8 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_PublishUblockContext *uc;
   struct GNUNET_HashCode query;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   struct GNUNET_CRYPTO_EccPrivateKey *nsd;
   struct GNUNET_CRYPTO_EccPublicSignKey pub;
   char *uris;
@@ -232,7 +232,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 
   /* encrypt ublock */
   ub_enc = GNUNET_malloc (size);
-  GNUNET_CRYPTO_aes_encrypt (&ub_plain[1], 
+  GNUNET_CRYPTO_symmetric_encrypt (&ub_plain[1], 
 			     ulen + slen + mdsize,
 			     &skey, &iv,
                              &ub_enc[1]);

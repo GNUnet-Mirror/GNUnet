@@ -69,8 +69,8 @@ testArithmetic ()
   struct GNUNET_HashCode h2;
   struct GNUNET_HashCode d;
   struct GNUNET_HashCode s;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
 
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &h1);
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &h2);

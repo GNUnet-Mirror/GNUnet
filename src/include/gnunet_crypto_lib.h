@@ -209,7 +209,7 @@ struct GNUNET_CRYPTO_EccPrivateKey
 /**
  * @brief type for session keys
  */
-struct GNUNET_CRYPTO_AesSessionKey
+struct GNUNET_CRYPTO_SymmetricSessionKey
 {
   /**
    * Actual key for AES.
@@ -231,7 +231,7 @@ GNUNET_NETWORK_STRUCT_END
  * NOTE: must be smaller (!) in size than the
  * `struct GNUNET_HashCode`.
  */
-struct GNUNET_CRYPTO_AesInitializationVector
+struct GNUNET_CRYPTO_SymmetricInitializationVector
 {
   unsigned char aes_iv[GNUNET_CRYPTO_AES_KEY_LENGTH / 2];
 
@@ -352,7 +352,7 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n);
  * @param key key to initialize
  */
 void
-GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key);
+GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key);
 
 
 /**
@@ -367,9 +367,9 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key);
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
-                           const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_AesInitializationVector
+GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
+                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                           const struct GNUNET_CRYPTO_SymmetricInitializationVector
                            *iv, void *result);
 
 
@@ -385,9 +385,9 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
  * @return -1 on failure, size of decrypted block on success
  */
 ssize_t
-GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_AesInitializationVector
+GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
+                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                           const struct GNUNET_CRYPTO_SymmetricInitializationVector
                            *iv, void *result);
 
 
@@ -401,8 +401,8 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
  * @param ... pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                             const struct GNUNET_CRYPTO_AesSessionKey *skey,
+GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                             const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
                              const void *salt, size_t salt_len, ...);
 
 
@@ -415,8 +415,8 @@ GNUNET_CRYPTO_aes_derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  * @param argp pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
-GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                               const struct GNUNET_CRYPTO_AesSessionKey *skey,
+GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                               const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
                                const void *salt, size_t salt_len, va_list argp);
 
 
@@ -610,8 +610,8 @@ GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_Ha
  */
 void
 GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
-                               struct GNUNET_CRYPTO_AesSessionKey *skey,
-                               struct GNUNET_CRYPTO_AesInitializationVector
+                               struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                               struct GNUNET_CRYPTO_SymmetricInitializationVector
                                *iv);
 
 
@@ -685,7 +685,7 @@ GNUNET_CRYPTO_hash_xorcmp (const struct GNUNET_HashCode * h1,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
-                                 const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *rkey,
                                  const void *salt, size_t salt_len,
                                  va_list argp);
 
@@ -701,7 +701,7 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
  */
 void
 GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
-                               const struct GNUNET_CRYPTO_AesSessionKey *rkey,
+                               const struct GNUNET_CRYPTO_SymmetricSessionKey *rkey,
                                const void *salt, size_t salt_len, ...);
 
 

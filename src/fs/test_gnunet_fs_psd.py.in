@@ -57,16 +57,16 @@ try:
   pub = pexpect ()
   pub.spawn (None, [publish, '-c', 'test_gnunet_fs_psd_data.conf', '-n', '-m', "description:Test archive", '-k', 'tst', 'test_gnunet_fs_rec_data.tgz'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   pub.expect ("stdout", re.compile (r"Publishing `.+test_gnunet_fs_rec_data.tgz' done\.\r?\n"))
-  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822'\.\r?\n"))
+  pub.expect ("stdout", re.compile (r"URI is `gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.49BQ3R5C10JA1695IF71FCQ8VVG4IKIPH04BD9CQ22O6JEK915A7CEPQ17OD0NUQHTR5K4HHEGIKEVPFODB7IAUC0EKIAL2R781E9DG\.17822'\.\r?\n"))
 
   s = pexpect ()
   s.spawn (None, [search, '-V', '-t', '1000 ms', '-N', '1', '-c', 'test_gnunet_fs_psd_data.conf', 'tst'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   s.expect ("stdout", re.compile (r'#0:\r?\n'))
-  s.expect ("stdout", re.compile (r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48\.17822\r?\n'))
+  s.expect ("stdout", re.compile (r'gnunet-download -o "test_gnunet_fs_rec_data.tgz" gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO\.49BQ3R5C10JA1695IF71FCQ8VVG4IKIPH04BD9CQ22O6JEK915A7CEPQ17OD0NUQHTR5K4HHEGIKEVPFODB7IAUC0EKIAL2R781E9DG\.17822\r?\n'))
   s.expect ("stdout", re.compile (r"\s*description: Test archive\r?\n"))
   
   down = pexpect ()
-  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO.FPEBEAL6HCABM5LMFNNJOPPLKAF5TLUC86A11EIS1HLMIUBP8VEUTU7FT50OLF9ESKP7GTBUE7GDN392J2VKL6JKM1VT1KB4C7Q1U48.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  down.spawn (None, [download, '-c', 'test_gnunet_fs_psd_data.conf', '-o', 'test_gnunet_fs_rec_data.tar.gz', 'gnunet://fs/chk/2VKHJMR74CB6GB1GFJNOO95BTINA2PEO25FL48GAS7SPBMA0GDEK5U74R1VIHK0LA6919QRS376BHQFDOE3OUP0JOU92K1NIRJMHFCO.49BQ3R5C10JA1695IF71FCQ8VVG4IKIPH04BD9CQ22O6JEK915A7CEPQ17OD0NUQHTR5K4HHEGIKEVPFODB7IAUC0EKIAL2R781E9DG.17822'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   down.expect ("stdout", re.compile (r"Downloading `test_gnunet_fs_rec_data.tar.gz' done (.*).\r?\n"))
   os.remove ("test_gnunet_fs_rec_data.tar.gz")
 

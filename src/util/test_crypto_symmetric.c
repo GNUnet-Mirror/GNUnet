@@ -20,7 +20,7 @@
 */
 /**
  * @author Christian Grothoff
- * @file util/test_crypto_aes.c
+ * @file util/test_crypto_symmetric.c
  * @brief test for AES ciphers
  */
 #include "platform.h"
@@ -33,16 +33,16 @@
 static int
 testSymcipher ()
 {
-  struct GNUNET_CRYPTO_AesSessionKey key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey key;
   char result[100];
   int size;
   char res[100];
 
-  GNUNET_CRYPTO_aes_create_session_key (&key);
+  GNUNET_CRYPTO_symmetric_create_session_key (&key);
   size =
-      GNUNET_CRYPTO_aes_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &key,
+      GNUNET_CRYPTO_symmetric_encrypt (TESTSTRING, strlen (TESTSTRING) + 1, &key,
                                  (const struct
-                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
                                  INITVALUE, result);
   if (size == -1)
   {
@@ -50,9 +50,9 @@ testSymcipher ()
     return 1;
   }
   size =
-      GNUNET_CRYPTO_aes_decrypt (result, size, &key,
+      GNUNET_CRYPTO_symmetric_decrypt (result, size, &key,
                                  (const struct
-                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
                                  INITVALUE, res);
   if (strlen (TESTSTRING) + 1 != size)
   {
@@ -72,7 +72,7 @@ testSymcipher ()
 static int
 verifyCrypto ()
 {
-  struct GNUNET_CRYPTO_AesSessionKey key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey key;
   char result[GNUNET_CRYPTO_AES_KEY_LENGTH];
   char *res;
   int ret;
@@ -107,9 +107,9 @@ verifyCrypto ()
   memcpy (key.aes_key, raw_key_aes, GNUNET_CRYPTO_AES_KEY_LENGTH);
   memcpy (key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_aes_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
+      GNUNET_CRYPTO_symmetric_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                  (const struct
-                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
                                  "testtesttesttest", result))
   {
     printf ("Wrong return value from encrypt block.\n");
@@ -129,9 +129,9 @@ verifyCrypto ()
 
   res = GNUNET_malloc (GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
-      GNUNET_CRYPTO_aes_decrypt (result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
+      GNUNET_CRYPTO_symmetric_decrypt (result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                  (const struct
-                                  GNUNET_CRYPTO_AesInitializationVector *)
+                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
                                  "testtesttesttest", res))
   {
     printf ("Wrong return value from decrypt block.\n");
@@ -156,7 +156,7 @@ main (int argc, char *argv[])
 
   GNUNET_log_setup ("test-crypto-aes", "WARNING", NULL);
   GNUNET_assert (strlen (INITVALUE) >
-                 sizeof (struct GNUNET_CRYPTO_AesInitializationVector));
+                 sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector));
   failureCount += testSymcipher ();
   failureCount += verifyCrypto ();
 

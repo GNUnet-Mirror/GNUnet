@@ -311,13 +311,13 @@ struct GSC_KeyExchangeInfo
    * Key we use to encrypt our messages for the other peer
    * (initialized by us when we do the handshake).
    */
-  struct GNUNET_CRYPTO_AesSessionKey encrypt_key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey encrypt_key;
 
   /**
    * Key we use to decrypt messages from the other peer
    * (given to us by the other peer during the handshake).
    */
-  struct GNUNET_CRYPTO_AesSessionKey decrypt_key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey decrypt_key;
 
   /**
    * At what time did the other peer generate the decryption key?
@@ -425,13 +425,13 @@ static GNUNET_SCHEDULER_TaskIdentifier rekey_task;
  */
 static void
 derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
-                 const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed)
+                 const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed)
 {
   static const char ctx[] = "authentication key";
 
   GNUNET_CRYPTO_hmac_derive_key (akey, skey, 
                                  &seed, sizeof (seed), 
-                                 skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey), 
+                                 skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey), 
                                  ctx, sizeof (ctx), 
                                  NULL);
 }
@@ -446,13 +446,13 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
  * @param identity identity of the other peer to use
  */
 static void
-derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-           const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+           const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed,
            const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "initialization vector";
 
-  GNUNET_CRYPTO_aes_derive_iv (iv, skey, &seed, sizeof (seed),
+  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
                                &identity->hashPubKey.bits,
                                sizeof (identity->hashPubKey.bits), ctx,
                                sizeof (ctx), NULL);
@@ -469,13 +469,13 @@ derive_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
  * @param identity identity of the other peer to use
  */
 static void
-derive_pong_iv (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-                const struct GNUNET_CRYPTO_AesSessionKey *skey, uint32_t seed,
+derive_pong_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed,
                 uint32_t challenge, const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "pong initialization vector";
 
-  GNUNET_CRYPTO_aes_derive_iv (iv, skey, &seed, sizeof (seed),
+  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
                                &identity->hashPubKey.bits,
                                sizeof (identity->hashPubKey.bits), &challenge,
                                sizeof (challenge), ctx, sizeof (ctx), NULL);
@@ -494,11 +494,11 @@ static void
 derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 		const struct GNUNET_PeerIdentity *receiver,
 		const struct GNUNET_HashCode *key_material,
-		struct GNUNET_CRYPTO_AesSessionKey *skey)
+		struct GNUNET_CRYPTO_SymmetricSessionKey *skey)
 {
   static const char ctx[] = "aes key generation vector";
 
-  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 		     ctx, sizeof (ctx),
 		     key_material, sizeof (struct GNUNET_HashCode),
 		     sender, sizeof (struct GNUNET_PeerIdentity),
@@ -520,7 +520,7 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
  */
 static int
 do_encrypt (struct GSC_KeyExchangeInfo *kx,
-            const struct GNUNET_CRYPTO_AesInitializationVector *iv,
+            const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
             const void *in, void *out, size_t size)
 {
   if (size != (uint16_t) size)
@@ -529,7 +529,7 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
     return GNUNET_NO;
   }
   GNUNET_assert (size ==
-                 GNUNET_CRYPTO_aes_encrypt (in, (uint16_t) size,
+                 GNUNET_CRYPTO_symmetric_encrypt (in, (uint16_t) size,
                                             &kx->encrypt_key, iv, out));
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# bytes encrypted"), size,
                             GNUNET_NO);
@@ -561,7 +561,7 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
  */
 static int
 do_decrypt (struct GSC_KeyExchangeInfo *kx,
-            const struct GNUNET_CRYPTO_AesInitializationVector *iv,
+            const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
             const void *in, void *out, size_t size)
 {
   if (size != (uint16_t) size)
@@ -576,7 +576,7 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
     return GNUNET_SYSERR;
   }
   if (size !=
-      GNUNET_CRYPTO_aes_decrypt (in, (uint16_t) size, &kx->decrypt_key, iv,
+      GNUNET_CRYPTO_symmetric_decrypt (in, (uint16_t) size, &kx->decrypt_key, iv,
                                  out))
   {
     GNUNET_break (0);
@@ -635,7 +635,7 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
 {
   struct PingMessage pp;
   struct PingMessage *pm;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
 
   pm = &kx->ping;
   pm->header.size = htons (sizeof (struct PingMessage));
@@ -911,7 +911,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   struct PingMessage t;
   struct PongMessage tx;
   struct PongMessage tp;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   uint16_t msize;
 
   msize = ntohs (msg->size);
@@ -1056,7 +1056,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
 {
   const struct PongMessage *m;
   struct PongMessage t;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   uint16_t msize;
 
   msize = ntohs (msg->size);
@@ -1214,7 +1214,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   char cbuf[used];              /* ciphertext */
   struct EncryptedMessage *em;  /* encrypted message */
   struct EncryptedMessage *ph;  /* plaintext header */
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_AuthKey auth_key;
 
   ph = (struct EncryptedMessage *) pbuf;
@@ -1281,7 +1281,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_HashCode ph;
   uint32_t snum;
   struct GNUNET_TIME_Absolute t;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_AuthKey auth_key;
   struct DeliverMessageContext dmc;
   uint16_t size = ntohs (msg->size);

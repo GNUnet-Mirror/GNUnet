@@ -234,12 +234,12 @@ encrypt_existing_match (struct GNUNET_FS_DownloadContext *dc,
 {
   struct ProcessResultClosure prc;
   char enc[len];
-  struct GNUNET_CRYPTO_AesSessionKey sk;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey sk;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_HashCode query;
 
   GNUNET_CRYPTO_hash_to_aes_key (&chk->key, &sk, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_encrypt (block, len, &sk, &iv, enc))
+  if (-1 == GNUNET_CRYPTO_symmetric_encrypt (block, len, &sk, &iv, enc))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -434,8 +434,8 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
   char enc[DBLOCK_SIZE];
   struct ContentHashKey chks[CHK_PER_INODE];
   struct ContentHashKey in_chk;
-  struct GNUNET_CRYPTO_AesSessionKey sk;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey sk;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   size_t dlen;
   struct DownloadRequest *drc;
   struct GNUNET_DISK_FileHandle *fh;
@@ -473,7 +473,7 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
   }
   GNUNET_CRYPTO_hash (&data[dr->offset], dlen, &in_chk.key);
   GNUNET_CRYPTO_hash_to_aes_key (&in_chk.key, &sk, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_encrypt (&data[dr->offset], dlen, &sk, &iv, enc))
+  if (-1 == GNUNET_CRYPTO_symmetric_encrypt (&data[dr->offset], dlen, &sk, &iv, enc))
   {
     GNUNET_break (0);
     return;
@@ -945,8 +945,8 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   struct GNUNET_FS_DownloadContext *dc = prc->dc;
   struct DownloadRequest *drc;
   struct GNUNET_DISK_FileHandle *fh = NULL;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   char pt[prc->size];
   struct GNUNET_FS_ProgressInfo pi;
   uint64_t off;
@@ -991,7 +991,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   }
 
   GNUNET_CRYPTO_hash_to_aes_key (&dr->chk.key, &skey, &iv);
-  if (-1 == GNUNET_CRYPTO_aes_decrypt (prc->data, prc->size, &skey, &iv, pt))
+  if (-1 == GNUNET_CRYPTO_symmetric_decrypt (prc->data, prc->size, &skey, &iv, pt))
   {
     GNUNET_break (0);
     dc->emsg = GNUNET_strdup (_("internal error decrypting content"));

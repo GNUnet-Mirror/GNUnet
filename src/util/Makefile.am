@@ -75,7 +75,7 @@ libgnunetutil_la_SOURCES = \
   container_multihashmap.c \
   container_multihashmap32.c \
   container_slist.c \
-  crypto_aes.c \
+  crypto_symmetric.c \
   crypto_crc.c \
   crypto_ecc.c \
   crypto_hash.c \
@@ -189,7 +189,7 @@ libgnunet_plugin_test_la_LDFLAGS = \
 if HAVE_BENCHMARKS
  BENCHMARKS = \
   perf_crypto_hash \
-  perf_crypto_aes \
+  perf_crypto_symmetric \
   perf_malloc
 endif
 
@@ -206,7 +206,7 @@ check_PROGRAMS = \
  test_container_multihashmap32 \
  test_container_heap \
  test_container_slist \
- test_crypto_aes \
+ test_crypto_symmetric \
  test_crypto_crc \
  test_crypto_ecc \
  test_crypto_hash \
@@ -320,9 +320,9 @@ test_container_slist_SOURCES = \
 test_container_slist_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-test_crypto_aes_SOURCES = \
- test_crypto_aes.c
-test_crypto_aes_LDADD = \
+test_crypto_symmetric_SOURCES = \
+ test_crypto_symmetric.c
+test_crypto_symmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_crypto_crc_SOURCES = \
@@ -494,9 +494,9 @@ perf_crypto_hash_SOURCES = \
 perf_crypto_hash_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
-perf_crypto_aes_SOURCES = \
- perf_crypto_aes.c
-perf_crypto_aes_LDADD = \
+perf_crypto_symmetric_SOURCES = \
+ perf_crypto_symmetric.c
+perf_crypto_symmetric_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_malloc_SOURCES = \

@@ -336,8 +336,8 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
   uint16_t pt_size;
   char iob[DBLOCK_SIZE];
   char enc[DBLOCK_SIZE];
-  struct GNUNET_CRYPTO_AesSessionKey sk;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey sk;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   unsigned int off;
 
   GNUNET_assert (GNUNET_NO == te->in_next);
@@ -383,7 +383,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
   mychk = &te->chk_tree[te->current_depth * CHK_PER_INODE + off];
   GNUNET_CRYPTO_hash (pt_block, pt_size, &mychk->key);
   GNUNET_CRYPTO_hash_to_aes_key (&mychk->key, &sk, &iv);
-  GNUNET_CRYPTO_aes_encrypt (pt_block, pt_size, &sk, &iv, enc);
+  GNUNET_CRYPTO_symmetric_encrypt (pt_block, pt_size, &sk, &iv, enc);
   GNUNET_CRYPTO_hash (enc, pt_size, &mychk->query);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "TE calculates query to be `%s', stored at %u\n",

@@ -20,7 +20,7 @@
 
 /**
  * @author Christian Grothoff
- * @file util/perf_crypto_aes.c
+ * @file util/perf_crypto_symmetric.c
  * @brief measure performance of encryption function
  */
 #include "platform.h"
@@ -35,19 +35,19 @@ perfEncrypt ()
   unsigned int i;
   char buf[64 * 1024];
   char rbuf[64 * 1024];
-  struct GNUNET_CRYPTO_AesSessionKey sk;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey sk;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
 
-  GNUNET_CRYPTO_aes_create_session_key (&sk);
+  GNUNET_CRYPTO_symmetric_create_session_key (&sk);
 
   memset (buf, 1, sizeof (buf));
   for (i = 0; i < 1024; i++)
   {
     memset (&iv, (int8_t) i, sizeof (iv));
-    GNUNET_CRYPTO_aes_encrypt (buf, sizeof (buf),
+    GNUNET_CRYPTO_symmetric_encrypt (buf, sizeof (buf),
                                &sk, &iv,
                                rbuf);
-    GNUNET_CRYPTO_aes_decrypt (rbuf, sizeof (buf),
+    GNUNET_CRYPTO_symmetric_decrypt (rbuf, sizeof (buf),
                                &sk, &iv,
                                buf);
   }

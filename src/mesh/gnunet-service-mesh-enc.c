@@ -685,12 +685,12 @@ struct MeshTunnel2
   /**
    * Encryption ("our") key.
    */
-  struct GNUNET_CRYPTO_AesSessionKey e_key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey e_key;
 
   /**
    * Decryption ("their") key.
    */
-  struct GNUNET_CRYPTO_AesSessionKey d_key;
+  struct GNUNET_CRYPTO_SymmetricSessionKey d_key;
 
   /**
    * Paths that are actively used to reach the destination peer.
@@ -4221,15 +4221,15 @@ tunnel_new (void)
 //   }
 
 //   char salt[] = "salt";
-//   GNUNET_CRYPTO_kdf (&t->e_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//   GNUNET_CRYPTO_kdf (&t->e_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 //                      salt, sizeof (salt),
-//                      &t->e_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      &t->e_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 //                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
 //                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
 //                      NULL);
-//   GNUNET_CRYPTO_kdf (&t->d_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//   GNUNET_CRYPTO_kdf (&t->d_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 //                      salt, sizeof (salt),
-//                      &t->d_key, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+//                      &t->d_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 //                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
 //                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
 //                      NULL);

@@ -321,20 +321,20 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
  * @param pub public key to use for KDF
  */
 static void
-derive_block_aes_key (struct GNUNET_CRYPTO_AesInitializationVector *iv,
-		      struct GNUNET_CRYPTO_AesSessionKey *skey,
+derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+		      struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
 		      const char *label,
 		      const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
   static const char ctx_key[] = "gns-aes-ctx-key";
   static const char ctx_iv[] = "gns-aes-ctx-iv";
 
-  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey),
+  GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
 		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 		     label, strlen (label),
 		     ctx_key, strlen (ctx_key),
 		     NULL, 0);
-  GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_AesInitializationVector),
+  GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector),
 		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 		     label, strlen (label),
 		     ctx_iv, strlen (ctx_iv),
@@ -364,8 +364,8 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   struct GNUNET_NAMESTORE_Block *block;
   struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct GNUNET_CRYPTO_EccPrivateKey *dkey;
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   uint32_t rd_count_nbo;
 
   if (payload_len > GNUNET_NAMESTORE_MAX_VALUE_SIZE)
@@ -391,7 +391,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 				    &pkey);
   derive_block_aes_key (&iv, &skey, label, &pkey);
   GNUNET_break (payload_len + sizeof (uint32_t) ==
-		GNUNET_CRYPTO_aes_encrypt (payload, payload_len + sizeof (uint32_t),
+		GNUNET_CRYPTO_symmetric_encrypt (payload, payload_len + sizeof (uint32_t),
 					   &skey, &iv,
 					   &block[1]));
   if (GNUNET_OK !=
@@ -447,8 +447,8 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
   size_t payload_len = ntohl (block->purpose.size) -
     sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) -
     sizeof (struct GNUNET_TIME_AbsoluteNBO);
-  struct GNUNET_CRYPTO_AesInitializationVector iv;
-  struct GNUNET_CRYPTO_AesSessionKey skey;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey skey;
 
   if (ntohl (block->purpose.size) <      
       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -463,7 +463,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
     uint32_t rd_count;
 
     GNUNET_break (payload_len ==
-		  GNUNET_CRYPTO_aes_decrypt (&block[1], payload_len,
+		  GNUNET_CRYPTO_symmetric_decrypt (&block[1], payload_len,
 					     &skey, &iv,
 					     payload));
     memcpy (&rd_count,
