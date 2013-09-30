@@ -41,6 +41,7 @@ if HAVE_TESTING
 TESTING_TESTS = \
  test_namestore_api_store \
  test_namestore_api_store_update \
+ test_namestore_api_cache_block \
  test_namestore_api_lookup_public \
  test_namestore_api_remove \
  test_namestore_api_remove_not_existing_record \
@@ -187,6 +188,13 @@ test_namestore_api_store_LDADD = \
 test_namestore_api_store_update_SOURCES = \
  test_namestore_api_store_update.c
 test_namestore_api_store_update_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_cache_block_SOURCES = \
+ test_namestore_api_cache_block.c
+test_namestore_api_cache_block_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
