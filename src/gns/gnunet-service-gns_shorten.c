@@ -366,9 +366,15 @@ process_auth_records (void *cls,
   {
     if (GNUNET_NAMESTORE_TYPE_PSEU == rd[i].record_type)
     {
+      char pseu[rd[i].data_size + 1];
+
       /* found pseu */
+      memcpy (pseu,
+	      rd[i].data,
+	      rd[i].data_size);
+      pseu[rd[i].data_size] = '\0';
       process_pseu_result (gph, 
-			   (const char *) rd[i].data);
+			   pseu);
       return;
     }
   }
