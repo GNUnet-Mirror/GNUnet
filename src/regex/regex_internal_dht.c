@@ -121,7 +121,8 @@ regex_iterator (void *cls,
     ab.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
     ab.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
     ab.key = *key;
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (h->priv, &ab.public_key);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (h->priv, 
+						    &ab.peer.public_key);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CRYPTO_ecc_sign (h->priv,
                                            &ab.purpose,
@@ -373,7 +374,6 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   const struct RegexAcceptBlock *block = data;
   struct RegexSearchContext *ctx = cls;
   struct REGEX_INTERNAL_Search *info = ctx->info;
-  struct GNUNET_PeerIdentity pid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Regex result accept for %s (key %s)\n",
@@ -385,11 +385,8 @@ dht_get_string_accept_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   GNUNET_STATISTICS_update (info->stats, 
 			    "# regex accepting block bytes found",
                             size, GNUNET_NO);
-  GNUNET_CRYPTO_hash (&block->public_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-		      &pid.hashPubKey);
   info->callback (info->callback_cls,
-                  &pid,
+                  &block->peer,
                   get_path, get_path_length,
                   put_path, put_path_length);
 }

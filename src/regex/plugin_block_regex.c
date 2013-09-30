@@ -189,7 +189,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
 				&rba->purpose,
 				&rba->signature,
-				&rba->public_key))
+				&rba->peer.public_key))
   {
     GNUNET_break_op(0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
