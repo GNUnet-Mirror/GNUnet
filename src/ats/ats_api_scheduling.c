@@ -290,9 +290,6 @@ transmit_message_to_ats (void *cls, size_t size, void *buf)
     ret += p->size;
     size -= p->size;
     GNUNET_CONTAINER_DLL_remove (sh->pending_head, sh->pending_tail, p);
-    if (GNUNET_YES == p->is_init)
-      GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
-                             GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_free (p);
   }
   do_transmit (sh);
@@ -683,6 +680,8 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   GNUNET_assert (NULL == sh->client);
   sh->client = GNUNET_CLIENT_connect ("ats", sh->cfg);
   GNUNET_assert (NULL != sh->client);
+  GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
   if ((NULL == (p = sh->pending_head)) || (GNUNET_YES != p->is_init))
   {
     p = GNUNET_malloc (sizeof (struct PendingMessage) +
