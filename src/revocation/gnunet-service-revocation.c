@@ -99,7 +99,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * Map of all connected peers.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 /**
  * The peer identity of this peer.
@@ -227,7 +227,7 @@ handle_p2p_revoke_message (void *cls,
 
 #if 0
   /* flood to rest */
-  GNUNET_CONTAINER_multihashmap_iterate (peers, 
+  GNUNET_CONTAINER_multipeermap_iterate (peers, 
 					 &do_flood,
                                          &ctx);
 #endif
@@ -253,7 +253,7 @@ handle_core_connect (void *cls,
   peer_entry = GNUNET_new (struct PeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_put (peers, peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 #if 0
@@ -281,14 +281,14 @@ handle_core_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
-  pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  pos = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pos)
   {
     GNUNET_break (0);
     return;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
 #if 0
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) 
@@ -334,7 +334,7 @@ shutdown_task (void *cls,
   }
   if (NULL != peers)
   {
-    GNUNET_CONTAINER_multihashmap_destroy (peers);
+    GNUNET_CONTAINER_multipeermap_destroy (peers);
     peers = NULL;
   }
 }
@@ -411,7 +411,7 @@ run (void *cls,
 				      GNUNET_SET_OPERATION_UNION);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   GNUNET_SERVER_add_handlers (srv, handlers);
    /* Connect to core service and register core handlers */
   coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
