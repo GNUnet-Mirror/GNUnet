@@ -148,7 +148,7 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     return GNUNET_SYSERR;
   }
   status = ntohs (msg->status);
-  if (BARRIER_STATUS_ERROR == status)
+  if (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status)
   {
     status = -1;
     emsg_len = msize - (sizeof (struct GNUNET_TESTBED_BarrierStatusMsg) + name_len
@@ -177,10 +177,10 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
     goto cleanup;
   }
   GNUNET_assert (NULL != barrier->cb);
-  if ((GNUNET_YES == barrier->echo) && (BARRIER_STATUS_CROSSED == status))
+  if ((GNUNET_YES == barrier->echo) && (GNUNET_TESTBED_BARRIERSTATUS_CROSSED == status))
     GNUNET_TESTBED_queue_message_ (c, GNUNET_copy_message (&msg->header));
   barrier->cb (barrier->cls, name, barrier, status, emsg);
-  if (BARRIER_STATUS_INITIALISED == status)
+  if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED == status)
     return GNUNET_OK;           /* just initialised; skip cleanup */
 
  cleanup:
@@ -396,12 +396,12 @@ receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
   msg = (const struct GNUNET_TESTBED_BarrierStatusMsg *) message;
   switch (ntohs (msg->status))
   {
-  case BARRIER_STATUS_ERROR:
+  case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
     goto fail;
-  case BARRIER_STATUS_INITIALISED:
+  case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
     GNUNET_break (0);           /* FIXME */
     goto destroy;
-  case BARRIER_STATUS_CROSSED:
+  case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
     h->cb (h->cls, h->name, GNUNET_OK);
     goto destroy;
   default:

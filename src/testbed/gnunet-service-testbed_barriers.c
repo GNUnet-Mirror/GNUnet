@@ -394,7 +394,7 @@ cancel_wrappers (struct Barrier *barrier)
  * @param name the barrier name
  * @param status the status of the barrier
  * @param emsg the error message; should be non-NULL for
- *   status=BARRIER_STATUS_ERROR 
+ *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR 
  */
 static void
 send_client_status_msg (struct GNUNET_SERVER_Client *client,
@@ -406,7 +406,7 @@ send_client_status_msg (struct GNUNET_SERVER_Client *client,
   size_t name_len;
   uint16_t msize;
 
-  GNUNET_assert ((NULL == emsg) || (BARRIER_STATUS_ERROR == status));
+  GNUNET_assert ((NULL == emsg) || (GNUNET_TESTBED_BARRIERSTATUS_ERROR == status));
   name_len = strlen (name);
   msize = sizeof (struct GNUNET_TESTBED_BarrierStatusMsg)
       + (name_len + 1)
@@ -428,7 +428,7 @@ send_client_status_msg (struct GNUNET_SERVER_Client *client,
  *
  * @param barrier the corresponding barrier
  * @param emsg the error message; should be non-NULL for
- *   status=BARRIER_STATUS_ERROR 
+ *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR 
  */
 static void
 send_barrier_status_msg (struct Barrier *barrier, const char *emsg)
@@ -503,7 +503,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   if ((barrier->num_wbarriers_reached == barrier->num_wbarriers)
         && (LOCAL_QUORUM_REACHED (barrier)))
   {
-    barrier->status = BARRIER_STATUS_CROSSED;
+    barrier->status = GNUNET_TESTBED_BARRIERSTATUS_CROSSED;
     send_barrier_status_msg (barrier, NULL);
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -596,18 +596,18 @@ wbarrier_status_cb (void *cls, const char *name,
   GNUNET_free (wrapper);
   switch (status)
   {
-  case BARRIER_STATUS_ERROR:
+  case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Initialising barrier `%s' failed at a sub-controller: %s\n",
          barrier->name, (NULL != emsg) ? emsg : "NULL");
     cancel_wrappers (barrier);
     if (NULL == emsg)
       emsg = "Initialisation failed at a sub-controller";
-    barrier->status = BARRIER_STATUS_ERROR;
+    barrier->status = GNUNET_TESTBED_BARRIERSTATUS_ERROR;
     send_barrier_status_msg (barrier, emsg);
     return;
-  case BARRIER_STATUS_CROSSED:
-    if (BARRIER_STATUS_INITIALISED != barrier->status)
+  case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
+    if (GNUNET_TESTBED_BARRIERSTATUS_INITIALISED != barrier->status)
     {
       GNUNET_break_op (0);
       return;
@@ -616,11 +616,11 @@ wbarrier_status_cb (void *cls, const char *name,
     if ((barrier->num_wbarriers_reached == barrier->num_wbarriers)
         && (LOCAL_QUORUM_REACHED (barrier)))
     {
-      barrier->status = BARRIER_STATUS_CROSSED;
+      barrier->status = GNUNET_TESTBED_BARRIERSTATUS_CROSSED;
       send_barrier_status_msg (barrier, NULL);
     }
     return;
-  case BARRIER_STATUS_INITIALISED:
+  case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
     if (0 != barrier->status)
     {
       GNUNET_break_op (0);
@@ -629,7 +629,7 @@ wbarrier_status_cb (void *cls, const char *name,
     barrier->num_wbarriers_inited++;
     if (barrier->num_wbarriers_inited == barrier->num_wbarriers)
     {
-      barrier->status = BARRIER_STATUS_INITIALISED;
+      barrier->status = GNUNET_TESTBED_BARRIERSTATUS_INITIALISED;
       send_barrier_status_msg (barrier, NULL);
     }
     return;
@@ -650,7 +650,7 @@ fwd_tout_barrier_init (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Barrier *barrier = cls;
   
   cancel_wrappers (barrier);
-  barrier->status = BARRIER_STATUS_ERROR;
+  barrier->status = GNUNET_TESTBED_BARRIERSTATUS_ERROR;
   send_barrier_status_msg (barrier,
                            "Timedout while propagating barrier initialisation\n");
   remove_barrier (barrier);
@@ -711,7 +711,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
   {
     
-    send_client_status_msg (client, name, BARRIER_STATUS_ERROR,
+    send_client_status_msg (client, name, GNUNET_TESTBED_BARRIERSTATUS_ERROR,
                             "A barrier with the same name already exists");
     GNUNET_free (name);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -751,8 +751,8 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (NULL == barrier->whead)   /* No further propagation */
   {
-    barrier->status = BARRIER_STATUS_INITIALISED;
-    LOG_DEBUG ("Sending BARRIER_STATUS_INITIALISED for barrier `%s'\n",
+    barrier->status = GNUNET_TESTBED_BARRIERSTATUS_INITIALISED;
+    LOG_DEBUG ("Sending GNUNET_TESTBED_BARRIERSTATUS_INITIALISED for barrier `%s'\n",
                barrier->name);
     send_barrier_status_msg (barrier, NULL);
   }else
@@ -866,7 +866,7 @@ GST_handle_barrier_status (void *cls, struct GNUNET_SERVER_Client *client,
   }
   msg = (const struct GNUNET_TESTBED_BarrierStatusMsg *) message;
   status = ntohs (msg->status);
-  if (BARRIER_STATUS_CROSSED != status)
+  if (GNUNET_TESTBED_BARRIERSTATUS_CROSSED != status)
   {
     GNUNET_break_op (0);        /* current we only expect BARRIER_CROSSED
                                    status message this way */

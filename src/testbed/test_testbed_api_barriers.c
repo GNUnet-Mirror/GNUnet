@@ -104,19 +104,19 @@ barrier_cb (void *cls,
   GNUNET_assert (_barrier == barrier);
   switch (status)
   {
-  case BARRIER_STATUS_INITIALISED:
+  case GNUNET_TESTBED_BARRIERSTATUS_INITIALISED:
     LOG (GNUNET_ERROR_TYPE_INFO, "Barrier initialised\n");
     old_status = status;
     return;
-  case BARRIER_STATUS_ERROR:
+  case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
     LOG (GNUNET_ERROR_TYPE_ERROR, "Barrier initialisation failed: %s", 
          (NULL == emsg) ? "unknown reason" : emsg);
     barrier = NULL;
     GNUNET_SCHEDULER_shutdown ();    
     return;
-  case BARRIER_STATUS_CROSSED:
+  case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
     LOG (GNUNET_ERROR_TYPE_INFO, "Barrier crossed\n");
-    if (old_status == BARRIER_STATUS_INITIALISED) 
+    if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED) 
       result = GNUNET_OK;
     barrier = NULL;
     GNUNET_SCHEDULER_shutdown ();

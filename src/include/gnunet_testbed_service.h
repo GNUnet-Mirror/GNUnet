@@ -1480,17 +1480,17 @@ enum GNUNET_TESTBED_BarrierStatus
   /**
    * Barrier initialised successfully
    */
-  BARRIER_STATUS_INITIALISED = 1,
+  GNUNET_TESTBED_BARRIERSTATUS_INITIALISED = 1,
 
   /**
    * Barrier is crossed
    */
-  BARRIER_STATUS_CROSSED,
+  GNUNET_TESTBED_BARRIERSTATUS_CROSSED,
 
   /**
    * Error status
    */
-  BARRIER_STATUS_ERROR,
+  GNUNET_TESTBED_BARRIERSTATUS_ERROR,
   
 };
 
