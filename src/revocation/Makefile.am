@@ -17,4 +17,15 @@ pkgcfg_DATA = \
   revocation.conf
 
 
-EXTRA_DIST = revocation.h
+lib_LTLIBRARIES = libgnunetrevocation.la
+
+libgnunetrevocation_la_SOURCES = \
+  revocation_api.c revocation.h
+libgnunetrevocation_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) $(XLIB)
+libgnunetrevocation_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+#EXTRA_DIST = 

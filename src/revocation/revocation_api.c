@@ -17,48 +17,49 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
  */
-
-#ifndef GNUNET_REVOCATION_SERVICE_H_
-#define GNUNET_REVOCATION_SERVICE_H_
-
 /**
- * @file include/gnunet_revocation_service.h
+ * @file revocation/revocation_api.c
  * @brief API to perform and access key revocations
  * @author Christian Grothoff
- * @defgroup revocation key revocation service
- * @{
  */
+#include "platform.h"
+#include "gnunet_revocation_service.h"
+#include "gnunet_signatures.h"
+#include "gnunet_protocols.h"
+#include "revocation.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
-
-#include "gnunet_util_lib.h"
-
-/**
- * Version of the key revocation API.
- */
-#define GNUNET_REVOCATION_VERSION 0x00000000
 
 /**
  * Handle for the key revocation query.
  */
-struct GNUNET_REVOCATION_Query;
+struct GNUNET_REVOCATION_Query
+{
 
-/**
- * Callback to call with the result of a key revocation query.
- *
- * @param cls closure
- * @param is_valid #GNUNET_NO of the key is/was revoked, 
- *                 #GNUNET_YES if the key is still valid
- *
- */
-typedef void (*GNUNET_REVOCATION_Callback) (void *cls,
-					    int is_valid);
+  /**
+   * Connection to the service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+  
+  /**
+   * Our configuration.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Key to check.
+   */
+  struct GNUNET_CRYPTO_EccPublicSignKey key;
+
+  /**
+   * Function to call with the result.
+   */
+  GNUNET_REVOCATION_Callback func;
+
+  /**
+   * Closure for @e func.
+   */
+  void *func_cls;
+};
 
 
 /**
@@ -73,7 +74,19 @@ typedef void (*GNUNET_REVOCATION_Callback) (void *cls,
 struct GNUNET_REVOCATION_Query *
 GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 const struct GNUNET_CRYPTO_EccPublicSignKey *key,
-			 GNUNET_REVOCATION_Callback func, void *func_cls);
+			 GNUNET_REVOCATION_Callback func, void *func_cls)
+{
+  struct GNUNET_REVOCATION_Query *q;
+
+  q = GNUNET_new (struct GNUNET_REVOCATION_Query);
+  q->client = GNUNET_CLIENT_connect ("revocation", cfg);
+  q->cfg = cfg;
+  q->key = *key;
+  q->func = func;
+  q->func_cls = func_cls;
+  GNUNET_break (0);
+  return q;
+}
 
 
 /**
@@ -82,13 +95,55 @@ GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param q query to cancel
  */
 void
-GNUNET_REVOCATION_query_cancel (struct GNUNET_REVOCATION_Query *q);
+GNUNET_REVOCATION_query_cancel (struct GNUNET_REVOCATION_Query *q)
+{
+  GNUNET_CLIENT_disconnect (q->client);
+  GNUNET_free (q);
+}
 
 
 /**
  * Handle for the key revocation operation.
  */
-struct GNUNET_REVOCATION_Handle;
+struct GNUNET_REVOCATION_Handle
+{
+  
+  /**
+   * Connection to the service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+  
+  /**
+   * Our configuration.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Key to revoke.
+   */
+  struct GNUNET_CRYPTO_EccPublicSignKey key;
+
+  /**
+   * Signature showing that we have the right to revoke.
+   */
+  struct GNUNET_CRYPTO_EccSignature sig;
+
+  /**
+   * Proof of work showing that we spent enough resources to broadcast revocation.
+   */
+  uint64_t pow;
+
+  /**
+   * Function to call once we are done.
+   */
+  GNUNET_REVOCATION_Callback func;
+
+  /**
+   * Closure for @e func.
+   */
+  void *func_cls;
+
+};
 
 
 /**
@@ -111,7 +166,21 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			  const struct GNUNET_CRYPTO_EccPublicSignKey *key,
 			  const struct GNUNET_CRYPTO_EccSignature *sig,
 			  uint64_t pow,
-			  GNUNET_REVOCATION_Callback func, void *func_cls);
+			  GNUNET_REVOCATION_Callback func, void *func_cls)
+{
+  struct GNUNET_REVOCATION_Handle *h;
+
+  h = GNUNET_new (struct GNUNET_REVOCATION_Handle);
+  h->client = GNUNET_CLIENT_connect ("revocation", cfg);
+  h->cfg = cfg;
+  h->key = *key;
+  h->sig = *sig;
+  h->pow = pow;
+  h->func = func;
+  h->func_cls = func_cls;
+  GNUNET_break (0);
+  return h;
+}
 
 
 /**
@@ -120,7 +189,11 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param h operation to cancel
  */
 void
-GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
+GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h)
+{
+  GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_free (h);
+}
 
 
 /**
@@ -133,7 +206,11 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
-			     uint64_t pow);
+			     uint64_t pow)
+{
+  GNUNET_break (0);
+  return GNUNET_NO;
+}
 
 
 /**
@@ -144,16 +221,20 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
  */
 void
 GNUNET_REVOCATION_sign_revocation (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-				   struct GNUNET_CRYPTO_EccSignature *sig);
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
+				   struct GNUNET_CRYPTO_EccSignature *sig)
 {
-#endif
-#ifdef __cplusplus
+  struct GNUNET_REVOCATION_RevokeMessage rm;
+
+  rm.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
+  rm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+			   sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &rm.public_key);
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CRYPTO_ecc_sign (key,
+					 &rm.purpose,
+					 sig));
 }
-#endif
 
-/** @} */ /* end of group revocation */
 
-#endif /* GNUNET_REVOCATION_SERVICE_H_ */
+/* end of revocation_api.c */
+

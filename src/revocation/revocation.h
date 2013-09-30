@@ -48,7 +48,7 @@ struct GNUNET_REVOCATION_QueryMessage
   /**
    * Key to check.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey key GNUNET_PACKED;
+  struct GNUNET_CRYPTO_EccPublicSignKey key;
 
 };
 
@@ -91,25 +91,25 @@ struct GNUNET_REVOCATION_RevokeMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
+   * Number that causes a hash collision with the @e public_key.
+   */
+  uint64_t proof_of_work GNUNET_PACKED;
+
+  /**
    * Signature confirming revocation.
    */
-  struct GNUNET_CRYPTO_EccSignature signature  GNUNET_PACKED;
+  struct GNUNET_CRYPTO_EccSignature signature;
 
   /**
    * Must have purpose #GNUNET_SIGNATURE_PURPOSE_REVOCATION,
-   * size expands over the key and the proof of work.
+   * size expands over the public key.
    */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose GNUNET_PACKED;
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
    * Key to revoke.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key GNUNET_PACKED;
-
-  /**
-   * Number that causes a hash collision with the @e public_key.
-   */
-  uint64_t proof_of_work GNUNET_PACKED;
+  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
 
 };
 
