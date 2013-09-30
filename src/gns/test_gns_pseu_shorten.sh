@@ -21,6 +21,8 @@ gnunet-namestore -p -z testego -a -n short -t PKEY -V $SHORT -e never -c test_gn
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z delegatedego -a -n "+" -t PSEU -V $TEST_PSEU -e never -c test_gns_lookup.conf
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_NAME -t A -c test_gns_lookup.conf`
+# need to sleep here, as shortening happens asynchronously...
+sleep 1
 RES_IP_PSEU=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.alice.short.gnu -t A -c test_gns_lookup.conf`
 gnunet-namestore -z testego -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 gnunet-namestore -z delegatedego -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
