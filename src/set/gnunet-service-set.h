@@ -28,10 +28,9 @@
 #define GNUNET_SERVICE_SET_H_PRIVATE
 
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
-#include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_set_service.h"

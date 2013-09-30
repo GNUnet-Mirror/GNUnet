@@ -203,7 +203,7 @@ struct PeerPlan
 /**
  * Hash map from peer identities to PeerPlans.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *plans;
+static struct GNUNET_CONTAINER_MultiPeerMap *plans;
 
 /**
  * Sum of all transmission counters (equals total delay for all plan entries).
@@ -584,7 +584,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
 
   GNUNET_assert (NULL != cp);
   id = GSF_connected_peer_get_identity2_ (cp);
-  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id->hashPubKey);
+  pp = GNUNET_CONTAINER_multipeermap_get (plans, id);
   if (NULL == pp)
   {
     pp = GNUNET_new (struct PeerPlan);
@@ -594,8 +594,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
     pp->delay_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     pp->cp = cp;
-    GNUNET_CONTAINER_multihashmap_put (plans, 
-				       &id->hashPubKey, pp,
+    GNUNET_CONTAINER_multipeermap_put (plans, 
+				       id, pp,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
   mpc.merged = GNUNET_NO;
@@ -648,11 +648,11 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   struct GSF_PendingRequestPlanBijection *bi;
 
   id = GSF_connected_peer_get_identity2_ (cp);
-  pp = GNUNET_CONTAINER_multihashmap_get (plans, &id->hashPubKey);
+  pp = GNUNET_CONTAINER_multipeermap_get (plans, id);
   if (NULL == pp)
     return;                     /* nothing was ever planned for this peer */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (plans, &id->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_remove (plans, id,
                                                        pp));
   if (NULL != pp->pth)
   {
@@ -777,7 +777,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 void
 GSF_plan_init ()
 {
-  plans = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_YES);
+  plans = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_YES);
 }
 
 
@@ -787,8 +787,8 @@ GSF_plan_init ()
 void
 GSF_plan_done ()
 {
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (plans));
-  GNUNET_CONTAINER_multihashmap_destroy (plans);
+  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (plans));
+  GNUNET_CONTAINER_multipeermap_destroy (plans);
 }
 
 

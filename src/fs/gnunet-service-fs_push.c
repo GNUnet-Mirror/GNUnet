@@ -329,6 +329,7 @@ score_content (struct MigrationReadyPeer *peer,
   unsigned int i;
   struct GSF_PeerPerformanceData *ppd;
   struct GNUNET_PeerIdentity id;
+  struct GNUNET_HashCode hc;
   uint32_t dist;
 
   ppd = GSF_get_peer_performance_data_ (peer->peer);
@@ -337,7 +338,8 @@ score_content (struct MigrationReadyPeer *peer,
       return -1;
   GNUNET_assert (0 != ppd->pid);
   GNUNET_PEER_resolve (ppd->pid, &id);
-  dist = GNUNET_CRYPTO_hash_distance_u32 (&block->query, &id.hashPubKey);
+  GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &hc);
+  dist = GNUNET_CRYPTO_hash_distance_u32 (&block->query, &hc);
   /* closer distance, higher score: */
   return UINT32_MAX - dist;
 }

@@ -23,11 +23,9 @@
  * @brief two-peer set operations
  * @author Florian Dold
  */
-
-
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet-service-set.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_crypto_lib.h"
 #include "ibf.h"
 #include "strata_estimator.h"
 #include "set_protocol.h"

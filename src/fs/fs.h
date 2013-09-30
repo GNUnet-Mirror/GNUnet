@@ -240,7 +240,7 @@ struct SearchMessage
    * <p>
    * Otherwise, "target" must be all zeros.
    */
-  struct GNUNET_HashCode target;
+  struct GNUNET_PeerIdentity target;
 
   /**
    * Hash of the public key for UBLOCKs; Hash of

@@ -1325,7 +1325,7 @@ transmit_download_request (void *cls, size_t size, void *buf)
     else
       sm->type = htonl (GNUNET_BLOCK_TYPE_FS_IBLOCK);
     sm->anonymity_level = htonl (dc->anonymity);
-    sm->target = dc->target.hashPubKey;
+    sm->target = dc->target;
     sm->query = dr->chk.query;
     GNUNET_CONTAINER_DLL_remove (dc->pending_head, dc->pending_tail, dr);
     dr->is_pending = GNUNET_NO;

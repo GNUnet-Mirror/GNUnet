@@ -161,7 +161,7 @@ static struct GNUNET_MESH_Handle *mesh_handle;
  * Map from peer identities to 'struct MeshHandles' with mesh
  * tunnels to those peers.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *mesh_map;
+static struct GNUNET_CONTAINER_MultiPeerMap *mesh_map;
 
 
 /* ********************* client-side code ************************* */
@@ -504,8 +504,8 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 {
   struct MeshHandle *mh;
 
-  mh = GNUNET_CONTAINER_multihashmap_get (mesh_map,
-					  &target->hashPubKey);
+  mh = GNUNET_CONTAINER_multipeermap_get (mesh_map,
+					  target);
   if (NULL != mh)
   {
     if (GNUNET_SCHEDULER_NO_TASK != mh->timeout_task)
@@ -531,8 +531,8 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 					  GNUNET_NO,
 					  GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_put (mesh_map,
-						    &mh->target.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (mesh_map,
+						    &mh->target,
 						    mh,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return mh;
@@ -669,8 +669,8 @@ cleaner_cb (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
     GNUNET_SCHEDULER_cancel (mh->reset_task);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multihashmap_remove (mesh_map,
-						       &mh->target.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_remove (mesh_map,
+						       &mh->target,
 						       mh));
   GNUNET_CONTAINER_multihashmap_destroy (mh->waiting_map);
   GNUNET_free (mh);
@@ -688,7 +688,7 @@ GSF_mesh_start_client ()
     { NULL, 0, 0 }
   };
 
-  mesh_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+  mesh_map = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
   mesh_handle = GNUNET_MESH_connect (GSF_cfg,
 				     NULL,
 				     NULL,
@@ -708,7 +708,7 @@ GSF_mesh_start_client ()
  */
 static int
 release_meshs (void *cls,
-	       const struct GNUNET_HashCode *key,
+	       const struct GNUNET_PeerIdentity *key,
 	       void *value)
 {
   struct MeshHandle *mh = value;
@@ -731,10 +731,10 @@ release_meshs (void *cls,
 void
 GSF_mesh_stop_client ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (mesh_map,
+  GNUNET_CONTAINER_multipeermap_iterate (mesh_map,
 					 &release_meshs,
 					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (mesh_map);
+  GNUNET_CONTAINER_multipeermap_destroy (mesh_map);
   mesh_map = NULL;
   if (NULL != mesh_handle)
   {

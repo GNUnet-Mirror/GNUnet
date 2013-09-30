@@ -532,7 +532,7 @@ struct LocUriAssembly
   /**
    * Peer offering the file.
    */ 
-  struct GNUNET_CRYPTO_EccPublicSignKey peer;
+  struct GNUNET_PeerIdentity peer;
 
 };
 GNUNET_NETWORK_STRUCT_END
@@ -642,7 +642,7 @@ uri_loc_parse (const char *s, char **emsg)
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
-                                &ass.purpose, &sig, &ass.peer))
+                                &ass.purpose, &sig, &ass.peer.public_key))
   {
     *emsg =
         GNUNET_strdup (_("SKS URI malformed (signature failed validation)"));
@@ -832,7 +832,7 @@ GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
  *
  * @param uri the location URI to inspect
  * @param peer where to store the identify of the peer (presumably) offering the content
- * @return GNUNET_SYSERR if this is not a location URI, otherwise GNUNET_OK
+ * @return #GNUNET_SYSERR if this is not a location URI, otherwise #GNUNET_OK
  */
 int
 GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
@@ -840,9 +840,7 @@ GNUNET_FS_uri_loc_get_peer_identity (const struct GNUNET_FS_Uri *uri,
 {
   if (uri->type != GNUNET_FS_URI_LOC)
     return GNUNET_SYSERR;
-  GNUNET_CRYPTO_hash (&uri->data.loc.peer,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-                      &peer->hashPubKey);
+  *peer = uri->data.loc.peer;
   return GNUNET_OK;
 }
 
@@ -927,12 +925,12 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   ass.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   ass.fi = baseUri->data.chk;
-  ass.peer = my_public_key;
+  ass.peer.public_key = my_public_key;
   uri = GNUNET_new (struct GNUNET_FS_Uri);
   uri->type = GNUNET_FS_URI_LOC;
   uri->data.loc.fi = baseUri->data.chk;
   uri->data.loc.expirationTime = et;
-  uri->data.loc.peer = my_public_key;
+  uri->data.loc.peer.public_key = my_public_key;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecc_sign (my_private_key, &ass.purpose,
                                          &uri->data.loc.contentSignature));

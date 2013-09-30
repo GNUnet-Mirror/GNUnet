@@ -120,7 +120,7 @@ struct Location
   /**
    * Identity of the peer sharing the file.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey peer;
+  struct GNUNET_PeerIdentity peer;
 
   /**
    * Time when this location URI expires.

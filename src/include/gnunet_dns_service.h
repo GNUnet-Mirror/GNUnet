@@ -23,10 +23,9 @@
  * @brief API to access the DNS service. 
  * @author Christian Grothoff
  */
-#ifndef GNUNET_DNS_SERVICE_NEW_H
-#define GNUNET_DNS_SERVICE_NEW_H
+#ifndef GNUNET_DNS_SERVICE_H
+#define GNUNET_DNS_SERVICE_H
 
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
 

@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_load_lib.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_cp.h"
@@ -307,7 +308,7 @@ struct GSF_ConnectedPeer
 /**
  * Map from peer identities to 'struct GSF_ConnectPeer' entries.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *cp_map;
+static struct GNUNET_CONTAINER_MultiPeerMap *cp_map;
 
 /**
  * Where do we store respect information?
@@ -325,11 +326,13 @@ static char *respectDirectory;
 static char *
 get_respect_filename (const struct GNUNET_PeerIdentity *id)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded fil;
   char *fn;
 
-  GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
-  GNUNET_asprintf (&fn, "%s%s%s", respectDirectory, DIR_SEPARATOR_STR, &fil);
+  GNUNET_asprintf (&fn, 
+		   "%s%s%s", 
+		   respectDirectory, 
+		   DIR_SEPARATOR_STR,
+		   GNUNET_i2s_full (id));
   return fn;
 }
 
@@ -594,12 +597,12 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
   GNUNET_free (fn);
   cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put (cp_map, 
-						   &GSF_connected_peer_get_identity2_ (cp)->hashPubKey,
+                GNUNET_CONTAINER_multipeermap_put (cp_map, 
+						   GSF_connected_peer_get_identity2_ (cp),
                                                    cp,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multihashmap_size (cp_map),
+                         GNUNET_CONTAINER_multipeermap_size (cp_map),
                          GNUNET_NO);
   GSF_push_start_ (cp);
   return cp;
@@ -643,7 +646,7 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
 {
   if (NULL == cp_map)
     return NULL;
-  return GNUNET_CONTAINER_multihashmap_get (cp_map, &peer->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_get (cp_map, peer);
 }
 
 
@@ -1490,10 +1493,11 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;                     /* must have been disconnect from core with
                                  * 'peer' == my_id, ignore */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (cp_map,
-                                                       &peer->hashPubKey, cp));
+                 GNUNET_CONTAINER_multipeermap_remove (cp_map,
+                                                       peer,
+						       cp));
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multihashmap_size (cp_map),
+                         GNUNET_CONTAINER_multipeermap_size (cp_map),
                          GNUNET_NO);
   if (NULL != cp->migration_pth)
   {
@@ -1579,7 +1583,7 @@ struct IterationContext
  * @return #GNUNET_YES to continue iteration
  */
 static int
-call_iterator (void *cls, const struct GNUNET_HashCode * key, void *value)
+call_iterator (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct IterationContext *ic = cls;
   struct GSF_ConnectedPeer *cp = value;
@@ -1602,7 +1606,7 @@ GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it, void *it_cls)
 
   ic.it = it;
   ic.it_cls = it_cls;
-  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &call_iterator, &ic);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &call_iterator, &ic);
 }
 
 
@@ -1709,7 +1713,7 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
  * @return GNUNET_OK to continue iteration
  */
 static int
-flush_respect (void *cls, const struct GNUNET_HashCode * key, void *value)
+flush_respect (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct GSF_ConnectedPeer *cp = value;
   char *fn;
@@ -1772,7 +1776,7 @@ cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL == cp_map)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &flush_respect, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &flush_respect, NULL);
   if (NULL == tc)
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1789,7 +1793,7 @@ cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GSF_connected_peer_init_ ()
 {
-  cp_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
+  cp_map = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
                                                           "RESPECT",
@@ -1809,9 +1813,11 @@ GSF_connected_peer_init_ ()
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
+clean_peer (void *cls, 
+	    const struct GNUNET_PeerIdentity *key, 
+	    void *value)
 {
-  GSF_peer_disconnect_handler_ (NULL, (const struct GNUNET_PeerIdentity *) key);
+  GSF_peer_disconnect_handler_ (NULL, key);
   return GNUNET_YES;
 }
 
@@ -1823,8 +1829,8 @@ void
 GSF_connected_peer_done_ ()
 {
   cron_flush_respect (NULL, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &clean_peer, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (cp_map);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &clean_peer, NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (cp_map);
   cp_map = NULL;
   GNUNET_free (respectDirectory);
   respectDirectory = NULL;
@@ -1840,7 +1846,9 @@ GSF_connected_peer_done_ ()
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_local_client (void *cls, const struct GNUNET_HashCode * key, void *value)
+clean_local_client (void *cls, 
+		    const struct GNUNET_PeerIdentity *key, 
+		    void *value)
 {
   const struct GSF_LocalClient *lc = cls;
   struct GSF_ConnectedPeer *cp = value;
@@ -1864,7 +1872,7 @@ GSF_handle_local_client_disconnect_ (const struct GSF_LocalClient *lc)
 {
   if (NULL == cp_map)
     return;                     /* already cleaned up */
-  GNUNET_CONTAINER_multihashmap_iterate (cp_map, &clean_local_client,
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &clean_local_client,
                                          (void *) lc);
 }
 

@@ -25,11 +25,8 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_service_lib.h"
-#include "gnunet_server_lib.h"
 
 #include "lockmanager.h"
 
