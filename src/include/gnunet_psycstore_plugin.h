@@ -26,7 +26,6 @@
 #ifndef GNUNET_PSYCSTORE_PLUGIN_H
 #define GNUNET_PSYCSTORE_PLUGIN_H
 
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_psycstore_service.h"
 
