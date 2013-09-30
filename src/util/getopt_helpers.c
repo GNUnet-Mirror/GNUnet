@@ -23,9 +23,7 @@
  * @brief implements command line that sets option
  * @author Christian Grothoff
  */
-
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)

@@ -26,8 +26,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (m != NULL) GNUNET_CONTAINER_multihashmap32_destroy(m); return 1; }
 #define CHECK(c) { if (! (c)) ABORT(); }

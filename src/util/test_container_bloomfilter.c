@@ -25,8 +25,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 
 #define K 4
 #define SIZE 65536

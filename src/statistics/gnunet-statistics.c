@@ -25,8 +25,6 @@
  * @author Igor Wronsky
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "statistics.h"

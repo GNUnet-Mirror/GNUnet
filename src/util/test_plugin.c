@@ -22,7 +22,7 @@
  * @brief testcase for plugin.c
  */
 #include "platform.h"
-#include "gnunet_plugin_lib.h"
+#include "gnunet_util_lib.h"
 
 
 static void

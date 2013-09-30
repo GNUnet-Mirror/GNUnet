@@ -24,17 +24,10 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_directories.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
+#include "gnunet_directories.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
 
 #if HAVE_MALLINFO
 #include <malloc.h>

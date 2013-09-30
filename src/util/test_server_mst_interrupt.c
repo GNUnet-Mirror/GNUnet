@@ -22,12 +22,8 @@
  * @brief test for interrupt message processing in server_mst.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_protocols.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 static struct GNUNET_SERVER_MessageStreamTokenizer * mst;
 

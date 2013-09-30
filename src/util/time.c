@@ -24,7 +24,7 @@
  * @brief functions for handling time and time arithmetic
  */
 #include "platform.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 

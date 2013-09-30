@@ -25,8 +25,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != m) GNUNET_CONTAINER_multipeermap_destroy(m); return 1; }
 #define CHECK(c) { if (! (c)) ABORT(); }

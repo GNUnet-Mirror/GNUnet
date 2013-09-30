@@ -26,9 +26,7 @@
 
 #include "platform.h"
 #include <ltdl.h>
-#include "gnunet_common.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_plugin_lib.h"
+#include "gnunet_util_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 

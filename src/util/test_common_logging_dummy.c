@@ -28,9 +28,7 @@
 #undef GNUNET_EXTRA_LOGGING
 #define GNUNET_EXTRA_LOGGING GNUNET_YES
 
-#include "gnunet_common.h"
-#include "gnunet_time_lib.h"
-#include "gnunet_network_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * Artificial delay attached to each log call that is not skipped out.

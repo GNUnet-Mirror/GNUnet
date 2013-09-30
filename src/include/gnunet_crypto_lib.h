@@ -43,8 +43,27 @@ extern "C"
 #endif
 #endif
 
+/**
+ * @brief A 512-bit hashcode
+ */
+struct GNUNET_HashCode;
+
+/**
+ * The identity of the host (wraps the signing key of the peer).
+ */
+struct GNUNET_PeerIdentity;
+
 #include "gnunet_common.h"
 #include "gnunet_scheduler_lib.h"
+
+
+/**
+ * @brief A 512-bit hashcode
+ */
+struct GNUNET_HashCode
+{
+  uint32_t bits[512 / 8 / sizeof (uint32_t)];   /* = 16 */
+};
 
 
 /**
@@ -167,6 +186,16 @@ struct GNUNET_CRYPTO_EccPublicSignKey
    */
   unsigned char q_y[256 / 8];
 
+};
+
+
+
+/**
+ * The identity of the host (wraps the signing key of the peer).
+ */
+struct GNUNET_PeerIdentity
+{
+  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
 };
 
 
@@ -556,7 +585,7 @@ GNUNET_CRYPTO_hash_file_cancel (struct GNUNET_CRYPTO_FileHashContext *fhc);
  */
 void
 GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
-                                  struct GNUNET_HashCode * result);
+                                  struct GNUNET_HashCode *result);
 
 
 /**

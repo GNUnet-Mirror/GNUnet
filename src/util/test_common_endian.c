@@ -22,7 +22,7 @@
  * @brief testcase for common_endian.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 
 #define CHECK(n) if (n != GNUNET_htonll(GNUNET_ntohll(n))) return 1;
 

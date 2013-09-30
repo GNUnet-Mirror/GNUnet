@@ -24,8 +24,8 @@
  */
 
 #include "platform.h"
-#include "gnunet_crypto_lib.h"
-#include "gnunet_peer_lib.h"
+#include "gnunet_util_lib.h"
+#include <gcrypt.h>
 
 #define NUMBER_OF_PEERS 10
 
@@ -42,8 +42,9 @@ generatePeerIdList ()
 
   for (i = 0; i < NUMBER_OF_PEERS; i++)
   {
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-                                      &pidArr[i].hashPubKey);
+    gcry_randomize (&pidArr[i],
+                    sizeof (struct GNUNET_PeerIdentity), 
+                    GCRY_STRONG_RANDOM);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));
   }

@@ -22,12 +22,7 @@
  * @brief tests for client.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 
 #define PORT 14325

@@ -248,24 +248,6 @@ struct GNUNET_MessageHeader
 
 };
 
-
-/**
- * @brief A SHA-512 hashcode
- */
-struct GNUNET_HashCode
-{
-  uint32_t bits[512 / 8 / sizeof (uint32_t)];   /* = 16 */
-};
-
-
-/**
- * The identity of the host (basically the SHA-512 hashcode of
- * it's public key).
- */
-struct GNUNET_PeerIdentity
-{
-  struct GNUNET_HashCode hashPubKey;
-};
 GNUNET_NETWORK_STRUCT_END
 
 /**
@@ -273,9 +255,9 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param cls closure
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK to continue to iterate,
- *  GNUNET_NO to stop iteration with no error,
- *  GNUNET_SYSERR to abort iteration with error!
+ * @return #GNUNET_OK to continue to iterate,
+ *  #GNUNET_NO to stop iteration with no error,
+ *  #GNUNET_SYSERR to abort iteration with error!
  */
 typedef int (*GNUNET_FileNameCallback) (void *cls, const char *filename);
 
@@ -325,8 +307,10 @@ GNUNET_get_log_skip ();
 
 #if !defined(GNUNET_CULL_LOGGING)
 int
-GNUNET_get_log_call_status (int caller_level, const char *comp,
-                            const char *file, const char *function, int line);
+GNUNET_get_log_call_status (int caller_level, 
+                            const char *comp,
+                            const char *file, 
+                            const char *function, int line);
 #endif
 
 
@@ -529,7 +513,7 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc);
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to GNUNET_i2s.
+ *         call to #GNUNET_i2s.
  */
 const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
@@ -543,7 +527,7 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to GNUNET_i2s.
+ *         call to #GNUNET_i2s.
  */
 const char *
 GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid);
@@ -688,8 +672,8 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
- * Allocate a struct or union of the given 'type'.
- * Wrapper around GNUNET_malloc that returns a pointer
+ * Allocate a struct or union of the given @a type.
+ * Wrapper around #GNUNET_malloc that returns a pointer
  * to the newly created object of the correct type.
  *
  * @param type name of the struct or union, i.e. pass 'struct Foo'.
@@ -741,17 +725,17 @@ GNUNET_ntoh_double (double d);
  * @ingroup memory
  * Wrapper around free. Frees the memory referred to by ptr.
  * Note that is is generally better to free memory that was
- * allocated with GNUNET_array_grow using GNUNET_array_grow(mem, size, 0) instead of GNUNET_free.
+ * allocated with #GNUNET_array_grow using #GNUNET_array_grow(mem, size, 0) instead of #GNUNET_free.
  *
  * @param ptr location where to free the memory. ptr must have
- *     been returned by GNUNET_strdup, GNUNET_strndup, GNUNET_malloc or GNUNET_array_grow earlier.
+ *     been returned by #GNUNET_strdup, #GNUNET_strndup, #GNUNET_malloc or #GNUNET_array_grow earlier.
  */
 #define GNUNET_free(ptr) GNUNET_xfree_(ptr, __FILE__, __LINE__)
 
 /**
  * @ingroup memory
  * Free the memory pointed to by ptr if ptr is not NULL.
- * Equivalent to if (ptr!=null)GNUNET_free(ptr).
+ * Equivalent to `if (NULL != ptr) GNUNET_free(ptr)`.
  *
  * @param ptr the location in memory to free
  */
@@ -759,7 +743,7 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
- * Wrapper around GNUNET_strdup.  Makes a copy of the zero-terminated string
+ * Wrapper around #GNUNET_xstrdup_.  Makes a copy of the zero-terminated string
  * pointed to by a.
  *
  * @param a pointer to a zero-terminated string
@@ -769,7 +753,7 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
- * Wrapper around GNUNET_strndup.  Makes a partial copy of the string
+ * Wrapper around #GNUNET_xstrndup_.  Makes a partial copy of the string
  * pointed to by a.
  *
  * @param a pointer to a string
@@ -781,8 +765,8 @@ GNUNET_ntoh_double (double d);
 /**
  * @ingroup memory
  * Grow a well-typed (!) array.  This is a convenience
- * method to grow a vector <tt>arr</tt> of size <tt>size</tt>
- * to the new (target) size <tt>tsize</tt>.
+ * method to grow a vector @a arr of size @a size
+ * to the new (target) size @a tsize.
  * <p>
  *
  * Example (simple, well-typed stack):
@@ -826,7 +810,7 @@ GNUNET_ntoh_double (double d);
  * Like snprintf, just aborts if the buffer is of insufficient size.
  *
  * @param buf pointer to buffer that is written to
- * @param size number of bytes in buf
+ * @param size number of bytes in @a buf
  * @param format format strings
  * @param ... data for format string
  * @return number of bytes written to buf or negative value on error
@@ -853,7 +837,7 @@ GNUNET_asprintf (char **buf, const char *format, ...);
 /**
  * Allocate memory. Checks the return value, aborts if no more
  * memory is available.  Don't use GNUNET_xmalloc_ directly. Use the
- * GNUNET_malloc macro.
+ * #GNUNET_malloc macro.
  * The memory will be zero'ed out.
  *
  * @param size number of bytes to allocate
@@ -868,7 +852,7 @@ GNUNET_xmalloc_ (size_t size, const char *filename, int linenumber);
 /**
  * Allocate and initialize memory. Checks the return value, aborts if no more
  * memory is available.  Don't use GNUNET_xmemdup_ directly. Use the
- * GNUNET_memdup macro.
+ * #GNUNET_memdup macro.
  *
  * @param buf buffer to initialize from (must contain size bytes)
  * @param size number of bytes to allocate
@@ -885,7 +869,7 @@ GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
  * Allocate memory.  This function does not check if the allocation
  * request is within reasonable bounds, allowing allocations larger
  * than 40 MB.  If you don't expect the possibility of very large
- * allocations, use GNUNET_malloc instead.  The memory will be zero'ed
+ * allocations, use #GNUNET_malloc instead.  The memory will be zero'ed
  * out.
  *
  * @param size number of bytes to allocate
@@ -896,6 +880,7 @@ GNUNET_xmemdup_ (const void *buf, size_t size, const char *filename,
 void *
 GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber);
 
+
 /**
  * Reallocate memory. Checks the return value, aborts if no more
  * memory is available.
@@ -903,10 +888,11 @@ GNUNET_xmalloc_unchecked_ (size_t size, const char *filename, int linenumber);
 void *
 GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber);
 
+
 /**
  * Free memory. Merely a wrapper for the case that we
  * want to keep track of allocations.  Don't use GNUNET_xfree_
- * directly. Use the GNUNET_free macro.
+ * directly. Use the #GNUNET_free macro.
  *
  * @param ptr pointer to memory to free
  * @param filename where is this call being made (for debugging)
@@ -917,7 +903,7 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber);
 
 
 /**
- * Dup a string. Don't call GNUNET_xstrdup_ directly. Use the GNUNET_strdup macro.
+ * Dup a string. Don't call GNUNET_xstrdup_ directly. Use the #GNUNET_strdup macro.
  * @param str string to duplicate
  * @param filename where is this call being made (for debugging)
  * @param linenumber line where this call is being made (for debugging)
@@ -927,7 +913,7 @@ char *
 GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber);
 
 /**
- * Dup partially a string. Don't call GNUNET_xstrndup_ directly. Use the GNUNET_strndup macro.
+ * Dup partially a string. Don't call GNUNET_xstrndup_ directly. Use the #GNUNET_strndup macro.
  *
  * @param str string to duplicate
  * @param len length of the string to duplicate
@@ -944,7 +930,7 @@ GNUNET_xstrndup_ (const char *str, size_t len, const char *filename,
  * Grows old by (*oldCount-newCount)*elementSize
  * bytes and sets *oldCount to newCount.
  *
- * Don't call GNUNET_xgrow_ directly. Use the GNUNET_array_grow macro.
+ * Don't call GNUNET_xgrow_ directly. Use the #GNUNET_array_grow macro.
  *
  * @param old address of the pointer to the array
  *        *old may be NULL

@@ -25,7 +25,6 @@
  */
 #include "platform.h"
 #include <gcrypt.h>
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
 #define EXTRA_CHECKS ALLOW_EXTRA_CHECKS 
@@ -746,7 +745,6 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_PeerIdentity *dst)
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
 
   if (NULL == (priv = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg)))
   {
@@ -754,9 +752,8 @@ GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
                 _("Could not load peer's private key\n"));
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, &pub);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, &dst->public_key);
   GNUNET_free (priv);
-  GNUNET_CRYPTO_hash (&pub, sizeof (pub), &dst->hashPubKey);
   return GNUNET_OK;
 }
 

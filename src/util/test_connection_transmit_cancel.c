@@ -22,10 +22,7 @@
  * @brief tests for connection.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_time_lib.h"
+#include "gnunet_util_lib.h"
 
 #define PORT 12435
 

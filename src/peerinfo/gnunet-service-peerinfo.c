@@ -136,7 +136,7 @@ struct NotificationContext
  * The in-memory list of known hosts, mapping of
  * host IDs to 'struct HostEntry*' values.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *hostmap;
+static struct GNUNET_CONTAINER_MultiPeerMap *hostmap;
 
 /**
  * Clients to immediately notify about all changes.
@@ -249,13 +249,12 @@ count_addresses (void *cls, const struct GNUNET_HELLO_Address *address,
 static char *
 get_host_filename (const struct GNUNET_PeerIdentity *id)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded fil;
   char *fn;
 
   if (NULL == networkIdDirectory)
     return NULL;
-  GNUNET_CRYPTO_hash_to_enc (&id->hashPubKey, &fil);
-  GNUNET_asprintf (&fn, "%s%s%s", networkIdDirectory, DIR_SEPARATOR_STR, &fil);
+  GNUNET_asprintf (&fn, "%s%s%s", networkIdDirectory, DIR_SEPARATOR_STR,
+                   GNUNET_i2s_full (id));
   return fn;
 }
 
@@ -441,7 +440,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
   struct ReadHostFileContext r;
   char *fn;
 
-  entry = GNUNET_CONTAINER_multihashmap_get (hostmap, &identity->hashPubKey);
+  entry = GNUNET_CONTAINER_multipeermap_get (hostmap, identity);
   if (NULL == entry)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new peer `%s'\n", GNUNET_i2s (identity));
@@ -449,7 +448,7 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
 			      GNUNET_NO);
     entry = GNUNET_malloc (sizeof (struct HostEntry));
     entry->identity = *identity;
-    GNUNET_CONTAINER_multihashmap_put (hostmap, &entry->identity.hashPubKey, entry,
+    GNUNET_CONTAINER_multipeermap_put (hostmap, &entry->identity, entry,
 				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     notify_all (entry);
     fn = get_host_filename (identity);
@@ -576,7 +575,9 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
       remove_garbage (fullname);
     return GNUNET_OK;
   }
-  if (GNUNET_OK == GNUNET_CRYPTO_hash_from_string (filename, &identity.hashPubKey))
+  if (GNUNET_OK == GNUNET_CRYPTO_ecc_public_sign_key_from_string (filename, 
+                                                                  strlen (filename),
+                                                                  &identity.public_key))
   {
     if (0 != memcmp (&id, &identity, sizeof (id_friend)))
     {
@@ -699,7 +700,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
   int pos;
   char *buffer;
 
-  host = GNUNET_CONTAINER_multihashmap_get (hostmap, &peer->hashPubKey);
+  host = GNUNET_CONTAINER_multipeermap_get (hostmap, peer);
   GNUNET_assert (NULL != host);
 
   friend_hello_type = GNUNET_HELLO_is_friend_only (hello);
@@ -830,7 +831,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
+add_to_tc (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct TransmitContext *tc = cls;
   struct HostEntry *pos = value;
@@ -848,8 +849,9 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     memcpy (&im[1], pos->hello, hs);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending public HELLO with size %u for peer `%4s'\n",
-    		hs, GNUNET_h2s (key));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending public HELLO with size %u for peer `%4s'\n",
+    		hs, GNUNET_i2s (key));
   }
   else if ((pos->friend_only_hello != NULL) && (GNUNET_YES == tc->friend_only))
   {
@@ -858,13 +860,15 @@ add_to_tc (void *cls, const struct GNUNET_HashCode * key, void *value)
     GNUNET_assert (hs < GNUNET_SERVER_MAX_MESSAGE_SIZE -
                    sizeof (struct InfoMessage));
     memcpy (&im[1], pos->friend_only_hello, hs);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending friend-only HELLO with size %u for peer `%4s'\n",
-    		hs, GNUNET_h2s (key));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+                "Sending friend-only HELLO with size %u for peer `%4s'\n",
+    		hs, GNUNET_i2s (key));
   }
   else
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding no HELLO for peer `%s'\n",
-      		 GNUNET_h2s (key));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+                  "Adding no HELLO for peer `%s'\n",
+      		 GNUNET_i2s (key));
   }
 
   im->header.type = htons (GNUNET_MESSAGE_TYPE_PEERINFO_INFO);
@@ -1027,7 +1031,7 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
               "GET", GNUNET_i2s (&lpm->peer));
   tcx.friend_only = ntohl (lpm->include_friend_only);
   tcx.tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multihashmap_get_multiple (hostmap, &lpm->peer.hashPubKey,
+  GNUNET_CONTAINER_multipeermap_get_multiple (hostmap, &lpm->peer,
                                               &add_to_tc, &tcx);
   GNUNET_SERVER_transmit_context_append_data (tcx.tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
@@ -1053,7 +1057,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
   tcx.friend_only = ntohl (lapm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "GET_ALL");
   tcx.tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &add_to_tc, &tcx);
+  GNUNET_CONTAINER_multipeermap_iterate (hostmap, &add_to_tc, &tcx);
   GNUNET_SERVER_transmit_context_append_data (tcx.tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_PEERINFO_INFO_END);
   GNUNET_SERVER_transmit_context_run (tcx.tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -1071,7 +1075,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
  * @return GNUNET_YES (always, continue to iterate)
  */
 static int
-do_notify_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
+do_notify_entry (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct NotificationContext *nc = cls;
   struct HostEntry *he = value;
@@ -1124,7 +1128,7 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (nc_head, nc_tail, nc);
   GNUNET_SERVER_client_mark_monitor (client);
 	GNUNET_SERVER_notification_context_add (notify_list, client);
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &do_notify_entry, nc);
+  GNUNET_CONTAINER_multipeermap_iterate (hostmap, &do_notify_entry, nc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1159,7 +1163,7 @@ disconnect_cb (void *cls,struct GNUNET_SERVER_Client *client)
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-free_host_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
+free_host_entry (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct HostEntry *he = value;
 
@@ -1191,8 +1195,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CONTAINER_DLL_remove (nc_head, nc_tail, cur);
     GNUNET_free (cur);
   }
-  GNUNET_CONTAINER_multihashmap_iterate (hostmap, &free_host_entry, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (hostmap);
+  GNUNET_CONTAINER_multipeermap_iterate (hostmap, &free_host_entry, NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (hostmap);
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
@@ -1228,7 +1232,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   int noio;
   int use_included;
 
-  hostmap = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+  hostmap = GNUNET_CONTAINER_multipeermap_create (1024, GNUNET_YES);
   stats = GNUNET_STATISTICS_create ("peerinfo", cfg);
   notify_list = GNUNET_SERVER_notification_context_create (server, 0);
   noio = GNUNET_CONFIGURATION_get_value_yesno (cfg, "peerinfo", "NO_IO");

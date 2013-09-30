@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include <regex.h>
 
@@ -1082,16 +1081,19 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc)
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to GNUNET_i2s.
+ *         call to #GNUNET_i2s.
  */
 const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static char buf[256];
+  char *ret;
 
-  GNUNET_CRYPTO_hash_to_enc (&pid->hashPubKey, &ret);
-  ret.encoding[4] = '\0';
-  return (const char *) ret.encoding;
+  ret = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pid->public_key);
+  strcpy (buf, ret);
+  GNUNET_free (ret);
+  buf[4] = '\0';
+  return buf;
 }
 
 
@@ -1102,15 +1104,18 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid)
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to GNUNET_i2s.
+ *         call to #GNUNET_i2s_full.
  */
 const char *
 GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
 {
-  static struct GNUNET_CRYPTO_HashAsciiEncoded ret;
+  static char buf[256];
+  char *ret;
 
-  GNUNET_CRYPTO_hash_to_enc (&pid->hashPubKey, &ret);
-  return (const char *) ret.encoding;
+  ret = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pid->public_key);
+  strcpy (buf, ret);
+  GNUNET_free (ret);
+  return buf;
 }
 
 

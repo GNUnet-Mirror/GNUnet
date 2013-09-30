@@ -27,8 +27,7 @@
  * @brief testcase for crypto_crc.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
+#include "gnunet_util_lib.h"
 
 static int expected[] = {
   -1223996378, 929797997, -1048047323, 1791081351, -425765913, 2138425902,

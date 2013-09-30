@@ -26,7 +26,7 @@
 #ifndef GNUNET_DISK_H_
 #define GNUNET_DISK_H_
 
-#include "gnunet_disk_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * Retrieve OS file handle
@@ -34,8 +34,8 @@
  * @internal
  * @param fh GNUnet file descriptor
  * @param dst destination buffer
- * @param dst_len length of dst
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @param dst_len length of @a dst
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,

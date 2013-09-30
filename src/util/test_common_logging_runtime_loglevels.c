@@ -24,11 +24,7 @@
  * @author LRN
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_network_lib.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 
 #define VERBOSE GNUNET_NO
 

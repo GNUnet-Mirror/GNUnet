@@ -30,11 +30,7 @@
 #include <unistr.h> /* for u16_to_u8 */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_strings_lib.h"
+#include "gnunet_util_lib.h"
 #if DARWIN
 #include <mach-o/ldsyms.h>
 #include <mach-o/dyld.h>

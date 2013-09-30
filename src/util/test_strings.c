@@ -22,8 +22,7 @@
  * @brief testcase for strings.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_strings_lib.h"
+#include "gnunet_util_lib.h"
 
 
 #define WANT(a,b) if (0 != strcmp(a,b)) { fprintf(stderr, "Got `%s', wanted `%s'\n", b, a); GNUNET_free(b); GNUNET_break(0); return 1;} else { GNUNET_free (b); }

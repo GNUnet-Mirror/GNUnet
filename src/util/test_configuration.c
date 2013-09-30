@@ -24,9 +24,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_disk_lib.h"
+#include "gnunet_util_lib.h"
 
 
 /* Test Configuration Diffs Options */

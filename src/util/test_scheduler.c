@@ -22,10 +22,7 @@
  * @brief tests for the scheduler
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_scheduler_lib.h"
-#include "gnunet_time_lib.h"
-#include "gnunet_disk_lib.h"
+#include "gnunet_util_lib.h"
 
 
 struct GNUNET_DISK_PipeHandle *p;

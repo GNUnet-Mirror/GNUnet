@@ -24,8 +24,7 @@
  * @brief test for AES ciphers
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_crypto_lib.h"
+#include "gnunet_util_lib.h"
 
 #define TESTSTRING "Hello World!"
 #define INITVALUE "InitializationVectorValueinitializationvectorvalue"

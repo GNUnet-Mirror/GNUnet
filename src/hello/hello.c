@@ -296,9 +296,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   insize = msize - sizeof (struct GNUNET_HELLO_Message);
   wpos = 0;
   woff = (ret != NULL) ? (char *) &ret[1] : NULL;
-  GNUNET_CRYPTO_hash (&msg->publicKey,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-                      &address.peer.hashPubKey);
+  address.peer.public_key = msg->publicKey;
   while (insize > 0)
   {
     esize = get_hello_address_size (inptr, insize, &alen);
@@ -549,7 +547,7 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
  *
  * @param hello the hello message
  * @param peer where to store the peer's identity
- * @return GNUNET_SYSERR if the HELLO was malformed
+ * @return #GNUNET_SYSERR if the HELLO was malformed
  */
 int
 GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
@@ -560,9 +558,7 @@ GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
   if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return GNUNET_SYSERR;
-  GNUNET_CRYPTO_hash (&hello->publicKey,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-                      &peer->hashPubKey);
+  peer->public_key = hello->publicKey;
   return GNUNET_OK;
 }
 

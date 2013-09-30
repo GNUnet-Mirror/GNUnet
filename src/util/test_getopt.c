@@ -22,9 +22,7 @@
  * @brief testcase for util/getopt.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_getopt_lib.h"
+#include "gnunet_util_lib.h"
 
 
 static int

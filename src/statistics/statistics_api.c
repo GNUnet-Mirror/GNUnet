@@ -24,13 +24,10 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_client_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_strings_lib.h"
 #include "statistics.h"
 
 /**

@@ -416,7 +416,7 @@ test_os_network_LDADD = \
 test_peer_SOURCES = \
  test_peer.c
 test_peer_LDADD = \
-$(top_builddir)/src/util/libgnunetutil.la
+$(top_builddir)/src/util/libgnunetutil.la -lgcrypt
 
 test_plugin_SOURCES = \
  test_plugin.c

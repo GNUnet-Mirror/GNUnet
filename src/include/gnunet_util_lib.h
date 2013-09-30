@@ -36,14 +36,14 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_crypto_lib.h"
 #include "gnunet_common.h"
 #include "gnunet_bandwidth_lib.h"
 #include "gnunet_bio_lib.h"
+#include "gnunet_connection_lib.h"
 #include "gnunet_client_lib.h"
 #include "gnunet_configuration_lib.h"
-#include "gnunet_connection_lib.h"
 #include "gnunet_container_lib.h"
-#include "gnunet_crypto_lib.h"
 #include "gnunet_disk_lib.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_helper_lib.h"

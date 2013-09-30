@@ -37,10 +37,8 @@ Copyright (C) 2006 Christian Grothoff
  * replace main GNU getopt parser with one that
  * actually fits our API.
  */
-
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
+#include "gnunet_util_lib.h"
 
 #ifdef VMS
 #include <unixlib.h>

@@ -20,13 +20,8 @@
 
 #include <stdlib.h>
 #include "platform.h"
-#include "gnunet_disk_lib.h"
-#include "gnunet_getopt_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_service_lib.h"
-#include "gnunet_statistics_service.h"
-#include "gnunet_strings_lib.h"
-#include "gnunet_time_lib.h"
 
 
 static int special_ret = 0;

@@ -701,7 +701,6 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    struct GNUNET_PeerIdentity *id)
 {  
   struct GNUNET_CRYPTO_EccPrivateKey *private_key;
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
   
   if ((NULL == id) || (NULL == system->hostkeys_data))
     return NULL;
@@ -716,10 +715,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 	  system->hostkeys_data +
 	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
 	  GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (private_key, &public_key);
-  GNUNET_CRYPTO_hash (&public_key,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-                      &(id->hashPubKey));
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (private_key, 
+                                                  &id->public_key);
   return private_key;
 }
 

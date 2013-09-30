@@ -24,11 +24,8 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_container_lib.h"
-#include "gnunet_peerinfo_service.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_time_lib.h"
 #include "peerinfo.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "peerinfo-api",__VA_ARGS__)
@@ -558,7 +555,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     /* bogus message (from a different iteration call?); out of sequence! */
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Received HELLO for peer `%s', expected peer `%s'\n",
-	 GNUNET_h2s (&im->peer.hashPubKey),
+	 GNUNET_i2s (&im->peer),
 	 GNUNET_i2s (&ic->peer));
     
     GNUNET_break (0);
