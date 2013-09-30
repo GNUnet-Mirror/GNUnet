@@ -613,15 +613,16 @@ handle_record_store (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  {
+    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
 
-	if (GNUNET_OK !=
-			GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
-	{
-		GNUNET_break (0);
-		GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-		return;
-	}
+    if (GNUNET_OK !=
+	GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      return;
+    }
 
     /* Extracting and converting private key */
     GNUNET_CRYPTO_ecc_key_get_public_for_signature (&rp_msg->private_key,
@@ -647,46 +648,47 @@ handle_record_store (void *cls,
     }
     else
     {
-    res = GSN_database->store_records (GSN_database->cls,
-				       &rp_msg->private_key,
-				       conv_name,				       
-				       rd_count, rd);    
-    if (GNUNET_OK == res)
-    {
-      struct ZoneMonitor *zm;
-      struct GNUNET_NAMESTORE_Block *block;
-
-      if (0 == rd_count)
-      		block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
-					       GNUNET_TIME_UNIT_ZERO_ABS,
-					       conv_name,
-					       rd, rd_count);
-      else
-      		block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
-					       GNUNET_TIME_UNIT_FOREVER_ABS,
-					       conv_name,
-					       rd, rd_count);
-      if (GNUNET_OK !=
-      		GSN_database->cache_block (GSN_database->cls,
-				     block))
+      res = GSN_database->store_records (GSN_database->cls,
+					 &rp_msg->private_key,
+					 conv_name,				       
+					 rd_count, rd);    
+      if (GNUNET_OK == res)
       {
-      	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-      			_("Failed to cache encrypted block of my own zone!\n"));
-      	res = GNUNET_SYSERR;
-      }
-      GNUNET_free (block);
-      
-      for (zm = monitor_head; NULL != zm; zm = zm->next)    
-      		if (0 == memcmp (&rp_msg->private_key, &zm->zone,
-      				sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
-      			send_lookup_response (monitor_nc,
-								zm->nc->client,
-								zm->request_id,
-								&rp_msg->private_key,
-								conv_name,
-								rd_count, rd);
-    }    
-    GNUNET_free (conv_name);
+	struct ZoneMonitor *zm;
+	struct GNUNET_NAMESTORE_Block *block;
+	
+	if (0 == rd_count)
+	  block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
+						 GNUNET_TIME_UNIT_ZERO_ABS,
+						 conv_name,
+						 rd, rd_count);
+	else
+	  block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
+						 GNUNET_TIME_UNIT_FOREVER_ABS,
+						 conv_name,
+						 rd, rd_count);
+	if (GNUNET_OK !=
+	    GSN_database->cache_block (GSN_database->cls,
+				       block))
+	{
+	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		      _("Failed to cache encrypted block of my own zone!\n"));
+	  res = GNUNET_SYSERR;
+	}
+	GNUNET_free (block);
+	
+	for (zm = monitor_head; NULL != zm; zm = zm->next)    
+	  if (0 == memcmp (&rp_msg->private_key, &zm->zone,
+			   sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+	    send_lookup_response (monitor_nc,
+				  zm->nc->client,
+				  zm->request_id,
+				  &rp_msg->private_key,
+				  conv_name,
+				  rd_count, rd);
+      }    
+      GNUNET_free (conv_name);
+    }
   }
   
   /* Send response */
