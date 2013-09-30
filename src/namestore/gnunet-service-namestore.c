@@ -422,6 +422,9 @@ handle_lookup_block (void *cls,
   if (0 == ret)
   {
     /* no records match at all, generate empty response */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Sending empty `%s' message\n", 
+		"NAMESTORE_LOOKUP_BLOCK_RESPONSE");
     memset (&zir_end, 0, sizeof (zir_end));
     zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE);
     zir_end.gns_header.header.size = htons (sizeof (struct LookupBlockResponseMessage));
@@ -467,7 +470,6 @@ handle_block_cache (void *cls,
   }
   rp_msg = (const struct BlockCacheMessage *) message;
   esize = ntohs (rp_msg->gns_header.header.size) - sizeof (struct BlockCacheMessage);
-
   block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) + esize);
   block->signature = rp_msg->signature;
   block->derived_key = rp_msg->derived_key;
@@ -537,8 +539,9 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   rd_ser = &name_tmp[name_len];
   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message with size %u\n", 
+	      "Sending `%s' message with %u records and size %u\n", 
 	      "RECORD_RESULT",
+	      rd_count,
 	      msg_size);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client, 
@@ -651,7 +654,7 @@ handle_record_store (void *cls,
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
 					 conv_name,				       
-					 rd_count, rd);    
+					 rd_count, rd);
       if (GNUNET_OK == res)
       {
 	struct ZoneMonitor *zm;

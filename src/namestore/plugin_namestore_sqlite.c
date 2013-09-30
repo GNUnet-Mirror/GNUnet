@@ -480,6 +480,9 @@ namestore_sqlite_cache_block (void *cls,
     return GNUNET_SYSERR;
     
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Caching block under derived key `%s'\n", 
+	      GNUNET_h2s (&query));
   n = sqlite3_step (plugin->cache_block);
   if (SQLITE_OK != sqlite3_reset (plugin->cache_block))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -534,7 +537,6 @@ namestore_sqlite_lookup_block (void *cls,
 		  "sqlite3_reset");
     return GNUNET_SYSERR;
   }      
-
   ret = GNUNET_NO;
   if (SQLITE_ROW == (sret = sqlite3_step (plugin->lookup_block)))
   {     
@@ -550,6 +552,9 @@ namestore_sqlite_lookup_block (void *cls,
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "Found block under derived key `%s'\n", 
+		  GNUNET_h2s (query));
       iter (iter_cls, block);    
       ret = GNUNET_YES;
     }
@@ -560,6 +565,12 @@ namestore_sqlite_lookup_block (void *cls,
     {
       LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");    
       ret = GNUNET_SYSERR;
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		  "No block found under derived key `%s'\n", 
+		  GNUNET_h2s (query));
     }
   }
   if (SQLITE_OK != sqlite3_reset (plugin->lookup_block))
