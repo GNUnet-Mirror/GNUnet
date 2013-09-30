@@ -23,9 +23,8 @@
  * @brief functionality shared by http client and server transport service plugin
  * @author Matthias Wachs
  */
-
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_transport_plugin.h"
 #include "plugin_transport_http_common.h"
 
@@ -37,16 +36,17 @@ struct SplittedHTTPAddress
 	int port;
 };
 
+
 static void
 http_clean_splitted (struct SplittedHTTPAddress *spa)
 {
-	if (NULL != spa)
-	{
-			GNUNET_free_non_null (spa->protocol);
-			GNUNET_free_non_null (spa->host);
-			GNUNET_free_non_null (spa->path);
-			GNUNET_free_non_null (spa);
-	}
+  if (NULL != spa)
+  {
+    GNUNET_free_non_null (spa->protocol);
+    GNUNET_free_non_null (spa->host);
+    GNUNET_free_non_null (spa->path);
+    GNUNET_free_non_null (spa);
+  }
 }
 
 struct SplittedHTTPAddress *

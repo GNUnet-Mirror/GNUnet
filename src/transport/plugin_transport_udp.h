@@ -135,7 +135,7 @@ struct Plugin
    * Session of peers with whom we are currently connected,
    * map of peer identity to 'struct PeerSession'.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *sessions;
+  struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 
   /**
    * Heap with all of our defragmentation activities.

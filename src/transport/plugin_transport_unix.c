@@ -276,7 +276,7 @@ struct Plugin
   /**
    * Sessions
    */
-  struct GNUNET_CONTAINER_MultiHashMap *session_map;
+  struct GNUNET_CONTAINER_MultiPeerMap *session_map;
 
   /**
    * FD Read set
@@ -454,7 +454,7 @@ struct LookupCtx
  */
 static int 
 lookup_session_it (void *cls,
-		   const struct GNUNET_HashCode * key,
+		   const struct GNUNET_PeerIdentity * key,
 		   void *value)
 {
   struct LookupCtx *lctx = cls;
@@ -498,8 +498,8 @@ lookup_session (struct Plugin *plugin,
   lctx.s = NULL;
   lctx.ua = ua;
   lctx.ua_len = ua_len;
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, 
-					      &sender->hashPubKey,
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map, 
+					      sender,
 					      &lookup_session_it, &lctx);
   return lctx.s;
 }
@@ -542,12 +542,12 @@ disconnect_session (struct Session *s)
     removed = GNUNET_YES;    
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (plugin->session_map, 
-						       &s->target.hashPubKey, 
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->session_map, 
+						       &s->target, 
 						       s));
   GNUNET_STATISTICS_set (plugin->env->stats,
 			 "# UNIX sessions active",
-			 GNUNET_CONTAINER_multihashmap_size (plugin->session_map),
+			 GNUNET_CONTAINER_multipeermap_size (plugin->session_map),
 			 GNUNET_NO);
   if ((GNUNET_YES == removed) && (NULL == plugin->msg_head))
     reschedule_select (plugin);
@@ -712,7 +712,7 @@ struct GetSessionIteratorContext
  */
 static int
 get_session_it (void *cls, 
-		const struct GNUNET_HashCode *key, 
+		const struct GNUNET_PeerIdentity *key, 
 		void *value)
 {
   struct GetSessionIteratorContext *gsi = cls;
@@ -818,8 +818,8 @@ unix_plugin_get_session (void *cls,
   gsi.address = (const char *) address->address;
   gsi.addrlen = address->address_length;
   gsi.res = NULL;
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map, 
-					      &address->peer.hashPubKey, 
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map, 
+					      &address->peer, 
 					      &get_session_it, &gsi);
   if (NULL != gsi.res)
   {
@@ -843,12 +843,12 @@ unix_plugin_get_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating a new session %p for address `%s'\n",
        s,  unix_address_to_string (NULL, address->address, address->address_length));
-  (void) GNUNET_CONTAINER_multihashmap_put (plugin->session_map,
-					    &address->peer.hashPubKey, s,
+  (void) GNUNET_CONTAINER_multipeermap_put (plugin->session_map,
+					    &address->peer, s,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (plugin->env->stats,
 			 "# UNIX sessions active",
-			 GNUNET_CONTAINER_multihashmap_size (plugin->session_map),
+			 GNUNET_CONTAINER_multipeermap_size (plugin->session_map),
 			 GNUNET_NO);
   return s;
 }
@@ -898,8 +898,8 @@ unix_plugin_send (void *cls,
   GNUNET_assert (NULL != session);
 
   if (GNUNET_OK != 
-      GNUNET_CONTAINER_multihashmap_contains_value (plugin->session_map,
-						    &session->target.hashPubKey,
+      GNUNET_CONTAINER_multipeermap_contains_value (plugin->session_map,
+						    &session->target,
 						    session))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, 
@@ -1553,7 +1553,9 @@ reschedule_session_timeout (struct Session *s)
  * @return GNUNET_YES (always, continue to iterate)
  */
 static int
-get_session_delete_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+get_session_delete_it (void *cls, 
+		       const struct GNUNET_PeerIdentity *key, 
+		       void *value)
 {
   struct Session *s = value;
 
@@ -1567,7 +1569,7 @@ get_session_delete_it (void *cls, const struct GNUNET_HashCode * key, void *valu
  *
  * @param cls closure for this call (should be handle to Plugin)
  * @param target the peeridentity of the peer to disconnect
- * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the operation failed
  */
 static void
 unix_disconnect (void *cls, 
@@ -1576,8 +1578,8 @@ unix_disconnect (void *cls,
   struct Plugin *plugin = cls;
 
   GNUNET_assert (plugin != NULL);
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->session_map,
-					      &target->hashPubKey, 
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
+					      target, 
 					      &get_session_delete_it, plugin);
 }
 
@@ -1638,7 +1640,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   if (0 == sockets_created)
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _("Failed to open UNIX listen socket\n"));
-  plugin->session_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  plugin->session_map = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   plugin->address_update_task = GNUNET_SCHEDULER_add_now (&address_notification, plugin);
   return api;
 }
@@ -1701,9 +1703,9 @@ libgnunet_plugin_transport_unix_done (void *cls)
     plugin->unix_sock.desc = NULL;
     plugin->with_ws = GNUNET_NO;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->session_map,
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->session_map,
 					 &get_session_delete_it, plugin);
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->session_map);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->session_map);
   if (NULL != plugin->rs)
     GNUNET_NETWORK_fdset_destroy (plugin->rs);
   if (NULL != plugin->ws)

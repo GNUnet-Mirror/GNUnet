@@ -212,7 +212,7 @@ struct GAS_MLP_Handle
   /**
    * Address hashmap for lookups
    */
-  const struct GNUNET_CONTAINER_MultiHashMap *addresses;
+  const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
   /**
    * Addresses' bandwidth changed callback
@@ -296,7 +296,7 @@ struct GAS_MLP_Handle
   /**
    * Peers with pending address requests
    */
-  struct GNUNET_CONTAINER_MultiHashMap *requested_peers;
+  struct GNUNET_CONTAINER_MultiPeerMap *requested_peers;
 
   /**
    * Was the problem updated since last solution
@@ -355,14 +355,16 @@ struct MLP_information
   unsigned int r_c3;
 };
 
+
 /**
  * Solves the MLP problem
  *
  * @param solver the MLP Handle
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK if could be solved, GNUNET_SYSERR on failure
  */
 int
 GAS_mlp_solve_problem (void *solver);
+
 
 /**
  * Init the MLP problem solving component
@@ -383,12 +385,13 @@ GAS_mlp_solve_problem (void *solver);
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiHashMap *addresses, int *network,
+	      const struct GNUNET_STATISTICS_Handle *stats,
+    const struct GNUNET_CONTAINER_MultiPeerMap *addresses, int *network,
     unsigned long long *out_dest, unsigned long long *in_dest, int dest_length,
     GAS_bandwidth_changed_cb bw_changed_cb, void *bw_changed_cb_cls,
     GAS_get_preferences get_preference, void *get_preference_cls,
     GAS_get_properties get_properties, void *get_properties_cls);
+
 
 /**
  * Add a single address within a network to the solver
@@ -400,6 +403,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GAS_mlp_address_add (void *solver, struct ATS_Address *address,
     uint32_t network);
+
 
 /**
  * Transport properties for this address have changed
@@ -414,6 +418,7 @@ void
 GAS_mlp_address_property_changed (void *solver, struct ATS_Address *address,
     uint32_t type, uint32_t abs_value, double rel_value);
 
+
 /**
  * Transport session for this address has changed
  *
@@ -426,7 +431,8 @@ GAS_mlp_address_property_changed (void *solver, struct ATS_Address *address,
  */
 void
 GAS_mlp_address_session_changed (void *solver, struct ATS_Address *address,
-    uint32_t cur_session, uint32_t new_session);
+				 uint32_t cur_session, uint32_t new_session);
+
 
 /**
  * Usage for this address has changed

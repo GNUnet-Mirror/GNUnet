@@ -166,8 +166,6 @@ static GNUNET_SCHEDULER_TaskIdentifier end;
 static GNUNET_SCHEDULER_TaskIdentifier op_timeout;
 
 
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
-
 /**
  * Selected level of verbosity.
  */
@@ -255,11 +253,6 @@ shutdown_task (void *cls,
     GNUNET_TRANSPORT_disconnect(handle);
     handle = NULL;
   }
-  if (NULL != peers)
-  {
-    GNUNET_CONTAINER_multihashmap_destroy (peers);
-    peers = NULL;
-  }
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
@@ -300,7 +293,7 @@ operation_timeout (void *cls,
   if ((try_connect) || (benchmark_send) ||
   		(benchmark_receive))
   {
-      FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_h2s_full (&pid.hashPubKey));
+      FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_i2s_full (&pid));
       if (GNUNET_SCHEDULER_NO_TASK != end)
         GNUNET_SCHEDULER_cancel (end);
       end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -525,7 +518,9 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (try_connect)
   {
       /* all done, terminate instantly */
-      FPRINTF (stdout, _("Successfully connected to `%s'\n"), GNUNET_h2s_full (&peer->hashPubKey));
+      FPRINTF (stdout, 
+	       _("Successfully connected to `%s'\n"), 
+	       GNUNET_i2s_full (peer));
       ret = 0;
 
       if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
@@ -814,7 +809,9 @@ testservice_task (void *cls,
   }
 
   if ( (NULL != cpid) && 
-       (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (cpid, &pid.hashPubKey)))
+       (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (cpid,
+								    strlen (cpid),
+								    &pid.public_key)))
   {
     FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
     return;
@@ -914,7 +911,6 @@ testservice_task (void *cls,
   }
   else if (iterate_connections) /* -i: List all active addresses once */
   {
-    peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
                                                 (NULL == cpid) ? NULL : &pid,
@@ -926,7 +922,6 @@ testservice_task (void *cls,
   }
   else if (monitor_connections) /* -m: List all active addresses continously */
   {
-    peers = GNUNET_CONTAINER_multihashmap_create (20, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_peer_get_active_addresses (cfg,
                                                 (NULL == cpid) ? NULL : &pid,

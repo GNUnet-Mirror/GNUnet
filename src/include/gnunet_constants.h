@@ -35,8 +35,6 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_bandwidth_lib.h"
-
 /**
  * Bandwidth (in/out) to assume initially (before either peer has
  * communicated any particular preference).  Should be rather low; set

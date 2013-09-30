@@ -80,7 +80,7 @@ GAS_ril_address_change_preference (void *solver,
 void *
 GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiHashMap *addresses,
+    const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
     int *network,
     unsigned long long *out_quota,
     unsigned long long *in_quota,

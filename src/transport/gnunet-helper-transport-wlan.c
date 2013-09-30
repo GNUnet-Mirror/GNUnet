@@ -110,6 +110,8 @@
  * parts taken from aircrack-ng, parts changend.
  */
 #include "gnunet_config.h"
+#define SOCKTYPE int
+#define FDTYPE int
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>

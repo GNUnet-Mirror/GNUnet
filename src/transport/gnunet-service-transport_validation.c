@@ -311,7 +311,7 @@ static struct CheckHelloValidatedContext *chvc_tail;
  * of the given peer that we are currently validating, have validated
  * or are blocked from re-validation for a while).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *validation_map;
+static struct GNUNET_CONTAINER_MultiPeerMap *validation_map;
 
 /**
  * Context for peerinfo iteration.
@@ -367,7 +367,7 @@ struct ValidationEntryMatchContext
  *         GNUNET_NO if the entry does match
  */
 static int
-validation_entry_match (void *cls, const struct GNUNET_HashCode * key, void *value)
+validation_entry_match (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct ValidationEntryMatchContext *vemc = cls;
   struct ValidationEntry *ve = value;
@@ -390,7 +390,7 @@ validation_entry_match (void *cls, const struct GNUNET_HashCode * key, void *val
  * @return GNUNET_YES (continue to iterate)
  */
 static int
-cleanup_validation_entry (void *cls, const struct GNUNET_HashCode * key, void *value)
+cleanup_validation_entry (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct ValidationEntry *ve = value;
 
@@ -400,8 +400,8 @@ cleanup_validation_entry (void *cls, const struct GNUNET_HashCode * key, void *v
     ve->bc = NULL;
   }
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_remove (validation_map,
-                                                      &ve->pid.hashPubKey, ve));
+                GNUNET_CONTAINER_multipeermap_remove (validation_map,
+                                                      &ve->pid, ve));
   GNUNET_HELLO_address_free (ve->address);
   if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
   {
@@ -454,7 +454,7 @@ timeout_hello_validation (void *cls,
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address records discarded"), 1,
                             GNUNET_NO);
-  cleanup_validation_entry (NULL, &ve->pid.hashPubKey, ve);
+  cleanup_validation_entry (NULL, &ve->pid, ve);
 }
 
 
@@ -686,8 +686,8 @@ find_validation_entry (const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
 
   vemc.ve = NULL;
   vemc.address = address;
-  GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
-                                              &address->peer.hashPubKey,
+  GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                              &address->peer,
                                               &validation_entry_match, &vemc);
   if (NULL != (ve = vemc.ve))
     return ve;
@@ -708,7 +708,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
   ve->timeout_task =
       GNUNET_SCHEDULER_add_delayed (UNVALIDATED_PING_KEEPALIVE,
                                     &timeout_hello_validation, ve);
-  GNUNET_CONTAINER_multihashmap_put (validation_map, &address->peer.hashPubKey,
+  GNUNET_CONTAINER_multipeermap_put (validation_map, &address->peer,
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   ve->expecting_pong = GNUNET_NO;
@@ -814,7 +814,7 @@ GST_validation_start (unsigned int max_fds)
 		    validations_fast_start_threshold, 
 		    GNUNET_STRINGS_relative_time_to_string (validation_delay,
 							    GNUNET_YES));
-  validation_map = GNUNET_CONTAINER_multihashmap_create (VALIDATION_MAP_SIZE,
+  validation_map = GNUNET_CONTAINER_multipeermap_create (VALIDATION_MAP_SIZE,
 							 GNUNET_NO);
   pnc = GNUNET_PEERINFO_notify (GST_cfg, GNUNET_YES, &process_peerinfo_hello, NULL);
 }
@@ -828,9 +828,9 @@ GST_validation_stop ()
 {
   struct CheckHelloValidatedContext *chvc;
 
-  GNUNET_CONTAINER_multihashmap_iterate (validation_map,
+  GNUNET_CONTAINER_multipeermap_iterate (validation_map,
                                          &cleanup_validation_entry, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (validation_map);
+  GNUNET_CONTAINER_multipeermap_destroy (validation_map);
   validation_map = NULL;
   while (NULL != (chvc = chvc_head))
   {
@@ -1031,7 +1031,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "I am `%s', sending PONG to peer `%s'\n",
-	      GNUNET_h2s (&GST_my_identity.hashPubKey),
+	      GNUNET_i2s_full (&GST_my_identity),
               GNUNET_i2s (sender));
 
   /* message with structure:
@@ -1404,10 +1404,10 @@ struct IteratorContext
  * @param cls the 'struct GST_ValidationIteratorContext'
  * @param key the peer's identity
  * @param value the 'struct ValidationEntry'
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-iterate_addresses (void *cls, const struct GNUNET_HashCode * key, void *value)
+iterate_addresses (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct IteratorContext *ic = cls;
   struct ValidationEntry *ve = value;
@@ -1434,8 +1434,8 @@ GST_validation_get_addresses (const struct GNUNET_PeerIdentity *target,
 
   ic.cb = cb;
   ic.cb_cls = cb_cls;
-  GNUNET_CONTAINER_multihashmap_get_multiple (validation_map,
-                                              &target->hashPubKey,
+  GNUNET_CONTAINER_multipeermap_get_multiple (validation_map,
+                                              target,
                                               &iterate_addresses, &ic);
 }
 

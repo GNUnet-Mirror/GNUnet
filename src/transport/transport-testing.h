@@ -24,12 +24,9 @@
  *
  * @author Matthias Wachs
  */
-
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_testing_lib.h"
 

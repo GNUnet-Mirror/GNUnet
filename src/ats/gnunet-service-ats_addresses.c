@@ -294,7 +294,7 @@ struct GAS_Addresses_Handle
   /**
    * A multihashmap to store all addresses
    */
-  struct GNUNET_CONTAINER_MultiHashMap *addresses;
+  struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
   /**
    * Configure WAN quota in
@@ -574,17 +574,19 @@ struct CompareAddressContext
   struct ATS_Address *base_address;
 };
 
+
 /**
  * Comapre addresses
  *
  * @param cls a CompareAddressContext containin the source address
  * @param key peer id
  * @param value the address to compare with
- * @return GNUNET_YES to continue, GNUNET_NO if address is founce
+ * @return #GNUNET_YES to continue, #GNUNET_NO if address is founce
  */
-
 static int
-compare_address_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+compare_address_it (void *cls, 
+		    const struct GNUNET_PeerIdentity *key, 
+		    void *value)
 {
   struct CompareAddressContext *cac = cls;
   struct ATS_Address *aa = value;
@@ -672,13 +674,15 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
   cac.exact_address = NULL;
   cac.base_address = NULL;
   cac.search = addr;
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses,
-      &peer->hashPubKey, &compare_address_it, &cac);
+  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+					      peer, 
+					      &compare_address_it, &cac);
 
-  if (cac.exact_address == NULL )
+  if (cac.exact_address == NULL)
     return cac.base_address;
   return cac.exact_address;
 }
+
 
 /**
  * Find the exact address
@@ -787,13 +791,13 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   {
     /* Add a new address */
     GNUNET_assert(
-        GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (handle->addresses,
-            &peer->hashPubKey,
-            new_address,
-            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+        GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (handle->addresses,
+							peer,
+							new_address,
+							GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 
     GNUNET_STATISTICS_set (handle->stat, "# addresses",
-        GNUNET_CONTAINER_multihashmap_size (handle->addresses), GNUNET_NO);
+        GNUNET_CONTAINER_multipeermap_size (handle->addresses), GNUNET_NO);
 
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Adding new address %p for peer `%s', length %u, session id %u, %s\n",
@@ -1013,8 +1017,9 @@ struct DestroyContext
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key,
-    void *value)
+destroy_by_session_id (void *cls,
+		       const struct GNUNET_PeerIdentity *key,
+		       void *value)
 {
   struct DestroyContext *dc = cls;
   struct GAS_Addresses_Handle *handle = dc->handle;
@@ -1038,7 +1043,9 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key,
 
       /* Notify solver about deletion */
       GNUNET_assert(
-          GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (handle->addresses, &aa->peer.hashPubKey, aa));
+          GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
+							      &aa->peer,
+							      aa));
       handle->s_del (handle->solver, aa, GNUNET_NO);
       free_address (aa);
       dc->result = GNUNET_NO;
@@ -1069,7 +1076,8 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key,
 
       /* Notify solver about deletion */
       GNUNET_assert(
-          GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (handle->addresses, &aa->peer.hashPubKey, aa));
+          GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses, 
+							      &aa->peer, aa));
       handle->s_del (handle->solver, aa, GNUNET_NO);
       free_address (aa);
       dc->result = GNUNET_NO;
@@ -1090,6 +1098,7 @@ destroy_by_session_id (void *cls, const struct GNUNET_HashCode * key,
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Remove an address or just a session for a peer.
@@ -1131,10 +1140,11 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
   dc.aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
       session_id);
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses,
-      &peer->hashPubKey, &destroy_by_session_id, &dc);
+  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+					      peer,
+					      &destroy_by_session_id, &dc);
   GNUNET_STATISTICS_set (handle->stat, "# addresses",
-      GNUNET_CONTAINER_multihashmap_size (handle->addresses), GNUNET_NO);
+      GNUNET_CONTAINER_multipeermap_size (handle->addresses), GNUNET_NO);
   free_address (dc.aa);
 }
 
@@ -1308,21 +1318,25 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
  * @param cls not used
  * @param key the peer
  * @param value the address to reset
- * @return GNUNET_OK to continue
+ * @return #GNUNET_OK to continue
  */
 static int
-reset_address_it (void *cls, const struct GNUNET_HashCode *key, void *value)
+reset_address_it (void *cls, 
+		  const struct GNUNET_PeerIdentity *key, 
+		  void *value)
 {
   struct ATS_Address *aa = value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Resetting interval for peer `%s' address %p from %llu to 0\n",
-      GNUNET_i2s (&aa->peer), aa, aa->block_interval);
-
+	     "Resetting interval for peer `%s' address %p from %llu to 0\n",
+	     GNUNET_i2s (&aa->peer), 
+	     aa, 
+	     aa->block_interval);
   aa->blocked_until = GNUNET_TIME_UNIT_ZERO_ABS;
   aa->block_interval = GNUNET_TIME_UNIT_ZERO;
   return GNUNET_OK;
 }
+
 
 /**
  * Reset suggestion backoff for a peer
@@ -1341,8 +1355,11 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
       "RESET BACKOFF", GNUNET_i2s (peer));
 
   GNUNET_break(
-      GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses, &peer->hashPubKey, &reset_address_it, NULL));
+      GNUNET_SYSERR != GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+								   peer,
+								   &reset_address_it, NULL));
 }
+
 
 /**
  * The preference changed for a peer
@@ -1436,9 +1453,9 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
   if (GNUNET_NO == handle->running)
     return;
 
-  if (GNUNET_NO
-      == GNUNET_CONTAINER_multihashmap_contains (handle->addresses,
-          &peer->hashPubKey))
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multipeermap_contains (handle->addresses,
+					      peer))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
         "Received `%s' for unknown peer `%s' from client %p\n",
@@ -1475,9 +1492,9 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
   if (GNUNET_NO == handle->running)
     return;
 
-  if (GNUNET_NO
-      == GNUNET_CONTAINER_multihashmap_contains (handle->addresses,
-          &peer->hashPubKey))
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multipeermap_contains (handle->addresses,
+					      peer))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
         "Received `%s' for unknown peer `%s' from client %p\n",
@@ -1699,7 +1716,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   ah->stat = (struct GNUNET_STATISTICS_Handle *) stats;
   /* Initialize the addresses database */
-  ah->addresses = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  ah->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   GNUNET_assert(NULL != ah->addresses);
 
   /* Figure out configured solution method */
@@ -1808,29 +1825,30 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     break;
   }
 
-  GNUNET_assert(NULL != ah->s_init);
-  GNUNET_assert(NULL != ah->s_add);
-  GNUNET_assert(NULL != ah->s_address_update_inuse);
-  GNUNET_assert(NULL != ah->s_address_update_property);
-  GNUNET_assert(NULL != ah->s_address_update_session);
-  GNUNET_assert(NULL != ah->s_address_update_network);
-  GNUNET_assert(NULL != ah->s_get);
-  GNUNET_assert(NULL != ah->s_get_stop);
-  GNUNET_assert(NULL != ah->s_pref);
-  GNUNET_assert(NULL != ah->s_feedback);
-  GNUNET_assert(NULL != ah->s_del);
-  GNUNET_assert(NULL != ah->s_done);
-  GNUNET_assert(NULL != ah->s_bulk_start);
-  GNUNET_assert(NULL != ah->s_bulk_stop);
+  GNUNET_assert (NULL != ah->s_init);
+  GNUNET_assert (NULL != ah->s_add);
+  GNUNET_assert (NULL != ah->s_address_update_inuse);
+  GNUNET_assert (NULL != ah->s_address_update_property);
+  GNUNET_assert (NULL != ah->s_address_update_session);
+  GNUNET_assert (NULL != ah->s_address_update_network);
+  GNUNET_assert (NULL != ah->s_get);
+  GNUNET_assert (NULL != ah->s_get_stop);
+  GNUNET_assert (NULL != ah->s_pref);
+  GNUNET_assert (NULL != ah->s_feedback);
+  GNUNET_assert (NULL != ah->s_del);
+  GNUNET_assert (NULL != ah->s_done);
+  GNUNET_assert (NULL != ah->s_bulk_start);
+  GNUNET_assert (NULL != ah->s_bulk_stop);
 
   GAS_normalization_start (&normalized_preference_changed_cb, ah,
       &normalized_property_changed_cb, ah);
   quota_count = load_quotas (cfg, quotas_in, quotas_out,
-      GNUNET_ATS_NetworkTypeCount);
+			     GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats, ah->addresses, quotas, quotas_in,
-      quotas_out, quota_count, &bandwidth_changed_cb, ah, &get_preferences_cb,
-      NULL, &get_property_cb, NULL );
+			   quotas_out, quota_count, 
+			   &bandwidth_changed_cb, ah, &get_preferences_cb,
+			   NULL, &get_property_cb, NULL );
   if (NULL == ah->solver)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver!\n"));
@@ -1841,7 +1859,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ah->running = GNUNET_YES;
 
   GNUNET_STATISTICS_set (ah->stat, "# addresses",
-      GNUNET_CONTAINER_multihashmap_size (ah->addresses), GNUNET_NO);
+      GNUNET_CONTAINER_multipeermap_size (ah->addresses), GNUNET_NO);
 
   return ah;
 }
@@ -1852,18 +1870,19 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param cls NULL
  * @param key peer identity (unused)
  * @param value the 'struct ATS_Address' to free
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_all_address_it (void *cls, const struct GNUNET_HashCode * key,
-    void *value)
+destroy_all_address_it (void *cls, 
+			const struct GNUNET_PeerIdentity *key,
+			void *value)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct ATS_Address *aa = value;
 
   /* Remove */
-  GNUNET_assert(
-      GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (handle->addresses, key, value));
+  GNUNET_assert(GNUNET_YES == 
+		GNUNET_CONTAINER_multipeermap_remove (handle->addresses, key, value));
   /* Notify */
   handle->s_del (handle->solver, aa, GNUNET_NO);
   /* Destroy */
@@ -1871,6 +1890,7 @@ destroy_all_address_it (void *cls, const struct GNUNET_HashCode * key,
 
   return GNUNET_OK;
 }
+
 
 /**
  * Remove all addresses
@@ -1886,10 +1906,12 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Destroying all addresses\n");
   handle->s_bulk_start (handle->solver);
   if (handle->addresses != NULL )
-    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses,
-        &destroy_all_address_it, handle);
+    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses,
+					   &destroy_all_address_it,
+					   handle);
   handle->s_bulk_start (handle->solver);
 }
+
 
 /**
  * Shutdown address subsystem.
@@ -1905,7 +1927,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   GNUNET_assert(NULL != handle);
   GAS_addresses_destroy_all (handle);
   handle->running = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_destroy (handle->addresses);
+  GNUNET_CONTAINER_multipeermap_destroy (handle->addresses);
   handle->addresses = NULL;
   while (NULL != (cur = handle->r_head))
   {
@@ -1918,12 +1940,14 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   GAS_normalization_stop ();
 }
 
+
 struct PeerIteratorContext
 {
   GNUNET_ATS_Peer_Iterator it;
   void *it_cls;
-  struct GNUNET_CONTAINER_MultiHashMap *peers_returned;
+  struct GNUNET_CONTAINER_MultiPeerMap *peers_returned;
 };
+
 
 /**
  * Iterator to iterate over all peers
@@ -1931,21 +1955,21 @@ struct PeerIteratorContext
  * @param cls a PeerIteratorContext
  * @param key the peer id
  * @param value the ATS_address
- * @return GNUNET_OK to continue
+ * @return #GNUNET_OK to continue
  */
 static int
-peer_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+peer_it (void *cls, 
+	 const struct GNUNET_PeerIdentity *key,
+	 void *value)
 {
   struct PeerIteratorContext *ip_ctx = cls;
-  struct GNUNET_PeerIdentity tmp;
 
-  if (GNUNET_NO
-      == GNUNET_CONTAINER_multihashmap_contains (ip_ctx->peers_returned, key))
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multipeermap_contains (ip_ctx->peers_returned, key))
   {
-    GNUNET_CONTAINER_multihashmap_put (ip_ctx->peers_returned, key, NULL,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    tmp.hashPubKey = (*key);
-    ip_ctx->it (ip_ctx->it_cls, &tmp);
+    GNUNET_CONTAINER_multipeermap_put (ip_ctx->peers_returned, key, NULL,
+				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    ip_ctx->it (ip_ctx->it_cls, key);
   }
 
   return GNUNET_OK;
@@ -1969,16 +1993,17 @@ GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
     return;
   GNUNET_assert(NULL != handle->addresses);
 
-  size = GNUNET_CONTAINER_multihashmap_size (handle->addresses);
+  size = GNUNET_CONTAINER_multipeermap_size (handle->addresses);
   if (0 != size)
   {
     ip_ctx.it = p_it;
     ip_ctx.it_cls = p_it_cls;
-    ip_ctx.peers_returned = GNUNET_CONTAINER_multihashmap_create (size,
-        GNUNET_NO);
-    GNUNET_CONTAINER_multihashmap_iterate (handle->addresses, &peer_it,
-        &ip_ctx);
-    GNUNET_CONTAINER_multihashmap_destroy (ip_ctx.peers_returned);
+    ip_ctx.peers_returned = GNUNET_CONTAINER_multipeermap_create (size,
+								  GNUNET_NO);
+    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses, 
+					   &peer_it,
+					   &ip_ctx);
+    GNUNET_CONTAINER_multipeermap_destroy (ip_ctx.peers_returned);
   }
   p_it (p_it_cls, NULL );
 }
@@ -1989,19 +2014,22 @@ struct PeerInfoIteratorContext
   void *it_cls;
 };
 
+
 /**
  * Iterator to iterate over a peer's addresses
  *
- * @param cls a PeerInfoIteratorContext
+ * @param cls a `struct PeerInfoIteratorContext`
  * @param key the peer id
- * @param value the ATS_address
- * @return GNUNET_OK to continue
+ * @param value the `struct ATS_address`
+ * @return #GNUNET_OK to continue
  */
 static int
-peerinfo_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+peerinfo_it (void *cls,
+	     const struct GNUNET_PeerIdentity *key,
+	     void *value)
 {
   struct PeerInfoIteratorContext *pi_ctx = cls;
-  struct ATS_Address *addr = (struct ATS_Address *) value;
+  struct ATS_Address *addr = value;
 
   if (NULL != pi_ctx->it)
   {
@@ -2011,6 +2039,7 @@ peerinfo_it (void *cls, const struct GNUNET_HashCode * key, void *value)
   }
   return GNUNET_YES;
 }
+
 
 /**
  * Return information all peers currently known to ATS
@@ -2027,6 +2056,7 @@ GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
 {
   struct PeerInfoIteratorContext pi_ctx;
   struct GNUNET_BANDWIDTH_Value32NBO zero_bw;
+
   GNUNET_assert(NULL != peer);
   GNUNET_assert(NULL != handle->addresses);
   if (NULL == pi_it)
@@ -2036,8 +2066,9 @@ GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
   pi_ctx.it = pi_it;
   pi_ctx.it_cls = pi_it_cls;
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (handle->addresses,
-      &peer->hashPubKey, &peerinfo_it, &pi_ctx);
+  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+					      peer,
+					      &peerinfo_it, &pi_ctx);
 
   if (NULL != pi_it)
     pi_it (pi_it_cls, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0, zero_bw,

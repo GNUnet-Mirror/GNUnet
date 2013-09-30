@@ -225,12 +225,12 @@ struct GAS_PROPORTIONAL_Handle
   /**
    * Hashmap containing all valid addresses
    */
-  const struct GNUNET_CONTAINER_MultiHashMap *addresses;
+  const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
   /**
    * Pending address requests
    */
-  struct GNUNET_CONTAINER_MultiHashMap *requests;
+  struct GNUNET_CONTAINER_MultiPeerMap *requests;
 
   /**
    * Bandwidth changed callback
@@ -576,8 +576,9 @@ find_property_index (uint32_t type)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-find_best_address_it (void *cls, const struct GNUNET_HashCode * key,
-    void *value)
+find_best_address_it (void *cls, 
+		      const struct GNUNET_PeerIdentity *key,
+		      void *value)
 {
   struct FindBestAddressCtx *fba_ctx = (struct FindBestAddressCtx *) cls;
   struct ATS_Address *current = (struct ATS_Address *) value;
@@ -717,11 +718,12 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
  * @param cls last active address
  * @param key peer's key
  * @param value address to check
- * @return GNUNET_NO on double active address else GNUNET_YES;
+ * @return #GNUNET_NO on double active address else #GNUNET_YES;
  */
 static int
-get_active_address_it (void *cls, const struct GNUNET_HashCode * key,
-    void *value)
+get_active_address_it (void *cls, 
+		       const struct GNUNET_PeerIdentity *key,
+		       void *value)
 {
   struct ATS_Address **dest = cls;
   struct ATS_Address *aa = (struct ATS_Address *) value;
@@ -752,15 +754,16 @@ get_active_address_it (void *cls, const struct GNUNET_HashCode * key,
  */
 static struct ATS_Address *
 get_active_address (void *solver,
-    struct GNUNET_CONTAINER_MultiHashMap * addresses,
-    const struct GNUNET_PeerIdentity *peer)
+		    const struct GNUNET_CONTAINER_MultiPeerMap * addresses,
+		    const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address * dest = NULL;
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (addresses, &peer->hashPubKey,
-      &get_active_address_it, &dest);
+  GNUNET_CONTAINER_multipeermap_get_multiple (addresses, peer,
+					      &get_active_address_it, &dest);
   return dest;
 }
+
 
 static void
 addresse_increment (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
@@ -783,6 +786,7 @@ addresse_increment (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
   }
 
 }
+
 
 static int
 addresse_decrement (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
@@ -856,8 +860,9 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
  */
 void
 GAS_proportional_address_change_preference (void *solver,
-    const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
-    double pref_rel)
+					    const struct GNUNET_PeerIdentity *peer,
+					    enum GNUNET_ATS_PreferenceKind kind,
+					    double pref_rel)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   GNUNET_assert(NULL != solver);
@@ -865,6 +870,7 @@ GAS_proportional_address_change_preference (void *solver,
 
   distribute_bandwidth_in_all_networks (s);
 }
+
 
 /**
  * Get application feedback for a peer
@@ -910,19 +916,21 @@ GAS_proportional_get_preferred_address (void *solver,
   GNUNET_assert(peer != NULL);
 
   /* Add to list of pending requests */
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains (s->requests,
-          &peer->hashPubKey))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (s->requests,
+							   peer))
   {
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (s->requests, &peer->hashPubKey, NULL,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_multipeermap_put (s->requests,
+						      peer, NULL,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
   /* Get address with: stick to current address, lower distance, lower latency */
   fba_ctx.s = s;
   fba_ctx.best = NULL;
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (s->addresses, &peer->hashPubKey,
-      &find_best_address_it, &fba_ctx);
+  GNUNET_CONTAINER_multipeermap_get_multiple (s->addresses, peer,
+					      &find_best_address_it, &fba_ctx);
   if (NULL == fba_ctx.best)
   {
     LOG(GNUNET_ERROR_TYPE_INFO, "Cannot suggest address for peer `%s'\n",
@@ -954,7 +962,7 @@ GAS_proportional_get_preferred_address (void *solver,
    * - update quota for this address network
    */
   prev = get_active_address (s,
-      (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, peer);
+			     s->addresses, peer);
   if (NULL != prev)
   {
     net_prev = (struct Network *) prev->solver_information;
@@ -993,13 +1001,13 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct Network *cur_net;
 
   if (GNUNET_YES
-      == GNUNET_CONTAINER_multihashmap_contains (s->requests,
-          &peer->hashPubKey))
-    GNUNET_CONTAINER_multihashmap_remove (s->requests, &peer->hashPubKey,
-        NULL );
+      == GNUNET_CONTAINER_multipeermap_contains (s->requests,
+						 peer))
+    GNUNET_CONTAINER_multipeermap_remove (s->requests, peer,
+					  NULL);
 
   cur = get_active_address (s,
-      (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, peer);
+			    s->addresses, peer);
   if (NULL != cur)
   {
     /* Disabling current address */
@@ -1115,6 +1123,7 @@ GAS_proportional_bulk_start (void *solver)
   s->bulk_lock++;
 }
 
+
 /**
  * Bulk operation done
  */
@@ -1139,6 +1148,7 @@ GAS_proportional_bulk_stop (void *solver)
     s->bulk_requests = 0;
   }
 }
+
 
 /**
  * Add a new single address to a network
@@ -1357,9 +1367,9 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
   aw->addr->solver_information = net;
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (s->requests, &address->peer.hashPubKey))
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (s->requests, &address->peer))
   {
-    if (NULL == get_active_address (s, (struct GNUNET_CONTAINER_MultiHashMap *) s->addresses, &address->peer))
+    if (NULL == get_active_address (s, s->addresses, &address->peer))
     {
       if (NULL != (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
           s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) address);
@@ -1401,13 +1411,13 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
  */
 void *
 GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiHashMap *addresses, int *network,
-    unsigned long long *out_quota, unsigned long long *in_quota,
-    int dest_length, GAS_bandwidth_changed_cb bw_changed_cb,
-    void *bw_changed_cb_cls, GAS_get_preferences get_preference,
-    void *get_preference_cls, GAS_get_properties get_properties,
-    void *get_properties_cls)
+		       const struct GNUNET_STATISTICS_Handle *stats,
+		       const struct GNUNET_CONTAINER_MultiPeerMap *addresses, int *network,
+		       unsigned long long *out_quota, unsigned long long *in_quota,
+		       int dest_length, GAS_bandwidth_changed_cb bw_changed_cb,
+		       void *bw_changed_cb_cls, GAS_get_preferences get_preference,
+		       void *get_preference_cls, GAS_get_properties get_properties,
+		       void *get_properties_cls)
 {
   int c;
   struct GAS_PROPORTIONAL_Handle *s =
@@ -1436,7 +1446,7 @@ GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   s->bulk_lock = GNUNET_NO;
   s->addresses = addresses;
 
-  s->requests = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 
   for (c = 0; c < dest_length; c++)
   {
@@ -1508,11 +1518,11 @@ GAS_proportional_done (void *solver)
     LOG(GNUNET_ERROR_TYPE_ERROR,
         "Had %u active addresses not deleted during shutdown\n",
         s->active_addresses);
-    GNUNET_break(0);
+    GNUNET_break (0);
   }
-  GNUNET_free(s->network_entries);
-  GNUNET_CONTAINER_multihashmap_destroy (s->requests);
-  GNUNET_free(s);
+  GNUNET_free (s->network_entries);
+  GNUNET_CONTAINER_multipeermap_destroy (s->requests);
+  GNUNET_free (s);
 }
 
 /* end of gnunet-service-ats-solver_proportional.c */

@@ -95,7 +95,7 @@ GAS_proportional_address_preference_feedback (void *solver, void *application,
 void *
 GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiHashMap *addresses, int *network,
+    const struct GNUNET_CONTAINER_MultiPeerMap *addresses, int *network,
     unsigned long long *out_quota, unsigned long long *in_quota,
     int dest_length, GAS_bandwidth_changed_cb bw_changed_cb,
     void *bw_changed_cb_cls, GAS_get_preferences get_preference,

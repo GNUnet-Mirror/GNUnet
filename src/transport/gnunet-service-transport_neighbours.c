@@ -739,7 +739,7 @@ struct BlackListCheckContext
 /**
  * Hash map from peer identities to the respective 'struct NeighbourMapEntry'.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *neighbours;
+static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
 /**
  * We keep blacklist checks in a DLL so that we can find
@@ -795,7 +795,7 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 {
   if (NULL == neighbours)
     return NULL;
-  return GNUNET_CONTAINER_multihashmap_get (neighbours, &pid->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_get (neighbours, pid);
 }
 
 static const char *
@@ -1077,8 +1077,8 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   MEMDEBUG_free_non_null (backup_primary, __LINE__);
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (neighbours,
-                                                       &n->id.hashPubKey, n));
+                 GNUNET_CONTAINER_multipeermap_remove (neighbours,
+                                                       &n->id, n));
 
   // FIXME-ATS-API: we might want to be more specific about
   // which states we do this from in the future (ATS should
@@ -1201,7 +1201,7 @@ send_disconnect (struct NeighbourMapEntry *n)
       htonl (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
   disconnect_msg.timestamp =
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  disconnect_msg.public_key = GST_my_public_key;
+  disconnect_msg.public_key = GST_my_identity.public_key;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_ecc_sign (GST_my_private_key,
                                          &disconnect_msg.purpose,
@@ -1799,8 +1799,8 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
                                  MAX_BANDWIDTH_CARRY_S);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (neighbours,
-                                                    &n->id.hashPubKey, n,
+                 GNUNET_CONTAINER_multipeermap_put (neighbours,
+                                                    &n->id, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
@@ -3223,7 +3223,7 @@ struct IteratorContext
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-neighbours_iterate (void *cls, const struct GNUNET_HashCode * key, void *value)
+neighbours_iterate (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct IteratorContext *ic = cls;
   struct NeighbourMapEntry *n = value;
@@ -3267,7 +3267,7 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
     return; /* can happen during shutdown */
   ic.cb = cb;
   ic.cb_cls = cb_cls;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, &neighbours_iterate, &ic);
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours, &neighbours_iterate, &ic);
 }
 
 
@@ -3375,7 +3375,7 @@ GST_neighbours_start (void *cls,
   connect_notify_cb = connect_cb;
   disconnect_notify_cb = disconnect_cb;
   address_change_cb = peer_address_cb;
-  neighbours = GNUNET_CONTAINER_multihashmap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
+  neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
 }
 
 
@@ -3388,7 +3388,9 @@ GST_neighbours_start (void *cls,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-disconnect_all_neighbours (void *cls, const struct GNUNET_HashCode * key, void *value)
+disconnect_all_neighbours (void *cls, 
+			   const struct GNUNET_PeerIdentity *key, 
+			   void *value)
 {
   struct NeighbourMapEntry *n = value;
 
@@ -3409,10 +3411,10 @@ GST_neighbours_stop ()
 {
   if (NULL == neighbours)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (neighbours, 
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours, 
 					 &disconnect_all_neighbours,
                                          NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (neighbours);
+  GNUNET_CONTAINER_multipeermap_destroy (neighbours);
   neighbours = NULL;
   callback_cls = NULL;
   connect_notify_cb = NULL;

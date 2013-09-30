@@ -29,16 +29,11 @@
  * - test test test
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_bandwidth_lib.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_constants.h"
-#include "gnunet_container_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_time_lib.h"
 #include "gnunet_transport_service.h"
 #include "transport.h"
 
@@ -320,7 +315,7 @@ struct GNUNET_TRANSPORT_Handle
    * Hash map of the current connected neighbours of this peer.
    * Maps peer identities to 'struct Neighbour' entries.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *neighbours;
+  struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
   /**
    * Heap sorting peers with pending messages by the timestamps that
@@ -398,7 +393,7 @@ static struct Neighbour *
 neighbour_find (struct GNUNET_TRANSPORT_Handle *h,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multihashmap_get (h->neighbours, &peer->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_get (h->neighbours, peer);
 }
 
 
@@ -424,8 +419,8 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (h->neighbours,
-                                                    &n->id.hashPubKey, n,
+                 GNUNET_CONTAINER_multipeermap_put (h->neighbours,
+                                                    &n->id, n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
@@ -442,7 +437,8 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  *         GNUNET_NO if not.
  */
 static int
-neighbour_delete (void *cls, const struct GNUNET_HashCode * key, void *value)
+neighbour_delete (void *cls, 
+		  const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct GNUNET_TRANSPORT_Handle *handle = cls;
   struct Neighbour *n = value;
@@ -452,7 +448,7 @@ neighbour_delete (void *cls, const struct GNUNET_HashCode * key, void *value)
   GNUNET_assert (NULL == n->th);
   GNUNET_assert (NULL == n->hn);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (handle->neighbours, key,
+                 GNUNET_CONTAINER_multipeermap_remove (handle->neighbours, key,
                                                        n));
   GNUNET_free (n);
   return GNUNET_YES;
@@ -568,7 +564,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-    neighbour_delete (h, &dim->peer.hashPubKey, n);
+    neighbour_delete (h, &dim->peer, n);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK:
     if (size != sizeof (struct SendOkMessage))
@@ -994,7 +990,7 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
     h->client = NULL;
   }
   /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multihashmap_iterate (h->neighbours, &neighbour_delete, h);
+  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours, &neighbour_delete, h);
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
@@ -1341,15 +1337,15 @@ GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *o
 
 int
 GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *handle,
-                              					const struct GNUNET_PeerIdentity *peer)
+					    const struct GNUNET_PeerIdentity *peer)
 {
-	GNUNET_assert (NULL != handle);
-	GNUNET_assert (NULL != peer);
-
-	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains(handle->neighbours, &peer->hashPubKey))
-			return GNUNET_YES;
-	else
-		return GNUNET_NO;
+  GNUNET_assert (NULL != handle);
+  GNUNET_assert (NULL != peer);
+  
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (handle->neighbours, peer))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
 }
 
 
@@ -1455,7 +1451,7 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->nd_cb = nd;
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   ret->neighbours =
-    GNUNET_CONTAINER_multihashmap_create (STARTING_NEIGHBOURS_SIZE, GNUNET_YES);
+    GNUNET_CONTAINER_multipeermap_create (STARTING_NEIGHBOURS_SIZE, GNUNET_YES);
   ret->ready_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to transport service.\n");
@@ -1488,7 +1484,7 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
     handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_CONTAINER_multihashmap_destroy (handle->neighbours);
+  GNUNET_CONTAINER_multipeermap_destroy (handle->neighbours);
   handle->neighbours = NULL;
   if (handle->quota_task != GNUNET_SCHEDULER_NO_TASK)
   {

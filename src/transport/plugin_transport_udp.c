@@ -1271,12 +1271,12 @@ disconnect_session (struct Session *s)
   }
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
-                                                       &s->target.hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+                                                       &s->target,
                                                        s));
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UDP, sessions active",
-                        GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
+                        GNUNET_CONTAINER_multipeermap_size(plugin->sessions),
                         GNUNET_NO);
   if (s->rc > 0)
     s->in_destroy = GNUNET_YES;
@@ -1293,7 +1293,7 @@ disconnect_session (struct Session *s)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-disconnect_and_free_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+disconnect_and_free_it (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   disconnect_session(value);
   return GNUNET_OK;
@@ -1317,7 +1317,8 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting from peer `%s'\n", GNUNET_i2s (target));
   /* Clean up sessions */
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessions, &target->hashPubKey, &disconnect_and_free_it, plugin);
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions, target,
+					      &disconnect_and_free_it, plugin);
 }
 
 
@@ -1466,7 +1467,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 
 static int
 session_cmp_it (void *cls,
-		const struct GNUNET_HashCode * key,
+		const struct GNUNET_PeerIdentity * key,
 		void *value)
 {
   struct SessionCompareContext * cctx = cls;
@@ -1591,7 +1592,7 @@ udp_plugin_lookup_session (void *cls,
        "Looking for existing session for peer `%s' `%s' \n", 
        GNUNET_i2s (&address->peer), 
        udp_address_to_string(NULL, address->address, address->address_length));
-  GNUNET_CONTAINER_multihashmap_get_multiple(plugin->sessions, &address->peer.hashPubKey, session_cmp_it, &cctx);
+  GNUNET_CONTAINER_multipeermap_get_multiple(plugin->sessions, &address->peer, session_cmp_it, &cctx);
   if (cctx.res != NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p\n", cctx.res);
@@ -1623,13 +1624,13 @@ udp_plugin_create_session (void *cls,
        GNUNET_i2s(&address->peer),
        udp_address_to_string(NULL,address->address,address->address_length));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
-                                                    &s->target.hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+                                                    &s->target,
                                                     s,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_set(plugin->env->stats,
                         "# UDP, sessions active",
-                        GNUNET_CONTAINER_multihashmap_size(plugin->sessions),
+                        GNUNET_CONTAINER_multipeermap_size(plugin->sessions),
                         GNUNET_NO);
   return s;
 }
@@ -1800,7 +1801,7 @@ udp_plugin_send (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains_value(plugin->sessions, &s->target.hashPubKey, s))
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains_value(plugin->sessions, &s->target, s))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -2137,7 +2138,9 @@ struct LookupContext
 
 
 static int
-lookup_session_by_addr_it (void *cls, const struct GNUNET_HashCode * key, void *value)
+lookup_session_by_addr_it (void *cls, 
+			   const struct GNUNET_PeerIdentity *key, 
+			   void *value)
 {
   struct LookupContext *l_ctx = cls;
   struct Session * s = value;
@@ -2184,7 +2187,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   l_ctx.addrlen = rc->addr_len;
   l_ctx.res = NULL;
   l_ctx.must_have_frag_ctx = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_iterate (rc->plugin->sessions,
+  GNUNET_CONTAINER_multipeermap_iterate (rc->plugin->sessions,
       &lookup_session_by_addr_it,
       &l_ctx);
   s = l_ctx.res;
@@ -2259,7 +2262,7 @@ read_process_ack (struct Plugin *plugin,
   l_ctx.addrlen = fromlen;
   l_ctx.res = NULL;
   l_ctx.must_have_frag_ctx = GNUNET_YES;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
 					 &lookup_session_by_addr_it,
 					 &l_ctx);
   s = l_ctx.res;
@@ -3111,7 +3114,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->enable_ipv6 = enable_v6;
   p->enable_ipv4 = GNUNET_YES; /* default */
   p->env = env;
-  p->sessions = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  p->sessions = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
   GNUNET_BANDWIDTH_tracker_init (&p->tracker,
@@ -3125,7 +3128,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create network sockets, plugin failed\n"));
-    GNUNET_CONTAINER_multihashmap_destroy (p->sessions);
+    GNUNET_CONTAINER_multipeermap_destroy (p->sessions);
     GNUNET_CONTAINER_heap_destroy (p->defrag_ctxs);
     GNUNET_SERVER_mst_destroy (p->mst);
     GNUNET_free (p);
@@ -3267,8 +3270,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
   /* Clean up sessions */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Cleaning up sessions\n");
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions, &disconnect_and_free_it, plugin);
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions, &disconnect_and_free_it, plugin);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
 
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)

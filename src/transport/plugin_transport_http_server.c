@@ -25,8 +25,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_server_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_plugin.h"
 #include "gnunet_nat_lib.h"
@@ -924,14 +923,16 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
  */
 
 static int
-server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GNUNET_PeerIdentity * target, uint32_t *tag)
+server_parse_url (struct HTTP_Server_Plugin *plugin,
+		  const char *url,
+		  struct GNUNET_PeerIdentity *target, 
+		  uint32_t *tag)
 {
   char * tag_start = NULL;
   char * tag_end = NULL;
   char * target_start = NULL;
   char * separator = NULL;
-  char hash[plugin->peer_id_length+1];
-  int hash_length;
+  unsigned int hash_length;
   unsigned long int ctag;
 
   /* URL parsing
@@ -1011,18 +1012,19 @@ server_parse_url (struct HTTP_Server_Plugin *plugin, const char * url, struct GN
       if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  memcpy (hash, target_start, hash_length);
-  hash[hash_length] = '\0';
-
-  if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string ((const char *) hash, &(target->hashPubKey)))
-  {
+  if (GNUNET_OK != 
+      GNUNET_CRYPTO_ecc_public_sign_key_from_string (target_start,
+						     hash_length,
+						     &target->public_key))
+    {
       /* hash conversion failed */
       if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-     "Found target `%s' in url\n", GNUNET_h2s_full(&target->hashPubKey));
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+		   plugin->name,
+		   "Found target `%s' in URL\n", 
+		   GNUNET_i2s_full (target));
   return GNUNET_OK;
 }
 
@@ -2879,7 +2881,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
                    plugin->max_connections);
 
 
-  plugin->peer_id_length = strlen (GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey));
+  plugin->peer_id_length = strlen (GNUNET_i2s_full (plugin->env->my_identity));
 
   return GNUNET_OK;
 }

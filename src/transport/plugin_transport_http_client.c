@@ -42,9 +42,8 @@
 #define ENABLE_GET GNUNET_YES
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_common.h"
-#include "gnunet_server_lib.h"
 #include "gnunet_transport_plugin.h"
 #include "plugin_transport_http_common.h"
 #include <curl/curl.h>
@@ -1405,9 +1404,9 @@ client_connect (struct Session *s)
   }
 
   GNUNET_asprintf (&s->url, "%s/%s;%u",
-      http_common_plugin_address_to_url (NULL, s->addr, s->addrlen),
-			GNUNET_h2s_full (&plugin->env->my_identity->hashPubKey),
-			plugin->last_tag);
+		   http_common_plugin_address_to_url (NULL, s->addr, s->addrlen),
+		   GNUNET_i2s_full (plugin->env->my_identity),
+		   plugin->last_tag);
 
   plugin->last_tag++;
 

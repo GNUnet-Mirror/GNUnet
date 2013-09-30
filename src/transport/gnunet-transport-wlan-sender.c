@@ -24,8 +24,8 @@
  * @author David Brodski
  */
 #include "platform.h"
-#include "gnunet_protocols.h"
 #include "plugin_transport_wlan.h"
+#include "gnunet_protocols.h"
 
 #define WLAN_MTU 1500
 

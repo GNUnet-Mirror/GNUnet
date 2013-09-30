@@ -358,7 +358,7 @@ struct Plugin
   /**
    * Map from peer identities to sessions for the given peer.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *sessionmap;
+  struct GNUNET_CONTAINER_MultiPeerMap *sessionmap;
 
   /**
    * Handle to the network service.
@@ -379,7 +379,7 @@ struct Plugin
   /**
    * Map of peers we have tried to contact behind a NAT
    */
-  struct GNUNET_CONTAINER_MultiHashMap *nat_wait_conns;
+  struct GNUNET_CONTAINER_MultiPeerMap *nat_wait_conns;
 
   /**
    * List of active TCP probes.
@@ -458,7 +458,7 @@ static void
 inc_sessions (struct Plugin *plugin, struct Session *session, int line)
 {
   sessions++;
-  unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
+  unsigned int size = GNUNET_CONTAINER_multipeermap_size(plugin->sessionmap);
   if (sessions != size)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
         sessions, size);
@@ -475,7 +475,7 @@ static void
 dec_sessions (struct Plugin *plugin, struct Session *session, int line)
 {
   GNUNET_assert (sessions > 0);
-  unsigned int size = GNUNET_CONTAINER_multihashmap_size(plugin->sessionmap);
+  unsigned int size = GNUNET_CONTAINER_multipeermap_size(plugin->sessionmap);
   sessions--;
   if (sessions != size)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
@@ -751,7 +751,7 @@ struct SessionClientCtx
 
 static int 
 session_lookup_by_client_it (void *cls,
-			     const struct GNUNET_HashCode * key,
+			     const struct GNUNET_PeerIdentity *key,
 			     void *value)
 {
   struct SessionClientCtx *sc_ctx = cls;
@@ -781,7 +781,7 @@ lookup_session_by_client (struct Plugin *plugin,
 
   sc_ctx.client = client;
   sc_ctx.ret = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_lookup_by_client_it, &sc_ctx);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap, &session_lookup_by_client_it, &sc_ctx);
   return sc_ctx.ret;
 }
 
@@ -1024,14 +1024,14 @@ disconnect_session (struct Session *session)
 
   stop_session_timeout (session);
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->sessionmap, &session->target.hashPubKey, session))
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (plugin->sessionmap, &session->target, session))
   {
     GNUNET_STATISTICS_update (session->plugin->env->stats,
 			      gettext_noop ("# TCP sessions active"), -1,
 			      GNUNET_NO);
     dec_sessions (plugin, session, __LINE__);
   }
-  else GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (plugin->nat_wait_conns, &session->target.hashPubKey, session));
+  else GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (plugin->nat_wait_conns, &session->target, session));
 
   /* clean up state */
   if (session->transmit_handle != NULL)
@@ -1093,32 +1093,36 @@ struct FindSessionContext
   int res;
 };
 
-int session_it (void *cls,
-               const struct GNUNET_HashCode * key,
-               void *value)
+
+static int 
+session_it (void *cls,
+	    const struct GNUNET_PeerIdentity * key,
+	    void *value)
 {
   struct FindSessionContext *res = cls;
+
   if (res->s == value)
   {
     res->res = GNUNET_OK;
     return GNUNET_NO;
   }
-  else
-    return GNUNET_YES;
+  return GNUNET_YES;
 }
 
-int find_session (struct Plugin *plugin, struct Session *session)
+
+static int
+find_session (struct Plugin *plugin, struct Session *session)
 {
   struct FindSessionContext session_map_res;
   struct FindSessionContext nat_map_res;
 
   session_map_res.s = session;
   session_map_res.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessionmap, &session_it, &session_map_res);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap, &session_it, &session_map_res);
 
   nat_map_res.s = session;
   nat_map_res.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->nat_wait_conns, &session_it, &nat_map_res);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->nat_wait_conns, &session_it, &nat_map_res);
 
   if ((session_map_res.res == GNUNET_SYSERR) && (nat_map_res.res == GNUNET_SYSERR))
   {
@@ -1190,8 +1194,8 @@ tcp_plugin_send (void *cls,
        "Asked to transmit %u bytes to `%s', added message to list.\n",
        msgbuf_size, GNUNET_i2s (&session->target));
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value (plugin->sessionmap, 
-								  &session->target.hashPubKey, 
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap, 
+								  &session->target, 
 								  session))
   {
     GNUNET_assert (session->client != NULL);
@@ -1209,7 +1213,7 @@ tcp_plugin_send (void *cls,
     process_pending_messages (session);
     return msgbuf_size;
   }
-  else if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains_value(plugin->nat_wait_conns, &session->target.hashPubKey, session))
+  else if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains_value(plugin->nat_wait_conns, &session->target, session))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "This NAT WAIT session for peer `%s' is not yet ready!\n",
@@ -1247,7 +1251,7 @@ struct SessionItCtx
 
 static int 
 session_lookup_it (void *cls,
-		   const struct GNUNET_HashCode *key,
+		   const struct GNUNET_PeerIdentity *key,
 		   void *value)
 {
   struct SessionItCtx * si_ctx = cls;
@@ -1343,8 +1347,8 @@ tcp_plugin_get_session (void *cls,
 
   /* look for existing session */
   if (GNUNET_YES == 
-      GNUNET_CONTAINER_multihashmap_contains (plugin->sessionmap, 
-					      &address->peer.hashPubKey))
+      GNUNET_CONTAINER_multipeermap_contains (plugin->sessionmap, 
+					      &address->peer))
   {
     struct SessionItCtx si_ctx;
 
@@ -1353,8 +1357,8 @@ tcp_plugin_get_session (void *cls,
 
     si_ctx.result = NULL;
 
-    GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessionmap, 
-						&address->peer.hashPubKey, 
+    GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap, 
+						&address->peer, 
 						&session_lookup_it, &si_ctx);
     if (si_ctx.result != NULL)
     {
@@ -1431,8 +1435,8 @@ tcp_plugin_get_session (void *cls,
 
   if ((is_natd == GNUNET_YES) &&
       (GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
-                                               &address->peer.hashPubKey)))
+       GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
+                                               &address->peer)))
   {
     /* Only do one NAT punch attempt per peer identity */
      return NULL;
@@ -1440,8 +1444,8 @@ tcp_plugin_get_session (void *cls,
 
   if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
       (GNUNET_NO ==
-       GNUNET_CONTAINER_multihashmap_contains (plugin->nat_wait_conns,
-                                               &address->peer.hashPubKey)))
+       GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
+                                               &address->peer)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
 	 "Found valid IPv4 NAT address (creating session)!\n") ;
@@ -1454,8 +1458,8 @@ tcp_plugin_get_session (void *cls,
 								    session);
     GNUNET_assert (session != NULL);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_put (plugin->nat_wait_conns, 
-						      &session->target.hashPubKey, 
+		   GNUNET_CONTAINER_multipeermap_put (plugin->nat_wait_conns, 
+						      &session->target, 
 						      session,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
@@ -1502,8 +1506,8 @@ tcp_plugin_get_session (void *cls,
   session->addrlen = addrlen;
   session->ats_address_network_type = ats.value;
 
-  GNUNET_CONTAINER_multihashmap_put (plugin->sessionmap, 
-				     &session->target.hashPubKey, 
+  GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, 
+				     &session->target, 
 				     session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   inc_sessions (plugin, session, __LINE__);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1520,7 +1524,7 @@ tcp_plugin_get_session (void *cls,
 
 static int 
 session_disconnect_it (void *cls,
-		       const struct GNUNET_HashCode * key,
+		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
   struct Session *session = value;
@@ -1557,8 +1561,10 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
        "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->sessionmap, &target->hashPubKey, &session_disconnect_it, plugin);
-  GNUNET_CONTAINER_multihashmap_get_multiple (plugin->nat_wait_conns, &target->hashPubKey, &session_disconnect_it, plugin);
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap, target, 
+					      &session_disconnect_it, plugin);
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->nat_wait_conns, target,
+					      &session_disconnect_it, plugin);
 }
 
 
@@ -1933,9 +1939,9 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   session =
-      GNUNET_CONTAINER_multihashmap_get (plugin->nat_wait_conns,
+      GNUNET_CONTAINER_multipeermap_get (plugin->nat_wait_conns,
                                          &tcp_nat_probe->
-                                         clientIdentity.hashPubKey);
+                                         clientIdentity);
   if (session == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, 
@@ -1959,12 +1965,12 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     disconnect_session (session);
     return;
   }
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_remove
+  GNUNET_assert (GNUNET_CONTAINER_multipeermap_remove
                  (plugin->nat_wait_conns,
-                  &tcp_nat_probe->clientIdentity.hashPubKey,
+                  &tcp_nat_probe->clientIdentity,
                   session) == GNUNET_YES);
-  GNUNET_CONTAINER_multihashmap_put (plugin->sessionmap,
-				     &session->target.hashPubKey, session, 
+  GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
+				     &session->target, session, 
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);  
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->inbound = GNUNET_NO;
@@ -2110,8 +2116,8 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
      session,
      GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
-      GNUNET_CONTAINER_multihashmap_put (plugin->sessionmap,
-  				       &session->target.hashPubKey,
+      GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
+  				       &session->target,
   				       session,
   				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       inc_sessions (plugin, session, __LINE__);
@@ -2247,9 +2253,9 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   distance.value = session->ats_address_network_type;
   GNUNET_break (ntohl(session->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_contains_value (plugin->sessionmap,
-      &session->target.hashPubKey,
-      session));
+  GNUNET_assert (GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
+							       &session->target,
+							       session));
 
   delay = plugin->env->receive (plugin->env->cls,
                                 &session->target,
@@ -2592,7 +2598,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   myoptions = 0;
 
   plugin = GNUNET_malloc (sizeof (struct Plugin));
-  plugin->sessionmap = GNUNET_CONTAINER_multihashmap_create (max_connections, GNUNET_YES);
+  plugin->sessionmap = GNUNET_CONTAINER_multipeermap_create (max_connections, GNUNET_YES);
   plugin->max_connections = max_connections;
   plugin->cur_connections = 0;
   plugin->open_port = bport;
@@ -2671,7 +2677,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 
   GNUNET_SERVER_add_handlers (plugin->server, plugin->handlers);
   GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify, plugin);
-  plugin->nat_wait_conns = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+  plugin->nat_wait_conns = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
   if (bport != 0)
     LOG (GNUNET_ERROR_TYPE_INFO, 
 	 _("TCP transport listening on port %llu\n"), bport);
@@ -2713,9 +2719,9 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down TCP plugin\n");
 
   /* Removing leftover sessions */
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
   /* Removing leftover NAT sessions */
-  GNUNET_CONTAINER_multihashmap_iterate(plugin->nat_wait_conns, &session_disconnect_it, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate(plugin->nat_wait_conns, &session_disconnect_it, NULL);
 
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
@@ -2743,8 +2749,8 @@ libgnunet_plugin_transport_tcp_done (void *cls)
     GNUNET_CONNECTION_destroy (tcp_probe->sock);
     GNUNET_free (tcp_probe);
   }
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->nat_wait_conns);
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessionmap);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->nat_wait_conns);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->sessionmap);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

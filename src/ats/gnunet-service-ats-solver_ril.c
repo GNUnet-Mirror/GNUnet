@@ -290,7 +290,7 @@ struct GAS_RIL_Handle
   /**
    * Hashmap containing all valid addresses
    */
-  const struct GNUNET_CONTAINER_MultiHashMap *addresses;
+  const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
   /**
    * Callbacks for the solver
@@ -976,7 +976,9 @@ ril_get_agent (struct GAS_RIL_Handle *solver, const struct GNUNET_PeerIdentity *
 
   for (cur = solver->agents_head; NULL != cur; cur = cur->next)
   {
-    if (0 == GNUNET_CRYPTO_hash_cmp (&peer->hashPubKey, &cur->peer.hashPubKey))
+    if (0 == memcmp (peer, 
+		     &cur->peer,
+		     sizeof (struct GNUNET_PeerIdentity)))
     {
       return cur;
     }
@@ -1129,7 +1131,7 @@ GAS_ril_address_change_preference (void *s,
 void *
 GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiHashMap *addresses,
+    const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
     int *network,
     unsigned long long *out_quota,
     unsigned long long *in_quota,
@@ -1145,7 +1147,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned long long tmp;
   char *string;
   struct RIL_Network * cur;
-  struct GAS_RIL_Handle *solver = GNUNET_malloc (sizeof (struct GAS_RIL_Handle));
+  struct GAS_RIL_Handle *solver = GNUNET_new (struct GAS_RIL_Handle);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_init() Initializing RIL solver\n");
 

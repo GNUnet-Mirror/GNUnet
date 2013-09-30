@@ -114,7 +114,7 @@ struct GST_ManipulationHandle
 	/**
 	 * Hashmap contain all peers currently manipulated
 	 */
-	struct GNUNET_CONTAINER_MultiHashMap *peers;
+	struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 	/**
 	 * Peer containing information for general manipulation
@@ -325,7 +325,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received traffic metrics for peer `%s'\n",
 			GNUNET_i2s(&tm->peer));
 
-	if (NULL == (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &tm->peer.hashPubKey)))
+	if (NULL == (tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, &tm->peer)))
 	{
 			tmp = GNUNET_malloc (sizeof (struct TM_Peer));
 			tmp->peer = (tm->peer);
@@ -336,7 +336,9 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 							tmp->metrics[c][c2] = UINT32_MAX;
 					}
 			}
-			GNUNET_CONTAINER_multihashmap_put (man_handle.peers, &tm->peer.hashPubKey, tmp, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+			GNUNET_CONTAINER_multipeermap_put (man_handle.peers, 
+							   &tm->peer, tmp,
+							   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 	}
 
 	ats = (struct GNUNET_ATS_Information *) &tm[1];
@@ -411,7 +413,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target, const void *msg
   struct DelayQueueEntry *dqe;
   struct GNUNET_TIME_Relative delay;
 
-  if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &target->hashPubKey)))
+  if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, target)))
   {
     GNUNET_break (GNUNET_YES == GST_neighbours_test_connected(target));
     /* Manipulate here */
@@ -494,7 +496,7 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
 	uint32_t m_tmp;
 	uint32_t g_tmp;
 	int d;
-	tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey);
+	tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, peer);
 
 	for (d = 0; d < ats_count; d++)
 	{
@@ -546,7 +548,7 @@ GST_manipulation_recv (void *cls,
 	else
 	  m_delay = GNUNET_TIME_UNIT_ZERO;
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
+	if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, peer)))
 	{
 	  /* Manipulate receive delay */
 	  p_recv_delay = find_metric (tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
@@ -632,13 +634,13 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 		GNUNET_ATS_QUALITY_NET_DELAY, 
 		delay.rel_value_us);
   }  
-  man_handle.peers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  man_handle.peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 }
 
 
 static int 
 free_tmps (void *cls,
-	   const struct GNUNET_HashCode * key,
+	   const struct GNUNET_PeerIdentity *key,
 	   void *value)
 {
   struct DelayQueueEntry *dqe;
@@ -648,7 +650,7 @@ free_tmps (void *cls,
   {
     struct TM_Peer *tmp = (struct TM_Peer *) value;
 
-    if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (man_handle.peers, key, value))
+    if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove (man_handle.peers, key, value))
       GNUNET_break (0);
     free_metric (tmp);
     next = tmp->send_head;
@@ -683,7 +685,7 @@ GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
 	struct DelayQueueEntry *dqe;
 	struct DelayQueueEntry *next;
 
-	if (NULL != (tmp = GNUNET_CONTAINER_multihashmap_get (man_handle.peers, &peer->hashPubKey)))
+	if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, peer)))
 	{
 			next = tmp->send_head;
 			while (NULL != (dqe = next))
@@ -729,8 +731,8 @@ GST_manipulation_stop ()
 {
 	struct DelayQueueEntry *cur;
 	struct DelayQueueEntry *next;
-	GNUNET_CONTAINER_multihashmap_iterate (man_handle.peers, &free_tmps,NULL);
-	GNUNET_CONTAINER_multihashmap_destroy (man_handle.peers);
+	GNUNET_CONTAINER_multipeermap_iterate (man_handle.peers, &free_tmps,NULL);
+	GNUNET_CONTAINER_multipeermap_destroy (man_handle.peers);
 
 	next = generic_dqe_head;
 	while (NULL != (cur = next))

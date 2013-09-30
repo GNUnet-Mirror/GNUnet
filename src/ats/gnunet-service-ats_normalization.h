@@ -51,8 +51,8 @@ typedef void
 /**
  * Get the normalized preference values for a specific peer
  *
- * @param id the peer
- * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
+ * @param id the peer @return pointer to the values, can be indexed
+ * with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
  */
 const double *
 GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
@@ -79,9 +79,9 @@ GAS_normalization_get_properties (struct ATS_Address *address);
  */
 void
 GAS_normalization_normalize_preference (void *src,
-                                   	 const struct GNUNET_PeerIdentity *peer,
-                                   	 enum GNUNET_ATS_PreferenceKind kind,
-                                   	 float score_abs);
+					const struct GNUNET_PeerIdentity *peer,
+					enum GNUNET_ATS_PreferenceKind kind,
+					float score_abs);
 
 /**
  * Update and normalize a atsi performance information
@@ -92,10 +92,10 @@ GAS_normalization_normalize_preference (void *src,
  * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addresses,
-																			struct ATS_Address *address,
-																			const struct GNUNET_ATS_Information *atsi,
-																			uint32_t atsi_count);
+GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
+				      struct ATS_Address *address,
+				      const struct GNUNET_ATS_Information *atsi,
+				      uint32_t atsi_count);
 
 
 /**
@@ -108,9 +108,9 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiHashMap *addr
  */
 void
 GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
-		void *pref_ch_cb_cls,
-		GAS_Normalization_property_changed_cb property_ch_cb,
-		void *property_ch_cb_cls);
+			 void *pref_ch_cb_cls,
+			 GAS_Normalization_property_changed_cb property_ch_cb,
+			 void *property_ch_cb_cls);
 
 
 /**

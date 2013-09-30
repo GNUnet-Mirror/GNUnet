@@ -26,9 +26,9 @@
 #ifndef GNUNET_SERVICE_TRANSPORT_H
 #define GNUNET_SERVICE_TRANSPORT_H
 
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
-#include "gnunet_util_lib.h"
 
 #define VERBOSE_VALIDATION GNUNET_YES
 
@@ -51,11 +51,6 @@ extern struct GNUNET_PeerIdentity GST_my_identity;
  * Handle to peerinfo service.
  */
 extern struct GNUNET_PEERINFO_Handle *GST_peerinfo;
-
-/**
- * Our public key.
- */
-extern struct GNUNET_CRYPTO_EccPublicSignKey GST_my_public_key;
 
 /**
  * Our private key.
