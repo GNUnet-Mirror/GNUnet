@@ -27,7 +27,7 @@
 #ifndef TESTBED_API_H
 #define TESTBED_API_H
 
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "testbed.h"
 #include "testbed_helper.h"

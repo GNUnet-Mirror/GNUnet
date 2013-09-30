@@ -277,7 +277,7 @@ struct GNUNET_CORE_Handle
    * Hash map listing all of the peers that we are currently
    * connected to.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *peers;
+  struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
   /**
    * Identity of this peer.
@@ -357,7 +357,8 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return #GNUNET_YES (continue)
  */
 static int
-disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
+disconnect_and_free_peer_entry (void *cls, 
+				const struct GNUNET_PeerIdentity *key,
                                 void *value)
 {
   struct GNUNET_CORE_Handle *h = cls;
@@ -389,7 +390,7 @@ disconnect_and_free_peer_entry (void *cls, const struct GNUNET_HashCode * key,
   }
   /* done with 'voluntary' cleanups, now on to normal freeing */
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (h->peers, key, pr));
+                 GNUNET_CONTAINER_multipeermap_remove (h->peers, key, pr));
   GNUNET_assert (pr->ch == h);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->timeout_task);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
@@ -435,7 +436,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
       cm->cont (cm->cont_cls, GNUNET_NO);
     GNUNET_free (cm);
   }
-  GNUNET_CONTAINER_multihashmap_iterate (h->peers,
+  GNUNET_CONTAINER_multipeermap_iterate (h->peers,
                                          &disconnect_and_free_peer_entry, h);
   while (NULL != (pr = h->ready_peer_head))
     GNUNET_CONTAINER_DLL_remove (h->ready_peer_head, h->ready_peer_tail, pr);
@@ -790,14 +791,14 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
            "Successfully reconnected to core service.\n");
     }
     /* fake 'connect to self' */
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &h->me.hashPubKey);
+    pr = GNUNET_CONTAINER_multipeermap_get (h->peers, &h->me);
     GNUNET_assert (NULL == pr);
     pr = GNUNET_new (struct PeerRecord);
     pr->peer = h->me;
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_put (h->peers,
-                                                      &h->me.hashPubKey, pr,
+                   GNUNET_CONTAINER_multipeermap_put (h->peers,
+                                                      &h->me, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
       h->connects (h->cls, &h->me);
@@ -826,7 +827,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       return;
     }
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &cnm->peer.hashPubKey);
+    pr = GNUNET_CONTAINER_multipeermap_get (h->peers, &cnm->peer);
     if (NULL != pr)
     {
       GNUNET_break (0);
@@ -837,8 +838,8 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     pr->peer = cnm->peer;
     pr->ch = h;
     GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_put (h->peers,
-                                                      &cnm->peer.hashPubKey, pr,
+                   GNUNET_CONTAINER_multipeermap_put (h->peers,
+                                                      &cnm->peer, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
       h->connects (h->cls, &cnm->peer);
@@ -861,7 +862,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received notification about disconnect from `%s'.\n",
          GNUNET_i2s (&dnm->peer));
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &dnm->peer.hashPubKey);
+    pr = GNUNET_CONTAINER_multipeermap_get (h->peers, &dnm->peer);
     if (NULL == pr)
     {
       GNUNET_break (0);
@@ -870,7 +871,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     trigger = ((pr->prev != NULL) || (pr->next != NULL) ||
                (h->ready_peer_head == pr));
-    disconnect_and_free_peer_entry (h, &dnm->peer.hashPubKey, pr);
+    disconnect_and_free_peer_entry (h, &dnm->peer, pr);
     if (trigger)
       trigger_next_request (h, GNUNET_NO);
     break;
@@ -916,7 +917,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         GNUNET_break_op (0);
         continue;
       }
-      pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &ntm->peer.hashPubKey);
+      pr = GNUNET_CONTAINER_multipeermap_get (h->peers, &ntm->peer);
       if (NULL == pr)
       {
 	GNUNET_break (0);
@@ -976,7 +977,7 @@ main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     smr = (const struct SendMessageReady *) msg;
-    pr = GNUNET_CONTAINER_multihashmap_get (h->peers, &smr->peer.hashPubKey);
+    pr = GNUNET_CONTAINER_multipeermap_get (h->peers, &smr->peer);
     if (NULL == pr)
     {
       GNUNET_break (0);
@@ -1157,7 +1158,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->handlers = handlers;
   h->hcnt = 0;
   h->currently_down = GNUNET_YES;
-  h->peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  h->peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (NULL != handlers)
     while (handlers[h->hcnt].callback != NULL)
       h->hcnt++;
@@ -1205,7 +1206,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (handle->peers,
+  GNUNET_CONTAINER_multipeermap_iterate (handle->peers,
                                          &disconnect_and_free_peer_entry,
                                          handle);
   if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1213,7 +1214,7 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
     handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_CONTAINER_multihashmap_destroy (handle->peers);
+  GNUNET_CONTAINER_multipeermap_destroy (handle->peers);
   handle->peers = NULL;
   GNUNET_break (handle->ready_peer_head == NULL);
   GNUNET_free (handle);
@@ -1287,7 +1288,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
        "Asking core for transmission of %u bytes to `%s'\n",
        (unsigned int) notify_size,
        GNUNET_i2s (target));
-  pr = GNUNET_CONTAINER_multihashmap_get (handle->peers, &target->hashPubKey);
+  pr = GNUNET_CONTAINER_multipeermap_get (handle->peers, target);
   if (NULL == pr)
   {
     /* attempt to send to peer that is not connected */
@@ -1382,7 +1383,7 @@ GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
 {
   GNUNET_assert (NULL != h);
   GNUNET_assert (NULL != pid);
-  return GNUNET_CONTAINER_multihashmap_contains (h->peers, &pid->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_contains (h->peers, pid);
 }
 
 

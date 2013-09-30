@@ -352,7 +352,9 @@ testservice_ats (void *cls,
 
   if (NULL != pid_str)
   {
-    if (GNUNET_OK != GNUNET_CRYPTO_hash_from_string (pid_str, &pid.hashPubKey))
+    if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (pid_str,
+								    strlen (pid_str),
+								    &pid.public_key))
     {
       FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), pid_str);
       return;

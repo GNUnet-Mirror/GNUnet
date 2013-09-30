@@ -657,7 +657,7 @@ struct GNUNET_TESTBED_PeerConfigurationInformationMessage
   /**
    * Identity of the peer.
    */
-  struct GNUNET_PeerIdentity peer_identity GNUNET_PACKED;
+  struct GNUNET_PeerIdentity peer_identity;
 
   /**
    * The size of configuration when uncompressed

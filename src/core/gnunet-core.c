@@ -75,12 +75,10 @@ static void
 connected_peer_callback (void *cls, 
 			 const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
-
   if (NULL == peer)
     return;
-  GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
-  printf (_("Peer `%s'\n"), (const char *) &enc);
+  printf (_("Peer `%s'\n"),
+	  GNUNET_i2s_full (peer));
 }
 
 

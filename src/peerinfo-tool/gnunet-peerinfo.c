@@ -190,11 +190,6 @@ static struct GNUNET_PEERINFO_IteratorContext *pic;
 static struct GNUNET_PeerIdentity my_peer_identity;
 
 /**
- * My public key.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
-
-/**
  * Head of list of print contexts.
  */
 static struct PrintContext *pc_head;
@@ -232,13 +227,11 @@ state_machine (void *cls,
 static void
 dump_pc (struct PrintContext *pc)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   unsigned int i;
 
-  GNUNET_CRYPTO_hash_to_enc (&pc->peer.hashPubKey, &enc);
   printf (_("%sPeer `%s'\n"),
-  	(GNUNET_YES == pc->friend_only) ? "F2F: " : "",
-	  (const char *) &enc);
+	  (GNUNET_YES == pc->friend_only) ? "F2F: " : "",
+	  GNUNET_i2s_full (&pc->peer));
   for (i = 0; i < pc->num_addresses; i++)
   {
     if (NULL != pc->address_list[i].result)
@@ -345,7 +338,6 @@ static void
 print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Message *hello, const char *err_msg)
 {
-  struct GNUNET_CRYPTO_HashAsciiEncoded enc;
   struct PrintContext *pc;
   int friend_only;
 
@@ -367,10 +359,9 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   	friend_only = GNUNET_HELLO_is_friend_only (hello);
   if ((GNUNET_YES == be_quiet) || (NULL == hello))
   {
-    GNUNET_CRYPTO_hash_to_enc (&peer->hashPubKey, &enc);
     printf ("%s%s\n",
-    		(GNUNET_YES == friend_only) ? "F2F: " : "",
-    		(const char *) &enc);
+	    (GNUNET_YES == friend_only) ? "F2F: " : "",
+	    GNUNET_i2s_full (peer));
     return;
   }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
@@ -546,7 +537,8 @@ parse_hello_uri (const char *put_uri)
 {
   struct GNUNET_HELLO_Message *hello = NULL;
 
-  int ret = GNUNET_HELLO_parse_uri(put_uri, &my_public_key, &hello, &GPI_plugins_find);
+  int ret = GNUNET_HELLO_parse_uri(put_uri, &my_peer_identity.public_key, 
+				   &hello, &GPI_plugins_find);
 
   if (NULL != hello) {
     /* WARNING: this adds the address from URI WITHOUT verification! */
@@ -677,9 +669,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, &my_public_key);
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, 
+						    &my_peer_identity.public_key);
     GNUNET_free (priv);
-    GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key), &my_peer_identity.hashPubKey);
   }
 
   tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
@@ -725,14 +717,14 @@ state_machine (void *cls,
   }
   else if (GNUNET_YES == get_self)
   {
-    struct GNUNET_CRYPTO_HashAsciiEncoded enc;
     get_self = GNUNET_NO;
-    GNUNET_CRYPTO_hash_to_enc (&my_peer_identity.hashPubKey, &enc);
     if (be_quiet)
-      printf ("%s\n", (char *) &enc);
+      printf ("%s\n", 
+	      GNUNET_i2s_full (&my_peer_identity));
     else
-      printf (_("I am peer `%s'.\n"), (const char *) &enc);
-  	tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+      printf (_("I am peer `%s'.\n"),
+	      GNUNET_i2s_full (&my_peer_identity));
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
   }
   else if (GNUNET_YES == get_uri)
   {

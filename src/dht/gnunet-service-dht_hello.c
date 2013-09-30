@@ -40,7 +40,7 @@ static struct GNUNET_PEERINFO_NotifyContext *pnc;
 /**
  * Hash map of peers to HELLOs.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peer_to_hello;
+static struct GNUNET_CONTAINER_MultiPeerMap *peer_to_hello;
 
 
 /**
@@ -54,7 +54,7 @@ GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer)
 {
   if (NULL == peer_to_hello)
     return NULL;
-  return GNUNET_CONTAINER_multihashmap_get (peer_to_hello, &peer->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_get (peer_to_hello, peer);
 }
 
 
@@ -81,13 +81,13 @@ process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# HELLOs obtained from peerinfo"), 1,
                             GNUNET_NO);
-  hm = GNUNET_CONTAINER_multihashmap_get (peer_to_hello, &peer->hashPubKey);
+  hm = GNUNET_CONTAINER_multipeermap_get (peer_to_hello, peer);
   GNUNET_free_non_null (hm);
   hm = GNUNET_malloc (GNUNET_HELLO_size (hello));
   memcpy (hm, hello, GNUNET_HELLO_size (hello));
   GNUNET_assert (GNUNET_SYSERR !=
-                 GNUNET_CONTAINER_multihashmap_put (peer_to_hello,
-                                                    &peer->hashPubKey, hm,
+                 GNUNET_CONTAINER_multipeermap_put (peer_to_hello,
+                                                    peer, hm,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE));
 }
 
@@ -99,7 +99,7 @@ void
 GDS_HELLO_init ()
 {
   pnc = GNUNET_PEERINFO_notify (GDS_cfg, GNUNET_NO, &process_hello, NULL);
-  peer_to_hello = GNUNET_CONTAINER_multihashmap_create (256, GNUNET_NO);
+  peer_to_hello = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
 }
 
 
@@ -107,7 +107,9 @@ GDS_HELLO_init ()
  * Free memory occopied by the HELLO.
  */
 static int
-free_hello (void *cls, const struct GNUNET_HashCode * key, void *hello)
+free_hello (void *cls, 
+	    const struct GNUNET_PeerIdentity *key, 
+	    void *hello)
 {
   GNUNET_free (hello);
   return GNUNET_OK;
@@ -127,8 +129,8 @@ GDS_HELLO_done ()
   }
   if (NULL != peer_to_hello)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (peer_to_hello, &free_hello, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (peer_to_hello);
+    GNUNET_CONTAINER_multipeermap_iterate (peer_to_hello, &free_hello, NULL);
+    GNUNET_CONTAINER_multipeermap_destroy (peer_to_hello);
   }
 }
 

@@ -189,7 +189,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Public key of the originator.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_PeerIdentity origin;
 
   /**
    * Proof of work, causing leading zeros when hashed with pkey.
@@ -221,7 +221,7 @@ static struct GNUNET_CORE_Handle *coreAPI;
 /**
  * Map of all connected peers.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 /**
  * The current network size estimate.  Number of bits matching on
@@ -284,11 +284,6 @@ static struct GNUNET_TIME_Absolute next_timestamp;
  * The current major time.
  */
 static struct GNUNET_TIME_Absolute current_timestamp;
-
-/**
- * The public key of this peer.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
 
 /**
  * The private key of this peer.
@@ -392,7 +387,7 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->reserved = htonl (0);
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   double se = mean - 0.332747;
-  nsize = log2 (GNUNET_CONTAINER_multihashmap_size (peers) + 1);
+  nsize = log2 (GNUNET_CONTAINER_multipeermap_size (peers) + 1);
   em->size_estimate = GNUNET_hton_double (GNUNET_MAX (se, nsize));
   em->std_deviation = GNUNET_hton_double (std_dev);
   GNUNET_STATISTICS_set (stats, "# nodes in the network (estimate)",
@@ -510,10 +505,12 @@ get_matching_bits (struct GNUNET_TIME_Absolute timestamp,
                    const struct GNUNET_PeerIdentity *id)
 {
   struct GNUNET_HashCode timestamp_hash;
+  struct GNUNET_HashCode pid_hash;
 
   GNUNET_CRYPTO_hash (&timestamp.abs_value_us, sizeof (timestamp.abs_value_us),
                       &timestamp_hash);
-  return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash, &id->hashPubKey);
+  GNUNET_CRYPTO_hash (id, sizeof (struct GNUNET_PeerIdentity), &pid_hash);
+  return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash, &pid_hash);
 }
 
 
@@ -716,7 +713,7 @@ setup_flood_message (unsigned int slot,
              sizeof (struct GNUNET_CRYPTO_EccSignature));
   fm->matching_bits = htonl (matching_bits);
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
-  fm->pkey = my_public_key;
+  fm->origin = my_identity;
   fm->proof_of_work = my_proof;
   if (nse_work_required > 0)
     GNUNET_assert (GNUNET_OK ==
@@ -738,7 +735,7 @@ setup_flood_message (unsigned int slot,
  */
 static int
 schedule_current_round (void *cls, 
-			const struct GNUNET_HashCode * key, 
+			const struct GNUNET_PeerIdentity * key, 
 			void *value)
 {
   struct NSEPeerEntry *peer_entry = value;
@@ -817,7 +814,7 @@ update_flood_message (void *cls,
   for (i = 0; i < HISTORY_SIZE; i++)
     hop_count_max =
         GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count), hop_count_max);
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &schedule_current_round, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &schedule_current_round, NULL);
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (next_timestamp), &update_flood_message,
@@ -907,8 +904,8 @@ find_proof (void *cls,
   unsigned int i;
 
   proof_task = GNUNET_SCHEDULER_NO_TASK;
-  memcpy (&buf[sizeof (uint64_t)], &my_public_key,
-          sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+  memcpy (&buf[sizeof (uint64_t)], &my_identity,
+          sizeof (struct GNUNET_PeerIdentity));
   i = 0;
   counter = my_proof;
   while ((counter != UINT64_MAX) && (i < ROUND_SIZE))
@@ -959,7 +956,7 @@ static int
 verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
 {
   if (GNUNET_YES !=
-      check_proof_of_work (&incoming_flood->pkey,
+      check_proof_of_work (&incoming_flood->origin.public_key,
                            incoming_flood->proof_of_work))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work invalid: %llu!\n",
@@ -973,7 +970,7 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
                                  &incoming_flood->purpose,
                                  &incoming_flood->signature,
-                                 &incoming_flood->pkey)))
+                                 &incoming_flood->origin.public_key)))
   {
     GNUNET_break_op (0);
     return GNUNET_NO;
@@ -993,7 +990,7 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
  */
 static int
 update_flood_times (void *cls, 
-		    const struct GNUNET_HashCode *key, 
+		    const struct GNUNET_PeerIdentity *key, 
 		    void *value)
 {
   struct NSEPeerEntry *exclude = cls;
@@ -1062,11 +1059,14 @@ handle_p2p_size_estimate (void *cls,
     char pred[5];
     struct GNUNET_PeerIdentity os;
 
-    GNUNET_CRYPTO_hash (&incoming_flood->pkey,
-                        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-                        &os.hashPubKey);
-    GNUNET_snprintf (origin, sizeof (origin), "%s", GNUNET_i2s (&os));
-    GNUNET_snprintf (pred, sizeof (pred), "%s", GNUNET_i2s (peer));
+    GNUNET_snprintf (origin, 
+		     sizeof (origin), 
+		     "%4s", 
+		     GNUNET_i2s (&incoming_flood->origin));
+    GNUNET_snprintf (pred, 
+		     sizeof (pred), 
+		     "%4s",
+		     GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Flood at %s from `%s' via `%s' at `%s' with bits %u\n",
                 GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (incoming_flood->timestamp)),
@@ -1075,7 +1075,7 @@ handle_p2p_size_estimate (void *cls,
   }
 #endif
 
-  peer_entry = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == peer_entry)
   {
     GNUNET_break (0);
@@ -1117,7 +1117,8 @@ handle_p2p_size_estimate (void *cls,
   {
     /* send to self, update our own estimate IF this also comes from us! */
     if (0 ==
-        memcmp (&incoming_flood->pkey, &my_public_key, sizeof (my_public_key)))
+        memcmp (&incoming_flood->origin, 
+		&my_identity, sizeof (my_identity)))
       update_network_size_estimate ();
     return GNUNET_OK;
   }
@@ -1205,7 +1206,7 @@ handle_p2p_size_estimate (void *cls,
   update_network_size_estimate ();
 
   /* flood to rest */
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &update_flood_times,
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &update_flood_times,
                                          peer_entry);
   return GNUNET_OK;
 }
@@ -1230,7 +1231,7 @@ handle_core_connect (void *cls,
   peer_entry = GNUNET_new (struct NSEPeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (peers, &peer->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_put (peers, peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   peer_entry->transmit_task =
@@ -1256,14 +1257,14 @@ handle_core_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
-  pos = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  pos = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pos)
   {
     GNUNET_break (0);
     return;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
@@ -1335,7 +1336,7 @@ shutdown_task (void *cls,
   }
   if (NULL != peers)
   {
-    GNUNET_CONTAINER_multihashmap_destroy (peers);
+    GNUNET_CONTAINER_multipeermap_destroy (peers);
     peers = NULL;
   }
   if (NULL != my_private_key)
@@ -1381,7 +1382,7 @@ core_init (void *cls,
       GNUNET_TIME_absolute_add (current_timestamp, gnunet_nse_interval);
   estimate_index = HISTORY_SIZE - 1;
   estimate_count = 0;
-  if (GNUNET_YES == check_proof_of_work (&my_public_key, my_proof))
+  if (GNUNET_YES == check_proof_of_work (&my_identity.public_key, my_proof))
   {
     int idx = (estimate_index + HISTORY_SIZE - 1) % HISTORY_SIZE;
     prev_time.abs_value_us =
@@ -1476,9 +1477,8 @@ run (void *cls,
   pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_identity.hashPubKey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+						  &my_identity.public_key);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
   {
@@ -1499,7 +1499,7 @@ run (void *cls,
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &find_proof, NULL);
 
-  peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   GNUNET_SERVER_add_handlers (srv, handlers);
   nc = GNUNET_SERVER_notification_context_create (srv, 1);
   /* Connect to core service and register core handlers */

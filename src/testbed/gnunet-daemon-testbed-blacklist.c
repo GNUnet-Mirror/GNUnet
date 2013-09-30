@@ -56,7 +56,7 @@
 /**
  * The map to store the peer identities to allow/deny
  */
-static struct GNUNET_CONTAINER_MultiHashMap *map;
+static struct GNUNET_CONTAINER_MultiPeerMap *map;
 
 /**
  * The array of peer identities we read from whitelist/blacklist
@@ -92,9 +92,9 @@ static int mode;
  *         #GNUNET_NO if not.
  */
 static int
-iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
+iterator (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
-  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (map, key,
+  GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (map, key,
                                                                      value));
   return GNUNET_YES;
 }
@@ -108,10 +108,10 @@ cleanup_map ()
 {
   if (NULL != map)
   {
-    GNUNET_assert (GNUNET_SYSERR != GNUNET_CONTAINER_multihashmap_iterate (map,
+    GNUNET_assert (GNUNET_SYSERR != GNUNET_CONTAINER_multipeermap_iterate (map,
                                                                            &iterator,
                                                                            NULL));
-    GNUNET_CONTAINER_multihashmap_destroy (map);
+    GNUNET_CONTAINER_multipeermap_destroy (map);
     map = NULL;
   }
 }
@@ -145,7 +145,7 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
   int contains;
  
   if (NULL != map)
-    contains = GNUNET_CONTAINER_multihashmap_contains (map, &(pid->hashPubKey));
+    contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
   else
     contains = GNUNET_NO;
   if (ACCESS_DENY == mode)
@@ -178,13 +178,13 @@ setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
   npeers = fsize / sizeof (struct GNUNET_PeerIdentity);
   if (0 != npeers)
   {
-    map = GNUNET_CONTAINER_multihashmap_create (npeers, GNUNET_YES);
+    map = GNUNET_CONTAINER_multipeermap_create (npeers, GNUNET_YES);
     ilist = GNUNET_malloc_large (fsize);
     GNUNET_assert (fsize == GNUNET_DISK_fn_read (fname, ilist, fsize));
   }
   for (cnt = 0; cnt < npeers; cnt++)
   {
-    if (GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put (map, &(ilist[cnt].hashPubKey),
+    if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_put (map, &ilist[cnt],
                                                             &ilist[cnt],
                                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {

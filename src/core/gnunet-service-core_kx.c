@@ -116,7 +116,7 @@ struct EphemeralKeyMessage
   /**
    * Public key of the signing peer (persistent version, not the ephemeral public key).
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey origin_public_key;
+  struct GNUNET_PeerIdentity origin_identity;
 
 };
 
@@ -390,11 +390,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_ephemeral_key;
 static struct EphemeralKeyMessage current_ekm;
 
 /**
- * Our public key.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
-
-/**
  * Our message stream tokenizer (for encrypted payload).
  */
 static struct GNUNET_SERVER_MessageStreamTokenizer *mst;
@@ -453,9 +448,9 @@ derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
   static const char ctx[] = "initialization vector";
 
   GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
-                               &identity->hashPubKey.bits,
-                               sizeof (identity->hashPubKey.bits), ctx,
-                               sizeof (ctx), NULL);
+				     identity,
+				     sizeof (struct GNUNET_PeerIdentity), ctx,
+				     sizeof (ctx), NULL);
 }
 
 
@@ -476,9 +471,11 @@ derive_pong_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
   static const char ctx[] = "pong initialization vector";
 
   GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
-                               &identity->hashPubKey.bits,
-                               sizeof (identity->hashPubKey.bits), &challenge,
-                               sizeof (challenge), ctx, sizeof (ctx), NULL);
+				     identity,
+				     sizeof (struct GNUNET_PeerIdentity),
+				     &challenge, sizeof (challenge), 
+				     ctx, sizeof (ctx), 
+				     NULL);
 }
 
 
@@ -661,6 +658,8 @@ struct GSC_KeyExchangeInfo *
 GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 {
   struct GSC_KeyExchangeInfo *kx;
+  struct GNUNET_HashCode h1;
+  struct GNUNET_HashCode h2;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Initiating key exchange with `%s'\n",
@@ -674,8 +673,11 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   GNUNET_CONTAINER_DLL_insert (kx_head,
 			       kx_tail,
 			       kx);
-  if (0 < GNUNET_CRYPTO_hash_cmp (&pid->hashPubKey,
-				  &GSC_my_identity.hashPubKey))
+  GNUNET_CRYPTO_hash (pid, sizeof (struct GNUNET_PeerIdentity), &h1);
+  GNUNET_CRYPTO_hash (&GSC_my_identity, sizeof (struct GNUNET_PeerIdentity), &h2);
+		      
+  if (0 < GNUNET_CRYPTO_hash_cmp (&h1, 
+				  &h2))
   {
     /* peer with "lower" identity starts KX, otherwise we typically end up
        with both peers starting the exchange and transmit the 'set key' 
@@ -742,7 +744,6 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_TIME_Absolute start_t;
   struct GNUNET_TIME_Absolute end_t;
   struct GNUNET_TIME_Absolute now;
-  struct GNUNET_PeerIdentity signer_id;
   enum KxStateMachine sender_status;  
   uint16_t size;
   struct GNUNET_HashCode key_material;
@@ -772,11 +773,9 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service receives `%s' request from `%4s'.\n", "EPHEMERAL_KEY",
               GNUNET_i2s (&kx->peer));
-  GNUNET_CRYPTO_hash (&m->origin_public_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-		      &signer_id.hashPubKey);
   if (0 !=
-      memcmp (&signer_id, &kx->peer,
+      memcmp (&m->origin_identity,
+	      &kx->peer.public_key,
               sizeof (struct GNUNET_PeerIdentity)))
   {    
     GNUNET_break_op (0);
@@ -791,7 +790,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
       (GNUNET_OK !=
        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
 				 &m->purpose,
-                                 &m->signature, &m->origin_public_key)))
+                                 &m->signature, &m->origin_identity.public_key)))
   {
     /* invalid signature */
     GNUNET_break_op (0);
@@ -1496,7 +1495,7 @@ sign_ephemeral_key ()
   }
   GNUNET_CRYPTO_ecc_key_get_public_for_encryption (my_ephemeral_key,
 						   &current_ekm.ephemeral_key);
-  current_ekm.origin_public_key = my_public_key;
+  current_ekm.origin_identity = GSC_my_identity;
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CRYPTO_ecc_sign (my_private_key,
 					 &current_ekm.purpose,
@@ -1543,9 +1542,8 @@ GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk)
 {
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &GSC_my_identity.hashPubKey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+						  &GSC_my_identity.public_key);
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
 					    "core",

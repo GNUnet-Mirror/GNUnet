@@ -39,9 +39,7 @@ extern "C"
 #endif
 #endif
 
-#include "gnunet_common.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 
 /**
  * Version of the network size estimation API.

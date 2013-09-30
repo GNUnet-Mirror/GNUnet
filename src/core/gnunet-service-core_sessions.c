@@ -147,7 +147,7 @@ struct Session
 /**
  * Map of peer identities to 'struct Session'.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *sessions;
+static struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 
 
 /**
@@ -160,7 +160,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *sessions;
 static struct Session *
 find_session (const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multihashmap_get (sessions, &peer->hashPubKey);
+  return GNUNET_CONTAINER_multipeermap_get (sessions, peer);
 }
 
 
@@ -202,12 +202,11 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   GSC_CLIENTS_notify_clients_about_neighbour (&session->peer, 
                                               session->tmap, NULL);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (sessions,
-                                                       &session->
-                                                       peer.hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_remove (sessions,
+                                                       &session->peer,
                                                        session));
   GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multihashmap_size (sessions),
+                         GNUNET_CONTAINER_multipeermap_size (sessions),
                          GNUNET_NO);
   GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = NULL;
@@ -273,11 +272,11 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   session->typemap_task =
       GNUNET_SCHEDULER_add_now (&transmit_typemap_task, session);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (sessions, &peer->hashPubKey,
+                 GNUNET_CONTAINER_multipeermap_put (sessions, peer,
                                                     session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multihashmap_size (sessions),
+                         GNUNET_CONTAINER_multipeermap_size (sessions),
                          GNUNET_NO);
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
                                               NULL, session->tmap);
@@ -293,7 +292,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-notify_client_about_session (void *cls, const struct GNUNET_HashCode * key,
+notify_client_about_session (void *cls, const struct GNUNET_PeerIdentity * key,
                              void *value)
 {
   struct GSC_Client *client = cls;
@@ -315,7 +314,7 @@ void
 GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client)
 {
   /* notify new client about existing sessions */
-  GNUNET_CONTAINER_multihashmap_iterate (sessions, &notify_client_about_session,
+  GNUNET_CONTAINER_multipeermap_iterate (sessions, &notify_client_about_session,
                                          client);
 }
 
@@ -559,7 +558,7 @@ try_transmission (struct Session *session)
  * @return always GNUNET_OK
  */
 static int
-do_send_message (void *cls, const struct GNUNET_HashCode * key, void *value)
+do_send_message (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   const struct GNUNET_MessageHeader *hdr = cls;
   struct Session *session = value;
@@ -586,7 +585,7 @@ GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == sessions)
     return;
-  GNUNET_CONTAINER_multihashmap_iterate (sessions, &do_send_message,
+  GNUNET_CONTAINER_multipeermap_iterate (sessions, &do_send_message,
                                          (void *) msg);
 }
 
@@ -652,7 +651,7 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
  */
 #include "core.h"
 static int
-queue_connect_message (void *cls, const struct GNUNET_HashCode * key, void *value)
+queue_connect_message (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct Session *session = value;
@@ -687,7 +686,7 @@ GSC_SESSIONS_handle_client_iterate_peers (void *cls,
   struct GNUNET_SERVER_TransmitContext *tc;
 
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multihashmap_iterate (sessions, &queue_connect_message, tc);
+  GNUNET_CONTAINER_multipeermap_iterate (sessions, &queue_connect_message, tc);
   done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
   GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
@@ -760,7 +759,7 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
 void
 GSC_SESSIONS_init ()
 {
-  sessions = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  sessions = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
 }
 
 
@@ -773,7 +772,7 @@ GSC_SESSIONS_init ()
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-free_session_helper (void *cls, const struct GNUNET_HashCode * key, void *value)
+free_session_helper (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct Session *session = value;
 
@@ -790,8 +789,8 @@ GSC_SESSIONS_done ()
 {
   if (NULL != sessions)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (sessions, &free_session_helper, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (sessions);
+    GNUNET_CONTAINER_multipeermap_iterate (sessions, &free_session_helper, NULL);
+    GNUNET_CONTAINER_multipeermap_destroy (sessions);
     sessions = NULL;
   }
 }
