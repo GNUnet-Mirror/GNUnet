@@ -53,6 +53,11 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT 2
 
 /**
+ * Signature for confirming a key revocation.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_REVOCATION 3
+
+/**
  * Signature for a namespace/pseudonym advertisement (by
  * the namespace owner).
  */

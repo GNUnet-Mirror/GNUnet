@@ -63,6 +63,7 @@ SUBDIRS = \
   dns \
   identity \
   set \
+  revocation \
   namestore \
   vpn \
   gns \

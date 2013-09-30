@@ -1,0 +1,18 @@
+[revocation]
+AUTOSTART = NO 
+# not yet...
+@JAVAPORT@PORT = 2112
+HOSTNAME = localhost
+HOME = $SERVICEHOME
+BINARY = gnunet-service-revocation
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIXPATH = /tmp/gnunet-service-revocation.unix
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+
+# 2^25 hash operations take about 16-24h on a modern i7
+# (using only a single-core) with SCRYPT.
+# DO NOT CHANGE THIS VALUE, doing so will break the protocol!
+WORKBITS = 25
+

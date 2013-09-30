@@ -70,6 +70,7 @@ gnunetinclude_HEADERS = \
   gnunet_protocols.h \
   gnunet_resolver_service.h \
   gnunet_regex_service.h \
+  gnunet_revocation_service.h \
   gnunet_scalarproduct_service.h \
   gnunet_scheduler_lib.h \
   gnunet_server_lib.h \

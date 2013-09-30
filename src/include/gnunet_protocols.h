@@ -1932,6 +1932,31 @@ extern "C"
 
 
 /*******************************************************************************
+ * REVOCATION message types
+ ******************************************************************************/
+
+/**
+ * Client to service: was this key revoked?
+ */
+#define GNUNET_MESSAGE_TYPE_REVOCATION_QUERY 636
+
+/**
+ * Service to client: answer if key was revoked!
+ */
+#define GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE 637
+
+/**
+ * Client to service OR peer-to-peer: revoke this key!
+ */
+#define GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE 638
+
+/**
+ * Service to client: revocation confirmed
+ */
+#define GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE 639
+
+
+/*******************************************************************************
  * SCALARPRODUCT message types
  ******************************************************************************/
 
@@ -2086,17 +2111,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PSYC_STATE_MOD_CONT 710
 
 
-/**
- * Next available: 730
- */
-
-
-
-/* WIP: no numbers assigned yet */
-
 /*******************************************************************************
  * MULTICAST message types
  ******************************************************************************/
+
+
+/* WIP: no numbers assigned yet */
 
 /**
  * Multicast message from the origin to all members.
@@ -2148,6 +2168,11 @@ extern "C"
  *
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL
+
+
+/**
+ * Next available: 750
+ */
 
 
 /*******************************************************************************

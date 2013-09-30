@@ -1345,6 +1345,8 @@ src/psycstore/psycstore.conf
 src/pt/Makefile
 src/regex/Makefile
 src/regex/regex.conf
+src/revocation/Makefile
+src/revocation/regex.conf
 src/scalarproduct/Makefile
 src/scalarproduct/scalarproduct.conf
 src/set/Makefile
