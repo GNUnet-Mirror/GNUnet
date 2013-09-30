@@ -27,6 +27,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_protocols.h"
 #include "revocation.h"
+#include <gcrypt.h>
 
 
 /**
@@ -196,20 +197,72 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h)
 }
 
 
+
+/**
+ * Calculate the 'proof-of-work' hash (an expensive hash).
+ *
+ * @param buf data to hash
+ * @param buf_len number of bytes in @a buf
+ * @param result where to write the resulting hash
+ */
+static void
+pow_hash (const void *buf,
+	  size_t buf_len,
+	  struct GNUNET_HashCode *result)
+{
+  GNUNET_break (0 == 
+		gcry_kdf_derive (buf, buf_len,
+				 GCRY_KDF_SCRYPT,
+				 1 /* subalgo */,
+				 "gnunet-revocation-proof-of-work", 
+				 strlen ("gnunet-revocation-proof-of-work"),
+				 2 /* iterations; keep cost of individual op small */,
+				 sizeof (struct GNUNET_HashCode), result));
+}
+
+
+/**
+ * Count the leading zeroes in hash.
+ *
+ * @param hash to count leading zeros in
+ * @return the number of leading zero bits.
+ */
+static unsigned int
+count_leading_zeroes (const struct GNUNET_HashCode *hash)
+{
+  unsigned int hash_count;
+
+  hash_count = 0;
+  while ((0 == GNUNET_CRYPTO_hash_get_bit (hash, hash_count)))
+    hash_count++;
+  return hash_count;
+}
+
+
 /**
  * Check if the given proof-of-work value
  * would be acceptable for revoking the given key.
  *
  * @param key key to check for
  * @param pow proof of work value
+ * @param matching_bits how many bits must match (configuration)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
-			     uint64_t pow)
+			     uint64_t pow,
+			     unsigned int matching_bits)
 {
-  GNUNET_break (0);
-  return GNUNET_NO;
+  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+           sizeof (pow)] GNUNET_ALIGN;
+  struct GNUNET_HashCode result;
+
+  memcpy (buf, &pow, sizeof (pow));
+  memcpy (&buf[sizeof (pow)], key,
+          sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+  pow_hash (buf, sizeof (buf), &result);
+  return (count_leading_zeroes (&result) >=
+          matching_bits) ? GNUNET_YES : GNUNET_NO;
 }
 
 
