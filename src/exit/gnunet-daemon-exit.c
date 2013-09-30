@@ -3574,7 +3574,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     dht = GNUNET_DHT_connect (cfg, 1);
     peer_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
     GNUNET_CRYPTO_ecc_key_get_public_for_signature (peer_key,
-						    &dns_advertisement.peer);
+						    &dns_advertisement.peer.public_key);
     dns_advertisement.purpose.size = htonl (sizeof (struct GNUNET_DNS_Advertisement) - 
 					    sizeof (struct GNUNET_CRYPTO_EccSignature));
     dns_advertisement.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD);

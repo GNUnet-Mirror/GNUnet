@@ -93,7 +93,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
 				  &ad->purpose, 
 				  &ad->signature, 
-				  &ad->peer))
+				  &ad->peer.public_key))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

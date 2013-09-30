@@ -53,7 +53,7 @@ struct GNUNET_DNS_Advertisement
   /**
    * The peer providing this service
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey peer;
+  struct GNUNET_PeerIdentity peer;
 
 };
 GNUNET_NETWORK_STRUCT_END

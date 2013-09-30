@@ -1193,7 +1193,6 @@ handle_dht_result (void *cls,
 		   size_t size, const void *data)
 {
   const struct GNUNET_DNS_Advertisement *ad;
-  struct GNUNET_PeerIdentity pid;
   struct MeshExit *exit;
 
   if (sizeof (struct GNUNET_DNS_Advertisement) != size)
@@ -1202,18 +1201,15 @@ handle_dht_result (void *cls,
     return;
   }
   ad = data;
-  GNUNET_CRYPTO_hash (&ad->peer,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-		      &pid.hashPubKey);
   for (exit = exit_head; NULL != exit; exit = exit->next)  
-    if (0 == memcmp (&pid,
+    if (0 == memcmp (&ad->peer,
 		     &exit->peer,
 		     sizeof (struct GNUNET_PeerIdentity)))
       break;
   if (NULL == exit)
   {
     exit = GNUNET_new (struct MeshExit);
-    exit->peer = pid;
+    exit->peer = ad->peer;
     /* tunnel is closed, so insert at the end */
     GNUNET_CONTAINER_DLL_insert_tail (exit_head,
 				      exit_tail,
