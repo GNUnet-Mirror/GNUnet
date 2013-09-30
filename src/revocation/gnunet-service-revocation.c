@@ -29,6 +29,14 @@
  * flooding, revocations must include a proof of work.  We use the
  * set service for efficiently computing the union of revocations of
  * peers that connect.
+ *
+ * TODO:
+ * - load revocations from disk
+ * - store revocations to disk
+ * - handle p2p revocations
+ * - handle p2p connect (trigger SET union)
+ * - handle client revoke message
+ * - handle client query message
  */
 #include "platform.h"
 #include <math.h>
@@ -68,6 +76,10 @@ struct PeerEntry
 };
 
 
+/**
+ * Set from all revocations known to us.
+ */
+static struct GNUNET_SET_Handle *revocation_set;
 
 /**
  * Handle to our current configuration.
@@ -305,6 +317,11 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != revocation_set)
+  {
+    GNUNET_SET_destroy (revocation_set);
+    revocation_set = NULL;
+  }
   if (NULL != coreAPI)
   {
     GNUNET_CORE_disconnect (coreAPI);
@@ -386,10 +403,12 @@ run (void *cls,
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
 			       "REVOCATION",
 			       "WORKBITS",
-			       _("Value for WORKBITS is too large.\n"));
+			       _("Value is too large.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  revocation_set = GNUNET_SET_create (cfg,
+				      GNUNET_SET_OPERATION_UNION);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   peers = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);

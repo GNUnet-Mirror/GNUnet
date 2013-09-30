@@ -248,8 +248,8 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param set set to add element to
  * @param element element to add to the set
  * @param cont continuation called after the element has been added
- * @param cont_cls closure for cont
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @param cont_cls closure for @a cont
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
@@ -268,8 +268,8 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
  * @param set set to remove element from
  * @param element element to remove from the set
  * @param cont continuation called after the element has been removed
- * @param cont_cls closure for cont
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @param cont_cls closure for @a cont
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
@@ -300,7 +300,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param result_mode specified how results will be returned,
  *        see 'GNUNET_SET_ResultMode'.
  * @param result_cb called on error or success
- * @param result_cls closure for result_cb
+ * @param result_cls closure for @a result_cb
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *

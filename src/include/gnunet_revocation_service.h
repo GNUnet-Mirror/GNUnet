@@ -129,11 +129,13 @@ GNUNET_REVOCATION_revoke_cancel (struct GNUNET_REVOCATION_Handle *h);
  *
  * @param key key to check for
  * @param pow proof of work value
+ * @param matching_bits how many bits must match (configuration)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
 GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
-			     uint64_t pow);
+			     uint64_t pow,
+			     unsigned int matching_bits);
 
 
 /**

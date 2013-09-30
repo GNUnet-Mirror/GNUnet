@@ -310,7 +310,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 static void
 handle_request (void *cls, const struct GNUNET_MessageHeader *mh)
 {
-  struct GNUNET_SET_RequestMessage *msg = (struct GNUNET_SET_RequestMessage *) mh;
+  const struct GNUNET_SET_RequestMessage *msg = (const struct GNUNET_SET_RequestMessage *) mh;
   struct GNUNET_SET_ListenHandle *lh = cls;
   struct GNUNET_SET_Request *req;
   struct GNUNET_MessageHeader *context_msg;
@@ -427,8 +427,8 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param set set to add element to
  * @param element element to add to the set
  * @param cont continuation called after the element has been added
- * @param cont_cls closure for cont
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @param cont_cls closure for @a cont
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
@@ -646,10 +646,10 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 
 
 /**
- * Accept a request we got via GNUNET_SET_listen.  Must be called during
- * GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
+ * Accept a request we got via #GNUNET_SET_listen.  Must be called during
+ * #GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
  * afterwards.
- * Call GNUNET_SET_conclude to provide the local set to use for the operation,
+ * Call #GNUNET_SET_conclude to provide the local set to use for the operation,
  * and to begin the exchange with the remote peer. 
  *
  * @param request request to accept
@@ -731,7 +731,7 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
  *
  * @param oh handle to the set operation 
  * @param set the set to use for the operation
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
@@ -760,10 +760,10 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
  *
  * @param set the set to iterate over
  * @param iter the iterator to call for each element
- * @param cls closure for 'iter'
- * @return GNUNET_YES if the iteration started successfuly,
- *         GNUNET_NO if another iteration is active
- *         GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
+ * @param cls closure for @a iter
+ * @return #GNUNET_YES if the iteration started successfuly,
+ *         #GNUNET_NO if another iteration is active
+ *         #GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
  */
 int
 GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls)
@@ -784,3 +784,4 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator it
   return GNUNET_YES;
 }
 
+/* end of set_api.c */
