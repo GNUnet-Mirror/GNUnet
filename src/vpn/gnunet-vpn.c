@@ -226,8 +226,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (udp)
       protocol = IPPROTO_UDP;
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_hash_from_string (peer_id,
-					&peer.hashPubKey))
+	GNUNET_CRYPTO_ecc_public_sign_key_from_string (peer_id,
+						       strlen (peer_id),
+						       &peer.public_key))
     {
       FPRINTF (stderr, _("`%s' is not a valid peer identifier.\n"),
                peer_id);
