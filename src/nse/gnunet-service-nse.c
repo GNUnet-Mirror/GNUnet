@@ -1420,46 +1420,47 @@ run (void *cls,
     {NULL, 0, 0}
   };
   char *proof;
-  char *keyfile;
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   cfg = c;
   srv = server;  
-  if ((GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "INTERVAL",
-                                            &gnunet_nse_interval)) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "WORKDELAY",
-                                            &proof_find_delay)) ||
-      (GNUNET_OK !=
-       GNUNET_CONFIGURATION_get_value_number (cfg, "NSE", "WORKBITS",
-                                              &nse_work_required)))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "INTERVAL",
+					   &gnunet_nse_interval))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "NSE", "interval/workdelay/workbits");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "NSE", "INTERVAL");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "WORKDELAY",
+					   &proof_find_delay)) 
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "NSE", "WORKDELAY");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "NSE", "WORKBITS",
+					     &nse_work_required))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "NSE", "WORKBITS");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   if (nse_work_required >= sizeof (struct GNUNET_HashCode) * 8)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Invalid work requirement for NSE service. Exiting.\n"));
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+			       "NSE",
+			       "WORKBITS",
+			       _("Value is too large.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("%s service is lacking key configuration settings (%s).  Exiting.\n"),
-                "NSE", "peer/privatekey");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
+  
 #if ENABLE_NSE_HISTOGRAM
   if (NULL == (lh = GNUNET_TESTBED_LOGGER_connect (cfg)))
   {
@@ -1472,8 +1473,7 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
-  GNUNET_free (keyfile);
+  pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
