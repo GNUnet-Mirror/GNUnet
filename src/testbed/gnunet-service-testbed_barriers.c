@@ -330,7 +330,10 @@ cleanup_clientctx (struct ClientCtx *ctx)
   struct MessageQueue *mq;
   
   if (NULL != ctx->client)
+  {
+    GNUNET_SERVER_client_set_user_context_ (ctx->client, NULL, 0);
     GNUNET_SERVER_client_drop (ctx->client);
+  } 
   if (NULL != ctx->tx)
     GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
   if (NULL != (mq = ctx->mq_head))
@@ -482,11 +485,11 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   (void) memcpy (name, msg->name, name_len);
   LOG_DEBUG ("Received BARRIER_WAIT for barrier `%s'\n", name);
   GNUNET_CRYPTO_hash (name, name_len, &key);
+  GNUNET_free (name);
   if (NULL == (barrier = GNUNET_CONTAINER_multihashmap_get (barrier_map, &key)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    GNUNET_free (name);
     return;
   }
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
@@ -556,12 +559,40 @@ GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int 
+barrier_destroy_iterator (void *cls,
+                          const struct GNUNET_HashCode *key,
+                          void *value)
+{
+  struct Barrier *barrier = value;
+
+  GNUNET_assert (NULL != barrier);
+  cancel_wrappers (barrier);
+  remove_barrier (barrier);
+  return GNUNET_YES;
+}
+
+
+/**
  * Function to stop the barrier service
  */
 void
 GST_barriers_destroy ()
 {
   GNUNET_assert (NULL != barrier_map);
+  GNUNET_assert (GNUNET_SYSERR !=
+                 GNUNET_CONTAINER_multihashmap_iterate (barrier_map,
+                                                        &barrier_destroy_iterator,
+                                                        NULL));
   GNUNET_CONTAINER_multihashmap_destroy (barrier_map);
   GNUNET_assert (NULL != ctx);
   GNUNET_SERVICE_stop (ctx);

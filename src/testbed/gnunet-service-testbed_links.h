@@ -74,16 +74,9 @@ struct Slave
   struct GNUNET_CONTAINER_MultiHashMap *reghost_map;
 
   /**
-   * Operation handle for opening a lateral connection to another controller.
-   * Will be NULL if the slave controller is started by this controller
-   */
-  struct GNUNET_TESTBED_Operation *conn_op;
-
-  /**
    * The id of the host this controller is running on
    */
   uint32_t host_id;
-
 };
 
 /**

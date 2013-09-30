@@ -1008,6 +1008,7 @@ clear_msg (void *cls, int result)
   GNUNET_assert (NULL != cp->shandle);
   cp->shandle = NULL;
   GNUNET_free (cp->msg);
+  cp->msg = NULL;
 }
 
 
@@ -1184,6 +1185,7 @@ GNUNET_TESTBED_controller_destroy_ (struct GNUNET_TESTBED_ControllerProc *cproc)
     free_argv (cproc->helper_argv);
   cproc->host->controller_started = GNUNET_NO;
   cproc->host->locked = GNUNET_NO;
+  GNUNET_free_non_null (cproc->msg);
   GNUNET_free (cproc);
 }
 

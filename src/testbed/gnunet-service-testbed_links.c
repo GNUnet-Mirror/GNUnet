@@ -420,51 +420,78 @@ reghost_free_iterator (void *cls, const struct GNUNET_HashCode *key,
 
 
 /**
+ * Kill a #Slave object
+ *
+ * @param slave the #Slave object
+ */
+static void
+kill_slave (struct Slave *slave)
+{
+  struct HostRegistration *hr_entry;
+
+  while (NULL != (hr_entry = slave->hr_dll_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (slave->hr_dll_head, slave->hr_dll_tail,
+                                 hr_entry);
+    GNUNET_free (hr_entry);
+  }
+  if (NULL != slave->rhandle)
+    GNUNET_TESTBED_cancel_registration (slave->rhandle);
+  GNUNET_assert (GNUNET_SYSERR != 
+                 GNUNET_CONTAINER_multihashmap_iterate (slave->reghost_map,
+                                                        reghost_free_iterator,
+                                                        slave));
+  GNUNET_CONTAINER_multihashmap_destroy (slave->reghost_map);
+  if (NULL != slave->controller)
+    GNUNET_TESTBED_controller_disconnect (slave->controller);
+  if (NULL != slave->controller_proc)
+  {
+    LOG_DEBUG ("Stopping a slave\n");
+    GNUNET_TESTBED_controller_kill_ (slave->controller_proc);
+  }
+}
+
+
+/**
+ * Destroy a #Slave object
+ *
+ * @param slave the #Slave object
+ */
+static void
+destroy_slave (struct Slave *slave)
+{
+  if (NULL != slave->controller_proc)
+  {
+    GNUNET_TESTBED_controller_destroy_ (slave->controller_proc);
+    LOG_DEBUG ("Slave stopped\n");
+  }
+  GST_slave_list[slave->host_id] = NULL;
+  GNUNET_free (slave);
+}
+
+
+/**
  * Cleans up the slave list
  */
 void
 GST_slave_list_clear ()
 {
-  struct HostRegistration *hr_entry;
-  struct GNUNET_TESTBED_ControllerProc *cproc;
+  struct Slave *slave;
   unsigned int id;
 
   for (id = 0; id < GST_slave_list_size; id++)
   {
-    if (NULL == GST_slave_list[id])
+    slave = GST_slave_list[id];
+    if (NULL == slave)
       continue;
-    while (NULL != (hr_entry = GST_slave_list[id]->hr_dll_head))
-    {
-      GNUNET_CONTAINER_DLL_remove (GST_slave_list[id]->hr_dll_head,
-                                   GST_slave_list[id]->hr_dll_tail, hr_entry);
-      GNUNET_free (hr_entry);
-    }
-    if (NULL != GST_slave_list[id]->rhandle)
-      GNUNET_TESTBED_cancel_registration (GST_slave_list[id]->rhandle);
-    (void)
-        GNUNET_CONTAINER_multihashmap_iterate (GST_slave_list
-                                               [id]->reghost_map,
-                                               reghost_free_iterator,
-                                               GST_slave_list[id]);
-    GNUNET_CONTAINER_multihashmap_destroy (GST_slave_list[id]->reghost_map);
-    if (NULL != GST_slave_list[id]->controller)
-      GNUNET_TESTBED_controller_disconnect (GST_slave_list[id]->controller);
-    if (NULL != (cproc = GST_slave_list[id]->controller_proc))
-    {
-      LOG_DEBUG ("Stopping a slave\n");
-      GNUNET_TESTBED_controller_kill_ (cproc);
-    }
+    kill_slave (slave);
   }
   for (id = 0; id < GST_slave_list_size; id++)
   {
-    if (NULL == GST_slave_list[id])
+    slave = GST_slave_list[id];
+    if (NULL == slave)
       continue;
-    if (NULL != (cproc = GST_slave_list[id]->controller_proc))
-    {
-      GNUNET_TESTBED_controller_destroy_ (cproc);
-      LOG_DEBUG ("Slave stopped\n");
-    }
-    GNUNET_free (GST_slave_list[id]);
+    destroy_slave (slave);
   }
   GNUNET_free_non_null (GST_slave_list);
   GST_slave_list = NULL;
@@ -723,6 +750,8 @@ slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
   lcf = event->op_cls;
   GNUNET_assert (lcf->op == event->op);
+  GNUNET_TESTBED_operation_done (lcf->op);
+  lcf->op = NULL;
   GNUNET_assert (FINISHED == lcf->state);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task);
   GNUNET_SCHEDULER_cancel (lcf->timeout_task);
@@ -761,8 +790,13 @@ slave_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_SYSERR == status)
   {
     slave->controller_proc = NULL;
-    GST_slave_list[slave->host_id] = NULL;
-    GNUNET_free (slave);
+    /* Stop all link controller forwarding tasks since we shutdown here anyway
+       and as these tasks they depend on the operation queues which are created
+       through GNUNET_TESTBED_controller_connect() and in kill_slave() we call
+       the destructor function GNUNET_TESTBED_controller_disconnect() */
+    GST_free_lcfq ();
+    kill_slave (slave);
+    destroy_slave (slave);
     slave = NULL;
     LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected slave shutdown\n");
     GNUNET_SCHEDULER_shutdown ();       /* We too shutdown */
@@ -780,13 +814,12 @@ slave_status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     send_controller_link_response (lcc->client, lcc->operation_id, NULL,
                                    "Could not connect to delegated controller");
-    GNUNET_TESTBED_controller_stop (slave->controller_proc);
-    GST_slave_list[slave->host_id] = NULL;
-    GNUNET_free (slave);
+    kill_slave (slave);
+    destroy_slave (slave);
     slave = NULL;
   }
 
-clean_lcc:
+ clean_lcc:
   if (NULL != lcc)
   {
     if (NULL != lcc->client)
@@ -1317,6 +1350,7 @@ void
 GST_free_lcfq ()
 {
   struct LCFContextQueue *lcfq;
+  struct LCFContext *lcf;
   
   if (NULL != lcfq_head)
   {
@@ -1329,8 +1363,13 @@ GST_free_lcfq ()
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
-    GNUNET_SERVER_client_drop (lcfq->lcf->client);
-    GNUNET_free (lcfq->lcf);
+    lcf = lcfq->lcf;
+    GNUNET_SERVER_client_drop (lcf->client);
+    if (NULL != lcf->op)
+      GNUNET_TESTBED_operation_done (lcf->op);
+    if (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task)
+      GNUNET_SCHEDULER_cancel (lcf->timeout_task);
+    GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
   }
