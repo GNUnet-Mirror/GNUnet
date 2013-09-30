@@ -226,6 +226,11 @@ struct GNUNET_NAMESTORE_Handle
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
   /**
+   * Delay introduced before we reconnect.
+   */
+  struct GNUNET_TIME_Relative reconnect_delay;
+
+  /**
    * Should we reconnect to service due to some serious error?
    */
   int reconnect;
@@ -858,6 +863,7 @@ do_transmit (struct GNUNET_NAMESTORE_Handle *h)
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       GNUNET_NO, &transmit_message_to_namestore,
 					       h);
+  GNUNET_break (NULL != h->th);
 }
 
 
@@ -901,11 +907,19 @@ reconnect_task (void *cls,
 static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *h)
 {
+  if (NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
   h->reconnect = GNUNET_NO;
   GNUNET_CLIENT_disconnect (h->client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Reconnecting to namestore\n");
   h->is_receiving = GNUNET_NO;
   h->client = NULL;
-  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
+  h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
 						    &reconnect_task,
 						    h);
 }
@@ -958,6 +972,11 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up\n");
   GNUNET_assert (NULL != h);
+  if (NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
   while (NULL != (p = h->pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, p);
@@ -1041,7 +1060,7 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
        "NAMESTORE_BLOCK_CACHE", 
        (unsigned int) msg_size);
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   return qe;
 }
 
@@ -1123,7 +1142,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
        "NAMESTORE_RECORD_STORE", label, msg_size,
        rd_count);
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   return qe;
 }
 
@@ -1172,7 +1191,7 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.r_id = htonl (rid);
   msg->query = *derived_hash;
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   return qe;
 }
 
@@ -1225,7 +1244,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   return qe;
 }
 
@@ -1279,7 +1298,7 @@ GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
   if (NULL != zone)
     msg->zone = *zone;
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   return it;
 }
 
@@ -1311,7 +1330,7 @@ GNUNET_NAMESTORE_zone_iterator_next (struct GNUNET_NAMESTORE_ZoneIterator *it)
        "Sending `%s' message\n", 
        "ZONE_ITERATION_NEXT");
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
 }
 
 
@@ -1344,7 +1363,7 @@ GNUNET_NAMESTORE_zone_iteration_stop (struct GNUNET_NAMESTORE_ZoneIterator *it)
 	      "Sending `%s' message\n", 
 	      "ZONE_ITERATION_STOP");
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit(h);
+  do_transmit (h);
   GNUNET_free (it);
 }
 

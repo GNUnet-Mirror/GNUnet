@@ -844,7 +844,7 @@ handle_zone_to_name (void *cls,
 						&ztnr_msg.gns_header.header,
 						GNUNET_NO);
   }
-  GNUNET_SERVER_receive_done (client, ztn_ctx.success);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1176,7 +1176,7 @@ monitor_iterate_cb (void *cls,
 
 
 /**
- * Handles a 'GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START' message
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START message
  *
  * @param cls unused
  * @param client GNUNET_SERVER_Client sending the message
