@@ -25,10 +25,9 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
-#include "gnunet_util_lib.h"
 #include "gnunet_set_service.h"
 #include "gnunet_consensus_service.h"
 #include "consensus_protocol.h"
@@ -811,17 +810,20 @@ get_peer_idx (const struct GNUNET_PeerIdentity *peer, const struct ConsensusSess
  * @param session_id local id of the consensus session
  */
 static void
-compute_global_id (struct ConsensusSession *session, const struct GNUNET_HashCode *session_id)
+compute_global_id (struct ConsensusSession *session, 
+		   const struct GNUNET_HashCode *session_id)
 {
   int i;
   struct GNUNET_HashCode tmp;
+  struct GNUNET_HashCode phash;
 
   /* FIXME: use kdf? */
 
   session->global_id = *session_id;
   for (i = 0; i < session->num_peers; ++i)
   {
-    GNUNET_CRYPTO_hash_xor (&session->global_id, &session->info[i].peer_id.hashPubKey, &tmp);
+    GNUNET_CRYPTO_hash (&session->info[i].peer_id, sizeof (struct GNUNET_PeerIdentity), &phash);
+    GNUNET_CRYPTO_hash_xor (&session->global_id, &phash, &tmp);
     session->global_id = tmp;
     GNUNET_CRYPTO_hash (&session->global_id, sizeof (struct GNUNET_PeerIdentity), &tmp);
     session->global_id = tmp;
