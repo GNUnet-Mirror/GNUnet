@@ -189,6 +189,7 @@ libgnunet_plugin_test_la_LDFLAGS = \
 if HAVE_BENCHMARKS
  BENCHMARKS = \
   perf_crypto_hash \
+  perf_crypto_aes \
   perf_malloc
 endif
 
@@ -206,7 +207,6 @@ check_PROGRAMS = \
  test_container_heap \
  test_container_slist \
  test_crypto_aes \
- test_crypto_aes_weak \
  test_crypto_crc \
  test_crypto_ecc \
  test_crypto_hash \
@@ -324,12 +324,6 @@ test_crypto_aes_SOURCES = \
  test_crypto_aes.c
 test_crypto_aes_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
-
-test_crypto_aes_weak_SOURCES = \
- test_crypto_aes_weak.c
-test_crypto_aes_weak_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la  \
- $(LIBGCRYPT_LIBS)
 
 test_crypto_crc_SOURCES = \
  test_crypto_crc.c
@@ -498,6 +492,11 @@ test_speedup_LDADD = \
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c
 perf_crypto_hash_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la  
+
+perf_crypto_aes_SOURCES = \
+ perf_crypto_aes.c
+perf_crypto_aes_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_malloc_SOURCES = \

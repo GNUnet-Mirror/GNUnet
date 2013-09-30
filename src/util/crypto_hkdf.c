@@ -275,10 +275,10 @@ hkdf_ok:
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
  * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
  * @param xts salt
- * @param xts_len length of xts
+ * @param xts_len length of @a xts
  * @param skm source key material
- * @param skm_len length of skm
- * @return GNUNET_YES on success
+ * @param skm_len length of @a skm
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,

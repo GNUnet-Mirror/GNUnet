@@ -212,22 +212,30 @@ struct GNUNET_CRYPTO_EccPrivateKey
 struct GNUNET_CRYPTO_AesSessionKey
 {
   /**
-   * Actual key.
+   * Actual key for AES.
    */
-  unsigned char key[GNUNET_CRYPTO_AES_KEY_LENGTH];
+  unsigned char aes_key[GNUNET_CRYPTO_AES_KEY_LENGTH];
+
+  /**
+   * Actual key for TwoFish.
+   */
+  unsigned char twofish_key[GNUNET_CRYPTO_AES_KEY_LENGTH];
 
 };
+
 GNUNET_NETWORK_STRUCT_END
 
 /**
  * @brief IV for sym cipher
  *
  * NOTE: must be smaller (!) in size than the
- * struct GNUNET_HashCode.
+ * `struct GNUNET_HashCode`.
  */
 struct GNUNET_CRYPTO_AesInitializationVector
 {
-  unsigned char iv[GNUNET_CRYPTO_AES_KEY_LENGTH / 2];
+  unsigned char aes_iv[GNUNET_CRYPTO_AES_KEY_LENGTH / 2];
+
+  unsigned char twofish_iv[GNUNET_CRYPTO_AES_KEY_LENGTH / 2];
 };
 
 

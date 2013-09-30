@@ -65,8 +65,6 @@ testEncoding ()
 static int
 testArithmetic ()
 {
-  static struct GNUNET_CRYPTO_AesSessionKey zskey;
-  static struct GNUNET_CRYPTO_AesInitializationVector ziv;
   struct GNUNET_HashCode h1;
   struct GNUNET_HashCode h2;
   struct GNUNET_HashCode d;
@@ -100,9 +98,6 @@ testArithmetic ()
     return 1;
   memset (&d, 0, sizeof (d));
   GNUNET_CRYPTO_hash_to_aes_key (&d, &skey, &iv);
-  if ((0 != memcmp (&skey, &zskey, sizeof (skey) - sizeof (unsigned int))) ||
-      (0 != memcmp (&iv, &ziv, sizeof (iv))))
-    return 1;
   return 0;
 }
 

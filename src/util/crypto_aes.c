@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006 Christian Grothoff (and other contributing authors)
+     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 
 /**
  * @file util/crypto_aes.c
- * @brief Symmetric encryption services.
+ * @brief Symmetric encryption services; combined cipher AES+TWOFISH (256-bit each)
  * @author Christian Grothoff
  * @author Ioana Patrascu
  */
@@ -33,14 +33,18 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
 /**
- * Create a new SessionKey (for AES-256).
+ * Create a new SessionKey (for symmetric encryption).
  *
  * @param key session key to initialize
  */
 void
 GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
 {
-  gcry_randomize (&key->key[0], GNUNET_CRYPTO_AES_KEY_LENGTH,
+  gcry_randomize (key->aes_key, 
+                  GNUNET_CRYPTO_AES_KEY_LENGTH,
+                  GCRY_STRONG_RANDOM);
+  gcry_randomize (key->twofish_key, 
+                  GNUNET_CRYPTO_AES_KEY_LENGTH,
                   GCRY_STRONG_RANDOM);
 }
 
@@ -54,22 +58,52 @@ GNUNET_CRYPTO_aes_create_session_key (struct GNUNET_CRYPTO_AesSessionKey *key)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-setup_cipher (gcry_cipher_hd_t *handle,
-	      const struct GNUNET_CRYPTO_AesSessionKey *
-	      sessionkey,
-	      const struct GNUNET_CRYPTO_AesInitializationVector *
-	      iv)
+setup_cipher_aes (gcry_cipher_hd_t *handle,
+                  const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
+                  const struct GNUNET_CRYPTO_AesInitializationVector *iv)
 {
   int rc;
 
   GNUNET_assert (0 ==
                  gcry_cipher_open (handle, GCRY_CIPHER_AES256,
                                    GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (*handle, sessionkey, GNUNET_CRYPTO_AES_KEY_LENGTH);
+  rc = gcry_cipher_setkey (*handle, 
+                           sessionkey->aes_key, 
+                           sizeof (sessionkey->aes_key));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (*handle, iv,
-                          sizeof (struct
-                                  GNUNET_CRYPTO_AesInitializationVector));
+  rc = gcry_cipher_setiv (*handle, 
+                          iv->aes_iv, 
+                          sizeof (iv->aes_iv));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  return GNUNET_OK;
+}
+
+
+/**
+ * Initialize TWOFISH cipher.
+ *
+ * @param handle handle to initialize
+ * @param sessionkey session key to use
+ * @param iv initialization vector to use
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+setup_cipher_twofish (gcry_cipher_hd_t *handle,
+                      const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
+                      const struct GNUNET_CRYPTO_AesInitializationVector *iv)
+{
+  int rc;
+
+  GNUNET_assert (0 ==
+                 gcry_cipher_open (handle, GCRY_CIPHER_TWOFISH, 
+                                   GCRY_CIPHER_MODE_CFB, 0));
+  rc = gcry_cipher_setkey (*handle, 
+                           sessionkey->twofish_key, 
+                           sizeof (sessionkey->twofish_key));
+  GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
+  rc = gcry_cipher_setiv (*handle, 
+                          iv->twofish_iv,
+                          sizeof (iv->twofish_iv));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
   return GNUNET_OK;
 }
@@ -80,7 +114,7 @@ setup_cipher (gcry_cipher_hd_t *handle,
  * host that uses the same cyper.
  *
  * @param block the block to encrypt
- * @param len the size of the block
+ * @param len the size of the @a block
  * @param sessionkey the key used to encrypt
  * @param iv the initialization vector to use, use INITVALUE
  *        for streams.
@@ -95,11 +129,17 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
                            iv, void *result)
 {
   gcry_cipher_hd_t handle;
+  char tmp[len];
 
-  if (GNUNET_OK != setup_cipher (&handle, sessionkey, iv))
+  if (GNUNET_OK != setup_cipher_aes (&handle, sessionkey, iv))
     return -1;
-  GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, len, block, len));
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, tmp, len, block, len));
   gcry_cipher_close (handle);
+  if (GNUNET_OK != setup_cipher_twofish (&handle, sessionkey, iv))
+    return -1;
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, len, tmp, len));
+  gcry_cipher_close (handle);
+  memset (tmp, 0, sizeof (tmp));
   return len;
 }
 
@@ -108,7 +148,7 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
  * Decrypt a given block with the sessionkey.
  *
  * @param block the data to decrypt, encoded as returned by encrypt
- * @param size the size of the block to decrypt
+ * @param size the size of the @a block to decrypt
  * @param sessionkey the key used to decrypt
  * @param iv the initialization vector to use, use INITVALUE
  *        for streams.
@@ -117,17 +157,22 @@ GNUNET_CRYPTO_aes_encrypt (const void *block, size_t len,
  */
 ssize_t
 GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_AesSessionKey *
-                           sessionkey,
-                           const struct GNUNET_CRYPTO_AesInitializationVector *
-                           iv, void *result)
+                           const struct GNUNET_CRYPTO_AesSessionKey *sessionkey,
+                           const struct GNUNET_CRYPTO_AesInitializationVector *iv, 
+                           void *result)
 {
   gcry_cipher_hd_t handle;
+  char tmp[size];
 
-  if (GNUNET_OK != setup_cipher (&handle, sessionkey, iv))
+  if (GNUNET_OK != setup_cipher_twofish (&handle, sessionkey, iv))
     return -1;
-  GNUNET_assert (0 == gcry_cipher_decrypt (handle, result, size, block, size));
+  GNUNET_assert (0 == gcry_cipher_decrypt (handle, tmp, size, block, size));
   gcry_cipher_close (handle);
+  if (GNUNET_OK != setup_cipher_aes (&handle, sessionkey, iv))
+    return -1;
+  GNUNET_assert (0 == gcry_cipher_decrypt (handle, result, size, tmp, size));
+  gcry_cipher_close (handle);
+  memset (tmp, 0, sizeof (tmp));
   return size;
 }
 
@@ -138,7 +183,7 @@ GNUNET_CRYPTO_aes_decrypt (const void *block, size_t size,
  * @param iv initialization vector
  * @param skey session key
  * @param salt salt for the derivation
- * @param salt_len size of the salt
+ * @param salt_len size of the @a salt
  * @param ... pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
@@ -168,8 +213,21 @@ GNUNET_CRYPTO_aes_derive_iv_v (struct GNUNET_CRYPTO_AesInitializationVector *iv,
                                const struct GNUNET_CRYPTO_AesSessionKey *skey,
                                const void *salt, size_t salt_len, va_list argp)
 {
-  GNUNET_CRYPTO_kdf_v (iv->iv, sizeof (iv->iv), salt, salt_len, skey->key,
-                       sizeof (skey->key), argp);
+  char aes_salt[salt_len + 4];
+  char twofish_salt[salt_len + 4];
+
+  memcpy (aes_salt, salt, salt_len);
+  memcpy (&aes_salt[salt_len], "AES!", 4);
+  memcpy (twofish_salt, salt, salt_len);
+  memcpy (&twofish_salt[salt_len], "FISH", 4);
+  GNUNET_CRYPTO_kdf_v (iv->aes_iv, sizeof (iv->aes_iv), 
+                       aes_salt, salt_len + 4, 
+                       skey->aes_key, sizeof (skey->aes_key), 
+                       argp);
+  GNUNET_CRYPTO_kdf_v (iv->twofish_iv, sizeof (iv->twofish_iv),
+                       twofish_salt, salt_len + 4, 
+                       skey->twofish_key, sizeof (skey->twofish_key), 
+                       argp);
 }
 
 /* end of crypto_aes.c */

@@ -429,9 +429,11 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
 {
   static const char ctx[] = "authentication key";
 
-  GNUNET_CRYPTO_hmac_derive_key (akey, skey, &seed, sizeof (seed), &skey->key,
-                                 sizeof (skey->key), ctx,
-                                 sizeof (ctx), NULL);
+  GNUNET_CRYPTO_hmac_derive_key (akey, skey, 
+                                 &seed, sizeof (seed), 
+                                 skey, sizeof (struct GNUNET_CRYPTO_AesSessionKey), 
+                                 ctx, sizeof (ctx), 
+                                 NULL);
 }
 
 
