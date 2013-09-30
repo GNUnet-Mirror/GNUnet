@@ -27,8 +27,8 @@
  * @author Nathan Evans
  */
 #include "platform.h"
-#include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
@@ -362,6 +362,32 @@ unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static const char *
 unix_address_to_string (void *cls, const void *addr, size_t addrlen);
 
+static struct sockaddr_un *
+unix_address_to_sockaddr (const char *unixpath , socklen_t *sock_len)
+{
+  struct sockaddr_un *un;
+  size_t slen;
+
+  GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
+  un = GNUNET_new (struct sockaddr_un);
+  un->sun_family = AF_UNIX;
+  slen = strlen (unixpath);
+  if (slen >= sizeof (un->sun_path))
+    slen = sizeof (un->sun_path) - 1;
+  memcpy (un->sun_path, unixpath, slen);
+  un->sun_path[slen] = '\0';
+  slen = sizeof (struct sockaddr_un);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un->sun_len = (u_char) slen;
+#endif
+#if LINUX
+  un->sun_path[0] = '\0';
+#endif
+
+  (*sock_len) = slen;
+  return un;
+}
+
 /**
  * Re-schedule the main 'select' callback (unix_plugin_select)
  * for this plugin.
@@ -569,11 +595,9 @@ unix_real_send (void *cls,
 {
   struct Plugin *plugin = cls;
   ssize_t sent;
-  const void *sb;
-  size_t sbs;
-  struct sockaddr_un un;
-  size_t slen;
-  const char *unix_path;
+  struct sockaddr_un *un;
+  socklen_t un_len;
+  const char *unixpath;
 
 
   GNUNET_assert (NULL != plugin);
@@ -589,34 +613,25 @@ unix_real_send (void *cls,
   }
 
   /* Prepare address */
-  unix_path = (const char *)  &addr[1];
-  memset (&un, 0, sizeof (un));
-  un.sun_family = AF_UNIX;
-  slen =  strlen (unix_path);
-  if (slen >= sizeof (un.sun_path))
-    slen = sizeof (un.sun_path) - 1;
-  GNUNET_assert (slen < sizeof (un.sun_path));
-  memcpy (un.sun_path, unix_path, slen);
-  un.sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
-#if LINUX
-  un.sun_path[0] = '\0';
-#endif
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  un.sun_len = (u_char) slen;
-#endif
-  sb = (struct sockaddr *) &un;
-  sbs = slen;
+  unixpath = (const char *)  &addr[1];
+  if (NULL == (un = unix_address_to_sockaddr (unixpath, &un_len)))
+  {
+    GNUNET_break (0);
+    return -1;
+  }
 
 resend:
   /* Send the data */
-  sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size, sb, sbs);
-
+  sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size,
+      (const struct sockaddr *) un, un_len);
   if (GNUNET_SYSERR == sent)
   {
     if ( (EAGAIN == errno) ||
 	 (ENOBUFS == errno) )
+    {
+      GNUNET_free (un);
       return RETRY; /* We have to retry later  */
+    }
     if (EMSGSIZE == errno)
     {
       socklen_t size = 0;
@@ -639,6 +654,7 @@ resend:
         {
           /* Could not increase buffer size: error, no retry */
           GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "setsockopt");
+          GNUNET_free (un);
           return GNUNET_SYSERR;
         }
       }
@@ -647,6 +663,7 @@ resend:
         /* Buffer is bigger than message:  error, no retry
          * This should never happen!*/
         GNUNET_break (0);
+        GNUNET_free (un);
         return GNUNET_SYSERR;
       }
     }
@@ -655,9 +672,10 @@ resend:
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "UNIX transmit %u-byte message to %s (%d: %s)\n",
        (unsigned int) msgbuf_size, 
-       GNUNET_a2s (sb, sbs), 
+       GNUNET_a2s ((const struct sockaddr *)un, un_len),
        (int) sent,
        (sent < 0) ? STRERROR (errno) : "ok");
+  GNUNET_free (un);
   return sent;
 }
 
@@ -1220,30 +1238,11 @@ static int
 unix_transport_server_start (void *cls)
 {
   struct Plugin *plugin = cls;
-  struct sockaddr *serverAddr;
-  socklen_t addrlen;
-  struct sockaddr_un un;
-  size_t slen;
+  struct sockaddr_un *un;
+  socklen_t un_len;
 
-  memset (&un, 0, sizeof (un));
-  un.sun_family = AF_UNIX;
-  slen = strlen (plugin->unix_socket_path) + 1;
-  if (slen >= sizeof (un.sun_path))
-    slen = sizeof (un.sun_path) - 1;
-
-  memcpy (un.sun_path, plugin->unix_socket_path, slen);
-  un.sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  un.sun_len = (u_char) slen;
-#endif
-
-  serverAddr = (struct sockaddr *) &un;
-  addrlen = slen;
-#if LINUX
-  un.sun_path[0] = '\0';
-#endif
-  plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, serverAddr, addrlen);
+  un = unix_address_to_sockaddr (plugin->unix_socket_path, &un_len);
+  plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) un, un_len);
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
   if (NULL == plugin->unix_sock.desc)
@@ -1251,12 +1250,13 @@ unix_transport_server_start (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     return GNUNET_SYSERR;
   }
-  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, serverAddr, addrlen, 0)
+  if (GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, (const struct sockaddr *)  un, un_len, 0)
       != GNUNET_OK)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
     GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
     plugin->unix_sock.desc = NULL;
+    GNUNET_free (un);
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Bound to `%s'\n", plugin->unix_socket_path);
@@ -1268,7 +1268,7 @@ unix_transport_server_start (void *cls)
   GNUNET_NETWORK_fdset_set (plugin->ws, plugin->unix_sock.desc);
 
   reschedule_select (plugin);
-
+  GNUNET_free (un);
   return 1;
 }
 
