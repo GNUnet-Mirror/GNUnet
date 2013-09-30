@@ -25,7 +25,6 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
