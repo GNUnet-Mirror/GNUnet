@@ -978,7 +978,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data = vpn = GNUNET_malloc (*data_size);
     if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string ((char*) s_peer,
 								    strlen (s_peer),
-								    &vpn->peer))
+								    &vpn->peer.public_key))
     {
       GNUNET_free (vpn);
       *data_size = 0;
