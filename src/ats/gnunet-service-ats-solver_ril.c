@@ -797,7 +797,7 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
   default:
     if ((action >= RIL_ACTION_TYPE_NUM) && (action < agent->n))
     {
-      address_index = agent->n - RIL_ACTION_TYPE_NUM;
+      address_index = action - RIL_ACTION_TYPE_NUM;
 
       GNUNET_assert(address_index >= 0);
       GNUNET_assert(
