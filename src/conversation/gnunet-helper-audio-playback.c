@@ -31,67 +31,67 @@ static pa_sample_spec sample_spec = {
 /**
 * Pulseaudio mainloop api
 */
-static pa_mainloop_api *mainloop_api = NULL;
+static pa_mainloop_api *mainloop_api;
 
 /**
 * Pulseaudio threaded mainloop
 */
-static pa_threaded_mainloop *m = NULL;
+static pa_threaded_mainloop *m;
 
 /**
 * Pulseaudio context
 */
-static pa_context *context = NULL;
+static pa_context *context;
 
 /**
 * Pulseaudio output stream
 */
-static pa_stream *stream_out = NULL;
+static pa_stream *stream_out;
 
 /**
 * Pulseaudio io events
 */
-static pa_io_event *stdio_event = NULL;
+static pa_io_event *stdio_event;
 
 /**
 * OPUS decoder
 */
-OpusDecoder *dec = NULL;
+static OpusDecoder *dec;
 
 /**
 * PCM data buffer
 */
-float *pcm_buffer;
+static float *pcm_buffer;
 
 /**
 * Length of PCM buffer
 */
-int pcm_length;
+static int pcm_length;
 
 /**
 * Number of samples for one frame
 */
-int frame_size;
+static int frame_size;
 
 /**
 * The sampling rate used in Pulseaudio specification
 */
-opus_int32 sampling_rate;
+static opus_int32 sampling_rate;
 
 /**
 * Audio buffer
 */
-static void *buffer = NULL;
+static void *buffer;
 
 /**
 * Length of audio buffer
 */
-static size_t buffer_length = 0;
+static size_t buffer_length;
 
 /**
 * Read index for transmit buffer
 */
-static size_t buffer_index = 0;
+static size_t buffer_index;
 
 
 
@@ -386,6 +386,7 @@ main (int argc, char *argv[])
 
       mst_receive (stdin_mst, readbuf, ret);
     }
+  mst_destroy (stdin_mst);
 
   return 0;
 }
