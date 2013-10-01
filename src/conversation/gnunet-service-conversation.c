@@ -174,18 +174,26 @@ show_end_data (void)
   end_time = GNUNET_TIME_absolute_get ();
   total_time = GNUNET_TIME_absolute_get_difference (start_time, end_time);
   FPRINTF (stderr, "\nResults of send\n");
-  FPRINTF (stderr, "Test time %llu ms\n",
-	   (unsigned long long) total_time.rel_value);
-  FPRINTF (stderr, "Test total packets: %d\n", data_sent);
-  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", data_sent_size * 1.0 / total_time.rel_value);	// 4bytes * ms
-  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", data_sent * 1000.0 / total_time.rel_value);	// packets * ms
+  FPRINTF (stderr, "Test time %s\n",
+	   GNUNET_STRINGS_relative_time_to_string (total_time,
+						   GNUNET_NO));
+  FPRINTF (stderr, "Test total packets: %d\n", 
+	   data_sent);
+  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", 
+	   data_sent_size * 1000.0 / (total_time.rel_value_us + 1));	// 4bytes * us
+  FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
+	   data_sent * 1000000.0 / (total_time.rel_value_us + 1));	// packets * us
 
   FPRINTF (stderr, "\nResults of recv\n");
-  FPRINTF (stderr, "Test time %llu ms\n",
-	   (unsigned long long) total_time.rel_value);
-  FPRINTF (stderr, "Test total packets: %d\n", data_received);
-  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", data_received_size * 1.0 / total_time.rel_value);	// 4bytes * ms
-  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", data_received * 1000.0 / total_time.rel_value);	// packets * ms
+  FPRINTF (stderr, "Test time %s\n",
+	   GNUNET_STRINGS_relative_time_to_string (total_time,
+						   GNUNET_NO));
+  FPRINTF (stderr, "Test total packets: %d\n", 
+	   data_received);
+  FPRINTF (stderr, "Test bandwidth: %f kb/s\n", 
+	   data_received_size * 1000.0 / (total_time.rel_value_us + 1));	// 4bytes * us
+  FPRINTF (stderr, "Test throughput: %f packets/s\n\n", 
+	   data_received * 1000000.0 / (total_time.rel_value_us + 1));	// packets * us
 }
 
 /**
@@ -1711,7 +1719,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
 
-  static uint32_t ports[] = { 50002, 50003, NULL };
+  static uint32_t ports[] = { 50002, 50003, 0 };
   cfg = c;
 
   mesh = GNUNET_MESH_connect (cfg,

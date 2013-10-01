@@ -25,7 +25,7 @@
  * @author Sree Harsha Totakura
  */
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 
 #include "testbed_api_operations.h"

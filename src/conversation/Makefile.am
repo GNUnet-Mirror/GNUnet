@@ -23,7 +23,7 @@ libexecdir= $(prefix)/lib/gnunet/libexec/
 libgnunetconversation_la_SOURCES = \
   conversation_api.c 
 libgnunetconversation_la_LIBADD = \
-  -lgnunetutil -lgnunetgns_common -lgnunetgns
+  -lgnunetutil -lgnunetnamestore -lgnunetgns
 libgnunetconversation_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
@@ -62,7 +62,7 @@ gnunet_helper_audio_playback_LDFLAGS = \
 gnunet_service_conversation_SOURCES = \
   gnunet-service-conversation.c
 gnunet_service_conversation_LDADD = \
-  -lgnunetutil -lgnunetmesh -lgnunetgns_common -lgnunetgns\
+  -lgnunetutil -lgnunetmesh -lgnunetnamestore -lgnunetgns\
     $(INTLLIBS) 
 gnunet_service_conversation_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic 
@@ -77,8 +77,6 @@ gnunet_conversation_LDFLAGS = \
 
 
 
-
-
 test_conversation_api_SOURCES = \
  test_conversation_api.c
 test_conversation_api_LDADD = \
@@ -86,6 +84,5 @@ test_conversation_api_LDADD = \
   -lgnunetutil
 test_conversation_api_LDFLAGS = \
  $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic
- 
+
  pkgcfg_DATA = conversation.conf 
- 

@@ -231,9 +231,9 @@ run (void *cls,
 
   config = cfg;
   GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
-  printf ("my id (from CRYPTO): %s\n", GNUNET_h2s (&local_id.hashPubKey));
+  printf ("my id (from CRYPTO): %s\n", GNUNET_i2s (&local_id));
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
-  printf ("my id (from TESTING): %s\n", GNUNET_h2s (&local_id.hashPubKey));
+  printf ("my id (from TESTING): %s\n", GNUNET_i2s (&local_id));
 
   test_iter ();
 

@@ -33,9 +33,10 @@
  *
  */
 
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
-#include <gnunet/gnunet_gns_service.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_dnsparser_lib.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_protocols_conversation.h"
 #include "gnunet_conversation_service.h"
 
@@ -140,12 +141,10 @@ struct GNUNET_CONVERSATION_Handle
 static void
 setup_gns_txt (struct GNUNET_CONVERSATION_Handle *handle)
 {
-  struct GNUNET_CRYPTO_EccPublicKey zone_pkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey zone_pkey;
   struct GNUNET_CRYPTO_EccPrivateKey *zone_key;
-  struct GNUNET_CRYPTO_EccPublicKey peer_pkey;
   struct GNUNET_CRYPTO_EccPrivateKey *peer_key;
   struct GNUNET_NAMESTORE_RecordData rd;
-  struct GNUNET_HashCode hash;
   struct GNUNET_PeerIdentity peer;
 
   char *zone_keyfile;
@@ -170,22 +169,23 @@ setup_gns_txt (struct GNUNET_CONVERSATION_Handle *handle)
     }
 
   zone_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public (zone_key, &zone_pkey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (zone_key, &zone_pkey);
   peer_key = GNUNET_CRYPTO_ecc_key_create_from_file (peer_keyfile);
-  GNUNET_CRYPTO_ecc_key_get_public (peer_key, &peer_pkey);
-
-  GNUNET_CRYPTO_hash (&peer_pkey, sizeof (peer_pkey), &hash);
-
-  peer.hashPubKey = hash;
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (peer_key,
+						  &peer.public_key);
   const char *h = GNUNET_i2s_full (&peer);
 
   rd.data_size = strlen (h) + 1;
   rd.data = h;
-  rd.record_type = GNUNET_GNS_RECORD_TXT;
-  rd.flags = GNUNET_NAMESTORE_RF_AUTHORITY;
+  rd.record_type = GNUNET_DNSPARSER_TYPE_TXT;
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
 
-  GNUNET_NAMESTORE_record_put_by_authority (handle->namestore, zone_key,
-					    "conversation", 1, &rd, NULL, NULL);
+  /* FIXME: continuation? return value? */
+  GNUNET_NAMESTORE_records_store (handle->namestore, 
+				  zone_key,
+				  "conversation", 
+				  1, &rd,
+				  NULL, NULL);
 }
 
 /**
@@ -219,8 +219,12 @@ check_gns_cb (void *cls, uint32_t rd_count,
 static void
 check_gns (struct GNUNET_CONVERSATION_Handle *h)
 {
-  GNUNET_GNS_lookup (h->gns, "conversation.gads", GNUNET_GNS_RECORD_TXT,
-		     GNUNET_NO, NULL, &check_gns_cb, (void *) h);
+  GNUNET_GNS_lookup (h->gns, "conversation.gads", 
+		     NULL /* FIXME_ZONE */,
+		     GNUNET_DNSPARSER_TYPE_TXT,
+		     GNUNET_NO, 
+		     NULL, 
+		     &check_gns_cb, h);
 
   return;
 }
@@ -238,11 +242,10 @@ check_gns (struct GNUNET_CONVERSATION_Handle *h)
 static void
 receive_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  struct ServerClientAvailableAnswerMessage *avbmsg;
+  struct GNUNET_CONVERSATION_Handle *h = cls;
   struct ServerClientSessionInitiateMessage *imsg;
   struct ServerClientSessionRejectMessage *rmsg;
   struct GNUNET_CONVERSATION_MissedCallNotification *missed_calls;
-  struct GNUNET_CONVERSATION_Handle *h = (struct GNUNET_CONVERSATION_Handle *) cls;
 
   if (NULL != msg)
     {
@@ -566,38 +569,36 @@ static void
 gns_call_cb (void *cls, uint32_t rd_count,
 	     const struct GNUNET_NAMESTORE_RecordData *rd)
 {
+  struct GNUNET_CONVERSATION_Handle *handle = cls;
   struct GNUNET_PeerIdentity peer;
-  char hash[104];
-  struct GNUNET_CONVERSATION_Handle *handle = (struct GNUNET_CONVERSATION_Handle *) cls;
-  int i = 0;
+  unsigned int i;
 
-  if (0 == rd_count)
+  for (i=0;i<rd_count;i++)
+  {
+    switch (rd[i].record_type)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Lookup failed\n");
-      handle->notification_handler (NULL, handle, NotificationType_NO_PEER,
-				    NULL);
+    case GNUNET_DNSPARSER_TYPE_TXT: /* FIXME:  use fresh record type for voide... */
+      if (GNUNET_OK !=
+	  GNUNET_CRYPTO_ecc_public_sign_key_from_string (rd[i].data,
+							 rd[i].data_size,
+							 &peer.public_key))
+      {
+	GNUNET_break_op (0);
+	continue;
+      }      
+      initiate_call (handle, peer);
+      return;
+    default:
+      break;
     }
-  else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Lookup succeeded\n");
-
-      if (GNUNET_GNS_RECORD_TXT == rd[i].record_type)
-	{
-	  memcpy (&hash, rd[i].data, 104);
-	  GNUNET_CRYPTO_hash_from_string2 (hash, strlen (hash),
-					   &(peer.hashPubKey));
-
-	  initiate_call (handle, peer);
-	}
-      else
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No resolution!\n");
-	  handle->notification_handler (NULL, handle,
-					NotificationType_NO_PEER, NULL);
-	}
-    }
-  return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Lookup failed\n");
+  handle->notification_handler (NULL, handle, 
+				NotificationType_NO_PEER,
+				NULL);
 }
+
 
 /**
 * GNS lookup
@@ -618,11 +619,15 @@ gns_lookup_and_call (struct GNUNET_CONVERSATION_Handle *h, const char *callee)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Lookup for %s\n", domain);
 
-  GNUNET_GNS_lookup (h->gns, domain, GNUNET_GNS_RECORD_TXT, GNUNET_NO, NULL,
+  GNUNET_GNS_lookup (h->gns,
+		     domain,
+		     NULL /* FIXME: ZONE! */,
+		     GNUNET_DNSPARSER_TYPE_TXT,
+		     GNUNET_NO, 
+		     NULL,
 		     &gns_call_cb, h);
-
-  return;
 }
+
 
 /******************************************************************************/
 /**********************      API CALL DEFINITIONS     *************************/
@@ -696,29 +701,34 @@ GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle)
   handle = NULL;
 }
 
+
 void
-GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *h, const char *callee,
-		  int doGnsLookup)
+GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *h, 
+			  const char *callee,
+			  int doGnsLookup)
 {
   struct GNUNET_PeerIdentity peer;
+
   if (NULL == h || NULL == h->client)
     return;
 
   if (GNUNET_YES == doGnsLookup)
-    {
-      gns_lookup_and_call (h, callee);
-    }
-  else
-    {
-      if (GNUNET_OK !=
-	  GNUNET_CRYPTO_hash_from_string2 (callee, strlen (callee),
-					   &(peer.hashPubKey)))
-	{
-	  h->notification_handler (NULL, h, NotificationType_NO_PEER, NULL);
-	}
-
-      initiate_call (h, peer);
-    }
+  {
+    gns_lookup_and_call (h, callee);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_public_sign_key_from_string (callee, 
+						     strlen (callee),
+						     &peer.public_key))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("`%s'  is not a valid public key\n"),
+		callee);
+    h->notification_handler (NULL, h, NotificationType_NO_PEER, NULL);
+    return;
+  }  
+  initiate_call (h, peer);
 }
 
 void
