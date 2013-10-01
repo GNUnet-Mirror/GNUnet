@@ -105,11 +105,11 @@ free_issuer (void *cls,
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_id)
+GED_experiments_issuer_accepted (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer_id)
 {
   struct GNUNET_HashCode hash;
 
-  GNUNET_CRYPTO_hash (issuer_id, sizeof (struct GNUNET_PeerIdentity), &hash);
+  GNUNET_CRYPTO_hash (issuer_id, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), &hash);
   if (GNUNET_CONTAINER_multihashmap_contains (valid_issuers, &hash))
     return GNUNET_YES;
   return GNUNET_NO;
@@ -121,14 +121,14 @@ GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_id)
  * experiment map.
  */
 static void
-get_experment_key (const struct GNUNET_PeerIdentity *issuer,
-		   const char *name,
-		   const struct GNUNET_TIME_Absolute version,
-		   struct GNUNET_HashCode *key)
+get_experiment_key (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer,
+		    const char *name,
+		    const struct GNUNET_TIME_Absolute version,
+		    struct GNUNET_HashCode *key)
 {
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CRYPTO_kdf (key, sizeof (struct GNUNET_HashCode),
-				    issuer, sizeof (struct GNUNET_PeerIdentity),
+				    issuer, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 				    name, strlen (name),
 				    &version, sizeof (version),
 				    NULL, 0));
@@ -144,11 +144,11 @@ get_experment_key (const struct GNUNET_PeerIdentity *issuer,
  * @return the experiment or NULL if not found
  */
 struct Experiment *
-GED_experiments_find (const struct GNUNET_PeerIdentity *issuer,
+GED_experiments_find (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer,
 		      const char *name,
 		      const struct GNUNET_TIME_Absolute version)
 {
-  struct GNUENT_HashCode hc;
+  struct GNUNET_HashCode hc;
   
   get_experiment_key (issuer, 
 		      name,
@@ -177,10 +177,10 @@ get_it (void *cls,
   struct GetCtx *get_ctx = cls;
   struct Experiment *e = value;
 
-  if (0 == memcmp (e->issuer,
+  if (0 == memcmp (&e->issuer,
 		   get_ctx->issuer,
-		   sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
-      get_ctx->get_cb (get_ctx->n, e);  
+		   sizeof (struct GNUNET_CRYPTO_EccPublicSignKey)))
+    get_ctx->get_cb (get_ctx->n, e);  
   return GNUNET_OK;
 }
 
@@ -210,7 +210,7 @@ GED_experiments_get (struct Node *n,
 int
 GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 					const char *name,
-					const struct GNUNET_CRYPTO_EccPublicKey *issuer_id,
+					const struct GNUNET_CRYPTO_EccPublicSignKey *issuer_id,
 					struct GNUNET_TIME_Absolute version,
 					char *description,
 					uint32_t required_capabilities,
@@ -220,10 +220,11 @@ GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 					struct GNUNET_TIME_Absolute stop)
 {
   struct Experiment *e;
+  struct GNUNET_HashCode hc;
 
   e = GNUNET_new (struct Experiment);  
   e->name = GNUNET_strdup (name);
-  e->issuer = issuer_id;
+  e->issuer = *issuer_id;
   e->version = version;
   if (NULL != description)
     e->description = GNUNET_strdup (description);
@@ -252,8 +253,12 @@ GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
 	      GNUNET_STRINGS_absolute_time_to_string (stop),
 	      (long long unsigned int) frequency.rel_value_us / 1000000LL,
 	      (long long unsigned int) duration.rel_value_us / 1000000LL);
+  get_experiment_key (&e->issuer,
+		      name,
+		      version,
+		      &hc);
   GNUNET_CONTAINER_multihashmap_put (experiments,
-				     &e->issuer.hashPubKey, 
+				     &hc,
 				     e, 
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_STATISTICS_set (GED_stats, 
@@ -279,7 +284,7 @@ exp_file_iterator (void *cls,
   char *val;
   unsigned long long number;
   /* Experiment values */
-  struct GNUNET_PeerIdentity issuer;
+  struct GNUNET_CRYPTO_EccPublicSignKey issuer;
   struct GNUNET_TIME_Absolute version;
   char *description;
   uint32_t required_capabilities;
@@ -287,6 +292,7 @@ exp_file_iterator (void *cls,
   struct GNUNET_TIME_Absolute stop;
   struct GNUNET_TIME_Relative frequency;
   struct GNUNET_TIME_Relative duration;
+  struct GNUNET_HashCode phash;
   
   /* Mandatory fields */
   
@@ -297,14 +303,18 @@ exp_file_iterator (void *cls,
 		_("Experiment `%s': Issuer missing\n"), name);
     return;
   }
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string (val, &issuer.hashPubKey))
+  if (GNUNET_SYSERR == 
+      GNUNET_CRYPTO_ecc_public_sign_key_from_string (val, 
+						     strlen (val),
+						     &issuer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Experiment `%s': Issuer invalid\n"), name);
     GNUNET_free (val);
     return;
   }
-  if (NULL == (i = GNUNET_CONTAINER_multihashmap_get (valid_issuers, &issuer.hashPubKey)))
+  GNUNET_CRYPTO_hash (&issuer, sizeof (issuer), &phash);
+  if (NULL == (i = GNUNET_CONTAINER_multihashmap_get (valid_issuers, &phash)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Experiment `%s': Issuer not accepted!\n"), name);
@@ -353,7 +363,7 @@ exp_file_iterator (void *cls,
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (exp, name, "STOP", (long long unsigned int *)&stop.abs_value_us))
     stop = GNUNET_TIME_UNIT_FOREVER_ABS;
   
-  GNUNET_EXPERIMENTATION_experiments_add (i, name, issuer, version,
+  GNUNET_EXPERIMENTATION_experiments_add (i, name, &issuer, version,
 					  description, required_capabilities,
 					  start, frequency, duration, stop);
   GNUNET_free_non_null (description);
@@ -395,10 +405,8 @@ GED_experiments_start ()
   struct Issuer *i;
   char *issuers;
   char *file;
-  char *pubkey;
   char *pos;
-  struct GNUNET_PeerIdentity issuer_ID;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EccPublicSignKey issuer_ID;
   struct GNUNET_HashCode hash;
   
   /* Load valid issuer */
@@ -417,13 +425,13 @@ GED_experiments_start ()
   valid_issuers = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
   for (pos = strtok (issuers, " "); pos != NULL; pos = strtok (NULL, " "))
   {   
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_public_sign_key_from_string (pos, 
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_public_sign_key_from_string (pos,
 									strlen (pos),
 									&issuer_ID))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, 
 				 "EXPERIMENTATION",
-				 "ISSUERS"
+				 "ISSUERS",
 				 _("Invalid value for public key\n"));
       GED_experiments_stop ();
       return GNUNET_SYSERR;

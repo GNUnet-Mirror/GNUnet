@@ -471,7 +471,8 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   struct Node *n;
   struct NodeComCtx *e_ctx;
   const struct Experimentation_Request *rm = (const struct Experimentation_Request *) message;
-  const struct Experimentation_Issuer *rmi = (const struct Experimentation_Issuer *) &rm[1];
+  const struct GNUNET_CRYPTO_EccPublicSignKey *rmi = (const struct GNUNET_CRYPTO_EccPublicSignKey *) &rm[1];
+  unsigned int my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   int c1;
   int c2;
   uint32_t ic;
@@ -484,7 +485,8 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
     return;
   }
   ic = ntohl (rm->issuer_count);
-  if (ntohs (message->size) != sizeof (struct Experimentation_Request) + ic * sizeof (struct Experimentation_Issuer))
+  if (ntohs (message->size) != 
+      sizeof (struct Experimentation_Request) + ic * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
   {
     GNUNET_break (0);
     return;
@@ -528,20 +530,20 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   ic_accepted = 0;
   for (c1 = 0; c1 < ic; c1++)
   {
-    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
+    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1]))
       ic_accepted ++;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Request from peer `%s' with %u issuers, we accepted %u issuer \n",
 	      GNUNET_i2s (peer), ic, ic_accepted);
   GNUNET_free_non_null (n->issuer_id);
-  n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_PeerIdentity));
+  n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
   c2 = 0;
   for (c1 = 0; c1 < ic; c1++)
   {
-    if (GNUNET_YES == GED_experiments_issuer_accepted (&rmi[c1].issuer_id))
+    if (GNUNET_YES == GED_experiments_issuer_accepted (&rmi[c1]))
     {
-      n->issuer_id[c2] = rmi[c1].issuer_id;
+      n->issuer_id[c2] = rmi[c1];
       c2 ++;
     }
   }
@@ -554,7 +556,8 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   e_ctx = GNUNET_new (struct NodeComCtx);
   e_ctx->n = n;
   e_ctx->e = NULL;
-  e_ctx->size = sizeof (struct Experimentation_Response) + GSE_my_issuer_count * sizeof (struct Experimentation_Issuer);
+  e_ctx->size = sizeof (struct Experimentation_Response) + 
+    my_issuer_count * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   e_ctx->notify = &send_response_cb;
   e_ctx->notify_cls = n;
   
@@ -574,7 +577,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 {
   struct Node *n;
   const struct Experimentation_Response *rm = (const struct Experimentation_Response *) message;
-  const struct Experimentation_Issuer *rmi = (const struct Experimentation_Issuer *) &rm[1];
+  const struct GNUNET_CRYPTO_EccPublicSignKey *rmi = (const struct GNUNET_CRYPTO_EccPublicSignKey *) &rm[1];
   uint32_t ic;
   uint32_t ic_accepted;
   int make_active;
@@ -587,7 +590,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
       return;
     }
   ic = ntohl (rm->issuer_count);
-  if (ntohs (message->size) != sizeof (struct Experimentation_Response) + ic * sizeof (struct Experimentation_Issuer))
+  if (ntohs (message->size) != sizeof (struct Experimentation_Response) + ic * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
   {
     GNUNET_break (0);
     return;
@@ -636,7 +639,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
   ic_accepted = 0;
   for (c1 = 0; c1 < ic; c1++)
   {
-    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
+    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1]))
       ic_accepted ++;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -647,9 +650,9 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
   c2 = 0;
   for (c1 = 0; c1 < ic; c1++)
   {
-    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1].issuer_id))
+    if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1]))
     {
-      n->issuer_id[c2] = rmi[c1].issuer_id;
+      n->issuer_id[c2] = rmi[c1];
       c2 ++;
     }
   }

@@ -174,6 +174,14 @@ struct Node
   struct NodeComCtx *e_req_head;
 
   struct NodeComCtx *e_req_tail;
+
+  /**
+   * Array of issuers accepted by this neighbor.
+   */ 
+  struct GNUNET_CRYPTO_EccPublicSignKey *issuer_id;
+
+  unsigned int issuer_count;
+
 };
 
 
