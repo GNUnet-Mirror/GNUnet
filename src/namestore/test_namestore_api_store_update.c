@@ -22,7 +22,6 @@
  * @brief testcase for namestore_api.c: store a record, update it and perform a lookup
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 

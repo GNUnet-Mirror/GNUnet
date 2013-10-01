@@ -22,7 +22,6 @@
  * @brief testcase for zone monitoring functionality: add records first, then monitor
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 #include "namestore.h"

@@ -22,10 +22,8 @@
  * @brief testcase for block creation, verification and decryption
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
-#include "gnunet_signatures.h"
 
 #define RECORDS 5
 

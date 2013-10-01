@@ -22,7 +22,7 @@
  * @brief testcase for test_namestore_record_serialization.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
 
