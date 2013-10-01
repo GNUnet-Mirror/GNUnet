@@ -25,16 +25,12 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_protocols.h"
-#include "gnunet_signatures.h"
 #include "gnunet_transport_plugin.h"
-
 #include "transport.h"
 
 /**
@@ -47,11 +43,6 @@
 
 /**
  * Our public key.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
-
-/**
- * Our identity.
  */
 static struct GNUNET_PeerIdentity my_identity;
 
@@ -634,12 +625,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_identity.hashPubKey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_identity.public_key);
 
-
-  hello = GNUNET_HELLO_create(&my_public_key, NULL, NULL, GNUNET_NO);
+  hello = GNUNET_HELLO_create (&my_identity.public_key, NULL, NULL, GNUNET_NO);
 
   /* load plugins... */
   setup_plugin_environment ();
