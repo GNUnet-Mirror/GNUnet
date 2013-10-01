@@ -1296,6 +1296,8 @@ src/core/Makefile
 src/core/core.conf
 src/consensus/Makefile
 src/consensus/consensus.conf
+src/conversation/Makefile
+src/conversation/conversation.conf
 src/datacache/Makefile
 src/datastore/Makefile
 src/datastore/datastore.conf

@@ -16,6 +16,7 @@ if HAVE_EXPERIMENTAL
   multicast \
   env \
   psyc \
+  conversation \
   $(CONSENSUS) \
   $(EXPERIMENTATION)
   # NOTE: scalarproduct is not being listed here yet as the crypto is being reworked at the moment

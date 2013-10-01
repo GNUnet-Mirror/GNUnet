@@ -1,0 +1,7 @@
+[conversation]
+BINARY = gnunet-service-conversation
+UNIXPATH = /tmp/gnunet-service-conversation.sock
+HOME = $SERVICEHOME
+# PORT = 2106
+# @UNIXONLY@ PORT = 2087
+
