@@ -720,11 +720,6 @@ static struct GNUNET_PeerIdentity my_full_id;
 static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 /**
- * Own public key.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
-
-/**
  * Tunnel ID for the next created tunnel (global tunnel number).
  */
 static MESH_TunnelNumber next_tid;
@@ -1039,6 +1034,7 @@ static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PBlock block;
+  struct GNUNET_HashCode phash;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -1050,10 +1046,10 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Adapt X to churn
    */
   DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
-
+  GNUNET_CRYPTO_hash (&my_full_id, sizeof (my_full_id), &phash);
   block.id = my_full_id;
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
-                  &my_full_id.hashPubKey,       /* Key to use */
+                  &phash,
                   dht_replication_level,     /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
                   GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
@@ -1616,6 +1612,7 @@ static void
 peer_connect (struct MeshPeer *peer, struct MeshTunnel *t)
 {
   struct MeshPeerPath *p;
+  struct GNUNET_HashCode phash;
 
   if (NULL != peer->path_head)
   {
@@ -1629,10 +1626,12 @@ peer_connect (struct MeshPeer *peer, struct MeshTunnel *t)
 
     GNUNET_PEER_resolve (peer->id, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "  Starting DHT GET for peer %s\n", GNUNET_i2s (&id));
+                "Starting DHT GET for peer %s\n", 
+		GNUNET_i2s (&id));
+    GNUNET_CRYPTO_hash (&id, sizeof (my_full_id), &phash);
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
-                                         &id.hashPubKey,     /* key to search */
+                                         &phash,     /* key to search */
                                          dht_replication_level, /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE |
                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -5902,9 +5901,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_full_id.hashPubKey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+						  &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] starting\n",

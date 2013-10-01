@@ -889,7 +889,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *connections;
 /**
  * Peers known, indexed by PeerIdentity (MeshPeer).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 /**
  * Handle to communicate with core.
@@ -930,11 +930,6 @@ static struct GNUNET_PeerIdentity my_full_id;
  * Own private key.
  */
 static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
-
-/**
- * Own public key.
- */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
 
 /**
  * All ports clients of this peer have opened.
@@ -1298,6 +1293,7 @@ static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PBlock block;
+  struct GNUNET_HashCode phash;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -1311,8 +1307,9 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
 
   block.id = my_full_id;
+  GNUNET_CRYPTO_hash (&my_full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
-                  &my_full_id.hashPubKey,       /* Key to use */
+                  &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
                   GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
@@ -2185,11 +2182,11 @@ peer_destroy (struct MeshPeer *peer)
   GNUNET_PEER_change_rc (peer->id, -1);
 
   if (GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap_remove (peers, &id.hashPubKey, peer))
+      GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "removing peer %s, not in hashmap\n", GNUNET_i2s (&id));
+                "removing peer %s, not in peermap\n", GNUNET_i2s (&id));
   }
   if (NULL != peer->dhtget)
   {
@@ -2232,6 +2229,7 @@ peer_is_used (struct MeshPeer *peer)
   return GNUNET_NO;
 }
 
+
 /**
  * Iterator over all the peers to get the oldest timestamp.
  *
@@ -2241,7 +2239,7 @@ peer_is_used (struct MeshPeer *peer)
  */
 static int
 peer_get_oldest (void *cls,
-                 const struct GNUNET_HashCode *key,
+                 const struct GNUNET_PeerIdentity *key,
                  void *value)
 {
   struct MeshPeer *p = value;
@@ -2267,7 +2265,7 @@ peer_get_oldest (void *cls,
  */
 static int
 peer_timeout (void *cls,
-              const struct GNUNET_HashCode *key,
+              const struct GNUNET_PeerIdentity *key,
               void *value)
 {
   struct MeshPeer *p = value;
@@ -2293,10 +2291,10 @@ peer_delete_oldest (void)
 
   abs = GNUNET_TIME_UNIT_FOREVER_ABS;
 
-  GNUNET_CONTAINER_multihashmap_iterate (peers,
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &peer_get_oldest,
                                          &abs);
-  GNUNET_CONTAINER_multihashmap_iterate (peers,
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &peer_timeout,
                                          &abs);
 }
@@ -2315,15 +2313,15 @@ peer_get (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct MeshPeer *peer;
 
-  peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer_id->hashPubKey);
+  peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
   if (NULL == peer)
   {
     peer = GNUNET_new (struct MeshPeer);
-    if (GNUNET_CONTAINER_multihashmap_size (peers) > max_peers)
+    if (GNUNET_CONTAINER_multipeermap_size (peers) > max_peers)
     {
       peer_delete_oldest ();
     }
-    GNUNET_CONTAINER_multihashmap_put (peers, &peer_id->hashPubKey, peer,
+    GNUNET_CONTAINER_multipeermap_put (peers, peer_id, peer,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     peer->id = GNUNET_PEER_intern (peer_id);
   }
@@ -2534,13 +2532,15 @@ peer_connect (struct MeshPeer *peer)
   if (NULL == peer->dhtget)
   {
     const struct GNUNET_PeerIdentity *id;
+    struct GNUNET_HashCode phash;
 
     id = GNUNET_PEER_resolve2 (peer->id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", peer2s (peer));
+    GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &phash);
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
-                                         &id->hashPubKey,     /* key to search */
+                                         &phash,     /* key to search */
                                          dht_replication_level, /* replication level */
                                          GNUNET_DHT_RO_RECORD_ROUTE |
                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -6994,7 +6994,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct MeshPeer *pi;
 
   DEBUG_CONN ("Peer disconnected\n");
-  pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pi)
   {
     GNUNET_break (0);
@@ -7093,11 +7093,13 @@ core_init (void *cls,
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
  */
 static int
-shutdown_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
+shutdown_tunnel (void *cls, 
+		 const struct GNUNET_PeerIdentity *key, 
+		 void *value)
 {
   struct MeshPeer *p = value;
   struct MeshTunnel2 *t = p->tunnel;
@@ -7124,7 +7126,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &shutdown_tunnel, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
@@ -7256,7 +7258,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
-  peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
@@ -7273,9 +7275,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (c);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
-  GNUNET_CRYPTO_hash (&my_public_key, sizeof (my_public_key),
-                      &my_full_id.hashPubKey);
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+						  &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] starting\n",
