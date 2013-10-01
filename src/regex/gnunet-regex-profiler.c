@@ -931,7 +931,7 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Deamon %u started successfully\n", peer->id);
   }
 
