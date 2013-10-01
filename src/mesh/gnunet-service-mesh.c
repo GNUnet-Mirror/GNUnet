@@ -672,7 +672,7 @@ static struct GNUNET_CONTAINER_MultiHashMap32 *incoming_tunnels;
 /**
  * Peers known, indexed by PeerIdentity (MeshPeer).
  */
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 /*
  * Handle to communicate with transport
@@ -1480,7 +1480,7 @@ send_core_path_ack (void *cls, size_t size, void *buf)
  */
 static int
 peer_timeout (void *cls,
-              const struct GNUNET_HashCode *key,
+              const struct GNUNET_PeerIdentity *key,
               void *value)
 {
   return GNUNET_YES;
@@ -1500,17 +1500,17 @@ peer_get (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct MeshPeer *peer;
 
-  peer = GNUNET_CONTAINER_multihashmap_get (peers, &peer_id->hashPubKey);
+  peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
   if (NULL == peer)
   {
-    peer = (struct MeshPeer *) GNUNET_malloc (sizeof (struct MeshPeer));
-    if (GNUNET_CONTAINER_multihashmap_size (peers) > max_peers)
+    peer = GNUNET_new (struct MeshPeer);
+    if (GNUNET_CONTAINER_multipeermap_size (peers) > max_peers)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (peers,
+      GNUNET_CONTAINER_multipeermap_iterate (peers,
                                              &peer_timeout,
                                              NULL);
     }
-    GNUNET_CONTAINER_multihashmap_put (peers, &peer_id->hashPubKey, peer,
+    GNUNET_CONTAINER_multipeermap_put (peers, peer_id, peer,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     peer->id = GNUNET_PEER_intern (peer_id);
   }
@@ -1751,7 +1751,7 @@ peer_destroy (struct MeshPeer *peer)
   GNUNET_PEER_change_rc (peer->id, -1);
 
   if (GNUNET_YES !=
-      GNUNET_CONTAINER_multihashmap_remove (peers, &id.hashPubKey, peer))
+      GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3981,25 +3981,25 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   tunnel_reset_timeout (t, GNUNET_YES);
   tunnel_change_state (t,  MESH_TUNNEL_WAITING);
   dest_peer_info =
-      GNUNET_CONTAINER_multihashmap_get (peers, &pi[size - 1].hashPubKey);
+      GNUNET_CONTAINER_multipeermap_get (peers, &pi[size - 1]);
   if (NULL == dest_peer_info)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  Creating PeerInfo for destination.\n");
     dest_peer_info = GNUNET_malloc (sizeof (struct MeshPeer));
     dest_peer_info->id = GNUNET_PEER_intern (&pi[size - 1]);
-    GNUNET_CONTAINER_multihashmap_put (peers, &pi[size - 1].hashPubKey,
+    GNUNET_CONTAINER_multipeermap_put (peers, &pi[size - 1],
                                        dest_peer_info,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
-  orig_peer_info = GNUNET_CONTAINER_multihashmap_get (peers, &pi->hashPubKey);
+  orig_peer_info = GNUNET_CONTAINER_multipeermap_get (peers, pi);
   if (NULL == orig_peer_info)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "  Creating PeerInfo for origin.\n");
-    orig_peer_info = GNUNET_malloc (sizeof (struct MeshPeer));
+    orig_peer_info = GNUNET_new (struct MeshPeer);
     orig_peer_info->id = GNUNET_PEER_intern (pi);
-    GNUNET_CONTAINER_multihashmap_put (peers, &pi->hashPubKey, orig_peer_info,
+    GNUNET_CONTAINER_multipeermap_put (peers, pi, orig_peer_info,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
@@ -5566,7 +5566,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct MeshPeerQueue *n;
 
   DEBUG_CONN ("Peer disconnected\n");
-  pi = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pi)
   {
     GNUNET_break (0);
@@ -5689,7 +5689,7 @@ shutdown_tunnel (void *cls, const struct GNUNET_HashCode * key, void *value)
  *         GNUNET_NO if not.
  */
 static int
-shutdown_peer (void *cls, const struct GNUNET_HashCode * key, void *value)
+shutdown_peer (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct MeshPeer *p = value;
   struct MeshPeerQueue *q;
@@ -5727,7 +5727,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     core_handle = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (tunnels, &shutdown_tunnel, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &shutdown_peer, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_peer, NULL);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
@@ -5885,7 +5885,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   tunnels = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   incoming_tunnels = GNUNET_CONTAINER_multihashmap32_create (32);
-  peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 
   dht_handle = GNUNET_DHT_connect (c, 64);
