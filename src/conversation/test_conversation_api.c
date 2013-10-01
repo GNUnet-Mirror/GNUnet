@@ -18,12 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file voip/src/test_voip_api.c
- * @brief testcase for voip_api.c
+ * @file src/test_conversation_api.c
+ * @brief testcase for conversation_api.c
  */
 #include <gnunet/platform.h>
 #include <gnunet/gnunet_util_lib.h>
-#include "gnunet_voip_service.h"
+#include "gnunet_conversation_service.h"
 
 
 static int ok = 1;
@@ -42,25 +42,25 @@ run (void *cls,
 static int
 check ()
 {
-  char *const argv[] = { "test-voip-api", NULL };
+  char *const argv[] = { "test-conversation-api", NULL };
   struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
   struct GNUNET_OS_Process *proc;
-  char *path = GNUNET_OS_get_libexec_binary_path ( "gnunet-service-voip");
+  char *path = GNUNET_OS_get_libexec_binary_path ( "gnunet-service-conversation");
   if (NULL == path)
   {
-  		fprintf (stderr, "Service executable not found `%s'\n", "gnunet-service-voip");
+  		fprintf (stderr, "Service executable not found `%s'\n", "gnunet-service-conversation");
   		return;
   }
   proc = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL, NULL,
   				path,
-				  "gnunet-service-voip",
+				  "gnunet-service-conversation",
 				  NULL);
 
   GNUNET_free (path);
   GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run (1, argv, "test-ext-voip", "nohelp",
+  GNUNET_PROGRAM_run (1, argv, "test-ext-conversation", "nohelp",
                       options, &run, &ok);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
     {
@@ -76,10 +76,10 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_voip_api", 
+  GNUNET_log_setup ("test_conversation_api", 
 		    "WARNING",
 		    NULL);
   return check ();
 }
 
-/* end of test_voip_api.c */
+/* end of test_conversation_api.c */
