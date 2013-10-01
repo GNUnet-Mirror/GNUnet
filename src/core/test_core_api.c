@@ -22,7 +22,6 @@
  * @brief testcase for core_api.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_getopt_lib.h"
