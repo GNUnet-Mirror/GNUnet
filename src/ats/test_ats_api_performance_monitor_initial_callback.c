@@ -223,9 +223,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
 
   /* set up peer 0 */
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-      &p[0].id.hashPubKey);
-
+  memset (&p[0].id, '1', sizeof (p[0].id));
   p0_addresses[0].plugin = "test";
   p0_addresses[0].session = NULL;
   p0_addresses[0].addr = GNUNET_strdup ("test_p0_a0");
@@ -249,9 +247,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Created peer 0: `%s'\n",
       GNUNET_i2s (&p[0].id));
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-      &p[1].id.hashPubKey);
-
+  memset (&p[1].id, '2', sizeof (p[1].id));
   p1_addresses[0].plugin = "test";
   p1_addresses[0].session = NULL;
   p1_addresses[0].addr = GNUNET_strdup ("test_p1_a0");

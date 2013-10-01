@@ -186,17 +186,7 @@ run (void *cls,
   }
 
   /* Set up peer */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
-      GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-      return;
-  }
-  GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-              GNUNET_i2s_full(&p.id));
-
+  memset (&p.id, '1', sizeof (p.id));
   /* Prepare ATS Information */
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   test_ats_info[0].value = htonl(GNUNET_ATS_NET_WAN);

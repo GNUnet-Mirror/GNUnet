@@ -312,14 +312,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   }
 
   /* Set up peer */
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_hash_from_string(PEERID0, &p.id.hashPubKey))
-  {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");
-      end_badly_now ();
-      return;
-  }
-  GNUNET_assert (0 == strcmp (PEERID0, GNUNET_i2s_full (&p.id)));
-
+  memset (&p.id, '1', sizeof (p.id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
