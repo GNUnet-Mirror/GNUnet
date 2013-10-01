@@ -198,7 +198,7 @@ struct DirectNeighbor
    * Note that the distances in the targets are from the point-of-view
    * of the peer, not from us!
    */ 
-  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table;
+  struct GNUNET_CONTAINER_MultiPeerMap *neighbor_table;
 
   /**
    * Updated routing table of the neighbor, under construction,
@@ -207,7 +207,7 @@ struct DirectNeighbor
    * Note that the distances in the targets are from the point-of-view
    * of the peer, not from us!
    */ 
-  struct GNUNET_CONTAINER_MultiHashMap *neighbor_table_consensus;
+  struct GNUNET_CONTAINER_MultiPeerMap *neighbor_table_consensus;
 
   /**
    * Our current (exposed) routing table as a set.
@@ -317,18 +317,18 @@ struct ConsensusSet
 
 
 /**
- * Hashmap of all of our neighbors; processing these usually requires
+ * Peermap of all of our neighbors; processing these usually requires
  * first checking to see if the peer is core-connected and if the 
  * distance is 1, in which case they are direct neighbors.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *direct_neighbors;
+static struct GNUNET_CONTAINER_MultiPeerMap *direct_neighbors;
 
 /**
  * Hashmap with all routes that we currently support; contains 
  * routing information for all peers from distance 2
  * up to distance DEFAULT_FISHEYE_DEPTH.
  */
-static struct GNUNET_CONTAINER_MultiHashMap *all_routes;
+static struct GNUNET_CONTAINER_MultiPeerMap *all_routes;
 
 /**
  * Array of consensus sets we expose to the outside world.  Sets
@@ -804,6 +804,8 @@ static void
 handle_direct_connect (struct DirectNeighbor *neighbor)
 {
   struct Route *route;
+  struct GNUNET_HashCode h1;
+  struct GNUNET_HashCode h2;
   struct GNUNET_HashCode session_id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -812,8 +814,8 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
   GNUNET_STATISTICS_update (stats,
 			    "# peers connected (1-hop)",
 			    1, GNUNET_NO);
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes, 
-					     &neighbor->peer.hashPubKey);
+  route = GNUNET_CONTAINER_multipeermap_get (all_routes, 
+					     &neighbor->peer);
   if (NULL != route)  
   {
     send_disconnect_to_plugin (&neighbor->peer);
@@ -821,8 +823,10 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
     GNUNET_free (route);
   }
   /* construct session ID seed as XOR of both peer's identities */
-  GNUNET_CRYPTO_hash_xor (&my_identity.hashPubKey, 
-			  &neighbor->peer.hashPubKey, 
+  GNUNET_CRYPTO_hash (&my_identity, sizeof (my_identity), &h1);
+  GNUNET_CRYPTO_hash (&neighbor->peer, sizeof (struct GNUNET_PeerIdentity), &h2);
+  GNUNET_CRYPTO_hash_xor (&h1,
+			  &h2,
 			  &session_id);
   /* make sure session ID is unique across applications by salting it with 'DV' */
   GNUNET_CRYPTO_hkdf (&neighbor->real_session_id, sizeof (struct GNUNET_HashCode),
@@ -830,8 +834,9 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 		      "DV-SALT", 2,
 		      &session_id, sizeof (session_id),
 		      NULL, 0);
-  if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
-				   &my_identity.hashPubKey))  
+  if (0 < memcmp (&neighbor->peer,
+		  &my_identity,
+		  sizeof (struct GNUNET_PeerIdentity)))
   {
     neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
 							neighbor);  
@@ -865,8 +870,8 @@ handle_core_connect (void *cls,
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* check if entry exists */
-  neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
-						&peer->hashPubKey);
+  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors, 
+						peer);
   if (NULL != neighbor)
   {
     GNUNET_break (GNUNET_YES != neighbor->connected);
@@ -886,8 +891,8 @@ handle_core_connect (void *cls,
   neighbor = GNUNET_new (struct DirectNeighbor);
   neighbor->peer = *peer;
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
-						    &peer->hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (direct_neighbors,
+						    peer,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   neighbor->connected = GNUNET_YES;
@@ -905,7 +910,7 @@ handle_core_connect (void *cls,
  */
 static int
 free_targets (void *cls,
-	      const struct GNUNET_HashCode *key,
+	      const struct GNUNET_PeerIdentity *key,
 	      void *value)
 {
   GNUNET_free (value);
@@ -914,7 +919,7 @@ free_targets (void *cls,
 
 
 /**
- * Multihashmap iterator for checking if a given route is
+ * Multipeerhmap iterator for checking if a given route is
  * (now) useful to this peer.
  *
  * @param cls the direct neighbor for the given route
@@ -925,14 +930,14 @@ free_targets (void *cls,
  */
 static int
 check_possible_route (void *cls, 
-		      const struct GNUNET_HashCode *key, 
+		      const struct GNUNET_PeerIdentity *key, 
 		      void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target = value;
   struct Route *route;
   
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+  route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     key);
   if (NULL != route)
   {
@@ -951,8 +956,8 @@ check_possible_route (void *cls,
   route->target.peer = target->peer;
   allocate_route (route, ntohl (route->target.distance));
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (all_routes,
-						    &route->target.peer.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (all_routes,
+						    &route->target.peer,
 						    route,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   send_connect_to_plugin (&route->target.peer, ntohl (target->distance));
@@ -961,7 +966,7 @@ check_possible_route (void *cls,
 
 
 /**
- * Multihashmap iterator for finding routes that were previously
+ * Multipeermap iterator for finding routes that were previously
  * "hidden" due to a better route (called after a disconnect event).
  *
  * @param cls NULL
@@ -971,7 +976,7 @@ check_possible_route (void *cls,
  */
 static int
 refresh_routes (void *cls, 
-		const struct GNUNET_HashCode *key, 
+		const struct GNUNET_PeerIdentity *key, 
 		void *value)
 {
   struct DirectNeighbor *neighbor = value;
@@ -980,7 +985,7 @@ refresh_routes (void *cls,
        (DIRECT_NEIGHBOR_COST != neighbor->distance) )
     return GNUNET_YES;    
   if (NULL != neighbor->neighbor_table)
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
 					   &check_possible_route,
 					   neighbor);
   return GNUNET_YES;
@@ -1009,7 +1014,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
 
 
 /**
- * Multihashmap iterator for freeing routes that go via a particular
+ * Multipeermap iterator for freeing routes that go via a particular
  * neighbor that disconnected and is thus no longer available.
  *
  * @param cls the direct neighbor that is now unavailable
@@ -1020,7 +1025,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  */
 static int
 cull_routes (void *cls, 
-	     const struct GNUNET_HashCode *key, 
+	     const struct GNUNET_PeerIdentity *key, 
 	     void *value)
 {
   struct DirectNeighbor *neighbor = cls;
@@ -1029,7 +1034,7 @@ cull_routes (void *cls,
   if (route->next_hop != neighbor)
     return GNUNET_YES; /* not affected */
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (all_routes, key, value));
+		 GNUNET_CONTAINER_multipeermap_remove (all_routes, key, value));
   release_route (route);
   send_disconnect_to_plugin (&route->target.peer);
   GNUNET_free (route);
@@ -1048,7 +1053,7 @@ cull_routes (void *cls,
 static void
 handle_direct_disconnect (struct DirectNeighbor *neighbor)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+  GNUNET_CONTAINER_multipeermap_iterate (all_routes,
 					 &cull_routes,
                                          neighbor);
   if (NULL != neighbor->cth)
@@ -1058,18 +1063,18 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
   }
   if (NULL != neighbor->neighbor_table_consensus)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
 					   &free_targets,
 					   NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
+    GNUNET_CONTAINER_multipeermap_destroy (neighbor->neighbor_table_consensus);
     neighbor->neighbor_table_consensus = NULL;
   }
   if (NULL != neighbor->neighbor_table)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
 					   &free_targets,
 					   NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+    GNUNET_CONTAINER_multipeermap_destroy (neighbor->neighbor_table);
     neighbor->neighbor_table = NULL;
   }
   if (NULL != neighbor->set_op)
@@ -1127,8 +1132,8 @@ handle_ats_update (void *cls,
 	      GNUNET_i2s (&address->peer),
 	      (unsigned int) distance);
   /* check if entry exists */
-  neighbor = GNUNET_CONTAINER_multihashmap_get (direct_neighbors, 
-						&address->peer.hashPubKey);
+  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors, 
+						&address->peer);
   if (NULL != neighbor)
   {    
     if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
@@ -1141,7 +1146,7 @@ handle_ats_update (void *cls,
 				"# peers connected (1-hop)",
 				-1, GNUNET_NO);  
       handle_direct_disconnect (neighbor);
-      GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+      GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					     &refresh_routes,
 					     NULL);
       return;
@@ -1157,8 +1162,8 @@ handle_ats_update (void *cls,
   neighbor = GNUNET_new (struct DirectNeighbor);
   neighbor->peer = address->peer;
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (direct_neighbors,
-						    &address->peer.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (direct_neighbors,
+						    &address->peer,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   neighbor->connected = GNUNET_NO; /* not yet */
@@ -1177,19 +1182,19 @@ handle_ats_update (void *cls,
  */
 static int
 check_target_removed (void *cls,
-		      const struct GNUNET_HashCode *key,
+		      const struct GNUNET_PeerIdentity *key,
 		      void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *new_target;
   struct Route *current_route;
 
-  new_target = GNUNET_CONTAINER_multihashmap_get (neighbor->neighbor_table_consensus,
+  new_target = GNUNET_CONTAINER_multipeermap_get (neighbor->neighbor_table_consensus,
 						  key);
   if (NULL == new_target)
   {
     /* target was revoked, check if it was used */
-    current_route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+    current_route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 						       key);
     if ( (NULL == current_route) ||
 	 (current_route->next_hop != neighbor) )
@@ -1202,7 +1207,7 @@ check_target_removed (void *cls,
 		"Lost route to %s\n",
 		GNUNET_i2s (&current_route->target.peer));
     GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multihashmap_remove (all_routes, key, current_route));
+		   GNUNET_CONTAINER_multipeermap_remove (all_routes, key, current_route));
     send_disconnect_to_plugin (&current_route->target.peer);
     GNUNET_free (current_route);
     neighbor->target_removed = GNUNET_YES;
@@ -1222,7 +1227,7 @@ check_target_removed (void *cls,
  */
 static int
 check_target_added (void *cls,
-		    const struct GNUNET_HashCode *key,
+		    const struct GNUNET_PeerIdentity *key,
 		    void *value)
 {
   struct DirectNeighbor *neighbor = cls;
@@ -1230,7 +1235,7 @@ check_target_added (void *cls,
   struct Route *current_route;
 
   /* target was revoked, check if it was used */
-  current_route = GNUNET_CONTAINER_multihashmap_get (all_routes,
+  current_route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 						     key);
   if (NULL != current_route)
   {
@@ -1270,8 +1275,8 @@ check_target_added (void *cls,
   current_route->target.peer = target->peer;
   current_route->target.distance = htonl (ntohl (target->distance) + 1);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (all_routes,
-						    &current_route->target.peer.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (all_routes,
+						    &current_route->target.peer,
 						    current_route,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   send_connect_to_plugin (&current_route->target.peer,
@@ -1312,8 +1317,8 @@ handle_set_union_result (void *cls,
     target = GNUNET_new (struct Target);
     memcpy (target, element->data, sizeof (struct Target));
     if (GNUNET_YES !=
-	GNUNET_CONTAINER_multihashmap_put (neighbor->neighbor_table_consensus,
-					   &target->peer.hashPubKey,
+	GNUNET_CONTAINER_multipeermap_put (neighbor->neighbor_table_consensus,
+					   &target->peer,
 					   target,
 					   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
     {
@@ -1328,14 +1333,15 @@ handle_set_union_result (void *cls,
     neighbor->set_op = NULL;
     if (NULL != neighbor->neighbor_table_consensus)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+      GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
 					     &free_targets,
 					     NULL);
-      GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table_consensus);
+      GNUNET_CONTAINER_multipeermap_destroy (neighbor->neighbor_table_consensus);
       neighbor->neighbor_table_consensus = NULL;
     }
-    if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
-				     &my_identity.hashPubKey))
+    if (0 < memcmp (&neighbor->peer,
+		    &my_identity,
+		    sizeof (struct GNUNET_PeerIdentity)))
       neighbor->initiate_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
 							      &initiate_set_union,
 							      neighbor);
@@ -1343,26 +1349,26 @@ handle_set_union_result (void *cls,
   case GNUNET_SET_STATUS_HALF_DONE:
     /* we got all of our updates; integrate routing table! */
     neighbor->target_removed = GNUNET_NO;
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
 					   &check_target_removed,
 					   neighbor);
     if (GNUNET_YES == neighbor->target_removed)
     {
       /* check if we got an alternative for the removed routes */
-      GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+      GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					     &refresh_routes,
 					     NULL);    
     }
     /* add targets that appeared (and check for improved routes) */
-    GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table_consensus,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
 					   &check_target_added,
 					   neighbor);
     if (NULL != neighbor->neighbor_table)
     {
-      GNUNET_CONTAINER_multihashmap_iterate (neighbor->neighbor_table,
+      GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
 					     &free_targets,
 					     NULL);
-      GNUNET_CONTAINER_multihashmap_destroy (neighbor->neighbor_table);
+      GNUNET_CONTAINER_multipeermap_destroy (neighbor->neighbor_table);
       neighbor->neighbor_table = NULL;
     }
     neighbor->neighbor_table = neighbor->neighbor_table_consensus;
@@ -1371,8 +1377,9 @@ handle_set_union_result (void *cls,
   case GNUNET_SET_STATUS_DONE:
     /* operation done, schedule next run! */
     neighbor->set_op = NULL;
-    if (1 == GNUNET_CRYPTO_hash_cmp (&neighbor->peer.hashPubKey,
-				     &my_identity.hashPubKey))
+    if (0 < memcmp (&neighbor->peer,
+		    &my_identity,
+		    sizeof (struct GNUNET_PeerIdentity)))
       neighbor->initiate_task = GNUNET_SCHEDULER_add_delayed (GNUNET_DV_CONSENSUS_FREQUENCY,
 							      &initiate_set_union,
 							      neighbor);
@@ -1500,8 +1507,8 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 		   sizeof (struct GNUNET_PeerIdentity)))
   {
     /* message is for me, check reverse route! */
-    route = GNUNET_CONTAINER_multihashmap_get (all_routes,
-					       &rm->sender.hashPubKey);
+    route = GNUNET_CONTAINER_multipeermap_get (all_routes,
+					       &rm->sender);
     if (NULL == route)
     {
       /* don't have reverse route, drop */
@@ -1518,8 +1525,8 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 			 ntohl (route->target.distance));
     return GNUNET_OK;
   }
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes,
-					     &rm->target.hashPubKey);
+  route = GNUNET_CONTAINER_multipeermap_get (all_routes,
+					     &rm->target);
   if (NULL == route)
   {
     GNUNET_STATISTICS_update (stats,
@@ -1578,8 +1585,8 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  route = GNUNET_CONTAINER_multihashmap_get (all_routes,
-					     &msg->target.hashPubKey);
+  route = GNUNET_CONTAINER_multipeermap_get (all_routes,
+					     &msg->target);
   if (NULL == route)
   {
     /* got disconnected */
@@ -1625,8 +1632,8 @@ cleanup_neighbor (struct DirectNeighbor *neighbor)
   }
   handle_direct_disconnect (neighbor);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (direct_neighbors, 
-						       &neighbor->peer.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_remove (direct_neighbors, 
+						       &neighbor->peer,
 						       neighbor));
   GNUNET_free (neighbor);
 }
@@ -1650,7 +1657,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   neighbor =
-      GNUNET_CONTAINER_multihashmap_get (direct_neighbors, &peer->hashPubKey);
+      GNUNET_CONTAINER_multipeermap_get (direct_neighbors, peer);
   if (NULL == neighbor)
   {
     GNUNET_break (0);
@@ -1665,14 +1672,14 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 			      -1, GNUNET_NO);  
   }
   cleanup_neighbor (neighbor);
-  GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+  GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					 &refresh_routes,
                                          NULL);
 }
 
 
 /**
- * Multihashmap iterator for freeing routes.  Should never be called.
+ * Multipeermap iterator for freeing routes.  Should never be called.
  *
  * @param cls NULL
  * @param key key value stored under
@@ -1681,13 +1688,13 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-free_route (void *cls, const struct GNUNET_HashCode * key, void *value)
+free_route (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct Route *route = value;
 
   GNUNET_break (0);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (all_routes, key, value));
+		 GNUNET_CONTAINER_multipeermap_remove (all_routes, key, value));
   release_route (route);
   send_disconnect_to_plugin (&route->target.peer);
   GNUNET_free (route);
@@ -1696,7 +1703,7 @@ free_route (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * Multihashmap iterator for freeing direct neighbors. Should never be called.
+ * Multipeermap iterator for freeing direct neighbors. Should never be called.
  *
  * @param cls NULL
  * @param key key value stored under
@@ -1705,7 +1712,7 @@ free_route (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-free_direct_neighbors (void *cls, const struct GNUNET_HashCode * key, void *value)
+free_direct_neighbors (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct DirectNeighbor *neighbor = value;
 
@@ -1730,12 +1737,12 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   core_api = NULL;
   GNUNET_ATS_performance_done (ats);
   ats = NULL;
-  GNUNET_CONTAINER_multihashmap_iterate (direct_neighbors,
+  GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
                                          &free_direct_neighbors, NULL);
-  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+  GNUNET_CONTAINER_multipeermap_iterate (all_routes,
                                          &free_route, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (direct_neighbors);
-  GNUNET_CONTAINER_multihashmap_destroy (all_routes);
+  GNUNET_CONTAINER_multipeermap_destroy (direct_neighbors);
+  GNUNET_CONTAINER_multipeermap_destroy (all_routes);
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
   GNUNET_SERVER_notification_context_destroy (nc);
@@ -1757,7 +1764,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 add_route (void *cls,
-	   const struct GNUNET_HashCode *key,
+	   const struct GNUNET_PeerIdentity *key,
 	   void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
@@ -1791,7 +1798,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
 {
   GNUNET_SERVER_notification_context_add (nc, client);  
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_CONTAINER_multihashmap_iterate (all_routes,
+  GNUNET_CONTAINER_multipeermap_iterate (all_routes,
 					 &add_route,
 					 client);
 }
@@ -1840,8 +1847,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
 
   cfg = c;
-  direct_neighbors = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  all_routes = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
+  direct_neighbors = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  all_routes = GNUNET_CONTAINER_multipeermap_create (65536, GNUNET_NO);
   core_api = GNUNET_CORE_connect (cfg, NULL,
 				  &core_init, 
 				  &handle_core_connect,

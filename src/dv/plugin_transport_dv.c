@@ -27,10 +27,8 @@
  */
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_dv_service.h"
 #include "gnunet_transport_service.h"
@@ -146,7 +144,7 @@ struct Plugin
   /**
    * Hash map of sessions (active and inactive).
    */
-  struct GNUNET_CONTAINER_MultiHashMap *sessions;
+  struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 
   /**
    * Copy of the handler array where the closures are
@@ -236,8 +234,8 @@ handle_dv_message_received (void *cls,
   struct GNUNET_ATS_Information ats;
   struct Session *session;
 
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &sender->hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       sender);
   if (NULL == session)    
   {
     GNUNET_break (0);
@@ -280,8 +278,8 @@ handle_dv_connect (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &peer->hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       peer);
   if (NULL != session)    
   {
     GNUNET_break (0);
@@ -294,8 +292,8 @@ handle_dv_connect (void *cls,
   session->sender = *peer;
   session->distance = distance;
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_put (plugin->sessions,
-						    &session->sender.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+						    &session->sender,
 						    session,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
@@ -316,8 +314,8 @@ handle_dv_distance_changed (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &peer->hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       peer);
   if (NULL == session)    
   {
     GNUNET_break (0);
@@ -342,8 +340,8 @@ free_session (struct Session *session)
   struct PendingRequest *pr;
 
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (plugin->sessions,
-						       &session->sender.hashPubKey,
+		 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+						       &session->sender,
 						       session));
   if (GNUNET_YES == session->active)
     plugin->env->session_end (plugin->env->cls,
@@ -379,8 +377,8 @@ handle_dv_disconnect (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &peer->hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       peer);
   if (NULL == session)    
     return; /* nothing to do */
   free_session (session);
@@ -486,8 +484,8 @@ dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
   struct Session *session;
   struct PendingRequest *pr;
 
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &target->hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       target);
   if (NULL == session)    
     return; /* nothing to do */  
   while (NULL != (pr = session->pr_head))
@@ -599,8 +597,8 @@ dv_get_session (void *cls,
 
   if (0 != address->address_length)
     return NULL;
-  session = GNUNET_CONTAINER_multihashmap_get (plugin->sessions,
-					       &address->peer.hashPubKey);
+  session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
+					       &address->peer);
   if (NULL == session)
     return NULL; /* not valid right now */
   session->active = GNUNET_YES;
@@ -672,7 +670,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
 
   plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
-  plugin->sessions = GNUNET_CONTAINER_multihashmap_create (1024 * 8, GNUNET_YES);
+  plugin->sessions = GNUNET_CONTAINER_multipeermap_create (1024 * 8, GNUNET_YES);
   plugin->mst = GNUNET_SERVER_mst_create (&unbox_cb,
 					  plugin);
   plugin->dvh = GNUNET_DV_service_connect (env->cfg,
@@ -683,7 +681,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
 					   &handle_dv_message_received);
   if (NULL == plugin->dvh)
   {
-    GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+    GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
     GNUNET_SERVER_mst_destroy (plugin->mst);    
     GNUNET_free (plugin);
     return NULL;
@@ -712,7 +710,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
  */
 static int
 free_session_iterator (void *cls,
-		       const struct GNUNET_HashCode *key,
+		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
   struct Session *session = value;
@@ -735,10 +733,10 @@ libgnunet_plugin_transport_dv_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   GNUNET_DV_service_disconnect (plugin->dvh);
-  GNUNET_CONTAINER_multihashmap_iterate (plugin->sessions,
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
 					 &free_session_iterator,
 					 NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (plugin->sessions);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
   GNUNET_SERVER_mst_destroy (plugin->mst);    
   GNUNET_free (plugin);
   GNUNET_free (api);

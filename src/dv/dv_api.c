@@ -143,7 +143,7 @@ struct GNUNET_DV_ServiceHandle
    * upon successful transmission.  The respective
    * transmissions have already been done.
    */
-  struct GNUNET_CONTAINER_MultiHashMap *send_callbacks;
+  struct GNUNET_CONTAINER_MultiPeerMap *send_callbacks;
 
   /**
    * Current unique ID
@@ -196,8 +196,8 @@ transmit_pending (void *cls, size_t size, void *buf)
     ret += tsize;
     if (NULL != th->cb)
     {
-      (void) GNUNET_CONTAINER_multihashmap_put (sh->send_callbacks,
-						&th->target.hashPubKey,
+      (void) GNUNET_CONTAINER_multipeermap_put (sh->send_callbacks,
+						&th->target,
 						th,
 						GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
@@ -259,7 +259,7 @@ struct AckContext
  */
 static int
 process_ack (void *cls,
-	     const struct GNUNET_HashCode *key,
+	     const struct GNUNET_PeerIdentity *key,
 	     void *value)
 {
   struct AckContext *ctx = cls;
@@ -269,9 +269,9 @@ process_ack (void *cls,
     return GNUNET_OK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Matchedk ACK for message to peer %s\n",
-       GNUNET_h2s (key));
+       GNUNET_i2s (key));
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (ctx->sh->send_callbacks,
+		 GNUNET_CONTAINER_multipeermap_remove (ctx->sh->send_callbacks,
 						       key,
 						       th));
   th->cb (th->cb_cls,
@@ -380,8 +380,8 @@ handle_message_receipt (void *cls,
     ack = (const struct GNUNET_DV_AckMessage *) msg;
     ctx.ack = ack;
     ctx.sh = sh;
-    GNUNET_CONTAINER_multihashmap_get_multiple (sh->send_callbacks,
-						&ack->target.hashPubKey,
+    GNUNET_CONTAINER_multipeermap_get_multiple (sh->send_callbacks,
+						&ack->target,
 						&process_ack,
 						&ctx);
     break;
@@ -441,14 +441,14 @@ transmit_start (void *cls,
  */
 static int
 cleanup_send_cb (void *cls,
-		 const struct GNUNET_HashCode *key,
+		 const struct GNUNET_PeerIdentity *key,
 		 void *value)
 {
   struct GNUNET_DV_ServiceHandle *sh = cls;
   struct GNUNET_DV_TransmitHandle *th = value;
 
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (sh->send_callbacks,
+		 GNUNET_CONTAINER_multipeermap_remove (sh->send_callbacks,
 						       key,
 						       th));
   th->cb (th->cb_cls, GNUNET_SYSERR);
@@ -475,7 +475,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (sh->send_callbacks,
+  GNUNET_CONTAINER_multipeermap_iterate (sh->send_callbacks,
 					 &cleanup_send_cb,
 					 sh);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -523,7 +523,7 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sh->distance_cb = distance_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->message_cb = message_cb;
-  sh->send_callbacks = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_YES);
+  sh->send_callbacks = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
   reconnect (sh);
   return sh;
 }
@@ -558,10 +558,10 @@ GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_iterate (sh->send_callbacks,
+  GNUNET_CONTAINER_multipeermap_iterate (sh->send_callbacks,
 					 &cleanup_send_cb,
 					 sh);
-  GNUNET_CONTAINER_multihashmap_destroy (sh->send_callbacks);
+  GNUNET_CONTAINER_multipeermap_destroy (sh->send_callbacks);
   GNUNET_free (sh);
 }
 
@@ -637,8 +637,8 @@ GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th)
   struct GNUNET_DV_ServiceHandle *sh = th->sh;
   int ret;
 
-  ret = GNUNET_CONTAINER_multihashmap_remove (sh->send_callbacks,
-					      &th->target.hashPubKey,
+  ret = GNUNET_CONTAINER_multipeermap_remove (sh->send_callbacks,
+					      &th->target,
 					      th);
   if (GNUNET_YES != ret)
     GNUNET_CONTAINER_DLL_remove (sh->th_head,
