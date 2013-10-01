@@ -68,7 +68,7 @@ static uint64_t statistics_core_entries_session_map;
 
 static int stat_check_running;
 
-static struct GNUNET_CONTAINER_MultiHashMap *peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
 struct PeerContainer
 {
@@ -119,7 +119,7 @@ static struct TransportPlugin *ptail;
 
 static int 
 map_check_it (void *cls,
-	      const struct GNUNET_HashCode * key,
+	      const struct GNUNET_PeerIdentity * key,
 	      void *value)
 {
   int *fail = cls;
@@ -140,11 +140,11 @@ map_check_it (void *cls,
 
 static int 
 map_cleanup_it (void *cls,
-		const struct GNUNET_HashCode * key,
+		const struct GNUNET_PeerIdentity * key,
 		void *value)
 {
   struct PeerContainer *pc = value;
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove(peers, key, value));
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove(peers, key, value));
   if (NULL != pc->th_ping)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel(pc->th_ping);
@@ -172,8 +172,8 @@ map_cleanup_it (void *cls,
 static void
 map_cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_cleanup_it, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy(peers);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &map_cleanup_it, NULL);
+  GNUNET_CONTAINER_multipeermap_destroy(peers);
 }
 
 static void
@@ -181,7 +181,7 @@ map_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int fail = 0;
   check_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_check_it, &fail);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &map_check_it, &fail);
   if (0 > fail)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
        "Inconsistent peers after connection consistency check: %u\n", fail);
@@ -466,7 +466,7 @@ send_core_ping_cb (void *cls, size_t size, void *buf)
 
 static int 
 map_ping_it (void *cls,
-	     const struct GNUNET_HashCode * key,
+	     const struct GNUNET_PeerIdentity * key,
 	     void *value)
 {
   struct PeerContainer *pc = value;
@@ -504,7 +504,7 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     statistics_task = GNUNET_SCHEDULER_add_delayed(STATS_DELAY, &stats_check, NULL);
   }
 
-  GNUNET_CONTAINER_multihashmap_iterate (peers, &map_ping_it, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (peers, &map_ping_it, NULL);
 
   stat_check_running = GNUNET_YES;
 
@@ -578,16 +578,16 @@ static void
 map_connect (const struct GNUNET_PeerIdentity *peer, void * source)
 {
   struct PeerContainer * pc;
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(peers, &peer->hashPubKey))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains(peers, peer))
   {
     pc = GNUNET_malloc (sizeof (struct PeerContainer));
     pc->id = *peer;
     pc->core_connected = GNUNET_NO;
     pc->transport_connected = GNUNET_NO;
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put(peers, &peer->hashPubKey, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_put(peers, peer, pc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
-  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+  pc = GNUNET_CONTAINER_multipeermap_get(peers, peer);
   GNUNET_assert (NULL != pc);
 
   if (source == th)
@@ -656,7 +656,7 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
 {
 
   struct PeerContainer * pc;
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_contains(peers, &peer->hashPubKey))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains(peers, peer))
   {
     if (source == th)
     {
@@ -675,7 +675,7 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
     }
   }
 
-  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+  pc = GNUNET_CONTAINER_multipeermap_get(peers, peer);
   GNUNET_assert (NULL != pc);
 
   if (source == th)
@@ -736,7 +736,7 @@ map_disconnect (const struct GNUNET_PeerIdentity * peer, void * source)
   if ((GNUNET_NO == pc->core_connected) && (GNUNET_NO == pc->transport_connected))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing peer `%s'\n", GNUNET_i2s (&pc->id));
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_remove (peers, &peer->hashPubKey, pc));
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (peers, peer, pc));
 
 
     GNUNET_free (pc);
@@ -841,7 +841,7 @@ transport_notify_receive_cb (void *cls,
 {
   struct PeerContainer *pc;
 
-  pc = GNUNET_CONTAINER_multihashmap_get (peers, &peer->hashPubKey);
+  pc = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pc)
   {
     GNUNET_break (0);
@@ -884,7 +884,7 @@ core_notify_receive_cb (void *cls,
 {
   struct PeerContainer *pc = NULL;
 
-  pc = GNUNET_CONTAINER_multihashmap_get(peers, &peer->hashPubKey);
+  pc = GNUNET_CONTAINER_multipeermap_get(peers, peer);
 
   if (NULL == pc)
   {
@@ -1068,7 +1068,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   init();
 
   stats = GNUNET_STATISTICS_create ("watchdog", cfg);
-  peers = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  peers = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
 
   th = GNUNET_TRANSPORT_connect(cfg, NULL, NULL,
                                 &transport_notify_receive_cb,
