@@ -23,11 +23,7 @@
  * @author Christian Grothoff 
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 
 
