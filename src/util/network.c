@@ -800,7 +800,7 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
     const struct sockaddr_un *dest_addr_un = (const struct sockaddr_un *)dest_addr;
     if (dest_addr_un->sun_path[0] == '\0')
       dest_len = \
-          sizeof (struct sockaddr) \
+          sizeof (struct sockaddr_un) \
         - sizeof (dest_addr_un->sun_path) \
         + strnlen (dest_addr_un->sun_path + 1, sizeof (dest_addr_un->sun_path) - 1) \
         + 1;
