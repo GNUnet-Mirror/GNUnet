@@ -967,8 +967,8 @@ transmit_audio_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 * Function to handle a initiation messaage incoming over mesh
  * @param cls closure, NULL
  * @param tunnel the tunnel over which the message arrived
- * @pram tunnel_ctx the tunnel context, can be NULL
- * @pram message the incoming message
+ * @param tunnel_ctx the tunnel context, can be NULL
+ * @param message the incoming message
  * 
  * @return GNUNET_OK
 */
@@ -1097,8 +1097,8 @@ handle_mesh_initiate_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 * Function to handle an accept messaage incoming over mesh
  * @param cls closure, NULL
  * @param tunnel the tunnel over which the message arrived
- * @pram tunnel_ctx the tunnel context, can be NULL
- * @pram message the incoming message
+ * @param tunnel_ctx the tunnel context, can be NULL
+ * @param message the incoming message
  * 
  * @return GNUNET_OK
 */
@@ -1177,8 +1177,8 @@ handle_mesh_accept_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 * Function to handle a reject messaage incoming over mesh
  * @param cls closure, NULL
  * @param tunnel the tunnel over which the message arrived
- * @pram tunnel_ctx the tunnel context, can be NULL
- * @pram message the incoming message
+ * @param tunnel_ctx the tunnel context, can be NULL
+ * @param message the incoming message
  * 
  * @return GNUNET_OK
 */
@@ -1230,8 +1230,8 @@ handle_mesh_reject_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 * Function to handle a terminate messaage incoming over mesh
  * @param cls closure, NULL
  * @param tunnel the tunnel over which the message arrived
- * @pram tunnel_ctx the tunnel context, can be NULL
- * @pram message the incoming message
+ * @param tunnel_ctx the tunnel context, can be NULL
+ * @param message the incoming message
  * 
  * @return GNUNET_OK
 */
@@ -1275,8 +1275,8 @@ handle_mesh_terminate_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 * Function to handle a audio messaage incoming over mesh
  * @param cls closure, NULL
  * @param tunnel the tunnel over which the message arrived
- * @pram tunnel_ctx the tunnel context, can be NULL
- * @pram message the incoming message
+ * @param tunnel_ctx the tunnel context, can be NULL
+ * @param message the incoming message
  * 
  * @return GNUNET_OK
 */

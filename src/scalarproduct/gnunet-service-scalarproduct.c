@@ -271,7 +271,7 @@ static int do_shutdown;
 static void
 generate_keyset ()
 {
-  gcry_sexp_t gen_parms;
+  gcry_sexp_t gen_params;
   gcry_sexp_t key;
   gcry_sexp_t tmp_sexp;
   gcry_mpi_t p;
@@ -283,12 +283,12 @@ generate_keyset ()
   size_t erroff = 0;
 
   // we can still use the RSA keygen for generating p,q,n, but using e is pointless.
-  GNUNET_assert (0 == gcry_sexp_build (&gen_parms, &erroff,
+  GNUNET_assert (0 == gcry_sexp_build (&gen_params, &erroff,
                                        "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
                                        KEYBITS));
 
-  GNUNET_assert (0 == gcry_pk_genkey (&key, gen_parms));
-  gcry_sexp_release (gen_parms);
+  GNUNET_assert (0 == gcry_pk_genkey (&key, gen_params));
+  gcry_sexp_release (gen_params);
 
   // get n and d of our publickey as MPI  
   tmp_sexp = gcry_sexp_find_token (key, "n", 0);

@@ -112,7 +112,7 @@ extern "C"
   typedef NET_API_STATUS WINAPI (*TNetUserSetInfo) (LPCWSTR servername,
                                                     LPCWSTR username,
                                                     DWORD level, LPBYTE buf,
-                                                    LPDWORD parm_err);
+                                                    LPDWORD param_err);
   typedef NTSTATUS NTAPI (*TLsaOpenPolicy) (PLSA_UNICODE_STRING,
                                             PLSA_OBJECT_ATTRIBUTES, ACCESS_MASK,
                                             PLSA_HANDLE);
