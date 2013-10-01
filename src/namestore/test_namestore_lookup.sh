@@ -1,5 +1,5 @@
 #!/bin/bash
-CONFIGURATION="test_namestore_defaults.conf"
+CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o SERVICEHOME`
 TEST_DOMAIN_PLUS="www.gnu"
