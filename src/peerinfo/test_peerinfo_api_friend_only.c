@@ -68,14 +68,12 @@ struct GNUNET_PeerIdentity pid;
 static void
 add_peer ()
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct GNUNET_HELLO_Message *h2;
   size_t agc;
 
   agc = 2;
-  memset (&pkey, 32, sizeof (pkey));
-  GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
-  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &agc, GNUNET_YES);
+  memset (&pid, 32, sizeof (pid));
+  h2 = GNUNET_HELLO_create (&pid.public_key, &address_generator, &agc, GNUNET_YES);
   GNUNET_PEERINFO_add_peer (h, h2, NULL, NULL);
   GNUNET_free (h2);
 

@@ -82,12 +82,10 @@ address_generator (void *cls, size_t max, void *buf)
 static void
 add_peer (size_t i)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   struct GNUNET_HELLO_Message *h2;
 
-  memset (&pkey, i, sizeof (pkey));
-  GNUNET_CRYPTO_hash (&pkey, sizeof (pkey), &pid.hashPubKey);
-  h2 = GNUNET_HELLO_create (&pkey, &address_generator, &i, GNUNET_NO);
+  memset (&pid, i, sizeof (pid));
+  h2 = GNUNET_HELLO_create (&pid.public_key, &address_generator, &i, GNUNET_NO);
   GNUNET_PEERINFO_add_peer (h, h2, NULL, NULL);
   GNUNET_free (h2);
 }
