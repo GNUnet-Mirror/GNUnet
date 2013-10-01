@@ -25,7 +25,6 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses.h"
 
