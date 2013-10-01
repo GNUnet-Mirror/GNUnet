@@ -25,12 +25,10 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet_getopt_lib.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-daemon-experimentation.h"
-
 
 
 /**
@@ -38,7 +36,7 @@
  */
 struct Issuer
 {
-	struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
 };
 
 
@@ -47,14 +45,13 @@ struct Issuer
  */
 static struct GNUNET_CONTAINER_MultiHashMap *valid_issuers;
 
-
 /**
  * Hashmap containing valid experiments
  */
 static struct GNUNET_CONTAINER_MultiHashMap *experiments;
 
 
-uint32_t GSE_my_issuer_count;
+static uint32_t GSE_my_issuer_count;
 
 /**
  * Valid experiment issuer for this daemon
@@ -74,23 +71,26 @@ struct Experimentation_Issuer *GSE_my_issuer;
 int
 experiment_verify (struct Issuer *i, struct Experiment *e)
 {
-	GNUNET_assert (NULL != i);
-	GNUNET_assert (NULL != e);
-
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Verification: to be implemented\n");
-	return GNUNET_OK;
+  GNUNET_assert (NULL != i);
+  GNUNET_assert (NULL != e);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Verification: to be implemented\n");
+  return GNUNET_OK;
 }
 
-int free_experiment (void *cls,
-										 const struct GNUNET_HashCode * key,
-										 void *value)
+int 
+free_experiment (void *cls,
+		 const struct GNUNET_HashCode * key,
+		 void *value)
 {
-	struct Experiment *e = value;
-	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (experiments, key, value));
-	GNUNET_free_non_null (e->description);
-	GNUNET_free_non_null (e->name);
-	GNUNET_free (e);
-	return GNUNET_OK;
+  struct Experiment *e = value;
+
+  GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (experiments, key, value));
+  GNUNET_free_non_null (e->description);
+  GNUNET_free_non_null (e->name);
+  GNUNET_free (e);
+  return GNUNET_OK;
 }
 
 
@@ -102,27 +102,31 @@ int free_experiment (void *cls,
  * @param value the issuer element to free
  * @return GNUNET_OK to continue
  */
-int free_issuer (void *cls,
-								 const struct GNUNET_HashCode * key,
-								 void *value)
+int 
+free_issuer (void *cls,
+	     const struct GNUNET_HashCode * key,
+	     void *value)
 {
-	struct Issuer *i = value;
-	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (valid_issuers, key, value));
-	GNUNET_free (i);
-	return GNUNET_OK;
+  struct Issuer *i = value;
+
+  GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (valid_issuers, key, value));
+  GNUNET_free (i);
+  return GNUNET_OK;
 }
 
-int create_issuer (void *cls,
-								 const struct GNUNET_HashCode * key,
-								 void *value)
+
+int
+create_issuer (void *cls,
+	       const struct GNUNET_HashCode * key,
+	       void *value)
 {
-	static int i = 0;
-	GNUNET_assert (i < GSE_my_issuer_count);
-	GSE_my_issuer[i].issuer_id.hashPubKey = *key;
+  static int i = 0;
 
-	i++;
-	return GNUNET_OK;
-
+  GNUNET_assert (i < GSE_my_issuer_count);
+  GSE_my_issuer[i].issuer_id.hashPubKey = *key;
+  
+  i++;
+  return GNUNET_OK;
 }
 
 
@@ -135,34 +139,36 @@ int create_issuer (void *cls,
 int
 GED_experiments_issuer_accepted (struct GNUNET_PeerIdentity *issuer_ID)
 {
-	if (GNUNET_CONTAINER_multihashmap_contains (valid_issuers, &issuer_ID->hashPubKey))
-		return GNUNET_YES;
-	else
-		return GNUNET_NO;
+  if (GNUNET_CONTAINER_multihashmap_contains (valid_issuers, &issuer_ID->hashPubKey))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
 }
+
 
 struct FindCtx
 {
-	const char *name;
-	struct GNUNET_TIME_Absolute version;
-	struct Experiment *res;
+  const char *name;
+  struct GNUNET_TIME_Absolute version;
+  struct Experiment *res;
 };
+
 
 static int
 find_it (void *cls,
-				const struct GNUNET_HashCode * key,
-				void *value)
+	 const struct GNUNET_HashCode * key,
+	 void *value)
 {
-	struct FindCtx *find_ctx = cls;
-	struct Experiment *e = (struct Experiment *) value;
-
-	if (0 != strcmp(e->name, find_ctx->name))
-		return GNUNET_OK;
-	if (e->version.abs_value_us != find_ctx->version.abs_value_us)
-		return GNUNET_OK;
-
-	find_ctx->res = e;
-	return GNUNET_NO;
+  struct FindCtx *find_ctx = cls;
+  struct Experiment *e = (struct Experiment *) value;
+  
+  if (0 != strcmp(e->name, find_ctx->name))
+    return GNUNET_OK;
+  if (e->version.abs_value_us != find_ctx->version.abs_value_us)
+    return GNUNET_OK;
+  
+  find_ctx->res = e;
+  return GNUNET_NO;
 }
 
 
@@ -176,44 +182,47 @@ find_it (void *cls,
  */
 struct Experiment *
 GED_experiments_find (const struct GNUNET_PeerIdentity *issuer,
-											const char *name,
-											const struct GNUNET_TIME_Absolute version)
+		      const char *name,
+		      const struct GNUNET_TIME_Absolute version)
 {
-	struct FindCtx find_ctx;
-
-	find_ctx.name = name;
-	find_ctx.version = version;
-	find_ctx.res = NULL;
-
-	GNUNET_CONTAINER_multihashmap_get_multiple (experiments,
-			&issuer->hashPubKey, &find_it, &find_ctx);
-	return find_ctx.res;
+  struct FindCtx find_ctx;
+  
+  find_ctx.name = name;
+  find_ctx.version = version;
+  find_ctx.res = NULL;
+  
+  GNUNET_CONTAINER_multihashmap_get_multiple (experiments,
+					      &issuer->hashPubKey, 
+					      &find_it, &find_ctx);
+  return find_ctx.res;
 }
+
 
 struct GetCtx
 {
-	struct Node *n;
-	GNUNET_EXPERIMENTATION_experiments_get_cb get_cb;
+  struct Node *n;
+  GNUNET_EXPERIMENTATION_experiments_get_cb get_cb;
 };
 
 
 static int
 get_it (void *cls,
-				const struct GNUNET_HashCode * key,
-				void *value)
+	const struct GNUNET_HashCode * key,
+	void *value)
 {
-	struct GetCtx *get_ctx = cls;
-	struct Experiment *e = value;
+  struct GetCtx *get_ctx = cls;
+  struct Experiment *e = value;
 
-	get_ctx->get_cb (get_ctx->n, e);
-
-	return GNUNET_OK;
+  get_ctx->get_cb (get_ctx->n, e);
+  
+  return GNUNET_OK;
 }
+
 
 void
 GED_experiments_get (struct Node *n,
-										 struct GNUNET_PeerIdentity *issuer,
-										 GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
+		     struct GNUNET_PeerIdentity *issuer,
+		     GNUNET_EXPERIMENTATION_experiments_get_cb get_cb)
 {
 	struct GetCtx get_ctx;
 
@@ -230,22 +239,25 @@ GED_experiments_get (struct Node *n,
 	get_cb (n, NULL);
 }
 
+
 /**
  * Add a new experiment
  */
-int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
-																						const char *name,
-																						struct GNUNET_PeerIdentity issuer_id,
-																						struct GNUNET_TIME_Absolute version,
-																						char *description,
-																						uint32_t required_capabilities,
-																						struct GNUNET_TIME_Absolute start,
-																						struct GNUNET_TIME_Relative frequency,
-																						struct GNUNET_TIME_Relative duration,
-																						struct GNUNET_TIME_Absolute stop)
+int
+GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
+					const char *name,
+					struct GNUNET_PeerIdentity issuer_id,
+					struct GNUNET_TIME_Absolute version,
+					char *description,
+					uint32_t required_capabilities,
+					struct GNUNET_TIME_Absolute start,
+					struct GNUNET_TIME_Relative frequency,
+					struct GNUNET_TIME_Relative duration,
+					struct GNUNET_TIME_Absolute stop)
 {
 	struct Experiment *e;
-	e = GNUNET_malloc (sizeof (struct Experiment));
+
+	e = GNUNET_new (struct Experiment);
 
 	e->name = GNUNET_strdup (name);
 	e->issuer = issuer_id;
@@ -287,8 +299,9 @@ int GNUNET_EXPERIMENTATION_experiments_add (struct Issuer *i,
  * @param cls configuration handle
  * @param name section name
  */
-void exp_file_iterator (void *cls,
-												const char *name)
+void
+exp_file_iterator (void *cls,
+		   const char *name)
 {
 	struct GNUNET_CONFIGURATION_Handle *exp = cls;
 	struct Issuer *i;

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2012-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -32,35 +32,33 @@
 
 
 #define FAST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
 /**
  * Core handle
  */
 static struct GNUNET_CORE_Handle *ch;
-
 
 /**
  * Peer's own identity
  */
 static struct GNUNET_PeerIdentity me;
 
-
 /**
  * Nodes with a pending request
  */
-struct GNUNET_CONTAINER_MultiHashMap *nodes_requested;
-
+static struct GNUNET_CONTAINER_MultiPeerMap *nodes_requested;
 
 /**
  * Active experimentation nodes
  */
-struct GNUNET_CONTAINER_MultiHashMap *nodes_active;
-
+static struct GNUNET_CONTAINER_MultiPeerMap *nodes_active;
 
 /**
  * Inactive experimentation nodes
  * To be excluded from future requests
  */
-struct GNUNET_CONTAINER_MultiHashMap *nodes_inactive;
+static struct GNUNET_CONTAINER_MultiPeerMap *nodes_inactive;
+
 
 struct NodeComCtx
 {
@@ -79,9 +77,10 @@ struct NodeComCtx
 /**
  * Update statistics
  *
- * @param m hashmap to update values from
+ * @param m peermap to update values from
  */
-static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
+static void 
+update_stats (struct GNUNET_CONTAINER_MultiPeerMap *m)
 {
 	GNUNET_assert (NULL != m);
 	GNUNET_assert (NULL != GED_stats);
@@ -89,17 +88,17 @@ static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 	if (m == nodes_active)
 	{
 			GNUNET_STATISTICS_set (GED_stats, "# nodes active",
-					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
+					GNUNET_CONTAINER_multipeermap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_inactive)
 	{
 			GNUNET_STATISTICS_set (GED_stats, "# nodes inactive",
-					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
+					GNUNET_CONTAINER_multipeermap_size(m), GNUNET_NO);
 	}
 	else if (m == nodes_requested)
 	{
 			GNUNET_STATISTICS_set (GED_stats, "# nodes requested",
-					GNUNET_CONTAINER_multihashmap_size(m), GNUNET_NO);
+					GNUNET_CONTAINER_multipeermap_size(m), GNUNET_NO);
 	}
 	else
 		GNUNET_break (0);
@@ -110,20 +109,20 @@ static void update_stats (struct GNUNET_CONTAINER_MultiHashMap *m)
 /**
  * Clean up node
  *
- * @param cls the hashmap to clean up
+ * @param cls the peermap to clean up
  * @param key key of the current node
  * @param value related node object
- * @return always GNUNET_OK
+ * @return always #GNUNET_OK
  */
 static int
 cleanup_node (void *cls,
-							 const struct GNUNET_HashCode * key,
-							 void *value)
+	      const struct GNUNET_PeerIdentity * key,
+	      void *value)
 {
 	struct Node *n;
 	struct NodeComCtx *e_cur;
 	struct NodeComCtx *e_next;
-	struct GNUNET_CONTAINER_MultiHashMap *cur = cls;
+	struct GNUNET_CONTAINER_MultiPeerMap *cur = cls;
 
 	n = value;
 	if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
@@ -147,7 +146,7 @@ cleanup_node (void *cls,
 
 	GNUNET_free_non_null (n->issuer_id);
 
-	GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (cur, key, value));
+	GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (cur, key, value));
 	GNUNET_free (value);
 	return GNUNET_OK;
 }
@@ -159,13 +158,15 @@ cleanup_node (void *cls,
  * @param id the id to check
  * @return GNUNET_YES or GNUNET_NO
  */
-static int is_me (const struct GNUNET_PeerIdentity *id)
+static int 
+is_me (const struct GNUNET_PeerIdentity *id)
 {
-	if (0 == memcmp (&me, id, sizeof (me)))
-		return GNUNET_YES;
-	else
-		return GNUNET_NO;
+  if (0 == memcmp (&me, id, sizeof (me)))
+    return GNUNET_YES;
+  else
+    return GNUNET_NO;
 }
+
 
 /**
  * Core startup callback
@@ -239,11 +240,11 @@ remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Removing request for peer %s due to timeout\n",
 			GNUNET_i2s (&n->id));
 
-	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &n->id.hashPubKey))
+	if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_requested, &n->id))
 	{
-			GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &n->id.hashPubKey, n));
+			GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (nodes_requested, &n->id, n));
 			update_stats (nodes_requested);
-			GNUNET_CONTAINER_multihashmap_put (nodes_inactive, &n->id.hashPubKey, n,
+			GNUNET_CONTAINER_multipeermap_put (nodes_inactive, &n->id, n,
 					GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 			update_stats (nodes_inactive);
 	}
@@ -325,8 +326,8 @@ send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 	GNUNET_CONTAINER_DLL_insert_tail(n->e_req_head, n->e_req_tail, e_ctx);
 	schedule_transmisson (e_ctx);
 
-	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multihashmap_put (nodes_requested,
-			&peer->hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+	GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (nodes_requested,
+			peer, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
 	update_stats (nodes_requested);
 }
 
@@ -389,17 +390,17 @@ get_node (const struct GNUNET_PeerIdentity *id)
 
 	res = NULL;
 	tmp = NULL;
-	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_active, &id->hashPubKey);
+	tmp = GNUNET_CONTAINER_multipeermap_get (nodes_active, id);
 	if (res == NULL)
 		res = tmp;
 
-	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &id->hashPubKey);
+	tmp = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, id);
 	if (res == NULL)
 		res = tmp;
 	else
 		GNUNET_break (0); /* Multiple instances */
 
-	tmp = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &id->hashPubKey);
+	tmp = GNUNET_CONTAINER_multipeermap_get (nodes_requested, id);
 	if (res == NULL)
 		res = tmp;
 	else
@@ -417,8 +418,8 @@ get_node (const struct GNUNET_PeerIdentity *id)
 static void node_make_active (struct Node *n)
 {
 	int c1;
-  GNUNET_CONTAINER_multihashmap_put (nodes_active,
-			&n->id.hashPubKey, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  GNUNET_CONTAINER_multipeermap_put (nodes_active,
+			&n->id, n, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 	update_stats (nodes_active);
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Added peer `%s' as active node\n"),
 			GNUNET_i2s (&n->id));
@@ -463,13 +464,13 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 	}
 
 	make_active = GNUNET_NO;
-	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
+	if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_active, peer)))
 	{
 			/* Nothing to do */
 	}
-	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
+	else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_requested, peer)))
 	{
-			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
+			GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
 			{
 				GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -478,9 +479,9 @@ static void handle_request (const struct GNUNET_PeerIdentity *peer,
 			update_stats (nodes_requested);
 			make_active = GNUNET_YES;
 	}
-	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
+	else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, peer)))
 	{
-		  GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n));
+		  GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (nodes_inactive, peer, n));
 			update_stats (nodes_inactive);
 			make_active = GNUNET_YES;
 	}
@@ -565,16 +566,16 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 	}
 
 	make_active = GNUNET_NO;
-	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
+	if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_active, peer)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 					"RESPONSE", "active", GNUNET_i2s (peer));
 	}
-	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
+	else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_requested, peer)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 					"RESPONSE", "requested", GNUNET_i2s (peer));
-			GNUNET_CONTAINER_multihashmap_remove (nodes_requested, &peer->hashPubKey, n);
+			GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n);
 			if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
 			{
 				GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -583,11 +584,11 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 			update_stats (nodes_requested);
 			make_active = GNUNET_YES;
 	}
-	else if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
+	else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, peer)))
 	{
 			GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from peer `%s'\n",
 					"RESPONSE", "inactive", GNUNET_i2s (peer));
-			GNUNET_break (0 == GNUNET_CONTAINER_multihashmap_remove (nodes_inactive, &peer->hashPubKey, n));
+			GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (nodes_inactive, peer, n));
 			update_stats (nodes_inactive);
 			make_active = GNUNET_YES;
 	}
@@ -850,13 +851,13 @@ void core_connect_handler (void *cls,
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connected to peer %s\n"),
 			GNUNET_i2s (peer));
 
-	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_requested, &peer->hashPubKey))
+	if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_requested, peer))
 		return; /* We already sent a request */
 
-	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_active, &peer->hashPubKey))
+	if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_active, peer))
 		return; /* This peer is known as active  */
 
-	if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (nodes_inactive, &peer->hashPubKey))
+	if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_inactive, peer))
 		return; /* This peer is known as inactive  */
 
 	send_experimentation_request (peer);
@@ -879,14 +880,14 @@ void core_disconnect_handler (void *cls,
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Disconnected from peer %s\n"),
 			GNUNET_i2s (peer));
 
-	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_requested, &peer->hashPubKey)))
-		cleanup_node (nodes_requested, &peer->hashPubKey, n);
+	if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_requested, peer)))
+		cleanup_node (nodes_requested, peer, n);
 
-	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_active, &peer->hashPubKey)))
-		cleanup_node (nodes_active, &peer->hashPubKey, n);
+	if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_active, peer)))
+		cleanup_node (nodes_active, peer, n);
 
-	if (NULL != (n = GNUNET_CONTAINER_multihashmap_get (nodes_inactive, &peer->hashPubKey)))
-		cleanup_node (nodes_inactive, &peer->hashPubKey, n);
+	if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, peer)))
+		cleanup_node (nodes_inactive, peer, n);
 }
 
 
@@ -1060,9 +1061,9 @@ GED_nodes_start ()
 			return;
 	}
 
-	nodes_requested = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-	nodes_active = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-	nodes_inactive = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+	nodes_requested = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+	nodes_active = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+	nodes_inactive = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 }
 
 
@@ -1080,31 +1081,31 @@ GED_nodes_stop ()
 
   if (NULL != nodes_requested)
   {
-  		GNUNET_CONTAINER_multihashmap_iterate (nodes_requested,
+  		GNUNET_CONTAINER_multipeermap_iterate (nodes_requested,
   																					 &cleanup_node,
   																					 nodes_requested);
   		update_stats (nodes_requested);
-  		GNUNET_CONTAINER_multihashmap_destroy (nodes_requested);
+  		GNUNET_CONTAINER_multipeermap_destroy (nodes_requested);
   		nodes_requested = NULL;
   }
 
   if (NULL != nodes_active)
   {
-  		GNUNET_CONTAINER_multihashmap_iterate (nodes_active,
+  		GNUNET_CONTAINER_multipeermap_iterate (nodes_active,
   																					 &cleanup_node,
   																					 nodes_active);
   		update_stats (nodes_active);
-  		GNUNET_CONTAINER_multihashmap_destroy (nodes_active);
+  		GNUNET_CONTAINER_multipeermap_destroy (nodes_active);
   		nodes_active = NULL;
   }
 
   if (NULL != nodes_inactive)
   {
-  		GNUNET_CONTAINER_multihashmap_iterate (nodes_inactive,
+  		GNUNET_CONTAINER_multipeermap_iterate (nodes_inactive,
   																					 &cleanup_node,
   																					 nodes_inactive);
   		update_stats (nodes_inactive);
-  		GNUNET_CONTAINER_multihashmap_destroy (nodes_inactive);
+  		GNUNET_CONTAINER_multipeermap_destroy (nodes_inactive);
   		nodes_inactive = NULL;
   }
 }
