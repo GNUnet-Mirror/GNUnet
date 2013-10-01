@@ -20,15 +20,12 @@
    Boston, MA 02111-1307, USA.
 */
 #include "gnunet_config.h"
-#include "plugin_transport_wlan.h"
-#include "gnunet_protocols.h"
 
 #ifdef MINGW
   #include "platform.h"
   #include "gnunet_util_lib.h"
   #include <bthdef.h>
   #include <ws2bth.h>
-  #include "gnunet_protocols.h"
 #else
   #include <bluetooth/bluetooth.h>
   #include <bluetooth/hci.h>
@@ -48,6 +45,8 @@
   #include <unistd.h>
 #endif
 
+#include "plugin_transport_wlan.h"
+#include "gnunet_protocols.h"
 
 
 /**
