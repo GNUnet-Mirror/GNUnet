@@ -22,8 +22,6 @@
  * @brief testcase for template.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
-
 
 static int
 check ()
