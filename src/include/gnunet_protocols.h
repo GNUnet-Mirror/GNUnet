@@ -861,9 +861,10 @@ extern "C"
  * Announce origin is still alive.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE          270
+#define GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE          270
 
 /**
- * Announce destination is still alive.
+ * Announce destination is still alive. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE          271
 
@@ -890,9 +891,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK            275
 
 /**
- * Encrypted data going forward.
+ * Encrypted data going forward. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_FWD                    280
+
+/**
+ * Encrypted data. (Payload, channel management, keepalive)
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED              280
 
 /**
  * Encrypted data going backwards.
