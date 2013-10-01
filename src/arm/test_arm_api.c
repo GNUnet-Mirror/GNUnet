@@ -22,12 +22,8 @@
  * @brief testcase for arm_api.c
  */
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_arm_service.h"
-#include "gnunet_client_lib.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_resolver_service.h"
 
 #define LOG(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)

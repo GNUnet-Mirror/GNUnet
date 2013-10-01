@@ -26,8 +26,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_os_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 
 #define LOG(kind,...)                           \

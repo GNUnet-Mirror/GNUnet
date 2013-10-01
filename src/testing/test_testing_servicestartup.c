@@ -24,7 +24,7 @@
  * @author Sree Harsha Totakura
  */
 #include "platform.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 
 
