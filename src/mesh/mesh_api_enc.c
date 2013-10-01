@@ -22,10 +22,7 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_client_lib.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_peer_lib.h"
 #include "gnunet_mesh_service_enc.h"
 #include "mesh_enc.h"
 #include "mesh_protocol_enc.h"

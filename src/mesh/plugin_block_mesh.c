@@ -106,9 +106,9 @@ block_plugin_mesh_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param cls closure
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
@@ -124,7 +124,9 @@ block_plugin_mesh_get_key (void *cls, enum GNUNET_BLOCK_Type type,
   case GNUNET_BLOCK_TYPE_MESH_PEER:
     if (sizeof (struct PBlock) != block_size)
       return GNUNET_SYSERR;
-    *key = pb->id.hashPubKey;
+    GNUNET_CRYPTO_hash (&pb->id,
+			sizeof (struct GNUNET_PeerIdentity),
+			key);
     return GNUNET_OK;
   default:
     GNUNET_break (0);
@@ -146,7 +148,7 @@ libgnunet_plugin_block_mesh_init (void *cls)
   };
   struct GNUNET_BLOCK_PluginFunctions *api;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_BLOCK_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_BLOCK_PluginFunctions);
   api->evaluate = &block_plugin_mesh_evaluate;
   api->get_key = &block_plugin_mesh_get_key;
   api->types = types;

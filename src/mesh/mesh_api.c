@@ -31,10 +31,7 @@
  * TODO: add regex to reconnect
  */
 #include "platform.h"
-#include "gnunet_common.h"
-#include "gnunet_client_lib.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_peer_lib.h"
 #include "gnunet_mesh_service.h"
 #include "mesh.h"
 #include "mesh_protocol.h"

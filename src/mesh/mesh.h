@@ -39,9 +39,7 @@ extern "C"
 #define MESH_DEBUG              GNUNET_YES
 
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
 #include <gnunet_mesh_service.h>

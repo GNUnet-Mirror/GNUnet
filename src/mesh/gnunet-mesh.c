@@ -24,10 +24,8 @@
  * @author Bartlomiej Polot
  */
 #include "platform.h"
-#include "gnunet_configuration_lib.h"
-#include "gnunet_getopt_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
-#include "gnunet_program_lib.h"
 
 
 /**
@@ -127,6 +125,7 @@ get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 /**
  * Call MESH's monitor API, get info of one tunnel.
  *
@@ -139,8 +138,13 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity pid;
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_hash_from_string (tunnel_id, &pid.hashPubKey))
+      GNUNET_CRYPTO_ecc_public_sign_key_from_string (tunnel_id,
+						     strlen (tunnel_id),
+						     &pid.public_key))
   {
+    fprintf (stderr,
+	     _("Invalid tunnel owner `%s'\n"),
+	     tunnel_id);
     GNUNET_SCHEDULER_shutdown();
     return;
   }
