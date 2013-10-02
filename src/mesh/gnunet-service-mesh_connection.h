@@ -39,7 +39,9 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 
-
+/**
+ * Struct containing all information regarding a connection to a peer.
+ */
 struct MeshConnection;
 
 /**
@@ -48,7 +50,13 @@ struct MeshConnection;
  * @param c Configuration handle.
  */
 void
-GMC_init (struct GNUNET_CONFIGURATION_Handle *c);
+GMC_init (const struct GNUNET_CONFIGURATION_Handle *c);
+
+/**
+ * Shut down the connections subsystem.
+ */
+void
+GMC_shutdown (void);
 
 /**
  * Create a connection.
@@ -183,6 +191,7 @@ GMC_is_origin (struct MeshConnection *c, int fwd);
  */
 int
 GMC_is_terminal (struct MeshConnection *c, int fwd);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

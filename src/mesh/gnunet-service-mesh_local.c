@@ -789,16 +789,9 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
 /********************************    API    ***********************************/
 /******************************************************************************/
 
-void
-GML_init (void)
-{
-  ports = GNUNET_CONTAINER_multihashmap32_create (32);
-}
-
-
 /**
  * Initialize server subsystem.
- * 
+ *
  * @param handle Server handle.
  */
 void
@@ -806,6 +799,7 @@ GML_init (struct GNUNET_SERVER_Handle *handle)
 {
   server_handle = handle;
   GNUNET_SERVER_suspend (server_handle);
+  ports = GNUNET_CONTAINER_multihashmap32_create (32);
 }
 
 /**

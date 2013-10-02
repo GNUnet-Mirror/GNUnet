@@ -21,7 +21,7 @@
 /**
  * @file mesh/gnunet-service-mesh_local.h
  * @brief mesh service; dealing with local clients
- * @author Bart Polot
+ * @author Bartlomiej Polot
  *
  * All functions in this file should use the prefix GML (Gnunet Mesh Local)
  */
@@ -37,7 +37,9 @@ extern "C"
 #endif
 #endif
 
+#include "platform.h"
 #include "gnunet_util_lib.h"
+
 #include "gnunet-service-mesh_channel.h"
 
 /**

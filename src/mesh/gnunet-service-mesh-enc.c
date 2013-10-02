@@ -46,38 +46,20 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "mesh_enc.h"
-#include "mesh_protocol_enc.h"
-#include "mesh_path.h"
 #include "block_mesh.h"
-#include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
 #include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_connection.h"
+#include "gnunet-service-mesh_dht.h"
+#include "gnunet-service-mesh_peer.h"
 
 #define MESH_BLOOM_SIZE         128
-#define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
-                                  GNUNET_TIME_UNIT_MINUTES,\
-                                  10)
-#define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
-#define MESH_RETRANSMIT_MARGIN  4
 
-#define MESH_DEBUG_DHT          GNUNET_NO
-#define MESH_DEBUG_CONNECTION   GNUNET_NO
+
 #define MESH_DEBUG_TIMING       __LINUX__ && GNUNET_NO
 
-#if MESH_DEBUG_DHT
-#define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_DHT(...)
-#endif
-
-#if MESH_DEBUG_CONNECTION
-#define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_CONN(...)
-#endif
 
 #if MESH_DEBUG_TIMING
 #include <time.h>
@@ -141,75 +123,7 @@ enum MeshTunnelState
 /******************************************************************************/
 
 /** FWD declaration */
-struct MeshClient;
-struct MeshPeer;
 struct MeshTunnel2;
-struct MeshConnection;
-
-
-
-/**
- * Struct containing all information regarding a given peer
- */
-struct MeshPeer
-{
-    /**
-     * ID of the peer
-     */
-  GNUNET_PEER_Id id;
-
-    /**
-     * Last time we heard from this peer
-     */
-  struct GNUNET_TIME_Absolute last_contact;
-
-    /**
-     * Paths to reach the peer, ordered by ascending hop count
-     */
-  struct MeshPeerPath *path_head;
-
-    /**
-     * Paths to reach the peer, ordered by ascending hop count
-     */
-  struct MeshPeerPath *path_tail;
-
-    /**
-     * Handle to stop the DHT search for paths to this peer
-     */
-  struct GNUNET_DHT_GetHandle *dhtget;
-
-    /**
-     * Tunnel to this peer, if any.
-     */
-  struct MeshTunnel2 *tunnel;
-
-    /**
-     * Connections that go through this peer, indexed by tid;
-     */
-  struct GNUNET_CONTAINER_MultiHashMap *connections;
-
-    /**
-     * Handle for queued transmissions
-     */
-  struct GNUNET_CORE_TransmitHandle *core_transmit;
-
-  /**
-   * Transmission queue to core DLL head
-   */
-  struct MeshPeerQueue *queue_head;
-  
-  /**
-   * Transmission queue to core DLL tail
-   */
-  struct MeshPeerQueue *queue_tail;
-
-  /**
-   * How many messages are in the queue to this peer.
-   */
-  unsigned int queue_n;
-};
-
-
 
 
 /**
@@ -354,10 +268,6 @@ mesh_debug (void *cls, int success)
 
 /************************** Configuration parameters **************************/
 
-/**
- * How often to PUT own ID in the DHT.
- */
-static struct GNUNET_TIME_Relative id_announce_time;
 
 /**
  * Maximum time allowed to connect to a peer found by string.
@@ -370,36 +280,11 @@ static struct GNUNET_TIME_Relative connect_timeout;
 static unsigned long long default_ttl;
 
 /**
- * DHT replication level, see DHT API: GNUNET_DHT_get_start, GNUNET_DHT_put.
- */
-static unsigned long long dht_replication_level;
-
-/**
- * How many peers do we want to remember?
- */
-static unsigned long long max_peers;
-
-/**
  * Percentage of messages that will be dropped (for test purposes only).
  */
 static unsigned long long drop_percent;
 
 /*************************** Static global variables **************************/
-
-/**
- * Peers known, indexed by PeerIdentity (MeshPeer).
- */
-static struct GNUNET_CONTAINER_MultiPeerMap *peers;
-
-/**
- * Handle to communicate with core.
- */
-static struct GNUNET_CORE_Handle *core_handle;
-
-/**
- * Handle to use DHT.
- */
-static struct GNUNET_DHT_Handle *dht_handle;
 
 /**
  * Handle to the statistics service.
@@ -420,11 +305,6 @@ static struct GNUNET_PeerIdentity my_full_id;
  * Own private key.
  */
 static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
-
-/**
- * Task to periodically announce itself in the network.
- */
-GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
 
 /******************************************************************************/
@@ -641,51 +521,6 @@ GNUNET_MESH_DEBUG_CS2S (enum MeshTunnelState s)
   }
 }
 
-
-
-/******************************************************************************/
-/************************    PERIODIC FUNCTIONS    ****************************/
-/******************************************************************************/
-
-/**
- * Periodically announce self id in the DHT
- *
- * @param cls closure
- * @param tc task context
- */
-static void
-announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PBlock block;
-  struct GNUNET_HashCode phash;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
-    return;
-  }
-  /* TODO
-   * - Set data expiration in function of X
-   * - Adapt X to churn
-   */
-  DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
-
-  block.id = my_full_id;
-  GNUNET_CRYPTO_hash (&my_full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
-  GNUNET_DHT_put (dht_handle,   /* DHT handle */
-                  &phash,       /* Key to use */
-                  dht_replication_level,     /* Replication level */
-                  GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-                  GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
-                  sizeof (block),  /* Size of the data */
-                  (const char *) &block, /* Data itself */
-                  GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
-                  GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
-                  NULL,         /* Continuation */
-                  NULL);        /* Continuation closure */
-  announce_id_task =
-      GNUNET_SCHEDULER_add_delayed (id_announce_time, &announce_id, cls);
-}
 
 
 /******************************************************************************/
@@ -2330,339 +2165,6 @@ handle_data_ack (struct MeshTunnel2 *t,
 }
 
 
-/**
- * Core handler for connection creation.
- *
- * @param cls Closure (unused).
- * @param peer Sender (neighbor).
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_connection_create (void *cls,
-                               const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionCreate *msg;
-  struct GNUNET_PeerIdentity *id;
-  struct GNUNET_HashCode *cid;
-  struct MeshPeerPath *path;
-  struct MeshPeer *dest_peer;
-  struct MeshPeer *orig_peer;
-  struct MeshConnection *c;
-  unsigned int own_pos;
-  uint16_t size;
-  uint16_t i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
-
-  /* Check size */
-  size = ntohs (message->size);
-  if (size < sizeof (struct GNUNET_MESH_ConnectionCreate))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  /* Calculate hops */
-  size -= sizeof (struct GNUNET_MESH_ConnectionCreate);
-  if (size % sizeof (struct GNUNET_PeerIdentity))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  size /= sizeof (struct GNUNET_PeerIdentity);
-  if (1 > size)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
-
-  /* Get parameters */
-  msg = (struct GNUNET_MESH_ConnectionCreate *) message;
-  cid = &msg->cid;
-  id = (struct GNUNET_PeerIdentity *) &msg[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "    connection %s (%s).\n",
-              GNUNET_h2s (cid), GNUNET_i2s (id));
-
-  /* Create connection */
-  c = connection_get (cid);
-  if (NULL == c)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
-    c = connection_new (cid);
-    if (NULL == c)
-      return GNUNET_OK;
-    connection_reset_timeout (c, GNUNET_YES);
-
-    /* Create path */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
-    path = path_new (size);
-    own_pos = 0;
-    for (i = 0; i < size; i++)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
-                  GNUNET_i2s (&id[i]));
-      path->peers[i] = GNUNET_PEER_intern (&id[i]);
-      if (path->peers[i] == myid)
-        own_pos = i;
-    }
-    if (own_pos == 0 && path->peers[own_pos] != myid)
-    {
-      /* create path: self not found in path through self */
-      GNUNET_break_op (0);
-      path_destroy (path);
-      connection_destroy (c);
-      return GNUNET_OK;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-    path_add_to_peers (path, GNUNET_NO);
-    c->path = path_duplicate (path);
-    c->own_pos = own_pos;
-  }
-  else
-  {
-    path = NULL;
-  }
-  if (MESH_CONNECTION_NEW == c->state)
-    connection_change_state (c, MESH_CONNECTION_SENT);
-
-  /* Remember peers */
-  dest_peer = peer_get (&id[size - 1]);
-  orig_peer = peer_get (&id[0]);
-
-  /* Is it a connection to us? */
-  if (c->own_pos == size - 1)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
-    peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
-
-    if (NULL == orig_peer->tunnel)
-    {
-      orig_peer->tunnel = tunnel_new ();
-      orig_peer->tunnel->peer = orig_peer;
-    }
-    tunnel_add_connection (orig_peer->tunnel, c);
-    if (MESH_TUNNEL_NEW == c->t->state)
-      tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
-
-    send_connection_ack (c, GNUNET_NO);
-    if (MESH_CONNECTION_SENT == c->state)
-      connection_change_state (c, MESH_CONNECTION_ACK);
-
-    /* Keep tunnel alive in direction dest->owner*/
-    connection_reset_timeout (c, GNUNET_NO);
-  }
-  else
-  {
-    /* It's for somebody else! Retransmit. */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
-    peer_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
-    peer_add_path_to_origin (orig_peer, path, GNUNET_NO);
-    send_prebuilt_message_connection (message, c, NULL, GNUNET_YES);
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for path ACKs
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_connection_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionACK *msg;
-  struct MeshConnection *c;
-  struct MeshPeerPath *p;
-  struct MeshPeer *pi;
-  int fwd;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
-  msg = (struct GNUNET_MESH_ConnectionACK *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
-              GNUNET_h2s (&msg->cid));
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# control on unknown connection",
-                              1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
-    return GNUNET_OK;
-  }
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
-              GNUNET_i2s (peer));
-  pi = peer_get (peer);
-  if (connection_get_next_hop (c) == pi)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
-    fwd = GNUNET_NO;
-    if (MESH_CONNECTION_SENT == c->state)
-      connection_change_state (c, MESH_CONNECTION_ACK);
-  }
-  else if (connection_get_prev_hop (c) == pi)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
-    fwd = GNUNET_YES;
-    connection_change_state (c, MESH_CONNECTION_READY);
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  connection_reset_timeout (c, fwd);
-
-  /* Add path to peers? */
-  p = c->path;
-  if (NULL != p)
-  {
-    path_add_to_peers (p, GNUNET_YES);
-  }
-  else
-  {
-    GNUNET_break (0);
-  }
-
-  /* Message for us as creator? */
-  if (connection_is_origin (c, GNUNET_YES))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
-    connection_change_state (c, MESH_CONNECTION_READY);
-    if (MESH_TUNNEL_READY != c->t->state)
-      tunnel_change_state (c->t, MESH_TUNNEL_READY);
-    send_connection_ack (c, GNUNET_YES);
-    tunnel_send_queued_data (c->t, GNUNET_YES);
-    if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
-    {
-      GNUNET_DHT_get_stop (c->t->peer->dhtget);
-      c->t->peer->dhtget = NULL;
-    }
-    return GNUNET_OK;
-  }
-
-  /* Message for us as destination? */
-  if (GMC_is_terminal (c, GNUNET_YES))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
-    if (MESH_TUNNEL_READY != c->t->state)
-      tunnel_change_state (c->t, MESH_TUNNEL_READY);
-    connection_change_state (c, MESH_CONNECTION_READY);
-    tunnel_send_queued_data (c->t, GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  send_prebuilt_message_connection (message, c, NULL, fwd);
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for notifications of broken paths
- *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_connection_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionBroken *msg;
-  struct MeshConnection *c;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (peer));
-  msg = (struct GNUNET_MESH_ConnectionBroken *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
-              GNUNET_i2s (&msg->peer1));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
-              GNUNET_i2s (&msg->peer2));
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  tunnel_notify_connection_broken (c->t, GNUNET_PEER_search (&msg->peer1),
-                                   GNUNET_PEER_search (&msg->peer2));
-  return GNUNET_OK;
-
-}
-
-
-/**
- * Core handler for tunnel destruction
- *
- * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
- * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_connection_destroy (void *cls,
-                                const struct GNUNET_PeerIdentity *peer,
-                                const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionDestroy *msg;
-  struct MeshConnection *c;
-  GNUNET_PEER_Id id;
-  int fwd;
-
-  msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got a CONNECTION DESTROY message from %s\n",
-              GNUNET_i2s (peer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  for connection %s\n",
-              GNUNET_h2s (&msg->cid));
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    /* Probably already got the message from another path,
-     * destroyed the tunnel and retransmitted to children.
-     * Safe to ignore.
-     */
-    GNUNET_STATISTICS_update (stats, "# control on unknown tunnel",
-                              1, GNUNET_NO);
-    return GNUNET_OK;
-  }
-  id = GNUNET_PEER_search (peer);
-  if (id == connection_get_prev_hop (c)->id)
-    fwd = GNUNET_YES;
-  else if (id == connection_get_next_hop (c)->id)
-    fwd = GNUNET_NO;
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  send_prebuilt_message_connection (message, c, NULL, fwd);
-  c->destroy = GNUNET_YES;
-
-  return GNUNET_OK;
-}
 
 
 /**
@@ -2856,399 +2358,6 @@ handle_decrypted (struct MeshTunnel2 *t,
 
 
 /**
- * Generic handler for mesh network encrypted traffic.
- *
- * @param peer Peer identity this notification is about.
- * @param message Encrypted message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MESH_Encrypted *msg,
-                       int fwd)
-{
-  struct MeshConnection *c;
-  struct MeshTunnel2 *t;
-  struct MeshPeer *neighbor;
-  struct MeshFlowControl *fc;
-  uint32_t pid;
-  uint32_t ttl;
-  uint16_t type;
-  size_t size;
-
-  /* Check size */
-  size = ntohs (msg->header.size);
-  if (size <
-      sizeof (struct GNUNET_MESH_Encrypted) +
-      sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  type = ntohs (msg->header.type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
-
-  /* Check connection */
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
-    return GNUNET_OK;
-  }
-  t = c->t;
-  fc = fwd ? &c->bck_fc : &c->fwd_fc;
-
-  /* Check if origin is as expected */
-  neighbor = connection_get_hop (c, !fwd);
-  if (peer_get (peer)->id != neighbor->id)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  /* Check PID */
-  pid = ntohl (msg->pid);
-  if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
-  {
-    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "WARNING Received PID %u, (prev %u), ACK %u\n",
-                pid, fc->last_pid_recv, fc->last_ack_sent);
-    return GNUNET_OK;
-  }
-  if (GNUNET_NO == GMC_is_pid_bigger (pid, fc->last_pid_recv))
-  {
-    GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                " Pid %u not expected (%u+), dropping!\n",
-                pid, fc->last_pid_recv + 1);
-    return GNUNET_OK;
-  }
-  if (MESH_CONNECTION_SENT == c->state)
-    connection_change_state (c, MESH_CONNECTION_READY);
-  connection_reset_timeout (c, fwd);
-  fc->last_pid_recv = pid;
-
-  /* Is this message for us? */
-  if (GMC_is_terminal (c, fwd))
-  {
-    size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
-    char cbuf[dsize];
-    struct GNUNET_MessageHeader *msgh;
-    unsigned int off;
-
-    /* TODO signature verification */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
-    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
-
-    fc->last_pid_recv = pid;
-    tunnel_decrypt (t, cbuf, &msg[1], dsize, msg->iv, fwd);
-    off = 0;
-    while (off < dsize)
-    {
-      msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
-      handle_decrypted (t, msgh, fwd);
-      off += ntohs (msgh->size);
-    }
-    send_ack (c, NULL, fwd);
-    return GNUNET_OK;
-  }
-
-  /* Message not for us: forward to next hop */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  ttl = ntohl (msg->ttl);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
-  if (ttl == 0)
-  {
-    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    send_ack (c, NULL, fwd);
-    return GNUNET_OK;
-  }
-  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-
-  send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh network traffic going orig->dest.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_MessageHeader *message)
-{
-  return handle_mesh_encrypted (peer,
-                                (struct GNUNET_MESH_Encrypted *)message,
-                                GNUNET_YES);
-}
-
-/**
- * Core handler for mesh network traffic going dest->orig.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_MessageHeader *message)
-{
-  return handle_mesh_encrypted (peer,
-                                (struct GNUNET_MESH_Encrypted *)message,
-                                GNUNET_NO);
-}
-
-
-/**
- * Core handler for mesh network traffic point-to-point acks.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ACK *msg;
-  struct MeshConnection *c;
-  struct MeshFlowControl *fc;
-  GNUNET_PEER_Id id;
-  uint32_t ack;
-  int fwd;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
-              GNUNET_i2s (peer));
-  msg = (struct GNUNET_MESH_ACK *) message;
-
-  c = connection_get (&msg->cid);
-
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# ack on unknown connection", 1,
-                              GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  /* Is this a forward or backward ACK? */
-  id = GNUNET_PEER_search (peer);
-  if (connection_get_next_hop (c)->id == id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    fc = &c->fwd_fc;
-    fwd = GNUNET_YES;
-  }
-  else if (connection_get_prev_hop (c)->id == id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    fc = &c->bck_fc;
-    fwd = GNUNET_NO;
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  ack = ntohl (msg->ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
-              ack, fc->last_ack_recv);
-  if (GMC_is_pid_bigger (ack, fc->last_ack_recv))
-    fc->last_ack_recv = ack;
-
-  /* Cancel polling if the ACK is big enough. */
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
-      GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
-    GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
-    fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
-  }
-
-  connection_unlock_queue (c, fwd);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh network traffic point-to-point ack polls.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_mesh_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_Poll *msg;
-  struct MeshConnection *c;
-  struct MeshFlowControl *fc;
-  GNUNET_PEER_Id id;
-  uint32_t pid;
-  int fwd;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
-              GNUNET_i2s (peer));
-
-  msg = (struct GNUNET_MESH_Poll *) message;
-
-  c = connection_get (&msg->cid);
-
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
-                              GNUNET_NO);
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  /* Is this a forward or backward ACK?
-   * Note: a poll should never be needed in a loopback case,
-   * since there is no possiblility of packet loss there, so
-   * this way of discerining FWD/BCK should not be a problem.
-   */
-  id = GNUNET_PEER_search (peer);
-  if (connection_get_next_hop (c)->id == id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
-    fc = &c->fwd_fc;
-  }
-  else if (connection_get_prev_hop (c)->id == id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
-    fc = &c->bck_fc;
-  }
-  else
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  pid = ntohl (msg->pid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n",
-              pid, fc->last_pid_recv);
-  fc->last_pid_recv = pid;
-  fwd = fc == &c->fwd_fc;
-  send_ack (c, NULL, fwd);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh keepalives.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- *
- * TODO: Check who we got this from, to validate route.
- */
-static int
-handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionKeepAlive *msg;
-  struct MeshConnection *c;
-  struct MeshPeer *neighbor;
-  int fwd;
-
-  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
-              GNUNET_i2s (peer));
-
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# keepalive on unknown connection", 1,
-                              GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ? 
-        GNUNET_YES : GNUNET_NO;
-
-  /* Check if origin is as expected */
-  neighbor = connection_get_hop (c, fwd);
-  if (peer_get (peer)->id != neighbor->id)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  connection_change_state (c, MESH_CONNECTION_READY);
-  connection_reset_timeout (c, fwd);
-
-  if (GMC_is_terminal (c, fwd))
-    return GNUNET_OK;
-
-  GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  send_prebuilt_message_connection (message, c, NULL, fwd);
-
-  return GNUNET_OK;
-}
-
-
-
-/**
- * Functions to handle messages from core
- */
-static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_mesh_connection_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-    0},
-  {&handle_mesh_connection_ack, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
-    sizeof (struct GNUNET_MESH_ConnectionACK)},
-  {&handle_mesh_connection_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
-    sizeof (struct GNUNET_MESH_ConnectionBroken)},
-  {&handle_mesh_connection_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
-    sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&handle_mesh_keepalive, GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
-  {&handle_mesh_keepalive, GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
-  {&handle_mesh_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
-    sizeof (struct GNUNET_MESH_ACK)},
-  {&handle_mesh_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
-    sizeof (struct GNUNET_MESH_Poll)},
-  {&handle_mesh_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
-  {&handle_mesh_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
-  {NULL, 0, 0}
-};
-
-
-/**
  * Function to process paths received for a new peer addition. The recorded
  * paths form the initial tunnel, which can be optimized later.
  * Called on each result obtained for the DHT search.
@@ -3428,27 +2537,7 @@ core_init (void *cls,
 /************************      MAIN FUNCTIONS      ****************************/
 /******************************************************************************/
 
-/**
- * Iterator over tunnel hash map entries to destroy the tunnel during shutdown.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to iterate,
- *         #GNUNET_NO if not.
- */
-static int
-shutdown_tunnel (void *cls, 
-		 const struct GNUNET_PeerIdentity *key, 
-		 void *value)
-{
-  struct MeshPeer *p = value;
-  struct MeshTunnel2 *t = p->tunnel;
 
-  if (NULL != t)
-    tunnel_destroy (t);
-  return GNUNET_YES;
-}
 
 
 /**
@@ -3462,23 +2551,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 
-  if (core_handle != NULL)
-  {
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = NULL;
-  }
-  GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
-  if (dht_handle != NULL)
-  {
-    GNUNET_DHT_disconnect (dht_handle);
-    dht_handle = NULL;
-  }
   GML_shutdown ();
-  if (GNUNET_SCHEDULER_NO_TASK != announce_id_task)
-  {
-    GNUNET_SCHEDULER_cancel (announce_id_task);
-    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  GMD_shutdown ();
+  GMP_shutdown ();
+  GMC_shutdown ();
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
 }
 
@@ -3497,16 +2574,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
-                                           &id_announce_time))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "MESH", "ID_ANNOUNCE_TIME", "MISSING");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "CONNECT_TIMEOUT",
@@ -3528,15 +2595,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
-                                             &max_peers))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "MESH", "MAX_PEERS", "USING DEFAULT");
-    max_peers = 1000;
-  }
-
-  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DROP_PERCENT",
                                              &drop_percent))
   {
@@ -3552,22 +2610,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                 "***************************************\n");
   }
 
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
-                                             &dht_replication_level))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "MESH", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
-    dht_replication_level = 3;
-  }
 
-  peers = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
-
-  dht_handle = GNUNET_DHT_connect (c, 64);
-  if (NULL == dht_handle)
-  {
-    GNUNET_break (0);
-  }
   stats = GNUNET_STATISTICS_create ("mesh", c);
 
   /* Scheduled the task to clean up when shutdown is called */
@@ -3578,31 +2621,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
-						  &my_full_id.public_key);
+                                                  &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] starting\n",
               GNUNET_i2s(&my_full_id));
 
-  GML_init (server);
-  GMC_init (c);
+  GML_init (server);    /* Local clients */
+  GMC_init (c);         /* Connections */
+  GMP_init (c);         /* Peers */
+  GMD_init (c);         /* DHT */
 
-  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to MESH functions */
-                                     &core_init,        /* Call core_init once connected */
-                                     &core_connect,     /* Handle connects */
-                                     &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Don't notify about all incoming messages */
-                                     GNUNET_NO, /* For header only in notification */
-                                     NULL,      /* Don't notify about all outbound messages */
-                                     GNUNET_NO, /* For header-only out notification */
-                                     core_handlers);    /* Register these handlers */
-  if (NULL == core_handle)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
