@@ -24,9 +24,9 @@
  * @author Simon Dieterle
  * @author Andreas Fuchs
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_constants.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_constants.h"
 #include "gnunet_conversation_service.h"
 #include <fcntl.h>
 
@@ -75,28 +75,36 @@ static int do_help (const char *args, const void *xtra);
  * @param handle to the conversation session
  * @param caller peer that calls you
  */
-void
-call_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle,
+static void
+call_handler (void *cls,
+	      struct GNUNET_CONVERSATION_Handle *handle,
 	      const struct GNUNET_PeerIdentity *caller)
 {
-  FPRINTF (stdout, _("Incoming call from peer: %s\n"),
+  FPRINTF (stdout, 
+	   _("Incoming call from peer: %s\n"),
 	   GNUNET_i2s_full (caller));
 }
+
 
 /**
  * Method called whenever a call is rejected
  *
  * @param cls closure
  * @param handle to the conversation session
+ * @param reason given reason why the call was rejected
  * @param peer peer that rejected your call
  */
-void
-reject_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle, int reason,
+static void
+reject_handler (void *cls, 
+		struct GNUNET_CONVERSATION_Handle *handle, 
+		enum GNUNET_CONVERSATION_RejectReason reason,
 		const struct GNUNET_PeerIdentity *peer)
 {
-  FPRINTF (stdout, _("Peer %s rejected your call. Reason: %d\n"),
+  FPRINTF (stdout, 
+	   _("Peer %s rejected your call. Reason: %d\n"),
 	   GNUNET_i2s_full (peer), reason);
 }
+
 
 /**
  * Method called whenever a notification is there
@@ -106,47 +114,47 @@ reject_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle, int reason
  * @param type the type of the notification
  * @param peer peer that the notification is about
  */
-void
-notification_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle, int type,
+static void
+notification_handler (void *cls, 
+		      struct GNUNET_CONVERSATION_Handle *handle, 
+		      enum GNUNET_CONVERSATION_NotificationType type,
 		      const struct GNUNET_PeerIdentity *peer)
 {
   switch (type)
-    {
-    case GNUNET_CONVERSATION_NT_SERVICE_BLOCKED:
-      FPRINTF (stdout, _("The service is already in use. Try again later."));
-
-      break;
-
-    case GNUNET_CONVERSATION_NT_NO_PEER:
-      FPRINTF (stdout, _("The Peer you were calling is no correct peer.\n"));
-
-      break;
-
-    case GNUNET_CONVERSATION_NT_NO_ANSWER:
-      FPRINTF (stdout, _("Peer %s did not answer your call.\n"),
-	       GNUNET_i2s_full (peer));
-
-      break;
-
-    case GNUNET_CONVERSATION_NT_AVAILABLE_AGAIN:
-      FPRINTF (stdout, _("Peer %s is now available.\n"),
-	       GNUNET_i2s_full (peer));
-
-      break;
-
-    case GNUNET_CONVERSATION_NT_CALL_ACCEPTED:
-      FPRINTF (stdout, _("Peer %s has accepted your call.\n"),
-	       GNUNET_i2s_full (peer));
-
-      break;
-
-    case GNUNET_CONVERSATION_NT_CALL_TERMINATED:
-      FPRINTF (stdout, _("Peer %s has terminated the call.\n"),
-	       GNUNET_i2s_full (peer));
-      break;
-    }
-
+  {
+  case GNUNET_CONVERSATION_NT_SERVICE_BLOCKED:
+    FPRINTF (stdout,
+	     _("The service is already in use. Try again later."));    
+    break;    
+  case GNUNET_CONVERSATION_NT_NO_PEER:
+    FPRINTF (stdout, 
+	     _("The Peer you were calling is no correct peer.\n"));    
+    break;    
+  case GNUNET_CONVERSATION_NT_NO_ANSWER:
+    FPRINTF (stdout, 
+	     _("Peer %s did not answer your call.\n"),
+	     GNUNET_i2s_full (peer));    
+    break;    
+  case GNUNET_CONVERSATION_NT_AVAILABLE_AGAIN:
+    FPRINTF (stdout,
+	     _("Peer %s is now available.\n"),
+	     GNUNET_i2s_full (peer));    
+    break;    
+  case GNUNET_CONVERSATION_NT_CALL_ACCEPTED:
+    FPRINTF (stdout, 
+	     _("Peer %s has accepted your call.\n"),
+	     GNUNET_i2s_full (peer));    
+    break;    
+  case GNUNET_CONVERSATION_NT_CALL_TERMINATED:
+    FPRINTF (stdout,
+	     _("Peer %s has terminated the call.\n"),
+	     GNUNET_i2s_full (peer));
+    break;
+  default:
+    GNUNET_break (0);
+  }  
 }
+
 
 /**
  * Method called whenever a notification for missed calls is there
@@ -155,93 +163,117 @@ notification_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle, int 
  * @param handle to the conversation session
  * @param missed_calls a list of missed calls
  */
-void
-missed_call_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle,
+static void
+missed_call_handler (void *cls,
+		     struct GNUNET_CONVERSATION_Handle *handle,
 		     struct GNUNET_CONVERSATION_MissedCallNotification *missed_calls)
 {
   FPRINTF (stdout, _("You have missed calls.\n"));
 }
 
+
 /**
-* Terminating the client
-*/
+ * Terminating the client
+ */
 static int
-do_quit (const char *args, const void *xtra)
+do_quit (const char *args, 
+	 const void *xtra)
 {
   return GNUNET_SYSERR;
 }
 
+
 /**
-*
-*/
+ *
+ */
 static int
-do_unknown (const char *msg, const void *xtra)
+do_unknown (const char *msg, 
+	    const void *xtra)
 {
   FPRINTF (stderr, _("Unknown command `%s'\n"), msg);
   return GNUNET_OK;
 }
 
+
 /**
-* Initiating a new call
-*/
+ * Initiating a new call
+ */
 static int
-do_call (const char *arg, const void *xtra)
+do_call (const char *arg, 
+	 const void *xtra)
 {
   char *callee = GNUNET_strdup (arg);
-  FPRINTF (stdout, _("Initiating call to: %s\n"), callee);
-  GNUNET_CONVERSATION_call (conversation, callee, GNUNET_YES);
 
+  FPRINTF (stdout, 
+	   _("Initiating call to: %s\n"), 
+	   callee);
+  GNUNET_CONVERSATION_call (conversation, 
+			    callee, 
+			    GNUNET_YES);
   return GNUNET_OK;
 }
 
+
 /**
-* Initiating a new call
-*/
+ * Initiating a new call
+ */
 static int
-do_call_peer (const char *arg, const void *xtra)
+do_call_peer (const char *arg, 
+	      const void *xtra)
 {
   char *callee = GNUNET_strdup (arg);
-  FPRINTF (stdout, _("Initiating call to: %s\n"), callee);
+
+  FPRINTF (stdout, 
+	   _("Initiating call to: %s\n"), 
+	   callee);
   GNUNET_CONVERSATION_call (conversation, callee, GNUNET_NO);
-
+  
   return GNUNET_OK;
 }
 
+
 /**
-* Accepting an incoming call
-*/
+ * Accepting an incoming call
+ */
 static int
-do_accept (const char *args, const void *xtra)
+do_accept (const char *args, 
+	   const void *xtra)
 {
-  FPRINTF (stdout, _("Accepting the call\n"));
+  FPRINTF (stdout,
+	   _("Accepting the call\n"));
   GNUNET_CONVERSATION_accept (conversation);
 
   return GNUNET_OK;
 }
 
+
 /**
-* Rejecting a call
-*/
+ * Rejecting a call
+ */
 static int
-do_reject (const char *args, const void *xtra)
+do_reject (const char *args, 
+	   const void *xtra)
 {
-  FPRINTF (stdout, _("Rejecting the call\n"));
+  FPRINTF (stdout,
+	   _("Rejecting the call\n"));
   GNUNET_CONVERSATION_reject (conversation);
-
   return GNUNET_OK;
 }
+
 
 /**
-* Terminating a call
-*/
+ * Terminating a call
+ */
 static int
-do_hang_up (const char *args, const void *xtra)
+do_hang_up (const char *args, 
+	    const void *xtra)
 {
-  FPRINTF (stdout, _("Terminating the call\n"));
-  GNUNET_CONVERSATION_hangup (conversation);
-
+  FPRINTF (stdout, 
+	   _("Terminating the call\n"));
+  GNUNET_CONVERSATION_hangup (conversation);  
   return GNUNET_OK;
 }
+
 
 /**
  * List of supported commands.
@@ -264,61 +296,78 @@ static struct VoipCommand commands[] = {
   {NULL, NULL, NULL},
 };
 
+
 /**
-*
-*/
+ *
+ */
 static int
-do_help (const char *args, const void *xtra)
+do_help (const char *args, 
+	 const void *xtra)
 {
   int i;
 
   i = 0;
   while ((NULL != args) && (0 != strlen (args)) &&
 	 (commands[i].Action != &do_help))
+  {
+    if (0 ==
+	strncasecmp (&args[1], &commands[i].command[1], strlen (args) - 1))
     {
-      if (0 ==
-	  strncasecmp (&args[1], &commands[i].command[1], strlen (args) - 1))
-	{
-	  FPRINTF (stdout, "%s\n", gettext (commands[i].helptext));
-	  return GNUNET_OK;
-	}
-      i++;
+      FPRINTF (stdout, 
+	       "%s\n",
+	       gettext (commands[i].helptext));
+      return GNUNET_OK;
     }
+    i++;
+  }
   i = 0;
-  FPRINTF (stdout, "%s", "Available commands:");
+  FPRINTF (stdout, 
+	   "%s", 
+	   "Available commands:");
   while (commands[i].Action != &do_help)
-    {
-      FPRINTF (stdout, " %s", gettext (commands[i].command));
-      i++;
-    }
-  FPRINTF (stdout, "%s", "\n");
-  FPRINTF (stdout, "%s\n", gettext (commands[i].helptext));
+  {
+    FPRINTF (stdout, 
+	     " %s", 
+	     gettext (commands[i].command));
+    i++;
+  }
+  FPRINTF (stdout,
+	   "%s",
+	   "\n");
+  FPRINTF (stdout,
+	   "%s\n",
+	   gettext (commands[i].helptext));
   return GNUNET_OK;
 }
 
+
 /**
-*
-*/
+ *
+ */
 static void
-do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop_task (void *cls,
+	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running shutdown task\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Running shutdown task\n");
   GNUNET_CONVERSATION_disconnect (conversation);
-
+  
   if (handle_cmd_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (handle_cmd_task);
-      handle_cmd_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running shutdown task finished\n");
+  {
+    GNUNET_SCHEDULER_cancel (handle_cmd_task);
+    handle_cmd_task = GNUNET_SCHEDULER_NO_TASK;
+  } 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Running shutdown task finished\n");
 }
 
+
 /**
-*
-*/
-void
-handle_command (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ *
+ */
+static void
+handle_command (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char message[MAX_MESSAGE_LENGTH + 1];
   int i;
@@ -357,6 +406,7 @@ out:
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -366,17 +416,24 @@ out:
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args, 
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   if (NULL ==
       (conversation =
-       GNUNET_CONVERSATION_connect (c, NULL, &call_handler, &reject_handler,
-			    &notification_handler, &missed_call_handler)))
-    {
-      FPRINTF (stderr, "%s", _("Could not access CONVERSATION service.  Exiting.\n"));
-      return;
-    }
+       GNUNET_CONVERSATION_connect (c, NULL, 
+				    &call_handler,
+				    &reject_handler,
+				    &notification_handler,
+				    &missed_call_handler)))
+  {
+    FPRINTF (stderr,
+	     "%s",
+	     _("Could not access CONVERSATION service.  Exiting.\n"));
+    return;
+  }
 
   handle_cmd_task =
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,
@@ -385,7 +442,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 				NULL);
 }
 
-/** * The main function to conversation.
+
+/** 
+ * The main function to conversation.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments

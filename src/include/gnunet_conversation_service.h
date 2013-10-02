@@ -40,6 +40,7 @@ extern "C"
  */
 #define GNUNET_CONVERSATION_VERSION 0x00000001
 
+
 enum GNUNET_CONVERSATION_RejectReason
 {
   GNUNET_CONVERSATION_REJECT_REASON_GENERIC = 0,
@@ -50,6 +51,7 @@ enum GNUNET_CONVERSATION_RejectReason
   GNUNET_CONVERSATION_REJECT_REASON_NO_ANSWER
 
 };
+
 
 enum GNUNET_CONVERSATION_NotificationType
 {
@@ -62,16 +64,15 @@ enum GNUNET_CONVERSATION_NotificationType
 };
 
 
-
 /**
-*
-*/
+ *
+ */
 struct GNUNET_CONVERSATION_MissedCall
 {
   struct GNUNET_PeerIdentity peer;
-  struct GNUNET_TIME_Absolute time;
-
+  struct GNUNET_TIME_Absolute time; 
 };
+
 
 struct GNUNET_CONVERSATION_MissedCallNotification
 {
@@ -80,7 +81,9 @@ struct GNUNET_CONVERSATION_MissedCallNotification
 };
 
 struct GNUNET_CONVERSATION_CallInformation;
+
 struct GNUNET_CONVERSATION_Handle;
+
 
 /**
  * Method called whenever a call is incoming
@@ -90,27 +93,24 @@ struct GNUNET_CONVERSATION_Handle;
  * @param caller peer that calls you
  */
 typedef void (GNUNET_CONVERSATION_CallHandler) (void *cls,
-					struct
-					GNUNET_CONVERSATION_Handle
-					* handle,
-					const struct
-					GNUNET_PeerIdentity * caller);
+						struct
+						GNUNET_CONVERSATION_Handle *handle,
+						const struct GNUNET_PeerIdentity *caller);
+
 
 /**
  * Method called whenever a call is rejected
  *
  * @param cls closure
  * @param handle to the conversation session
+ * @param reason reason given for rejecting the call
  * @param peer peer that rejected your call
  */
 typedef void (GNUNET_CONVERSATION_RejectHandler) (void *cls,
-					  struct
-					  GNUNET_CONVERSATION_Handle
-					  * handle,
-					  int
-					  reason,
-					  const struct
-					  GNUNET_PeerIdentity * peer);
+						  struct GNUNET_CONVERSATION_Handle *handle,
+						  enum GNUNET_CONVERSATION_RejectReason reason,
+						  const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Method called whenever a notification is there
@@ -121,13 +121,10 @@ typedef void (GNUNET_CONVERSATION_RejectHandler) (void *cls,
  * @param peer peer that the notification is about
  */
 typedef void (GNUNET_CONVERSATION_NotificationHandler) (void *cls,
-						struct
-						GNUNET_CONVERSATION_Handle
-						* handle,
-						int
-						type,
-						const struct
-						GNUNET_PeerIdentity * peer);
+							struct GNUNET_CONVERSATION_Handle *handle,
+							enum GNUNET_CONVERSATION_NotificationType type,
+							const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Method called whenever a notification for missed calls is there
@@ -137,12 +134,9 @@ typedef void (GNUNET_CONVERSATION_NotificationHandler) (void *cls,
  * @param missed_calls a list of missed calls
  */
 typedef void (GNUNET_CONVERSATION_MissedCallHandler) (void *cls,
-					      struct
-					      GNUNET_CONVERSATION_Handle
-					      * handle,
-					      struct
-					      GNUNET_CONVERSATION_MissedCallNotification
-					      * missed_calls);
+						      struct GNUNET_CONVERSATION_Handle *handle,
+						      struct GNUNET_CONVERSATION_MissedCallNotification *missed_calls);
+
 
 /**
  * Connect to the VoIP service
@@ -152,27 +146,26 @@ typedef void (GNUNET_CONVERSATION_MissedCallHandler) (void *cls,
  * @param call_handler the callback which is called when a call is incoming
  * @param reject_handler the callback which is called when a call is rejected
  * @param notification_handler the callback which is called when there is a notification
- * @param missed_call_handler the callback which is called when the service notifies the client aabout missed clients
+ * @param missed_call_handler the callback which is called when the service notifies the client about missed clients
  * @return handle to the connection to the conversation service
  */
-struct GNUNET_CONVERSATION_Handle *GNUNET_CONVERSATION_connect (const struct
-						GNUNET_CONFIGURATION_Handle
-						*cfg, void *cls,
-						GNUNET_CONVERSATION_CallHandler *
-						call_handler,
-						GNUNET_CONVERSATION_RejectHandler *
-						reject_handler,
-						GNUNET_CONVERSATION_NotificationHandler
-						* notification_handler,
-						GNUNET_CONVERSATION_MissedCallHandler
-						* missed_call_handler);
+struct GNUNET_CONVERSATION_Handle *
+GNUNET_CONVERSATION_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+			     void *cls,
+			     GNUNET_CONVERSATION_CallHandler call_handler,
+			     GNUNET_CONVERSATION_RejectHandler reject_handler,
+			     GNUNET_CONVERSATION_NotificationHandler notification_handler,
+			     GNUNET_CONVERSATION_MissedCallHandler missed_call_handler);
+
 
 /**
  * Disconnect from the VoIP service
  *
  * @param handle handle to the VoIP connection
  */
-void GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle);
+void
+GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle);
+
 
 /**
  * Establish a call
@@ -182,29 +175,37 @@ void GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle);
  * @param doGnsLookup 0 = no GNS lookup or 1  = GNS lookup
  */
 void
-GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *handle, const char *callee,
-		  int doGnsLookup);
+GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *handle, 
+			  const char *callee,
+			  int doGnsLookup);
+
 
 /**
  * Terminate the active call
  *
  * @param handle handle to the VoIP connection
  */
-void GNUNET_CONVERSATION_hangup (struct GNUNET_CONVERSATION_Handle *handle);
+void 
+GNUNET_CONVERSATION_hangup (struct GNUNET_CONVERSATION_Handle *handle);
+
 
 /**
  * Accept an incoming call
  *
  * @param handle handle to the VoIP connection
  */
-void GNUNET_CONVERSATION_accept (struct GNUNET_CONVERSATION_Handle *handle);
+void
+GNUNET_CONVERSATION_accept (struct GNUNET_CONVERSATION_Handle *handle);
+
 
 /**
  * Reject an incoming call
  *
  * @param handle handle to the VoIP connection
  */
-void GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *handle);
+void
+GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *handle);
+
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {
