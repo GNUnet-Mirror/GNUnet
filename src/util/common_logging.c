@@ -829,10 +829,11 @@ flush_bulk (const char *datestr)
  * Ignore the next n calls to the log function.
  *
  * @param n number of log calls to ignore (could be negative)
- * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
+ * @param check_reset #GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (int n, int check_reset)
+GNUNET_log_skip (int n, 
+		 int check_reset)
 {
   int ok;
 
@@ -849,6 +850,7 @@ GNUNET_log_skip (int n, int check_reset)
   }
 }
 
+
 /**
  * Get the number of log calls that are going to be skipped
  *
@@ -860,6 +862,7 @@ GNUNET_get_log_skip ()
   return skip_log;
 }
 
+
 /**
  * Output a log message using the default mechanism.
  *
@@ -869,7 +872,9 @@ GNUNET_get_log_skip ()
  * @param va arguments to the format string "message"
  */
 static void
-mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
+mylog (enum GNUNET_ErrorType kind,
+       const char *comp, 
+       const char *message,
        va_list va)
 {
   char date[DATE_STR_SIZE];
@@ -979,7 +984,8 @@ mylog (enum GNUNET_ErrorType kind, const char *comp, const char *message,
  * @param ... arguments for format string
  */
 void
-GNUNET_log_nocheck (enum GNUNET_ErrorType kind, const char *message, ...)
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind, 
+		    const char *message, ...)
 {
   va_list va;
 

@@ -450,7 +450,7 @@ GNUNET_log_skip (int n, int check_reset);
  * @param comp default component to use
  * @param loglevel what types of messages should be logged
  * @param logfile change logging to logfile (use NULL to keep stderr)
- * @return GNUNET_OK on success, GNUNET_SYSERR if logfile could not be opened
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if logfile could not be opened
  */
 int
 GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
@@ -461,7 +461,7 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
  * Add a custom logger.
  *
  * @param logger log function
- * @param logger_cls closure for logger
+ * @param logger_cls closure for @a logger
  */
 void
 GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
