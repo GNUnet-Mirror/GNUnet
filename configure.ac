@@ -375,7 +375,7 @@ fi
 
 # check for libpulse(audio) library
 pulse=0
-AC_CHECK_LIB(pulse,pa_stream_peak,
+AC_CHECK_LIB(pulse,pa_stream_peek,
   [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
 if test "$pulse" = 1
 then

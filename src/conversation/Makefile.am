@@ -64,7 +64,7 @@ libexec_PROGRAMS = \
 
 if HAVE_PULSE
 if HAVE_OPUS
-libexec_PROGRAMS +=
+libexec_PROGRAMS += \
   gnunet-helper-audio-record \
   gnunet-helper-audio-playback
 endif
@@ -117,7 +117,7 @@ gnunet_conversation_test_SOURCES = \
 gnunet_conversation_test_LDADD = \
   libgnunetmicrophone.la \
   libgnunetspeaker.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la  \
   $(INTLLIBS) 
 gnunet_conversation_test_LDFLAGS = \
  $(GNUNET_LDFLAGS) $(WINFLAGS) 
