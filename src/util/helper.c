@@ -541,8 +541,8 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
  * Kills the helper, closes the pipe and frees the handle
  *
  * @param h handle to helper to stop
- * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
- *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @param soft_kill if #GNUNET_YES, signals termination by closing the helper's
+ *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 void
 GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill)
@@ -624,9 +624,9 @@ helper_write (void *cls,
  * @param h helper to send message to
  * @param msg message to send
  * @param can_drop can the message be dropped if there is already one in the queue?
- * @param cont continuation to run once the message is out (PREREQ_DONE on succees, CANCEL
- *             if the helper process died, NULL during GNUNET_HELPER_stop).
- * @param cont_cls closure for 'cont'
+ * @param cont continuation to run once the message is out (#GNUNET_OK on succees, #GNUNET_NO
+ *             if the helper process died, #GNUNET_SYSERR during #GNUNET_HELPER_destroy).
+ * @param cont_cls closure for @a cont
  * @return NULL if the message was dropped, 
  *         otherwise handle to cancel *cont* (actual transmission may
  *         not be abortable)
@@ -666,7 +666,7 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
 }
 
 /**
- * Cancel a 'send' operation.  If possible, transmitting the
+ * Cancel a #GNUNET_HELPER_send operation.  If possible, transmitting the
  * message is also aborted, but at least 'cont' won't be
  * called.
  *
