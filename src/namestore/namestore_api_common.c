@@ -276,7 +276,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 
 /**
  * Returns the expiration time of the given block of records. The block
- * expiration time is the expiration time of the block with smallest
+ * expiration time is the expiration time of the record with smallest
  * expiration time.
  *
  * @param rd_count number of records given in @a rd

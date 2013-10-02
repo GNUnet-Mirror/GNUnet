@@ -77,6 +77,11 @@ struct Plugin
   sqlite3_stmt *cache_block;
 
   /**
+   * Precompiled SQL for deleting an older block
+   */
+  sqlite3_stmt *delete_block;
+
+  /**
    * Precompiled SQL for looking up a block
    */
   sqlite3_stmt *lookup_block;
@@ -305,6 +310,10 @@ database_setup (struct Plugin *plugin)
         &plugin->expire_blocks) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
+        "DELETE FROM ns096blocks WHERE query=? AND expiration_time<=?",
+        &plugin->delete_block) != SQLITE_OK) ||
+      (sq_prepare
+       (plugin->dbh,
         "SELECT block FROM ns096blocks WHERE query=? ORDER BY expiration_time DESC LIMIT 1",
         &plugin->lookup_block) != SQLITE_OK) ||
       (sq_prepare
@@ -357,6 +366,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->lookup_block);
   if (NULL != plugin->expire_blocks)
     sqlite3_finalize (plugin->expire_blocks);
+  if (NULL != plugin->delete_block)
+    sqlite3_finalize (plugin->delete_block);
   if (NULL != plugin->store_records)
     sqlite3_finalize (plugin->store_records);
   if (NULL != plugin->delete_records)
@@ -470,6 +481,41 @@ namestore_sqlite_cache_block (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+
+  /* delete old version of the block */
+  if ( (SQLITE_OK != 
+        sqlite3_bind_blob (plugin->delete_block, 1, 
+                           &query, sizeof (struct GNUNET_HashCode), 
+                           SQLITE_STATIC)) ||
+       (SQLITE_OK != 
+        sqlite3_bind_int64 (plugin->delete_block,
+                            2, dval)) )
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind_XXXX");
+    if (SQLITE_OK != sqlite3_reset (plugin->delete_block))
+      LOG_SQLITE (plugin,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_reset");
+    return GNUNET_SYSERR;
+  }
+  n = sqlite3_step (plugin->delete_block);
+  switch (n)
+  {
+  case SQLITE_DONE:
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Old block deleted\n");
+    break;
+  case SQLITE_BUSY:
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+    break;
+  default:
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+    break;
+  }
+
+  /* insert new version of the block */
   if ((SQLITE_OK != 
        sqlite3_bind_blob (plugin->cache_block, 1, 
 			  &query, sizeof (struct GNUNET_HashCode), 

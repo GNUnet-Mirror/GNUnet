@@ -552,6 +552,45 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 
 
 /**
+ * We just touched the plaintext information about a name in our zone;
+ * refresh the corresponding (encrypted) block in the namestore.
+ *
+ * @param zone_key private key of the zone
+ * @param name label for the records
+ * @param rd_count number of records
+ * @param rd records stored under the given @a name
+ */
+static void
+refresh_block (const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+               const char *name,
+               unsigned int rd_count,
+               const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  struct GNUNET_NAMESTORE_Block *block;
+  
+  if (0 == rd_count)
+    block = GNUNET_NAMESTORE_block_create (zone_key,
+                                           GNUNET_TIME_UNIT_ZERO_ABS,
+                                           name,
+                                           rd, rd_count);
+  else
+    block = GNUNET_NAMESTORE_block_create (zone_key,
+                                           GNUNET_NAMESTORE_record_get_expiration_time (rd_count,
+                                                                                        rd),
+                                           name,
+                                           rd, rd_count);
+  if (GNUNET_OK !=
+      GSN_database->cache_block (GSN_database->cls,
+                                 block))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to cache encrypted block of my own zone!\n"));
+  }
+  GNUNET_free (block);
+}    
+
+
+/**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE message
  *
  * @param cls unused
@@ -577,6 +616,7 @@ handle_record_store (void *cls,
   unsigned int rd_count;
   int res;
   struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct ZoneMonitor *zm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received `%s' message\n", 
@@ -644,7 +684,10 @@ handle_record_store (void *cls,
 		conv_name,
 		GNUNET_NAMESTORE_z2s (&pubkey));
 
-    if ((rd_count == 0) && (GNUNET_NO == GSN_database->iterate_records (GSN_database->cls, &rp_msg->private_key, 0, NULL, 0)))
+    if ( (0 == rd_count) && 
+         (GNUNET_NO == 
+          GSN_database->iterate_records (GSN_database->cls, 
+                                         &rp_msg->private_key, 0, NULL, 0)) )
     {
       /* This name does not exist, so cannot be removed */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -660,39 +703,20 @@ handle_record_store (void *cls,
 					 rd_count, rd);
       if (GNUNET_OK == res)
       {
-	struct ZoneMonitor *zm;
-	struct GNUNET_NAMESTORE_Block *block;
-	
-	if (0 == rd_count)
-	  block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
-						 GNUNET_TIME_UNIT_ZERO_ABS,
-						 conv_name,
-						 rd, rd_count);
-	else
-	  block = GNUNET_NAMESTORE_block_create (&rp_msg->private_key,
-						 GNUNET_TIME_UNIT_FOREVER_ABS,
-						 conv_name,
-						 rd, rd_count);
-	if (GNUNET_OK !=
-	    GSN_database->cache_block (GSN_database->cls,
-				       block))
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Failed to cache encrypted block of my own zone!\n"));
-	  res = GNUNET_SYSERR;
-	}
-	GNUNET_free (block);
-	
-	for (zm = monitor_head; NULL != zm; zm = zm->next)    
-	  if (0 == memcmp (&rp_msg->private_key, &zm->zone,
-			   sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
-	    send_lookup_response (monitor_nc,
-				  zm->nc->client,
-				  zm->request_id,
-				  &rp_msg->private_key,
-				  conv_name,
-				  rd_count, rd);
-      }    
+        refresh_block (&rp_msg->private_key,
+                       conv_name,
+                       rd_count, rd);
+  
+        for (zm = monitor_head; NULL != zm; zm = zm->next)    
+          if (0 == memcmp (&rp_msg->private_key, &zm->zone,
+                           sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+            send_lookup_response (monitor_nc,
+                                  zm->nc->client,
+                                  zm->request_id,
+                                  &rp_msg->private_key,
+                                  conv_name,
+                                  rd_count, rd);
+      }
       GNUNET_free (conv_name);
     }
   }
@@ -914,6 +938,8 @@ zone_iteraterate_proc (void *cls,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct ZoneIterationProcResult *proc = cls;
+  unsigned int i;
+  int do_refresh_block;
 
   if ((NULL == zone_key) && (NULL == name))
   {
@@ -937,6 +963,20 @@ zone_iteraterate_proc (void *cls,
 			name,
 			rd_count,
 			rd);
+  do_refresh_block = GNUNET_NO;
+  for (i=0;i<rd_count;i++)
+    if(  (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) &&
+         (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING)) )
+    {
+      do_refresh_block = GNUNET_YES;
+      break;
+    }
+  if (GNUNET_YES == do_refresh_block)
+    refresh_block (zone_key,
+                   name,
+                   rd_count,
+                   rd);
+
 }
 
 
