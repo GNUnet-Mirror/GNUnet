@@ -36,6 +36,8 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_util_lib.h"
+
 /**
  * Version of the conversation API.
  */
@@ -233,60 +235,11 @@ GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *handle);
    talking to.x */
 
 
+#include "gnunet_util_lib.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
-
-
-/**
- * A speaker is a device that can play or record audio data.
- */
-struct GNUNET_CONVERSATION_Speaker;
-
-
-/**
- * Create a speaker that corresponds to the speaker hardware
- * of our system.
- *
- * @param cfg configuration to use
- * @return NULL on error
- */
-struct GNUNET_CONVERSATION_Speaker *
-GNUNET_CONVERSATION_speaker_create_from_hardware (struct GNUNET_CONFIGURATION_Handle *cfg);
-
-
-/**
- * Destroy a speaker.
- *
- * @param speaker speaker to destroy
- */
-void
-GNUNET_CONVERSATION_speaker_destroy (struct GNUNET_CONVERSATION_Speaker *speaker);
-
-
-/**
- * A speaker is a device that can generate audio data.
- */
-struct GNUNET_CONVERSATION_Microphone;
-
-
-/**
- * Create a speaker that corresponds to the speaker hardware
- * of our system.
- *
- * @param cfg configuration to use
- * @return NULL on error
- */
-struct GNUNET_CONVERSATION_Microphone *
-GNUNET_CONVERSATION_microphone_create_from_hardware (struct GNUNET_CONFIGURATION_Handle *cfg);
-
-
-/**
- * Destroy a microphone.
- *
- * @param mic microphone to destroy
- */
-void
-GNUNET_CONVERSATION_microphone_destroy (struct GNUNET_CONVERSATION_Microphone *mic);
+#include "gnunet_speaker_lib.h"
+#include "gnunet_microphone_lib.h"
 
 
 /**
@@ -382,8 +335,8 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
 void
 GNUNET_CONVERSTATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
 				    const char *metadata,
-				    struct GNUNET_CONVERSATION_Speaker *speaker,
-				    struct GNUNET_CONVERSATION_Microphone *mic);
+				    struct GNUNET_SPEAKER_Handle *speaker,
+				    struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
@@ -431,8 +384,8 @@ struct GNUNET_CONVERSATION_Call *
 GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				struct GNUNET_IDENTITY_Ego *caller_id,
 				const char *callee,
-				struct GNUNET_CONVERSATION_Speaker *speaker,
-				struct GNUNET_CONVERSATION_Microphone *mic,
+				struct GNUNET_SPEAKER_Handle *speaker,
+				struct GNUNET_MICROPHONE_Handle *mic,
 				GNUNET_CONVERSATION_EventHandler event_handler,
 				void *event_handler_cls);
 
@@ -444,7 +397,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param reason if the call was active (ringing or ready) this will be the
  *        reason given to the other user for why we hung up
  */
-struct GNUNET_CONVERSATION_Call *
+void
 GNUNET_CONVERSATION_call_stop (const struct GNUNET_CONVERSATION_Call *call,
 			       const char *reason);
 

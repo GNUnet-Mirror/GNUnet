@@ -21,7 +21,8 @@ pkgcfgdir= $(prefix)/share/gnunet/config.d/
 libexecdir= $(prefix)/lib/gnunet/libexec/
 
 libgnunetconversation_la_SOURCES = \
-  conversation_api.c 
+  conversation_api.c \
+  conversation_api2.c 
 libgnunetconversation_la_LIBADD = \
   -lgnunetutil -lgnunetnamestore -lgnunetgns
 libgnunetconversation_la_LDFLAGS = \
