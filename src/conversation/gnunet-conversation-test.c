@@ -31,7 +31,7 @@
 /**
  * How long do we record before we replay?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 
 /**
@@ -145,10 +145,13 @@ switch_to_speaker (void *cls,
     return;
   }
   fprintf (stderr, "\nPlaying...");
-  for (rec=rec_head;NULL != rec; rec = rec->next)
+  for (rec=rec_head; NULL != rec; rec = rec->next)
+  {
+    fprintf (stderr, "<-%u\n", (unsigned int) rec->size);
     speaker->play (speaker->cls,
 		   rec->size,
 		   &rec[1]);
+  }
   GNUNET_SCHEDULER_cancel (st);
   st = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 				     &do_shutdown,
@@ -170,7 +173,7 @@ record (void *cls,
 {
   struct Recording *rec;
 
-  fprintf (stderr, ".");
+  fprintf (stderr, "->%u\n", (unsigned int) data_size);
   rec = GNUNET_malloc (sizeof (struct Recording) + data_size);
   rec->size = data_size;
   memcpy (&rec[1], data, data_size);
@@ -202,7 +205,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				     &do_shutdown,
 				     NULL);
-  fprintf (stderr, "Recording...");
+  fprintf (stderr, 
+	   "Recording for %s...",
+	   GNUNET_STRINGS_relative_time_to_string (TIMEOUT, GNUNET_YES));
   if (GNUNET_OK !=
       microphone->enable_microphone (microphone->cls,
 				     &record, NULL))

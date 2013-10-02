@@ -41,18 +41,14 @@
 #define MAXLINE 4096
 
 /**
-* GNUnet Message Tokenizer
-*/
-#include "mst.c"
-
-/**
-* Pulseaudio specification. May change in the future.
-*/
+ * Pulseaudio specification. May change in the future.
+ */
 static pa_sample_spec sample_spec = {
   .format = PA_SAMPLE_FLOAT32LE,
   .rate = 48000,
   .channels = 1
 };
+
 
 /**
  * Pulseaudio mainloop api
@@ -123,40 +119,39 @@ static size_t buffer_index;
 /**
  * Message callback
  */
-static void
+static int
 stdin_receiver (void *cls, 
+		void *client,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
 
   switch (ntohs (msg->type))
-    {
-    case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
-      audio = (struct AudioMessage *) msg;
-
-      int len =
-	opus_decode_float (dec,
-			   (const unsigned char *) &audio[1],
-			   ntohs (audio->header.size) - sizeof (struct AudioMessage),
-			   pcm_buffer,
-			   frame_size, 0);
-      // FIXME: pcm_length != len???
-      if (pa_stream_write
-	  (stream_out, (uint8_t *) pcm_buffer, pcm_length, NULL, 0,
-	   PA_SEEK_RELATIVE) < 0)
-	{
-
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("pa_stream_write() failed: %s\n"),
-		      pa_strerror (pa_context_errno (context)));
-	  return;
-	}
-
-      break;
-
-    default:
-      break;
-    }
+  {
+  case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
+    audio = (struct AudioMessage *) msg;
+    
+    int len =
+      opus_decode_float (dec,
+			 (const unsigned char *) &audio[1],
+			 ntohs (audio->header.size) - sizeof (struct AudioMessage),
+			 pcm_buffer,
+			 frame_size, 0);
+    // FIXME: pcm_length != len???
+    if (pa_stream_write
+	(stream_out, (uint8_t *) pcm_buffer, pcm_length, NULL, 0,
+	 PA_SEEK_RELATIVE) < 0)
+    {      
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("pa_stream_write() failed: %s\n"),
+		  pa_strerror (pa_context_errno (context)));
+      return GNUNET_OK;
+    }    
+    break;
+  default:
+    break;
+  }
+  return GNUNET_OK;
 }
 
 
@@ -402,13 +397,14 @@ int
 main (int argc, char *argv[])
 {
   char readbuf[MAXLINE];
-  struct MessageStreamTokenizer *stdin_mst;
+  struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
 
+  fprintf (stderr, "HERE!\n");
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-playback",
 				   "WARNING",
 				   NULL));
-  stdin_mst = mst_create (&stdin_receiver, NULL);
+  stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
   opus_init ();
   pa_init ();
   while (1)
@@ -421,8 +417,10 @@ main (int argc, char *argv[])
 		  strerror (errno));
       break;
     }    
-    mst_receive (stdin_mst, readbuf, ret);
+    GNUNET_SERVER_mst_receive (stdin_mst, NULL,
+			       readbuf, ret,
+			       GNUNET_NO, GNUNET_NO);
   }
-  mst_destroy (stdin_mst);
+  GNUNET_SERVER_mst_destroy (stdin_mst);
   return 0;
 }

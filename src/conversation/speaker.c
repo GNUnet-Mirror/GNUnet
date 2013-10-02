@@ -145,7 +145,7 @@ play (void *cls,
   am = (const struct AudioMessage *) data;
   (void) GNUNET_HELPER_send (spe->playback_helper,
 			     &am->header, 
-			     GNUNET_YES, 
+			     GNUNET_NO, 
 			     NULL, NULL);
 }
 

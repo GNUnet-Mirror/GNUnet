@@ -462,6 +462,8 @@ opus_init ()
 int
 main (int argc, char *argv[])
 {
+  fprintf (stderr, "HERE2!\n");
+
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-record",
 				   "WARNING",
