@@ -32,19 +32,20 @@
 #define MAX_MESSAGE_LENGTH   (32 * 1024)
 
 /**
-* CONVERSATION handle
-*/
-struct GNUNET_CONVERSATION_Handle *conversation = NULL;
+ * CONVERSATION handle
+ */
+static struct GNUNET_CONVERSATION_Handle *conversation;
 
 /**
-* Task which handles the commands
-*/
+ * Task which handles the commands
+ */
 static GNUNET_SCHEDULER_TaskIdentifier handle_cmd_task;
 
 /**
-* Function declareation for executing a action
-*/
-typedef int (*ActionFunction) (const char *argumetns, const void *xtra);
+ * Function declareation for executing a action
+ */
+typedef int (*ActionFunction) (const char *argumetns, 
+			       const void *xtra);
 
 /**
 * Structure which defines a command
@@ -56,15 +57,10 @@ struct VoipCommand
   const char *helptext;
 };
 
-/******************************************************************************/
-/***********************         DECLARATIONS         *************************/
-/******************************************************************************/
 
-static int do_help (const char *args, const void *xtra);
-
-/******************************************************************************/
-/***********************         Functions            *************************/
-/******************************************************************************/
+static int
+do_help (const char *args, 
+	 const void *xtra);
 
 
 /**
@@ -167,7 +163,8 @@ missed_call_handler (void *cls,
 		     struct GNUNET_CONVERSATION_Handle *handle,
 		     struct GNUNET_CONVERSATION_MissedCallNotification *missed_calls)
 {
-  FPRINTF (stdout, _("You have missed calls.\n"));
+  FPRINTF (stdout, 
+	   _("You have missed calls.\n"));
 }
 
 
@@ -189,7 +186,9 @@ static int
 do_unknown (const char *msg, 
 	    const void *xtra)
 {
-  FPRINTF (stderr, _("Unknown command `%s'\n"), msg);
+  FPRINTF (stderr, 
+	   _("Unknown command `%s'\n"), 
+	   msg);
   return GNUNET_OK;
 }
 
@@ -201,13 +200,11 @@ static int
 do_call (const char *arg, 
 	 const void *xtra)
 {
-  char *callee = GNUNET_strdup (arg);
-
   FPRINTF (stdout, 
 	   _("Initiating call to: %s\n"), 
-	   callee);
+	   arg);
   GNUNET_CONVERSATION_call (conversation, 
-			    callee, 
+			    arg, 
 			    GNUNET_YES);
   return GNUNET_OK;
 }
@@ -220,13 +217,12 @@ static int
 do_call_peer (const char *arg, 
 	      const void *xtra)
 {
-  char *callee = GNUNET_strdup (arg);
-
   FPRINTF (stdout, 
 	   _("Initiating call to: %s\n"), 
-	   callee);
-  GNUNET_CONVERSATION_call (conversation, callee, GNUNET_NO);
-  
+	   arg);
+  GNUNET_CONVERSATION_call (conversation, 
+			    arg,
+			    GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -278,7 +274,7 @@ do_hang_up (const char *args,
  * List of supported commands.
  */
 static struct VoipCommand commands[] = {
-  {"/call ", &do_call, gettext_noop ("Use `/call gads_record'")},
+  {"/call ", &do_call, gettext_noop ("Use `/call gns_name'")},
   {"/callpeer ", &do_call_peer,
    gettext_noop ("Use `/call private_key' to call a person")},
   {"/accept", &do_accept,

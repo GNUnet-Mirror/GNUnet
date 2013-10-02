@@ -93,8 +93,7 @@ struct GNUNET_CONVERSATION_Handle;
  * @param caller peer that calls you
  */
 typedef void (GNUNET_CONVERSATION_CallHandler) (void *cls,
-						struct
-						GNUNET_CONVERSATION_Handle *handle,
+						struct GNUNET_CONVERSATION_Handle *handle,
 						const struct GNUNET_PeerIdentity *caller);
 
 

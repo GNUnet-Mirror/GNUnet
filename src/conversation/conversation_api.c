@@ -81,54 +81,54 @@ struct GNUNET_CONVERSATION_CallInformation
 struct GNUNET_CONVERSATION_Handle
 {
 
-	/**
- 	* Our configuration.
- 	*/
+  /**
+   * Our configuration.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-    /**
-     * Handle to the server connection, to send messages later
-     */
+  /**
+   * Handle to the server connection, to send messages later
+   */
   struct GNUNET_CLIENT_Connection *client;
 
-   /**
-	* GNS handle
-	*/
+  /**
+   * GNS handle
+   */
   struct GNUNET_GNS_Handle *gns;
 
-	/**
-	* Namestore handle
-	*/
+  /**
+   * Namestore handle
+   */
   struct GNUNET_NAMESTORE_Handle *namestore;
 
-	/**
-	* TXT record for gns
-	*/
+  /**
+   * TXT record for gns
+   */
   int txt_record_set;
 
-	/**
-     * Callback for incoming calls
-     */
+  /**
+   * Callback for incoming calls
+   */
   GNUNET_CONVERSATION_CallHandler *call_handler;
 
-	/**
-     * Callback for rejected calls
-     */
+  /**
+   * Callback for rejected calls
+   */
   GNUNET_CONVERSATION_RejectHandler *reject_handler;
-
-	/**
-     * Callback for notifications
-     */
+  
+  /**
+   * Callback for notifications
+   */
   GNUNET_CONVERSATION_NotificationHandler *notification_handler;
 
-	/**
-     * Callback for missed calls
-     */
+  /**
+   * Callback for missed calls
+   */
   GNUNET_CONVERSATION_MissedCallHandler *missed_call_handler;
 
-	/**
-	* The pointer to the call
-	*/
+  /**
+   * The pointer to the call
+   */
   struct GNUNET_CONVERSATION_CallInformation *call;
 };
 
@@ -210,25 +210,23 @@ check_gns_cb (void *cls, uint32_t rd_count,
     {
       h->txt_record_set = GNUNET_YES;
     }
-
-  return;
 }
 
+
 /**
-* Check if the gns txt record for conversation exits
-*/
+ * Check if the gns txt record for conversation exits
+ */
 static void
 check_gns (struct GNUNET_CONVERSATION_Handle *h)
 {
-  GNUNET_GNS_lookup (h->gns, "conversation.gads", 
+  GNUNET_GNS_lookup (h->gns, "conversation.gns", 
 		     NULL /* FIXME_ZONE */,
 		     GNUNET_DNSPARSER_TYPE_TXT,
 		     GNUNET_NO, 
 		     NULL, 
 		     &check_gns_cb, h);
-
-  return;
 }
+
 
 /******************************************************************************/
 /***********************      RECEIVE HANDLERS     ****************************/
@@ -241,7 +239,8 @@ check_gns (struct GNUNET_CONVERSATION_Handle *h)
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-receive_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
+receive_message_cb (void *cls, 
+		    const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONVERSATION_Handle *h = cls;
   struct ServerClientSessionInitiateMessage *imsg;
@@ -532,6 +531,7 @@ accept_call (struct GNUNET_CONVERSATION_Handle *h)
 				       &transmit_session_accept_message, h);
 }
 
+
 /**
  * Auxiliary function to reject a call.
  * 
@@ -546,6 +546,7 @@ reject_call (struct GNUNET_CONVERSATION_Handle *h)
 				       MAX_TRANSMIT_DELAY, GNUNET_YES,
 				       &transmit_session_reject_message, h);
 }
+
 
 /**
  * Auxiliary function to terminate a call.
@@ -563,9 +564,10 @@ terminate_call (struct GNUNET_CONVERSATION_Handle *h)
 				       h);
 }
 
+
 /**
-*
-*/
+ *
+ */
 static void
 gns_call_cb (void *cls, uint32_t rd_count,
 	     const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -635,15 +637,17 @@ gns_lookup_and_call (struct GNUNET_CONVERSATION_Handle *h, const char *callee)
 /******************************************************************************/
 
 struct GNUNET_CONVERSATION_Handle *
-GNUNET_CONVERSATION_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
-		     GNUNET_CONVERSATION_CallHandler * call_handler,
-		     GNUNET_CONVERSATION_RejectHandler * reject_handler,
-		     GNUNET_CONVERSATION_NotificationHandler * notification_handler,
-		     GNUNET_CONVERSATION_MissedCallHandler * missed_call_handler)
+GNUNET_CONVERSATION_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+			     void *cls,
+			     GNUNET_CONVERSATION_CallHandler call_handler,
+			     GNUNET_CONVERSATION_RejectHandler reject_handler,
+			     GNUNET_CONVERSATION_NotificationHandler notification_handler,
+			     GNUNET_CONVERSATION_MissedCallHandler missed_call_handler)
 {
   struct GNUNET_CONVERSATION_Handle *h;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "GNUNET_CONVERSATION_connect()\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "GNUNET_CONVERSATION_connect()\n");
   h = GNUNET_malloc (sizeof (struct GNUNET_CONVERSATION_Handle));
 
   h->cfg = cfg;
@@ -690,6 +694,7 @@ GNUNET_CONVERSATION_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void
   return h;
 }
 
+
 void
 GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle)
 {
@@ -732,6 +737,7 @@ GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *h,
   initiate_call (h, peer);
 }
 
+
 void
 GNUNET_CONVERSATION_hangup (struct GNUNET_CONVERSATION_Handle *h)
 {
@@ -741,6 +747,7 @@ GNUNET_CONVERSATION_hangup (struct GNUNET_CONVERSATION_Handle *h)
   terminate_call (h);
 }
 
+
 void
 GNUNET_CONVERSATION_accept (struct GNUNET_CONVERSATION_Handle *h)
 {
@@ -749,6 +756,7 @@ GNUNET_CONVERSATION_accept (struct GNUNET_CONVERSATION_Handle *h)
 
   accept_call (h);
 }
+
 
 void
 GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *h)
