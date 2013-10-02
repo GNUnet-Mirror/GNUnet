@@ -77,7 +77,7 @@ typedef void (*GNUNET_MICROPHONE_DestroyCallback)(void *cls);
 
 
 /**
- * A microphone is a device that can play or record audio data.
+ * A microphone is a device that can capture or otherwise produce audio data.
  */
 struct GNUNET_MICROPHONE_Handle
 {
