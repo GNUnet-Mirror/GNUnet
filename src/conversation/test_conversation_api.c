@@ -50,8 +50,8 @@ check ()
   char *path = GNUNET_OS_get_libexec_binary_path ( "gnunet-service-conversation");
   if (NULL == path)
   {
-  		fprintf (stderr, "Service executable not found `%s'\n", "gnunet-service-conversation");
-  		return;
+    fprintf (stderr, "Service executable not found `%s'\n", "gnunet-service-conversation");
+    return 0;
   }
   proc = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL, NULL,
   				path,
