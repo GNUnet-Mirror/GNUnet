@@ -16,10 +16,15 @@ if HAVE_EXPERIMENTAL
   multicast \
   env \
   psyc \
-  conversation \
   $(CONSENSUS) \
   $(EXPERIMENTATION)
   # NOTE: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
+if HAVE_PULSE
+if HAVE_OPUS
+  EXP_DIR += conversation
+endif
+endif
+
 endif
 
 if HAVE_MYSQL

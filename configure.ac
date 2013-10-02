@@ -360,7 +360,7 @@ fi	# $build = $target
 
 # check for bluetooth library
 bluetooth=0
-AC_CHECK_LIB(bluetooth, ba2str, bluetooth=1, bluetooth=0) 
+AC_CHECK_LIB(bluetooth, ba2str,[AC_CHECK_HEADER([bluetooth/bluetooth.h],bluetooth=1)])
 if test "$bluetooth" = 1
 then
   AM_CONDITIONAL(HAVE_LIBBLUETOOTH, true)
@@ -371,6 +371,34 @@ fi
 if test "$build_target" = "mingw"
 then
   bluetooth=1
+fi
+
+# check for libpulse(audio) library
+pulse=0
+AC_CHECK_LIB(pulse,pa_stream_peak,
+  [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
+if test "$pulse" = 1
+then
+  AM_CONDITIONAL(HAVE_PULSE, true)
+  AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
+else
+  AM_CONDITIONAL(HAVE_PULSE, false)
+fi
+if test "$build_target" = "mingw"
+then
+  pulse=0
+fi
+
+# check for libopus(audio) library
+opus=0
+AC_CHECK_LIB(opus,opus_decode_float,
+  [AC_CHECK_HEADER([opus/opus.h],opus=1)])
+if test "$opus" = 1
+then
+  AM_CONDITIONAL(HAVE_OPUS, true)
+  AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
+else
+  AM_CONDITIONAL(HAVE_OPUS, false)
 fi
 
 
@@ -1440,9 +1468,22 @@ then
   AC_MSG_NOTICE([NOTICE: opening ports for gnunet-java bindings by default.])
 fi
 
+# MHD
 if test "x$lmhd" != "x1"
 then
  AC_MSG_NOTICE([NOTICE: libmicrohttpd not found, http transport will not be installed.])
+fi
+
+# Pulse Audio
+if test "x$pulse" != "x1"
+then
+ AC_MSG_NOTICE([NOTICE: libpulse(audio) not found, conversation will not be built.])
+fi
+
+# Opus
+if test "x$opus" != "x1"
+then
+ AC_MSG_NOTICE([NOTICE: libopus not found, conversation will not be built.])
 fi
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])

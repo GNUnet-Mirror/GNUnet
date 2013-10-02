@@ -51,6 +51,8 @@ These are the direct dependencies for running GNUnet:
 - sqlite        >= 3.0 (default database)
 - mysql         >= 5.1 (alternative to sqLite)
 - postgres      >= 8.3 (alternative to sqLite)
+- libopus       >= 0.9.14 (optional for experimental conversation tool)
+- libpulse      >= 2.0 (optional for experimental conversation tool)
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59

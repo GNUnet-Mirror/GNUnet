@@ -31,9 +31,18 @@ libgnunetconversation_la_LDFLAGS = \
 
 bin_PROGRAMS = gnunet-conversation
 
-libexec_PROGRAMS = gnunet-service-conversation \
+libexec_PROGRAMS = \
+  gnunet-service-conversation 
+
+if HAVE_PULSE
+if HAVE_OPUS
+libexec_PROGRAMS +=
   gnunet-helper-audio-record \
   gnunet-helper-audio-playback
+endif
+endif
+
+
 
 check_PROGRAMS = \
  test_conversation_api 
