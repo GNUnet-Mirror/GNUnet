@@ -36,10 +36,12 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_util_lib.h"
+
 /**
  * Function that enables a speaker.
  *
- * @param cls clsoure
+ * @param cls closure
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 typedef int (*GNUNET_SPEAKER_EnableCallback)(void *cls);
@@ -47,21 +49,21 @@ typedef int (*GNUNET_SPEAKER_EnableCallback)(void *cls);
 /**
  * Function that disables a speaker.
  *
- * @param cls clsoure
+ * @param cls closure
  */
 typedef void (*GNUNET_SPEAKER_DisableCallback)(void *cls);
 
 /**
  * Function to destroy a speaker.
  *
- * @param cls clsoure
+ * @param cls closure
  */
 typedef void (*GNUNET_SPEAKER_DestroyCallback)(void *cls);
 
 /**
  * Function to cause a speaker to play audio data.
  *
- * @param cls clsoure
+ * @param cls closure
  * @param data_size number of bytes in @a data
  * @param data audio data to play, format is
  *        opaque to the API but should be OPUS.

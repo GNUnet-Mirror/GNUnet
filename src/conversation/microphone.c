@@ -101,11 +101,12 @@ enable (void *cls,
 	void *rdc_cls)
 {
   struct Microphone *mic = cls;  
-  char * const record_helper_argv[] = 
+  static char * const record_helper_argv[] = 
   {
     "gnunet-helper-audio-record",
     NULL
   };
+
   mic->rdc = rdc;
   mic->rdc_cls = rdc_cls;
   mic->record_helper = GNUNET_HELPER_start (GNUNET_NO,

@@ -16,6 +16,7 @@ AM_CPPFLAGS = \
 
 lib_LTLIBRARIES = \
  libgnunetmicrophone.la \
+ libgnunetspeaker.la \
  libgnunetconversation.la
 
 pkgcfgdir= $(prefix)/share/gnunet/config.d/
@@ -30,12 +31,21 @@ libgnunetmicrophone_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
+libgnunetspeaker_la_SOURCES = \
+  speaker.c 
+libgnunetspeaker_la_LIBADD = \
+  -lgnunetutil
+libgnunetspeaker_la_LDFLAGS = \
+  $(GNUNET_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
 
 libgnunetconversation_la_SOURCES = \
   conversation_api.c \
   conversation_api2.c 
 libgnunetconversation_la_LIBADD = \
   libgnunetmicrophone.la \
+  libgnunetspeaker.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la 
