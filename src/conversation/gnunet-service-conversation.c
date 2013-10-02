@@ -34,12 +34,27 @@
  * - TUNNEL HANDLING
  * - CLIENT HANDLING
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
-#include <gnunet/gnunet_constants.h>
-#include <gnunet/gnunet_mesh_service.h>
-#include "gnunet_conversation.h"
-#include "gnunet_protocols_conversation.h"
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_protocols.h"
+#include "gnunet_constants.h"
+#include "gnunet_mesh_service.h"
+#include "gnunet_conversation_service.h"
+#include "conversation.h"
+
+
+
+/*
+* The possible connection status
+*/
+enum connection_status
+{
+  LISTEN,
+  CALLER,
+  CALLEE,
+  CONNECTED
+};
+
 
 /******************************************************** 
  * Ugly hack because of not working MESH API
@@ -157,6 +172,51 @@ static int data_sent_size;
  */
 static int data_received;
 static int data_received_size;
+
+
+/**
+* Transmit a mesh message
+ * @param cls closure, NULL
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the error message
+ * @return number of bytes written to buf
+ */
+static size_t transmit_mesh_message (void *cls, size_t size, void *buf);
+
+/**
+ * Function called to send a peer no answer message to the client.
+ * "buf" will be NULL and "size" zero if the socket was closed for writing in
+ * the meantime.
+ *
+ * @param cls closure, NULL
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the peer no answer message
+ * @return number of bytes written to buf
+ */
+static size_t
+transmit_server_no_answer_message (void *cls, size_t size, void *buf);
+
+/**
+ * Task to schedule a audio transmission.
+ * 
+ * @param cls Closure.
+ * @param tc Task Context.
+ */
+static void
+transmit_audio_task (void *cls,
+		     const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+* Start the audio helpers
+*/
+int start_helpers (void);
+
+/**
+* Stop the audio helpers
+*/
+void stop_helpers (void);
+
+
 
 /******************************************************************************/
 /***********************     AUXILIARY FUNCTIONS      *************************/

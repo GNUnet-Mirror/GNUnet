@@ -37,7 +37,8 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
-#include "gnunet_protocols_conversation.h"
+#include "gnunet_protocols.h"
+#include "conversation.h"
 #include "gnunet_conversation_service.h"
 
 #define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)

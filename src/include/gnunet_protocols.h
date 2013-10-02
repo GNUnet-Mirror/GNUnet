@@ -2118,6 +2118,119 @@ extern "C"
 
 
 /*******************************************************************************
+ * CONVERSATION message types
+ ******************************************************************************/
+
+/**
+ * Client <-> Server message to initiate a new call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_INITIATE 730
+
+/**
+ * Client <-> Server meessage to accept an incoming call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_ACCEPT 731
+
+/**
+ * Client <-> Server message to reject an incoming call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_REJECT 732
+
+/**
+ * Client <-> Server message to terminate a call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_TERMINATE 733
+
+/**
+ * Client <-> Server message to initiate a new call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_TEST 734
+
+/**
+ * Server <-> Client message to initiate a new call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_INITIATE 735
+
+/**
+ * Server <-> Client meessage to accept an incoming call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_ACCEPT 736
+
+/**
+ * Server <-> Client message to reject an incoming call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_REJECT 737
+
+/**
+ * Server <-> Client message to terminat a call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_TERMINATE 738
+
+/**
+ * Server <-> Client message to signalize the client that the service is already in use
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SERVICE_BLOCKED 739
+
+/**
+ * Server <-> Client message to signalize the client that the called peer is not connected
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_NOT_CONNECTED 740
+
+/**
+ * Server <-> Client message to signalize the client that called peer does not answer
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_NO_ANSWER 741
+
+/**
+ * Server <-> Client message to notify client of missed call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_MISSED_CALL 742
+
+/**
+ * Server <-> Client message to signalize the client that there occured an error
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_ERROR 743
+
+/**
+ * Server <-> Client message to notify client of peer being available
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_AVAILABLE 744
+
+/**
+ * Mesh message to sinal the remote peer the wish to initiate a new call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_INITIATE 745
+
+/**
+ * Mesh message to signal the remote peer the acceptance of an initiated call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_ACCEPT 746
+
+/**
+ * Mesh message to reject an a wish to initiate a new call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_REJECT 747
+
+/**
+ * Mesh message to signal a remote peer the terminatation of a call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_TERMINATE 748
+
+/**
+ * Server <-> Client message to notify client of peer being available
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PEER_AVAILABLE 749
+
+
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_TEST 750
+
+/**
+* Message to transmit the audio
+*/
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO 751
+
+
+/*******************************************************************************
  * MULTICAST message types
  ******************************************************************************/
 
@@ -2127,7 +2240,7 @@ extern "C"
 /**
  * Multicast message from the origin to all members.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 730
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 760
 
 /**
  * A unicast message from a group member to the origin.
@@ -2177,7 +2290,7 @@ extern "C"
 
 
 /**
- * Next available: 750
+ * Next available: 780
  */
 
 

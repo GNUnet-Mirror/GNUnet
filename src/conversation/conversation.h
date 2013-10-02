@@ -19,14 +19,13 @@
 */
 
 /**
- * @file include/gnunet_protocols_conversation.h
+ * @file conversation/conversation.h
  * @brief constants for network protocols
  * @author Siomon Dieterle
  * @author Andreas Fuchs
  */
-
-#ifndef GNUNET_PROTOCOLS_CONVERSATION_H
-#define GNUNET_PROTOCOLS_CONVERSATION_H
+#ifndef CONVERSATION_H
+#define CONVERSATION_H
 
 #ifdef __cplusplus
 extern "C"
@@ -37,54 +36,124 @@ extern "C"
 #endif
 
 
+#define MAX_TRANSMIT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
+
 /************************************************************************************************************************
 * Messages for the Client <-> Server communication
 */
 
+
 /**
-* Client <-> Server message to initiate a new call
+ * VoipClient.
+ */
+struct VoipClient
+{
+  /**
+   * Handle for a conversation client.
+   */
+  struct GNUNET_SERVER_Client *client;
+};
+
+/**
+* The connection status of the service
 */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_INITIATE 30002
+struct ConnectionStatus
+{
+	/**
+	* The client which is in interaction
+	*/
+  struct GNUNET_SERVER_Client *client;
+
+	/**
+	* The PeerIdentity of the peer
+	*/
+  struct GNUNET_PeerIdentity peer;
+
+	/**
+	* The status (see enum)
+	*/
+  int status;
+};
+
+/**
+* Information about a missed call
+*/
+struct MissedCall
+{
+	/**
+	* The PeerIdentity of the peer
+	*/
+  struct GNUNET_PeerIdentity peer;
+
+	/**
+	* The time the call was
+	*/
+  struct GNUNET_TIME_Absolute time;
+
+};
+
+
+
+
+/**
+ * Client <-> Server message to initiate a new call
+ */
 struct ClientServerSessionInitiateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_INITIATE 
+   */
   struct GNUNET_MessageHeader header;
   struct GNUNET_PeerIdentity peer;
 };
 
+
 /**
-* Client <-> Server meessage to accept an incoming call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_ACCEPT 30003
+ * Client <-> Server meessage to accept an incoming call
+ */
 struct ClientServerSessionAcceptMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_ACCEPT 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Client <-> Server message to reject an incoming call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_REJECT 30004
+ * Client <-> Server message to reject an incoming call
+ */
 struct ClientServerSessionRejectMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_REJECT
+   */
   struct GNUNET_MessageHeader header;
   int reason;
 };
 
+
 /**
-* Client <-> Server message to terminat a call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_TERMINATE 30005
+ * Client <-> Server message to terminat a call
+ */
 struct ClientServerSessionTerminateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_TERMINATE 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Client <-> Server message to initiate a new call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_TEST 30099
+ * Client <-> Server message to initiate a new call
+ */
 struct ClientServerTestMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_TEST 
+   */
   struct GNUNET_MessageHeader header;
   struct GNUNET_PeerIdentity peer;
 };
@@ -94,97 +163,124 @@ struct ClientServerTestMessage
 */
 
 /**
-* Server <-> Client message to initiate a new call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_INITIATE 30006
+ * Server <-> Client message to initiate a new call
+ */
 struct ServerClientSessionInitiateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_INITIATE
+   */
   struct GNUNET_MessageHeader header;
   struct GNUNET_PeerIdentity peer;
 };
 
+
 /**
-* Server <-> Client meessage to accept an incoming call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_ACCEPT 30007
+ * Server <-> Client meessage to accept an incoming call
+ */
 struct ServerClientSessionAcceptMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_ACCEPT 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Server <-> Client message to reject an incoming call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_REJECT 30008
+ * Server <-> Client message to reject an incoming call
+ */
 struct ServerClientSessionRejectMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_REJECT 
+   */
   struct GNUNET_MessageHeader header;
   int reason;
   int notify;
 };
 
+
 /**
-* Server <-> Client message to terminat a call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_TERMINATE 30009
+ * Server <-> Client message to terminat a call
+ */
 struct ServerClientSessionTerminateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SESSION_TERMINATE 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Server <-> Client message to signalize the client that the service is already in use
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SERVICE_BLOCKED 30010
+ * Server <-> Client message to signalize the client that the service is already in use
+ */
 struct ServerClientServiceBlockedMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SERVICE_BLOCKED
+   */
   struct GNUNET_MessageHeader header;
 };
 
 /**
-* Server <-> Client message to signalize the client that the called peer is not connected
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_NOT_CONNECTED 30011
+ * Server <-> Client message to signalize the client that the called peer is not connected
+ */
 struct ServerClientPeerNotConnectedMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_NOT_CONNECTED 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Server <-> Client message to signalize the client that called peer does not answer
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_NO_ANSWER 30012
+ * Server <-> Client message to signalize the client that called peer does not answer
+ */
 struct ServerClientNoAnswerMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_NO_ANSWER
+   */
   struct GNUNET_MessageHeader header;
 };
 
 /**
-* Server <-> Client message to notify client of missed call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_MISSED_CALL 30013
+ * Server <-> Client message to notify client of missed call
+ */
 struct ServerClientMissedCallMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_MISSED_CALL 
+   */
   struct GNUNET_MessageHeader header;
   int number;
   struct MissedCall *missed_call;
 };
 
+
 /**
-* Server <-> Client message to signalize the client that there occured an error
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_ERROR 30014
+ * Server <-> Client message to signalize the client that there occured an error
+ */
 struct ServerClientErrorMessage
 {
+  /**
+   * Type is: #define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_ERROR 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Server <-> Client message to notify client of peer being available
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_AVAILABLE 30015
+ * Server <-> Client message to notify client of peer being available
+ */
 struct ServerClientPeerAvailableMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_AVAILABLE
+   */
   struct GNUNET_MessageHeader header;
   struct GNUNET_PeerIdentity peer;
   struct GNUNET_TIME_Absolute time;
@@ -196,17 +292,23 @@ struct ServerClientPeerAvailableMessage
 
 struct VoIPMeshMessageHeader
 {
+  /**
+   * Type is: 
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
 };
 
+
 /**
-* Mesh message to sinal the remote peer the wish to initiate a new call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_INITIATE 40000
+ * Mesh message to sinal the remote peer the wish to initiate a new call
+ */
 struct MeshSessionInitiateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_INITIATE
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
@@ -214,22 +316,27 @@ struct MeshSessionInitiateMessage
 };
 
 /**
-* Mesh message to signal the remote peer the acceptance of an initiated call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_ACCEPT 40001
+ * Mesh message to signal the remote peer the acceptance of an initiated call
+ */
 struct MeshSessionAcceptMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_ACCEPT
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
 };
 
+
 /**
-* Mesh message to reject an a wish to initiate a new call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_REJECT 40002
+ * Mesh message to reject an a wish to initiate a new call
+ */
 struct MeshSessionRejectMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_REJECT 
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
@@ -237,23 +344,29 @@ struct MeshSessionRejectMessage
   int notify;
 };
 
+
 /**
-* Mesh message to signal a remote peer the terminatation of a call
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_TERMINATE 40003
+ * Mesh message to signal a remote peer the terminatation of a call
+ */
 struct MeshSessionTerminateMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_SESSION_TERMINATE 
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
 };
 
+
 /**
-* Server <-> Client message to notify client of peer being available
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PEER_AVAILABLE 40004
+ * Server <-> Client message to notify client of peer being available
+ */
 struct MeshPeerAvailableMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PEER_AVAILABLE 
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
@@ -261,23 +374,27 @@ struct MeshPeerAvailableMessage
   struct GNUNET_TIME_Absolute call;
 };
 
-/************************************************************************************************************************
-* Messages for the audio communication
-*/
 
-
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_TEST 50001
+/**
+ * Messages for the audio communication
+ */
 struct TestMessage
 {
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_TEST 
+   */
   struct GNUNET_MessageHeader header;
 };
 
+
 /**
-* Message to transmit the audio
-*/
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO 50000
+ * Message to transmit the audio
+ */
 struct AudioMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO
+   */
   struct GNUNET_MessageHeader header;
   int SequenceNumber;
   struct GNUNET_TIME_Absolute time;
