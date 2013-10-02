@@ -75,14 +75,13 @@ process_record_messages (void *cls,
 {
   struct Microphone *mic = cls;
 
-  if ( (ntohs (msg->size) != sizeof (struct AudioMessage)) ||
-       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO) )
+  if (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO)
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   mic->rdc (mic->rdc_cls,
-	    sizeof (struct AudioMessage),
+	    ntohs (msg->size),
 	    (const char *) msg);
   return GNUNET_OK;
 }

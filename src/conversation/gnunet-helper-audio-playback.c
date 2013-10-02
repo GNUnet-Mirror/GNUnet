@@ -55,77 +55,77 @@ static pa_sample_spec sample_spec = {
 };
 
 /**
-* Pulseaudio mainloop api
-*/
+ * Pulseaudio mainloop api
+ */
 static pa_mainloop_api *mainloop_api;
 
 /**
-* Pulseaudio threaded mainloop
-*/
+ * Pulseaudio threaded mainloop
+ */
 static pa_threaded_mainloop *m;
 
 /**
-* Pulseaudio context
-*/
+ * Pulseaudio context
+ */
 static pa_context *context;
 
 /**
-* Pulseaudio output stream
-*/
+ * Pulseaudio output stream
+ */
 static pa_stream *stream_out;
 
 /**
-* Pulseaudio io events
-*/
+ * Pulseaudio io events
+ */
 static pa_io_event *stdio_event;
 
 /**
-* OPUS decoder
-*/
+ * OPUS decoder
+ */
 static OpusDecoder *dec;
 
 /**
-* PCM data buffer
-*/
+ * PCM data buffer
+ */
 static float *pcm_buffer;
 
 /**
-* Length of PCM buffer
-*/
+ * Length of PCM buffer
+ */
 static int pcm_length;
 
 /**
-* Number of samples for one frame
-*/
+ * Number of samples for one frame
+ */
 static int frame_size;
 
 /**
-* The sampling rate used in Pulseaudio specification
-*/
+ * The sampling rate used in Pulseaudio specification
+ */
 static opus_int32 sampling_rate;
 
 /**
-* Audio buffer
-*/
+ * Audio buffer
+ */
 static void *buffer;
 
 /**
-* Length of audio buffer
-*/
+ * Length of audio buffer
+ */
 static size_t buffer_length;
 
 /**
-* Read index for transmit buffer
-*/
+ * Read index for transmit buffer
+ */
 static size_t buffer_index;
 
 
-
 /**
-* Message callback
-*/
+ * Message callback
+ */
 static void
-stdin_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
+stdin_receiver (void *cls, 
+		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
 
@@ -135,9 +135,12 @@ stdin_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
       audio = (struct AudioMessage *) msg;
 
       int len =
-	opus_decode_float (dec, audio->audio, audio->length, pcm_buffer,
+	opus_decode_float (dec,
+			   (const unsigned char *) &audio[1],
+			   ntohs (audio->header.size) - sizeof (struct AudioMessage),
+			   pcm_buffer,
 			   frame_size, 0);
-
+      // FIXME: pcm_length != len???
       if (pa_stream_write
 	  (stream_out, (uint8_t *) pcm_buffer, pcm_length, NULL, 0,
 	   PA_SEEK_RELATIVE) < 0)
@@ -156,9 +159,10 @@ stdin_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
     }
 }
 
+
 /**
-* Pulseaudio shutdown task
-*/
+ * Pulseaudio shutdown task
+ */
 static void
 quit (int ret)
 {
@@ -166,9 +170,10 @@ quit (int ret)
   exit (ret);
 }
 
+
 /**
-* Write some data to the stream 
-*/
+ * Write some data to the stream 
+ */
 static void
 do_stream_write (size_t length)
 {
@@ -210,9 +215,10 @@ do_stream_write (size_t length)
     }
 }
 
+
 /**
-* Callback when data is there for playback
-*/
+ * Callback when data is there for playback
+ */
 static void
 stream_write_callback (pa_stream * s, size_t length, void *userdata)
 {
@@ -232,9 +238,10 @@ stream_write_callback (pa_stream * s, size_t length, void *userdata)
   do_stream_write (length);
 }
 
+
 /**
-* Exit callback for SIGTERM and SIGINT
-*/
+ * Exit callback for SIGTERM and SIGINT
+ */
 static void
 exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
 		      void *userdata)
@@ -244,9 +251,10 @@ exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
   quit (1);
 }
 
+
 /**
-* Pulseaudio stream state callback
-*/
+ * Pulseaudio stream state callback
+ */
 static void
 context_state_callback (pa_context * c, void *userdata)
 {
@@ -309,13 +317,13 @@ context_state_callback (pa_context * c, void *userdata)
 
 fail:
   quit (1);
-
 }
 
+
 /**
-* Pulseaudio initialization
-*/
-void
+ * Pulseaudio initialization
+ */
+static void
 pa_init ()
 {
   int r;
@@ -365,10 +373,11 @@ pa_init ()
     }
 }
 
+
 /**
-* OPUS initialization
-*/
-void
+ * OPUS initialization
+ */
+static void
 opus_init ()
 {
   int err;
@@ -380,6 +389,7 @@ opus_init ()
   dec = opus_decoder_create (sampling_rate, channels, &err);
   pcm_buffer = (float *) pa_xmalloc (frame_size * channels * sizeof (float));
 }
+
 
 /**
  * The main function for the playback helper.
@@ -394,25 +404,25 @@ main (int argc, char *argv[])
   char readbuf[MAXLINE];
   struct MessageStreamTokenizer *stdin_mst;
 
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_log_setup ("gnunet-helper-audio-playback",
+				   "WARNING",
+				   NULL));
   stdin_mst = mst_create (&stdin_receiver, NULL);
-
   opus_init ();
   pa_init ();
-
   while (1)
+  {
+    ssize_t ret = read (0, readbuf, sizeof (readbuf));   
+    if (0 > ret)
     {
-      ssize_t ret = read (0, readbuf, sizeof (readbuf));
-
-      if (0 > ret)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		      _("Read error from STDIN: %s\n"), strerror (errno));
-	  break;
-	}
-
-      mst_receive (stdin_mst, readbuf, ret);
-    }
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Read error from STDIN: %s\n"), 
+		  strerror (errno));
+      break;
+    }    
+    mst_receive (stdin_mst, readbuf, ret);
+  }
   mst_destroy (stdin_mst);
-
   return 0;
 }

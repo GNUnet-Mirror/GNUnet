@@ -74,11 +74,6 @@ static pa_stream *stream_in;
 static pa_io_event *stdio_event;
 
 /**
- * Message tokenizer
- */
-static struct MessageStreamTokenizer *stdin_mst;
-
-/**
  * OPUS encoder
  */
 static OpusEncoder *enc;
@@ -148,55 +143,57 @@ packetizer ()
 {
   while (transmit_buffer_length >= transmit_buffer_index + pcm_length)
   {
-      int ret;
-      int len;
+    ssize_t ret;
+    int len; // FIXME: int?
+    size_t msg_size;
 
-      size_t msg_size = sizeof (struct AudioMessage);
-
-      memcpy (pcm_buffer,
-	      (float *) transmit_buffer +
-	      (transmit_buffer_index / sizeof (float)), pcm_length);
-      len =
-	opus_encode_float (enc, pcm_buffer, frame_size, opus_data,
-			   max_payload_bytes);
-
-      audio_message->length = len;
-      memcpy (audio_message->audio, opus_data, len);
-
-      if ((ret = write (1, audio_message, msg_size)) != msg_size)
-	{
-	  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("write"));
-	  return;
-	}
-
-      transmit_buffer_index += pcm_length;
+    memcpy (pcm_buffer,
+	    (float *) transmit_buffer +
+	    (transmit_buffer_index / sizeof (float)), pcm_length);
+    len =
+      opus_encode_float (enc, pcm_buffer, frame_size, opus_data,
+			 max_payload_bytes);
+    if (len > UINT16_MAX - sizeof (struct AudioMessage))
+    {
+      GNUNET_break (0);
+      len = UINT16_MAX - sizeof (struct AudioMessage);
     }
+    msg_size = sizeof (struct AudioMessage) + len;
+    audio_message->header.size = htons ((uint16_t) msg_size);
+    memcpy (&audio_message[1], opus_data, len);
+
+    // FIXME: handle partial writes better...
+    if ((ret = write (1, audio_message, msg_size)) != msg_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("write"));
+      return;
+    }    
+    transmit_buffer_index += pcm_length;
+  }
 
   int new_size = transmit_buffer_length - transmit_buffer_index;
-
   if (0 != new_size)
-    {
-
-      transmit_buffer = pa_xrealloc (transmit_buffer, new_size);
-      memcpy (transmit_buffer, transmit_buffer + transmit_buffer_index,
-	      new_size);
-
-      transmit_buffer_index = 0;
-      transmit_buffer_length = new_size;
-    }
-
+  {
+    transmit_buffer = pa_xrealloc (transmit_buffer, new_size);
+    memcpy (transmit_buffer, transmit_buffer + transmit_buffer_index,
+	    new_size);
+    
+    transmit_buffer_index = 0;
+    transmit_buffer_length = new_size;
+  }
 }
 
+
 /**
-* Pulseaudio callback when new data is available.
-*/
+ * Pulseaudio callback when new data is available.
+ */
 static void
 stream_read_callback (pa_stream * s, size_t length, void *userdata)
 {
   const void *data;
+
   GNUNET_assert (s);
   GNUNET_assert (length > 0);
-
   if (stdio_event)
     mainloop_api->io_enable (stdio_event, PA_IO_EVENT_OUTPUT);
 
@@ -212,39 +209,43 @@ stream_read_callback (pa_stream * s, size_t length, void *userdata)
   GNUNET_assert (length > 0);
 
   if (transmit_buffer)
-    {
-      transmit_buffer =
-	pa_xrealloc (transmit_buffer, transmit_buffer_length + length);
-      memcpy ((uint8_t *) transmit_buffer + transmit_buffer_length, data,
-	      length);
-      transmit_buffer_length += length;
-    }
+  {
+    transmit_buffer =
+      pa_xrealloc (transmit_buffer, transmit_buffer_length + length);
+    memcpy ((uint8_t *) transmit_buffer + transmit_buffer_length, data,
+	    length);
+    transmit_buffer_length += length;
+  }
   else
-    {
-      transmit_buffer = pa_xmalloc (length);
-      memcpy (transmit_buffer, data, length);
-      transmit_buffer_length = length;
-      transmit_buffer_index = 0;
-    }
-
+  {
+    transmit_buffer = pa_xmalloc (length);
+    memcpy (transmit_buffer, data, length);
+    transmit_buffer_length = length;
+    transmit_buffer_index = 0;
+  }
   pa_stream_drop (s);
   packetizer ();
 }
 
+
 /**
-* Exit callback for SIGTERM and SIGINT
-*/
+ * Exit callback for SIGTERM and SIGINT
+ */
 static void
-exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
+exit_signal_callback (pa_mainloop_api * m, 
+		      pa_signal_event * e, 
+		      int sig,
 		      void *userdata)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Got signal, exiting.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      _("Got signal, exiting.\n"));
   quit (1);
 }
 
+
 /**
-* Pulseaudio stream state callback
-*/
+ * Pulseaudio stream state callback
+ */
 static void
 stream_state_callback (pa_stream * s, void *userdata)
 {
@@ -305,11 +306,13 @@ stream_state_callback (pa_stream * s, void *userdata)
     }
 }
 
+
 /**
-* Pulseaudio context state callback
-*/
+ * Pulseaudio context state callback
+ */
 static void
-context_state_callback (pa_context * c, void *userdata)
+context_state_callback (pa_context * c,
+			void *userdata)
 {
   GNUNET_assert (c);
 
@@ -370,13 +373,13 @@ context_state_callback (pa_context * c, void *userdata)
 
 fail:
   quit (1);
-
 }
+
 
 /**
  * Pulsaudio init
  */
-void
+static void
 pa_init ()
 {
   int r;
@@ -425,28 +428,26 @@ pa_init ()
     }
 }
 
+
 /**
  * OPUS init
  */
-void
+static void
 opus_init ()
 {
   opus_int32 sampling_rate = 48000;
-  frame_size = sampling_rate / 50;
   int channels = 1;
-
-  pcm_length = frame_size * channels * sizeof (float);
-
   int err;
 
+  frame_size = sampling_rate / 50;
+  pcm_length = frame_size * channels * sizeof (float);
   enc =
     opus_encoder_create (sampling_rate, channels, OPUS_APPLICATION_VOIP,
 			 &err);
   pcm_buffer = (float *) pa_xmalloc (pcm_length);
   opus_data = (unsigned char *) calloc (max_payload_bytes, sizeof (char));
 
-  audio_message = pa_xmalloc (sizeof (struct AudioMessage));
-  audio_message->header.size = htons (sizeof (struct AudioMessage));
+  audio_message = pa_xmalloc (UINT16_MAX);
   audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
 }
 
@@ -461,6 +462,10 @@ opus_init ()
 int
 main (int argc, char *argv[])
 {
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_log_setup ("gnunet-helper-audio-record",
+				   "WARNING",
+				   NULL));
   opus_init ();
   pa_init ();
 

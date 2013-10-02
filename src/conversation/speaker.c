@@ -137,7 +137,7 @@ play (void *cls,
     GNUNET_break (0);
     return;
   }
-  if (sizeof (struct AudioMessage) != data_size)
+  if (sizeof (struct AudioMessage) > data_size)
   {
     GNUNET_break (0);
     return;

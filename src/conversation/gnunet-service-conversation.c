@@ -128,36 +128,31 @@ static struct GNUNET_MESH_Tunnel *tunnel_unreliable;
 /**
 * List for missed calls
 */
-struct GNUNET_CONTAINER_SList *missed_calls;
+static struct GNUNET_CONTAINER_SList *missed_calls;
 
 /**
 * List for peers to notify that we are available again
 */
-struct GNUNET_CONTAINER_SList *peers_to_notify;
+static struct GNUNET_CONTAINER_SList *peers_to_notify;
 
 /**
 * Audio buffer (outgoing)
 */
-struct GNUNET_CONTAINER_SList *audio_buffer;
+static struct GNUNET_CONTAINER_SList *audio_buffer;
 
 /**
 * The pointer to the task for sending audio
 */
-GNUNET_SCHEDULER_TaskIdentifier audio_task;
+static GNUNET_SCHEDULER_TaskIdentifier audio_task;
 
 /**
 * The pointer to the task for checking timeouts an calling a peer
 */
-GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 /**
-* Sequencenumber for the pakets (for evaltuation purposes)
-*/
-int SequenceNumber = 0;
-
-/**
-* Timestamp for call statistics
-*/
+ * Timestamp for call statistics
+ */
 static struct GNUNET_TIME_Absolute start_time;
 
 /**
@@ -891,8 +886,6 @@ transmit_mesh_message (void *cls, size_t size, void *buf)
 {
   struct VoIPMeshMessageHeader *msg_header =
     (struct VoIPMeshMessageHeader *) cls;
-  msg_header->SequenceNumber = SequenceNumber += 1;
-  msg_header->time = GNUNET_TIME_absolute_get ();
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Transmitting message over mesh\n"));
 
@@ -984,9 +977,6 @@ transmit_audio_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       iterator = GNUNET_CONTAINER_slist_begin (audio_buffer);
       msg =
 	(struct AudioMessage *) GNUNET_CONTAINER_slist_get (&iterator, NULL);
-      msg->SequenceNumber = SequenceNumber += 1;
-      msg->time = GNUNET_TIME_absolute_get ();
-
       GNUNET_CONTAINER_slist_erase (&iterator);
       GNUNET_CONTAINER_slist_iter_destroy (&iterator);
     }
@@ -1344,30 +1334,19 @@ handle_mesh_audio_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 			   void **tunnel_ctx,
 			   const struct GNUNET_MessageHeader *message)
 {
+  const struct AudioMessage *audio;
+  audio = (const struct AudioMessage *) message;
 
   GNUNET_MESH_receive_done (tunnel);
-
   if (CONNECTED != connection.status)
     return GNUNET_OK;
-
-
-  struct AudioMessage *audio;
-  size_t msg_size;
-  msg_size = sizeof (struct AudioMessage);
-
-  audio = (struct AudioMessage *) message;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "[RECV] %dbytes\n", audio->length);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "[RECV] %dbytes\n", 
+	      ntohs (audio->header.size));
   if (NULL == playback_helper)
     return GNUNET_OK;
-
   (void) GNUNET_HELPER_send (playback_helper,
 			     message, GNUNET_YES, NULL, NULL);
-
-  data_received++;
-  data_received_size += msg_size;
-
   return GNUNET_OK;
 }
 
@@ -1387,14 +1366,14 @@ static int
 process_record_messages (void *cls GNUNET_UNUSED, void *client,
 			 const struct GNUNET_MessageHeader *msg)
 {
-  size_t msg_size;
-  struct AudioMessage *message = (struct AudioMessage *) msg;
-  msg_size = sizeof (struct AudioMessage);
+  const struct AudioMessage *message = (const struct AudioMessage *) msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " [REC] %dbyte\n", message->length);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      " [REC] %dbyte\n", 
+	      ntohs (message->header.size));
   GNUNET_CONTAINER_slist_add_end (audio_buffer,
 				  GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT,
-				  message, msg_size);
+				  message, ntohs (message->header.size));
 
   return GNUNET_OK;
 }

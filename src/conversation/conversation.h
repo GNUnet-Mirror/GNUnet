@@ -396,11 +396,8 @@ struct AudioMessage
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO
    */
   struct GNUNET_MessageHeader header;
-  int32_t SequenceNumber;
-  struct GNUNET_TIME_Absolute time;
-  int32_t length;
-  int32_t encrypted;
-  uint8_t audio[200];
+
+  /* followed by audio data */
 
 };
 
