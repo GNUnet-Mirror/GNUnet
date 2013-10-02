@@ -22,6 +22,7 @@
  * @brief constants for network protocols
  * @author Siomon Dieterle
  * @author Andreas Fuchs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -40,12 +41,14 @@
 
 #define MAXLINE 4096
 
+#define SAMPLING_RATE 48000
+
 /**
  * Pulseaudio specification. May change in the future.
  */
 static pa_sample_spec sample_spec = {
   .format = PA_SAMPLE_FLOAT32LE,
-  .rate = 48000,
+  .rate = SAMPLING_RATE,
   .channels = 1
 };
 
@@ -96,11 +99,6 @@ static int pcm_length;
 static int frame_size;
 
 /**
- * The sampling rate used in Pulseaudio specification
- */
-static opus_int32 sampling_rate;
-
-/**
  * Audio buffer
  */
 static void *buffer;
@@ -125,19 +123,27 @@ stdin_receiver (void *cls,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
+  int ret;
 
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
     audio = (struct AudioMessage *) msg;
     
-    int len =
-      opus_decode_float (dec,
-			 (const unsigned char *) &audio[1],
-			 ntohs (audio->header.size) - sizeof (struct AudioMessage),
-			 pcm_buffer,
-			 frame_size, 0);
-    // FIXME: pcm_length != len???
+    ret = opus_decode_float (dec,
+			     (const unsigned char *) &audio[1],
+			     ntohs (audio->header.size) - sizeof (struct AudioMessage),
+			     pcm_buffer,
+			     frame_size, 0);
+    if (ret < 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Opus decoding failed: %d\n",
+		  ret);
+      return GNUNET_OK;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Decoded frame\n");
     if (pa_stream_write
 	(stream_out, (uint8_t *) pcm_buffer, pcm_length, NULL, 0,
 	 PA_SEEK_RELATIVE) < 0)
@@ -173,41 +179,34 @@ static void
 do_stream_write (size_t length)
 {
   size_t l;
-  GNUNET_assert (length);
 
-  if (!buffer || !buffer_length)
-    {
-      return;
-    }
-
+  GNUNET_assert (0 != length);
+  if ( (! buffer) || (! buffer_length) )
+    return;    
 
   l = length;
   if (l > buffer_length)
-    {
-      l = buffer_length;
-
-    }
-
-  if (pa_stream_write
-      (stream_out, (uint8_t *) buffer + buffer_index, l, NULL, 0,
-       PA_SEEK_RELATIVE) < 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("pa_stream_write() failed: %s\n"),
-		  pa_strerror (pa_context_errno (context)));
-      quit (1);
-      return;
-    }
-
+    l = buffer_length;
+  if (0 > pa_stream_write (stream_out, 
+			   (uint8_t *) buffer + buffer_index, 
+			   l, 
+			   NULL, 0,
+			   PA_SEEK_RELATIVE))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("pa_stream_write() failed: %s\n"),
+		pa_strerror (pa_context_errno (context)));
+    quit (1);
+    return;
+  }  
   buffer_length -= l;
   buffer_index += l;
-
-  if (!buffer_length)
-    {
-      pa_xfree (buffer);
-      buffer = NULL;
-      buffer_index = buffer_length = 0;
-    }
+  if (! buffer_length)
+  {
+    pa_xfree (buffer);
+    buffer = NULL;
+    buffer_index = buffer_length = 0;
+  }
 }
 
 
@@ -215,21 +214,14 @@ do_stream_write (size_t length)
  * Callback when data is there for playback
  */
 static void
-stream_write_callback (pa_stream * s, size_t length, void *userdata)
+stream_write_callback (pa_stream * s, 
+		       size_t length, 
+		       void *userdata)
 {
-
   if (stdio_event)
-    {
-      mainloop_api->io_enable (stdio_event, PA_IO_EVENT_INPUT);
-    }
-
-
+    mainloop_api->io_enable (stdio_event, PA_IO_EVENT_INPUT);
   if (!buffer)
-    {
-      return;
-    }
-
-
+    return;
   do_stream_write (length);
 }
 
@@ -251,66 +243,58 @@ exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
  * Pulseaudio stream state callback
  */
 static void
-context_state_callback (pa_context * c, void *userdata)
+context_state_callback (pa_context * c, 
+			void *userdata)
 {
   int p;
-  GNUNET_assert (c);
 
+  GNUNET_assert (NULL != c);
   switch (pa_context_get_state (c))
+  {
+  case PA_CONTEXT_CONNECTING:
+  case PA_CONTEXT_AUTHORIZING:
+  case PA_CONTEXT_SETTING_NAME:
+    break;    
+  case PA_CONTEXT_READY:
+  {
+    GNUNET_assert (!stream_out);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Connection established.\n"));
+    if (!(stream_out =
+	  pa_stream_new (c, "GNUNET VoIP playback", &sample_spec, NULL)))
     {
-    case PA_CONTEXT_CONNECTING:
-    case PA_CONTEXT_AUTHORIZING:
-    case PA_CONTEXT_SETTING_NAME:
-      break;
-
-    case PA_CONTEXT_READY:
-      {
-	GNUNET_assert (c);
-	GNUNET_assert (!stream_out);
-
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connection established.\n"));
-
-
-	if (!
-	    (stream_out =
-	     pa_stream_new (c, "GNUNET VoIP playback", &sample_spec, NULL)))
-	  {
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			_("pa_stream_new() failed: %s\n"),
-			pa_strerror (pa_context_errno (c)));
-	    goto fail;
-	  }
-
-	pa_stream_set_write_callback (stream_out, stream_write_callback,
-				      NULL);
-
-	if ((p =
-	     pa_stream_connect_playback (stream_out, NULL, NULL, 0, NULL,
-					 NULL)) < 0)
-	  {
-	    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			_("pa_stream_connect_playback() failed: %s\n"),
-			pa_strerror (pa_context_errno (c)));
-	    goto fail;
-	  }
-
-	break;
-      }
-
-    case PA_CONTEXT_TERMINATED:
-      quit (0);
-      break;
-
-    case PA_CONTEXT_FAILED:
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Connection failure: %s\n"),
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("pa_stream_new() failed: %s\n"),
 		  pa_strerror (pa_context_errno (c)));
       goto fail;
-    }
-
-  return;
-
-fail:
+    }    
+    pa_stream_set_write_callback (stream_out, 
+				  stream_write_callback,
+				  NULL);
+    if ((p =
+	 pa_stream_connect_playback (stream_out, NULL, NULL, 0, NULL,
+				     NULL)) < 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("pa_stream_connect_playback() failed: %s\n"),
+		  pa_strerror (pa_context_errno (c)));
+      goto fail;
+    }    
+    break;
+  }  
+  case PA_CONTEXT_TERMINATED:
+    quit (0);
+    break;
+    
+  case PA_CONTEXT_FAILED:
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("Connection failure: %s\n"),
+		pa_strerror (pa_context_errno (c)));
+    goto fail;
+  }  
+  return;  
+ fail:
   quit (1);
 }
 
@@ -324,22 +308,18 @@ pa_init ()
   int r;
 
   if (!pa_sample_spec_valid (&sample_spec))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Wrong Spec\n"));
-    }
-
-  /* set up threaded playback mainloop */
-
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		_("Wrong Spec\n"));
+  }  
+  /* set up threaded playback mainloop */  
   if (!(m = pa_threaded_mainloop_new ()))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("pa_mainloop_new() failed.\n"));
-    }
-
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("pa_mainloop_new() failed.\n"));
+  }
   mainloop_api = pa_threaded_mainloop_get_api (m);
-
-
   /* listen to signals */
-
   r = pa_signal_init (mainloop_api);
   GNUNET_assert (r == 0);
   pa_signal_new (SIGINT, exit_signal_callback, NULL);
@@ -347,25 +327,24 @@ pa_init ()
 
 
   /* connect to the main pulseaudio context */
-
   if (!(context = pa_context_new (mainloop_api, "GNUnet VoIP")))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("pa_context_new() failed.\n"));
-    }
-
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("pa_context_new() failed.\n"));
+  }  
   pa_context_set_state_callback (context, context_state_callback, NULL);
 
   if (pa_context_connect (context, NULL, 0, NULL) < 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("pa_context_connect() failed: %s\n"),
-		  pa_strerror (pa_context_errno (context)));
-    }
-
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("pa_context_connect() failed: %s\n"),
+		pa_strerror (pa_context_errno (context)));
+  }  
   if (pa_threaded_mainloop_start (m) < 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("pa_mainloop_run() failed.\n"));
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		_("pa_mainloop_run() failed.\n"));
+  }
 }
 
 
@@ -377,11 +356,11 @@ opus_init ()
 {
   int err;
   int channels = 1;
-  sampling_rate = 48000;
-  frame_size = sampling_rate / 50;
+
+  frame_size = SAMPLING_RATE / 50;
   pcm_length = frame_size * channels * sizeof (float);
 
-  dec = opus_decoder_create (sampling_rate, channels, &err);
+  dec = opus_decoder_create (SAMPLING_RATE, channels, &err);
   pcm_buffer = (float *) pa_xmalloc (frame_size * channels * sizeof (float));
 }
 
@@ -396,20 +375,26 @@ opus_init ()
 int
 main (int argc, char *argv[])
 {
+  static unsigned long long toff;
+
   char readbuf[MAXLINE];
   struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
 
-  fprintf (stderr, "HERE!\n");
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-playback",
-				   "WARNING",
-				   NULL));
+				   "DEBUG",
+				   "/tmp/helper-audio-playback"));
   stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
   opus_init ();
   pa_init ();
   while (1)
   {
     ssize_t ret = read (0, readbuf, sizeof (readbuf));   
+    toff += ret;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Received %d bytes of audio data (total: %llu)\n",
+		(int) ret,
+		toff);
     if (0 > ret)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -417,6 +402,8 @@ main (int argc, char *argv[])
 		  strerror (errno));
       break;
     }    
+    if (0 == ret)
+      break;
     GNUNET_SERVER_mst_receive (stdin_mst, NULL,
 			       readbuf, ret,
 			       GNUNET_NO, GNUNET_NO);
