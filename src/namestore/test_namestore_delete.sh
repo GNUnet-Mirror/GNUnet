@@ -32,8 +32,8 @@ start_peer
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t A -V $TEST_IP_PLUS -e never -c $CONFIGURATION
 # Delete record
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_DNS -t A -V $TEST_IP_PLUS -e never -c $CONFIGURATION
-# Lookup specific name
-OUTPUT=`gnunet-namestore -p -z testego -n $TEST_RECORD_NAME_DNS -D`
+# List all records
+OUTPUT=`gnunet-namestore -p -z testego -D`
 FOUND_IP=false
 FOUND_NAME=false
 for LINE in $OUTPUT ;

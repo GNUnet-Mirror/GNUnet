@@ -695,7 +695,10 @@ namestore_sqlite_store_records (void *cls,
   switch (n)
   {
   case SQLITE_DONE:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Record stored\n");
+    if (0 != rd_count)
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Record stored\n");
+    else
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Record deleted\n");
     return GNUNET_OK;
   case SQLITE_BUSY:
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,

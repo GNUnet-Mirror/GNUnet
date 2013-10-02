@@ -646,8 +646,11 @@ handle_record_store (void *cls,
 
     if ((rd_count == 0) && (GNUNET_NO == GSN_database->iterate_records (GSN_database->cls, &rp_msg->private_key, 0, NULL, 0)))
     {
-    	/* This name does not exist, so cannot be removed */
-    	res = GNUNET_NO;
+      /* This name does not exist, so cannot be removed */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Name `%s' does not exist, no deletion required\n",
+                  conv_name);
+      res = GNUNET_NO;
     }
     else
     {

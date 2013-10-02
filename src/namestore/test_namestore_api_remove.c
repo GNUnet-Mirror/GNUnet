@@ -94,16 +94,12 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   res = 0;
 }
 
-static void
-name_lookup_proc (void *cls, const struct GNUNET_NAMESTORE_Block *block);
-
 
 static void
 remove_cont (void *cls, 
 	     int32_t success, 
 	     const char *emsg)
 {
-  const char *name = cls;
   if (GNUNET_YES != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -113,23 +109,12 @@ remove_cont (void *cls,
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Records were removed, perform lookup\n");
-
   removed = GNUNET_YES;
-  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
-					 &name_lookup_proc, (void *) name);
-  if (NULL == nsqe)
-  {
-  	GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore cannot perform lookup for removed record\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-    return;
-  }
+  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
