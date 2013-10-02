@@ -27,6 +27,7 @@
   #include <bthdef.h>
   #include <ws2bth.h>
 #else
+  #define SOCKTYPE int
   #include <bluetooth/bluetooth.h>
   #include <bluetooth/hci.h>
   #include <bluetooth/hci_lib.h>
