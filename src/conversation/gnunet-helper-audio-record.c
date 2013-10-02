@@ -38,9 +38,10 @@
 #include <opus/opus.h>
 #include <opus/opus_types.h>
 
+
 /**
-* Specification for recording. May change in the future to spec negotiation.
-*/
+ * Specification for recording. May change in the future to spec negotiation.
+ */
 static pa_sample_spec sample_spec = {
   .format = PA_SAMPLE_FLOAT32LE,
   .rate = 48000,
@@ -48,90 +49,89 @@ static pa_sample_spec sample_spec = {
 };
 
 /**
-* Pulseaudio mainloop api
-*/
-static pa_mainloop_api *mainloop_api = NULL;
+ * Pulseaudio mainloop api
+ */
+static pa_mainloop_api *mainloop_api;
 
 /**
-* Pulseaudio mainloop
-*/
-static pa_mainloop *m = NULL;
+ * Pulseaudio mainloop
+ */
+static pa_mainloop *m;
 
 /**
-* Pulseaudio context
-*/
-static pa_context *context = NULL;
+ * Pulseaudio context
+ */
+static pa_context *context;
 
 /**
-* Pulseaudio recording stream
-*/
-static pa_stream *stream_in = NULL;
+ * Pulseaudio recording stream
+ */
+static pa_stream *stream_in;
 
 /**
-* Pulseaudio io events
-*/
-static pa_io_event *stdio_event = NULL;
+ * Pulseaudio io events
+ */
+static pa_io_event *stdio_event;
 
 /**
-* Message tokenizer
-*/
-struct MessageStreamTokenizer *stdin_mst;
+ * Message tokenizer
+ */
+static struct MessageStreamTokenizer *stdin_mst;
 
 /**
-* OPUS encoder
-*/
-OpusEncoder *enc = NULL;
+ * OPUS encoder
+ */
+static OpusEncoder *enc;
 
 /**
-*
-*/
-unsigned char *opus_data;
+ *
+ */
+static unsigned char *opus_data;
 
 /**
-* PCM data buffer for one OPUS frame
-*/
-float *pcm_buffer;
+ * PCM data buffer for one OPUS frame
+ */
+static float *pcm_buffer;
 
 /**
  * Length of the pcm data needed for one OPUS frame 
  */
-int pcm_length;
+static int pcm_length;
 
 /**
-* Number of samples for one frame
-*/
-int frame_size;
+ * Number of samples for one frame
+ */
+static int frame_size;
 
 /**
 * Maximum length of opus payload
 */
-int max_payload_bytes = 1500;
+static int max_payload_bytes = 1500;
 
 /**
-* Audio buffer
-*/
-static void *transmit_buffer = NULL;
+ * Audio buffer
+ */
+static void *transmit_buffer;
 
 /**
-* Length of audio buffer
-*/
-static size_t transmit_buffer_length = 0;
+ * Length of audio buffer
+ */
+static size_t transmit_buffer_length;
 
 /**
-* Read index for transmit buffer
-*/
-static size_t transmit_buffer_index = 0;
+ * Read index for transmit buffer
+ */
+static size_t transmit_buffer_index;
 
 /**
-* Audio message skeleton
-*/
-struct AudioMessage *audio_message;
-
+ * Audio message skeleton
+ */
+static struct AudioMessage *audio_message;
 
 
 /**
-* Pulseaudio shutdown task
-*/
+ * Pulseaudio shutdown task
+ */
 static void
 quit (int ret)
 {
@@ -140,18 +140,14 @@ quit (int ret)
 }
 
 
-
 /**
-* Creates OPUS packets from PCM data
-*/
+ * Creates OPUS packets from PCM data
+ */
 static void
 packetizer ()
 {
-
-
   while (transmit_buffer_length >= transmit_buffer_index + pcm_length)
-    {
-
+  {
       int ret;
       int len;
 
@@ -450,10 +446,10 @@ opus_init ()
   opus_data = (unsigned char *) calloc (max_payload_bytes, sizeof (char));
 
   audio_message = pa_xmalloc (sizeof (struct AudioMessage));
-
   audio_message->header.size = htons (sizeof (struct AudioMessage));
   audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
 }
+
 
 /**
  * The main function for the record helper.

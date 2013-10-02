@@ -40,8 +40,9 @@ extern "C"
  * Function that enables a speaker.
  *
  * @param cls clsoure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
-typedef void (*GNUNET_SPEAKER_EnableCallback)(void *cls);
+typedef int (*GNUNET_SPEAKER_EnableCallback)(void *cls);
 
 /**
  * Function that disables a speaker.

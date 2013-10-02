@@ -36,6 +36,8 @@ extern "C"
 #endif
 #endif
 
+#include "gnunet_util_lib.h"
+
 /**
  * Process recorded audio data.
  *
@@ -53,10 +55,11 @@ typedef void (*GNUNET_MICROPHONE_RecordedDataCallback)(void *cls,
  * @param cls clsoure
  * @param rdc function to call with recorded data
  * @param rdc_cls closure for @a dc
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
-typedef void (*GNUNET_MICROPHONE_EnableCallback)(void *cls,
-						 GNUNET_MICROPHONE_RecordedDataCallback rdc,
-						 void *rdc_cls);
+typedef int (*GNUNET_MICROPHONE_EnableCallback)(void *cls,
+						GNUNET_MICROPHONE_RecordedDataCallback rdc,
+						void *rdc_cls);
 
 /**
  * Function that disables a microphone.

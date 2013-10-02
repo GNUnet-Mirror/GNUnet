@@ -77,21 +77,21 @@ GNUNET_HELPER_start (int with_control_pipe,
  * reaped; call GNUNET_HELPER_wait() for reaping the dead helper process.
  *
  * @param h the helper handle
- * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
- *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
- * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ * @param soft_kill if #GNUNET_YES, signals termination by closing the helper's
+ *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 int
 GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 
 /**
- * Reap the helper process.  This call is blocking(!).  The helper process
+ * Reap the helper process.  This call is blocking (!).  The helper process
  * should either be sent a termination signal before or should be dead before
  * calling this function
  *
  * @param h the helper handle
- * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 int
 GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h);
@@ -111,8 +111,8 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h);
  * helper process
  *
  * @param h handle to helper to stop
- * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
- *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @param soft_kill if #GNUNET_YES, signals termination by closing the helper's
+ *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 void
 GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
@@ -122,9 +122,9 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
  * Continuation function.
  * 
  * @param cls closure
- * @param result GNUNET_OK on success,
- *               GNUNET_NO if helper process died
- *               GNUNET_SYSERR during GNUNET_HELPER_stop
+ * @param result #GNUNET_OK on success,
+ *               #GNUNET_NO if helper process died
+ *               #GNUNET_SYSERR during GNUNET_HELPER_stop
  */
 typedef void (*GNUNET_HELPER_Continuation)(void *cls,
 					   int result);
@@ -143,7 +143,7 @@ struct GNUNET_HELPER_SendHandle;
  * @param msg message to send
  * @param can_drop can the message be dropped if there is already one in the queue?
  * @param cont continuation to run once the message is out
- * @param cont_cls closure for 'cont'
+ * @param cont_cls closure for @a cont
  * @return NULL if the message was dropped, 
  *         otherwise handle to cancel *cont* (actual transmission may
  *         not be abortable)
@@ -157,13 +157,13 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
 
 
 /**
- * Cancel a 'send' operation.  If possible, transmitting the
- * message is also aborted, but at least 'cont' won't be
- * called.
+ * Cancel a #GNUNET_HELPER_send operation.  If possible, transmitting
+ * the message is also aborted, but at least 'cont' won't be called.
  *
  * @param sh operation to cancel
  */
 void
 GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
 
-#endif /* end of include guard: GNUNET_HELPER_LIB_H */
+#endif 
+/* end of include guard: GNUNET_HELPER_LIB_H */

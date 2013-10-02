@@ -14,17 +14,32 @@ AM_CPPFLAGS = \
 #   $(WINFLAGS) \
 #   -export-dynamic
 
-lib_LTLIBRARIES = libgnunetconversation.la
+lib_LTLIBRARIES = \
+ libgnunetmicrophone.la \
+ libgnunetconversation.la
 
 pkgcfgdir= $(prefix)/share/gnunet/config.d/
 
 libexecdir= $(prefix)/lib/gnunet/libexec/
 
+libgnunetmicrophone_la_SOURCES = \
+  microphone.c 
+libgnunetmicrophone_la_LIBADD = \
+  -lgnunetutil
+libgnunetmicrophone_la_LDFLAGS = \
+  $(GNUNET_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+
 libgnunetconversation_la_SOURCES = \
   conversation_api.c \
   conversation_api2.c 
 libgnunetconversation_la_LIBADD = \
-  -lgnunetutil -lgnunetnamestore -lgnunetgns
+  libgnunetmicrophone.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
 libgnunetconversation_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
