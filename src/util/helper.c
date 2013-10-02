@@ -270,8 +270,8 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
  * Stop the helper process, we're closing down or had an error.
  *
  * @param h handle to the helper process
- * @param soft_kill if GNUNET_YES, signals termination by closing the helper's
- *          stdin; GNUNET_NO to signal termination by sending SIGTERM to helper
+ * @param soft_kill if #GNUNET_YES, signals termination by closing the helper's
+ *          stdin; #GNUNET_NO to signal termination by sending SIGTERM to helper
  */
 static void
 stop_helper (struct GNUNET_HELPER_Handle *h, int soft_kill)
@@ -512,7 +512,22 @@ void
 GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
 {
   unsigned int c;
+  struct GNUNET_HELPER_SendHandle *sh;
 
+  if (GNUNET_SCHEDULER_NO_TASK != h->write_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->write_task);
+    h->write_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  while (NULL != (sh = h->sh_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->sh_head,
+				 h->sh_tail,
+				 sh);
+    if (NULL != sh->cont)
+      sh->cont (sh->cont_cls, GNUNET_SYSERR);
+    GNUNET_free (sh);
+  }
   GNUNET_SERVER_mst_destroy (h->mst);
   GNUNET_free (h->binary_name);
   for (c = 0; h->binary_argv[c] != NULL; c++)
@@ -667,12 +682,12 @@ GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh)
   if (0 == sh->wpos)
   {
     GNUNET_CONTAINER_DLL_remove (h->sh_head, h->sh_tail, sh);
+    GNUNET_free (sh);
     if (NULL == h->sh_head)
     {
       GNUNET_SCHEDULER_cancel (h->write_task);
       h->write_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    GNUNET_free (sh);
   }
 }
 
