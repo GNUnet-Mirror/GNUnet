@@ -126,9 +126,9 @@ end ()
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
-           total_bytes / 1024 / delta);
+  delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us / (1000 * 1000);
+  FPRINTF (stderr, "\nThroughput was %llu kb/s total_bytes\n",
+           (total_bytes / 1024) / delta);
   GNUNET_asprintf (&value_name, "unreliable_%s", test_plugin);
   GAUGER ("TRANSPORT", value_name, (int) (total_bytes / 1024 / delta),
           "kb/s");
