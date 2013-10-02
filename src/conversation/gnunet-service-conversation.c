@@ -477,7 +477,7 @@ transmit_server_reject_message (void *cls, size_t size, void *buf)
 
   if (NULL == cls)
     {
-      msg->reason = htons (REJECT_REASON_NOT_AVAILABLE);
+      msg->reason = htons (GNUNET_CONVERSATION_REJECT_REASON_NOT_AVAILABLE);
     }
   else
     {
@@ -1056,7 +1056,7 @@ handle_mesh_initiate_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 		      _
 		      ("Rejected call from %s because there is an active call"),
 		      GNUNET_i2s_full (peer));
-	  reject_reason = htons (REJECT_REASON_ACTIVE_CALL);
+	  reject_reason = htons (GNUNET_CONVERSATION_REJECT_REASON_ACTIVE_CALL);
 
 	  // Notifying client about missed call
 	  size_t msg_size =
@@ -1094,7 +1094,7 @@ handle_mesh_initiate_message (void *cls, struct GNUNET_MESH_Tunnel *tunnel,
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("Got a call from %s while no client connected.\n"),
 		      GNUNET_i2s_full (peer));
-	  reject_reason = htons (REJECT_REASON_NO_CLIENT);
+	  reject_reason = htons (GNUNET_CONVERSATION_REJECT_REASON_NO_CLIENT);
 	  // Store missed calls
 	  struct MissedCall call;
 	  memcpy (&(call.peer), peer, sizeof (struct GNUNET_PeerIdentity));

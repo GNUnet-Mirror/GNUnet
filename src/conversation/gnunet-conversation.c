@@ -112,35 +112,35 @@ notification_handler (void *cls, struct GNUNET_CONVERSATION_Handle *handle, int 
 {
   switch (type)
     {
-    case NotificationType_SERVICE_BLOCKED:
+    case GNUNET_CONVERSATION_NT_SERVICE_BLOCKED:
       FPRINTF (stdout, _("The service is already in use. Try again later."));
 
       break;
 
-    case NotificationType_NO_PEER:
+    case GNUNET_CONVERSATION_NT_NO_PEER:
       FPRINTF (stdout, _("The Peer you were calling is no correct peer.\n"));
 
       break;
 
-    case NotificationType_NO_ANSWER:
+    case GNUNET_CONVERSATION_NT_NO_ANSWER:
       FPRINTF (stdout, _("Peer %s did not answer your call.\n"),
 	       GNUNET_i2s_full (peer));
 
       break;
 
-    case NotificationType_AVAILABLE_AGAIN:
+    case GNUNET_CONVERSATION_NT_AVAILABLE_AGAIN:
       FPRINTF (stdout, _("Peer %s is now available.\n"),
 	       GNUNET_i2s_full (peer));
 
       break;
 
-    case NotificationType_CALL_ACCEPTED:
+    case GNUNET_CONVERSATION_NT_CALL_ACCEPTED:
       FPRINTF (stdout, _("Peer %s has accepted your call.\n"),
 	       GNUNET_i2s_full (peer));
 
       break;
 
-    case NotificationType_CALL_TERMINATED:
+    case GNUNET_CONVERSATION_NT_CALL_TERMINATED:
       FPRINTF (stdout, _("Peer %s has terminated the call.\n"),
 	       GNUNET_i2s_full (peer));
       break;

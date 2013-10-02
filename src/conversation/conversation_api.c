@@ -257,7 +257,7 @@ receive_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 		      _("%s has accepted your call.\n"),
 		      GNUNET_i2s_full (&(h->call->peer)));
 
-	  h->notification_handler (NULL, h, NotificationType_CALL_ACCEPTED,
+	  h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_CALL_ACCEPTED,
 				   &(h->call->peer));
 	  h->call->type = CALLEE;
 
@@ -280,7 +280,7 @@ receive_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 		      _("%s has terminated the call.\n"),
 		      GNUNET_i2s_full (&(h->call->peer)));
 
-	  h->notification_handler (NULL, h, NotificationType_CALL_TERMINATED,
+	  h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_CALL_TERMINATED,
 				   &(h->call->peer));
 	  GNUNET_free (h->call);
 	  h->call = NULL;
@@ -317,20 +317,20 @@ receive_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
 	case GNUNET_MESSAGE_TYPE_CONVERSATION_SC_SERVICE_BLOCKED:
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("The service is blocked.\n"));
-	  h->notification_handler (NULL, h, NotificationType_SERVICE_BLOCKED,
+	  h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_SERVICE_BLOCKED,
 				   NULL);
 	  break;
 
 	case GNUNET_MESSAGE_TYPE_CONVERSATION_SC_PEER_NOT_CONNECTED:
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("The peer you are calling is not connected.\n"));
-	  h->notification_handler (NULL, h, NotificationType_NO_PEER, NULL);
+	  h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_NO_PEER, NULL);
 	  break;
 
 	case GNUNET_MESSAGE_TYPE_CONVERSATION_SC_NO_ANSWER:
 	  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		      _("The peer you are calling does not answer.\n"));
-	  h->notification_handler (NULL, h, NotificationType_NO_ANSWER,
+	  h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_NO_ANSWER,
 				   &(h->call->peer));
 	  break;
 
@@ -446,7 +446,7 @@ transmit_session_reject_message (void *cls, size_t size, void *buf)
   msg = buf;
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_SESSION_REJECT);
-  msg->reason = htons (REJECT_REASON_NOT_WANTED);
+  msg->reason = htons (GNUNET_CONVERSATION_REJECT_REASON_NOT_WANTED);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _
@@ -596,7 +596,7 @@ gns_call_cb (void *cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
 	      "Lookup failed\n");
   handle->notification_handler (NULL, handle, 
-				NotificationType_NO_PEER,
+				GNUNET_CONVERSATION_NT_NO_PEER,
 				NULL);
 }
 
@@ -726,7 +726,7 @@ GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *h,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("`%s'  is not a valid public key\n"),
 		callee);
-    h->notification_handler (NULL, h, NotificationType_NO_PEER, NULL);
+    h->notification_handler (NULL, h, GNUNET_CONVERSATION_NT_NO_PEER, NULL);
     return;
   }  
   initiate_call (h, peer);
