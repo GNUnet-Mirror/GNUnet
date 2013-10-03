@@ -386,9 +386,10 @@ struct TestMessage
   struct GNUNET_MessageHeader header;
 };
 
+////////////////////////////////////////////////////////////
 
 /**
- * Message to transmit the audio
+ * Message to transmit the audio (between client and helpers).
  */
 struct AudioMessage
 {
@@ -400,6 +401,227 @@ struct AudioMessage
   /* followed by audio data */
 
 };
+
+
+/**
+ * Client -> Service message to register a phone.
+ */
+struct ClientPhoneRegisterMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Phone line to register.
+   */
+  uint32_t line GNUNET_PACKED;
+};
+
+
+/**
+ * Service -> Client message for phone is ringing.
+ */
+struct ClientPhoneRingMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Who is calling us?
+   */
+  struct GNUNET_CRYPTO_EccPublicSignKey caller_id;
+
+};
+
+
+/**
+ * Client -> Service pick up phone that is ringing.
+ */
+struct ClientPhonePickupMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /* followed by variable length 0-terminated string with meta data */
+
+};
+
+
+/**
+ * Client -> Service hang up phone that may or may not be ringing.
+ * Also sent in response to a (failed) `struct ClientCallMessage`.
+ */
+struct ClientPhoneHangupMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /* followed by variable length 0-terminated string with meta data */
+
+};
+
+
+/**
+ * Message Client <->Service to transmit the audio.
+ */
+struct ClientAudioMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by audio data */
+
+};
+
+
+/**
+ * Client -> Service message to call a phone.
+ */
+struct ClientCallMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Which phone line to call at the peer?
+   */
+  uint32_t line GNUNET_PACKED;
+
+  /**
+   * Which peer is hosting the line?
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Identity of the caller.
+   */
+  struct GNUNET_CRYPTO_EccPrivateKey caller_id;
+};
+
+
+/**
+ * Service -> Client: other peer has picked up the phone, we are
+ * now talking.
+ */
+struct ClientPhoneHangupMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_ESTABLISHED
+   */
+  struct GNUNET_MessageHeader header;
+  
+  /* followed by variable length 0-terminated string with meta data */
+
+};
+
+
+/**
+ * Mesh message for phone is ringing.
+ */
+struct MeshPhoneRingMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Desired target line.
+   */
+  uint32_t line GNUNET_PACKED;
+
+  /**
+   * Purpose for the signature.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Who is calling us? (also who is signing).
+   */
+  struct GNUNET_CRYPTO_EccPublicSignKey caller_id;
+
+  /**
+   * Who are we calling?
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * From where are we calling?
+   */
+  struct GNUNET_PeerIdentity source;
+
+  /**
+   * When does the signature expire?
+   */ 
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /**
+   * Signature on the above.
+   */
+  struct GNUNET_CRYPTO_EccSignature signature;
+
+};
+
+
+/**
+ * Mesh message for hanging up.
+ */
+struct MeshPhoneHangupMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by variable-size 0-terminated reason string */
+};
+
+
+/**
+ * Mesh message for picking up.
+ */
+struct MeshPhonePickupMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by variable-size 0-terminated metadata string */
+};
+
+
+/**
+ * Mesh message to transmit the audio.
+ */
+struct MeshAudioMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by audio data */
+
+};
+
 
 
 #if 0				/* keep Emacsens' auto-indent happy */
