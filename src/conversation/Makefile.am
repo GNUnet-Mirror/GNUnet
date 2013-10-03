@@ -61,7 +61,8 @@ bin_PROGRAMS = \
  gnunet-conversation
 
 libexec_PROGRAMS = \
-  gnunet-service-conversation 
+  gnunet-service-conversation \
+  gnunet-service-conversation-new 
 
 if HAVE_PULSE
 if HAVE_OPUS
@@ -103,6 +104,14 @@ gnunet_service_conversation_LDADD = \
   -lgnunetutil -lgnunetmesh -lgnunetnamestore -lgnunetgns\
     $(INTLLIBS) 
 gnunet_service_conversation_LDFLAGS = \
+  $(GNUNET_LDFLAGS)  $(WINFLAGS) 
+
+gnunet_service_conversation_new_SOURCES = \
+  gnunet-service-conversation-new.c
+gnunet_service_conversation_new_LDADD = \
+  -lgnunetutil -lgnunetmesh \
+    $(INTLLIBS) 
+gnunet_service_conversation_new_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) 
 
 gnunet_conversation_SOURCES = \

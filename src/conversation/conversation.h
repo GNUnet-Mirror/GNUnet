@@ -432,7 +432,7 @@ struct ClientPhoneRingMessage
 
   /**
    * Always zero.
-   */
+p   */
   uint32_t reserved GNUNET_PACKED;
 
   /**
@@ -631,7 +631,6 @@ struct MeshPhoneBusyMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by variable-size 0-terminated metadata string??? */
 };
 
 
