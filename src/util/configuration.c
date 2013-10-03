@@ -964,7 +964,7 @@ GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
 int
 GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle
                                        *cfg, const char *section,
-                                       const char *option, const char **choices,
+                                       const char *option, const char *const *choices,
                                        const char **value)
 {
   struct ConfigEntry *e;
