@@ -130,20 +130,18 @@ play (void *cls,
       const void *data)
 {
   struct Speaker *spe = cls;
-  const struct AudioMessage *am;
+  char buf[sizeof (struct AudioMessage) + data_size];
+  struct AudioMessage *am;
 
   if (NULL == spe->playback_helper)
   {
     GNUNET_break (0);
     return;
   }
-  // FIXME: box here, instead of expecting boxed data!
-  if (sizeof (struct AudioMessage) > data_size)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  am = (const struct AudioMessage *) data;
+  am = (struct AudioMessage *) buf;
+  am->header.size = htons (sizeof (struct AudioMessage) + data_size);
+  am->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
+  memcpy (&am[1], data, data_size);
   (void) GNUNET_HELPER_send (spe->playback_helper,
 			     &am->header, 
 			     GNUNET_NO, 
