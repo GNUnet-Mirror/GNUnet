@@ -520,10 +520,10 @@ struct ClientCallMessage
  * Service -> Client: other peer has picked up the phone, we are
  * now talking.
  */
-struct ClientPhoneHangupMessage
+struct ClientPhonePickedupMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_ESTABLISHED
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP
    */
   struct GNUNET_MessageHeader header;
   
