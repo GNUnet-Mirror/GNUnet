@@ -348,8 +348,8 @@ handle_phone_audio_message (void *cls,
  * @param error details about the error
  */
 static void
-error_handler (void *cls,
-               enum GNUNET_MQ_Error error)
+phone_error_handler (void *cls,
+                     enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
 
@@ -398,7 +398,7 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
     return;
   phone->mq = GNUNET_MQ_queue_for_connection_client (phone->client,
                                                      handlers,
-                                                     &error_handler,
+                                                     &phone_error_handler,
                                                      phone);
   e = GNUNET_MQ_msg (reg, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER);
   reg->line = phone->my_record.line;
@@ -719,6 +719,105 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call);
 
 
 /**
+ * We received a `struct ClientPhoneBusyMessage`
+ *
+ * @param cls the `struct GNUNET_CONVERSATION_Call`
+ * @param msg the message
+ */
+static void
+handle_call_busy (void *cls,
+                  const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+
+  switch (call->state)
+  {
+  case CS_LOOKUP:
+    GNUNET_break (0);
+    reconnect_call (call);
+    break;
+  case CS_RINGING:
+    GNUNET_break (0); // FIXME
+    break;
+  case CS_ACTIVE:
+    GNUNET_break (0);
+    reconnect_call (call);
+    break;
+  case CS_SHUTDOWN:
+    GNUNET_CONVERSATION_call_stop (call, NULL);
+    break;
+  }
+}
+
+
+/**
+ * We received a `struct ClientPhonePickedupMessage`
+ *
+ * @param cls the `struct GNUNET_CONVERSATION_Call`
+ * @param msg the message
+ */
+static void
+handle_call_picked_up (void *cls,
+                       const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+  const struct ClientPhonePickedupMessage *am;
+
+  am = (const struct ClientPhonePickedupMessage *) msg;
+  switch (call->state)
+  {
+  case CS_LOOKUP:
+    GNUNET_break (0);
+    reconnect_call (call);
+    break;
+  case CS_RINGING:
+    GNUNET_break (0); // FIXME
+    break;
+  case CS_ACTIVE:
+    GNUNET_break (0);
+    reconnect_call (call);
+    break;
+  case CS_SHUTDOWN:
+    GNUNET_CONVERSATION_call_stop (call, NULL);
+    break;
+  }
+}
+
+
+/**
+ * We received a `struct ClientPhoneHangupMessage`
+ *
+ * @param cls the `struct GNUNET_CONVERSATION_Call`
+ * @param msg the message
+ */
+static void
+handle_call_hangup (void *cls,
+                    const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+  const struct ClientPhoneHangupMessage *am;
+
+  am = (const struct ClientPhoneHangupMessage *) msg;
+  switch (call->state)
+  {
+  case CS_LOOKUP:
+    GNUNET_break (0);
+    reconnect_call (call);
+    break;
+  case CS_RINGING:
+    GNUNET_break (0); // FIXME
+    break;
+  case CS_ACTIVE:
+    GNUNET_break (0); // FIXME
+    break;
+  case CS_SHUTDOWN:
+    GNUNET_CONVERSATION_call_stop (call, NULL);
+    break;
+  }
+}
+
+
+/**
  * We received a `struct ClientAudioMessage`
  *
  * @param cls the `struct GNUNET_CONVERSATION_Call`
@@ -795,6 +894,23 @@ handle_gns_response (void *cls,
 
 
 /**
+ * We encountered an error talking with the conversation service. 
+ *
+ * @param cls the `struct GNUNET_CONVERSATION_Call`
+ * @param error details about the error
+ */
+static void
+call_error_handler (void *cls,
+                    enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+
+  GNUNET_break (0);
+  reconnect_call (call);
+}
+
+
+/**
  * The call got disconnected, reconnect to the service.
  *
  * @param call call to reconnect
@@ -802,6 +918,39 @@ handle_gns_response (void *cls,
 static void
 reconnect_call (struct GNUNET_CONVERSATION_Call *call)
 {
+  static struct GNUNET_MQ_MessageHandler handlers[] =
+  {
+    { &handle_call_busy,
+      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY, 
+      sizeof (struct ClientPhoneBusyMessage) },
+    { &handle_call_picked_up,
+      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP, 
+      0 },
+    { &handle_call_hangup,
+      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP,
+      0 },
+    { &handle_call_audio_message,
+      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO,
+      0 },    
+    { NULL, 0, 0 }    
+  };
+ if (NULL != call->mq)
+  {
+    GNUNET_MQ_destroy (call->mq);
+    call->mq = NULL;
+  }
+  if (NULL != call->client)
+  {
+    GNUNET_CLIENT_disconnect (call->client);
+    call->client = NULL;
+  }
+  call->client = GNUNET_CLIENT_connect ("conversation", call->cfg);
+  if (NULL == call->client)
+    return;
+  call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
+                                                    handlers,
+                                                    &call_error_handler,
+                                                    call);
 }
 
 
@@ -841,8 +990,9 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   call->mic = mic;
   call->event_handler = event_handler;
   call->event_handler_cls = event_handler_cls;
-  call->client = GNUNET_CLIENT_connect ("conversation", cfg);
   call->gns = GNUNET_GNS_connect (cfg);
+  reconnect_call (call);
+
   if ( (NULL == call->client) ||
        (NULL == call->gns) )
   {
@@ -871,8 +1021,42 @@ void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
 			       const char *reason)
 {
-  GNUNET_assert (0);
-  // FIXME
+  if (NULL != reason)
+  {
+    // FIXME: transmit reason to service...
+    return;
+  }
+  if (NULL != call->speaker)
+  {
+    call->speaker->disable_speaker (call->speaker->cls);
+    call->speaker = NULL;
+  }
+  if (NULL != call->mic)
+  {
+    call->mic->disable_microphone (call->mic->cls);
+    call->mic =NULL;
+  }
+  if (NULL != call->mq)
+  {
+    GNUNET_MQ_destroy (call->mq);
+    call->mq = NULL;
+  }
+  if (NULL != call->client)
+  {
+    GNUNET_CLIENT_disconnect (call->client);
+    call->client = NULL;
+  }
+  if (NULL != call->gns_lookup)
+  {
+    GNUNET_GNS_lookup_cancel (call->gns_lookup);
+    call->gns_lookup = NULL;
+  }
+  if (NULL != call->gns)
+  {
+    GNUNET_GNS_disconnect (call->gns);
+    call->gns = NULL;
+  }
+
   GNUNET_free (call);
 }
 
