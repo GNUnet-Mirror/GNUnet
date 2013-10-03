@@ -20,8 +20,8 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
-#EXP_LIB = \
-# libgnunetmeshenc.la
+EXP_LIB = \
+ libgnunetmeshenc.la
 
 #EXP_LIBEXEC = \
 # gnunet-service-mesh-enc
@@ -124,7 +124,7 @@ endif
 
 
 if HAVE_TESTING
-noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
+ noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
 endif
 
 libgnunetmeshtest_a_SOURCES = \
