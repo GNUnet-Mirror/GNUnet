@@ -117,7 +117,8 @@ do_shutdown (void *cls,
 				 rec);
     GNUNET_free (rec);
   }
-  fprintf (stderr, "\n");
+  fprintf (stderr, 
+	   _("\nEnd of transmission.  Have a GNU day.\n"));
 }
 
 
@@ -144,7 +145,8 @@ switch_to_speaker (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  fprintf (stderr, "\nPlaying...");
+  fprintf (stderr, 
+	   _("\nWe are now playing your recording back.  If you can hear it, your audio settings are working..."));
   for (rec=rec_head; NULL != rec; rec = rec->next)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -210,7 +212,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 				     &do_shutdown,
 				     NULL);
   fprintf (stderr, 
-	   "Recording for %s...",
+	   _("We will now be recording you for %s. After that time, the recording will be played back to you..."),
 	   GNUNET_STRINGS_relative_time_to_string (TIMEOUT, GNUNET_YES));
   if (GNUNET_OK !=
       microphone->enable_microphone (microphone->cls,
