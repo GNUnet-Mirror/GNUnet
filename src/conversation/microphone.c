@@ -80,6 +80,8 @@ process_record_messages (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  // FIXME: unbox here, instead of sending with overhead!
+  // (see speaker.c::play)
   mic->rdc (mic->rdc_cls,
 	    ntohs (msg->size),
 	    (const char *) msg);

@@ -137,6 +137,7 @@ play (void *cls,
     GNUNET_break (0);
     return;
   }
+  // FIXME: box here, instead of expecting boxed data!
   if (sizeof (struct AudioMessage) > data_size)
   {
     GNUNET_break (0);
