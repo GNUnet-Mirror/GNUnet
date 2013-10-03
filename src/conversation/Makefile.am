@@ -48,6 +48,7 @@ libgnunetconversation_la_LIBADD = \
   libgnunetspeaker.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 
 libgnunetconversation_la_LDFLAGS = \

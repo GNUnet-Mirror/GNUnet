@@ -77,6 +77,12 @@ extern "C"
 #define GNUNET_NAMESTORE_TYPE_PLACE 65541
 
 /**
+ * Record type for a phone (of CONVERSATION).
+ */
+#define GNUNET_NAMESTORE_TYPE_PHONE 65542
+
+
+/**
  * Entry in the queue.
  */
 struct GNUNET_NAMESTORE_QueueEntry;

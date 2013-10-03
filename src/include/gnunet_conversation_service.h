@@ -24,6 +24,10 @@
  * @author Simon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - call waiting
+ * - put on hold
  */
 #ifndef GNUNET_CONVERSATION_SERVICE_H
 #define GNUNET_CONVERSATION_SERVICE_H
@@ -232,7 +236,8 @@ GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *handle);
    As this is supposed to be a "secure" service, caller ID is of
    course provided as part of the basic implementation, as only the
    CONVERSATION service can know for sure who it is that we are
-   talking to.x */
+   talking to.
+ */
 
 
 #include "gnunet_util_lib.h"
@@ -254,6 +259,11 @@ enum GNUNET_CONVERSATION_EventCode
    * a `const char *`.  The caller ID will be a GNS name.
    */
   GNUNET_CONVERSATION_EC_RING,
+
+  /**
+   * The phone is busy.  Varargs will be empty.
+   */
+  GNUNET_CONVERSATION_EC_BUSY,
   
   /**
    * We are ready to talk, metadata about the call may be supplied
@@ -301,11 +311,13 @@ struct GNUNET_CONVERSATION_Phone;
  *
  * @param cfg configuration for the phone; specifies the phone service and
  *        which line the phone is to be connected to
+ * @param ego ego to use for name resolution (when determining caller ID)
  * @param event_handler how to notify the owner of the phone about events
  * @param event_handler_cls closure for @a event_handler
  */
 struct GNUNET_CONVERSATION_Phone *
 GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_IDENTITY_Ego *ego,
 				  GNUNET_CONVERSATION_EventHandler event_handler,
 				  void *event_handler_cls);
 

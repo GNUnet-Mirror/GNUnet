@@ -80,8 +80,7 @@ GNUNET_CLIENT_disconnect (struct GNUNET_CLIENT_Connection *client);
  * @param msg message received, NULL on timeout or fatal error
  */
 typedef void (*GNUNET_CLIENT_MessageHandler) (void *cls,
-                                              const struct GNUNET_MessageHeader
-                                              *msg);
+                                              const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -129,8 +128,8 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      int auto_retry,
-                                     GNUNET_CONNECTION_TransmitReadyNotify
-                                     notify, void *notify_cls);
+                                     GNUNET_CONNECTION_TransmitReadyNotify notify, 
+                                     void *notify_cls);
 
 
 /**

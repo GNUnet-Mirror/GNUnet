@@ -444,6 +444,19 @@ struct ClientPhoneRingMessage
 
 
 /**
+ * Service -> Client message for phone is busy.
+ */
+struct ClientPhoneBusyMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY
+   */
+  struct GNUNET_MessageHeader header;
+
+};
+
+
+/**
  * Client -> Service pick up phone that is ringing.
  */
 struct ClientPhonePickupMessage
@@ -459,7 +472,7 @@ struct ClientPhonePickupMessage
 
 
 /**
- * Client -> Service hang up phone that may or may not be ringing.
+ * Client <-> Service hang up phone that may or may not be ringing.
  * Also sent in response to a (failed) `struct ClientCallMessage`.
  */
 struct ClientPhoneHangupMessage
@@ -605,6 +618,20 @@ struct MeshPhonePickupMessage
   struct GNUNET_MessageHeader header;
 
   /* followed by variable-size 0-terminated metadata string */
+};
+
+
+/**
+ * Mesh message for phone busy.
+ */
+struct MeshPhoneBusyMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* followed by variable-size 0-terminated metadata string??? */
 };
 
 

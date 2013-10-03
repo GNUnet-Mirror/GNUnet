@@ -28,8 +28,6 @@
 #ifndef GNUNET_MQ_H
 #define GNUNET_MQ_H
 
-#include "gnunet_common.h"
-
 
 /**
  * Allocate an envelope, with extra space allocated after the space needed
@@ -245,7 +243,6 @@ struct GNUNET_MQ_MessageHandler
    * the specified type has been receied.
    */
   GNUNET_MQ_MessageCallback cb;
-
 
   /**
    * Type of the message this handler covers.

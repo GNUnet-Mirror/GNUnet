@@ -2230,6 +2230,36 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO 751
 
 
+
+
+
+/**
+ * Client -> Server message register a phone.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER 730
+
+/**
+ * Client -> Server meessage to reject/hangup a call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP 731
+
+/**
+ * Client -> Server meessage to reject/hangup a call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP 732
+
+/**
+ * Client <- Server message to indicate a ringing phone
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING 733
+
+/**
+ * Client <-> Server message to send audio data.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 734
+
+
+
 /*******************************************************************************
  * MULTICAST message types
  ******************************************************************************/
