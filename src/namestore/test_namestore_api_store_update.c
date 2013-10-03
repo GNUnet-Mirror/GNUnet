@@ -20,6 +20,7 @@
 /**
  * @file namestore/test_namestore_api_store_update.c
  * @brief testcase for namestore_api.c: store a record, update it and perform a lookup
+ * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet_namestore_service.h"
@@ -57,6 +58,7 @@ static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
 static const char * name = "dummy.dummy.gnunet";
 
+
 static void
 cleanup ()
 {
@@ -81,7 +83,8 @@ cleanup ()
  * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != nsqe)
   {
@@ -94,11 +97,13 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls,
+     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   cleanup ();
   res = 0;
 }
+
 
 static void
 put_cont (void *cls, int32_t success, const char *emsg);
@@ -106,8 +111,8 @@ put_cont (void *cls, int32_t success, const char *emsg);
 
 static void
 rd_decrypt_cb (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd)
+               unsigned int rd_count,
+               const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GNUNET_NAMESTORE_RecordData rd_new;
 
@@ -117,42 +122,42 @@ rd_decrypt_cb (void *cls,
   if (GNUNET_NO == update_performed)
   {
     char rd_cmp_data[TEST_RECORD_DATALEN];
-		memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-
-		GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-		GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-		GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-
-		GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-					"Block was decrypted successfully, updating record \n");
-
-		rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
-		rd_new.record_type = TEST_RECORD_TYPE2;
-		rd_new.data_size = TEST_RECORD_DATALEN2;
-		rd_new.data = GNUNET_malloc (TEST_RECORD_DATALEN2);
-		memset ((char *) rd_new.data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
-
-		nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-								1, &rd_new, &put_cont, (void *) name);
-		update_performed = GNUNET_YES;
+    memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+    
+    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+    
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Block was decrypted successfully, updating record \n");
+    
+    rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
+    rd_new.record_type = TEST_RECORD_TYPE2;
+    rd_new.data_size = TEST_RECORD_DATALEN2;
+    rd_new.data = GNUNET_malloc (TEST_RECORD_DATALEN2);
+    memset ((char *) rd_new.data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
+    
+    nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
+                                           1, &rd_new, &put_cont, (void *) name);
+    update_performed = GNUNET_YES;
   }
   else
   {
     char rd_cmp_data[TEST_RECORD_DATALEN2];
-		memset (rd_cmp_data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
-
-		GNUNET_assert (TEST_RECORD_TYPE2 == rd[0].record_type);
-		GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
-		GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN2));
-
-		GNUNET_SCHEDULER_add_now (&end, NULL);
+    memset (rd_cmp_data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
+    
+    GNUNET_assert (TEST_RECORD_TYPE2 == rd[0].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN2));
+    
+    GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-
 }
+
 
 static void
 name_lookup_proc (void *cls,
-						 	 	 	const struct GNUNET_NAMESTORE_Block *block)
+                  const struct GNUNET_NAMESTORE_Block *block)
 {
   const char *name = cls;
   nsqe = NULL;
@@ -180,6 +185,7 @@ name_lookup_proc (void *cls,
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
+
 
 static void
 put_cont (void *cls, int32_t success, const char *emsg)
