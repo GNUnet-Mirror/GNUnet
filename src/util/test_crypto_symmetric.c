@@ -107,9 +107,10 @@ verifyCrypto ()
   memcpy (key.twofish_key, raw_key_twofish, GNUNET_CRYPTO_AES_KEY_LENGTH);
   if (GNUNET_CRYPTO_AES_KEY_LENGTH !=
       GNUNET_CRYPTO_symmetric_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
-                                 (const struct
-                                  GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                 "testtesttesttest", result))
+                                       (const struct
+                                        GNUNET_CRYPTO_SymmetricInitializationVector *)
+                                       "testtesttesttesttesttesttesttest", 
+                                       result))
   {
     printf ("Wrong return value from encrypt block.\n");
     ret = 1;
@@ -131,7 +132,7 @@ verifyCrypto ()
       GNUNET_CRYPTO_symmetric_decrypt (result, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                  (const struct
                                   GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                 "testtesttesttest", res))
+                                 "testtesttesttesttesttesttesttest", res))
   {
     printf ("Wrong return value from decrypt block.\n");
     ret = 1;

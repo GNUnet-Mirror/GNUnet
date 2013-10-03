@@ -121,11 +121,11 @@ setup_cipher_twofish (gcry_cipher_hd_t *handle,
  * @returns the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
-                           const struct GNUNET_CRYPTO_SymmetricSessionKey *
-                           sessionkey,
-                           const struct GNUNET_CRYPTO_SymmetricInitializationVector *
-                           iv, void *result)
+GNUNET_CRYPTO_symmetric_encrypt (const void *block, 
+                                 size_t len,
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
+                                 void *result)
 {
   gcry_cipher_hd_t handle;
   char tmp[len];
@@ -156,9 +156,9 @@ GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
  */
 ssize_t
 GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
-                           void *result)
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 void *result)
 {
   gcry_cipher_hd_t handle;
   char tmp[size];
