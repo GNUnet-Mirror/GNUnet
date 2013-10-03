@@ -221,8 +221,10 @@ context_state_callback (pa_context * c,
 				  &stream_write_callback,
 				  NULL);
     if ((p =
-	 pa_stream_connect_playback (stream_out, NULL, NULL, 0, NULL,
-				     NULL)) < 0)
+	 pa_stream_connect_playback (stream_out, NULL, 
+				     NULL,
+				     PA_STREAM_ADJUST_LATENCY | PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE,
+				     NULL,  NULL)) < 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("pa_stream_connect_playback() failed: %s\n"),

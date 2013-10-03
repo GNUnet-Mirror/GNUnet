@@ -375,7 +375,7 @@ context_state_callback (pa_context * c,
     na.maxlength = UINT32_MAX;
     na.fragsize = pcm_length;
     if ((r = pa_stream_connect_record (stream_in, NULL, &na, 
-				       PA_STREAM_EARLY_REQUESTS)) < 0)
+				       PA_STREAM_ADJUST_LATENCY)) < 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("pa_stream_connect_record() failed: %s\n"),
@@ -469,6 +469,14 @@ opus_init ()
 			     channels, 
 			     OPUS_APPLICATION_VOIP,
 			     &err);
+  opus_encoder_ctl (enc,
+		    OPUS_SET_PACKET_LOSS_PERC(1));
+  opus_encoder_ctl (enc,
+		    OPUS_SET_COMPLEXITY(10));
+  opus_encoder_ctl (enc,
+		    OPUS_SET_INBAND_FEC(1));
+  opus_encoder_ctl (enc,
+		    OPUS_SET_SIGNAL (OPUS_SIGNAL_VOICE));
 }
 
 
