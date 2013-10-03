@@ -259,17 +259,22 @@ enum GNUNET_CONVERSATION_EventCode
    * a `const char *`.  The caller ID will be a GNS name.
    */
   GNUNET_CONVERSATION_EC_RING,
-
-  /**
-   * The phone is busy.  Varargs will be empty.
-   */
-  GNUNET_CONVERSATION_EC_BUSY,
   
   /**
    * We are ready to talk, metadata about the call may be supplied
    * as a `const char *` in the varargs.
    */
   GNUNET_CONVERSATION_EC_READY,
+
+  /**
+   * We failed to locate a phone record in GNS.
+   */
+  GNUNET_CONVERSATION_EC_GNS_FAIL,
+
+  /**
+   * The phone is busy.  Varargs will be empty.
+   */
+  GNUNET_CONVERSATION_EC_BUSY,
   
   /**
    * The conversation was terminated, a reason may be supplied
@@ -410,7 +415,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        reason given to the other user for why we hung up
  */
 void
-GNUNET_CONVERSATION_call_stop (const struct GNUNET_CONVERSATION_Call *call,
+GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
 			       const char *reason);
 
 

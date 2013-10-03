@@ -2224,14 +2224,12 @@ extern "C"
 
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_TEST 750
 
+
+
 /**
-* Message to transmit the audio
-*/
+ * Message to transmit the audio between helper and speaker/microphone library.
+ */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO 751
-
-
-
-
 
 /**
  * Client -> Server message register a phone.
@@ -2256,7 +2254,17 @@ extern "C"
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 734
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY 734
+
+/**
+ * Client <-> Server message to send audio data.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 735
+
+/**
+ * Client <-> Server message to send audio data.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 736
 
 
 
