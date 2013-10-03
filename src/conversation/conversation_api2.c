@@ -313,7 +313,7 @@ handle_phone_hangup (void *cls,
  */
 static void
 handle_phone_audio_message (void *cls,
-                      const struct GNUNET_MessageHeader *msg)
+                            const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   const struct ClientAudioMessage *am;
@@ -487,16 +487,19 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
  * @param data audio data to play
  */
 static void
-transmit_audio (void *cls,
-                size_t data_size,
-                const void *data)
+transmit_phone_audio (void *cls,
+                      size_t data_size,
+                      const void *data)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   struct GNUNET_MQ_Envelope *e;
   struct ClientAudioMessage *am;
 
   GNUNET_assert (PS_ACTIVE == phone->state);
-  e = GNUNET_MQ_msg_extra (am, data_size, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  e = GNUNET_MQ_msg_extra (am, 
+                           data_size,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  memcpy (&am[1], data, data_size);
   GNUNET_MQ_send (phone->mq, e);
 }
 
@@ -530,7 +533,7 @@ GNUNET_CONVERSTATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
   phone->state = PS_ACTIVE;
   phone->speaker->enable_speaker (phone->speaker->cls);
   phone->mic->enable_microphone (phone->mic->cls,
-                                 &transmit_audio,
+                                 &transmit_phone_audio,
                                  phone);
 }
 
@@ -737,7 +740,9 @@ handle_call_busy (void *cls,
     reconnect_call (call);
     break;
   case CS_RINGING:
-    GNUNET_break (0); // FIXME
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_BUSY);
+    GNUNET_CONVERSATION_call_stop (call, NULL);
     break;
   case CS_ACTIVE:
     GNUNET_break (0);
@@ -747,6 +752,31 @@ handle_call_busy (void *cls,
     GNUNET_CONVERSATION_call_stop (call, NULL);
     break;
   }
+}
+
+
+/**
+ * Process recorded audio data.
+ *
+ * @param cls closure with the `struct GNUNET_CONVERSATION_Call`
+ * @param data_size number of bytes in @a data
+ * @param data audio data to play
+ */
+static void
+transmit_call_audio (void *cls,
+                     size_t data_size,
+                     const void *data)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientAudioMessage *am;
+
+  GNUNET_assert (CS_ACTIVE == call->state);
+  e = GNUNET_MQ_msg_extra (am, 
+                           data_size,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  memcpy (&am[1], data, data_size);
+  GNUNET_MQ_send (call->mq, e);
 }
 
 
@@ -762,8 +792,15 @@ handle_call_picked_up (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
   const struct ClientPhonePickedupMessage *am;
+  const char *metadata;
+  size_t size;
 
   am = (const struct ClientPhonePickedupMessage *) msg;
+  size = ntohs (am->header.size) - sizeof (struct ClientPhonePickedupMessage);
+  metadata = (const char *) &am[1];
+  if ( (0 == size) ||
+       ('\0' != metadata[size - 1]) )
+    metadata = NULL;  
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -771,7 +808,14 @@ handle_call_picked_up (void *cls,
     reconnect_call (call);
     break;
   case CS_RINGING:
-    GNUNET_break (0); // FIXME
+    call->state = CS_ACTIVE;
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_READY,
+                         metadata);
+    call->speaker->enable_speaker (call->speaker->cls);
+    call->mic->enable_microphone (call->mic->cls,
+                                  &transmit_call_audio,
+                                  call);
     break;
   case CS_ACTIVE:
     GNUNET_break (0);
@@ -796,8 +840,15 @@ handle_call_hangup (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
   const struct ClientPhoneHangupMessage *am;
+  const char *reason;
+  size_t size;
 
   am = (const struct ClientPhoneHangupMessage *) msg;
+  size = ntohs (am->header.size) - sizeof (struct ClientPhoneHangupMessage);
+  reason = (const char *) &am[1];
+  if ( (0 == size) ||
+       ('\0' != reason[size - 1]) )
+    reason = NULL;  
   switch (call->state)
   {
   case CS_LOOKUP:
@@ -805,11 +856,17 @@ handle_call_hangup (void *cls,
     reconnect_call (call);
     break;
   case CS_RINGING:
-    GNUNET_break (0); // FIXME
-    break;
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_TERMINATED,
+                         reason);
+    GNUNET_CONVERSATION_call_stop (call, NULL);
+    return;
   case CS_ACTIVE:
-    GNUNET_break (0); // FIXME
-    break;
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_TERMINATED,
+                         reason);
+    GNUNET_CONVERSATION_call_stop (call, NULL);
+    return;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call, NULL);
     break;
@@ -868,6 +925,8 @@ handle_gns_response (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
   uint32_t i;
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientCallMessage *ccm;
 
   for (i=0;i<rd_count;i++)
   {
@@ -881,8 +940,14 @@ handle_gns_response (void *cls,
       memcpy (&call->phone_record,
               rd[i].data,
               rd[i].data_size);
-      GNUNET_break (0);
-      // FIXME: send call request!
+      e = GNUNET_MQ_msg (ccm, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL);
+      ccm->line = call->phone_record.line;
+      ccm->target = call->phone_record.peer;
+      ccm->caller_id = *GNUNET_IDENTITY_ego_get_private_key (call->caller_id);
+      GNUNET_MQ_send (call->mq, e);
+      call->state = CS_RINGING;
+      call->event_handler (call->event_handler_cls,
+                           GNUNET_CONVERSATION_EC_RINGING);
       return;
     }
   }
@@ -1024,7 +1089,8 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
   if (NULL != reason)
   {
     // FIXME: transmit reason to service...
-    return;
+    GNUNET_break (0);
+    // return;
   }
   if (NULL != call->speaker)
   {

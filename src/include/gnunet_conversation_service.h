@@ -259,6 +259,12 @@ enum GNUNET_CONVERSATION_EventCode
    * a `const char *`.  The caller ID will be a GNS name.
    */
   GNUNET_CONVERSATION_EC_RING,
+
+  /**
+   * We are the caller and are now ringing the other party.  
+   * The varargs will be empty.
+   */
+  GNUNET_CONVERSATION_EC_RINGING,
   
   /**
    * We are ready to talk, metadata about the call may be supplied

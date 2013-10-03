@@ -2249,22 +2249,27 @@ extern "C"
 /**
  * Client <- Server message to indicate a ringing phone
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING 733
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL 733
+
+/**
+ * Client <- Server message to indicate a ringing phone
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING 734
 
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY 734
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY 735
 
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 735
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 736
 
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 736
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 737
 
 
 

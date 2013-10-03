@@ -508,7 +508,7 @@ struct ClientAudioMessage
 struct ClientCallMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL
    */
   struct GNUNET_MessageHeader header;
 
