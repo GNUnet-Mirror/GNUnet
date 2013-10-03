@@ -147,7 +147,9 @@ switch_to_speaker (void *cls,
   fprintf (stderr, "\nPlaying...");
   for (rec=rec_head; NULL != rec; rec = rec->next)
   {
-    fprintf (stderr, "<-%u\n", (unsigned int) rec->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Replaying %u bytes\n",
+		(unsigned int) rec->size);
     speaker->play (speaker->cls,
 		   rec->size,
 		   &rec[1]);
@@ -173,7 +175,9 @@ record (void *cls,
 {
   struct Recording *rec;
 
-  fprintf (stderr, "->%u\n", (unsigned int) data_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Recorded %u bytes\n",
+	      (unsigned int) data_size);
   rec = GNUNET_malloc (sizeof (struct Recording) + data_size);
   rec->size = data_size;
   memcpy (&rec[1], data, data_size);

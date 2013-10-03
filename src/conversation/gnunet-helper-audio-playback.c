@@ -74,11 +74,6 @@ static pa_context *context;
 static pa_stream *stream_out;
 
 /**
- * Pulseaudio io events
- */
-static pa_io_event *stdio_event;
-
-/**
  * OPUS decoder
  */
 static OpusDecoder *dec;
@@ -99,20 +94,9 @@ static int pcm_length;
 static int frame_size;
 
 /**
- * Audio buffer
+ * Pipe we use to signal the main loop that we are ready to receive.
  */
-static void *buffer;
-
-/**
- * Length of audio buffer
- */
-static size_t buffer_length;
-
-/**
- * Read index for transmit buffer
- */
-static size_t buffer_index;
-
+static int ready_pipe[2];
 
 /**
  * Message callback
@@ -143,9 +127,10 @@ stdin_receiver (void *cls,
       return GNUNET_OK;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Decoded frame\n");
+		"Decoded frame with %u bytes\n",
+		ntohs (audio->header.size));
     if (pa_stream_write
-	(stream_out, (uint8_t *) pcm_buffer, pcm_length, NULL, 0,
+	(stream_out, pcm_buffer, pcm_length, NULL, 0,
 	 PA_SEEK_RELATIVE) < 0)
     {      
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -173,44 +158,6 @@ quit (int ret)
 
 
 /**
- * Write some data to the stream 
- */
-static void
-do_stream_write (size_t length)
-{
-  size_t l;
-
-  GNUNET_assert (0 != length);
-  if ( (! buffer) || (! buffer_length) )
-    return;    
-
-  l = length;
-  if (l > buffer_length)
-    l = buffer_length;
-  if (0 > pa_stream_write (stream_out, 
-			   (uint8_t *) buffer + buffer_index, 
-			   l, 
-			   NULL, 0,
-			   PA_SEEK_RELATIVE))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("pa_stream_write() failed: %s\n"),
-		pa_strerror (pa_context_errno (context)));
-    quit (1);
-    return;
-  }  
-  buffer_length -= l;
-  buffer_index += l;
-  if (! buffer_length)
-  {
-    pa_xfree (buffer);
-    buffer = NULL;
-    buffer_index = buffer_length = 0;
-  }
-}
-
-
-/**
  * Callback when data is there for playback
  */
 static void
@@ -218,11 +165,13 @@ stream_write_callback (pa_stream * s,
 		       size_t length, 
 		       void *userdata)
 {
-  if (stdio_event)
-    mainloop_api->io_enable (stdio_event, PA_IO_EVENT_INPUT);
-  if (!buffer)
-    return;
-  do_stream_write (length);
+  /* unblock 'main' */
+  if (-1 != ready_pipe[1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Unblocking main loop!\n");
+    write (ready_pipe[1], "r", 1);
+  }
 }
 
 
@@ -269,7 +218,7 @@ context_state_callback (pa_context * c,
       goto fail;
     }    
     pa_stream_set_write_callback (stream_out, 
-				  stream_write_callback,
+				  &stream_write_callback,
 				  NULL);
     if ((p =
 	 pa_stream_connect_playback (stream_out, NULL, NULL, 0, NULL,
@@ -279,7 +228,7 @@ context_state_callback (pa_context * c,
 		  _("pa_stream_connect_playback() failed: %s\n"),
 		  pa_strerror (pa_context_errno (c)));
       goto fail;
-    }    
+    }
     break;
   }  
   case PA_CONTEXT_TERMINATED:
@@ -379,17 +328,31 @@ main (int argc, char *argv[])
 
   char readbuf[MAXLINE];
   struct GNUNET_SERVER_MessageStreamTokenizer *stdin_mst;
+  char c;
+  ssize_t ret;
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-playback",
 				   "DEBUG",
 				   "/tmp/helper-audio-playback"));
+  if (0 != pipe (ready_pipe))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");
+    return 1;
+  }
   stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
   opus_init ();
   pa_init ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Waiting for PulseAudio to be ready.\n");
+  GNUNET_assert (1 == read (ready_pipe[0], &c, 1));
+  close (ready_pipe[0]);
+  close (ready_pipe[1]);
+  ready_pipe[0] = -1;
+  ready_pipe[1] = -1;
   while (1)
   {
-    ssize_t ret = read (0, readbuf, sizeof (readbuf));   
+    ret = read (0, readbuf, sizeof (readbuf));   
     toff += ret;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received %d bytes of audio data (total: %llu)\n",

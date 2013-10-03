@@ -221,6 +221,11 @@ stream_read_callback (pa_stream * s,
 {
   const void *data;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Got %u/%u bytes of PCM data\n",
+	      length,
+	      pcm_length);
+
   GNUNET_assert (NULL != s);
   GNUNET_assert (length > 0);
   if (stdio_event)
@@ -288,6 +293,7 @@ stream_state_callback (pa_stream * s, void *userdata)
   case PA_STREAM_READY:
     {
       const pa_buffer_attr *a;
+
       char cmt[PA_CHANNEL_MAP_SNPRINT_MAX],
 	sst[PA_SAMPLE_SPEC_SNPRINT_MAX];
       
@@ -307,7 +313,7 @@ stream_state_callback (pa_stream * s, void *userdata)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Buffer metrics: maxlength=%u, fragsize=%u\n"),
 		    a->maxlength, a->fragsize);
-      }      
+      }       
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Using sample spec '%s', channel map '%s'.\n"),
 		  pa_sample_spec_snprint (sst, sizeof (sst),
@@ -321,7 +327,7 @@ stream_state_callback (pa_stream * s, void *userdata)
 		  pa_stream_get_device_index (s),
 		  pa_stream_is_suspended (s) ? "" : "not ");
     }    
-    break;    
+    break;
   case PA_STREAM_FAILED:
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
@@ -350,6 +356,7 @@ context_state_callback (pa_context * c,
   case PA_CONTEXT_READY:
   {
     int r;
+    pa_buffer_attr na;
     
     GNUNET_assert (!stream_in);    
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
@@ -362,9 +369,13 @@ context_state_callback (pa_context * c,
 		  pa_strerror (pa_context_errno (c)));
       goto fail;
     }
-    pa_stream_set_state_callback (stream_in, stream_state_callback, NULL);
-    pa_stream_set_read_callback (stream_in, stream_read_callback, NULL);
-    if ((r = pa_stream_connect_record (stream_in, NULL, NULL, 0)) < 0)
+    pa_stream_set_state_callback (stream_in, &stream_state_callback, NULL);
+    pa_stream_set_read_callback (stream_in, &stream_read_callback, NULL);
+    memset (&na, 0, sizeof (na));
+    na.maxlength = UINT32_MAX;
+    na.fragsize = pcm_length;
+    if ((r = pa_stream_connect_record (stream_in, NULL, &na, 
+				       PA_STREAM_EARLY_REQUESTS)) < 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("pa_stream_connect_record() failed: %s\n"),
@@ -416,8 +427,8 @@ pa_init ()
   /* listen to signals */
   r = pa_signal_init (mainloop_api);
   GNUNET_assert (r == 0);
-  pa_signal_new (SIGINT, exit_signal_callback, NULL);
-  pa_signal_new (SIGTERM, exit_signal_callback, NULL);
+  pa_signal_new (SIGINT, &exit_signal_callback, NULL);
+  pa_signal_new (SIGTERM, &exit_signal_callback, NULL);
 
   /* connect to the main pulseaudio context */
 
@@ -426,7 +437,7 @@ pa_init ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
 		_("pa_context_new() failed.\n"));
   }  
-  pa_context_set_state_callback (context, context_state_callback, NULL);
+  pa_context_set_state_callback (context, &context_state_callback, NULL);
   if (pa_context_connect (context, NULL, 0, NULL) < 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -475,6 +486,8 @@ main (int argc, char *argv[])
 		 GNUNET_log_setup ("gnunet-helper-audio-record",
 				   "DEBUG",
 				   "/tmp/helper-audio-record"));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Audio source starts\n");
   audio_message = GNUNET_malloc (UINT16_MAX);
   audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
   opus_init ();
