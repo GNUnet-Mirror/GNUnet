@@ -514,6 +514,9 @@ namestore_sqlite_cache_block (void *cls,
                 "sqlite3_step");
     break;
   }
+  if (SQLITE_OK != sqlite3_reset (plugin->delete_block))
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+		"sqlite3_reset");
 
   /* insert new version of the block */
   if ((SQLITE_OK != 
