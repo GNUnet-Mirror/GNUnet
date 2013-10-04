@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -131,6 +131,7 @@ rd_decrypt_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Block was decrypted successfully, updating record \n");
     
+    rd_new.flags = GNUNET_NAMESTORE_RF_NONE;
     rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
     rd_new.record_type = TEST_RECORD_TYPE2;
     rd_new.data_size = TEST_RECORD_DATALEN2;
@@ -229,7 +230,7 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (privkey, &pubkey);
 
-
+  rd.flags = GNUNET_NAMESTORE_RF_NONE;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
