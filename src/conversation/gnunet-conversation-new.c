@@ -64,7 +64,7 @@ static struct GNUNET_MICROPHONE_Handle *mic;
 /**
  * Our configuration.
  */
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Our ego.
@@ -80,6 +80,11 @@ static struct GNUNET_IDENTITY_Handle *id;
  * Name of our ego.
  */
 static char *ego_name;
+
+/**
+ * File handle for stdin.
+ */
+static struct GNUNET_DISK_FileHandle *stdin_fh;
 
 
 /**
@@ -271,8 +276,11 @@ do_call (const char *arg)
     return;
   }
   /* FIXME: also check that we do NOT have a running conversation or ring */
-  GNUNET_CONVERSATION_phone_destroy (phone);
-  phone = NULL;
+  if (NULL != phone)
+  {
+    GNUNET_CONVERSATION_phone_destroy (phone);
+    phone = NULL;
+  }
   call = GNUNET_CONVERSATION_call_start (cfg,
                                          caller_id,
                                          arg,
@@ -309,8 +317,19 @@ static void
 do_reject (const char *args)
 {
   /* FIXME: also check that we do have a running conversation or ring */
-  GNUNET_CONVERSATION_phone_hang_up (phone, 
-                                     args);
+  if (NULL == call)
+  {
+    GNUNET_CONVERSATION_phone_hang_up (phone, 
+                                       args);
+  }
+  else
+  {
+    GNUNET_CONVERSATION_call_stop (call, args);
+    call = NULL;
+    phone = GNUNET_CONVERSATION_phone_create (cfg,
+                                              caller_id,
+                                              &phone_event_handler, NULL);
+  }
 }
 
 
@@ -318,7 +337,7 @@ do_reject (const char *args)
  * List of supported commands.
  */
 static struct VoipCommand commands[] = {
-  {"/call ", &do_call, 
+  {"/call", &do_call, 
    gettext_noop ("Use `/call USER.gnu'")},
   {"/accept", &do_accept,
    gettext_noop ("Use `/accept MESSAGE' to accept an incoming call")},
@@ -362,11 +381,11 @@ do_help (const char *args)
   i = 0;
   FPRINTF (stdout, 
 	   "%s", 
-	   "Available commands:");
+	   "Available commands:\n");
   while (commands[i].Action != &do_help)
   {
     FPRINTF (stdout, 
-	     "%s", 
+	     "%s\n", 
 	     gettext (commands[i].command));
     i++;
   }
@@ -415,6 +434,8 @@ do_stop_task (void *cls,
   mic = NULL;
   GNUNET_free (ego_name);
   ego_name = NULL;
+  GNUNET_CONFIGURATION_destroy (cfg);
+  cfg = NULL;
 }
 
 
@@ -429,12 +450,13 @@ handle_command (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char message[MAX_MESSAGE_LENGTH + 1];
+  const char *ptr;
   int i;
 
   handle_cmd_task =
-    GNUNET_SCHEDULER_add_delayed_with_priority (GNUNET_TIME_UNIT_FOREVER_REL,
-						GNUNET_SCHEDULER_PRIORITY_UI,
-						&handle_command, NULL);
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    stdin_fh,
+                                    &handle_command, NULL);
   /* read message from command line and handle it */
   memset (message, 0, MAX_MESSAGE_LENGTH + 1);
   if (NULL == fgets (message, MAX_MESSAGE_LENGTH, stdin))
@@ -450,7 +472,10 @@ handle_command (void *cls,
 	 (0 != strncasecmp (commands[i].command, message,
                             strlen (commands[i].command))))
     i++;
-  commands[i].Action (&message[strlen (commands[i].command)]);
+  ptr = &message[strlen (commands[i].command)];
+  while (isspace ((int) *ptr))
+    ptr++;
+  commands[i].Action (ptr);
 }
 
 
@@ -488,9 +513,23 @@ identity_cb (void *cls,
     return;
   }
   caller_id = ego;
+  GNUNET_CONFIGURATION_set_value_number (cfg,
+                                         "CONVERSATION",
+                                         "LINE",
+                                         line);
   phone = GNUNET_CONVERSATION_phone_create (cfg,
                                             caller_id,
                                             &phone_event_handler, NULL);
+  /* FIXME: get record and print full GNS record info later here... */
+  if (NULL == phone)
+  {
+    fprintf (stderr,
+             _("Failed to setup phone (internal error)\n"));
+  }
+  else
+    fprintf (stdout,
+             _("Phone active on line %u\n"),
+             (unsigned int) line);
 }
 
 
@@ -508,7 +547,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  cfg = c;
+  cfg = GNUNET_CONFIGURATION_dup (c);
   speaker = GNUNET_SPEAKER_create_from_hardware (cfg);
   mic = GNUNET_MICROPHONE_create_from_hardware (cfg);
   if (NULL == ego_name)
@@ -554,7 +593,7 @@ main (int argc, char *const *argv)
   flags = fcntl (0, F_GETFL, 0);
   flags |= O_NONBLOCK;
   fcntl (0, F_SETFL, flags);
-
+  stdin_fh = GNUNET_DISK_get_handle_from_int_fd (0);
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   ret = GNUNET_PROGRAM_run (argc, argv,

@@ -1088,18 +1088,20 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
 {
   if (NULL != reason)
   {
-    // FIXME: transmit reason to service...
+    // FIXME: transmit reason to service... (not implemented!)
     GNUNET_break (0);
     // return;
   }
   if (NULL != call->speaker)
   {
-    call->speaker->disable_speaker (call->speaker->cls);
+    if (CS_ACTIVE == call->state)
+      call->speaker->disable_speaker (call->speaker->cls);
     call->speaker = NULL;
   }
   if (NULL != call->mic)
   {
-    call->mic->disable_microphone (call->mic->cls);
+    if (CS_ACTIVE == call->state)
+      call->mic->disable_microphone (call->mic->cls);
     call->mic =NULL;
   }
   if (NULL != call->mq)
