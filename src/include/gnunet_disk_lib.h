@@ -475,7 +475,7 @@ GNUNET_DISK_pipe_detach_end (struct GNUNET_DISK_PipeHandle *p,
  * Close an open file.
  *
  * @param h file handle
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_file_close (struct GNUNET_DISK_FileHandle *h);

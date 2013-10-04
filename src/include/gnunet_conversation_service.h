@@ -356,10 +356,10 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSTATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
-				    const char *metadata,
-				    struct GNUNET_SPEAKER_Handle *speaker,
-				    struct GNUNET_MICROPHONE_Handle *mic);
+GNUNET_CONVERSATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
+                                   const char *metadata,
+                                   struct GNUNET_SPEAKER_Handle *speaker,
+                                   struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
@@ -370,8 +370,8 @@ GNUNET_CONVERSTATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
  * @param reason text we give to the other party about why we terminated the conversation
  */
 void
-GNUNET_CONVERSTATION_phone_hang_up (struct GNUNET_CONVERSATION_Phone *phone,
-				    const char *reason);
+GNUNET_CONVERSATION_phone_hang_up (struct GNUNET_CONVERSATION_Phone *phone,
+                                   const char *reason);
 
 
 /**
