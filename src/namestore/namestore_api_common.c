@@ -36,7 +36,7 @@
 #include "namestore.h"
 
 
-#define LOG(kind,...) GNUNET_log_from (kind, "gns-api",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "namestore-api",__VA_ARGS__)
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -162,6 +162,11 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
   off = 0;
   for (i=0;i<rd_count;i++)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Serializing record %u with flags %d and expiration time %llu\n",
+         i,
+         rd[i].flags,
+         (unsigned long long) rd[i].expiration_time);
     rec.expiration_time = GNUNET_htonll (rd[i].expiration_time);
     rec.data_size = htonl ((uint32_t) rd[i].data_size);
     rec.record_type = htonl (rd[i].record_type);
@@ -192,44 +197,48 @@ int
 GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
                               const struct GNUNET_NAMESTORE_RecordData *b)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Comparing records\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Comparing records\n");
   if (a->record_type != b->record_type)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Record type %lu != %lu\n", a->record_type, b->record_type);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Record type %lu != %lu\n", a->record_type, b->record_type);
     return GNUNET_NO;
   }
   if ((a->expiration_time != b->expiration_time) &&
       ((a->expiration_time != 0) && (b->expiration_time != 0)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Expiration time %llu != %llu\n", a->expiration_time, b->expiration_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Expiration time %llu != %llu\n",
+         a->expiration_time, 
+         b->expiration_time);
     return GNUNET_NO;
   }
   if ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) 
        != (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Flags %lu (%lu) != %lu (%lu)\n", a->flags,
-        a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS, b->flags,
-        b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Flags %lu (%lu) != %lu (%lu)\n", a->flags,
+         a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS, b->flags,
+         b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS);
     return GNUNET_NO;
   }
   if (a->data_size != b->data_size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Data size %lu != %lu\n", a->data_size, b->data_size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Data size %lu != %lu\n", 
+         a->data_size, 
+         b->data_size);
     return GNUNET_NO;
   }
   if (0 != memcmp (a->data, b->data, a->data_size))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Data contents do not match\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Data contents do not match\n");
     return GNUNET_NO;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Records are equal\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Records are equal\n");
   return GNUNET_YES;
 }
 
@@ -264,11 +273,15 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
     dest[i].record_type = ntohl (rec.record_type);
     dest[i].flags = ntohl (rec.flags);
     off += sizeof (rec);
-
     if (off + dest[i].data_size > len)
       return GNUNET_SYSERR;
     dest[i].data = &src[off];
     off += dest[i].data_size;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Deserialized record %u with flags %d and expiration time %llu\n",
+         i,
+         dest[i].flags,
+         (unsigned long long) dest[i].expiration_time);
   }
   return GNUNET_OK; 
 }
@@ -308,6 +321,10 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
     }
     expire = GNUNET_TIME_absolute_min (at, expire);  
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Determined expiration time for block with %u records to be %s\n",
+       rd_count,
+       GNUNET_STRINGS_absolute_time_to_string (expire));
   return expire;
 }
 
@@ -763,16 +780,16 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   switch (type)
   {
   case 0:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Unsupported record type %d\n"),
-		(int) type);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unsupported record type %d\n"),
+         (int) type);
     return GNUNET_SYSERR;
   case GNUNET_DNSPARSER_TYPE_A:
     if (1 != inet_pton (AF_INET, s, &value_a))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse IPv4 address `%s'\n"),
-		  s);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Unable to parse IPv4 address `%s'\n"),
+           s);
       return GNUNET_SYSERR;
     }
     *data = GNUNET_malloc (sizeof (struct in_addr));
@@ -791,9 +808,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					     &off,
 					     s))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize NS record with value `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize NS record with value `%s'\n"),
+             s);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -813,9 +830,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					     &off,
 					     s))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize CNAME record with value `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize CNAME record with value `%s'\n"),
+             s);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -841,9 +858,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		       soa_rname, soa_mname,
 		       &soa_serial, &soa_refresh, &soa_retry, &soa_expire, &soa_min))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Unable to parse SOA record `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Unable to parse SOA record `%s'\n"),
+             s);
 	return GNUNET_SYSERR;
       }
       soa.mname = soa_mname;
@@ -860,10 +877,10 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					    &off,
 					    &soa))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
-		    soa_mname,
-		    soa_rname);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
+             soa_mname,
+             soa_rname);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -883,9 +900,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					     &off,
 					     s))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize PTR record with value `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize PTR record with value `%s'\n"),
+             s);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -903,9 +920,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 
       if (2 != SSCANF(s, "%hu,%253s", &mx_pref, mxhost))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Unable to parse MX record `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Unable to parse MX record `%s'\n"),
+             s);
       return GNUNET_SYSERR;
       }
       mx.preference = mx_pref;
@@ -918,9 +935,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					   &off,
 					   &mx))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize MX record with hostname `%s'\n"),
-		    mxhost);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize MX record with hostname `%s'\n"),
+             mxhost);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -935,9 +952,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   case GNUNET_DNSPARSER_TYPE_AAAA:
     if (1 != inet_pton (AF_INET6, s, &value_aaaa))    
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse IPv6 address `%s'\n"),
-		  s);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Unable to parse IPv6 address `%s'\n"),
+           s);
       return GNUNET_SYSERR;
     }
     *data = GNUNET_malloc (sizeof (struct in6_addr));
@@ -948,9 +965,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     if (GNUNET_OK !=
 	GNUNET_CRYPTO_ecc_public_sign_key_from_string (s, strlen (s), &pkey))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse PKEY record `%s'\n"),
-		  s);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Unable to parse PKEY record `%s'\n"),
+           s);
       return GNUNET_SYSERR;
     }
     *data = GNUNET_new (struct GNUNET_CRYPTO_EccPublicSignKey);
@@ -969,9 +986,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     if (3 != SSCANF (s,"%u %103s %253s",
 		     &proto, s_peer, s_serv))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse VPN record string `%s'\n"),
-		  s);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Unable to parse VPN record string `%s'\n"),
+           s);
       return GNUNET_SYSERR;
     }
     *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
@@ -999,9 +1016,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 					     &off,
 					     s))
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to serialize GNS2DNS record with value `%s'\n"),
-		    s);
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Failed to serialize GNS2DNS record with value `%s'\n"),
+             s);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -1018,18 +1035,18 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		     &tlsa->matching_type,
 		     (char*)&tlsa[1]))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Unable to parse TLSA record string `%s'\n"), 
-		  s);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Unable to parse TLSA record string `%s'\n"), 
+           s);
       *data_size = 0;
       GNUNET_free (tlsa);
       return GNUNET_SYSERR;
     }
     return GNUNET_OK;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("Unsupported record type %d\n"),
-		(int) type);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unsupported record type %d\n"),
+         (int) type);
     return GNUNET_SYSERR;
   }
 }

@@ -1056,9 +1056,10 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
   msg->derived_key = block->derived_key;
   memcpy (&msg[1], &block[1], blen);
   LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Sending `%s' message with size %u\n", 
+       "Sending `%s' message with size %u and expiration %s\n",
        "NAMESTORE_BLOCK_CACHE", 
-       (unsigned int) msg_size);
+       (unsigned int) msg_size,
+       GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (msg->expire)));
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit (h);
   return qe;

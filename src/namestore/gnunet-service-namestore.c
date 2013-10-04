@@ -372,8 +372,9 @@ handle_lookup_block_it (void *cls,
   r->derived_key = block->derived_key;  
   memcpy (&r[1], &block[1], esize);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message\n", 
-	      "NAMESTORE_LOOKUP_BLOCK_RESPONSE");
+	      "Sending `%s' message with expiration time %s\n", 
+	      "NAMESTORE_LOOKUP_BLOCK_RESPONSE",
+              GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (r->expire)));
   GNUNET_SERVER_notification_context_unicast (snc, 
 					      lnc->nc->client, 
 					      &r->gns_header.header, 
@@ -458,9 +459,6 @@ handle_block_cache (void *cls,
   size_t esize;
   int res;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received `%s' message\n",
-	      "NAMESTORE_BLOCK_CACHE");
   nc = client_lookup (client);
   if (ntohs (message->size) < sizeof (struct BlockCacheMessage))
   {
@@ -477,6 +475,10 @@ handle_block_cache (void *cls,
 			       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 			       esize);
   block->expiration_time = rp_msg->expire;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Received `%s' message with expiration time %s\n",
+	      "NAMESTORE_BLOCK_CACHE",
+              GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (block->expiration_time)));
   memcpy (&block[1], &rp_msg[1], esize);
   res = GSN_database->cache_block (GSN_database->cls,
 				   block);

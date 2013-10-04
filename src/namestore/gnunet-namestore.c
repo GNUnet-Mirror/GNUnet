@@ -428,6 +428,15 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
   if (1 != public)
     rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
+  if (GNUNET_YES == etime_is_rel)
+  {
+    rde->expiration_time = etime_rel.rel_value_us;
+    rde->flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+  }
+  else if (GNUNET_NO == etime_is_rel)
+    rde->expiration_time = etime_abs.abs_value_us;
+  else    
+    rde->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_assert (NULL != name);
   add_qe = GNUNET_NAMESTORE_records_store (ns,
 					   &zone_pkey,
