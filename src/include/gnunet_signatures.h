@@ -141,6 +141,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE 19
 
+/**
+ * Signature of a conversation ring.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING 20
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

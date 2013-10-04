@@ -29,9 +29,18 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_constants.h"
+#include "gnunet_signatures.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_conversation_service.h"
 #include "conversation.h"
+
+
+/**
+ * How long is our signature on a call valid?  Needs to be long enough for time zone
+ * differences and network latency to not matter.  No strong need for it to be short,
+ * but we simply like all signatures to eventually expire.
+ */
+#define RING_TIMEOUT GNUNET_TIME_UNIT_DAYS
 
 
 /**
@@ -100,7 +109,12 @@ struct Line
   /**
    * Transmit handle for pending audio messages
    */
-  struct GNUNET_MESH_TransmitHandle *mth;
+  struct GNUNET_MESH_TransmitHandle *unreliable_mth;
+
+  /**
+   * Transmit handle for pending audio messages
+   */
+  struct GNUNET_MQ_Handle *reliable_mq;
 
   /**
    * Our line number.
@@ -131,6 +145,11 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static struct GNUNET_MESH_Handle *mesh;
 
 /**
+ * Identity of this peer.
+ */
+static struct GNUNET_PeerIdentity my_identity;
+
+/**
  * Head of DLL of active lines.
  */
 static struct Line *lines_head;
@@ -154,9 +173,21 @@ handle_client_register_message (void *cls,
                                 const struct GNUNET_MessageHeader *message)
 {
   const struct ClientPhoneRegisterMessage *msg;
+  struct Line *line;
 
   msg = (struct ClientPhoneRegisterMessage *) message;
-  GNUNET_break (0); // FIXME
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL != line)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  line = GNUNET_new (struct Line);
+  GNUNET_CONTAINER_DLL_insert (lines_head,
+                               lines_tail,
+                               line);
+  line->line = ntohl (msg->line);
+  GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -214,9 +245,53 @@ handle_client_call_message (void *cls,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct ClientCallMessage *msg;
+  struct Line *line;
+  struct GNUNET_MQ_Envelope *e;
+  struct MeshPhoneRingMessage *ring;
 
   msg = (struct ClientCallMessage *) message;
-  GNUNET_break (0); // FIXME
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL != line)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  line = GNUNET_new (struct Line);
+  GNUNET_CONTAINER_DLL_insert (lines_head,
+                               lines_tail,
+                               line);
+  line->line = ntohl (msg->line);
+  line->status = LS_CALLER_CALLING;
+  line->tunnel_reliable = GNUNET_MESH_tunnel_create (mesh,
+                                                     line,
+                                                     &msg->target,
+                                                     GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
+                                                     GNUNET_NO,
+                                                     GNUNET_YES);
+  line->tunnel_unreliable = GNUNET_MESH_tunnel_create (mesh,
+                                                       line,
+                                                       &msg->target,
+                                                       GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
+                                                       GNUNET_YES,
+                                                       GNUNET_NO);
+  line->reliable_mq = GNUNET_MESH_mq_create (line->tunnel_reliable);
+  e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING);
+  ring->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
+  ring->purpose.size = htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
+                              sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+                              sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                              sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&msg->caller_id,
+                                                  &ring->caller_id);
+  ring->line = msg->line;
+  ring->target = msg->target;
+  ring->source = my_identity;
+  ring->expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
+  GNUNET_CRYPTO_ecc_sign (&msg->caller_id,
+                          &ring->purpose,
+                          &ring->signature);
+  GNUNET_MQ_send (line->reliable_mq, e);
+  GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -372,6 +447,7 @@ inbound_tunnel (void *cls,
 		const struct GNUNET_PeerIdentity *initiator, 
                 uint32_t port)
 {
+  
   GNUNET_break (0); // FIXME
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Received incoming tunnel on port %d\n"), port);
@@ -405,9 +481,18 @@ inbound_end (void *cls,
  */
 static void
 handle_client_disconnect (void *cls, 
-                          struct GNUNET_SERVER_Client *cl)
+                          struct GNUNET_SERVER_Client *client)
 {
-  GNUNET_break (0); // FIXME
+  struct Line *line;
+
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL == line)
+    return;
+  GNUNET_CONTAINER_DLL_remove (lines_head,
+                               lines_tail,
+                               line);
+  GNUNET_free (line);
+  GNUNET_SERVER_client_set_user_context (client, NULL);
 }
 
 
@@ -418,7 +503,8 @@ handle_client_disconnect (void *cls,
  * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0); // FIXME
   if (NULL != mesh)
@@ -488,6 +574,9 @@ run (void *cls,
   };
 
   cfg = c;
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_get_host_identity (cfg,
+                                                  &my_identity));
   mesh = GNUNET_MESH_connect (cfg,
 			      NULL,
 			      &inbound_tunnel,

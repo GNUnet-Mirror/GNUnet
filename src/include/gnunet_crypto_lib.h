@@ -397,9 +397,9 @@ GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessio
  */
 ssize_t
 GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
-                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_SymmetricInitializationVector
-                           *iv, void *result);
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 void *result);
 
 
 /**
@@ -415,9 +415,9 @@ GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
  */
 ssize_t
 GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
-                           const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                           const struct GNUNET_CRYPTO_SymmetricInitializationVector
-                           *iv, void *result);
+                                 const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 void *result);
 
 
 /**
@@ -431,8 +431,9 @@ GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
  */
 void
 GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-                             const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                             const void *salt, size_t salt_len, ...);
+                                   const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                                   const void *salt,
+                                   size_t salt_len, ...);
 
 
 /**
@@ -445,8 +446,10 @@ GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationV
  */
 void
 GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-                               const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                               const void *salt, size_t salt_len, va_list argp);
+                                     const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                                     const void *salt, 
+                                     size_t salt_len, 
+                                     va_list argp);
 
 
 /**

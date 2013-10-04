@@ -55,9 +55,10 @@ struct VoipClient
   struct GNUNET_SERVER_Client *client;
 };
 
+
 /**
-* The connection status of the service
-*/
+ * The connection status of the service
+ */
 struct ConnectionStatus
 {
 	/**
