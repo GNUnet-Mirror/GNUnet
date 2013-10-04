@@ -2,14 +2,7 @@
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o SERVICEHOME`
-TEST_DOMAIN_PLUS="www.gnu"
-TEST_DOMAIN_DNS="www3.gnu"
 TEST_IP_PLUS="127.0.0.1"
-TEST_IP_DNS="131.159.74.67"
-TEST_RECORD_CNAME_SERVER="server"
-TEST_RECORD_CNAME_PLUS="server.+"
-TEST_RECORD_CNAME_DNS="gnunet.org"
-TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
 TEST_RECORD_NAME_DNS="www3"
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
