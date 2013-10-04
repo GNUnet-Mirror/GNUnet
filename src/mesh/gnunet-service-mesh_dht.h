@@ -46,12 +46,14 @@ extern "C"
 /******************************************************************************/
 
 /**
- * Initialize DHT subsystem.
+ * Initialize the DHT subsystem.
  *
  * @param c Configuration.
+ * @param peer_id Local peer ID (must remain valid during all execution time).
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
+          struct GNUNET_PeerIdentity *peer_id);
 
 /**
  * Shut down the DHT subsystem.

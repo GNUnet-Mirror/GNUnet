@@ -103,10 +103,10 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (&my_full_id));
+  DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (id));
 
-  block.id = my_full_id;
-  GNUNET_CRYPTO_hash (&my_full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
+  block.id = *id;
+  GNUNET_CRYPTO_hash (id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
@@ -131,10 +131,13 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Initialize the DHT subsystem.
  *
  * @param c Configuration.
+ * @param peer_id Local peer ID (must remain valid during all execution time).
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
+GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
+          struct GNUNET_PeerIdentity *peer_id)
 {
+  id = peer_id;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
@@ -160,7 +163,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_break (0);
   }
 
-  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, cls);
+  announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, NULL);
 }
 
 
