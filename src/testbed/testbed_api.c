@@ -525,7 +525,7 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (NULL != data->peer);
   peer = data->peer;
   GNUNET_assert (peer->unique_id == ntohl (msg->peer_id));
-  peer->state = PS_CREATED;
+  peer->state = TESTBED_PS_CREATED;
   GNUNET_TESTBED_peer_register_ (peer);
   cb = data->cb;
   cls = data->cls;
@@ -589,12 +589,12 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   switch (event.type)
   {
   case GNUNET_TESTBED_ET_PEER_START:
-    peer->state = PS_STARTED;
+    peer->state = TESTBED_PS_STARTED;
     event.details.peer_start.host = peer->host;
     event.details.peer_start.peer = peer;
     break;
   case GNUNET_TESTBED_ET_PEER_STOP:
-    peer->state = PS_STOPPED;
+    peer->state = TESTBED_PS_STOPPED;
     event.details.peer_stop.peer = peer;
     break;
   default:

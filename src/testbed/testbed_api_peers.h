@@ -40,22 +40,22 @@ enum PeerState
     /**
      * State to signify that this peer is invalid
      */
-  PS_INVALID,
+  TESTBED_PS_INVALID,
 
     /**
      * The peer has been created
      */
-  PS_CREATED,
+  TESTBED_PS_CREATED,
 
     /**
      * The peer is running
      */
-  PS_STARTED,
+  TESTBED_PS_STARTED,
 
     /**
      * The peer is stopped
      */
-  PS_STOPPED,
+  TESTBED_PS_STOPPED,
 };
 
 

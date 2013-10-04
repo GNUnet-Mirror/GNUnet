@@ -217,7 +217,7 @@ opstart_peer_start (void *cls)
   GNUNET_assert (OP_PEER_START == opc->type);
   GNUNET_assert (NULL != (data = opc->data));
   GNUNET_assert (NULL != (peer = data->peer));
-  GNUNET_assert ((PS_CREATED == peer->state) || (PS_STOPPED == peer->state));
+  GNUNET_assert ((TESTBED_PS_CREATED == peer->state) || (TESTBED_PS_STOPPED == peer->state));
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
   msg->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerStartMessage));
@@ -269,7 +269,7 @@ opstart_peer_stop (void *cls)
 
   GNUNET_assert (NULL != (data = opc->data));
   GNUNET_assert (NULL != (peer = data->peer));
-  GNUNET_assert (PS_STARTED == peer->state);
+  GNUNET_assert (TESTBED_PS_STARTED == peer->state);
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerStopMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_STOP_PEER);
@@ -574,7 +574,7 @@ GNUNET_TESTBED_peer_create (struct GNUNET_TESTBED_Controller *controller,
   peer->controller = controller;
   peer->host = host;
   peer->unique_id = id_gen++;
-  peer->state = PS_INVALID;
+  peer->state = TESTBED_PS_INVALID;
   data = GNUNET_malloc (sizeof (struct PeerCreateData));
   data->host = host;
   data->cfg = cfg;
@@ -842,7 +842,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
   struct OperationContext *opc;
   struct OverlayConnectData *data;
 
-  GNUNET_assert ((PS_STARTED == p1->state) && (PS_STARTED == p2->state));
+  GNUNET_assert ((TESTBED_PS_STARTED == p1->state) && (TESTBED_PS_STARTED == p2->state));
   data = GNUNET_malloc (sizeof (struct OverlayConnectData));
   data->p1 = p1;
   data->p2 = p2;
@@ -948,7 +948,7 @@ GNUNET_TESTBED_peer_manage_service (void *op_cls,
   struct OperationContext *opc;
   size_t msize;
 
-  GNUNET_assert (PS_STARTED == peer->state); /* peer is not running? */
+  GNUNET_assert (TESTBED_PS_STARTED == peer->state); /* peer is not running? */
   msize = strlen (service_name) + 1;
   msize += sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage);
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE < msize)
