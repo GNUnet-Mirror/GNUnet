@@ -201,6 +201,7 @@ handle_client_register_message (void *cls,
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
   if (NULL != line)
   {
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -229,9 +230,34 @@ handle_client_pickup_message (void *cls,
                               const struct GNUNET_MessageHeader *message)
 {
   const struct ClientPhonePickupMessage *msg;
+  struct GNUNET_MQ_Envelope *e;
+  struct MeshPhonePickupMessage *mppm;
+  const char *meta;
+  struct Line *line;
+  size_t len;
 
   msg = (struct ClientPhonePickupMessage *) message;
-  GNUNET_break (0); // FIXME
+  meta = (const char *) &msg[1];
+  len = ntohs (msg->header.size) - sizeof (struct ClientPhonePickupMessage);
+  if ( (0 == len) ||
+       ('\0' != meta[len - 1]) )
+  {
+    meta = NULL;
+    len = 0;
+  }
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL == line)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  line->status = LS_CALLEE_CONNECTED;
+  e = GNUNET_MQ_msg_extra (mppm,
+                           len,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP);
+  memcpy (&mppm[1], meta, len);
+  GNUNET_MQ_send (line->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -249,9 +275,34 @@ handle_client_hangup_message (void *cls,
                               const struct GNUNET_MessageHeader *message)
 {
   const struct ClientPhoneHangupMessage *msg;
+  struct GNUNET_MQ_Envelope *e;
+  struct MeshPhoneHangupMessage *mhum;
+  const char *meta;
+  struct Line *line;
+  size_t len;
 
   msg = (struct ClientPhoneHangupMessage *) message;
-  GNUNET_break (0); // FIXME
+  meta = (const char *) &msg[1];
+  len = ntohs (msg->header.size) - sizeof (struct ClientPhoneHangupMessage);
+  if ( (0 == len) ||
+       ('\0' != meta[len - 1]) )
+  {
+    meta = NULL;
+    len = 0;
+  }
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL == line)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  line->status = LS_CALLEE_LISTEN;
+  e = GNUNET_MQ_msg_extra (mhum,
+                           len,
+                           GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
+  memcpy (&mhum[1], meta, len);
+  GNUNET_MQ_send (line->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -388,6 +439,8 @@ handle_mesh_ring_message (void *cls,
   line->status = LS_CALLEE_RINGING;
   line->remote_line = ntohl (msg->source_line);
   line->tunnel_reliable = tunnel;
+  line->reliable_mq = GNUNET_MESH_mq_create (line->tunnel_reliable);
+  *tunnel_ctx = line;
   cring.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
   cring.header.size = htons (sizeof (cring));
   cring.reserved = htonl (0);
