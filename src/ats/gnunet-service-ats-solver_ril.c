@@ -257,7 +257,7 @@ struct RIL_Callbacks
   void *bw_changed_cls;
 
   /**
-   * ATS function to get preferences
+   * ATS function to get preferences for a peer
    */
   GAS_get_preferences get_preferences;
 
@@ -267,7 +267,7 @@ struct RIL_Callbacks
   void *get_preferences_cls;
 
   /**
-   * ATS function to get properties
+   * ATS function to get properties of an address
    */
   GAS_get_properties get_properties;
 
@@ -344,7 +344,7 @@ struct GAS_RIL_Handle
   struct RIL_Peer_Agent * agents_tail;
 };
 
-/**
+/*
  *  Private functions
  *  ---------------------------
  */
@@ -389,6 +389,12 @@ if  (r < RIL_EXPLORE_RATIO)
   return GNUNET_NO;
 }
 
+/**
+ * Get the index of the address in the agent's list.
+ * @param agent agent handle
+ * @param address address handle
+ * @return the index, starting with zero
+ */
 static int
 agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 {
@@ -408,6 +414,12 @@ agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *addre
   return i;
 }
 
+/**
+ * Gets the wrapped address from the agent's list
+ * @param agent agent handle
+ * @param address address handle
+ * @return wrapped address
+ */
 static struct RIL_Address_Wrapped *
 agent_address_get (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 {
@@ -525,6 +537,16 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
   }
 }
 
+/**
+ * Changes the active assignment suggestion of the handler and invokes the bw_changed callback to
+ * notify ATS of its new decision.
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param new_address the address which is to be used
+ * @param new_bw_in the new amount of inbound bandwidth set for this address
+ * @param new_bw_out the new amount of outbound bandwidth set for this address
+ * @param silent disables invocation of the bw_changed callback, if GNUNET_YES
+ */
 static void
 envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
     struct RIL_Peer_Agent *agent,
@@ -653,6 +675,12 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
       / (double) UINT32_MAX;
 }
 
+/**
+ * Doubles the bandwidth for the active address
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise the outbound bandwidth
+ */
 static void
 envi_action_bw_double (struct GAS_RIL_Handle *solver,
     struct RIL_Peer_Agent *agent,
@@ -670,6 +698,14 @@ envi_action_bw_double (struct GAS_RIL_Handle *solver,
   }
 }
 
+/**
+ * Cuts the bandwidth for the active address in half. The least amount of bandwidth suggested, is
+ * the minimum bandwidth for a peer, in order to not invoke a disconnect.
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
+ * bandwidth
+ */
 static void
 envi_action_bw_halven (struct GAS_RIL_Handle *solver,
     struct RIL_Peer_Agent *agent,
@@ -694,6 +730,13 @@ envi_action_bw_halven (struct GAS_RIL_Handle *solver,
   }
 }
 
+/**
+ * Increases the bandwidth by 5 times the minimum bandwidth for the active address.
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
+ * bandwidth
+ */
 static void
 envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int direction_in)
 {
@@ -711,6 +754,14 @@ envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   }
 }
 
+/**
+ * Decreases the bandwidth by 5 times the minimum bandwidth for the active address. The least amount
+ * of bandwidth suggested, is the minimum bandwidth for a peer, in order to not invoke a disconnect.
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
+ * bandwidth
+ */
 static void
 envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int direction_in)
 {
@@ -733,6 +784,12 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   }
 }
 
+/**
+ * Switches to the address given by its index
+ * @param solver solver handle
+ * @param agent agent handle
+ * @param address_index index of the address as it is saved in the agent's list, starting with zero
+ */
 static void
 envi_action_address_switch (struct GAS_RIL_Handle *solver,
     struct RIL_Peer_Agent *agent,
@@ -752,12 +809,12 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
     i++;
   }
 
-  //no address with address_index exists
+  //no address with address_index exists, in this case this action should not be callable
   GNUNET_assert(GNUNET_NO);
 }
 
 /**
- * Puts the action into effect
+ * Puts the action into effect by calling the according function
  * @param solver solver handle
  * @param action action to perform by the solver
  */
@@ -795,7 +852,7 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
     envi_action_bw_dec (solver, agent, GNUNET_NO);
     break;
   default:
-    if ((action >= RIL_ACTION_TYPE_NUM) && (action < agent->n))
+    if ((action >= RIL_ACTION_TYPE_NUM) && (action < agent->n)) //switch address action
     {
       address_index = action - RIL_ACTION_TYPE_NUM;
 
@@ -1013,6 +1070,13 @@ ril_get_network (struct GAS_RIL_Handle *s, uint32_t type)
   return NULL ;
 }
 
+/**
+ * Determine whether at least the minimum bandwidth is set for the network. Otherwise the network is
+ * considered inactive and not used. Addresses in an inactive network are ignored.
+ * @param solver solver handle
+ * @param network the network type
+ * @return
+ */
 static int
 ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type network)
 {
@@ -1025,6 +1089,16 @@ ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Ty
   return GNUNET_YES;
 }
 
+/**
+ * Cuts a slice out of a vector of elements. This is used to decrease the size of the matrix storing
+ * the reward function approximation. It copies the memory, which is not cut, to the new vector,
+ * frees the memory of the old vector, and redirects the pointer to the new one.
+ * @param old pointer to the pointer to the first element of the vector
+ * @param element_size byte size of the vector elements
+ * @param hole_start the first element to cut out
+ * @param hole_length the number of elements to cut out
+ * @param old_length the length of the old vector
+ */
 static void
 ril_cut_from_vector (void **old,
     size_t element_size,
@@ -1055,14 +1129,8 @@ ril_cut_from_vector (void **old,
   }
   else
   {
-//    LOG(GNUNET_ERROR_TYPE_DEBUG, "hole_start = %d, hole_length = %d, old_length = %d\n", hole_start, hole_length, old_length);
-//    LOG(GNUNET_ERROR_TYPE_DEBUG, "bytes_before = %d, bytes_hole = %d, bytes_after = %d\n", bytes_before, bytes_hole, bytes_after);
-//    LOG(GNUNET_ERROR_TYPE_DEBUG, "element_size = %d, bytes_old = %d, bytes_new = %d\n", element_size, old_length * element_size, size);
-
     tmpptr = GNUNET_malloc (size);
-//    LOG(GNUNET_ERROR_TYPE_DEBUG, "first\n");
     memcpy (tmpptr, oldptr, bytes_before);
-//    LOG(GNUNET_ERROR_TYPE_DEBUG, "second\n");
     memcpy (tmpptr + bytes_before, oldptr + (bytes_before + bytes_hole), bytes_after);
   }
   if (NULL != *old)
@@ -1072,7 +1140,7 @@ ril_cut_from_vector (void **old,
   *old = (void *) tmpptr;
 }
 
-/**
+/*
  *  Solver API functions
  *  ---------------------------
  */
@@ -1390,11 +1458,9 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
 
   for (i = 0; i < agent->n; i++)
   {
-//    LOG (GNUNET_ERROR_TYPE_DEBUG, "first - cut vectors in W\n");
     ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
         ((s->networks_count * RIL_FEATURES_NETWORK_COUNT) + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   }
-//  LOG (GNUNET_ERROR_TYPE_DEBUG, "second - cut action vector out of W\n");
   GNUNET_free (agent->W[RIL_ACTION_TYPE_NUM + address_index]);
   ril_cut_from_vector ((void **) &agent->W, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
       1, agent->n);
@@ -1408,10 +1474,8 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
     agent->a_old = RIL_ACTION_INVALID;
   }
   //decrease old state vector and eligibility vector
-//  LOG (GNUNET_ERROR_TYPE_DEBUG, "third - cut state vector\n");
   ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
       ((s->networks_count * RIL_FEATURES_NETWORK_COUNT) + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
-//  LOG (GNUNET_ERROR_TYPE_DEBUG, "fourth - cut eligibility vector\n");
   ril_cut_from_vector ((void **) &agent->e, sizeof(double),
       ((s->networks_count * RIL_FEATURES_NETWORK_COUNT) + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   agent->m = m_new;
