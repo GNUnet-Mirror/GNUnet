@@ -132,6 +132,16 @@ struct Line
   struct GNUNET_PeerIdentity target;
 
   /**
+   * Temporary buffer for audio data.
+   */
+  void *audio_data;
+
+  /**
+   * Number of bytes in @e audio_data.
+   */
+  size_t audio_size;
+
+  /**
    * Our line number.
    */
   uint32_t local_line;
@@ -306,6 +316,11 @@ destroy_line_mesh_tunnels (struct Line *line)
     GNUNET_MQ_destroy (line->reliable_mq);
     line->reliable_mq = NULL;
   }
+  if (NULL != line->unreliable_mth)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
+    line->unreliable_mth = NULL;
+  }
   if (NULL != line->tunnel_unreliable)
   {
     GNUNET_MESH_tunnel_destroy (line->tunnel_unreliable);
@@ -356,6 +371,7 @@ mq_done_finish_caller_shutdown (void *cls)
     GNUNET_CONTAINER_DLL_remove (lines_head,
                                  lines_tail,
                                  line);
+    GNUNET_free_non_null (line->audio_data);
     GNUNET_free (line);
     break;
   }  
@@ -457,6 +473,7 @@ handle_client_call_message (void *cls,
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
   if (NULL != line)
   {
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -498,6 +515,39 @@ handle_client_call_message (void *cls,
 
 
 /**
+ * Transmit audio data via unreliable mesh channel.
+ *
+ * @param cls the `struct Line` we are transmitting for
+ * @param size number of bytes available in @a buf
+ * @param buf where to copy the data
+ * @return number of bytes copied to @buf
+ */
+static size_t
+transmit_line_audio (void *cls,
+                     size_t size,
+                     void *buf)
+{
+  struct Line *line = cls;
+  struct MeshAudioMessage *mam = buf;
+  
+  line->unreliable_mth = NULL;
+  if ( (NULL == buf) ||
+       (size < sizeof (struct MeshAudioMessage) + line->audio_size) )
+    {
+    /* eh, other error handling? */
+    return 0;
+  }
+  mam->header.size = htons (sizeof (struct MeshAudioMessage) + line->audio_size);
+  mam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO);
+  mam->remote_line = htonl (line->remote_line);
+  memcpy (&mam[1], line->audio_data, line->audio_size);
+  GNUNET_free (line->audio_data);
+  line->audio_data = NULL;
+  return sizeof (struct MeshAudioMessage) + line->audio_size;  
+}
+
+
+/**
  * Function to handle audio data from the client
  *
  * @param cls closure, NULL
@@ -510,9 +560,65 @@ handle_client_audio_message (void *cls,
                              const struct GNUNET_MessageHeader *message)
 {
   const struct ClientAudioMessage *msg;
+  struct Line *line;
+  size_t size;
 
+  size = ntohs (message->size) - sizeof (struct ClientAudioMessage);
   msg = (struct ClientAudioMessage *) message;
-  GNUNET_break (0); // FIXME
+  line = GNUNET_SERVER_client_get_user_context (client, struct Line);
+  if (NULL == line)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+  case LS_CALLEE_RINGING:
+  case LS_CALLER_CALLING:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  case LS_CALLEE_CONNECTED:
+  case LS_CALLER_CONNECTED:
+    /* common case, handled below */
+    break;
+  case LS_CALLEE_SHUTDOWN:
+  case LS_CALLER_SHUTDOWN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Mesh audio channel in shutdown; audio data dropped\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if (NULL == line->tunnel_unreliable)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Mesh audio channel not ready; audio data dropped\n"));
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);    
+    return;
+  }
+  if (NULL != line->unreliable_mth)
+  {
+    /* NOTE: we may want to not do this and instead combine the data */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Dropping previous audio data segment with %u bytes\n",
+                line->audio_size);
+    GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
+    GNUNET_free (line->audio_data);
+  }
+  line->audio_size = size;
+  line->audio_data = GNUNET_malloc (line->audio_size);
+  memcpy (line->audio_data,
+          &msg[1],
+          size);
+  line->unreliable_mth = GNUNET_MESH_notify_transmit_ready (line->tunnel_unreliable,
+                                                            GNUNET_NO,
+                                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                                            sizeof (struct MeshAudioMessage) 
+                                                            + line->audio_size,
+                                                            &transmit_line_audio,
+                                                            line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -961,6 +1067,7 @@ inbound_end (void *cls,
     GNUNET_CONTAINER_DLL_remove (lines_head,
                                  lines_tail,
                                  line);
+    GNUNET_free_non_null (line->audio_data);
     GNUNET_free (line);
     break;
   case LS_CALLER_SHUTDOWN:
