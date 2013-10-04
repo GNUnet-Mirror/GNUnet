@@ -44,8 +44,6 @@ libgnunetconversation_la_SOURCES = \
   conversation_api.c \
   conversation_api2.c 
 libgnunetconversation_la_LIBADD = \
-  libgnunetmicrophone.la \
-  libgnunetspeaker.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -110,8 +108,13 @@ gnunet_service_conversation_LDFLAGS = \
 gnunet_service_conversation_new_SOURCES = \
   gnunet-service-conversation-new.c
 gnunet_service_conversation_new_LDADD = \
-  -lgnunetutil -lgnunetmesh \
-    $(INTLLIBS) 
+  libgnunetconversation.la \
+  libgnunetspeaker.la \
+  libgnunetmicrophone.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(INTLLIBS) 
+
 gnunet_service_conversation_new_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) 
 
@@ -127,8 +130,13 @@ gnunet_conversation_LDFLAGS = \
 gnunet_conversation_new_SOURCES = \
   gnunet-conversation-new.c
 gnunet_conversation_new_LDADD = \
+  libgnunetmicrophone.la \
+  libgnunetspeaker.la \
   libgnunetconversation.la \
-  -lgnunetutil \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS) 
 gnunet_conversation_new_LDFLAGS = \
  $(GNUNET_LDFLAGS) $(WINFLAGS) 
