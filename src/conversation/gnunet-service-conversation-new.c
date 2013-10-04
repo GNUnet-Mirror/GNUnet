@@ -64,6 +64,11 @@ enum LineStatus
   LS_CALLEE_CONNECTED,
 
   /**
+   * We're in shutdown, sending hangup messages before cleaning up.
+   */
+  LS_CALLEE_SHUTDOWN,
+
+  /**
    * We are waiting for the phone to be picked up.
    */
   LS_CALLER_CALLING,
@@ -252,6 +257,32 @@ handle_client_pickup_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Ignoring client's PICKUP message, caller has HUNG UP already\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    break;
+  case LS_CALLEE_RINGING:
+    line->status = LS_CALLEE_CONNECTED;
+    break;
+  case LS_CALLEE_CONNECTED:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  case LS_CALLEE_SHUTDOWN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Ignoring client's PICKUP message, line is in SHUTDOWN\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    break;
+  case LS_CALLER_CALLING:
+  case LS_CALLER_CONNECTED:
+  case LS_CALLER_SHUTDOWN:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   line->status = LS_CALLEE_CONNECTED;
   e = GNUNET_MQ_msg_extra (mppm,
                            len,
@@ -259,6 +290,75 @@ handle_client_pickup_message (void *cls,
   memcpy (&mppm[1], meta, len);
   GNUNET_MQ_send (line->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Destroy the mesh tunnels of a line.
+ *
+ * @param line line to shutdown tunnels of
+ */
+static void
+destroy_line_mesh_tunnels (struct Line *line)
+{
+  if (NULL != line->reliable_mq)
+  {
+    GNUNET_MQ_destroy (line->reliable_mq);
+    line->reliable_mq = NULL;
+  }
+  if (NULL != line->tunnel_unreliable)
+  {
+    GNUNET_MESH_tunnel_destroy (line->tunnel_unreliable);
+    line->tunnel_unreliable = NULL;
+  }
+  if (NULL != line->tunnel_reliable)
+  {
+    GNUNET_MESH_tunnel_destroy (line->tunnel_reliable);
+    line->tunnel_reliable = NULL;
+  }
+}
+
+
+/**
+ * We are done signalling shutdown to the other peer.  Close down
+ * (or reset) the line.
+ *
+ * @param cls the `struct Line` to reset/terminate
+ */
+static void
+mq_done_finish_caller_shutdown (void *cls)
+{
+  struct Line *line = cls;
+
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    break;
+  case LS_CALLEE_RINGING:
+    GNUNET_break (0);
+    break;
+  case LS_CALLEE_CONNECTED:
+    GNUNET_break (0);
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    return;
+  case LS_CALLER_CALLING:
+    line->status = LS_CALLER_SHUTDOWN;
+    break;
+  case LS_CALLER_CONNECTED:
+    line->status = LS_CALLER_SHUTDOWN;
+    break;
+  case LS_CALLER_SHUTDOWN:
+    destroy_line_mesh_tunnels (line);
+    GNUNET_CONTAINER_DLL_remove (lines_head,
+                                 lines_tail,
+                                 line);
+    GNUNET_free (line);
+    break;
+  }  
 }
 
 
@@ -297,11 +397,40 @@ handle_client_hangup_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  line->status = LS_CALLEE_LISTEN;
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  case LS_CALLEE_RINGING:
+    line->status = LS_CALLEE_SHUTDOWN;
+    break;
+  case LS_CALLEE_CONNECTED:
+    line->status = LS_CALLEE_SHUTDOWN;
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  case LS_CALLER_CALLING:
+    line->status = LS_CALLER_SHUTDOWN;
+    break;
+  case LS_CALLER_CONNECTED:
+    line->status = LS_CALLER_SHUTDOWN;
+    break;
+  case LS_CALLER_SHUTDOWN:
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   e = GNUNET_MQ_msg_extra (mhum,
                            len,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
   memcpy (&mhum[1], meta, len);
+  GNUNET_MQ_notify_sent (e,
+                         &mq_done_finish_caller_shutdown,
+                         line);
   GNUNET_MQ_send (line->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -389,6 +518,21 @@ handle_client_audio_message (void *cls,
 
 
 /**
+ * We are done signalling shutdown to the other peer.  
+ * Destroy the tunnel.
+ *
+ * @param cls the `struct GNUNET_MESH_tunnel` to destroy
+ */
+static void
+mq_done_destroy_tunnel (void *cls)
+{
+  struct GNUNET_MESH_Tunnel *tunnel = cls;
+  
+  GNUNET_MESH_tunnel_destroy (tunnel);
+}
+
+
+/**
  * Function to handle a ring message incoming over mesh
  *
  * @param cls closure, NULL
@@ -433,7 +577,11 @@ handle_mesh_ring_message (void *cls,
                 _("No available phone for incoming call on line %u, sending BUSY signal\n"),
                 ntohl (msg->remote_line));
     e = GNUNET_MQ_msg (busy, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY);
+    GNUNET_MQ_notify_sent (e,
+                           &mq_done_destroy_tunnel,
+                           tunnel);
     GNUNET_MQ_send (line->reliable_mq, e);
+    GNUNET_MESH_receive_done (tunnel); /* needed? */
     return GNUNET_OK;
   }
   line->status = LS_CALLEE_RINGING;
@@ -449,6 +597,7 @@ handle_mesh_ring_message (void *cls,
                                               line->client,
                                               &cring.header,
                                               GNUNET_NO);
+  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
@@ -468,10 +617,67 @@ handle_mesh_hangup_message (void *cls,
                             void **tunnel_ctx,
                             const struct GNUNET_MessageHeader *message)
 {
+  struct Line *line = *tunnel_ctx;
   const struct MeshPhoneHangupMessage *msg;
+  const char *reason;
+  size_t len = ntohs (message->size) - sizeof (struct MeshPhoneHangupMessage);
+  char buf[len + sizeof (struct ClientPhoneHangupMessage)];
+  struct ClientPhoneHangupMessage *hup;
   
   msg = (const struct MeshPhoneHangupMessage *) message;
-  GNUNET_break (0); // FIXME
+  len = ntohs (msg->header.size) - sizeof (struct MeshPhoneHangupMessage);
+  reason = (const char *) &msg[1];
+  if ( (0 == len) ||
+       ('\0' != reason[len - 1]) )
+  {
+    reason = NULL;
+    len = 0;
+  }
+  if (NULL == line)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "HANGUP message received for non-existing line, dropping tunnel.\n");
+    return GNUNET_SYSERR;
+  }
+  hup = (struct ClientPhoneHangupMessage *) buf;
+  hup->header.size = sizeof (buf);
+  hup->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  memcpy (&hup[1], reason, len);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &hup->header,
+                                              GNUNET_NO);
+  GNUNET_MESH_receive_done (tunnel);
+  *tunnel_ctx = NULL;
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  case LS_CALLEE_RINGING:
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    break;
+  case LS_CALLEE_CONNECTED:
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    break;
+  case LS_CALLER_CALLING:
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_CONNECTED:
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_SHUTDOWN:
+    mq_done_finish_caller_shutdown (line);
+    break;
+  }
   return GNUNET_OK;
 }
 
@@ -506,6 +712,7 @@ handle_mesh_pickup_message (void *cls,
                                                        GNUNET_NO);
   
 
+  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
@@ -525,10 +732,51 @@ handle_mesh_busy_message (void *cls,
                           void **tunnel_ctx,
                           const struct GNUNET_MessageHeader *message)
 {
+  struct Line *line = *tunnel_ctx;
   const struct MeshPhoneBusyMessage *msg;
+  struct ClientPhoneBusyMessage busy;
   
   msg = (const struct MeshPhoneBusyMessage *) message;
-  GNUNET_break (0); // FIXME
+  if (NULL == line)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "HANGUP message received for non-existing line, dropping tunnel.\n");
+    return GNUNET_SYSERR;
+  }
+  busy.header.size = sizeof (busy);
+  busy.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &busy.header,
+                                              GNUNET_NO);
+  GNUNET_MESH_receive_done (tunnel);
+  *tunnel_ctx = NULL;
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  case LS_CALLEE_RINGING:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLEE_CONNECTED:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLER_CALLING:
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_CONNECTED:
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_SHUTDOWN:
+    mq_done_finish_caller_shutdown (line);
+    break;
+  }
   return GNUNET_OK;
 }
 
@@ -552,6 +800,7 @@ handle_mesh_audio_message (void *cls,
   
   msg = (const struct MeshAudioMessage *) message;
   GNUNET_break (0); // FIXME
+  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
@@ -572,10 +821,9 @@ inbound_tunnel (void *cls,
 		const struct GNUNET_PeerIdentity *initiator, 
                 uint32_t port)
 {
-  
-  GNUNET_break (0); // FIXME
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received incoming tunnel on port %d\n"), port);
+	      _("Received incoming tunnel on port %d\n"), 
+              port);
   return NULL;
 }
 
@@ -594,7 +842,55 @@ inbound_end (void *cls,
              const struct GNUNET_MESH_Tunnel *tunnel,
 	     void *tunnel_ctx)
 {
-  GNUNET_break (0); // FIXME
+  struct Line *line = tunnel_ctx;
+  struct ClientPhoneHangupMessage hup;
+
+  if (NULL == line)
+    return;
+  if (line->tunnel_unreliable == tunnel)
+  {
+    line->tunnel_unreliable = NULL;
+    return;
+  }
+  hup.header.size = sizeof (hup);
+  hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    return;
+  case LS_CALLEE_RINGING:
+  case LS_CALLEE_CONNECTED:
+    GNUNET_SERVER_notification_context_unicast (nc,
+                                                line->client,
+                                                &hup.header,
+                                                GNUNET_NO);
+    line->status = LS_CALLEE_LISTEN;
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    break;
+  case LS_CALLER_CALLING:
+  case LS_CALLER_CONNECTED:
+    GNUNET_SERVER_notification_context_unicast (nc,
+                                                line->client,
+                                                &hup.header,
+                                                GNUNET_NO);
+    destroy_line_mesh_tunnels (line);
+    GNUNET_CONTAINER_DLL_remove (lines_head,
+                                 lines_tail,
+                                 line);
+    GNUNET_free (line);
+    break;
+  case LS_CALLER_SHUTDOWN:
+    destroy_line_mesh_tunnels (line);
+    GNUNET_CONTAINER_DLL_remove (lines_head,
+                                 lines_tail,
+                                 line);
+    GNUNET_free (line);
+    break;
+  }
 }
 
 
@@ -631,7 +927,6 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_break (0); // FIXME
   if (NULL != mesh)
   {
     GNUNET_MESH_disconnect (mesh);
