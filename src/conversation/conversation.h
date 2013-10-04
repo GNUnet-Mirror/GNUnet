@@ -433,7 +433,7 @@ struct ClientPhoneRingMessage
 
   /**
    * Always zero.
-p   */
+   */
   uint32_t reserved GNUNET_PACKED;
 
   /**
@@ -559,7 +559,7 @@ struct MeshPhoneRingMessage
   /**
    * Desired target line.
    */
-  uint32_t line GNUNET_PACKED;
+  uint32_t remote_line GNUNET_PACKED;
 
   /**
    * Purpose for the signature.
@@ -590,6 +590,11 @@ struct MeshPhoneRingMessage
    * Signature on the above.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
+
+  /**
+   * Source line for audio data in the other direction.
+   */
+  uint32_t source_line GNUNET_PACKED;
 
 };
 
@@ -644,6 +649,11 @@ struct MeshAudioMessage
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Target line on the receiving end.
+   */
+  uint32_t remote_line;
 
   /* followed by audio data */
 

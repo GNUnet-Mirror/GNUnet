@@ -112,14 +112,29 @@ struct Line
   struct GNUNET_MESH_TransmitHandle *unreliable_mth;
 
   /**
-   * Transmit handle for pending audio messages
+   * Message queue for control messages
    */
   struct GNUNET_MQ_Handle *reliable_mq;
 
   /**
+   * Handle to the line client.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Target of the line, if we are the caller.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
    * Our line number.
    */
-  uint32_t line;
+  uint32_t local_line;
+
+  /**
+   * Remote line number.
+   */
+  uint32_t remote_line;
 
   /**
    * Current status of this line.
@@ -159,6 +174,13 @@ static struct Line *lines_head;
  */
 static struct Line *lines_tail;
 
+/**
+ * Counter for generating local line numbers.
+ * FIXME: randomize generation in the future
+ * to eliminate information leakage.
+ */
+static uint32_t local_line_cnt;
+
 
 /**
  * Function to register a phone.
@@ -183,10 +205,12 @@ handle_client_register_message (void *cls,
     return;
   }
   line = GNUNET_new (struct Line);
+  line->client = client;
+  GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_CONTAINER_DLL_insert (lines_head,
                                lines_tail,
                                line);
-  line->line = ntohl (msg->line);
+  line->local_line = ntohl (msg->line);
   GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -257,10 +281,11 @@ handle_client_call_message (void *cls,
     return;
   }
   line = GNUNET_new (struct Line);
+  line->target = msg->target;
   GNUNET_CONTAINER_DLL_insert (lines_head,
                                lines_tail,
                                line);
-  line->line = ntohl (msg->line);
+  line->remote_line = ntohl (msg->line);
   line->status = LS_CALLER_CALLING;
   line->tunnel_reliable = GNUNET_MESH_tunnel_create (mesh,
                                                      line,
@@ -268,13 +293,8 @@ handle_client_call_message (void *cls,
                                                      GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
                                                      GNUNET_NO,
                                                      GNUNET_YES);
-  line->tunnel_unreliable = GNUNET_MESH_tunnel_create (mesh,
-                                                       line,
-                                                       &msg->target,
-                                                       GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
-                                                       GNUNET_YES,
-                                                       GNUNET_NO);
   line->reliable_mq = GNUNET_MESH_mq_create (line->tunnel_reliable);
+  line->local_line = local_line_cnt++;
   e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING);
   ring->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
   ring->purpose.size = htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
@@ -283,7 +303,8 @@ handle_client_call_message (void *cls,
                               sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (&msg->caller_id,
                                                   &ring->caller_id);
-  ring->line = msg->line;
+  ring->remote_line = msg->line;
+  ring->source_line = line->local_line;
   ring->target = msg->target;
   ring->source = my_identity;
   ring->expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
@@ -332,9 +353,49 @@ handle_mesh_ring_message (void *cls,
                           const struct GNUNET_MessageHeader *message)
 {
   const struct MeshPhoneRingMessage *msg;
+  struct Line *line;
+  struct GNUNET_MQ_Envelope *e;
+  struct MeshPhoneBusyMessage *busy;
+  struct ClientPhoneRingMessage cring;
   
   msg = (const struct MeshPhoneRingMessage *) message;
-  GNUNET_break (0); // FIXME
+  if ( (msg->purpose.size != htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
+                                    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+                                    sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                                    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))) ||
+       (GNUNET_OK !=
+        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
+                                  &msg->purpose,
+                                  &msg->signature,
+                                  &msg->caller_id)) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  for (line = lines_head; NULL != line; line = line->next)  
+    if ( (line->local_line == ntohl (msg->remote_line)) &&
+         (LS_CALLEE_LISTEN == line->status) )
+      break;
+  if (NULL == line) 
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("No available phone for incoming call on line %u, sending BUSY signal\n"),
+                ntohl (msg->remote_line));
+    e = GNUNET_MQ_msg (busy, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY);
+    GNUNET_MQ_send (line->reliable_mq, e);
+    return GNUNET_OK;
+  }
+  line->status = LS_CALLEE_RINGING;
+  line->remote_line = ntohl (msg->source_line);
+  line->tunnel_reliable = tunnel;
+  cring.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
+  cring.header.size = htons (sizeof (cring));
+  cring.reserved = htonl (0);
+  cring.caller_id = msg->caller_id;
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &cring.header,
+                                              GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -378,9 +439,20 @@ handle_mesh_pickup_message (void *cls,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct MeshPhonePickupMessage *msg;
+  struct Line *line = *tunnel_ctx;
   
   msg = (const struct MeshPhonePickupMessage *) message;
   GNUNET_break (0); // FIXME
+
+
+  line->tunnel_unreliable = GNUNET_MESH_tunnel_create (mesh,
+                                                       line,
+                                                       &line->target,
+                                                       GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
+                                                       GNUNET_YES,
+                                                       GNUNET_NO);
+  
+
   return GNUNET_OK;
 }
 
