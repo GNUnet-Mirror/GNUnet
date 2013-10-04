@@ -106,6 +106,16 @@ struct GNUNET_SCALARPRODUCT_service_request {
   struct GNUNET_MessageHeader header;
 
   /**
+   * how many elements the total message including all multipart msgs contains
+   */
+  uint32_t total_element_count GNUNET_PACKED;
+  
+    /**
+   * how many elements are actually included after the mask was applied.
+   */
+  uint32_t contained_element_count GNUNET_PACKED;
+  
+  /**
    * how many bytes the mask has
    */
   uint32_t mask_length GNUNET_PACKED;
@@ -126,13 +136,25 @@ struct GNUNET_SCALARPRODUCT_service_request {
   uint32_t element_count GNUNET_PACKED;
 
   /**
-   * how many elements are actually included after the mask was applied.
-   */
-  uint32_t used_element_count GNUNET_PACKED;
-
-  /**
    * followed by mask | public_key | vector[used_element_count]
    */
+};
+
+/**
+ * Multipart Message type passed between to supply additional elements for the peer
+ */
+struct GNUNET_SCALARPRODUCT_multipart_message {
+  /**
+   * GNUNET message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * how many elements we supply within this message
+   */
+  uint32_t multipart_element_count GNUNET_PACKED;
+  
+  // followed by vector[multipart_element_count] or k[i][perm]
 };
 
 /**
@@ -146,14 +168,19 @@ struct GNUNET_SCALARPRODUCT_service_response {
   struct GNUNET_MessageHeader header;
 
   /**
-   * how many elements the vector in payload contains
+   * how many elements the session input had
    */
-  uint32_t element_count GNUNET_PACKED;
-
+  uint32_t total_element_count GNUNET_PACKED;
+  
   /**
-   * how many elements are actually included after the mask was applied.
+   * how many elements were included after the mask was applied including all multipart msgs.
    */
   uint32_t used_element_count GNUNET_PACKED;
+  
+  /**
+   * how many elements this individual message delivers
+   */
+  uint32_t contained_element_count GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session
@@ -161,7 +188,7 @@ struct GNUNET_SCALARPRODUCT_service_response {
   struct GNUNET_HashCode key;
 
   /**
-   * followed by s | s' | kp[] | kq[]
+   * followed by s | s' | k[i][perm]
    */
 };
 
