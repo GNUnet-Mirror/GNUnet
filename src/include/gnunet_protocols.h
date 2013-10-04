@@ -2271,6 +2271,30 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 737
 
+/**
+ * Mesh: call initiation
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING 738
+
+/**
+ * Mesh: hang up / refuse call
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP 739
+
+/**
+ * Mesh: pick up phone (establish audio channel)
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP 740
+
+/**
+ * Mesh: phone is busy (refuse nicely)
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY 741
+
+/**
+ * Mesh: audio data 
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO 742
 
 
 /*******************************************************************************

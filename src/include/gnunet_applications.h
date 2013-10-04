@@ -86,6 +86,17 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_SCALARPRODUCT 20
 
+/**
+ * Conversation control data.
+ */
+#define GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL 21
+
+/**
+ * Conversation audio data.
+ */
+#define GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO 22
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
