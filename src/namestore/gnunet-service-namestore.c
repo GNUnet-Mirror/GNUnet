@@ -443,7 +443,7 @@ handle_lookup_block (void *cls,
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE message
  *
  * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
+ * @param client client sending the message
  * @param message message of type 'struct BlockCacheMessage'
  */
 static void

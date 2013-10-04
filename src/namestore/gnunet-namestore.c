@@ -326,6 +326,9 @@ display_record (void *cls,
   const char *typestring;
   char *s;
   unsigned int i;
+  const char *ets;
+  struct GNUNET_TIME_Absolute at;
+  struct GNUNET_TIME_Relative rt;
 
   if (NULL == name)
   {
@@ -352,10 +355,21 @@ display_record (void *cls,
 	       (unsigned int) rd[i].record_type);
       continue;
     }
+    if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    {
+      rt.rel_value_us = rd[i].expiration_time;
+      ets = GNUNET_STRINGS_relative_time_to_string (rt, GNUNET_YES);
+    }
+    else
+    {
+      at.abs_value_us = rd[i].expiration_time;
+      ets = GNUNET_STRINGS_absolute_time_to_string (at);
+    }
     FPRINTF (stdout, 
-	     "\t%s: %s\n",
+	     "\t%s: %s (%s)\n",
 	     typestring, 
-	     s);
+	     s,
+             ets);
     GNUNET_free (s);    
   }
   FPRINTF (stdout, "%s", "\n");
