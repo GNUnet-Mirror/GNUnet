@@ -23,6 +23,7 @@
 #include "gnunet_util_lib.h"
 
 #include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-mesh_dht.h"
 #include "mesh_path.h"
 
 /******************************************************************************/
@@ -393,95 +394,6 @@ peer_get_best_path (const struct MeshPeer *peer)
 }
 
 
-
-/**
- * Try to establish a new connection to this peer in the given tunnel.
- * If the peer doesn't have any path to it yet, try to get one.
- * If the peer already has some path, send a CREATE CONNECTION towards it.
- *
- * @param peer PeerInfo of the peer.
- */
-static void
-peer_connect (struct MeshPeer *peer)
-{
-  struct MeshTunnel2 *t;
-  struct MeshPeerPath *p;
-  struct MeshConnection *c;
-  int rerun_dhtget;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "peer_connect towards %s\n",
-              peer2s (peer));
-  t = peer->tunnel;
-  c = NULL;
-  rerun_dhtget = GNUNET_NO;
-
-  if (NULL != peer->path_head)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
-    p = peer_get_best_path (peer);
-    if (NULL != p)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
-      c = tunnel_use_path (t, p);
-      if (NULL == c)
-      {
-        /* This case can happen when the path includes a first hop that is
-         * not yet known to be connected.
-         * 
-         * This happens quite often during testing when running mesh
-         * under valgrind: core connect notifications come very late and the
-         * DHT result has already come and created a valid path.
-         * In this case, the peer->connections hashmap will be NULL and
-         * tunnel_use_path will not be able to create a connection from that
-         * path.
-         *
-         * Re-running the DHT GET should give core time to callback.
-         */
-        GNUNET_break(0);
-        rerun_dhtget = GNUNET_YES;
-      }
-            else
-            {
-              send_connection_create (c);
-              return;
-            }
-    }
-  }
-  
-    if (NULL != peer->dhtget && GNUNET_YES == rerun_dhtget)
-    {
-      GNUNET_DHT_get_stop (peer->dhtget);
-      peer->dhtget = NULL;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "  Stopping DHT GET for peer %s\n", peer2s (peer));
-    }
-    
-      if (NULL == peer->dhtget)
-      {
-        const struct GNUNET_PeerIdentity *id;
-        struct GNUNET_HashCode phash;
-        
-        id = GNUNET_PEER_resolve2 (peer->id);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "  Starting DHT GET for peer %s\n", peer2s (peer));
-        GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &phash);
-        peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                             GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
-                                             &phash,     /* key to search */
-                                             dht_replication_level, /* replication level */
-                                             GNUNET_DHT_RO_RECORD_ROUTE |
-                                                                                      GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                                             NULL,       /* xquery */
-                                             0,     /* xquery bits */
-                                             &dht_get_id_handler, peer);
-        if (MESH_TUNNEL_NEW == t->state)
-          tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
-      }
-}
-
-
-
 /**
  * Add the path to the peer and update the path used to reach it in case this
  * is the shortest.
@@ -622,3 +534,89 @@ GMP_shutdown (void)
   GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
 }
 
+
+/**
+ * Try to establish a new connection to this peer in the given tunnel.
+ * If the peer doesn't have any path to it yet, try to get one.
+ * If the peer already has some path, send a CREATE CONNECTION towards it.
+ *
+ * @param peer PeerInfo of the peer.
+ */
+void
+GMP_connect (struct MeshPeer *peer)
+{
+  struct MeshTunnel2 *t;
+  struct MeshPeerPath *p;
+  struct MeshConnection *c;
+  int rerun_dhtget;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "peer_connect towards %s\n",
+              peer2s (peer));
+  t = peer->tunnel;
+  c = NULL;
+  rerun_dhtget = GNUNET_NO;
+
+  if (NULL != peer->path_head)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
+    p = peer_get_best_path (peer);
+    if (NULL != p)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
+      c = tunnel_use_path (t, p);
+      if (NULL == c)
+      {
+        /* This case can happen when the path includes a first hop that is
+         * not yet known to be connected.
+         * 
+         * This happens quite often during testing when running mesh
+         * under valgrind: core connect notifications come very late and the
+         * DHT result has already come and created a valid path.
+         * In this case, the peer->connections hashmap will be NULL and
+         * tunnel_use_path will not be able to create a connection from that
+         * path.
+         *
+         * Re-running the DHT GET should give core time to callback.
+         */
+        GNUNET_break(0);
+        rerun_dhtget = GNUNET_YES;
+      }
+      else
+      {
+        send_connection_create (c);
+        return;
+      }
+    }
+  }
+
+  if (NULL != peer->dhtget && GNUNET_YES == rerun_dhtget)
+  {
+    GNUNET_DHT_get_stop (peer->dhtget);
+    peer->dhtget = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  Stopping DHT GET for peer %s\n", peer2s (peer));
+  }
+
+  if (NULL == peer->dhtget)
+  {
+    const struct GNUNET_PeerIdentity *id;
+    struct GNUNET_HashCode phash;
+
+    id = GNUNET_PEER_resolve2 (peer->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "  Starting DHT GET for peer %s\n", peer2s (peer));
+    GNUNET_CRYPTO_hash (&id, sizeof (struct GNUNET_PeerIdentity), &phash);
+    peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                          GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
+                                          &phash,     /* key to search */
+                                          dht_replication_level, /* replication level */
+                                          GNUNET_DHT_RO_RECORD_ROUTE |
+                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                          NULL,       /* xquery */
+                                          0,     /* xquery bits */
+                                          &dht_get_id_handler, peer);
+    if (MESH_TUNNEL_NEW == t->state)
+      tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
+  }
+}

@@ -24,6 +24,7 @@
 
 #include "gnunet_dht_service.h"
 
+#include "mesh_path.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"
 
@@ -35,11 +36,38 @@
 #define DEBUG_DHT(...)
 #endif
 
+#define LOG (level, ...) GNUNET_log_from ("mesh-dht", level, __VA_ARGS__)
+
+
+
+/**
+ * Callback called on each path found over the DHT.
+ *
+ * @param cls Closure.
+ * @param path An unchecked, unoptimized path to the target node.
+ *             After callback will no longer be valid!
+ */
+typedef void (*GMD_search_callback) (void *cls,
+                                     const struct MeshPeerPath *path);
+
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
 
+/**
+ * Handle for DHT searches.
+ */
+struct GMD_search_handle
+{
+  /** DHT_GET handle. */
+  struct GNUNET_DHT_GetHandle *dhtget;
 
+  /** Provided callback to call when a path is found. */
+  GMD_search_callback callback;
+
+  /** Provided closure. */
+  void *cls;
+};
 
 
 /******************************************************************************/
@@ -67,9 +95,14 @@ static unsigned long long dht_replication_level;
 static GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
 /**
+ * Own ID (short value).
+ */
+static GNUNET_PEER_Id short_id;
+
+/**
  * Own ID (full value).
  */
-static struct GNUNET_PeerIdentity *id;
+static struct GNUNET_PeerIdentity *full_id;
 
 /**
  * Own private key.
@@ -80,6 +113,130 @@ static struct GNUNET_CRYPTO_EccPrivateKey *private_key;
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
 /******************************************************************************/
+
+
+/**
+ * Build a PeerPath from the paths returned from the DHT, reversing the paths
+ * to obtain a local peer -> destination path and interning the peer ids.
+ *
+ * @return Newly allocated and created path
+ */
+static struct MeshPeerPath *
+path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int put_path_length)
+{
+  struct MeshPeerPath *p;
+  GNUNET_PEER_Id id;
+  int i;
+
+  p = path_new (1);
+  p->peers[0] = myid;
+  GNUNET_PEER_change_rc (myid, 1);
+  i = get_path_length;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", i);
+  for (i--; i >= 0; i--)
+  {
+    id = GNUNET_PEER_intern (&get_path[i]);
+    if (p->length > 0 && id == p->peers[p->length - 1])
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
+      GNUNET_PEER_change_rc (id, -1);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from GET: %s.\n",
+                  GNUNET_i2s (&get_path[i]));
+      p->length++;
+      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
+      p->peers[p->length - 1] = id;
+    }
+  }
+  i = put_path_length;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   PUT has %d hops.\n", i);
+  for (i--; i >= 0; i--)
+  {
+    id = GNUNET_PEER_intern (&put_path[i]);
+    if (id == myid)
+    {
+      /* PUT path went through us, so discard the path up until now and start
+       * from here to get a much shorter (and loop-free) path.
+       */
+      path_destroy (p);
+      p = path_new (0);
+    }
+    if (p->length > 0 && id == p->peers[p->length - 1])
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
+      GNUNET_PEER_change_rc (id, -1);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from PUT: %s.\n",
+                  GNUNET_i2s (&put_path[i]));
+      p->length++;
+      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
+      p->peers[p->length - 1] = id;
+    }
+  }
+#if MESH_DEBUG
+  if (get_path_length > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
+                GNUNET_i2s (&get_path[0]));
+  if (put_path_length > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of PUT: %s)\n",
+                GNUNET_i2s (&put_path[0]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   In total: %d hops\n",
+              p->length);
+  for (i = 0; i < p->length; i++)
+  {
+    struct GNUNET_PeerIdentity peer_id;
+
+    GNUNET_PEER_resolve (p->peers[i], &peer_id);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "       %u: %s\n", p->peers[i],
+                GNUNET_i2s (&peer_id));
+  }
+#endif
+  return p;
+}
+
+
+/**
+ * Function to process paths received for a new peer addition. The recorded
+ * paths form the initial tunnel, which can be optimized later.
+ * Called on each result obtained for the DHT search.
+ *
+ * @param cls closure
+ * @param exp when will this value expire
+ * @param key key of the result
+ * @param get_path path of the get request
+ * @param get_path_length lenght of get_path
+ * @param put_path path of the put request
+ * @param put_path_length length of the put_path
+ * @param type type of the result
+ * @param size number of bytes in data
+ * @param data pointer to the result data
+ */
+static void
+dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
+                    const struct GNUNET_HashCode * key,
+                    const struct GNUNET_PeerIdentity *get_path,
+                    unsigned int get_path_length,
+                    const struct GNUNET_PeerIdentity *put_path,
+                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                    size_t size, const void *data)
+{
+  struct GMD_search_handle *h = cls;
+  struct MeshPeerPath *p;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got results!\n");
+  p = path_build_from_dht (get_path, get_path_length,
+                           put_path, put_path_length);
+  h->callback (h->cls, p);
+  path_destroy (p);
+  return;
+}
 
 
 /**
@@ -105,8 +262,8 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    */
   DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (id));
 
-  block.id = *id;
-  GNUNET_CRYPTO_hash (id, sizeof (struct GNUNET_PeerIdentity), &phash);
+  block.id = *full_id;
+  GNUNET_CRYPTO_hash (full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
@@ -137,7 +294,7 @@ void
 GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
           struct GNUNET_PeerIdentity *peer_id)
 {
-  id = peer_id;
+  full_id = peer_id;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
@@ -183,4 +340,35 @@ GMD_shutdown(void )
     GNUNET_SCHEDULER_cancel (announce_id_task);
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
   }
+}
+
+struct GMD_search_handle *
+GMD_search (const struct GNUNET_PeerIdentity *peer_id,
+            GMD_search_callback callback, void *cls)
+{
+  struct GNUNET_HashCode phash;
+  struct GMD_search_handle *h;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
+  GNUNET_CRYPTO_hash (peer_id, sizeof (struct GNUNET_PeerIdentity), &phash);
+  h = GNUNET_new (struct GMD_search_handle);
+  h->cls = cls;
+  h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
+                                    GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
+                                    &phash,     /* key to search */
+                                    dht_replication_level, /* replication level */
+                                    GNUNET_DHT_RO_RECORD_ROUTE |
+                                    GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                    NULL,       /* xquery */
+                                    0,     /* xquery bits */
+                                    &dht_get_id_handler, h);
+  return h;
+}
+
+void
+GMD_search_stop (struct GMD_search_handle *h)
+{
+  GNUNET_DHT_get_stop (h->dhtget);
+  GNUNET_free (h);
 }

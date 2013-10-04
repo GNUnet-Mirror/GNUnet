@@ -496,31 +496,6 @@ GNUNET_MESH_DEBUG_TS2S (enum MeshTunnelState s)
 }
 
 
-/**
- * Get string description for tunnel state.
- *
- * @param s Tunnel state.
- *
- * @return String representation. 
- */
-static const char *
-GNUNET_MESH_DEBUG_CS2S (enum MeshTunnelState s)
-{
-  switch (s) 
-  {
-    case MESH_CONNECTION_NEW:
-      return "MESH_CONNECTION_NEW";
-    case MESH_CONNECTION_SENT:
-      return "MESH_CONNECTION_SENT";
-    case MESH_CONNECTION_ACK:
-      return "MESH_CONNECTION_ACK";
-    case MESH_CONNECTION_READY:
-      return "MESH_CONNECTION_READY";
-    default:
-      return "MESH_CONNECTION_STATE_ERROR";
-  }
-}
-
 
 
 /******************************************************************************/
@@ -913,91 +888,6 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
   return sizeof (struct GNUNET_MESH_ConnectionACK);
 }
 
-/**
- * Build a PeerPath from the paths returned from the DHT, reversing the paths
- * to obtain a local peer -> destination path and interning the peer ids.
- *
- * @return Newly allocated and created path
- */
-static struct MeshPeerPath *
-path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int put_path_length)
-{
-  struct MeshPeerPath *p;
-  GNUNET_PEER_Id id;
-  int i;
-
-  p = path_new (1);
-  p->peers[0] = myid;
-  GNUNET_PEER_change_rc (myid, 1);
-  i = get_path_length;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", i);
-  for (i--; i >= 0; i--)
-  {
-    id = GNUNET_PEER_intern (&get_path[i]);
-    if (p->length > 0 && id == p->peers[p->length - 1])
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
-      GNUNET_PEER_change_rc (id, -1);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from GET: %s.\n",
-                  GNUNET_i2s (&get_path[i]));
-      p->length++;
-      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length - 1] = id;
-    }
-  }
-  i = put_path_length;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   PUT has %d hops.\n", i);
-  for (i--; i >= 0; i--)
-  {
-    id = GNUNET_PEER_intern (&put_path[i]);
-    if (id == myid)
-    {
-      /* PUT path went through us, so discard the path up until now and start
-       * from here to get a much shorter (and loop-free) path.
-       */
-      path_destroy (p);
-      p = path_new (0);
-    }
-    if (p->length > 0 && id == p->peers[p->length - 1])
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
-      GNUNET_PEER_change_rc (id, -1);
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from PUT: %s.\n",
-                  GNUNET_i2s (&put_path[i]));
-      p->length++;
-      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length - 1] = id;
-    }
-  }
-#if MESH_DEBUG
-  if (get_path_length > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
-                GNUNET_i2s (&get_path[0]));
-  if (put_path_length > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of PUT: %s)\n",
-                GNUNET_i2s (&put_path[0]));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   In total: %d hops\n",
-              p->length);
-  for (i = 0; i < p->length; i++)
-  {
-    struct GNUNET_PeerIdentity peer_id;
-
-    GNUNET_PEER_resolve (p->peers[i], &peer_id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "       %u: %s\n", p->peers[i],
-                GNUNET_i2s (&peer_id));
-  }
-#endif
-  return p;
-}
 
 
 /**
@@ -1907,39 +1797,15 @@ handle_decrypted (struct MeshTunnel2 *t,
  * Called on each result obtained for the DHT search.
  *
  * @param cls closure
- * @param exp when will this value expire
- * @param key key of the result
- * @param get_path path of the get request
- * @param get_path_length lenght of get_path
- * @param put_path path of the put request
- * @param put_path_length length of the put_path
- * @param type type of the result
- * @param size number of bytes in data
- * @param data pointer to the result data
+ * @param path
  */
 static void
-dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
-                    const struct GNUNET_HashCode * key,
-                    const struct GNUNET_PeerIdentity *get_path,
-                    unsigned int get_path_length,
-                    const struct GNUNET_PeerIdentity *put_path,
-                    unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                    size_t size, const void *data)
+search_handler (void *cls, struct MeshPeerPath *path)
 {
-  struct MeshPeer *peer = cls;
-  struct MeshPeerPath *p;
   struct MeshConnection *c;
-  struct GNUNET_PeerIdentity pi;
   unsigned int connection_count;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got results from DHT!\n");
-  GNUNET_PEER_resolve (peer->id, &pi);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&pi));
-
-  p = path_build_from_dht (get_path, get_path_length,
-                           put_path, put_path_length);
-  path_add_to_peers (p, GNUNET_NO);
-  path_destroy (p);
+  path_add_to_peers (path, GNUNET_NO);
 
   /* Count connections */
   connection_count = GMC_count (peer->tunnel->connection_head);
@@ -1953,126 +1819,6 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     peer_connect (peer);
   }
-  return;
-}
-
-
-
-/**
- * Method called whenever a given peer connects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-static void
-core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct MeshPeer *pi;
-  struct MeshPeerPath *path;
-
-  DEBUG_CONN ("Peer connected\n");
-  DEBUG_CONN ("     %s\n", GNUNET_i2s (&my_full_id));
-  pi = peer_get (peer);
-  if (myid == pi->id)
-  {
-    DEBUG_CONN ("     (self)\n");
-    path = path_new (1);
-  }
-  else
-  {
-    DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
-    path = path_new (2);
-    path->peers[1] = pi->id;
-    GNUNET_PEER_change_rc (pi->id, 1);
-    GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
-  }
-  path->peers[0] = myid;
-  GNUNET_PEER_change_rc (myid, 1);
-  peer_add_path (pi, path, GNUNET_YES);
-
-  pi->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
-  return;
-}
-
-
-/**
- * Method called whenever a peer disconnects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-static void
-core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct MeshPeer *pi;
-
-  DEBUG_CONN ("Peer disconnected\n");
-  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
-  if (NULL == pi)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  GNUNET_CONTAINER_multihashmap_iterate (pi->connections,
-                                         GMC_notify_broken,
-                                         pi);
-  GNUNET_CONTAINER_multihashmap_destroy (pi->connections);
-  pi->connections = NULL;
-  if (NULL != pi->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit);
-      pi->core_transmit = NULL;
-    }
-  if (myid == pi->id)
-  {
-    DEBUG_CONN ("     (self)\n");
-  }
-  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
-
-  return;
-}
-
-
-
-/**
- * To be called on core init/fail.
- *
- * @param cls Closure (config)
- * @param identity the public identity of this peer
- */
-static void
-core_init (void *cls, 
-           const struct GNUNET_PeerIdentity *identity)
-{
-  const struct GNUNET_CONFIGURATION_Handle *c = cls;
-  static int i = 0;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " core id %s\n",
-                GNUNET_i2s (identity));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " my id %s\n",
-                GNUNET_i2s (&my_full_id));
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                       NULL,      /* Closure passed to MESH functions */
-                                       &core_init,        /* Call core_init once connected */
-                                       &core_connect,     /* Handle connects */
-                                       &core_disconnect,  /* remove peers on disconnects */
-                                       NULL,      /* Don't notify about all incoming messages */
-                                       GNUNET_NO, /* For header only in notification */
-                                       NULL,      /* Don't notify about all outbound messages */
-                                       GNUNET_NO, /* For header-only out notification */
-                                       core_handlers);    /* Register these handlers */
-    if (10 < i++)
-      GNUNET_abort();
-  }
-  server_init ();
   return;
 }
 

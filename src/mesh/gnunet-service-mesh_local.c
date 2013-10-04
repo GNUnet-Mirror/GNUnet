@@ -157,8 +157,8 @@ client_release_ports (void *cls,
  * @param cls Closure (unused).
  * @param client Client handler.
  */
-void
-GMLH_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
+static void
+handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
 
@@ -180,8 +180,8 @@ GMLH_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param client identification of the client; NULL
  *        for the last call when the server is destroyed
  */
-void
-GMLH_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+static void
+handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
 
@@ -240,9 +240,9 @@ GMLH_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param client identification of the client
  * @param message the actual message, which includes messages the client wants
  */
-void
-GMLH_new_client (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *message)
+static void
+handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
+                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ClientConnect *cc_msg;
   struct MeshClient *c;
@@ -306,9 +306,9 @@ GMLH_new_client (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client Identification of the client.
  * @param message The actual message.
  */
-void
-GMLH_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
-                            const struct GNUNET_MessageHeader *message)
+static void
+handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ChannelMessage *msg;
   struct MeshPeer *peer;
@@ -409,9 +409,9 @@ GMLH_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client identification of the client
  * @param message the actual message
  */
-void
-GMLH_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
-                             const struct GNUNET_MessageHeader *message)
+static void
+handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ChannelMessage *msg;
   struct MeshClient *c;
@@ -486,9 +486,9 @@ GMLH_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client identification of the client
  * @param message the actual message
  */
-void
-GMLH_data (void *cls, struct GNUNET_SERVER_Client *client,
-                   const struct GNUNET_MessageHeader *message)
+static void
+handle_data (void *cls, struct GNUNET_SERVER_Client *client,
+             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalData *msg;
   struct MeshClient *c;
@@ -584,9 +584,9 @@ GMLH_data (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client Identification of the client.
  * @param message The actual message.
  */
-void
-GMLH_ack (void *cls, struct GNUNET_SERVER_Client *client,
-                  const struct GNUNET_MessageHeader *message)
+static void
+handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
+            const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalAck *msg;
   struct MeshChannelReliability *rel;
@@ -677,9 +677,9 @@ GMLH_ack (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client Identification of the client.
  * @param message The actual message.
  */
-void
-GMLH_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message)
+static void
+handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
 {
   struct MeshClient *c;
 
@@ -712,8 +712,8 @@ GMLH_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message The actual message.
  */
 void
-GMLH_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message)
+handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_MESH_LocalMonitor *msg;
   struct GNUNET_MESH_LocalMonitor *resp;
@@ -768,17 +768,17 @@ GMLH_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
-  {&GMLH_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
-  {&GMLH_channel_create, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE,
+  {&handle_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
+  {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE,
    sizeof (struct GNUNET_MESH_ChannelMessage)},
-  {&GMLH_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY,
+  {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY,
    sizeof (struct GNUNET_MESH_ChannelMessage)},
-  {&GMLH_data, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
-  {&GMLH_ack, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
+  {&handle_data, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
+  {&handle_ack, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
    sizeof (struct GNUNET_MESH_LocalAck)},
-  {&GMLH_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS,
+  {&handle_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS,
    sizeof (struct GNUNET_MessageHeader)},
-  {&GMLH_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL,
+  {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL,
    sizeof (struct GNUNET_MESH_LocalMonitor)},
   {NULL, NULL, 0, 0}
 };
@@ -802,6 +802,7 @@ GML_init (struct GNUNET_SERVER_Handle *handle)
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
 }
 
+
 /**
  * Install server (service) handlers and start listening to clients.
  */
@@ -809,8 +810,8 @@ void
 GML_start (void)
 {
   GNUNET_SERVER_add_handlers (server_handle, client_handlers);
-  GNUNET_SERVER_connect_notify (server_handle,  &GMLH_client_connect, NULL);
-  GNUNET_SERVER_disconnect_notify (server_handle, &GMLH_client_disconnect,
+  GNUNET_SERVER_connect_notify (server_handle,  &handle_client_connect, NULL);
+  GNUNET_SERVER_disconnect_notify (server_handle, &handle_client_disconnect,
                                    NULL);
   nc = GNUNET_SERVER_notification_context_create (server_handle, 1);
 
