@@ -58,7 +58,8 @@ libgnunetconversation_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-conversation-test \
- gnunet-conversation
+ gnunet-conversation \
+ gnunet-conversation-new
 
 libexec_PROGRAMS = \
   gnunet-service-conversation \
@@ -117,9 +118,19 @@ gnunet_service_conversation_new_LDFLAGS = \
 gnunet_conversation_SOURCES = \
   gnunet-conversation.c
 gnunet_conversation_LDADD = \
-  -lgnunetutil -lgnunetconversation \
+  libgnunetconversation.la \
+  -lgnunetutil \
   $(INTLLIBS) 
 gnunet_conversation_LDFLAGS = \
+ $(GNUNET_LDFLAGS) $(WINFLAGS) 
+
+gnunet_conversation_new_SOURCES = \
+  gnunet-conversation-new.c
+gnunet_conversation_new_LDADD = \
+  libgnunetconversation.la \
+  -lgnunetutil \
+  $(INTLLIBS) 
+gnunet_conversation_new_LDFLAGS = \
  $(GNUNET_LDFLAGS) $(WINFLAGS) 
 
 gnunet_conversation_test_SOURCES = \
@@ -136,7 +147,7 @@ gnunet_conversation_test_LDFLAGS = \
 test_conversation_api_SOURCES = \
  test_conversation_api.c
 test_conversation_api_LDADD = \
-  $(top_builddir)/src/conversation/libgnunetconversation.la \
+  libgnunetconversation.la \
   -lgnunetutil
 test_conversation_api_LDFLAGS = \
  $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic
