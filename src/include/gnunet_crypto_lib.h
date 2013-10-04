@@ -1028,8 +1028,7 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  */
 int
 GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
-                          const struct GNUNET_CRYPTO_EccSignaturePurpose
-                          *validate,
+                          const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
                           const struct GNUNET_CRYPTO_EccSignature *sig,
                           const struct GNUNET_CRYPTO_EccPublicSignKey *pub);
 

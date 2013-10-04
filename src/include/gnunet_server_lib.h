@@ -667,9 +667,7 @@ GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle *server,
  * @param nc context to destroy.
  */
 void
-GNUNET_SERVER_notification_context_destroy (struct
-                                            GNUNET_SERVER_NotificationContext
-                                            *nc);
+GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationContext *nc);
 
 
 /**
@@ -679,8 +677,7 @@ GNUNET_SERVER_notification_context_destroy (struct
  * @param client client to add
  */
 void
-GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
-                                        *nc,
+GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext *nc,
                                         struct GNUNET_SERVER_Client *client);
 
 
@@ -694,12 +691,10 @@ GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
  * @param can_drop can this message be dropped due to queue length limitations
  */
 void
-GNUNET_SERVER_notification_context_unicast (struct
-                                            GNUNET_SERVER_NotificationContext
-                                            *nc,
+GNUNET_SERVER_notification_context_unicast (struct GNUNET_SERVER_NotificationContext *nc,
                                             struct GNUNET_SERVER_Client *client,
-                                            const struct GNUNET_MessageHeader
-                                            *msg, int can_drop);
+                                            const struct GNUNET_MessageHeader *msg, 
+                                            int can_drop);
 
 
 /**
@@ -710,11 +705,9 @@ GNUNET_SERVER_notification_context_unicast (struct
  * @param can_drop can this message be dropped due to queue length limitations
  */
 void
-GNUNET_SERVER_notification_context_broadcast (struct
-                                              GNUNET_SERVER_NotificationContext
-                                              *nc,
-                                              const struct GNUNET_MessageHeader
-                                              *msg, int can_drop);
+GNUNET_SERVER_notification_context_broadcast (struct GNUNET_SERVER_NotificationContext *nc,
+                                              const struct GNUNET_MessageHeader *msg, 
+                                              int can_drop);
 
 
 /**
