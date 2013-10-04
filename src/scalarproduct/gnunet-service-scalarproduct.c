@@ -155,6 +155,16 @@ struct ServiceSession
   gcry_mpi_t * a;
 
   /**
+   * Bob's permutation p of R
+   */
+  gcry_mpi_t * r;
+  
+  /**
+   * Bob's permutation q of R
+   */
+  gcry_mpi_t * r_prime;
+          
+  /**
    * The computed scalar 
    */
   gcry_mpi_t product;
@@ -815,9 +825,7 @@ prepare_client_end_notification (void * cls,
  *         GNUNET_OK if the operation succeeded
  */
 static int
-prepare_service_response (gcry_mpi_t * r,
-                          gcry_mpi_t * r_prime,
-                          gcry_mpi_t s,
+prepare_service_response (gcry_mpi_t s,
                           gcry_mpi_t s_prime,
                           struct ServiceSession * request,
                           struct ServiceSession * response)
@@ -855,55 +863,60 @@ prepare_service_response (gcry_mpi_t * r,
   // doesn't really justify having 2 functions for that
   // so i put it into blocks to enhance readability 
   // convert s
-  {
-    memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        s));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;
-  }
-  // convert stick
-  {
-    memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        s_prime));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+  memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      element_exported, PAILLIER_ELEMENT_LENGTH,
+                                      &element_length,
+                                      s));
+  adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+  memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+  current += PAILLIER_ELEMENT_LENGTH;
 
-    current += PAILLIER_ELEMENT_LENGTH;
-  }
+  // convert stick
+  memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      element_exported, PAILLIER_ELEMENT_LENGTH,
+                                      &element_length,
+                                      s_prime));
+  adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+  memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+  current += PAILLIER_ELEMENT_LENGTH;
+
   // convert k[][]
   for (i = 0; i < request->used_element_count; i++)
   {
     if (request->transferred_element_count <= i)
-        break; //reached end of this message, can't include more
-    
+      break; //reached end of this message, can't include more
+
     //k[i][p]
-    memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
+    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
     GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
                                         element_exported, PAILLIER_ELEMENT_LENGTH,
                                         &element_length,
-                                        r[i]));
+                                        request->r[i]));
     adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
     memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
     current += PAILLIER_ELEMENT_LENGTH;
     //k[i][q]
-    memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
+    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
     GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
                                         element_exported, PAILLIER_ELEMENT_LENGTH,
                                         &element_length,
-                                        r_prime[i]));
+                                        request->r_prime[i]));
     adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
     memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;    
+    current += PAILLIER_ELEMENT_LENGTH;
   }
+  
   GNUNET_free (element_exported);
-
+  for (i = 0; i < request->transferred_element_count; i++)
+  {
+    gcry_mpi_release (request->r_prime[i]);
+    gcry_mpi_release (request->r[i]);
+  }
+  gcry_mpi_release (s);
+  gcry_mpi_release (s_prime);
+  
   request->msg = (struct GNUNET_MessageHeader *) msg;
   request->service_transmit_handle =
           GNUNET_MESH_notify_transmit_ready (request->tunnel,
@@ -1096,6 +1109,9 @@ compute_service_response (struct ServiceSession * request,
   }
   GNUNET_free (a_pi_prime);
   GNUNET_free (rand_pi_prime);
+  
+  request->r = r;
+  request->r_prime = r_prime;
 
   // Calculate S' =  E(SUM( r_i^2 ))
   s_prime = compute_square_sum (rand, count);
@@ -1117,21 +1133,12 @@ compute_service_response (struct ServiceSession * request,
     // rp, rq, aq, ap, bp, bq are released along with a, r, b respectively, (a and b are handled at except:)
     gcry_mpi_release (rand[i]);
 
-  // copy the Kp[], Kq[], S and Stick into a new message
-  if (GNUNET_YES != prepare_service_response (r, r_prime, s, s_prime, request, response))
+  // copy the r[], r_prime[], S and Stick into a new message, prepare_service_response frees these
+  if (GNUNET_YES != prepare_service_response (s, s_prime, request, response))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Failed to communicate with `%s', scalar product calculation aborted.\n"),
                 GNUNET_i2s (&request->peer));
   else
     ret = GNUNET_OK;
-
-  for (i = 0; i < count; i++)
-  {
-    gcry_mpi_release (r_prime[i]);
-    gcry_mpi_release (r[i]);
-  }
-
-  gcry_mpi_release (s);
-  gcry_mpi_release (s_prime);
 
 except:
   for (i = 0; i < count; i++)
