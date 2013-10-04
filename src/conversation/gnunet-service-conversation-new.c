@@ -639,15 +639,6 @@ handle_mesh_hangup_message (void *cls,
                 "HANGUP message received for non-existing line, dropping tunnel.\n");
     return GNUNET_SYSERR;
   }
-  hup = (struct ClientPhoneHangupMessage *) buf;
-  hup->header.size = sizeof (buf);
-  hup->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
-  memcpy (&hup[1], reason, len);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              line->client,
-                                              &hup->header,
-                                              GNUNET_NO);
-  GNUNET_MESH_receive_done (tunnel);
   *tunnel_ctx = NULL;
   switch (line->status)
   {
@@ -665,7 +656,7 @@ handle_mesh_hangup_message (void *cls,
   case LS_CALLEE_SHUTDOWN:
     line->status = LS_CALLEE_LISTEN;
     destroy_line_mesh_tunnels (line);
-    break;
+    return GNUNET_OK;
   case LS_CALLER_CALLING:
     line->status = LS_CALLER_SHUTDOWN;
     mq_done_finish_caller_shutdown (line);
@@ -676,8 +667,17 @@ handle_mesh_hangup_message (void *cls,
     break;
   case LS_CALLER_SHUTDOWN:
     mq_done_finish_caller_shutdown (line);
-    break;
+    return GNUNET_OK;
   }
+  hup = (struct ClientPhoneHangupMessage *) buf;
+  hup->header.size = sizeof (buf);
+  hup->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  memcpy (&hup[1], reason, len);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &hup->header,
+                                              GNUNET_NO);
+  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
@@ -699,20 +699,68 @@ handle_mesh_pickup_message (void *cls,
 {
   const struct MeshPhonePickupMessage *msg;
   struct Line *line = *tunnel_ctx;
+  const char *metadata;
+  size_t len = ntohs (message->size) - sizeof (struct MeshPhonePickupMessage);
+  char buf[len + sizeof (struct ClientPhonePickupMessage)];
+  struct ClientPhonePickupMessage *pick;
   
   msg = (const struct MeshPhonePickupMessage *) message;
-  GNUNET_break (0); // FIXME
-
-
+  len = ntohs (msg->header.size) - sizeof (struct MeshPhonePickupMessage);
+  metadata = (const char *) &msg[1];
+  if ( (0 == len) ||
+       ('\0' != metadata[len - 1]) )
+  {
+    metadata = NULL;
+    len = 0;
+  }
+  if (NULL == line)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "PICKUP message received for non-existing line, dropping tunnel.\n");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_MESH_receive_done (tunnel);
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  case LS_CALLEE_RINGING:
+  case LS_CALLEE_CONNECTED:
+    GNUNET_break_op (0);
+    destroy_line_mesh_tunnels (line);
+    line->status = LS_CALLEE_LISTEN;
+    return GNUNET_SYSERR;
+  case LS_CALLEE_SHUTDOWN:
+    GNUNET_break_op (0);
+    line->status = LS_CALLEE_LISTEN;
+    destroy_line_mesh_tunnels (line);
+    break;
+  case LS_CALLER_CALLING:
+    line->status = LS_CALLER_CONNECTED;
+    break;
+  case LS_CALLER_CONNECTED:
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  case LS_CALLER_SHUTDOWN:
+    GNUNET_break_op (0);
+    mq_done_finish_caller_shutdown (line);
+    return GNUNET_SYSERR;
+  }
+  pick = (struct ClientPhonePickupMessage *) buf;
+  pick->header.size = sizeof (buf);
+  pick->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP);
+  memcpy (&pick[1], metadata, len);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &pick->header,
+                                              GNUNET_NO);
   line->tunnel_unreliable = GNUNET_MESH_tunnel_create (mesh,
                                                        line,
                                                        &line->target,
                                                        GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
                                                        GNUNET_YES,
                                                        GNUNET_NO);
-  
-
-  GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
 
@@ -733,10 +781,8 @@ handle_mesh_busy_message (void *cls,
                           const struct GNUNET_MessageHeader *message)
 {
   struct Line *line = *tunnel_ctx;
-  const struct MeshPhoneBusyMessage *msg;
   struct ClientPhoneBusyMessage busy;
-  
-  msg = (const struct MeshPhoneBusyMessage *) message;
+
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -797,9 +843,43 @@ handle_mesh_audio_message (void *cls,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct MeshAudioMessage *msg;
+  struct Line *line = *tunnel_ctx;
+  struct GNUNET_PeerIdentity sender;
+  size_t msize = ntohs (message->size) - sizeof (struct MeshAudioMessage);
+  char buf[msize + sizeof (struct ClientAudioMessage)];
+  struct ClientAudioMessage *cam;
   
   msg = (const struct MeshAudioMessage *) message;
-  GNUNET_break (0); // FIXME
+  if (NULL == line)
+  {
+    sender = *GNUNET_MESH_tunnel_get_info (tunnel,
+                                           GNUNET_MESH_OPTION_PEER)->peer;
+    for (line = lines_head; NULL != line; line = line->next)
+      if ( (line->local_line == ntohl (msg->remote_line)) &&
+           (LS_CALLEE_CONNECTED == line->status) &&
+           (0 == memcmp (&line->target,
+                         &sender,
+                         sizeof (struct GNUNET_PeerIdentity))) &&
+           (NULL == line->tunnel_unreliable) )
+        break;
+    if (NULL == line)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received AUDIO data for non-existing line %u, dropping.\n",
+                  ntohl (msg->remote_line));
+      return GNUNET_SYSERR;
+    }
+    line->tunnel_unreliable = tunnel;
+    *tunnel_ctx = line;
+  }
+  cam = (struct ClientAudioMessage *) buf;
+  cam->header.size = htons (sizeof (buf));
+  cam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
+  memcpy (&cam[1], &msg[1], msize);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              line->client,
+                                              &cam->header,
+                                              GNUNET_YES);
   GNUNET_MESH_receive_done (tunnel);
   return GNUNET_OK;
 }
