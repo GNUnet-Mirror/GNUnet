@@ -980,7 +980,14 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
       0 },    
     { NULL, 0, 0 }    
   };
- if (NULL != call->mq)
+  struct GNUNET_CRYPTO_EccPublicSignKey my_zone;
+
+  if (CS_ACTIVE == call->state)
+  {
+    call->speaker->disable_speaker (call->speaker->cls);
+    call->mic->disable_microphone (call->mic->cls);
+  }
+  if (NULL != call->mq)
   {
     GNUNET_MQ_destroy (call->mq);
     call->mq = NULL;
@@ -990,6 +997,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
     GNUNET_CLIENT_disconnect (call->client);
     call->client = NULL;
   }
+  call->state = CS_SHUTDOWN;
   call->client = GNUNET_CLIENT_connect ("conversation", call->cfg);
   if (NULL == call->client)
     return;
@@ -997,6 +1005,17 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
                                                     handlers,
                                                     &call_error_handler,
                                                     call);
+  call->state = CS_LOOKUP;
+  GNUNET_IDENTITY_ego_get_public_key (call->caller_id,
+                                      &my_zone);
+  call->gns_lookup = GNUNET_GNS_lookup (call->gns, 
+                                        call->callee,
+                                        &my_zone,
+                                        GNUNET_NAMESTORE_TYPE_PHONE,
+                                        GNUNET_NO,
+                                        NULL /* FIXME: add shortening support */,
+                                        &handle_gns_response, call);
+  GNUNET_assert (NULL != call->gns_lookup);
 }
 
 
@@ -1024,10 +1043,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				void *event_handler_cls)
 {
   struct GNUNET_CONVERSATION_Call *call;
-  struct GNUNET_CRYPTO_EccPublicSignKey my_zone;
 
-  GNUNET_IDENTITY_ego_get_public_key (caller_id,
-                                      &my_zone);
   call = GNUNET_new (struct GNUNET_CONVERSATION_Call);
   call->cfg = cfg;
   call->caller_id = caller_id;
@@ -1045,13 +1061,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_CONVERSATION_call_stop (call, NULL);
     return NULL;
   }
-  call->gns_lookup = GNUNET_GNS_lookup (call->gns, callee,
-                                        &my_zone,
-                                        GNUNET_NAMESTORE_TYPE_PHONE,
-                                        GNUNET_NO,
-                                        NULL /* FIXME: add shortening support */,
-                                        &handle_gns_response, call);
-  GNUNET_assert (NULL != call->gns_lookup);
   return call;
 }
 
@@ -1105,7 +1114,7 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
     GNUNET_GNS_disconnect (call->gns);
     call->gns = NULL;
   }
-
+  GNUNET_free (call->callee);
   GNUNET_free (call);
 }
 

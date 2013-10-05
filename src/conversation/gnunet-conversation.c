@@ -286,15 +286,16 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_READY:
     GNUNET_break (CS_RINGING == state);
     FPRINTF (stdout,
-             _("Connection established: %s\n"),
+             _("Connection established to `%s': %s\n"),
+             peer_name,
              va_arg (va, const char *));
     state = CS_CONNECTED;
     break;
   case GNUNET_CONVERSATION_EC_GNS_FAIL:
     GNUNET_break (CS_RESOLVING == state);
     FPRINTF (stdout,
-             "%s",
-             _("Failed to resolve name\n"));
+             _("Failed to resolve `%s'\n"),
+             ego_name);
     GNUNET_CONVERSATION_call_stop (call, NULL);
     call = NULL;
     start_phone ();

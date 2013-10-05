@@ -1010,8 +1010,8 @@ inbound_tunnel (void *cls,
                 uint32_t port)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received incoming tunnel on port %d\n"), 
-              port);
+	      _("Received incoming tunnel on port %u\n"), 
+              (unsigned int) port);
   return NULL;
 }
 
@@ -1040,6 +1040,10 @@ inbound_end (void *cls,
     line->tunnel_unreliable = NULL;
     return;
   }
+  GNUNET_assert (line->tunnel_reliable == tunnel);
+  line->tunnel_reliable = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Mesh tunnel destroyed by mesh\n");
   hup.header.size = sizeof (hup);
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   switch (line->status)
@@ -1095,6 +1099,8 @@ handle_client_disconnect (void *cls,
 {
   struct Line *line;
 
+  if (NULL == client)
+    return;
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
   if (NULL == line)
     return;
