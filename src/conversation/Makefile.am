@@ -7,13 +7,6 @@ INCLUDES = \
 AM_CPPFLAGS = \
   $(GNUNET_CPPFLAGS)
 
-# Set this variable if you are using GNUNET libraries for all programs and
-# libraries. You don't then need to target-specific _LDFLAGS with GNUNET_LDFLAGS
-# AM_LDFLAGS = \
-#   $(GNUNET_LDFLAGS) \
-#   $(WINFLAGS) \
-#   -export-dynamic
-
 lib_LTLIBRARIES = \
  libgnunetmicrophone.la \
  libgnunetspeaker.la \
@@ -41,8 +34,7 @@ libgnunetspeaker_la_LDFLAGS = \
 
 
 libgnunetconversation_la_SOURCES = \
-  conversation_api.c \
-  conversation_api2.c 
+  conversation_api.c 
 libgnunetconversation_la_LIBADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
@@ -56,12 +48,10 @@ libgnunetconversation_la_LDFLAGS = \
 
 bin_PROGRAMS = \
  gnunet-conversation-test \
- gnunet-conversation \
- gnunet-conversation-new
+ gnunet-conversation 
 
 libexec_PROGRAMS = \
-  gnunet-service-conversation \
-  gnunet-service-conversation-new 
+  gnunet-service-conversation 
 
 if HAVE_PULSE
 if HAVE_OPUS
@@ -100,39 +90,18 @@ gnunet_helper_audio_playback_LDFLAGS = \
 gnunet_service_conversation_SOURCES = \
   gnunet-service-conversation.c
 gnunet_service_conversation_LDADD = \
-  $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(INTLLIBS) 
-gnunet_service_conversation_LDFLAGS = \
-  $(GNUNET_LDFLAGS)  $(WINFLAGS) 
-
-gnunet_service_conversation_new_SOURCES = \
-  gnunet-service-conversation-new.c
-gnunet_service_conversation_new_LDADD = \
   libgnunetconversation.la \
   libgnunetspeaker.la \
   libgnunetmicrophone.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS) 
-
-gnunet_service_conversation_new_LDFLAGS = \
+gnunet_service_conversation_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) 
 
 gnunet_conversation_SOURCES = \
   gnunet-conversation.c
 gnunet_conversation_LDADD = \
-  libgnunetconversation.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(INTLLIBS) 
-gnunet_conversation_LDFLAGS = \
- $(GNUNET_LDFLAGS) $(WINFLAGS) 
-
-gnunet_conversation_new_SOURCES = \
-  gnunet-conversation-new.c
-gnunet_conversation_new_LDADD = \
   libgnunetmicrophone.la \
   libgnunetspeaker.la \
   libgnunetconversation.la \
@@ -141,7 +110,7 @@ gnunet_conversation_new_LDADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS) 
-gnunet_conversation_new_LDFLAGS = \
+gnunet_conversation_LDFLAGS = \
  $(GNUNET_LDFLAGS) $(WINFLAGS) 
 
 gnunet_conversation_test_SOURCES = \
