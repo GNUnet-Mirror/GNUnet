@@ -30,6 +30,7 @@
 #include "gnunet_constants.h"
 #include "gnunet_signatures.h"
 #include "gnunet_arm_service.h"
+#include "gnunet_conversation_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_tun_lib.h"
@@ -652,7 +653,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     if (data_size != sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
       return NULL;
     return GNUNET_CRYPTO_ecc_public_sign_key_to_string (data);
-  case GNUNET_NAMESTORE_TYPE_PKEY:
+  case GNUNET_NAMESTORE_TYPE_PHONE:
     {
       const struct GNUNET_CONVERSATION_PhoneRecord *pr;
       char *ret;
@@ -1000,7 +1001,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       const char *dash;
       struct GNUNET_PeerIdentity peer;
 
-      if ( (NULL == (dash = strchr (s, "-"))) ||
+      if ( (NULL == (dash = strchr (s, '-'))) ||
 	   (1 != sscanf (s, "%u-", &line)) ||
 	   (GNUNET_OK !=
 	    GNUNET_CRYPTO_ecc_public_sign_key_from_string (dash + 1,
