@@ -294,6 +294,9 @@ handle_client_pickup_message (void *cls,
     return;
   }
   line->status = LS_CALLEE_CONNECTED;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending PICK_UP message to client with meta data `%s'\n",
+              meta);
   e = GNUNET_MQ_msg_extra (mppm,
                            len,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP);
@@ -311,6 +314,8 @@ handle_client_pickup_message (void *cls,
 static void
 destroy_line_mesh_tunnels (struct Line *line)
 {
+  struct GNUNET_MESH_Tunnel *t;
+
   if (NULL != line->reliable_mq)
   {
     GNUNET_MQ_destroy (line->reliable_mq);
@@ -321,15 +326,15 @@ destroy_line_mesh_tunnels (struct Line *line)
     GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
     line->unreliable_mth = NULL;
   }
-  if (NULL != line->tunnel_unreliable)
+  if (NULL != (t = line->tunnel_unreliable))
   {
-    GNUNET_MESH_tunnel_destroy (line->tunnel_unreliable);
     line->tunnel_unreliable = NULL;
+    GNUNET_MESH_tunnel_destroy (t);
   }
-  if (NULL != line->tunnel_reliable)
+  if (NULL != (t = line->tunnel_reliable))
   {
-    GNUNET_MESH_tunnel_destroy (line->tunnel_reliable);
     line->tunnel_reliable = NULL;
+    GNUNET_MESH_tunnel_destroy (t);
   }
 }
 
@@ -368,11 +373,6 @@ mq_done_finish_caller_shutdown (void *cls)
     break;
   case LS_CALLER_SHUTDOWN:
     destroy_line_mesh_tunnels (line);
-    GNUNET_CONTAINER_DLL_remove (lines_head,
-                                 lines_tail,
-                                 line);
-    GNUNET_free_non_null (line->audio_data);
-    GNUNET_free (line);
     break;
   }  
 }
@@ -440,6 +440,9 @@ handle_client_hangup_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending HANG_UP message via mesh with meta data `%s'\n",
+              meta);
   e = GNUNET_MQ_msg_extra (mhum,
                            len,
                            GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
@@ -511,6 +514,8 @@ handle_client_call_message (void *cls,
   GNUNET_CRYPTO_ecc_sign (&msg->caller_id,
                           &ring->purpose,
                           &ring->signature);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending RING message via mesh\n");
   GNUNET_MQ_send (line->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -545,6 +550,9 @@ transmit_line_audio (void *cls,
   memcpy (&mam[1], line->audio_data, line->audio_size);
   GNUNET_free (line->audio_data);
   line->audio_data = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %u bytes of audio data via mesh\n",
+              line->audio_size);
   return sizeof (struct MeshAudioMessage) + line->audio_size;  
 }
 
@@ -701,6 +709,8 @@ handle_mesh_ring_message (void *cls,
   cring.header.size = htons (sizeof (cring));
   cring.reserved = htonl (0);
   cring.caller_id = msg->caller_id;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending RING message to client\n");
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
                                               &cring.header,
@@ -781,6 +791,9 @@ handle_mesh_hangup_message (void *cls,
   hup->header.size = sizeof (buf);
   hup->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   memcpy (&hup[1], reason, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending HANG UP message to client with reason `%s'\n",
+              reason);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
                                               &hup->header,
@@ -859,6 +872,9 @@ handle_mesh_pickup_message (void *cls,
   pick->header.size = sizeof (buf);
   pick->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
   memcpy (&pick[1], metadata, len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending PICK UP message via mesh with metadata `%s'\n",
+              metadata);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
                                               &pick->header,
@@ -899,10 +915,6 @@ handle_mesh_busy_message (void *cls,
   }
   busy.header.size = sizeof (busy);
   busy.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY);
-  GNUNET_SERVER_notification_context_unicast (nc,
-                                              line->client,
-                                              &busy.header,
-                                              GNUNET_NO);
   GNUNET_MESH_receive_done (tunnel);
   *tunnel_ctx = NULL;
   switch (line->status)
@@ -920,14 +932,22 @@ handle_mesh_busy_message (void *cls,
     GNUNET_break_op (0);
     break;
   case LS_CALLER_CALLING:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending BUSY message to client\n");
+    GNUNET_SERVER_notification_context_unicast (nc,
+                                                line->client,
+                                                &busy.header,
+                                                GNUNET_NO);
     line->status = LS_CALLER_SHUTDOWN;
     mq_done_finish_caller_shutdown (line);
     break;
   case LS_CALLER_CONNECTED:
+    GNUNET_break_op (0);
     line->status = LS_CALLER_SHUTDOWN;
     mq_done_finish_caller_shutdown (line);
     break;
   case LS_CALLER_SHUTDOWN:
+    GNUNET_break_op (0);
     mq_done_finish_caller_shutdown (line);
     break;
   }
@@ -980,6 +1000,9 @@ handle_mesh_audio_message (void *cls,
     line->tunnel_unreliable = tunnel;
     *tunnel_ctx = line;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forwarding %u bytes of AUDIO data to client\n",
+              msize);
   cam = (struct ClientAudioMessage *) buf;
   cam->header.size = htons (sizeof (buf));
   cam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
@@ -1070,18 +1093,9 @@ inbound_end (void *cls,
                                                 &hup.header,
                                                 GNUNET_NO);
     destroy_line_mesh_tunnels (line);
-    GNUNET_CONTAINER_DLL_remove (lines_head,
-                                 lines_tail,
-                                 line);
-    GNUNET_free_non_null (line->audio_data);
-    GNUNET_free (line);
     break;
   case LS_CALLER_SHUTDOWN:
     destroy_line_mesh_tunnels (line);
-    GNUNET_CONTAINER_DLL_remove (lines_head,
-                                 lines_tail,
-                                 line);
-    GNUNET_free (line);
     break;
   }
 }
@@ -1104,11 +1118,15 @@ handle_client_disconnect (void *cls,
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
   if (NULL == line)
     return;
+  GNUNET_SERVER_client_set_user_context (client, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client disconnected, closing line\n");
   GNUNET_CONTAINER_DLL_remove (lines_head,
                                lines_tail,
                                line);
+  destroy_line_mesh_tunnels (line);
+  GNUNET_free_non_null (line->audio_data);
   GNUNET_free (line);
-  GNUNET_SERVER_client_set_user_context (client, NULL);
 }
 
 
