@@ -25,6 +25,26 @@
  * @author Andreas Fuchs
  * @author Christian Grothoff
  *
+ * 
+ * NOTE: This API is deliberately deceptively simple; the idea
+ * is that advanced features (such as answering machines) will
+ * be done with a separate service (an answering machine service)
+ * with its own APIs; the speaker/microphone abstractions are
+ * used to facilitate plugging in custom logic for implementing
+ * such a service later by creating "software" versions of
+ * speakers and microphones that record to disk or play a file.
+ * Notifications about missed calls should similarly be done
+ * using a separate service; CONVERSATION is supposed to be just
+ * the "bare bones" voice service.
+ *
+ * Meta data passing is supported so that advanced services
+ * can identify themselves appropriately.
+ *
+ * As this is supposed to be a "secure" service, caller ID is of
+ * course provided as part of the basic implementation, as only the
+ * CONVERSATION service can know for sure who it is that we are
+ * talking to.
+ *
  * TODO:
  * - call waiting
  * - put on hold
@@ -41,210 +61,16 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-
-/**
- * Version of the conversation API.
- */
-#define GNUNET_CONVERSATION_VERSION 0x00000001
-
-
-enum GNUNET_CONVERSATION_RejectReason
-{
-  GNUNET_CONVERSATION_REJECT_REASON_GENERIC = 0,
-  GNUNET_CONVERSATION_REJECT_REASON_NOT_AVAILABLE,
-  GNUNET_CONVERSATION_REJECT_REASON_NO_CLIENT,
-  GNUNET_CONVERSATION_REJECT_REASON_ACTIVE_CALL,
-  GNUNET_CONVERSATION_REJECT_REASON_NOT_WANTED,
-  GNUNET_CONVERSATION_REJECT_REASON_NO_ANSWER
-
-};
-
-
-enum GNUNET_CONVERSATION_NotificationType
-{
-  GNUNET_CONVERSATION_NT_SERVICE_BLOCKED = 0,
-  GNUNET_CONVERSATION_NT_NO_PEER,
-  GNUNET_CONVERSATION_NT_NO_ANSWER,
-  GNUNET_CONVERSATION_NT_AVAILABLE_AGAIN,
-  GNUNET_CONVERSATION_NT_CALL_ACCEPTED,
-  GNUNET_CONVERSATION_NT_CALL_TERMINATED
-};
-
-
-/**
- *
- */
-struct GNUNET_CONVERSATION_MissedCall
-{
-  struct GNUNET_PeerIdentity peer;
-  struct GNUNET_TIME_Absolute time; 
-};
-
-
-struct GNUNET_CONVERSATION_MissedCallNotification
-{
-  int number;
-  struct GNUNET_CONVERSATION_MissedCall *calls;
-};
-
-struct GNUNET_CONVERSATION_CallInformation;
-
-struct GNUNET_CONVERSATION_Handle;
-
-
-/**
- * Method called whenever a call is incoming
- *
- * @param cls closure
- * @param handle to the conversation session
- * @param caller peer that calls you
- */
-typedef void (GNUNET_CONVERSATION_CallHandler) (void *cls,
-						struct GNUNET_CONVERSATION_Handle *handle,
-						const struct GNUNET_PeerIdentity *caller);
-
-
-/**
- * Method called whenever a call is rejected
- *
- * @param cls closure
- * @param handle to the conversation session
- * @param reason reason given for rejecting the call
- * @param peer peer that rejected your call
- */
-typedef void (GNUNET_CONVERSATION_RejectHandler) (void *cls,
-						  struct GNUNET_CONVERSATION_Handle *handle,
-						  enum GNUNET_CONVERSATION_RejectReason reason,
-						  const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Method called whenever a notification is there
- *
- * @param cls closure
- * @param handle to the conversation session
- * @param type the type of the notification
- * @param peer peer that the notification is about
- */
-typedef void (GNUNET_CONVERSATION_NotificationHandler) (void *cls,
-							struct GNUNET_CONVERSATION_Handle *handle,
-							enum GNUNET_CONVERSATION_NotificationType type,
-							const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Method called whenever a notification for missed calls is there
- *
- * @param cls closure
- * @param handle to the conversation session
- * @param missed_calls a list of missed calls
- */
-typedef void (GNUNET_CONVERSATION_MissedCallHandler) (void *cls,
-						      struct GNUNET_CONVERSATION_Handle *handle,
-						      struct GNUNET_CONVERSATION_MissedCallNotification *missed_calls);
-
-
-/**
- * Connect to the VoIP service
- *
- * @param cfg configuration
- * @param cls NULL
- * @param call_handler the callback which is called when a call is incoming
- * @param reject_handler the callback which is called when a call is rejected
- * @param notification_handler the callback which is called when there is a notification
- * @param missed_call_handler the callback which is called when the service notifies the client about missed clients
- * @return handle to the connection to the conversation service
- */
-struct GNUNET_CONVERSATION_Handle *
-GNUNET_CONVERSATION_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, 
-			     void *cls,
-			     GNUNET_CONVERSATION_CallHandler call_handler,
-			     GNUNET_CONVERSATION_RejectHandler reject_handler,
-			     GNUNET_CONVERSATION_NotificationHandler notification_handler,
-			     GNUNET_CONVERSATION_MissedCallHandler missed_call_handler);
-
-
-/**
- * Disconnect from the VoIP service
- *
- * @param handle handle to the VoIP connection
- */
-void
-GNUNET_CONVERSATION_disconnect (struct GNUNET_CONVERSATION_Handle *handle);
-
-
-/**
- * Establish a call
- *
- * @param handle handle to the VoIP connection
- * @param callee the peer (PeerIdentity or GNS name) to call
- * @param doGnsLookup 0 = no GNS lookup or 1  = GNS lookup
- */
-void
-GNUNET_CONVERSATION_call (struct GNUNET_CONVERSATION_Handle *handle, 
-			  const char *callee,
-			  int doGnsLookup);
-
-
-/**
- * Terminate the active call
- *
- * @param handle handle to the VoIP connection
- */
-void 
-GNUNET_CONVERSATION_hangup (struct GNUNET_CONVERSATION_Handle *handle);
-
-
-/**
- * Accept an incoming call
- *
- * @param handle handle to the VoIP connection
- */
-void
-GNUNET_CONVERSATION_accept (struct GNUNET_CONVERSATION_Handle *handle);
-
-
-/**
- * Reject an incoming call
- *
- * @param handle handle to the VoIP connection
- */
-void
-GNUNET_CONVERSATION_reject (struct GNUNET_CONVERSATION_Handle *handle);
-
-
-
-////////////////////////////////////////////////////////////////////
-////////////////////////// NEW API /////////////////////////////////
-////////////////////////////////////////////////////////////////////
-
-/* 
-   NOTE: This API is deliberately deceptively simple; the idea
-   is that advanced features (such as answering machines) will
-   be done with a separate service (an answering machine service)
-   with its own APIs; the speaker/microphone abstractions are
-   used to facilitate plugging in custom logic for implementing
-   such a service later by creating "software" versions of
-   speakers and microphones that record to disk or play a file.
-   Notifications about missed calls should similarly be done
-   using a separate service; CONVERSATION is supposed to be just
-   the "bare bones" voice service.
-
-   Meta data passing is supported so that advanced services
-   can identify themselves appropriately.
-
-   As this is supposed to be a "secure" service, caller ID is of
-   course provided as part of the basic implementation, as only the
-   CONVERSATION service can know for sure who it is that we are
-   talking to.
- */
-
-
-#include "gnunet_util_lib.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_speaker_lib.h"
 #include "gnunet_microphone_lib.h"
+
+
+/**
+ * Version of the conversation API.
+ */
+#define GNUNET_CONVERSATION_VERSION 0x00000002
 
 
 /**
