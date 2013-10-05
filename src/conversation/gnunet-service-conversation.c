@@ -527,7 +527,7 @@ handle_client_call_message (void *cls,
  * @param cls the `struct Line` we are transmitting for
  * @param size number of bytes available in @a buf
  * @param buf where to copy the data
- * @return number of bytes copied to @buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 transmit_line_audio (void *cls,

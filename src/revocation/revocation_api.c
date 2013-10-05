@@ -160,7 +160,7 @@ struct GNUNET_REVOCATION_Handle
  *             (called with `is_valid` being #GNUNET_NO if
  *              the revocation worked).
  * @param func_cls closure to pass to @a func
- * @return handle to use in #GNUNET_REVOCATION_cancel to stop REVOCATION from invoking the callback
+ * @return handle to use in #GNUNET_REVOCATION_revoke_cancel to stop REVOCATION from invoking the callback
  */
 struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,

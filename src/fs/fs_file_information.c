@@ -273,9 +273,6 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
 
 /**
  * Create an entry for an empty directory in a publish-structure.
- * This function should be used by applications for which the
- * use of "GNUNET_FS_file_information_create_from_directory"
- * is not appropriate.
  *
  * @param h handle to the file sharing subsystem
  * @param client_info initial value for the client-info value for this entry

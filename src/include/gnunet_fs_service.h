@@ -1841,9 +1841,6 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
 
 /**
  * Create an entry for an empty directory in a publish-structure.
- * This function should be used by applications for which the
- * use of #GNUNET_FS_file_information_create_from_directory
- * is not appropriate.
  *
  * @param h handle to the file sharing subsystem
  * @param client_info initial client-info value for this entry

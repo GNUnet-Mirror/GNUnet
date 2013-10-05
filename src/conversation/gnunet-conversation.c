@@ -354,7 +354,7 @@ struct VoipCommand
 /**
  * Action function to print help for the command shell.
  *
- * @param arguments arguments given to the command
+ * @param args arguments given to the command
  */
 static void
 do_help (const char *args);
@@ -375,7 +375,7 @@ do_quit (const char *args)
 /**
  * Handler for unknown command.
  *
- * @param args arguments given to the command
+ * @param msg arguments given to the command
  */
 static void
 do_unknown (const char *msg)
@@ -389,7 +389,7 @@ do_unknown (const char *msg)
 /**
  * Initiating a new call
  *
- * @param args arguments given to the command
+ * @param arg arguments given to the command
  */
 static void
 do_call (const char *arg)

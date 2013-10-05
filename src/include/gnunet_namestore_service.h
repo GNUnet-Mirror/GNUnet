@@ -568,7 +568,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 /**
  * Convert a type name (i.e. "AAAA") to the corresponding number.
  *
- * @param typename name to convert
+ * @param dns_typename name to convert
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
