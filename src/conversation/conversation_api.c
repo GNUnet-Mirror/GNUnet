@@ -903,6 +903,7 @@ handle_gns_response (void *cls,
   struct GNUNET_MQ_Envelope *e;
   struct ClientCallMessage *ccm;
 
+  call->gns_lookup = NULL;
   for (i=0;i<rd_count;i++)
   {
     if (GNUNET_NAMESTORE_TYPE_PHONE == rd[i].record_type)
