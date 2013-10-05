@@ -295,7 +295,7 @@ handle_client_pickup_message (void *cls,
   }
   line->status = LS_CALLEE_CONNECTED;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending PICK_UP message to client with meta data `%s'\n",
+              "Sending PICK_UP message to mesh with meta data `%s'\n",
               meta);
   e = GNUNET_MQ_msg_extra (mppm,
                            len,
@@ -880,7 +880,7 @@ handle_mesh_pickup_message (void *cls,
   pick->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
   memcpy (&pick[1], metadata, len);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending PICK UP message via mesh with metadata `%s'\n",
+              "Sending PICKED UP message to client with metadata `%s'\n",
               metadata);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
@@ -895,7 +895,7 @@ handle_mesh_pickup_message (void *cls,
   if (NULL == line->tunnel_unreliable)
   {
     GNUNET_break (0);
-  }
+  } 
   return GNUNET_OK;
 }
 

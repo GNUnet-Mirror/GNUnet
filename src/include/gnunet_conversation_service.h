@@ -127,18 +127,24 @@ enum GNUNET_CONVERSATION_EventCode
   GNUNET_CONVERSATION_EC_READY,
 
   /**
-   * We failed to locate a phone record in GNS.
+   * We failed to locate a phone record in GNS.  After this invocation,
+   * the respective call handle will be automatically destroyed and the
+   * client must no longer call #GNUNET_CONVERSATION_call_stop.
    */
   GNUNET_CONVERSATION_EC_GNS_FAIL,
 
   /**
-   * The phone is busy.  Varargs will be empty.
+   * The phone is busy.  Varargs will be empty.   After this invocation,
+   * the respective call handle will be automatically destroyed and the
+   * client must no longer call #GNUNET_CONVERSATION_call_stop.
    */
   GNUNET_CONVERSATION_EC_BUSY,
   
   /**
-   * The conversation was terminated, a reason may be supplied
-   * as a `const char *` in the varargs.
+   * The conversation was terminated, a reason may be supplied as a
+   * `const char *` in the varargs.  After this invocation, the
+   * respective call handle will be automatically destroyed and the
+   * client must no longer call #GNUNET_CONVERSATION_call_stop.
    */
   GNUNET_CONVERSATION_EC_TERMINATED
   

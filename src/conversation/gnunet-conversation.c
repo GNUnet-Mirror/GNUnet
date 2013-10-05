@@ -296,7 +296,6 @@ call_event_handler (void *cls,
     FPRINTF (stdout,
              _("Failed to resolve `%s'\n"),
              ego_name);
-    GNUNET_CONVERSATION_call_stop (call, NULL);
     call = NULL;
     start_phone ();
     break;
@@ -305,7 +304,6 @@ call_event_handler (void *cls,
     FPRINTF (stdout,
              "%s",
              _("Line busy\n"));
-    GNUNET_CONVERSATION_call_stop (call, NULL);
     call = NULL;
     start_phone ();
     break;
@@ -315,7 +313,6 @@ call_event_handler (void *cls,
     FPRINTF (stdout,
              _("Call terminated: %s\n"),
              va_arg (va, const char *));
-    GNUNET_CONVERSATION_call_stop (call, NULL);
     call = NULL;
     start_phone ();
     break;
