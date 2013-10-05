@@ -946,6 +946,9 @@ call_error_handler (void *cls,
   struct GNUNET_CONVERSATION_Call *call = cls;
 
   GNUNET_break (0);
+  FPRINTF (stderr,
+           _("Internal error %d\n"),
+           error);
   reconnect_call (call);
 }
 
