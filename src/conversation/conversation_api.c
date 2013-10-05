@@ -359,6 +359,11 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneRegisterMessage *reg;
 
+  if (PS_ACTIVE == phone->state)
+  {
+    phone->speaker->disable_speaker (phone->speaker->cls);
+    phone->mic->disable_microphone (phone->mic->cls);
+  }
   if (NULL != phone->mq)
   {
     GNUNET_MQ_destroy (phone->mq);
