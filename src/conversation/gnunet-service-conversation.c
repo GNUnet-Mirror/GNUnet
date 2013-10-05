@@ -976,12 +976,19 @@ handle_mesh_audio_message (void *cls,
   size_t msize = ntohs (message->size) - sizeof (struct MeshAudioMessage);
   char buf[msize + sizeof (struct ClientAudioMessage)];
   struct ClientAudioMessage *cam;
+  const union GNUNET_MESH_TunnelInfo *info;
   
   msg = (const struct MeshAudioMessage *) message;
   if (NULL == line)
   {
-    sender = *GNUNET_MESH_tunnel_get_info (tunnel,
-                                           GNUNET_MESH_OPTION_PEER)->peer;
+    info = GNUNET_MESH_tunnel_get_info (tunnel,
+                                        GNUNET_MESH_OPTION_PEER);
+    if (NULL == info)
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
+    sender = info->peer;
     for (line = lines_head; NULL != line; line = line->next)
       if ( (line->local_line == ntohl (msg->remote_line)) &&
            (LS_CALLEE_CONNECTED == line->status) &&
@@ -996,7 +1003,7 @@ handle_mesh_audio_message (void *cls,
                   "Received AUDIO data for non-existing line %u, dropping.\n",
                   ntohl (msg->remote_line));
       return GNUNET_SYSERR;
-    }
+    }    
     line->tunnel_unreliable = tunnel;
     *tunnel_ctx = line;
   }
@@ -1063,7 +1070,8 @@ inbound_end (void *cls,
     line->tunnel_unreliable = NULL;
     return;
   }
-  GNUNET_assert (line->tunnel_reliable == tunnel);
+  if (line->tunnel_reliable != tunnel)
+    return;
   line->tunnel_reliable = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Mesh tunnel destroyed by mesh\n");
