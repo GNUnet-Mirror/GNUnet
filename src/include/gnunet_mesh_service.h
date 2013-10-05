@@ -269,7 +269,7 @@ union GNUNET_MESH_TunnelInfo
   /**
    * Peer on the other side of the tunnel
    */
-  const struct GNUNET_PeerIdentity *peer;
+  const struct GNUNET_PeerIdentity peer;
 };
 
 
