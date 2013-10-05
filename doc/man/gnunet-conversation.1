@@ -1,0 +1,38 @@
+.TH GNUNET\-CONVERSATION 1 "Oct 5, 2013" "GNUnet"
+
+.SH NAME
+gnunet\-conversation \- have a conversation with your peers
+
+.SH SYNOPSIS
+.B gnunet\-conversation \-e NAME [OPTIONS]
+.RI URI
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-conversation\fP can be used to have a conversation with other GNUnet users.  You can make calls and receive incoming calls.  You need to setup an ego using gnunet\-identity first.  For others to be able to call you, you must add a PHONE record to your zone in the GNU Name System (using gnunet\-namestore).  gnunet\-conversation has an interactive help system via the /help command.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-e NAME,  \-\-ego=NAME"
+Specifies the NAME of the ego to use (for caller ID) and the GNS master zone for our own lookups.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-p LINE,  \-\-phone=LINE"
+Optional argument that can be used to specify the phone LINE to be used with the conversation service.  The default LINE is zero, which should be fine for most users.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-identity\fP(1), \fBgnunet\-namestore\fP(1), \fBgnunet\-gns\fP(1)

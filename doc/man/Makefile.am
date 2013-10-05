@@ -5,6 +5,7 @@ man_MANS = \
   gnunet-auto-share.1 \
   gnunet-config.1 \
   gnunet-core.1 \
+  gnunet-conversation.1 \
   gnunet-directory.1 \
   gnunet-dns2gns.1 \
   gnunet-datastore.1 \
