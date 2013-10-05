@@ -857,7 +857,7 @@ handle_mesh_pickup_message (void *cls,
   }
   pick = (struct ClientPhonePickupMessage *) buf;
   pick->header.size = sizeof (buf);
-  pick->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP);
+  pick->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
   memcpy (&pick[1], metadata, len);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
