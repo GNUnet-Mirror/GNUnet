@@ -585,6 +585,11 @@ handle_client_audio_message (void *cls,
   switch (line->status)
   {
   case LS_CALLEE_LISTEN:
+    /* could be OK if the line just was closed by the other side */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Audio data dropped, channel is down\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    break;
   case LS_CALLEE_RINGING:
   case LS_CALLER_CALLING:
     GNUNET_break (0);
@@ -596,14 +601,14 @@ handle_client_audio_message (void *cls,
     break;
   case LS_CALLEE_SHUTDOWN:
   case LS_CALLER_SHUTDOWN:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Mesh audio channel in shutdown; audio data dropped\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   if (NULL == line->tunnel_unreliable)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                 _("Mesh audio channel not ready; audio data dropped\n"));
     GNUNET_SERVER_receive_done (client, GNUNET_OK);    
     return;
@@ -612,10 +617,12 @@ handle_client_audio_message (void *cls,
   {
     /* NOTE: we may want to not do this and instead combine the data */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Dropping previous audio data segment with %u bytes\n",
-                line->audio_size);
+                "Bandwidth insufficient; dropping previous audio data segment with %u bytes\n",
+                (unsigned int) line->audio_size);
     GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
+    line->unreliable_mth = NULL;
     GNUNET_free (line->audio_data);
+    line->audio_data = NULL;
   }
   line->audio_size = size;
   line->audio_data = GNUNET_malloc (line->audio_size);
@@ -1067,12 +1074,18 @@ inbound_end (void *cls,
     return;
   if (line->tunnel_unreliable == tunnel)
   {
+    if (NULL != line->unreliable_mth)
+    {
+      GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
+      line->unreliable_mth = NULL;
+    }
     line->tunnel_unreliable = NULL;
     return;
   }
   if (line->tunnel_reliable != tunnel)
     return;
   line->tunnel_reliable = NULL;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Mesh tunnel destroyed by mesh\n");
   hup.header.size = sizeof (hup);
@@ -1081,7 +1094,7 @@ inbound_end (void *cls,
   {
   case LS_CALLEE_LISTEN:
     GNUNET_break (0);
-    return;
+    break;
   case LS_CALLEE_RINGING:
   case LS_CALLEE_CONNECTED:
     GNUNET_SERVER_notification_context_unicast (nc,
@@ -1092,7 +1105,6 @@ inbound_end (void *cls,
     break;
   case LS_CALLEE_SHUTDOWN:
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
     break;
   case LS_CALLER_CALLING:
   case LS_CALLER_CONNECTED:
@@ -1100,12 +1112,11 @@ inbound_end (void *cls,
                                                 line->client,
                                                 &hup.header,
                                                 GNUNET_NO);
-    destroy_line_mesh_tunnels (line);
     break;
   case LS_CALLER_SHUTDOWN:
-    destroy_line_mesh_tunnels (line);
     break;
   }
+  destroy_line_mesh_tunnels (line);
 }
 
 
