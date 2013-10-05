@@ -324,8 +324,11 @@ phone_error_handler (void *cls,
                      enum GNUNET_MQ_Error error)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
-
+  
   GNUNET_break (0);
+  FPRINTF (stderr,
+           _("Internal error %d\n"),
+           error);
   reconnect_phone (phone);
 }
 

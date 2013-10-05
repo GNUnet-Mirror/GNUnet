@@ -523,7 +523,7 @@ do_address (const char *args)
     return;
   }
   FPRINTF (stdout,
-           "%s",
+           "%s\n",
            address);
 }
 
