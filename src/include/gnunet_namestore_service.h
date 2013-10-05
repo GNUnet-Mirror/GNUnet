@@ -260,6 +260,8 @@ struct GNUNET_NAMESTORE_Block
   /* followed by encrypted data */
 };
 
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /**

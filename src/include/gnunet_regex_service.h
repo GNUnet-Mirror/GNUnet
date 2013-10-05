@@ -57,7 +57,7 @@ struct GNUNET_REGEX_Search;
 
 /**
  * Announce this peer under the given regular expression.  Does
- * not free resources, must call GNUNET_REGEX_announce_cancel for
+ * not free resources, must call #GNUNET_REGEX_announce_cancel for
  * that.
  * 
  * @param cfg configuration to use
@@ -65,7 +65,7 @@ struct GNUNET_REGEX_Search;
  * @param refresh_delay after what delay should the announcement be repeated?
  * @param compression How many characters per edge can we squeeze?
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling GNUNET_REGEX_announce_cancel.
+ *         Must be freed by calling #GNUNET_REGEX_announce_cancel.
  */
 struct GNUNET_REGEX_Announcement *
 GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -77,7 +77,7 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Stop announcing the regex specified by the given handle.
  * 
- * @param a handle returned by a previous GNUNET_REGEX_announce call.
+ * @param a handle returned by a previous #GNUNET_REGEX_announce call.
  */
 void
 GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a);
@@ -86,12 +86,12 @@ GNUNET_REGEX_announce_cancel (struct GNUNET_REGEX_Announcement *a);
 /**
  * Search callback function, invoked for every result that was found.
  *
- * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param cls Closure provided in #GNUNET_REGEX_search.
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
- * @param get_path_length Lenght of get_path.
+ * @param get_path_length Lenght of @a get_path.
  * @param put_path Path of the put request.
- * @param put_path_length Length of the put_path.
+ * @param put_path_length Length of the @a put_path.
  */
 typedef void (*GNUNET_REGEX_Found)(void *cls,
                                    const struct GNUNET_PeerIdentity *id,
@@ -103,7 +103,7 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
 
 /**
  * Search for a peer offering a regex matching certain string in the DHT.
- * The search runs until GNUNET_REGEX_search_cancel is called, even if results
+ * The search runs until #GNUNET_REGEX_search_cancel is called, even if results
  * are returned.
  *
  * @param cfg configuration to use
@@ -111,7 +111,7 @@ typedef void (*GNUNET_REGEX_Found)(void *cls,
  * @param callback Callback for found peers.
  * @param callback_cls Closure for @c callback.
  * @return Handle to stop search and free resources.
- *         Must be freed by calling GNUNET_REGEX_search_cancel.
+ *         Must be freed by calling #GNUNET_REGEX_search_cancel.
  */
 struct GNUNET_REGEX_Search *
 GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -121,9 +121,9 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Stop search and free all data used by a GNUNET_REGEX_search call.
+ * Stop search and free all data used by a #GNUNET_REGEX_search call.
  * 
- * @param s Handle returned by a previous GNUNET_REGEX_search call.
+ * @param s Handle returned by a previous #GNUNET_REGEX_search call.
  */
 void
 GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s);

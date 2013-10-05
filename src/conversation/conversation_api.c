@@ -32,34 +32,6 @@
 
 
 /**
- * A phone record specifies which peer is hosting a given user and
- * may also specify the phone line that is used (typically zero).
- * The version is also right now always zero.
- */
-struct PhoneRecord
-{
-
-  /**
-   * Version of the phone record, for now always zero.  We may
-   * use other versions for anonymously hosted phone lines in
-   * the future.
-   */
-  uint32_t version GNUNET_PACKED;
-
-  /**
-   * Phone line to use at the peer.
-   */
-  uint32_t line GNUNET_PACKED;
-
-  /**
-   * Identity of the peer hosting the phone service.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-};
-
-
-/**
  * Possible states of the phone.
  */
 enum PhoneState
@@ -147,7 +119,7 @@ struct GNUNET_CONVERSATION_Phone
   /**
    * This phone's record.
    */
-  struct PhoneRecord my_record;  
+  struct GNUNET_CONVERSATION_PhoneRecord my_record;  
 
   /**
    * My GNS zone.
@@ -473,7 +445,7 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
 {
   rd->data = &phone->my_record;
   rd->expiration_time = 0;
-  rd->data_size = sizeof (struct PhoneRecord);
+  rd->data_size = sizeof (struct GNUNET_CONVERSATION_PhoneRecord);
   rd->record_type = GNUNET_NAMESTORE_TYPE_PHONE;
   rd->flags = GNUNET_NAMESTORE_RF_NONE;
 }
@@ -702,7 +674,7 @@ struct GNUNET_CONVERSATION_Call
   /**
    * Target phone record, only valid after the lookup is done.
    */
-  struct PhoneRecord phone_record;
+  struct GNUNET_CONVERSATION_PhoneRecord phone_record;
 
   /**
    * State machine for the call.
@@ -932,7 +904,7 @@ handle_gns_response (void *cls,
   {
     if (GNUNET_NAMESTORE_TYPE_PHONE == rd[i].record_type)
     {
-      if (rd[i].data_size != sizeof (struct PhoneRecord))
+      if (rd[i].data_size != sizeof (struct GNUNET_CONVERSATION_PhoneRecord))
       {
         GNUNET_break_op (0);
         continue;

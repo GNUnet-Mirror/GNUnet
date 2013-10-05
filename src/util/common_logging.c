@@ -21,7 +21,6 @@
 /**
  * @file util/common_logging.c
  * @brief error handling API
- *
  * @author Christian Grothoff
  */
 #include "platform.h"

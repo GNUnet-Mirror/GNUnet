@@ -652,6 +652,25 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     if (data_size != sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
       return NULL;
     return GNUNET_CRYPTO_ecc_public_sign_key_to_string (data);
+  case GNUNET_NAMESTORE_TYPE_PKEY:
+    {
+      const struct GNUNET_CONVERSATION_PhoneRecord *pr;
+      char *ret;
+      char *pkey;
+
+      if (data_size != sizeof (struct GNUNET_CONVERSATION_PhoneRecord))
+	return NULL;
+      pr = data;
+      if (0 != ntohl (pr->version))
+	return NULL;
+      pkey = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pr->peer.public_key);
+      GNUNET_asprintf (&ret,
+		       "%u-%s",
+		       ntohl (pr->line),
+		       pkey);
+      GNUNET_free (pkey);
+      return ret;
+    }
   case GNUNET_NAMESTORE_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
   case GNUNET_NAMESTORE_TYPE_LEHO:
@@ -974,6 +993,33 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     memcpy (*data, &pkey, sizeof (pkey));
     *data_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
     return GNUNET_OK;
+  case GNUNET_NAMESTORE_TYPE_PHONE:
+    {
+      struct GNUNET_CONVERSATION_PhoneRecord *pr;
+      unsigned int line;
+      const char *dash;
+      struct GNUNET_PeerIdentity peer;
+
+      if ( (NULL == (dash = strchr (s, "-"))) ||
+	   (1 != sscanf (s, "%u-", &line)) ||
+	   (GNUNET_OK !=
+	    GNUNET_CRYPTO_ecc_public_sign_key_from_string (dash + 1,
+							   strlen (dash + 1), 
+							   &peer.public_key)) )
+      {
+	LOG (GNUNET_ERROR_TYPE_ERROR,
+	     _("Unable to parse PHONE record `%s'\n"),
+	     s);
+	return GNUNET_SYSERR;
+      }
+      pr = GNUNET_new (struct GNUNET_CONVERSATION_PhoneRecord);
+      pr->version = htonl (0);
+      pr->line = htonl ((uint32_t) line);
+      pr->peer = peer;
+      *data = pr;
+      *data_size = sizeof (struct GNUNET_CONVERSATION_PhoneRecord);
+      return GNUNET_OK;
+    }
   case GNUNET_NAMESTORE_TYPE_PSEU:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
@@ -1073,6 +1119,7 @@ static struct {
   { "LEHO",  GNUNET_NAMESTORE_TYPE_LEHO },
   { "VPN", GNUNET_NAMESTORE_TYPE_VPN },
   { "GNS2DNS", GNUNET_NAMESTORE_TYPE_GNS2DNS },
+  { "PHONE", GNUNET_NAMESTORE_TYPE_PHONE },
   { "TLSA", GNUNET_DNSPARSER_TYPE_TLSA },
   { NULL, UINT32_MAX }
 };

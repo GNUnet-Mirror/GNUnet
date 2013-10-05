@@ -74,6 +74,34 @@ extern "C"
 
 
 /**
+ * A phone record specifies which peer is hosting a given user and
+ * may also specify the phone line that is used (typically zero).
+ * The version is also right now always zero.
+ */
+struct GNUNET_CONVERSATION_PhoneRecord
+{
+
+  /**
+   * Version of the phone record, for now always zero.  We may
+   * use other versions for anonymously hosted phone lines in
+   * the future.
+   */
+  uint32_t version GNUNET_PACKED;
+
+  /**
+   * Phone line to use at the peer.
+   */
+  uint32_t line GNUNET_PACKED;
+
+  /**
+   * Identity of the peer hosting the phone service.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
  * Information about the current status of a call.  Each call
  * progresses from ring over ready to terminated.  Steps may
  * be skipped.
