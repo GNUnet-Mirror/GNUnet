@@ -281,6 +281,8 @@ struct GNUNET_MESH_Tunnel
      */
   GNUNET_PEER_Id peer;
 
+  struct GNUNET_PeerIdentity pid;
+
   /**
    * Any data the caller wants to put in here
    */
@@ -731,6 +733,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     tmsg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
     tmsg.tunnel_id = htonl (t->tid);
     tmsg.port = htonl (t->port);
+    t->pid = tmsg.peer;
     GNUNET_PEER_resolve (t->peer, &tmsg.peer);
 
     options = 0;
@@ -814,6 +817,7 @@ process_tunnel_created (struct GNUNET_MESH_Handle *h,
     t = create_tunnel (h, tid);
     t->allow_send = GNUNET_NO;
     t->peer = GNUNET_PEER_intern (&msg->peer);
+    t->pid = msg->peer;
     t->mesh = h;
     t->tid = tid;
     t->port = port;
@@ -1455,6 +1459,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  number %X\n", t->tid);
   t->ctx = tunnel_ctx;
   t->peer = GNUNET_PEER_intern (peer);
+  t->pid = *peer;
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
   msg.header.size = htons (sizeof (struct GNUNET_MESH_TunnelMessage));
   msg.tunnel_id = htonl (t->tid);
@@ -1538,7 +1543,7 @@ GNUNET_MESH_tunnel_get_info (struct GNUNET_MESH_Tunnel *tunnel,
       ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->ooorder;
       break;
     case GNUNET_MESH_OPTION_PEER:
-      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->peer;
+      ret = (const union GNUNET_MESH_TunnelInfo *) &tunnel->pid;
       break;
     default:
       GNUNET_break (0);
