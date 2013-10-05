@@ -19,12 +19,13 @@ if HAVE_EXPERIMENTAL
   $(CONSENSUS) \
   $(EXPERIMENTATION)
   # NOTE: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
-if HAVE_PULSE
-if HAVE_OPUS
-  EXP_DIR += conversation
-endif
 endif
 
+
+if HAVE_PULSE
+if HAVE_OPUS
+  CONVERSATION_DIR = conversation
+endif
 endif
 
 if HAVE_MYSQL
@@ -73,6 +74,7 @@ SUBDIRS = \
   namestore \
   vpn \
   gns \
+  $(CONVERSATION_DIR) \
   psycstore \
   fs \
   exit \

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,11 +18,11 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file src/test_conversation_api.c
+ * @file conversation/test_conversation_api.c
  * @brief testcase for conversation_api.c
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_conversation_service.h"
 
 
