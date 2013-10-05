@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_conversation_service.h"
+#include "gnunet_namestore_service.h"
 
 
 /**
@@ -149,6 +150,11 @@ static struct GNUNET_DISK_FileHandle *stdin_fh;
 static enum ConversationState state;
 
 /**
+ * GNS address for this phone.
+ */
+static char *address;
+
+/**
  * Be verbose.
  */
 static int verbose;
@@ -211,6 +217,8 @@ phone_event_handler (void *cls,
 static void
 start_phone ()
 {
+  struct GNUNET_NAMESTORE_RecordData rd;
+
   if (NULL == caller_id)
   {
     FPRINTF (stderr,
@@ -232,6 +240,12 @@ start_phone ()
   }
   else
   {
+    GNUNET_CONVERSATION_phone_get_record (phone,
+                                          &rd);
+    GNUNET_free_non_null (address);
+    address = GNUNET_NAMESTORE_value_to_string (rd.record_type,
+                                                rd.data,
+                                                rd.data_size);
     if (verbose)
       FPRINTF (stdout,
                _("Phone active on line %u\n"),
@@ -494,6 +508,27 @@ do_accept (const char *args)
 
 
 /**
+ * Print address information for this phone.
+ *
+ * @param args arguments given to the command
+ */
+static void
+do_address (const char *args)
+{
+  if (NULL == address)
+  {
+    FPRINTF (stdout,
+             "%s",
+             _("We currently do not have an address.\n"));
+    return;
+  }
+  FPRINTF (stdout,
+           "%s",
+           address);
+}
+
+
+/**
  * Accepting an incoming call
  *
  * @param args arguments given to the command
@@ -588,14 +623,16 @@ do_reject (const char *args)
  * List of supported commands.
  */
 static struct VoipCommand commands[] = {
+  {"/address", &do_address, 
+   gettext_noop ("Use `/address' to find out which address this phone should have in GNS")},
   {"/call", &do_call, 
-   gettext_noop ("Use `/call USER.gnu'")},
+   gettext_noop ("Use `/call USER.gnu' to call USER")},
   {"/accept", &do_accept,
    gettext_noop ("Use `/accept MESSAGE' to accept an incoming call")},
   {"/cancel", &do_reject,
    gettext_noop ("Use `/cancel MESSAGE' to reject or terminate a call")},
   {"/status", &do_status,
-   gettext_noop ("Use `/status to print status information")},
+   gettext_noop ("Use `/status' to print status information")},
   {"/quit", &do_quit, 
    gettext_noop ("Use `/quit' to terminate gnunet-conversation")},
   {"/help", &do_help,
