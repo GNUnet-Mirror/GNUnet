@@ -272,6 +272,8 @@ handle_phone_hangup (void *cls,
     phone->event_handler (phone->event_handler_cls,
                           GNUNET_CONVERSATION_EC_TERMINATED,
                           reason);
+    phone->speaker->disable_speaker (phone->speaker->cls);
+    phone->mic->disable_microphone (phone->mic->cls);
     break;
   }
 }

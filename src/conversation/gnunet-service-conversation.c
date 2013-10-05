@@ -223,11 +223,11 @@ handle_client_register_message (void *cls,
   line = GNUNET_new (struct Line);
   line->client = client;
   GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_CONTAINER_DLL_insert (lines_head,
                                lines_tail,
                                line);
   line->local_line = ntohl (msg->line);
-  GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -478,6 +478,9 @@ handle_client_call_message (void *cls,
     return;
   }
   line = GNUNET_new (struct Line);
+  line->client = client;
+  GNUNET_SERVER_client_set_user_context (client, line);
+  GNUNET_SERVER_notification_context_add (nc, client);
   line->target = msg->target;
   GNUNET_CONTAINER_DLL_insert (lines_head,
                                lines_tail,
@@ -509,7 +512,6 @@ handle_client_call_message (void *cls,
                           &ring->purpose,
                           &ring->signature);
   GNUNET_MQ_send (line->reliable_mq, e);
-  GNUNET_SERVER_client_set_user_context (client, line);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
