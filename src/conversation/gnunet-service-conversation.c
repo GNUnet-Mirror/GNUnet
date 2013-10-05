@@ -892,6 +892,10 @@ handle_mesh_pickup_message (void *cls,
                                                        GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
                                                        GNUNET_YES,
                                                        GNUNET_NO);
+  if (NULL == line->tunnel_unreliable)
+  {
+    GNUNET_break (0);
+  }
   return GNUNET_OK;
 }
 
