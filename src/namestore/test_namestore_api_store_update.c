@@ -123,21 +123,21 @@ rd_decrypt_cb (void *cls,
   {
     char rd_cmp_data[TEST_RECORD_DATALEN];
     memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-    
+
     GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
     GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
     GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Block was decrypted successfully, updating record \n");
-    
+
     rd_new.flags = GNUNET_NAMESTORE_RF_NONE;
     rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
     rd_new.record_type = TEST_RECORD_TYPE2;
     rd_new.data_size = TEST_RECORD_DATALEN2;
     rd_new.data = GNUNET_malloc (TEST_RECORD_DATALEN2);
     memset ((char *) rd_new.data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
-    
+
     nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
                                            1, &rd_new, &put_cont, (void *) name);
     update_performed = GNUNET_YES;
@@ -146,11 +146,11 @@ rd_decrypt_cb (void *cls,
   {
     char rd_cmp_data[TEST_RECORD_DATALEN2];
     memset (rd_cmp_data, TEST_RECORD_DATA2, TEST_RECORD_DATALEN2);
-    
+
     GNUNET_assert (TEST_RECORD_TYPE2 == rd[0].record_type);
     GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
     GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN2));
-    
+
     GNUNET_SCHEDULER_add_now (&end, NULL);
   }
 }
@@ -210,7 +210,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -218,7 +218,7 @@ run (void *cls,
   char *hostkey_file;
 
   update_performed = GNUNET_NO;
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
   GNUNET_asprintf (&hostkey_file,
 		   "zonefiles%s%s",
@@ -255,7 +255,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-store-update",
 				  "namestore",
 				  "test_namestore_api.conf",

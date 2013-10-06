@@ -275,7 +275,7 @@ struct ElementEntry
   int removed;
 
   /**
-   * Generation the element was removed by the client. 
+   * Generation the element was removed by the client.
    * Operations of later generations will not consider the element.
    * Only valid if is_removed is GNUNET_YES.
    */

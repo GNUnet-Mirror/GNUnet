@@ -188,7 +188,7 @@ struct udp_header
 };
 
 /**
- * Will this binary be run in permissions testing mode? 
+ * Will this binary be run in permissions testing mode?
  */
 static boolean privilege_testing = FALSE;
 
@@ -533,7 +533,7 @@ main (int argc, char *const *argv)
   WSADATA wsaData;
   unsigned int alt = 0;
 
-  if ( (argc > 1) && (0 != strcmp (argv[1], "-d"))) 
+  if ( (argc > 1) && (0 != strcmp (argv[1], "-d")))
   {
     privilege_testing = TRUE;
     fprintf (stderr,
@@ -542,7 +542,7 @@ main (int argc, char *const *argv)
     argv++;
     argc--;
   }
-  
+
   if (2 != argc)
   {
     fprintf (stderr,

@@ -89,54 +89,54 @@ struct Experiment
   /* Header */
   /* ----------------- */
   char *name;
-  
+
   /**
-   * Experiment issuer 
+   * Experiment issuer
    */
   struct GNUNET_CRYPTO_EccPublicSignKey issuer;
-  
+
   /**
-   * Experiment version as timestamp of creation 
+   * Experiment version as timestamp of creation
    */
   struct GNUNET_TIME_Absolute version;
-  
+
   /**
-   * Description 
+   * Description
    */
   char *description;
-  
+
   /**
-   * Required capabilities  
+   * Required capabilities
    */
   uint32_t required_capabilities;
-  
+
   /* Experiment timing */
   /* ----------------- */
-  
+
   /**
-   * When to start experiment 
+   * When to start experiment
    */
   struct GNUNET_TIME_Absolute start;
-  
+
   /**
-   * When to end experiment 
+   * When to end experiment
    */
   struct GNUNET_TIME_Absolute stop;
-  
+
   /**
-   * How often to run experiment 
+   * How often to run experiment
    */
   struct GNUNET_TIME_Relative frequency;
-  
+
   /**
-   * How long to run each execution  
+   * How long to run each execution
    */
   struct GNUNET_TIME_Relative duration;
-  
-  
+
+
   /* Experiment itself */
   /* ----------------- */
-  
+
   /* TBD */
 };
 
@@ -150,34 +150,34 @@ struct Node
    * Peer id
    */
   struct GNUNET_PeerIdentity id;
-  
+
   /**
    * Task for response timeout
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-  
+
   /**
    * Core transmission handle
    */
   struct GNUNET_CORE_TransmitHandle *cth;
-  
+
   /**
    * Node capabilities
    */
   uint32_t capabilities;
-  
+
   /**
-   * Experiment version as timestamp of creation 
+   * Experiment version as timestamp of creation
    */
   struct GNUNET_TIME_Absolute version;
-    
+
   struct NodeComCtx *e_req_head;
 
   struct NodeComCtx *e_req_tail;
 
   /**
    * Array of issuers accepted by this neighbor.
-   */ 
+   */
   struct GNUNET_CRYPTO_EccPublicSignKey *issuer_id;
 
   unsigned int issuer_count;
@@ -198,9 +198,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct Experimentation_Request
 {
   struct GNUNET_MessageHeader msg;
-  
+
   uint32_t capabilities GNUNET_PACKED;
-  
+
   uint32_t issuer_count GNUNET_PACKED;
 };
 
@@ -215,9 +215,9 @@ struct Experimentation_Request
 struct Experimentation_Response
 {
   struct GNUNET_MessageHeader msg;
-  
+
   uint32_t capabilities GNUNET_PACKED;
-  
+
   uint32_t issuer_count GNUNET_PACKED;
 };
 
@@ -233,7 +233,7 @@ struct Issuer
 
 /**
  * Hashmap containing valid experiment issuers
- * (the key is the hash of the respective public key, 
+ * (the key is the hash of the respective public key,
  * the values are of type `struct Issuer').
  */
 struct GNUNET_CONTAINER_MultiHashMap *valid_issuers;
@@ -246,19 +246,19 @@ struct GNUNET_CONTAINER_MultiHashMap *valid_issuers;
 struct GED_start_message
 {
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * String length of experiment name following the struct
    */
   uint32_t len_name GNUNET_PACKED;
-  
+
   /**
-   * Experiment issuer 
+   * Experiment issuer
    */
   struct GNUNET_CRYPTO_EccPublicSignKey issuer;
-  
+
   /**
-   * Experiment version as timestamp of creation 
+   * Experiment version as timestamp of creation
    */
   struct GNUNET_TIME_AbsoluteNBO version_nbo;
 };
@@ -267,19 +267,19 @@ struct GED_start_message
 struct GED_start_ack_message
 {
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * String length of experiment name following the struct
    */
   uint32_t len_name GNUNET_PACKED;
-  
+
   /**
-   * Experiment issuer 
+   * Experiment issuer
    */
   struct GNUNET_CRYPTO_EccPublicSignKey issuer;
 
   /**
-   * Experiment version as timestamp of creation 
+   * Experiment version as timestamp of creation
    */
   struct GNUNET_TIME_AbsoluteNBO version_nbo;
 };
@@ -288,19 +288,19 @@ struct GED_start_ack_message
 struct GED_stop_message
 {
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * String length of experiment name following the struct
    */
   uint32_t len_name GNUNET_PACKED;
-  
+
   /**
-   * Experiment issuer 
+   * Experiment issuer
    */
   struct GNUNET_CRYPTO_EccPublicSignKey issuer;
-  
+
   /**
-   * Experiment version as timestamp of creation 
+   * Experiment version as timestamp of creation
    */
   struct GNUNET_TIME_AbsoluteNBO version_nbo;
 };
@@ -396,7 +396,7 @@ GED_experiments_find (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer,
 		      const struct GNUNET_TIME_Absolute version);
 
 
-typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n, 
+typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n,
 							   struct Experiment *e);
 
 
@@ -461,7 +461,7 @@ GED_scheduler_handle_stop (struct Node *n, struct Experiment *e);
  */
 void
 GED_scheduler_add (struct Node *n,
-		   struct Experiment *e, 
+		   struct Experiment *e,
 		   int outbound);
 
 

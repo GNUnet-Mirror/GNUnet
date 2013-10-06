@@ -996,7 +996,7 @@ decompress (const char *input, size_t inputSize, size_t outputSize)
       uncompress ((Bytef *) output, &olen, (const Bytef *) input, inputSize))
     return output;
   GNUNET_free (output);
-  return NULL;  
+  return NULL;
 }
 
 

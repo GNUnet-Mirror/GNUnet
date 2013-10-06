@@ -536,7 +536,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  *         only valid until "task" is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,                            
+GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              struct GNUNET_TIME_Relative delay,
                              const struct GNUNET_NETWORK_FDSet *rs,
                              const struct GNUNET_NETWORK_FDSet *ws,

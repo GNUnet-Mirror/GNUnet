@@ -21,7 +21,7 @@
 /**
  * @file testing/test_testing_new_peerstartup.c
  * @brief test case for testing peer startup and shutdown using new testing
- *          library 
+ *          library
  * @author Sree Harsha Totakura
  */
 
@@ -42,7 +42,7 @@
       }                                         \
     }                                           \
   } while (0)                                   \
-    
+
 
 /**
  * The status of the test
@@ -58,7 +58,7 @@ struct TestingContext
    * The testing system
    */
   struct GNUNET_TESTING_System *system;
-  
+
   /**
    * The peer which has been started by the testing system
    */
@@ -94,7 +94,7 @@ do_shutdown2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != test_ctx->system)
     GNUNET_TESTING_system_destroy (test_ctx->system, GNUNET_YES);
   GNUNET_free (test_ctx);
-  
+
 }
 
 
@@ -143,7 +143,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL != test_ctx);
   if (NULL != test_ctx->peer)
   {
-    FAIL_TEST (GNUNET_OK == 
+    FAIL_TEST (GNUNET_OK ==
                GNUNET_TESTING_peer_stop_async (test_ctx->peer,
                                                &peer_status_cb,
                                                test_ctx));
@@ -165,14 +165,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_PeerIdentity id;
 
   test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
-  test_ctx->system = 
+  test_ctx->system =
       GNUNET_TESTING_system_create ("test-gnunet-testing",
                                     "127.0.0.1", NULL, NULL);
   emsg = NULL;
   if (NULL == test_ctx->system)
     goto end;
   test_ctx->cfg = GNUNET_CONFIGURATION_dup (cfg);
-  test_ctx->peer = 
+  test_ctx->peer =
       GNUNET_TESTING_peer_configure (test_ctx->system,
                                      test_ctx->cfg,
                                      0, &id, &emsg);
@@ -185,7 +185,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (GNUNET_OK != GNUNET_TESTING_peer_start (test_ctx->peer))
     goto end;
   test_ctx->state = PEER_STARTED;
-  FAIL_TEST (GNUNET_OK == 
+  FAIL_TEST (GNUNET_OK ==
              GNUNET_TESTING_peer_stop_async (test_ctx->peer,
                                              &peer_status_cb,
                                              test_ctx));
@@ -193,7 +193,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                 &do_shutdown, test_ctx);
   return;
-  
+
  end:
   FAIL_TEST (0);
   GNUNET_SCHEDULER_add_now (&do_shutdown, test_ctx);

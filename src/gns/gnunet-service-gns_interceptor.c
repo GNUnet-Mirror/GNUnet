@@ -50,12 +50,12 @@ struct InterceptLookupHandle
   struct InterceptLookupHandle *prev;
 
   /**
-   * the request handle to reply to 
+   * the request handle to reply to
    */
   struct GNUNET_DNS_RequestHandle *request_handle;
-  
+
   /**
-   * the dns parser packet received 
+   * the dns parser packet received
    */
   struct GNUNET_DNSPARSER_Packet *packet;
 
@@ -102,7 +102,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
   struct InterceptLookupHandle *ilh = cls;
   struct GNUNET_DNSPARSER_Packet *packet = ilh->packet;
   struct GNUNET_DNSPARSER_Query *query = &packet->queries[0];
-  uint32_t i;  
+  uint32_t i;
   size_t len;
   int ret;
   char *buf;
@@ -110,7 +110,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
   unsigned int skip_answers;
   unsigned int skip_additional;
   size_t off;
-    
+
   /* Put records in the DNS packet */
   num_answers = 0;
   for (i=0; i < rd_count; i++)
@@ -151,7 +151,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
-	  answer_records[i - skip_answers].data.soa 
+	  answer_records[i - skip_answers].data.soa
 	    = GNUNET_DNSPARSER_parse_soa (rd[i].data,
 					  rd[i].data_size,
 					  &off);
@@ -167,7 +167,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  skip_answers++;
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
-	  answer_records[i - skip_answers].data.mx 
+	  answer_records[i - skip_answers].data.mx
 	    = GNUNET_DNSPARSER_parse_mx (rd[i].data,
 					 rd[i].data_size,
 					 &off);
@@ -196,7 +196,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	case GNUNET_DNSPARSER_TYPE_NS:
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	case GNUNET_DNSPARSER_TYPE_PTR:
-	  additional_records[i - skip_additional].data.hostname 
+	  additional_records[i - skip_additional].data.hostname
 	    = GNUNET_DNSPARSER_parse_name (rd[i].data,
 					   rd[i].data_size,
 					   &off);
@@ -208,7 +208,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_SOA:
-	  additional_records[i - skip_additional].data.soa 
+	  additional_records[i - skip_additional].data.soa
 	    = GNUNET_DNSPARSER_parse_soa (rd[i].data,
 					  rd[i].data_size,
 					  &off);
@@ -220,7 +220,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  }
 	  break;
 	case GNUNET_DNSPARSER_TYPE_MX:
-	  additional_records[i - skip_additional].data.mx 
+	  additional_records[i - skip_additional].data.mx
 	    = GNUNET_DNSPARSER_parse_mx (rd[i].data,
 					 rd[i].data_size,
 					 &off);
@@ -242,7 +242,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	}
 	GNUNET_break (0 == (rd[i - skip_additional].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
 	additional_records[i - skip_additional].expiration_time.abs_value_us = rd[i].expiration_time;
-	additional_records[i - skip_additional].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET; 
+	additional_records[i - skip_additional].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }
     }
     packet->num_answers = num_answers - skip_answers;
@@ -261,14 +261,14 @@ reply_to_dns (void *cls, uint32_t rd_count,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Error converting GNS response to DNS response!\n"));
-    }   
+    }
     else
     {
       GNUNET_DNS_request_answer (ilh->request_handle,
 				 len,
 				 buf);
       GNUNET_free (buf);
-    } 
+    }
     packet->num_answers = 0;
     packet->answers = NULL;
     packet->num_additional_records = 0;
@@ -297,7 +297,7 @@ handle_dns_request (void *cls,
   struct GNUNET_DNSPARSER_Packet *p;
   struct InterceptLookupHandle *ilh;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hijacked a DNS request. Processing.\n");
   if (NULL == (p = GNUNET_DNSPARSER_parse (request, request_length)))
   {
@@ -307,7 +307,7 @@ handle_dns_request (void *cls,
     GNUNET_DNSPARSER_free_packet (p);
     return;
   }
-  
+
   /* Check TLD and decide if we or legacy dns is responsible */
   if (1 != p->num_queries)
   {
@@ -318,7 +318,7 @@ handle_dns_request (void *cls,
     return;
   }
 
-  /* Check for GNS TLDs. */ 
+  /* Check for GNS TLDs. */
   if ( (GNUNET_YES == is_gnu_tld (p->queries[0].name)) ||
        (GNUNET_YES == is_zkey_tld (p->queries[0].name)) ||
        (0 == strcmp (p->queries[0].name, GNUNET_GNS_TLD)) )
@@ -328,8 +328,8 @@ handle_dns_request (void *cls,
     GNUNET_CONTAINER_DLL_insert (ilh_head, ilh_tail, ilh);
     ilh->packet = p;
     ilh->request_handle = rh;
-    ilh->lookup = GNS_resolver_lookup (&zone, 
-				       p->queries[0].type, 
+    ilh->lookup = GNS_resolver_lookup (&zone,
+				       p->queries[0].type,
 				       p->queries[0].name,
 				       NULL /* FIXME: enable shorten for DNS intercepts? */,
 				       GNUNET_NO,
@@ -338,7 +338,7 @@ handle_dns_request (void *cls,
   }
   /* This request does not concern us. Forward to real DNS. */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Request for `%s' is forwarded to DNS untouched.\n", 
+	      "Request for `%s' is forwarded to DNS untouched.\n",
 	      p->queries[0].name);
   GNUNET_DNS_request_forward (rh);
   GNUNET_DNSPARSER_free_packet (p);

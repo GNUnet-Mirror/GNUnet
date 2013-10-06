@@ -43,7 +43,7 @@
  */
 struct GNUNET_DNSSTUB_RequestSocket
 {
-  
+
   /**
    * UDP socket we use for this request for IPv4
    */
@@ -89,12 +89,12 @@ struct GNUNET_DNSSTUB_RequestSocket
 
 /**
  * Handle to the stub resolver.
- */ 
+ */
 struct GNUNET_DNSSTUB_Context
 {
 
   /**
-   * Array of all open sockets for DNS requests. 
+   * Array of all open sockets for DNS requests.
    */
   struct GNUNET_DNSSTUB_RequestSocket sockets[DNS_SOCKET_MAX];
 
@@ -138,7 +138,7 @@ cleanup_rs (struct GNUNET_DNSSTUB_RequestSocket *rs)
  *
  * @param af AF_INET or AF_INET6
  * @return GNUNET_OK on success
- */ 
+ */
 static struct GNUNET_NETWORK_Handle *
 open_socket (int af)
 {
@@ -168,11 +168,11 @@ open_socket (int af)
   }
   sa->sa_family = af;
   if (GNUNET_OK != GNUNET_NETWORK_socket_bind (ret,
-					       sa, 
+					       sa,
 					       alen,
                                                0))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Could not bind to any port: %s\n"),
 		STRERROR (errno));
     GNUNET_NETWORK_socket_close (ret);
@@ -195,7 +195,7 @@ read_response (void *cls,
 
 /**
  * Get a socket of the specified address family to send out a
- * UDP DNS request to the Internet.  
+ * UDP DNS request to the Internet.
  *
  * @param ctx the DNSSTUB context
  * @param af desired address family
@@ -208,7 +208,7 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
   struct GNUNET_DNSSTUB_RequestSocket *rs;
   struct GNUNET_NETWORK_FDSet *rset;
 
-  rs = &ctx->sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, 
+  rs = &ctx->sockets[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
 					       DNS_SOCKET_MAX)];
   rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
   switch (af)
@@ -223,7 +223,7 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
     break;
   default:
     return NULL;
-  }  
+  }
   if (GNUNET_SCHEDULER_NO_TASK != rs->read_task)
   {
     GNUNET_SCHEDULER_cancel (rs->read_task);
@@ -286,7 +286,7 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
   rs->addrlen = sa_len;
   rs->rc = rc;
   rs->rc_cls = rc_cls;
-  if (GNUNET_SYSERR == 
+  if (GNUNET_SYSERR ==
       GNUNET_NETWORK_socket_sendto (ret,
 				    request,
 				    request_len,
@@ -351,7 +351,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 #endif
     sa = (struct sockaddr *) &v6;
     af = AF_INET6;
-  }  
+  }
   else
   {
     GNUNET_break (0);
@@ -384,7 +384,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 		_("Failed to send DNS request to %s\n"),
 		GNUNET_a2s (sa, salen));
   rs->timeout = GNUNET_TIME_relative_to_absolute (REQUEST_TIMEOUT);
-  
+
   return rs;
 
 }
@@ -420,13 +420,13 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 #endif
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Receiving %d byte DNS reply\n",
-	      len); 
+	      len);
   {
     unsigned char buf[len] GNUNET_ALIGN;
 
     addrlen = sizeof (addr);
-    memset (&addr, 0, sizeof (addr));  
-    r = GNUNET_NETWORK_socket_recvfrom (dnsout, 
+    memset (&addr, 0, sizeof (addr));
+    r = GNUNET_NETWORK_socket_recvfrom (dnsout,
 					buf, sizeof (buf),
 					(struct sockaddr*) &addr, &addrlen);
     if (-1 == r)
@@ -437,7 +437,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     }
     if (sizeof (struct GNUNET_TUN_DnsHeader) > r)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Received DNS response that is too small (%u bytes)"),
 		  r);
       return GNUNET_NO;
@@ -446,11 +446,11 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
     if ( (addrlen != rs->addrlen) ||
 	 (0 != memcmp (&rs->addr,
 		       &addr,
-		       addrlen)) ||	 
+		       addrlen)) ||	
        (0 == GNUNET_TIME_absolute_get_remaining (rs->timeout).rel_value_us) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Request timeout or invalid sender address; ignoring reply\n"); 
+		  "Request timeout or invalid sender address; ignoring reply\n");
       return GNUNET_NO;
     }
     if (NULL != rs->rc)
@@ -458,7 +458,7 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
 	      rs,
 	      dns,
 	      r);
-  }  
+  }
   return GNUNET_OK;
 }
 
@@ -530,7 +530,7 @@ struct GNUNET_DNSSTUB_Context *
 GNUNET_DNSSTUB_start (const char *dns_ip)
 {
   struct GNUNET_DNSSTUB_Context *ctx;
-  
+
   ctx = GNUNET_malloc (sizeof (struct GNUNET_DNSSTUB_Context));
   if (NULL != dns_ip)
     ctx->dns_exit = GNUNET_strdup (dns_ip);

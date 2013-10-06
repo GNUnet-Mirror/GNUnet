@@ -160,7 +160,7 @@ struct Plugin
   /**
    * Tokenizer for boxed messages.
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer *mst; 
+  struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
 };
 
@@ -202,11 +202,11 @@ unbox_cb (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session = client;
   struct GNUNET_ATS_Information ats;
-  
+
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (session->distance);
   session->active = GNUNET_YES;
-  plugin->env->receive (plugin->env->cls, 
+  plugin->env->receive (plugin->env->cls,
 			&session->sender,
                         message,
 			session, "", 0);
@@ -222,7 +222,7 @@ unbox_cb (void *cls,
  * @param cls closure with the plugin
  * @param sender sender of the message
  * @param distance how far did the message travel
- * @param msg actual message payload 
+ * @param msg actual message payload
  */
 static void
 handle_dv_message_received (void *cls,
@@ -236,7 +236,7 @@ handle_dv_message_received (void *cls,
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       sender);
-  if (NULL == session)    
+  if (NULL == session)
   {
     GNUNET_break (0);
     return;
@@ -244,7 +244,7 @@ handle_dv_message_received (void *cls,
   if (GNUNET_MESSAGE_TYPE_DV_BOX == ntohs (msg->type))
   {
     /* need to unbox using MST */
-    GNUNET_SERVER_mst_receive (plugin->mst, 
+    GNUNET_SERVER_mst_receive (plugin->mst,
 			       session,
 			       (const char *) &msg[1],
 			       ntohs (msg->size) - sizeof (struct GNUNET_MessageHeader),
@@ -270,7 +270,7 @@ handle_dv_message_received (void *cls,
  * @param peer newly connected peer
  * @param distance distance to the peer
  */
-static void 
+static void
 handle_dv_connect (void *cls,
 		   const struct GNUNET_PeerIdentity *peer,
 		   uint32_t distance)
@@ -280,13 +280,13 @@ handle_dv_connect (void *cls,
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
-  if (NULL != session)    
+  if (NULL != session)
   {
     GNUNET_break (0);
     session->distance = distance;
     if (GNUNET_YES == session->active)
       notify_distance_change (session);
-    return; /* nothing to do */  
+    return; /* nothing to do */
   }
   session = GNUNET_new (struct Session);
   session->sender = *peer;
@@ -306,7 +306,7 @@ handle_dv_connect (void *cls,
  * @param peer connected peer
  * @param distance new distance to the peer
  */
-static void 
+static void
 handle_dv_distance_changed (void *cls,
 			    const struct GNUNET_PeerIdentity *peer,
 			    uint32_t distance)
@@ -316,7 +316,7 @@ handle_dv_distance_changed (void *cls,
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
-  if (NULL == session)    
+  if (NULL == session)
   {
     GNUNET_break (0);
     handle_dv_connect (plugin, peer, distance);
@@ -370,7 +370,7 @@ free_session (struct Session *session)
  * @param cls closure with 'struct Plugin'
  * @param peer peer that disconnected
  */
-static void 
+static void
 handle_dv_disconnect (void *cls,
 		      const struct GNUNET_PeerIdentity *peer)
 {
@@ -379,7 +379,7 @@ handle_dv_disconnect (void *cls,
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
-  if (NULL == session)    
+  if (NULL == session)
     return; /* nothing to do */
   free_session (session);
 }
@@ -431,10 +431,10 @@ send_finished (void *cls,
  *         and does NOT mean that the message was not transmitted (DV)
  */
 static ssize_t
-dv_plugin_send (void *cls, 
+dv_plugin_send (void *cls,
 		struct Session *session,
                 const char *msgbuf, size_t msgbuf_size, unsigned int priority,
-                struct GNUNET_TIME_Relative timeout, 
+                struct GNUNET_TIME_Relative timeout,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct PendingRequest *pr;
@@ -486,8 +486,8 @@ dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       target);
-  if (NULL == session)    
-    return; /* nothing to do */  
+  if (NULL == session)
+    return; /* nothing to do */
   while (NULL != (pr = session->pr_head))
   {
     GNUNET_CONTAINER_DLL_remove (session->pr_head,
@@ -548,7 +548,7 @@ dv_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
   if (0 != addrlen)
   {
     GNUNET_break (0); /* malformed */
-    return NULL; 
+    return NULL;
   }
   return "dv";
 }
@@ -588,7 +588,7 @@ dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
  * @param address the address
  * @return the session if the address is valid, NULL otherwise
  */
-static struct Session * 
+static struct Session *
 dv_get_session (void *cls,
 		const struct GNUNET_HELLO_Address *address)
 {
@@ -618,7 +618,7 @@ dv_get_session (void *cls,
  * @param added length of created address
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-static int 
+static int
 dv_plugin_string_to_address (void *cls,
 			     const char *addr,
 			     uint16_t addrlen,
@@ -646,7 +646,7 @@ dv_plugin_string_to_address (void *cls,
  * @param session the session
  * @return the network type
  */
-static enum GNUNET_ATS_Network_Type 
+static enum GNUNET_ATS_Network_Type
 dv_get_network (void *cls,
 		struct Session *session)
 {
@@ -682,7 +682,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   if (NULL == plugin->dvh)
   {
     GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
-    GNUNET_SERVER_mst_destroy (plugin->mst);    
+    GNUNET_SERVER_mst_destroy (plugin->mst);
     GNUNET_free (plugin);
     return NULL;
   }
@@ -737,7 +737,7 @@ libgnunet_plugin_transport_dv_done (void *cls)
 					 &free_session_iterator,
 					 NULL);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
-  GNUNET_SERVER_mst_destroy (plugin->mst);    
+  GNUNET_SERVER_mst_destroy (plugin->mst);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;

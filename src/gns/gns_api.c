@@ -46,32 +46,32 @@ struct GNUNET_GNS_LookupRequest
    * DLL
    */
   struct GNUNET_GNS_LookupRequest *next;
-  
+
   /**
    * DLL
    */
   struct GNUNET_GNS_LookupRequest *prev;
-  
+
   /**
-   * handle to gns 
+   * handle to gns
    */
   struct GNUNET_GNS_Handle *gns_handle;
-  
+
   /**
-   * processor to call on lookup result 
+   * processor to call on lookup result
    */
   GNUNET_GNS_LookupResultProcessor lookup_proc;
 
   /**
-   * processor closure 
+   * processor closure
    */
   void *proc_cls;
- 
+
   /**
-   * request id 
+   * request id
    */
   uint32_t r_id;
- 
+
 };
 
 
@@ -130,7 +130,7 @@ struct GNUNET_GNS_Handle
    * Currently pending transmission request (or NULL).
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
-  
+
   /**
    * Head of linked list of shorten messages we would like to transmit.
    */
@@ -140,7 +140,7 @@ struct GNUNET_GNS_Handle
    * Tail of linked list of shorten messages we would like to transmit.
    */
   struct PendingMessage *pending_tail;
-  
+
   /**
    * Head of linked list of lookup messages we would like to transmit.
    */
@@ -155,7 +155,7 @@ struct GNUNET_GNS_Handle
    * Reconnect task
    */
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
-  
+
   /**
    * How long do we wait until we try to reconnect?
    */
@@ -165,7 +165,7 @@ struct GNUNET_GNS_Handle
    * Request Id generator.  Incremented by one for each request.
    */
   uint32_t r_id_gen;
-  
+
   /**
    * Did we start our receive loop yet?
    */
@@ -237,7 +237,7 @@ force_reconnect (struct GNUNET_GNS_Handle *handle)
     p->transmitted = GNUNET_NO;
     GNUNET_CONTAINER_DLL_insert (handle->pending_head,
 				 handle->pending_tail,
-				 p);  
+				 p);
   }
   handle->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (handle->reconnect_backoff);
   handle->reconnect_task = GNUNET_SCHEDULER_add_delayed (handle->reconnect_backoff,
@@ -279,17 +279,17 @@ process_pending_messages (struct GNUNET_GNS_Handle *handle)
   struct PendingMessage *p = handle->pending_head;
 
   if (NULL == handle->client)
-    return; /* wait for reconnect */ 
+    return; /* wait for reconnect */
   if (NULL != handle->th)
-    return; /* transmission request already pending */ 
+    return; /* transmission request already pending */
 
   while ((NULL != p) && (p->transmitted == GNUNET_YES))
     p = p->next;
   if (NULL == p)
     return; /* no messages pending */
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to transmit %u bytes\n", 
+       "Trying to transmit %u bytes\n",
        (unsigned int) p->size);
   handle->th =
     GNUNET_CLIENT_notify_transmit_ready (handle->client,
@@ -324,7 +324,7 @@ transmit_pending (void *cls, size_t size, void *buf)
 	 "Transmission to GNS service failed!\n");
     force_reconnect (handle);
     return 0;
-  }  
+  }
   if (NULL == (p = handle->pending_head))
     return 0;
 
@@ -388,7 +388,7 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
     qe->lookup_proc (qe->proc_cls, 0, NULL);
   }
   else
-  { 
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Received lookup reply from GNS service (%u records)\n",
 	 (unsigned int) rd_count);
@@ -412,7 +412,7 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_GNS_LookupRequest *lr;
   const struct GNUNET_GNS_ClientLookupResultMessage *lookup_msg;
   uint32_t r_id;
-  
+
   if (NULL == msg)
   {
     force_reconnect (handle);
@@ -430,11 +430,11 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     lookup_msg = (const struct GNUNET_GNS_ClientLookupResultMessage *) msg;
-    r_id = ntohl (lookup_msg->id);   
-    for (lr = handle->lookup_head; NULL != lr; lr = lr->next)    
+    r_id = ntohl (lookup_msg->id);
+    for (lr = handle->lookup_head; NULL != lr; lr = lr->next)
       if (lr->r_id == r_id)
       {
-	process_lookup_reply(lr, lookup_msg);    
+	process_lookup_reply(lr, lookup_msg);
 	break;
       }
     break;
@@ -499,7 +499,7 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
 {
   struct PendingMessage *p = (struct PendingMessage*) &lr[1];
 
-  GNUNET_assert (NULL != lr->gns_handle); 
+  GNUNET_assert (NULL != lr->gns_handle);
   if (GNUNET_NO == p->transmitted)
     GNUNET_CONTAINER_DLL_remove (lr->gns_handle->pending_head,
                                  lr->gns_handle->pending_tail,
@@ -544,9 +544,9 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   {
     GNUNET_break (0);
     return NULL;
-  } 
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to lookup `%s' in GNS\n", 
+       "Trying to lookup `%s' in GNS\n",
        name);
   msize = sizeof (struct GNUNET_GNS_ClientLookupMessage)
     + strlen (name) + 1;

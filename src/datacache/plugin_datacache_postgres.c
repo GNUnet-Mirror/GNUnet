@@ -78,14 +78,14 @@ init_connection (struct Plugin *plugin)
               "  value BYTEA NOT NULL DEFAULT '',"
               "  path BYTEA DEFAULT '')"
 	      "WITH OIDS");
-  if ( (ret == NULL) || 
-       ((PQresultStatus (ret) != PGRES_COMMAND_OK) && 
+  if ( (ret == NULL) ||
+       ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
 	(0 != strcmp ("42P07",    /* duplicate table */
 		      PQresultErrorField
 		      (ret,
 		       PG_DIAG_SQLSTATE)))))
   {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, ret, 
+    (void) GNUNET_POSTGRES_check_result (plugin->dbh, ret,
 					 PGRES_COMMAND_OK, "CREATE TABLE",
 					 "gn090dc");
     PQfinish (plugin->dbh);
@@ -198,7 +198,7 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
       PQexecPrepared (plugin->dbh, "put", 5, paramValues, paramLengths,
                       paramFormats, 1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, 
+      GNUNET_POSTGRES_check_result (plugin->dbh, ret,
 				    PGRES_COMMAND_OK, "PQexecPrepared", "put"))
     return -1;
   PQclear (ret);
@@ -258,7 +258,7 @@ postgres_plugin_get (void *cls, const struct GNUNET_HashCode * key,
   if (0 == (cnt = PQntuples (res)))
   {
     /* no result */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
     PQclear (res);
     return 0;
@@ -289,7 +289,7 @@ postgres_plugin_get (void *cls, const struct GNUNET_HashCode * key,
     }
     path_len %= sizeof (struct GNUNET_PeerIdentity);
     path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, i, 3);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Found result of size %u bytes and type %u in database\n",
 	 (unsigned int) size, (unsigned int) type);
     if (GNUNET_SYSERR ==
@@ -299,7 +299,7 @@ postgres_plugin_get (void *cls, const struct GNUNET_HashCode * key,
 	      path_len,
 	      path))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Ending iteration (client error)\n");
       PQclear (res);
       return cnt;
@@ -330,14 +330,14 @@ postgres_plugin_del (void *cls)
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared", "getm"))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (postgres error)\n");
     return 0;
   }
   if (0 == PQntuples (res))
   {
     /* no result */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
     PQclear (res);
     return GNUNET_SYSERR;
@@ -388,7 +388,7 @@ libgnunet_plugin_datacache_postgres_init (void *cls)
   api->get = &postgres_plugin_get;
   api->put = &postgres_plugin_put;
   api->del = &postgres_plugin_del;
-  LOG (GNUNET_ERROR_TYPE_INFO, 
+  LOG (GNUNET_ERROR_TYPE_INFO,
        _("Postgres datacache running\n"));
   return api;
 }

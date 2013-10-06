@@ -313,7 +313,7 @@ struct PeerInfo
   struct PeerInfo *prev;
 
   /**
-   * Count of outstanding messages for peer. 
+   * Count of outstanding messages for peer.
    */
   unsigned int pending_count;
 
@@ -553,8 +553,8 @@ struct BloomConstructorContext
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-add_known_to_bloom (void *cls, 
-		    const struct GNUNET_PeerIdentity *key, 
+add_known_to_bloom (void *cls,
+		    const struct GNUNET_PeerIdentity *key,
 		    void *value)
 {
   struct BloomConstructorContext *ctx = cls;
@@ -649,7 +649,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Connected to %s\n",
               GNUNET_i2s (peer));
   if (GNUNET_YES ==
@@ -714,7 +714,7 @@ handle_core_disconnect (void *cls,
   /* Check for disconnect from self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnected %s\n",
               GNUNET_i2s (peer));
   to_remove =
@@ -919,14 +919,14 @@ get_forward_count (uint32_t hop_count, uint32_t target_replication)
  * Differences in the lower bits must count stronger than differences
  * in the higher bits.
  *
- * @param target 
+ * @param target
  * @param have
  * @return 0 if have==target, otherwise a number
  *           that is larger as the distance between
  *           the two hash codes increases
  */
 static unsigned int
-get_distance (const struct GNUNET_HashCode *target, 
+get_distance (const struct GNUNET_HashCode *target,
 	      const struct GNUNET_HashCode *have)
 {
   unsigned int bucket;
@@ -1197,7 +1197,7 @@ get_target_peers (const struct GNUNET_HashCode *key,
   struct GNUNET_HashCode nhash;
 
   GNUNET_assert (NULL != bloom);
-  ret = get_forward_count (hop_count, target_replication);  
+  ret = get_forward_count (hop_count, target_replication);
   if (0 == ret)
   {
     *targets = NULL;
@@ -1231,7 +1231,7 @@ get_target_peers (const struct GNUNET_HashCode *key,
   *targets = rtargets;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarding query `%s' to %u peers (goal was %u peers)\n",
-	      GNUNET_h2s (key), 
+	      GNUNET_h2s (key),
 	      off,
 	      ret);
   return off;
@@ -1601,7 +1601,7 @@ core_init (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_dht_p2p_put (void *cls, 
+handle_dht_p2p_put (void *cls,
 		    const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
@@ -1654,7 +1654,7 @@ handle_dht_p2p_put (void *cls,
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
     LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-                 "XDHT PUT %s: %s->%s (%u, %u=>%u)\n", 
+                 "XDHT PUT %s: %s->%s (%u, %u=>%u)\n",
                  GNUNET_h2s (&put->key), GNUNET_i2s (peer), tmp,
                  ntohl(put->hop_count),
                  GNUNET_CRYPTO_hash_matching_bits (&phash, &put->key),
@@ -1913,7 +1913,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
     LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-                 "XDHT GET %s: %s->%s (%u, %u=>%u) xq: %.*s\n", 
+                 "XDHT GET %s: %s->%s (%u, %u=>%u) xq: %.*s\n",
                  GNUNET_h2s (&get->key), GNUNET_i2s (peer), tmp,
                  ntohl(get->hop_count),
                  GNUNET_CRYPTO_hash_matching_bits (&phash, &get->key),
@@ -2059,7 +2059,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     char *tmp;
 
     tmp = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s->%s (%u)\n", 
+    LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT RESULT %s: %s->%s (%u)\n",
                  GNUNET_h2s (&prm->key), GNUNET_i2s (peer), tmp,
                  get_path_length + 1);
     GNUNET_free (tmp);
@@ -2132,10 +2132,10 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
       struct GNUNET_PeerIdentity xput_path[get_path_length + 1 + put_path_length];
 
       memcpy (xput_path, put_path, put_path_length * sizeof (struct GNUNET_PeerIdentity));
-      memcpy (&xput_path[put_path_length], 
-	      xget_path, 
+      memcpy (&xput_path[put_path_length],
+	      xget_path,
 	      get_path_length * sizeof (struct GNUNET_PeerIdentity));
-      
+
       GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (prm->expiration_time),
 				&prm->key,
 				get_path_length + put_path_length, xput_path,
@@ -2214,7 +2214,7 @@ GDS_NEIGHBOURS_done ()
 
 /**
  * Get the ID of the local node.
- * 
+ *
  * @return identity of the local node
  */
 struct GNUNET_PeerIdentity *

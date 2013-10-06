@@ -118,7 +118,7 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
   struct GNUNET_CRYPTO_HashAsciiEncoded ae;
   size_t upm;
 
-  upm = sizeof (dummy.sun_path);   
+  upm = sizeof (dummy.sun_path);
   slen = strlen (unixpath);
   if (slen < upm)
     return unixpath; /* no shortening required */
@@ -243,7 +243,7 @@ socket_set_nosigpipe (const struct GNUNET_NETWORK_Handle *h)
   int abs_value = 1;
 
   if (0 !=
-      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE, 
+      setsockopt (h->fd, SOL_SOCKET, SO_NOSIGPIPE,
 		  (const void *) &abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
@@ -270,7 +270,7 @@ socket_set_nodelay (const struct GNUNET_NETWORK_Handle *h)
   const char *abs_value = "1";
 
   if (0 !=
-      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY, 
+      setsockopt (h->fd, IPPROTO_TCP, TCP_NODELAY,
 		  (const void *) abs_value,
                   sizeof (abs_value)))
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "setsockopt");
@@ -325,7 +325,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 #ifdef DARWIN
   socket_set_nosigpipe (h);
 #endif
-  if ( (type == SOCK_STREAM) 
+  if ( (type == SOCK_STREAM)
 #ifdef AF_UNIX
        && (af != AF_UNIX)
 #endif
@@ -345,7 +345,7 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
  */
 struct GNUNET_NETWORK_Handle *
 GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
-                              struct sockaddr *address, 
+                              struct sockaddr *address,
 			      socklen_t *address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
@@ -358,7 +358,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
     int gsn = getsockname (desc->fd, &name, &namelen);
 
     if (gsn == 0)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Accepting connection on `%s'\n",
            GNUNET_a2s (&name, namelen));
   }
@@ -414,8 +414,8 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
     const int on = 1;
 
     if (desc->af == AF_INET6)
-      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY, 
-		      (const void *) &on, 
+      if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY,
+		      (const void *) &on,
 		      sizeof (on)))
         LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
@@ -424,9 +424,9 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #ifndef WINDOWS
   {
     const int on = 1;
-  
+
     /* This is required here for TCP sockets, but only on UNIX */
-    if ((SOCK_STREAM == desc->type) 
+    if ((SOCK_STREAM == desc->type)
         && (0 != setsockopt (desc->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on))))
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
@@ -1437,7 +1437,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   tv.tv_usec =
     (timeout.rel_value_us -
      (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
-  return select (nfds, 
+  return select (nfds,
 		 (NULL != rfds) ? &rfds->sds : NULL,
                  (NULL != wfds) ? &wfds->sds : NULL,
                  (NULL != efds) ? &efds->sds : NULL,

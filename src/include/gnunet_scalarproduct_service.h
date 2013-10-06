@@ -66,7 +66,7 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
                                                              enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 /**
  * Process a datum that was stored in the scalarproduct.
- * 
+ *
  * @param cls closure
  * @param status Status of the request
  * @param type result of the computation
@@ -77,7 +77,7 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
 
 /**
  * Request by Alice's client for computing a scalar product
- * 
+ *
  * @param h handle to the master context
  * @param key Session key - unique to the requesting client
  * @param peer PeerID of the other peer
@@ -100,8 +100,8 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               void *cont_cls);
 
 /**
- * Used by Bob's client to cooperate with Alice, 
- * 
+ * Used by Bob's client to cooperate with Alice,
+ *
  * @param h handle to our configuration
  * @param key Session key - unique to the requesting client
  * @param elements Array of elements of the vector
@@ -119,7 +119,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Cancel an ongoing computation or revoke our collaboration offer.
  * Closes the connection to the service
- * 
+ *
  * @param h handel to terminate
  */
 void
@@ -128,7 +128,7 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
 /**
  * Cancel ALL ongoing computation or revoke our collaboration offer.
  * Closes ALL connections to the service
- * 
+ *
  */
 void
 GNUNET_SCALARPRODUCT_disconnect ();

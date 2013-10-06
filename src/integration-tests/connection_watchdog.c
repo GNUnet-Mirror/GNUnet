@@ -117,7 +117,7 @@ static struct TransportPlugin *phead;
 static struct TransportPlugin *ptail;
 
 
-static int 
+static int
 map_check_it (void *cls,
 	      const struct GNUNET_PeerIdentity * key,
 	      void *value)
@@ -138,7 +138,7 @@ map_check_it (void *cls,
 }
 
 
-static int 
+static int
 map_cleanup_it (void *cls,
 		const struct GNUNET_PeerIdentity * key,
 		void *value)
@@ -216,7 +216,7 @@ check_lowlevel_connections (int port, int protocol)
   char line[1024];
   int count = -1;
 
-  switch (protocol) 
+  switch (protocol)
   {
     case tcp:
 #ifdef MINGW
@@ -292,7 +292,7 @@ find_plugin (char * name)
   return cur;
 }
 
-static int 
+static int
 stats_check_cb (void *cls, const char *subsystem,
 		const char *name, uint64_t value,
 		int is_persistent)
@@ -412,33 +412,33 @@ struct PONG
 GNUNET_NETWORK_STRUCT_END
 
 
-static size_t 
+static size_t
 send_transport_ping_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContainer * pc = cls;
   struct PING ping;
   size_t mlen = sizeof (struct PING);
-  
+
   if (size < mlen)
     {
       GNUNET_break (0);
       return 0;
     }
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending transport ping to `%s'\n", GNUNET_i2s  (&pc->id));
   ping.header.size = htons (mlen);
   ping.header.type = htons (1234);
   ping.src = htons (0);
-  
+
   pc->th_ping = NULL;
-  
+
   memcpy (buf, &ping, mlen);
   return mlen;
 }
 
 
-static size_t 
+static size_t
 send_core_ping_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContainer * pc = cls;
@@ -450,21 +450,21 @@ send_core_ping_cb (void *cls, size_t size, void *buf)
       GNUNET_break (0);
       return 0;
     }
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending core ping to `%s'\n", GNUNET_i2s  (&pc->id));
   ping.header.size = htons (mlen);
   ping.header.type = htons (1234);
   ping.src = htons (1);
-  
+
   pc->ch_ping = NULL;
-  
+
   memcpy (buf, &ping, mlen);
   return mlen;
 }
 
 
-static int 
+static int
 map_ping_it (void *cls,
 	     const struct GNUNET_PeerIdentity * key,
 	     void *value)
@@ -522,7 +522,7 @@ stats_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static size_t 
+static size_t
 send_transport_pong_cb (void *cls, size_t size, void *buf)
 {
  struct PeerContainer * pc = cls;
@@ -548,27 +548,27 @@ send_transport_pong_cb (void *cls, size_t size, void *buf)
 }
 
 
-static size_t 
+static size_t
 send_core_pong_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContainer * pc = cls;
   struct PING ping;
   size_t mlen = sizeof (struct PING);
-  
+
   if (size < mlen)
     {
       GNUNET_break (0);
       return 0;
     }
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending core pong to `%s'\n", GNUNET_i2s  (&pc->id));
   ping.header.size = htons (mlen);
   ping.header.type = htons (4321);
   ping.src = htons (1);
-  
+
   pc->ch_pong = NULL;
-  
+
   memcpy (buf, &ping, mlen);
   return mlen;
 }
@@ -768,7 +768,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Disconnecting from core service\n");
     GNUNET_CORE_disconnect (ch);
     ch = NULL;
@@ -822,9 +822,9 @@ transport_notify_disconnect_cb (void *cls,
 				const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_assert (transport_connections > 0);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "TRANSPORT disconnect for peer `%s' (%u total)\n",
-	      GNUNET_i2s (peer), 
+	      GNUNET_i2s (peer),
 	      transport_connections);
   map_disconnect (peer, th);
   transport_connections --;
@@ -851,7 +851,7 @@ transport_notify_receive_cb (void *cls,
   if ((message->size == ntohs (sizeof (struct PING))) &&
       (message->type == ntohs (1234)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Received %s %s from peer `%s'\n",
 		"TRANSPORT",
 		"PING",
@@ -877,7 +877,7 @@ transport_notify_receive_cb (void *cls,
   }
 }
 
-static int 
+static int
 core_notify_receive_cb (void *cls,
 			const struct GNUNET_PeerIdentity * peer,
 			const struct GNUNET_MessageHeader * message)
@@ -970,7 +970,7 @@ core_disconnect_cb (void *cls,
 
 
 static void
-core_init_cb (void *cls, 
+core_init_cb (void *cls,
 	      const struct GNUNET_PeerIdentity *my_identity)
 {
   my_peer_id = *my_identity;

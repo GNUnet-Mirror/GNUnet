@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_vpn_service.h
- * @brief API to access the VPN service. 
+ * @brief API to access the VPN service.
  * @author Christian Grothoff
  */
 #ifndef GNUNET_VPN_SERVICE_H
@@ -50,7 +50,7 @@ struct GNUNET_VPN_RedirectionRequest;
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
- *                traffic to this IP will now be redirected to the 
+ *                traffic to this IP will now be redirected to the
  *                specified target peer; NULL on error
  */
 typedef void (*GNUNET_VPN_AllocationCallback)(void *cls,
@@ -124,7 +124,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
  *         anyway)
  */
 struct GNUNET_VPN_RedirectionRequest *
-GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh, 
+GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
 			   int result_af,
 			   int addr_af,
 			   const void *addr,
@@ -137,7 +137,7 @@ GNUNET_VPN_redirect_to_ip (struct GNUNET_VPN_Handle *vh,
  * Connect to the VPN service
  *
  * @param cfg configuration to use
- * @return VPN handle 
+ * @return VPN handle
  */
 struct GNUNET_VPN_Handle *
 GNUNET_VPN_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);

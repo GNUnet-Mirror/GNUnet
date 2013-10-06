@@ -22,8 +22,8 @@
 /**
  * @file testbed/gnunet-daemon-testbed-blacklist.c
  * @brief daemon to restrict incoming connections from other peers at the
- *          transport layer of a peer 
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ *          transport layer of a peer
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -143,7 +143,7 @@ static int
 check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
 {
   int contains;
- 
+
   if (NULL != map)
     contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
   else
@@ -167,7 +167,7 @@ setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
   uint64_t fsize;
   unsigned int npeers;
   unsigned int cnt;
-  
+
   GNUNET_assert (GNUNET_OK != GNUNET_DISK_file_size (fname, &fsize, GNUNET_NO,
                                                      GNUNET_YES));
   if (0 != (fsize % sizeof (struct GNUNET_PeerIdentity)))

@@ -1147,7 +1147,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
   if ((h->internal_address != NULL) &&
       (inet_pton (AF_INET, h->internal_address, &in_addr) != 1))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
 			       "nat", "INTERNAL_ADDRESS",
 			       _("malformed"));
     GNUNET_free (h->internal_address);

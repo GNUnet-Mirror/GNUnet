@@ -321,8 +321,8 @@ expire_oldest_entry ()
   GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
   GNUNET_CONTAINER_bloomfilter_free (recent_req->reply_bf);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (recent_map, 
-						       &recent_req->key, 
+		 GNUNET_CONTAINER_multihashmap_remove (recent_map,
+						       &recent_req->key,
 						       recent_req));
   GNUNET_free (recent_req);
 }

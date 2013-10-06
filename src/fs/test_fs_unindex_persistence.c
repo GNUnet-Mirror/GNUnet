@@ -231,7 +231,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 {

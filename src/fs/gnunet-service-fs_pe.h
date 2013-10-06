@@ -68,7 +68,7 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr);
  * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
  */
 int
-GSF_request_plan_reference_get_last_transmission_ (struct GSF_PendingRequestPlanBijection *pr_head, 
+GSF_request_plan_reference_get_last_transmission_ (struct GSF_PendingRequestPlanBijection *pr_head,
 						   struct GSF_ConnectedPeer *sender,
 						   struct GNUNET_TIME_Absolute *result);
 

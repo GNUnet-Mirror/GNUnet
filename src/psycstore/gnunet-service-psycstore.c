@@ -86,7 +86,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/** 
+/**
  * Send a result code back to the client.
  *
  * @param client Client that should receive the result code.

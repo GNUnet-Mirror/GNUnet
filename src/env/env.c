@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/** 
+/**
  * @file env/env.c
  * @brief Library providing operations for the @e environment of
  *        PSYC and Social messages, and for (de)serializing variable values.
@@ -29,7 +29,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
 
-/** 
+/**
  * Environment for a message.
  *
  * Contains modifiers.
@@ -42,9 +42,9 @@ struct GNUNET_ENV_Environment
 };
 
 
-/** 
+/**
  * Create an environment.
- * 
+ *
  * @return A newly allocated environment.
  */
 struct GNUNET_ENV_Environment *
@@ -54,7 +54,7 @@ GNUNET_ENV_environment_create ()
 }
 
 
-/** 
+/**
  * Add a modifier to the environment.
  *
  * @param env The environment.
@@ -78,7 +78,7 @@ GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
 }
 
 
-/** 
+/**
  * Iterate through all modifiers in the environment.
  *
  * @param env The environment.
@@ -95,7 +95,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
 }
 
 
-/** 
+/**
  * Get the number of modifiers in the environment.
  *
  * @param env The environment.
@@ -109,7 +109,7 @@ GNUNET_ENV_environment_get_mod_count (const struct GNUNET_ENV_Environment *env)
 }
 
 
-/** 
+/**
  * Destroy an environment.
  *
  * @param env The environment to destroy.

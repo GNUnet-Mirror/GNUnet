@@ -77,9 +77,9 @@ static int ret = -1;
 
 /**
  * Callback called if we are initiating a new computation session
- * 
+ *
  * @param cls unused
- * @param status if our job was successfully processed 
+ * @param status if our job was successfully processed
  */
 static void
 responder_callback (void *cls,
@@ -110,14 +110,14 @@ responder_callback (void *cls,
 
 /**
  * Callback called if we are initiating a new computation session
- * 
+ *
  * @param cls unused
  * @param key unused
  * @param peer unused
- * @param status if our job was successfully processed 
+ * @param status if our job was successfully processed
  * @param size size of the msg returned
  * @param msg the response we got.
- * @param type of the message received 
+ * @param type of the message received
  */
 static void
 requester_callback (void *cls,
@@ -247,7 +247,7 @@ run (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Need elements to compute the vectorproduct, got none.\n"));
     return;
   }
-  
+
   begin = input_elements;
   elements = GNUNET_malloc (sizeof (int32_t) * element_count);
   element_count = 0;
@@ -328,7 +328,7 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
-  
+
   ret = 0;
 }
 

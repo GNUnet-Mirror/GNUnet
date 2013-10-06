@@ -43,9 +43,9 @@ static int ok = 1;
 static int phase = 0;
 
 static void
-arm_stop_cb (void *cls, 
-	     enum GNUNET_ARM_RequestStatus status, 
-	     const char *servicename, 
+arm_stop_cb (void *cls,
+	     enum GNUNET_ARM_RequestStatus status,
+	     const char *servicename,
 	     enum GNUNET_ARM_Result result)
 {
   /* (6), a stop request should be sent to ARM successfully */
@@ -59,8 +59,8 @@ arm_stop_cb (void *cls,
 
 
 static void
-resolver_stop_cb (void *cls, 
-		  enum GNUNET_ARM_RequestStatus status, 
+resolver_stop_cb (void *cls,
+		  enum GNUNET_ARM_RequestStatus status,
 		  const char *servicename, enum GNUNET_ARM_Result result)
 {
   /* (5), a stop request should be sent to ARM successfully.
@@ -104,9 +104,9 @@ dns_notify (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 
 
 static void
-resolver_start_cb (void *cls, 
-		   enum GNUNET_ARM_RequestStatus status, 
-		   const char *servicename, 
+resolver_start_cb (void *cls,
+		   enum GNUNET_ARM_RequestStatus status,
+		   const char *servicename,
 		   enum GNUNET_ARM_Result result)
 {
   /* (2), the start request for resolver should be sent successfully
@@ -129,7 +129,7 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-arm_conn (void *cls, 
+arm_conn (void *cls,
 	  int connected)
 {
   if (GNUNET_SYSERR == connected)
@@ -163,9 +163,9 @@ arm_conn (void *cls,
 
 
 static void
-arm_start_cb (void *cls, 
-	      enum GNUNET_ARM_RequestStatus status, 
-	      const char *servicename, 
+arm_start_cb (void *cls,
+	      enum GNUNET_ARM_RequestStatus status,
+	      const char *servicename,
 	      enum GNUNET_ARM_Result result)
 {
   /* (0) The request should be "sent" successfully

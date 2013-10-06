@@ -34,7 +34,7 @@ main (int argc, char *argv[])
   char dst[128];
   unsigned int i;
   int ret = 0;
-  
+
   GNUNET_log_setup ("util", "DEBUG", NULL);
   for (i=0;i<sizeof(src);i++)
   {
@@ -44,7 +44,7 @@ main (int argc, char *argv[])
     end = GNUNET_STRINGS_data_to_string (&src, i, buf, sizeof (buf));
     GNUNET_assert (NULL != end);
     end[0] = '\0';
-    if (GNUNET_OK != 
+    if (GNUNET_OK !=
 	GNUNET_STRINGS_string_to_data (buf, strlen (buf), dst, i))
     {
       fprintf (stderr, "%u failed decode (%u bytes)\n", i, (unsigned int) strlen (buf));

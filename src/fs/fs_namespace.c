@@ -147,9 +147,9 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &hc);
   GNUNET_CRYPTO_hash_to_enc (&hc,
 			     &enc);
-  GNUNET_asprintf (&ret, "%s%s%s", 
-		   dn, 
-		   DIR_SEPARATOR_STR, 
+  GNUNET_asprintf (&ret, "%s%s%s",
+		   dn,
+		   DIR_SEPARATOR_STR,
 		   (const char *) enc.encoding);
   GNUNET_free (dn);
   return ret;
@@ -158,7 +158,7 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
 
 /**
  * Release memory occupied by UIG datastructure.
- * 
+ *
  * @param uig data structure to free
  */
 static void
@@ -317,7 +317,7 @@ read_update_information_graph (struct GNUNET_FS_Handle *h,
  END:
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"), 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to read `%s': %s\n"),
 		fn, emsg);
     GNUNET_free (emsg);
   }
@@ -383,7 +383,7 @@ struct GNUNET_FS_PublishSksContext
  * @param msg error message (or NULL)
  */
 static void
-sks_publish_cont (void *cls, 
+sks_publish_cont (void *cls,
 		  const char *msg)
 {
   struct GNUNET_FS_PublishSksContext *psc = cls;
@@ -405,7 +405,7 @@ sks_publish_cont (void *cls,
     uig = read_update_information_graph (psc->h,
 					 &psc->ns);
     GNUNET_array_append (uig->update_nodes,
-			 uig->update_node_count, 
+			 uig->update_node_count,
 			 psc->nsn);
     psc->nsn = NULL;
     write_update_information_graph (uig);
@@ -549,16 +549,16 @@ struct ProcessUpdateClosure
  *         GNUNET_NO if not.
  */
 static int
-process_update_node (void *cls, 
-		     const struct GNUNET_HashCode *key, 
+process_update_node (void *cls,
+		     const struct GNUNET_HashCode *key,
 		     void *value)
 {
   struct ProcessUpdateClosure *pc = cls;
   struct NamespaceUpdateNode *nsn = value;
 
   pc->ip (pc->ip_cls,
-	  nsn->id, 
-	  nsn->uri, 
+	  nsn->id,
+	  nsn->uri,
 	  nsn->md,
 	  nsn->update);
   return GNUNET_YES;
@@ -619,7 +619,7 @@ struct FindTreeClosure
  */
 static int
 find_trees (void *cls,
-	    const struct GNUNET_HashCode *key, 
+	    const struct GNUNET_HashCode *key,
 	    void *value)
 {
   struct FindTreeClosure *fc = cls;
@@ -780,7 +780,7 @@ GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
       fc.tree_array[fc.id] = nsn;
       nsn->tree_id = fc.id;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"TREE of node `%s' is %u\n", nsn->id,
                 fc.id);
   }

@@ -203,7 +203,7 @@ run (void *cls,
   size_t i;
 
   fs = GNUNET_FS_start (cfg, "test-fs-search", &progress_cb, NULL,
-                        GNUNET_FS_FLAGS_DO_PROBES, 
+                        GNUNET_FS_FLAGS_DO_PROBES,
 			GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
   buf = GNUNET_malloc (FILESIZE);

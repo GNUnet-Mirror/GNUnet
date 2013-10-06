@@ -216,7 +216,7 @@ test_iter ()
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created

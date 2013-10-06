@@ -133,7 +133,7 @@ static int verbose;
 
 /**
  * Name of the file with the hosts to run the test over (configuration option)
- */ 
+ */
 static char *hosts_file;
 
 /**
@@ -274,7 +274,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == shutting_down)
     return;
   shutting_down = GNUNET_YES;
-  LOG_DEBUG ("Ending test.\n");    
+  LOG_DEBUG ("Ending test.\n");
   close_monitor_connections ();
   if (NULL != data_file)
   {
@@ -314,7 +314,7 @@ shutdown_now ()
  *                of the size estimation values seen
  */
 static void
-handle_estimate (void *cls, 
+handle_estimate (void *cls,
 		 struct GNUNET_TIME_Absolute timestamp,
                  double estimate, double std_dev)
 {
@@ -329,7 +329,7 @@ handle_estimate (void *cls,
 	       peer, estimate, std_dev);
       return;
     }
-  size = GNUNET_snprintf (output_buffer, 
+  size = GNUNET_snprintf (output_buffer,
 			  sizeof (output_buffer),
 			  "%p %llu %llu %f %f %f\n",
 			  peer, peers_running,
@@ -345,7 +345,7 @@ handle_estimate (void *cls,
 /**
  * Adapter function called to establish a connection to
  * NSE service.
- * 
+ *
  * @param cls closure (the 'struct NSEPeer')
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
@@ -365,11 +365,11 @@ nse_connect_adapter (void *cls,
 /**
  * Adapter function called to destroy a connection to
  * NSE service.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 nse_disconnect_adapter (void *cls,
 			void *op_result)
 {
@@ -389,7 +389,7 @@ nse_disconnect_adapter (void *cls,
  */
 static int
 stat_iterator (void *cls,
-	       const char *subsystem, 
+	       const char *subsystem,
 	       const char *name,
 	       uint64_t value, int is_persistent)
 {
@@ -404,7 +404,7 @@ stat_iterator (void *cls,
   if (0 != flag)
     flag = 1;
   size = GNUNET_asprintf (&output_buffer, "%llu %llu %u\n",
-                          now.abs_value_us / 1000LL / 1000LL, 
+                          now.abs_value_us / 1000LL / 1000LL,
 			  value, flag);
   if (size != GNUNET_DISK_file_write (data_file, output_buffer, size))
   {
@@ -431,7 +431,7 @@ stat_connect_adapter (void *cls,
                       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct NSEPeer *peer = cls;
-  
+
   peer->sh = GNUNET_STATISTICS_create ("nse-profiler", cfg);
   return peer->sh;
 }
@@ -502,18 +502,18 @@ connect_nse_service ()
   unsigned int connections;
 
   if (0 == connection_limit)
-    return;  
+    return;
   LOG_DEBUG ("Connecting to nse service of peers\n");
   connections = 0;
   for (i = 0; i < num_peers_in_round[current_round]; i++)
   {
-    if ((num_peers_in_round[current_round] > connection_limit) && 
+    if ((num_peers_in_round[current_round] > connection_limit) &&
 	(0 != (i % (num_peers_in_round[current_round] / connection_limit))))
       continue;
     LOG_DEBUG ("Connecting to nse service of peer %d\n", i);
     current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
     current_peer->daemon = daemons[i];
-    current_peer->nse_op 
+    current_peer->nse_op
         = GNUNET_TESTBED_service_connect (NULL,
                                           current_peer->daemon,
                                           "nse",
@@ -545,7 +545,7 @@ connect_nse_service ()
  * @param tc scheduler context (unused)
  */
 static void
-next_round (void *cls, 
+next_round (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -558,7 +558,7 @@ next_round (void *cls,
  * @param tc unused
  */
 static void
-finish_round (void *cls, 
+finish_round (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -606,12 +606,12 @@ make_oplist_entry ()
  * @param op the operation handle
  * @param emsg NULL on success; otherwise an error description
  */
-static void 
+static void
 manage_service_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                    const char *emsg)
 {
   struct OpListEntry *entry = cls;
-  
+
   GNUNET_TESTBED_operation_done (entry->op);
   if (NULL != emsg)
   {
@@ -673,13 +673,13 @@ adjust_running_peers ()
  * @param tc unused
  */
 static void
-next_round (void *cls, 
+next_round (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG_DEBUG ("Disconnecting nse service of peers\n");
-  current_round++;  
+  current_round++;
   if (current_round == num_rounds)
     {
       /* this was the last round, terminate */
@@ -705,7 +705,7 @@ next_round (void *cls,
  * @param event information on what is happening
  */
 static void
-master_controller_cb (void *cls, 
+master_controller_cb (void *cls,
 		      const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
@@ -735,7 +735,7 @@ master_controller_cb (void *cls,
  * @param links_failed the number of overlay link connection attempts that
  *          failed
  */
-static void 
+static void
 test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers_,
@@ -775,7 +775,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   char *tok;
   uint64_t event_mask;
-  unsigned int num;  
+  unsigned int num;
 
   ok = 1;
   testing_cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -806,7 +806,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   if ( (NULL != data_filename) &&
-       (NULL == (data_file = 
+       (NULL == (data_file =
 		 GNUNET_DISK_file_open (data_filename,
 					GNUNET_DISK_OPEN_READWRITE |
 					GNUNET_DISK_OPEN_TRUNCATE |
@@ -839,7 +839,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                       NULL,     /* master_controller_cb cls */
                       &test_master,
                       NULL);    /* test_master cls */
-  shutdown_task_id = 
+  shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
 }

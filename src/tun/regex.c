@@ -40,13 +40,13 @@ static void
 iptobinstr (const int af, const void *addr, char *str)
 {
   int i;
-  
+
   switch (af)
   {
     case AF_INET:
     {
       uint32_t b = htonl (((struct in_addr *) addr)->s_addr);
-      
+
       str[32] = '\0';
           str += 31;
           for (i = 31; i >= 0; i--)
@@ -60,7 +60,7 @@ iptobinstr (const int af, const void *addr, char *str)
     case AF_INET6:
     {
       struct in6_addr b = *(const struct in6_addr *) addr;
-      
+
       str[128] = '\0';
             str += 127;
             for (i = 127; i >= 0; i--)
@@ -88,7 +88,7 @@ ipv4netmasktoprefixlen (const char *netmask)
   struct in_addr a;
   unsigned int len;
   uint32_t t;
-  
+
   if (1 != inet_pton (AF_INET, netmask, &a))
     return 0;
   len = 32;
@@ -111,7 +111,7 @@ GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
 			char *rxstr)
 {
   unsigned int pfxlen;
-  
+
   pfxlen = ipv4netmasktoprefixlen (netmask);
   iptobinstr (AF_INET, ip, rxstr);
   rxstr[pfxlen] = '\0';

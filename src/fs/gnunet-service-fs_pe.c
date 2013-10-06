@@ -57,7 +57,7 @@ struct PeerPlan;
  * are stored in a 'struct GSF_RequestPlan'. (We need
  * to be able to lookup all pending requests corresponding
  * to a given plan entry.)
- * 
+ *
  * Similarly head and tail of the "PR" MDLL are stored
  * with the 'struct GSF_PendingRequest'.  (We need
  * to be able to lookup all plan entries corresponding
@@ -360,7 +360,7 @@ get_latest (const struct GSF_RequestPlan *rp)
   if (NULL == bi)
     return NULL; /* should never happen */
   ret = bi->pr;
-  bi = bi->next_PE; 
+  bi = bi->next_PE;
   while (NULL != bi)
   {
     if (GSF_pending_request_get_data_ (bi->pr)->ttl.abs_value_us >
@@ -594,7 +594,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
     pp->delay_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     pp->cp = cp;
-    GNUNET_CONTAINER_multipeermap_put (plans, 
+    GNUNET_CONTAINER_multipeermap_put (plans,
 				       id, pp,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }

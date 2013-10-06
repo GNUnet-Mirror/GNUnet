@@ -89,7 +89,7 @@ struct RetryListEntry
    * the prev pointer for the DLL
    */
   struct RetryListEntry *prev;
-  
+
   /**
    * The link to be retired
    */
@@ -136,7 +136,7 @@ struct TopologyContext
    * DLL tail for retry list
    */
   struct RetryListEntry *rl_tail;
-  
+
   /**
    * The number of peers
    */
@@ -292,7 +292,7 @@ overlay_link_completed (void *cls, struct GNUNET_TESTBED_Operation *op,
     tc->nlinks = 0;
     while (NULL != (retry_entry = tc->rl_head))
     {
-      link = retry_entry->link;      
+      link = retry_entry->link;
       link->op =
           GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
                                           link, tc->peers[link->A],
@@ -609,7 +609,7 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   unsigned int redo_threshold;
 
   links = 0;
-  etaboff = 0;  
+  etaboff = 0;
   tc->link_array_size = tc->num_peers * m;
   tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
                                         tc->link_array_size);
@@ -657,7 +657,7 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
           goto redo;
       make_link (&tc->link_array[links + cnt], random_peer, peer, tc);
       deg[random_peer]++;
-      deg[peer]++;      
+      deg[peer]++;
       used[cnt] = random_peer;
     }
     for (cnt = 0; cnt < GNUNET_MIN (peer, m); cnt++)
@@ -672,7 +672,7 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   GNUNET_free (deg);
   GNUNET_assert (links <= tc->link_array_size);
   tc->link_array_size = links;
-  tc->link_array = 
+  tc->link_array =
       GNUNET_realloc (tc->link_array,
                       sizeof (struct OverlayLink) * tc->link_array_size);
 }
@@ -982,7 +982,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     {
       uint16_t cap;
       uint8_t m;
-      
+
       cap = (uint16_t) va_arg (va, unsigned int);
       m = (uint8_t) va_arg (va, unsigned int);
       gen_scale_free (tc, cap, m);
@@ -1074,7 +1074,7 @@ GNUNET_TESTBED_overlay_configure_topology (void *op_cls,
   GNUNET_assert (topo < GNUNET_TESTBED_TOPOLOGY_OPTION_END);
   va_start (vargs, topo);
   op = GNUNET_TESTBED_overlay_configure_topology_va (op_cls, num_peers, peers,
-                                                     max_connections, 
+                                                     max_connections,
                                                      comp_cb, comp_cb_cls,
                                                      topo,
                                                      vargs);

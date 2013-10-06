@@ -142,12 +142,12 @@ iterator_cb (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
   if ((BSIZE * 2) != fs)        /* The file size should be equal to what we
                                    have written */
     goto iteration_cont;
-  
+
   cancel = GNUNET_YES;
   result = GNUNET_OK;
-    
+
  iteration_cont:
-  if ( (NULL != di) && 
+  if ( (NULL != di) &&
        (GNUNET_YES == GNUNET_DISK_directory_iterator_next (di, cancel)) )
     return;
   shutdown_now ();
@@ -193,7 +193,7 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created

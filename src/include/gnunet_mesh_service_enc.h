@@ -91,7 +91,7 @@ enum MeshOption
 /**
  * Functions with this signature are called whenever a message is
  * received.
- * 
+ *
  * Each time the function must call #GNUNET_MESH_receive_done on the channel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
@@ -161,8 +161,8 @@ typedef void *(GNUNET_MESH_InboundChannelNotificationHandler) (void *cls,
 
 /**
  * Function called whenever a channel is destroyed.  Should clean up
- * any associated state. 
- * 
+ * any associated state.
+ *
  * It must NOT call #GNUNET_MESH_channel_destroy on the channel.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
@@ -180,7 +180,7 @@ typedef void (GNUNET_MESH_ChannelEndHandler) (void *cls,
  * Connect to the mesh service.
  *
  * @param cfg Configuration to use.
- * @param cls Closure for the various callbacks that follow (including 
+ * @param cls Closure for the various callbacks that follow (including
  *            handlers in the handlers array).
  * @param new_channel Function called when an *incoming* channel is created.
  *                    Can be NULL if no inbound channels are desired.
@@ -191,10 +191,10 @@ typedef void (GNUNET_MESH_ChannelEndHandler) (void *cls,
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
  *                 one must call #GNUNET_MESH_receive_done on the channel to
  *                 receive the next message.  Messages of a type that is not
- *                 in the handlers array are ignored if received. 
+ *                 in the handlers array are ignored if received.
  * @param ports NULL or 0-terminated array of port numbers for incoming channels.
  *              See @a new_channel.
- * 
+ *
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
  */
@@ -231,7 +231,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @return handle to the channel
  */
 struct GNUNET_MESH_Channel *
-GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h, 
+GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
                             void *channel_ctx,
                             const struct GNUNET_PeerIdentity *peer,
                             uint32_t port,
@@ -241,7 +241,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
 
 /**
  * Destroy an existing channel.
- * 
+ *
  * The existing end callback for the channel will be called immediately.
  * Any pending outgoing messages will be sent but no incoming messages will be
  * accepted and no data callbacks will be called.
@@ -255,7 +255,7 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel);
 /**
  * Struct to retrieve info about a channel.
  */
-union GNUNET_MESH_ChannelInfo 
+union GNUNET_MESH_ChannelInfo
 {
 
   /**
@@ -329,7 +329,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
 
 /**
  * Indicate readiness to receive the next message on a channel.
- * 
+ *
  * Should only be called once per handler called.
  *
  * @param channel Channel that will be allowed to call another handler.

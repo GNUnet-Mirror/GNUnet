@@ -279,7 +279,7 @@ entropy_generator (void *cls, const char *what, int printchar, int current,
   LOG (GNUNET_ERROR_TYPE_INFO, _("Starting `%s' process to generate entropy\n"),
        "find");
   genproc =
-     GNUNET_OS_start_process (GNUNET_NO, 0, 
+     GNUNET_OS_start_process (GNUNET_NO, 0,
 			      NULL, NULL, "sh", "sh", "-c",
 			      "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
 			      NULL);
@@ -298,7 +298,7 @@ killfind ()
 }
 
 
-void __attribute__ ((constructor)) 
+void __attribute__ ((constructor))
 GNUNET_CRYPTO_random_init ()
 {
   gcry_error_t rc;
@@ -319,7 +319,7 @@ GNUNET_CRYPTO_random_init ()
   if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
     FPRINTF (stderr,  "Failed to set libgcrypt option %s: %s\n", "ENABLE_QUICK_RANDOM",
 	     gcry_strerror (rc));
-  
+
 #ifdef GCRYCTL_INITIALIZATION_FINISHED
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
 #endif
@@ -334,7 +334,7 @@ GNUNET_CRYPTO_random_init ()
 }
 
 
-void __attribute__ ((destructor)) 
+void __attribute__ ((destructor))
 GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);

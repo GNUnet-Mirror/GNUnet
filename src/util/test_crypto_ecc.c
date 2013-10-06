@@ -108,7 +108,7 @@ testDeriveSignVerify ()
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST, 
+      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
 				&purp, &sig,
 				&dpub))
   {
@@ -117,7 +117,7 @@ testDeriveSignVerify ()
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST, 
+      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
 				&purp, &sig,
 				&pkey))
   {
@@ -280,7 +280,7 @@ main (int argc, char *argv[])
   if (0 != failure_count)
   {
     fprintf (stderr,
-	     "\n\n%d TESTS FAILED!\n\n", 
+	     "\n\n%d TESTS FAILED!\n\n",
 	     failure_count);
     return -1;
   }

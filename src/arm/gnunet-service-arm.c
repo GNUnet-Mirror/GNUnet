@@ -259,7 +259,7 @@ write_result (void *cls, size_t size, void *buf)
     return 0;			/* error, not much we can do */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending status response %u to client\n", 
+	      "Sending status response %u to client\n",
 	      (unsigned int) msg->result);
   msize = msg->arm_msg.header.size;
   GNUNET_assert (size >= msize);
@@ -275,7 +275,7 @@ write_result (void *cls, size_t size, void *buf)
 
 /**
  * Transmit the list of running services.
- * 
+ *
  * @param cls pointer to `struct GNUNET_ARM_ListResultMessage` with the message
  * @param size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error
@@ -286,7 +286,7 @@ write_list_result (void *cls, size_t size, void *buf)
 {
   struct GNUNET_ARM_ListResultMessage *msg = cls;
   size_t rslt_size;
-  
+
   if (buf == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -294,14 +294,14 @@ write_list_result (void *cls, size_t size, void *buf)
     GNUNET_free (msg);
     return 0;                   /* error, not much we can do */
   }
-  
+
   rslt_size = msg->arm_msg.header.size;
   GNUNET_assert (size >= rslt_size);
   msg->arm_msg.header.size = htons (msg->arm_msg.header.size);
   msg->arm_msg.header.type = htons (msg->arm_msg.header.type);
   msg->arm_msg.request_id = GNUNET_htonll (msg->arm_msg.request_id);
   msg->count = htons (msg->count);
-  
+
   memcpy (buf, msg, rslt_size);
   GNUNET_free (msg);
   return rslt_size;
@@ -319,7 +319,7 @@ write_list_result (void *cls, size_t size, void *buf)
  * @return NULL if it was not found
  */
 static void
-signal_result (struct GNUNET_SERVER_Client *client, 
+signal_result (struct GNUNET_SERVER_Client *client,
 	       const char *name,
 	       uint64_t request_id,
 	       enum GNUNET_ARM_Result result)
@@ -335,7 +335,7 @@ signal_result (struct GNUNET_SERVER_Client *client,
   msg->arm_msg.request_id = request_id;
 
   GNUNET_SERVER_notify_transmit_ready (client, msize,
-				       GNUNET_TIME_UNIT_FOREVER_REL, 
+				       GNUNET_TIME_UNIT_FOREVER_REL,
 				       write_result, msg);
 }
 
@@ -492,7 +492,7 @@ start_process (struct ServiceList *sl, struct GNUNET_SERVER_Client *client, uint
     if (NULL == sl->config)
       sl->proc =
 	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			  lsocks, loprefix, binary, 
+			  lsocks, loprefix, binary,
 			  options, NULL);
     else
       sl->proc =
@@ -693,7 +693,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t request_id;
   struct GNUNET_ARM_Message *amsg;
 
-  amsg = (struct GNUNET_ARM_Message *) message;  
+  amsg = (struct GNUNET_ARM_Message *) message;
   request_id = GNUNET_ntohll (amsg->request_id);
   size = ntohs (amsg->header.size);
   size -= sizeof (struct GNUNET_ARM_Message);
@@ -762,7 +762,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t request_id;
   struct GNUNET_ARM_Message *amsg;
 
-  amsg = (struct GNUNET_ARM_Message *) message;  
+  amsg = (struct GNUNET_ARM_Message *) message;
   request_id = GNUNET_ntohll (amsg->request_id);
   size = ntohs (amsg->header.size);
   size -= sizeof (struct GNUNET_ARM_Message);
@@ -847,10 +847,10 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   size_t total_size;
   struct ServiceList *sl;
   uint16_t count;
-  
+
   if (NULL == client)
     return;
-  
+
   request = (struct GNUNET_ARM_Message *) message;
   count = 0;
   string_list_size = 0;
@@ -866,16 +866,16 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
 
-  total_size = sizeof (struct GNUNET_ARM_ListResultMessage) 
+  total_size = sizeof (struct GNUNET_ARM_ListResultMessage)
                + string_list_size;
   msg = GNUNET_malloc (total_size);
   msg->arm_msg.header.size = total_size;
   msg->arm_msg.header.type = GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT;
   msg->arm_msg.request_id = GNUNET_ntohll (request->request_id);
   msg->count = count;
-  
+
   char *pos = (char *)&msg[1];
-  for (sl = running_head; sl != NULL; sl = sl->next) 
+  for (sl = running_head; sl != NULL; sl = sl->next)
   {
     if (sl->proc != NULL)
     {
@@ -884,7 +884,7 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
       pos += s;
     }
   }
-  
+
   GNUNET_SERVER_notify_transmit_ready (client,
                                        total_size,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
@@ -926,7 +926,7 @@ list_count (struct ServiceList *running_head)
   unsigned int res = 0;
 
   for (res = 0, i = running_head; i; i = i->next, res++)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"%s\n",
 		i->name);
   return res;
@@ -946,7 +946,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceList *nxt;
   struct ServiceListeningInfo *sli;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "First shutdown phase\n");
   if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
   {
@@ -979,7 +979,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     nxt = pos->next;
     if (pos->proc != NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Stopping service `%s'\n",
 		  pos->name);
       pos->killed_at = GNUNET_TIME_absolute_get ();
@@ -996,7 +996,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     do_shutdown ();
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Delaying shutdown, have %u childs still running\n", 
+		"Delaying shutdown, have %u childs still running\n",
 		list_count (running_head));
 }
 
@@ -1063,12 +1063,12 @@ delayed_restart_task (void *cls,
   }
   if (lowestRestartDelay.rel_value_us != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Will restart process in %s\n",
 		GNUNET_STRINGS_relative_time_to_string (lowestRestartDelay, GNUNET_YES));
     child_restart_task =
       GNUNET_SCHEDULER_add_delayed_with_priority (lowestRestartDelay,
-						  GNUNET_SCHEDULER_PRIORITY_IDLE, 
+						  GNUNET_SCHEDULER_PRIORITY_IDLE,
 						  &delayed_restart_task, NULL);
   }
 }
@@ -1275,7 +1275,7 @@ setup_service (void *cls, const char *section)
   {
     if (NULL != config)
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING, 
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
 				 section, "CONFIG",
 				 STRERROR (errno));
       GNUNET_free (config);
@@ -1293,7 +1293,7 @@ setup_service (void *cls, const char *section)
 #else
   if (GNUNET_CONFIGURATION_have_value (cfg, section, "PIPECONTROL"))
     sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "PIPECONTROL");
-#endif  
+#endif
   GNUNET_CONTAINER_DLL_insert (running_head, running_tail, sl);
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))
@@ -1363,9 +1363,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_start, NULL, GNUNET_MESSAGE_TYPE_ARM_START, 0},
     {&handle_stop, NULL, GNUNET_MESSAGE_TYPE_ARM_STOP, 0},
-    {&handle_monitor, NULL, GNUNET_MESSAGE_TYPE_ARM_MONITOR, 
+    {&handle_monitor, NULL, GNUNET_MESSAGE_TYPE_ARM_MONITOR,
      sizeof (struct GNUNET_MessageHeader)},
-    {&handle_list, NULL, GNUNET_MESSAGE_TYPE_ARM_LIST, 
+    {&handle_list, NULL, GNUNET_MESSAGE_TYPE_ARM_LIST,
      sizeof (struct GNUNET_ARM_Message)},
     {NULL, NULL, 0, 0}
   };
@@ -1456,7 +1456,7 @@ main (int argc, char *const *argv)
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD, &sighandler_child_death);
   ret =
     (GNUNET_OK ==
-     GNUNET_SERVICE_run (argc, argv, "arm", 
+     GNUNET_SERVICE_run (argc, argv, "arm",
 			 GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN, &run, NULL)) ? 0 : 1;
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;

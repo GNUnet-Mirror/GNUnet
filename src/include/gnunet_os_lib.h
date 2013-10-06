@@ -32,7 +32,7 @@
  * processes using signals.  Because signals are not supported on W32
  * and Java (at least not nicely), we can alternatively use a pipe
  * to send signals to the child processes (if the child process is
- * a full-blown GNUnet process that supports reading signals from 
+ * a full-blown GNUnet process that supports reading signals from
  * a pipe, of course).  Naturally, this also only works for 'normal'
  * termination via signals, and not as a replacement for SIGKILL.
  * Thus using pipes to communicate signals should only be enabled if
@@ -72,7 +72,7 @@ enum GNUNET_OS_InheritStdioFlags
    * inherit stdin of the parent.
    */
   GNUNET_OS_INHERIT_STD_IN = 1,
-  
+
   /**
    * When this flag is set, the child process will
    * inherit stdout of the parent.
@@ -319,7 +319,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
                              enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
-			     const char *filename, 
+			     const char *filename,
 			     char *const argv[]);
 
 
@@ -375,7 +375,7 @@ GNUNET_OS_start_process_va (int pipe_control,
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_v (int pipe_control,
                            enum GNUNET_OS_InheritStdioFlags std_inheritance,
-			   const SOCKTYPE *lsocks, 
+			   const SOCKTYPE *lsocks,
 			   const char *filename,
                            char *const argv[]);
 
@@ -482,7 +482,7 @@ GNUNET_OS_install_parent_control_handler (void *cls,
  *         GNUNET_NO if not SUID (but binary exists),
  *         GNUNET_SYSERR on error (no such binary or not executable)
  */
-int 
+int
 GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char * params);
 
 

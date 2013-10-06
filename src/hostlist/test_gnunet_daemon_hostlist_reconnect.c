@@ -201,7 +201,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argcx, char *argvx[])
 {
-  static char *const argv[] = { 
+  static char *const argv[] = {
     "test-gnunet-daemon-hostlist",
     "-c", "test_gnunet_daemon_hostlist_data.conf",
     NULL

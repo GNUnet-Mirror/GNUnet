@@ -220,9 +220,9 @@ curl_main ()
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
     do_shutdown ();
-    return;    
+    return;
   }
-  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max)); 
+  GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max));
   if ( (CURLM_OK != curl_multi_timeout (multi, &timeout)) ||
        (-1 == timeout) )
     delay = GNUNET_TIME_UNIT_SECONDS;
@@ -239,13 +239,13 @@ curl_main ()
 					      &nrs,
 					      &nws,
 					      &curl_task,
-					      NULL);  
+					      NULL);
 }
 
 static void
 start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_asprintf (&url, 
+  GNUNET_asprintf (&url,
 		   "http://%s:%d/hello_world",	
 		   TEST_DOMAIN, PORT);
   curl = curl_easy_init ();
@@ -280,7 +280,7 @@ disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
- *                traffic to this IP will now be redirected to the 
+ *                traffic to this IP will now be redirected to the
  *                specified target peer; NULL on error
  */
 static void
@@ -290,12 +290,12 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 
   if ((emsg != NULL) && (GNUNET_YES != success))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "NS failed to create record %s\n", emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1), start_curl, NULL);
 
 }
@@ -306,7 +306,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
 /**
  * Function to keep the HTTP server running.
  */
-static void 
+static void
 mhd_main (void);
 
 
@@ -320,7 +320,7 @@ mhd_task (void *cls,
 }
 
 
-static void 
+static void
 mhd_main ()
 {
   struct GNUNET_NETWORK_FDSet nrs;
@@ -355,7 +355,7 @@ mhd_main ()
 					     &nrs,
 					     &nws,
 					     &mhd_task,
-					     NULL);  
+					     NULL);
 }
 
 static void
@@ -367,7 +367,7 @@ run (void *cls,
   struct GNUNET_CRYPTO_EccPrivateKey *host_key;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *zone_keyfile;
-  
+
   namestore = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != namestore);
   flags = MHD_USE_DEBUG;
@@ -396,7 +396,7 @@ run (void *cls,
     do_shutdown ();
     return;
   }
-  
+
   proxy_proc = GNUNET_OS_start_process (GNUNET_NO,
                                         GNUNET_OS_INHERIT_STD_ALL,
                                         NULL,
@@ -412,7 +412,7 @@ run (void *cls,
     do_shutdown ();
     return;
   }
-  
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "ZONEKEY",
                                                             &zone_keyfile))

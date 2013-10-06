@@ -95,7 +95,7 @@ enum MeshTunnelOption
 /**
  * Functions with this signature are called whenever a message is
  * received.
- * 
+ *
  * Each time the function must call #GNUNET_MESH_receive_done on the tunnel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
@@ -104,7 +104,7 @@ enum MeshTunnelOption
  * @param tunnel Connection to the other end.
  * @param tunnel_ctx Place to store local state associated with the tunnel.
  * @param message The actual message.
- * 
+ *
  * @return #GNUNET_OK to keep the tunnel open,
  *         #GNUNET_SYSERR to close it (signal serious error).
  */
@@ -164,8 +164,8 @@ typedef void *(GNUNET_MESH_InboundTunnelNotificationHandler) (void *cls,
 
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
- * any associated state. 
- * 
+ * any associated state.
+ *
  * It must NOT call #GNUNET_MESH_tunnel_destroy on the tunnel.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
@@ -182,7 +182,7 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  * Connect to the mesh service.
  *
  * @param cfg Configuration to use.
- * @param cls Closure for the various callbacks that follow (including 
+ * @param cls Closure for the various callbacks that follow (including
  *            handlers in the handlers array).
  * @param new_tunnel Function called when an *incoming* tunnel is created.
  *                   Can be NULL if no inbound tunnels are desired.
@@ -193,15 +193,15 @@ typedef void (GNUNET_MESH_TunnelEndHandler) (void *cls,
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
  *                 one must call #GNUNET_MESH_receive_done on the tunnel to
  *                 receive the next message.  Messages of a type that is not
- *                 in the handlers array are ignored if received. 
+ *                 in the handlers array are ignored if received.
  * @param ports NULL or 0-terminated array of port numbers for incoming tunnels.
  *              See @c new_tunnel.
- * 
+ *
  * @return handle to the mesh service NULL on error
  *         (in this case, init is never called)
  */
 struct GNUNET_MESH_Handle *
-GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		     void *cls,
                      GNUNET_MESH_InboundTunnelNotificationHandler new_tunnel,
                      GNUNET_MESH_TunnelEndHandler cleaner,
@@ -234,7 +234,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @return handle to the tunnel
  */
 struct GNUNET_MESH_Tunnel *
-GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
+GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
                            void *tunnel_ctx,
                            const struct GNUNET_PeerIdentity *peer,
                            uint32_t port,
@@ -244,7 +244,7 @@ GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
 
 /**
  * Destroy an existing tunnel.
- * 
+ *
  * The existing end callback for the tunnel will be called immediately.
  * Any pending outgoing messages will be sent but no incoming messages will be
  * accepted and no data callbacks will be called.
@@ -258,7 +258,7 @@ GNUNET_MESH_tunnel_destroy (struct GNUNET_MESH_Tunnel *tunnel);
 /**
  * Struct to retrieve info about a tunnel.
  */
-union GNUNET_MESH_TunnelInfo 
+union GNUNET_MESH_TunnelInfo
 {
 
   /**
@@ -332,7 +332,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle
 
 /**
  * Indicate readiness to receive the next message on a tunnel.
- * 
+ *
  * Should only be called once per handler called.
  *
  * @param tunnel Tunnel that will be allowed to call another handler.

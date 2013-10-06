@@ -128,7 +128,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      int auto_retry,
-                                     GNUNET_CONNECTION_TransmitReadyNotify notify, 
+                                     GNUNET_CONNECTION_TransmitReadyNotify notify,
                                      void *notify_cls);
 
 

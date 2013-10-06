@@ -103,10 +103,10 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
               (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 
-			   anonymity_level, SEED, uri, 
+  GNUNET_FS_TEST_download (daemons[0], TIMEOUT,
+			   anonymity_level, SEED, uri,
 			   VERBOSE, &do_stop,
-                           (NULL == fn) 
+                           (NULL == fn)
 			   ? NULL
 			   : GNUNET_strdup (fn));
 }
@@ -121,7 +121,7 @@ do_publish (void *cls,
             unsigned int links_failed)
 {
   unsigned int i;
- 
+
   if (NULL != strstr (progname, "mesh"))
     anonymity_level = 0;
   else
@@ -131,8 +131,8 @@ do_publish (void *cls,
     daemons[i] = peers[i];
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
-  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 
-			  anonymity_level, GNUNET_NO, 
+  GNUNET_FS_TEST_publish (daemons[1], TIMEOUT,
+			  anonymity_level, GNUNET_NO,
 			  FILESIZE, SEED,
                           VERBOSE, &do_download, NULL);
 }

@@ -41,7 +41,7 @@
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.
  */
-static void 
+static void
 print_edge (void *cls,
 	    const struct GNUNET_HashCode *key,
 	    const char *proof,
@@ -64,7 +64,7 @@ print_edge (void *cls,
 
 /**
  * The main function of the regex performace test.
- * 
+ *
  * Read a set of regex from a file, combine them and create a DFA from the
  * resulting combined regex.
  *
@@ -86,7 +86,7 @@ main (int argc, char *const *argv)
   if (3 != argc)
   {
     fprintf (stderr,
-	     "Usage: %s REGEX_FILE COMPRESSION\n", 
+	     "Usage: %s REGEX_FILE COMPRESSION\n",
 	     argv[0]);
     return 1;
   }
@@ -104,9 +104,9 @@ main (int argc, char *const *argv)
   GNUNET_asprintf (&regex, "GNUNET_REGEX_PROFILER_(%s)(0|1)*", buffer);
   size = strlen (regex);
 
-  fprintf (stderr, 
-	   "Combined regex (%ld bytes):\n%s\n", 
-	   size, 
+  fprintf (stderr,
+	   "Combined regex (%ld bytes):\n%s\n",
+	   size,
 	   regex);
   dfa = REGEX_INTERNAL_construct_dfa (regex, size, compression);
   printf ("********* ALL EDGES *********'\n");

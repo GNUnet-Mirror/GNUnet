@@ -231,7 +231,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fc->num_rounds++;
     delay = GNUNET_TIME_relative_multiply (fc->ack_delay, 2);
     /* never use zero, need some time for ACK always */
-    delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);    
+    delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);
     fc->wack = GNUNET_YES;
     fc->last_round = GNUNET_TIME_absolute_get ();
     GNUNET_STATISTICS_update (fc->stats, _("# fragments wrap arounds"), 1,
@@ -277,7 +277,7 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   struct GNUNET_FRAGMENT_Context *fc;
   size_t size;
   uint64_t bits;
-  
+
   GNUNET_STATISTICS_update (stats, _("# messages fragmented"), 1, GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
@@ -368,7 +368,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     fc->wack = GNUNET_NO;
     ndelay = GNUNET_TIME_absolute_get_duration (fc->last_round);
     fc->ack_delay.rel_value_us =
-        (ndelay.rel_value_us / fc->num_transmissions + 3 * fc->ack_delay.rel_value_us) / 4;    
+        (ndelay.rel_value_us / fc->num_transmissions + 3 * fc->ack_delay.rel_value_us) / 4;
     fc->num_transmissions = 0;
     /* calculate ratio msg sent vs. msg acked */
     ack_cnt = 0;
@@ -385,8 +385,8 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     if (0 == ack_cnt)
     {
       /* complete loss */
-      fc->msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay, 
-						     snd_cnt);      
+      fc->msg_delay = GNUNET_TIME_relative_multiply (fc->msg_delay,
+						     snd_cnt);
     }
     else if (snd_cnt > ack_cnt)
     {

@@ -1035,7 +1035,7 @@ task_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_STATISTICS_set (stats,
                          gettext_noop
                          ("# milliseconds between hostlist downloads"),
-                         hostlist_delay.rel_value_us / 1000LL, 
+                         hostlist_delay.rel_value_us / 1000LL,
 			 GNUNET_YES);
   if (0 == once)
   {

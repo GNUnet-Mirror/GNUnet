@@ -51,7 +51,7 @@
  * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
-typedef enum GNUNET_BLOCK_EvaluationResult 
+typedef enum GNUNET_BLOCK_EvaluationResult
 (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
 				    enum GNUNET_BLOCK_Type type,
 				    const struct GNUNET_HashCode *query,

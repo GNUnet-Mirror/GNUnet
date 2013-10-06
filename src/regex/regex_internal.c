@@ -552,7 +552,7 @@ struct StringBuffer
    * Allocated buffer.
    */
   char *abuf;
-  
+
   /**
    * Length of the string in the buffer.
    */
@@ -575,10 +575,10 @@ struct StringBuffer
    * change).  This is used in an optimization that improves
    * performance by about 1% --- if we use int16_t here.  With just
    * "int" for both flags, performance drops (on my system) significantly,
-   * most likely due to increased cache misses. 
+   * most likely due to increased cache misses.
    */
   int16_t synced;
-  
+
 };
 
 
@@ -604,10 +604,10 @@ sb_nullstrcmp (const struct StringBuffer *s1,
     return -1;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
-	       
+	
 
 /**
- * Compare two strings for equality. 
+ * Compare two strings for equality.
  *
  * @param s1 first string for comparison.
  * @param s2 second string for comparison.
@@ -622,7 +622,7 @@ sb_strcmp (const struct StringBuffer *s1,
     return -1;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
-	 
+	
 
 /**
  * Reallocate the buffer of 'ret' to fit 'nlen' characters;
@@ -647,7 +647,7 @@ sb_realloc (struct StringBuffer *ret,
   ret->sbuf = ret->abuf;
   GNUNET_free_non_null (old);
 }
-  
+
 
 /**
  * Append a string.
@@ -669,7 +669,7 @@ sb_append (struct StringBuffer *ret,
 	  sarg->slen);
   ret->slen += sarg->slen;
 }
-	   
+	
 
 /**
  * Append a C string.
@@ -693,7 +693,7 @@ sb_append_cstr (struct StringBuffer *ret,
 	  cstr_len);
   ret->slen += cstr_len;
 }
-	   
+	
 
 /**
  * Wrap a string buffer, that is, set ret to the format string
@@ -854,7 +854,7 @@ sb_free (struct StringBuffer *sb)
 static void
 sb_strdup (struct StringBuffer *out,
 	   const struct StringBuffer *in)
-	   
+	
 {
   out->null_flag = in->null_flag;
   if (GNUNET_YES == out->null_flag)
@@ -935,7 +935,7 @@ needs_parentheses (const struct StringBuffer *str)
     }
     /* while '(' before ')', count opening parens */
     while ( (NULL != (op = memchr (pos, '(', end - pos)))  &&
-	    (op < cl) ) 
+	    (op < cl) )
     {
       cnt++;
       pos = op + 1;
@@ -971,7 +971,7 @@ remove_parentheses (struct StringBuffer *str)
   if (0)
     return;
   sbuf = str->sbuf;
-  if ( (GNUNET_YES == str->null_flag) || 
+  if ( (GNUNET_YES == str->null_flag) ||
        (1 >=  (slen = str->slen)) ||
        ('(' != str->sbuf[0]) ||
        (')' != str->sbuf[slen - 1]) )
@@ -981,7 +981,7 @@ remove_parentheses (struct StringBuffer *str)
   end = &sbuf[slen - 1];
   op = memchr (pos, '(', end - pos);
   cp = memchr (pos, ')', end - pos);
-  while (NULL != cp) 
+  while (NULL != cp)
   {
     while ( (NULL != op) &&
 	    (op < cp) )
@@ -1007,7 +1007,7 @@ remove_parentheses (struct StringBuffer *str)
     return;
   }
   str->sbuf++;
-  str->slen -= 2;  
+  str->slen -= 2;
 }
 
 
@@ -1022,10 +1022,10 @@ remove_parentheses (struct StringBuffer *str)
 static int
 has_epsilon (const struct StringBuffer *str)
 {
-  return 
-    (GNUNET_YES != str->null_flag) && 
+  return
+    (GNUNET_YES != str->null_flag) &&
     (0 < str->slen) &&
-    ('(' == str->sbuf[0]) && 
+    ('(' == str->sbuf[0]) &&
     ('|' == str->sbuf[1]) &&
     (')' == str->sbuf[str->slen - 1]);
 }
@@ -1048,8 +1048,8 @@ remove_epsilon (const struct StringBuffer *str,
   {
     ret->null_flag = GNUNET_YES;
     return;
-  }  
-  if ( (str->slen > 1) && 
+  }
+  if ( (str->slen > 1) &&
        ('(' == str->sbuf[0]) &&
        ('|' == str->sbuf[1]) &&
        (')' == str->sbuf[str->slen - 1]) )
@@ -1080,11 +1080,11 @@ remove_epsilon (const struct StringBuffer *str,
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strncmp (const struct StringBuffer *str1, 
+sb_strncmp (const struct StringBuffer *str1,
 	    const struct StringBuffer *str2, size_t n)
 {
   size_t max;
-  
+
   if ( (str1->slen != str2->slen) &&
        ( (str1->slen < n) ||
 	 (str2->slen < n) ) )
@@ -1106,17 +1106,17 @@ sb_strncmp (const struct StringBuffer *str1,
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strncmp_cstr (const struct StringBuffer *str1, 
+sb_strncmp_cstr (const struct StringBuffer *str1,
 		 const char *str2, size_t n)
 {
-  if (str1->slen < n) 
+  if (str1->slen < n)
     return -1;
   return memcmp (str1->sbuf, str2, n);
 }
 
 
 /**
- * Initialize string buffer for storing strings of up to n 
+ * Initialize string buffer for storing strings of up to n
  * characters.
  *
  * @param sb buffer to initialize
@@ -1143,7 +1143,7 @@ sb_init (struct StringBuffer *sb,
  * @return -1 if any of the strings is NULL, 0 if equal, non 0 otherwise
  */
 static int
-sb_strkcmp (const struct StringBuffer *str1, 
+sb_strkcmp (const struct StringBuffer *str1,
 	    const struct StringBuffer *str2, size_t k)
 {
   if ( (GNUNET_YES == str1->null_flag) ||
@@ -1196,7 +1196,7 @@ number_states (void *cls, const unsigned int count,
  * @param R_cur_r optimization -- kept between iterations to avoid realloc
  */
 static void
-automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij, 
+automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
 				  const struct StringBuffer *R_last_ik,
                                   const struct StringBuffer *R_last_kk,
 				  const struct StringBuffer *R_last_kj,
@@ -1227,8 +1227,8 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
    * R_cur_r == R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj}
    */
 
-  if ( (GNUNET_YES == R_last_ij->null_flag) && 
-       ( (GNUNET_YES == R_last_ik->null_flag) || 
+  if ( (GNUNET_YES == R_last_ij->null_flag) &&
+       ( (GNUNET_YES == R_last_ik->null_flag) ||
 	 (GNUNET_YES == R_last_kj->null_flag)))
   {
     /* R^{(k)}_{ij} = N | N */
@@ -1237,13 +1237,13 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
     return;
   }
 
-  if ( (GNUNET_YES == R_last_ik->null_flag) || 
+  if ( (GNUNET_YES == R_last_ik->null_flag) ||
        (GNUNET_YES == R_last_kj->null_flag) )
   {
     /*  R^{(k)}_{ij} = R^{(k-1)}_{ij} | N */
     if (GNUNET_YES == R_last_ij->synced)
     {
-      R_cur_ij->synced = GNUNET_YES;      
+      R_cur_ij->synced = GNUNET_YES;
       R_cur_ij->null_flag = GNUNET_NO;
       return;
     }
@@ -1256,10 +1256,10 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
   /* $R^{(k)}_{ij} = N | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} OR
    * $R^{(k)}_{ij} = R^{(k-1)}_{ij} | R^{(k-1)}_{ik} ( R^{(k-1)}_{kk} )^* R^{(k-1)}_{kj} */
 
-  R_cur_r->null_flag = GNUNET_YES; 
-  R_cur_r->slen = 0; 
-  R_cur_l->null_flag = GNUNET_YES; 
-  R_cur_l->slen = 0; 
+  R_cur_r->null_flag = GNUNET_YES;
+  R_cur_r->slen = 0;
+  R_cur_l->null_flag = GNUNET_YES;
+  R_cur_l->slen = 0;
 
   /* cache results from strcmp, we might need these many times */
   ij_kj_cmp = sb_nullstrcmp (R_last_ij, R_last_kj);
@@ -1291,8 +1291,8 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
     remove_epsilon (R_last_ij, &R_temp_ij);
     remove_parentheses (&R_temp_ij);
 
-    if ( (0 == sb_strcmp (&R_temp_ij, &R_temp_ik)) && 
-	 (0 == sb_strcmp (&R_temp_ik, &R_temp_kk)) && 
+    if ( (0 == sb_strcmp (&R_temp_ij, &R_temp_ik)) &&
+	 (0 == sb_strcmp (&R_temp_ik, &R_temp_kk)) &&
 	 (0 == sb_strcmp (&R_temp_kk, &R_temp_kj)) )
     {
       if (0 == R_temp_ij.slen)
@@ -1395,16 +1395,16 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
     length = R_temp_kk.slen - R_last_ik->slen;
 
     /* a(ba)*bx = (ab)+x */
-    if ( (length > 0) && 
+    if ( (length > 0) &&
 	 (GNUNET_YES != R_last_kk->null_flag) &&
 	 (0 < R_last_kk->slen) &&
-	 (GNUNET_YES != R_last_kj->null_flag) && 
+	 (GNUNET_YES != R_last_kj->null_flag) &&
 	 (0 < R_last_kj->slen) &&
 	 (GNUNET_YES != R_last_ik->null_flag) &&
 	 (0 < R_last_ik->slen) &&
 	 (0 == sb_strkcmp (&R_temp_kk, R_last_ik, length)) &&
 	 (0 == sb_strncmp (&R_temp_kk, R_last_kj, length)) )
-    { 
+    {
       struct StringBuffer temp_a;
       struct StringBuffer temp_b;
 
@@ -1452,7 +1452,7 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
           sb_printf1 (R_cur_r, "%.*s*", 1, &R_temp_kk);
       }
       /* aa*a = a+a */
-      else if ( (0 == clean_ik_kk_cmp) && 
+      else if ( (0 == clean_ik_kk_cmp) &&
 		(0 == clean_kk_kj_cmp) &&
 		(! has_epsilon (R_last_ik)) )
       {
@@ -1550,7 +1550,7 @@ automaton_create_proofs_simplify (const struct StringBuffer *R_last_ij,
   sb_free (&R_temp_kk);
   sb_free (&R_temp_kj);
 
-  if ( (GNUNET_YES == R_cur_l->null_flag) && 
+  if ( (GNUNET_YES == R_cur_l->null_flag) &&
        (GNUNET_YES == R_cur_r->null_flag) )
   {
     R_cur_ij->null_flag = GNUNET_YES;
@@ -1670,7 +1670,7 @@ automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       if (needs_parentheses (&R_last[i * n + j]))
-        sb_wrap (&R_last[i * n + j], "(%.*s)", 2);  
+        sb_wrap (&R_last[i * n + j], "(%.*s)", 2);
   /* Compute regular expressions of length "k" between each pair of states per
    * induction */
   memset (&R_cur_l, 0, sizeof (struct StringBuffer));
@@ -1726,14 +1726,14 @@ automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
       if ( (0 == complete_regex.slen) &&
 	   (0 < R_last[a->start->dfs_id * n + i].slen) )
       {
-	sb_append (&complete_regex, 
+	sb_append (&complete_regex,
 		   &R_last[a->start->dfs_id * n + i]);
       }
       else if ( (GNUNET_YES != R_last[a->start->dfs_id * n + i].null_flag) &&
 		(0 < R_last[a->start->dfs_id * n + i].slen) )
       {
 	sb_append_cstr (&complete_regex, "|");
-	sb_append (&complete_regex, 
+	sb_append (&complete_regex,
 		   &R_last[a->start->dfs_id * n + i]);
       }
     }
@@ -1742,11 +1742,11 @@ automaton_create_proofs (struct REGEX_INTERNAL_Automaton *a)
 
   /* cleanup */
   sb_free (&complete_regex);
-  for (i = 0; i < n; i++)  
+  for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
     {
-      sb_free (&R_cur[i * n + j]);  
-      sb_free (&R_last[i * n + j]);  
+      sb_free (&R_cur[i * n + j]);
+      sb_free (&R_last[i * n + j]);
     }
   GNUNET_free (R_cur);
   GNUNET_free (R_last);
@@ -1804,15 +1804,15 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
     pos += strlen (pos);
 
     /* Add a transition for each distinct label to NULL state */
-    for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)    
+    for (ctran = cstate->transitions_head; NULL != ctran; ctran = ctran->next)
       if (NULL != ctran->label)
-        state_add_transition (ctx, s, ctran->label, NULL);    
+        state_add_transition (ctx, s, ctran->label, NULL);
 
     /* If the nfa_states contain an accepting state, the new dfa state is also
      * accepting. */
     if (cstate->accepting)
       s->accepting = 1;
-  }  
+  }
   pos[-1] = '}';
   s->name = GNUNET_realloc (s->name, strlen (s->name) + 1);
 
@@ -2495,7 +2495,7 @@ nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
     /* Add start state to closure only for epsilon closure */
     if (NULL == label)
       state_set_append (ret, s);
-    
+
     /* initialize work stack */
     cls_stack.head = NULL;
     cls_stack.tail = NULL;
@@ -2506,7 +2506,7 @@ nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
     {
       GNUNET_CONTAINER_MDLL_remove (ST, cls_stack.head, cls_stack.tail,
 				    currentstate);
-      cls_stack.len--;      
+      cls_stack.len--;
       for (ctran = currentstate->transitions_head; NULL != ctran;
 	   ctran = ctran->next)
       {
@@ -2521,7 +2521,7 @@ nfa_closure_set_create (struct REGEX_INTERNAL_StateSet *ret,
 					   clsstate);
 	cls_stack.len++;
 	clsstate->contained = 1;
-      }    
+      }
     }
   }
   for (i = 0; i < ret->off; i++)
@@ -3429,9 +3429,9 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
     unsigned int num_edges;
 
     num_edges = state_get_edges (s, edges);
-    if ( ( (NULL != s->proof) && 
+    if ( ( (NULL != s->proof) &&
            (0 < strlen (s->proof)) ) || s->accepting)
-      iterator (iterator_cls, &s->hash, s->proof, 
+      iterator (iterator_cls, &s->hash, s->proof,
                 s->accepting,
                 num_edges, edges);
     s->marked = GNUNET_NO;
@@ -3439,7 +3439,7 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 
   iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
                         GNUNET_REGEX_INITIAL_BYTES,
-                        NULL, a->start, 
+                        NULL, a->start,
                         iterator, iterator_cls);
 }
 

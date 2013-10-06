@@ -156,10 +156,10 @@ GNUNET_TESTBED_is_host_registered_ (const struct GNUNET_TESTBED_Host *host,
  *
  * @param h the host handle
  * @param op the operation to queue in the given host's parally overlay connect
- *          queue 
+ *          queue
  */
 void
-GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h, 
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
                                struct GNUNET_TESTBED_Operation *op);
 
 

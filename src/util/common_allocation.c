@@ -224,9 +224,9 @@ GNUNET_xfree_ (void *ptr, const char *filename, int linenumber)
   {
     const uint64_t baadfood = GNUNET_ntohll (0xBAADF00DBAADF00DLL);
     uint64_t *base = ptr;
-    size_t s = M_SIZE (ptr);  
+    size_t s = M_SIZE (ptr);
     size_t i;
-    
+
     for (i=0;i<s/8;i++)
       base[i] = baadfood;
     memcpy (&base[s/8], &baadfood, s % 8);
@@ -258,7 +258,7 @@ GNUNET_xstrdup_ (const char *str, const char *filename, int linenumber)
 
 #if ! HAVE_STRNLEN
 static size_t
-strnlen (const char *s, 
+strnlen (const char *s,
 	 size_t n)
 {
   const char *e;

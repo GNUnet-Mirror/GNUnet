@@ -250,7 +250,7 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
 
           pass_netmask = (struct sockaddr *) &netmask6;
         }
-        
+
         if (GNUNET_OK !=
             proc (proc_cls, ifc, 0 == strcmp (ifc, GNUNET_DEFAULT_INTERFACE),
                   (const struct sockaddr *) &a6,

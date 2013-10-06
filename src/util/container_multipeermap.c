@@ -67,7 +67,7 @@ struct SmallMapEntry
    * If there is a hash collision, we create a linked list.
    */
   struct SmallMapEntry *next;
-  
+
   /**
    * Key for the entry.
    */
@@ -162,10 +162,10 @@ struct GNUNET_CONTAINER_MultiPeerMapIterator
  * @param len initial size (map will grow as needed)
  * @param do_not_copy_keys GNUNET_NO is always safe and should be used by default;
  *                         GNUNET_YES means that on 'put', the 'key' does not have
- *                         to be copied as the destination of the pointer is 
+ *                         to be copied as the destination of the pointer is
  *                         guaranteed to be life as long as the value is stored in
- *                         the hashmap.  This can significantly reduce memory 
- *                         consumption, but of course is also a recipie for 
+ *                         the hashmap.  This can significantly reduce memory
+ *                         consumption, but of course is also a recipie for
  *                         heap corruption if the assumption is not true.  Only
  *                         use this if (1) memory use is important in this case and
  *                         (2) you have triple-checked that the invariant holds
@@ -331,7 +331,7 @@ GNUNET_CONTAINER_multipeermap_iterate (const struct
       struct SmallMapEntry *sme;
       struct SmallMapEntry *nxt;
 
-      nxt = me.sme; 
+      nxt = me.sme;
       while (NULL != (sme = nxt))
       {
 	nxt = sme->next;
@@ -348,7 +348,7 @@ GNUNET_CONTAINER_multipeermap_iterate (const struct
       struct BigMapEntry *bme;
       struct BigMapEntry *nxt;
 
-      nxt = me.bme; 
+      nxt = me.bme;
       while (NULL != (bme = nxt))
       {
 	nxt = bme->next;
@@ -379,7 +379,7 @@ GNUNET_CONTAINER_multipeermap_iterate (const struct
  */
 int
 GNUNET_CONTAINER_multipeermap_remove (struct GNUNET_CONTAINER_MultiPeerMap *map,
-                                      const struct GNUNET_PeerIdentity *key, 
+                                      const struct GNUNET_PeerIdentity *key,
 				      const void *value)
 {
   union MapEntry me;
@@ -390,7 +390,7 @@ GNUNET_CONTAINER_multipeermap_remove (struct GNUNET_CONTAINER_MultiPeerMap *map,
   i = idx_of (map, key);
   me = map->map[i];
   if (map->use_small_entries)
-  {  
+  {
     struct SmallMapEntry *sme;
     struct SmallMapEntry *p;
 
@@ -459,7 +459,7 @@ GNUNET_CONTAINER_multipeermap_remove_all (struct GNUNET_CONTAINER_MultiPeerMap
   i = idx_of (map, key);
   me = map->map[i];
   if (map->use_small_entries)
-  {  
+  {
     struct SmallMapEntry *sme;
     struct SmallMapEntry *p;
 
@@ -668,7 +668,7 @@ grow (struct GNUNET_CONTAINER_MultiPeerMap *map)
  */
 int
 GNUNET_CONTAINER_multipeermap_put (struct GNUNET_CONTAINER_MultiPeerMap *map,
-                                   const struct GNUNET_PeerIdentity *key, 
+                                   const struct GNUNET_PeerIdentity *key,
 				   void *value,
                                    enum GNUNET_CONTAINER_MultiHashMapOption opt)
 {
@@ -684,7 +684,7 @@ GNUNET_CONTAINER_multipeermap_put (struct GNUNET_CONTAINER_MultiPeerMap *map,
     {
       struct SmallMapEntry *sme;
 
-      for (sme = me.sme; NULL != sme; sme = sme->next)      
+      for (sme = me.sme; NULL != sme; sme = sme->next)
 	if (0 == memcmp (key, sme->key, sizeof (struct GNUNET_PeerIdentity)))
 	{
 	  if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
@@ -697,7 +697,7 @@ GNUNET_CONTAINER_multipeermap_put (struct GNUNET_CONTAINER_MultiPeerMap *map,
     {
       struct BigMapEntry *bme;
 
-      for (bme = me.bme; NULL != bme; bme = bme->next)      
+      for (bme = me.bme; NULL != bme; bme = bme->next)
 	if (0 == memcmp (key, &bme->key, sizeof (struct GNUNET_PeerIdentity)))
 	{
 	  if (opt == GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)
@@ -715,7 +715,7 @@ GNUNET_CONTAINER_multipeermap_put (struct GNUNET_CONTAINER_MultiPeerMap *map,
   if (map->use_small_entries)
   {
     struct SmallMapEntry *sme;
-    
+
     sme = GNUNET_new (struct SmallMapEntry);
     sme->key = key;
     sme->value = value;
@@ -725,7 +725,7 @@ GNUNET_CONTAINER_multipeermap_put (struct GNUNET_CONTAINER_MultiPeerMap *map,
   else
   {
     struct BigMapEntry *bme;
-    
+
     bme = GNUNET_new (struct BigMapEntry);
     bme->key = *key;
     bme->value = value;
@@ -760,9 +760,9 @@ GNUNET_CONTAINER_multipeermap_get_multiple (const struct GNUNET_CONTAINER_MultiP
   me = map->map[idx_of (map, key)];
   if (map->use_small_entries)
   {
-    struct SmallMapEntry *sme;  
+    struct SmallMapEntry *sme;
     struct SmallMapEntry *nxt;
-  
+
     nxt = me.sme;
     while (NULL != (sme = nxt))
     {
@@ -776,9 +776,9 @@ GNUNET_CONTAINER_multipeermap_get_multiple (const struct GNUNET_CONTAINER_MultiP
   }
   else
   {
-    struct BigMapEntry *bme;  
+    struct BigMapEntry *bme;
     struct BigMapEntry *nxt;
-  
+
     nxt = me.bme;
     while (NULL != (bme = nxt))
     {

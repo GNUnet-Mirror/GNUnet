@@ -241,9 +241,9 @@ GMC_min_pid (uint32_t a, uint32_t b);
  * Generated with:
  * FIND:        "#define ([^ ]+)[ ]*([0-9]+)"
  * REPLACE:     "    case \2: return "\1"; break;"
- * 
+ *
  * @param m Message type.
- * 
+ *
  * @return Human readable string description.
  */
 const char *

@@ -63,7 +63,7 @@ struct RegexAcceptBlock
    * The key of the state.
    */
   struct GNUNET_HashCode key;
-  
+
   /**
    * Public key of the peer signing.
    */

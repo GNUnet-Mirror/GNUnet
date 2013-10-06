@@ -24,8 +24,8 @@
  *          gnunet-service-testbed. This binary also receives configuration
  *          from the remove controller which is put in a temporary location
  *          with ports and paths fixed so that gnunet-service-testbed runs
- *          without any hurdles.  
- * 
+ *          without any hurdles.
+ *
  *          This helper monitors for three termination events.  They are: (1)The
  *          stdin of the helper is closed for reading; (2)the helper received
  *          SIGTERM/SIGINT; (3)the testbed crashed.  In case of events 1 and 2
@@ -161,13 +161,13 @@ static int status;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  LOG_DEBUG ("Shutting down\n");  
+  LOG_DEBUG ("Shutting down\n");
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != testbed)
   {
     LOG_DEBUG ("Killing testbed\n");
     GNUNET_break (0 == GNUNET_OS_process_kill (testbed, SIGTERM));
-  }  
+  }
   if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
   {
     GNUNET_SCHEDULER_cancel (read_task_id);
@@ -194,7 +194,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (testbed));
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
-  }  
+  }
   if (NULL != test_system)
   {
     GNUNET_TESTING_system_destroy (test_system, GNUNET_YES);
@@ -291,7 +291,7 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     return;
   }
-  GNUNET_break (GNUNET_SYSERR != 
+  GNUNET_break (GNUNET_SYSERR !=
                 (ret = GNUNET_OS_process_status (testbed, &type, &code)));
   if (GNUNET_NO != ret)
   {
@@ -456,7 +456,7 @@ tokenizer_cb (void *cls, void *client,
   wc->data = reply;
   write_task_id =
       GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL, stdout_fd,
-                                       &write_task, wc);  
+                                       &write_task, wc);
   child_death_task_id =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
                                       GNUNET_DISK_pipe_handle (sigpipe,
@@ -534,7 +534,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   read_task_id =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, stdin_fd,
                                       &read_task, NULL);
-  shutdown_task_id = 
+  shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                     NULL);
 }
@@ -576,7 +576,7 @@ main (int argc, char **argv)
   int ret;
 
   status = GNUNET_OK;
-  if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, 
+  if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO,
                                            GNUNET_NO, GNUNET_NO)))
   {
     GNUNET_break (0);

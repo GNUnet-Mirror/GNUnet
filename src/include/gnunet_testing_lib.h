@@ -46,7 +46,7 @@ extern "C"
 #endif
 
 /**
- * Size of each hostkey in the hostkey file (in BYTES). 
+ * Size of each hostkey in the hostkey file (in BYTES).
  */
 #define GNUNET_TESTING_HOSTKEYFILESIZE sizeof (struct GNUNET_CRYPTO_EccPrivateKey)
 
@@ -138,7 +138,7 @@ struct GNUNET_TESTING_System *
 GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 					     const char *trusted_ip,
 					     const char *hostname,
-                                             const struct 
+                                             const struct
                                              GNUNET_TESTING_SharedService *
                                              shared_services,
 					     uint16_t lowport,
@@ -162,7 +162,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  * faster peer startup.  This function can be used to
  * access the n-th key of those pre-created hostkeys; note
  * that these keys are ONLY useful for testing and not
- * secure as the private keys are part of the public 
+ * secure as the private keys are part of the public
  * GNUnet source code.
  *
  * This is primarily a helper function used internally
@@ -186,7 +186,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
  * @param system system to use for reservation tracking
  * @return 0 if no free port was available
  */
-uint16_t 
+uint16_t
 GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system);
 
 
@@ -226,14 +226,14 @@ GNUNET_TESTING_configuration_create (struct GNUNET_TESTING_System *system,
 
 /**
  * Configure a GNUnet peer.  GNUnet must be installed on the local
- * system and available in the PATH. 
+ * system and available in the PATH.
  *
  * @param system system to use to coordinate resource usage
  * @param cfg configuration to use; will be UPDATED (to reflect needed
  *            changes in port numbers and paths)
  * @param key_number number of the hostkey to use for the peer
  * @param id identifier for the daemon, will be set, can be NULL
- * @param emsg set to freshly allocated error message (set to NULL on success), 
+ * @param emsg set to freshly allocated error message (set to NULL on success),
  *          can be NULL
  * @return handle to the peer, NULL on error
  */
@@ -257,7 +257,7 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
 
 
 /**
- * Start the peer. 
+ * Start the peer.
  *
  * @param peer peer to start
  * @return GNUNET_OK on success, GNUNET_SYSERR on error (i.e. peer already running)
@@ -319,7 +319,7 @@ GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer);
  * @param success GNUNET_YES if the peer is stopped; GNUNET_SYSERR upon any
  *          error
  */
-typedef void (*GNUNET_TESTING_PeerStopCallback) (void *cls, 
+typedef void (*GNUNET_TESTING_PeerStopCallback) (void *cls,
                                                  struct GNUNET_TESTING_Peer *
                                                  peer,
                                                  int success);
@@ -358,7 +358,7 @@ GNUNET_TESTING_peer_stop_async_cancel (struct GNUNET_TESTING_Peer *peer);
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created
@@ -424,14 +424,14 @@ GNUNET_TESTING_service_run (const char *testdir,
  * Sometimes we use the binary name to determine which specific
  * test to run.  In those cases, the string after the last "_"
  * in 'argv[0]' specifies a string that determines the configuration
- * file or plugin to use.  
+ * file or plugin to use.
  *
  * This function returns the respective substring, taking care
  * of issues such as binaries ending in '.exe' on W32.
  *
  * @param argv0 the name of the binary
  * @return string between the last '_' and the '.exe' (or the end of the string),
- *         NULL if argv0 has no '_' 
+ *         NULL if argv0 has no '_'
  */
 char *
 GNUNET_TESTING_get_testname_from_underscore (const char *argv0);

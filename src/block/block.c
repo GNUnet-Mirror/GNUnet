@@ -97,15 +97,15 @@ GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
  * @param lib_ret the plugin API
  */
 static void
-add_plugin (void *cls, 
-	    const char *library_name, 
+add_plugin (void *cls,
+	    const char *library_name,
 	    void *lib_ret)
 {
   struct GNUNET_BLOCK_Context *ctx = cls;
   struct GNUNET_BLOCK_PluginFunctions *api = lib_ret;
   struct Plugin *plugin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Loading block plugin `%s'\n",
               library_name);
   plugin = GNUNET_new (struct Plugin);

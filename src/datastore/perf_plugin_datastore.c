@@ -163,10 +163,10 @@ iterate_zeros (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   memcpy (&i, &cdata[4], sizeof (i));
   hits[i / 8] |= (1 << (i % 8));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found result %d type=%u, priority=%u, size=%u, expire=%s\n",
 	      i,
-	      type, priority, size, 
+	      type, priority, size,
 	      GNUNET_STRINGS_absolute_time_to_string (expiration));
   crc->cnt++;
   if (crc->cnt == PUT_10 / 4 - 1)
@@ -349,7 +349,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     crc->phase = RP_ERROR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)
   {

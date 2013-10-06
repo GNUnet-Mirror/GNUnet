@@ -41,7 +41,7 @@
 
 /**
  * Value for "Management" in the 'frame_control' field of the
- * struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame.  
+ * struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame.
  */
 #define IEEE80211_FC0_TYPE_MGT                  0x00
 

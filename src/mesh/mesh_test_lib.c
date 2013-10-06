@@ -51,7 +51,7 @@ struct GNUNET_MESH_TEST_Context
    * Main function of the test to run once all MESHs are available.
    */
   GNUNET_MESH_TEST_AppMain app_main;
-  
+
   /**
    * Closure for 'app_main'.
    */
@@ -137,7 +137,7 @@ mesh_connect_adapter (void *cls,
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 mesh_disconnect_adapter (void *cls,
                          void *op_result)
 {
@@ -154,12 +154,12 @@ mesh_disconnect_adapter (void *cls,
  *
  * @param cls The callback closure from functions generating an operation.
  * @param op The operation that has been finished.
- * @param ca_result The service handle returned from 
+ * @param ca_result The service handle returned from
  *                  GNUNET_TESTBED_ConnectAdapter() (mesh handle).
  * @param emsg Error message in case the operation has failed.
  *             NULL if operation has executed successfully.
  */
-static void 
+static void
 mesh_connect_cb (void *cls,
                  struct GNUNET_TESTBED_Operation *op,
                  void *ca_result,
@@ -167,7 +167,7 @@ mesh_connect_cb (void *cls,
 {
   struct GNUNET_MESH_TEST_Context *ctx = cls;
   unsigned int i;
- 
+
   if (NULL != emsg)
   {
     fprintf (stderr, "Failed to connect to MESH service: %s\n",
@@ -211,7 +211,7 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
 /**
  * Callback run when the testbed is ready (peers running and connected to
  * each other)
- * 
+ *
  * @param cls Closure (context).
  * @param h the run handle
  * @param num_peers Number of peers that are running.
@@ -252,7 +252,7 @@ mesh_test_run (void *cls,
 }
 
 
-void 
+void
 GNUNET_MESH_TEST_run (const char *testname,
                       const char *cfgname,
                       unsigned int num_peers,

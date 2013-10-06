@@ -336,7 +336,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 							tmp->metrics[c][c2] = UINT32_MAX;
 					}
 			}
-			GNUNET_CONTAINER_multipeermap_put (man_handle.peers, 
+			GNUNET_CONTAINER_multipeermap_put (man_handle.peers,
 							   &tm->peer, tmp,
 							   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 	}
@@ -581,64 +581,64 @@ GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
 {
   unsigned long long tmp;
   struct GNUNET_TIME_Relative delay;
-  
+
   if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
 							  "transport",
 							  "MANIPULATE_DISTANCE_IN",
-							    &tmp)) && 
+							    &tmp)) &&
 	(tmp > 0) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Setting inbound distance_in to %llu\n",
 		(unsigned long long) tmp);
     set_metric (&man_handle.general, TM_RECEIVE, GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
   }
-       
+
   if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_number (GST_cfg,
-							    "transport", 
+							    "transport",
 							    "MANIPULATE_DISTANCE_OUT",
 							    &tmp)) &&
        (tmp > 0) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Setting outbound distance_in to %llu\n",
 		(unsigned long long) tmp);
-    set_metric (&man_handle.general, TM_SEND, 
+    set_metric (&man_handle.general, TM_SEND,
 		GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
   }
-  
+
   if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
 							  "transport",
 							  "MANIPULATE_DELAY_IN",
-							  &delay)) && 
+							  &delay)) &&
        (delay.rel_value_us > 0) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Delaying inbound traffic for %s\n",
 		GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     set_metric (&man_handle.general, TM_RECEIVE,
-		GNUNET_ATS_QUALITY_NET_DELAY, 
+		GNUNET_ATS_QUALITY_NET_DELAY,
 		delay.rel_value_us);
   }
   if ( (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (GST_cfg,
 							  "transport",
 							  "MANIPULATE_DELAY_OUT",
-							  &delay)) && 
+							  &delay)) &&
        (delay.rel_value_us > 0) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Delaying outbound traffic for %s\n",
 		GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-    set_metric (&man_handle.general, 
+    set_metric (&man_handle.general,
 		TM_SEND,
-		GNUNET_ATS_QUALITY_NET_DELAY, 
+		GNUNET_ATS_QUALITY_NET_DELAY,
 		delay.rel_value_us);
-  }  
+  }
   man_handle.peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 }
 
 
-static int 
+static int
 free_tmps (void *cls,
 	   const struct GNUNET_PeerIdentity *key,
 	   void *value)

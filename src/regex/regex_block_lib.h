@@ -106,7 +106,7 @@ REGEX_BLOCK_check (const struct RegexBlock *block,
  * @param cls Closure.
  * @param token Token that follows to next state.
  * @param len Length of token.
- * @param key Hash of next state. 
+ * @param key Hash of next state.
  *
  * @return GNUNET_YES if should keep iterating, GNUNET_NO otherwise.
  */
@@ -158,7 +158,7 @@ REGEX_BLOCK_get_key (const struct RegexBlock *block,
  * @param block block to test
  * @param size number of bytes in block
  * @return GNUNET_YES if the block is accepting, GNUNET_NO if not
- */ 
+ */
 int
 GNUNET_BLOCK_is_accepting (const struct RegexBlock *block,
 			   size_t block_len);

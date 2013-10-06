@@ -85,14 +85,14 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
         GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh
                                             (ad->expiration_time)).rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "DNS advertisement has expired\n");
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
-				  &ad->purpose, 
-				  &ad->signature, 
+				  &ad->purpose,
+				  &ad->signature,
 				  &ad->peer.public_key))
     {
       GNUNET_break_op (0);
@@ -117,9 +117,9 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_dns_get_key (void *cls, 
+block_plugin_dns_get_key (void *cls,
 			  enum GNUNET_BLOCK_Type type,
-                          const void *block, 
+                          const void *block,
 			  size_t block_size,
                           struct GNUNET_HashCode *key)
 {

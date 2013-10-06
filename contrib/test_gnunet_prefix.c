@@ -27,19 +27,19 @@
 #include "platform.h"
 
 
-int 
+int
 main (int argc,
       char **argv)
 {
   const char *basename;
   const char *dirname;
 
-  basename = getenv ("GNUNET_PREFIX");  
+  basename = getenv ("GNUNET_PREFIX");
   if (NULL == basename)
   {
     fprintf (stderr,
 	     _("Environment variable GNUNET_PREFIX not set\n"));
-    fprintf (stderr, 
+    fprintf (stderr,
 	     _("Testcases will not work!\n"));
     return 1;
   }
@@ -56,7 +56,7 @@ main (int argc,
       fprintf (stderr,
 	       _("Check that you did run `make install' and that GNUNET_PREFIX='%s' is the correct prefix.\n"),
 	       basename);
-      fprintf (stderr, 
+      fprintf (stderr,
 	       _("Testcases will not work!\n"));
       return 2;
     }

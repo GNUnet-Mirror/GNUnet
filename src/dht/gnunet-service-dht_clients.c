@@ -199,7 +199,7 @@ struct ClientMonitorRecord
    * Previous element in DLL.
    */
   struct ClientMonitorRecord    *prev;
-  
+
   /**
    * Type of blocks that are of interest
    */
@@ -367,7 +367,7 @@ handle_client_disconnect (void *cls,
   struct ClientMonitorRecord *monitor;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Local client %p disconnects\n", 
+	      "Local client %p disconnects\n",
 	      client);
   pos = find_active_client (client);
   GNUNET_CONTAINER_DLL_remove (client_head, client_tail, pos);
@@ -384,7 +384,7 @@ handle_client_disconnect (void *cls,
     if (monitor->client == pos)
     {
       struct ClientMonitorRecord *next;
-      
+
       GNUNET_free_non_null (monitor->key);
       next = monitor->next;
       GNUNET_CONTAINER_DLL_remove (monitor_head, monitor_tail, monitor);
@@ -550,7 +550,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                            &dht_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage));
   GNUNET_CONTAINER_bloomfilter_free (peer_bf);
-  pm = GNUNET_malloc (sizeof (struct PendingMessage) + 
+  pm = GNUNET_malloc (sizeof (struct PendingMessage) +
 		      sizeof (struct GNUNET_DHT_ClientPutConfirmationMessage));
   conf = (struct GNUNET_DHT_ClientPutConfirmationMessage *) &pm[1];
   conf->header.size = htons (sizeof (struct GNUNET_DHT_ClientPutConfirmationMessage));
@@ -884,7 +884,7 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
     }
     r = r->next;
   }
- 
+
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1226,7 +1226,7 @@ void
 GDS_CLIENTS_process_get (uint32_t options,
                          enum GNUNET_BLOCK_Type type,
                          uint32_t hop_count,
-                         uint32_t desired_replication_level, 
+                         uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          const struct GNUNET_HashCode * key)
@@ -1386,7 +1386,7 @@ void
 GDS_CLIENTS_process_put (uint32_t options,
                          enum GNUNET_BLOCK_Type type,
                          uint32_t hop_count,
-                         uint32_t desired_replication_level, 
+                         uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,

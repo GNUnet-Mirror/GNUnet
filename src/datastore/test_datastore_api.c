@@ -191,7 +191,7 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
     return;
   }
 #if 0
-  FPRINTF (stderr, 
+  FPRINTF (stderr,
 	   "Check value got `%s' of size %u, type %d, expire %s\n",
            GNUNET_h2s (key), (unsigned int) size, type,
            GNUNET_STRINGS_absolute_time_to_string (expiration));
@@ -464,7 +464,7 @@ run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiratio
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

@@ -120,7 +120,7 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h, int soft_kill);
 
 /**
  * Continuation function.
- * 
+ *
  * @param cls closure
  * @param result #GNUNET_OK on success,
  *               #GNUNET_NO if helper process died
@@ -145,12 +145,12 @@ struct GNUNET_HELPER_SendHandle;
  * @param cont continuation to run once the message is out (#GNUNET_OK on succees, #GNUNET_NO
  *             if the helper process died, #GNUNET_SYSERR during #GNUNET_HELPER_destroy).
  * @param cont_cls closure for @a cont
- * @return NULL if the message was dropped, 
+ * @return NULL if the message was dropped,
  *         otherwise handle to cancel @a cont (actual transmission may
  *         not be abortable)
  */
 struct GNUNET_HELPER_SendHandle *
-GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h, 
+GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
 		    const struct GNUNET_MessageHeader *msg,
 		    int can_drop,
 		    GNUNET_HELPER_Continuation cont,
@@ -166,5 +166,5 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
 void
 GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
 
-#endif 
+#endif
 /* end of include guard: GNUNET_HELPER_LIB_H */

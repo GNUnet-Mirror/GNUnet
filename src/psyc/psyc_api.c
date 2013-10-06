@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/** 
+/**
  * @file psyc/psyc_api.c
  * @brief PSYC service; high-level access to the PSYC protocol
  *        note that clients of this API are NOT expected to
@@ -46,7 +46,7 @@ struct OperationHandle
   const struct GNUNET_MessageHeader *msg;
 };
 
-/** 
+/**
  * Handle to access PSYC channel operations for both the master and slaves.
  */
 struct GNUNET_PSYC_Channel
@@ -109,7 +109,7 @@ struct GNUNET_PSYC_Channel
 };
 
 
-/** 
+/**
  * Handle for the master of a PSYC channel.
  */
 struct GNUNET_PSYC_Master
@@ -122,7 +122,7 @@ struct GNUNET_PSYC_Master
 };
 
 
-/** 
+/**
  * Handle for a PSYC channel slave.
  */
 struct GNUNET_PSYC_Slave
@@ -131,7 +131,7 @@ struct GNUNET_PSYC_Slave
 };
 
 
-/** 
+/**
  * Handle that identifies a join request.
  *
  * Used to match calls to #GNUNET_PSYC_JoinCallback to the
@@ -143,7 +143,7 @@ struct GNUNET_PSYC_JoinHandle
 };
 
 
-/** 
+/**
  * Handle for a pending PSYC transmission operation.
  */
 struct GNUNET_PSYC_MasterTransmitHandle
@@ -156,7 +156,7 @@ struct GNUNET_PSYC_MasterTransmitHandle
 };
 
 
-/** 
+/**
  * Handle for a pending PSYC transmission operation.
  */
 struct GNUNET_PSYC_SlaveTransmitHandle
@@ -165,7 +165,7 @@ struct GNUNET_PSYC_SlaveTransmitHandle
 };
 
 
-/** 
+/**
  * Handle to a story telling operation.
  */
 struct GNUNET_PSYC_Story
@@ -435,7 +435,7 @@ disconnect (void *c)
 }
 
 
-/** 
+/**
  * Start a PSYC master channel.
  *
  * Will start a multicast group identified by the given ECC key.  Messages
@@ -494,7 +494,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-/** 
+/**
  * Stop a PSYC master channel.
  *
  * @param master PSYC channel master to stop.
@@ -507,7 +507,7 @@ GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst)
 }
 
 
-/** 
+/**
  * Function to call with the decision made for a join request.
  *
  * Must be called once and only once in response to an invocation of the
@@ -567,7 +567,7 @@ send_modifier (void *cls, struct GNUNET_ENV_Modifier *mod)
 }
 
 
-/** 
+/**
  * Send a message to call a method to all members in the PSYC channel.
  *
  * @param mst Handle to the PSYC channel.
@@ -610,7 +610,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *mst,
   GNUNET_CONTAINER_DLL_insert (ch->transmit_head, ch->transmit_tail, op);
 
   GNUNET_ENV_environment_iterate (env, send_modifier, mst);
-  
+
   struct GNUNET_PSYC_MasterTransmitHandle *th = GNUNET_malloc (sizeof (*th));
   th->master = mst;
   th->env = env;
@@ -620,7 +620,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *mst,
 }
 
 
-/** 
+/**
  * Abort transmission request to the channel.
  *
  * @param th Handle of the request that is being aborted.
@@ -633,11 +633,11 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
   if (GNUNET_NO != ch->in_transmit)
     return;
 
-  
+
 }
 
 
-/** 
+/**
  * Join a PSYC channel.
  *
  * The entity joining is always the local peer.  The user must immediately use
@@ -704,7 +704,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-/** 
+/**
  * Part a PSYC channel.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
@@ -720,7 +720,7 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv)
 }
 
 
-/** 
+/**
  * Request a message to be sent to the channel master.
  *
  * @param slave Slave handle.
@@ -745,7 +745,7 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
 }
 
 
-/** 
+/**
  * Abort transmission request to master.
  *
  * @param th Handle of the request that is being aborted.
@@ -757,7 +757,7 @@ GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th)
 }
 
 
-/** 
+/**
  * Convert a channel @a master to a @e channel handle to access the @e channel
  * APIs.
  *
@@ -771,7 +771,7 @@ GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master)
 }
 
 
-/** 
+/**
  * Convert @a slave to a @e channel handle to access the @e channel APIs.
  *
  * @param slave Slave handle.
@@ -784,7 +784,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave)
 }
 
 
-/** 
+/**
  * Add a slave to the channel's membership list.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
@@ -827,7 +827,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *ch,
 }
 
 
-/** 
+/**
  * Remove a slave from the channel's membership list.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
@@ -868,7 +868,7 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *ch,
 }
 
 
-/** 
+/**
  * Request to be told the message history of the channel.
  *
  * Historic messages (but NOT the state at the time) will be replayed (given to
@@ -904,7 +904,7 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *ch,
 }
 
 
-/** 
+/**
  * Abort story telling.
  *
  * This function must not be called from within method handlers (as given to
@@ -919,7 +919,7 @@ GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story)
 }
 
 
-/** 
+/**
  * Retrieve the best matching channel state variable.
  *
  * If the requested variable name is not present in the state, the nearest
@@ -944,7 +944,7 @@ GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
 }
 
 
-/** 
+/**
  * Return all channel state variables whose name matches a given prefix.
  *
  * A name matches if it starts with the given @a name_prefix, thus requesting
@@ -970,7 +970,7 @@ GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
 }
 
 
-/** 
+/**
  * Cancel a state query operation.
  *
  * @param query Handle for the operation to cancel.

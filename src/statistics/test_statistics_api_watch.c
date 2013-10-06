@@ -20,7 +20,7 @@
 /**
  * @file statistics/test_statistics_api_watch.c
  * @brief testcase for statistics_api.c watch functions
- * @author Christian Grothoff 
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -119,7 +119,7 @@ main (int argc, char *argv_ign[])
   };
   struct GNUNET_OS_Process *proc;
   char *binary;
-  
+
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-statistics");
   proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,

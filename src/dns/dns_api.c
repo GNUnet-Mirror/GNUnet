@@ -20,7 +20,7 @@
 
 /**
  * @file dns/dns_api.c
- * @brief API to access the DNS service. 
+ * @brief API to access the DNS service.
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -100,7 +100,7 @@ struct GNUNET_DNS_Handle
    * Function to call to get replies.
    */
   GNUNET_DNS_RequestHandler rh;
-  
+
   /**
    * Closure for 'rh'.
    */
@@ -125,7 +125,7 @@ struct GNUNET_DNS_Handle
    * Re-connect counter, to make sure we did not reconnect in the meantime.
    */
   uint32_t generation;
-  
+
   /**
    * Flags for events we care about.
    */
@@ -253,7 +253,7 @@ request_handler (void *cls,
   req = (const struct GNUNET_DNS_Request *) msg;
   GNUNET_break (ntohl (req->reserved) == 0);
   payload_length = ntohs (req->header.size) - sizeof (struct GNUNET_DNS_Request);
-  GNUNET_CLIENT_receive (dh->dns_connection, 
+  GNUNET_CLIENT_receive (dh->dns_connection,
 			 &request_handler, dh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 
@@ -261,7 +261,7 @@ request_handler (void *cls,
   rh = GNUNET_malloc (sizeof (struct GNUNET_DNS_RequestHandle));
   rh->dh =dh;
   rh->request_id = req->request_id;
-  rh->generation = dh->generation;  
+  rh->generation = dh->generation;
   dh->pending_requests++;
   dh->rh (dh->rh_cls,
 	  rh,
@@ -285,7 +285,7 @@ send_response (void *cls, size_t size, void *buf)
   struct GNUNET_DNS_Handle *dh = cls;
   struct ReplyQueueEntry *qe;
   size_t len;
- 
+
   dh->dns_transmit_handle = NULL;
   if (NULL == buf)
   {
@@ -300,12 +300,12 @@ send_response (void *cls, size_t size, void *buf)
     return 0;
   len = ntohs (qe->msg->size);
   if (len > size)
-  {   
+  {
     dh->dns_transmit_handle =
       GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
 					   len,
 					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   GNUNET_NO, 
+					   GNUNET_NO,
 					   &send_response, dh);
     return 0;
   }
@@ -317,7 +317,7 @@ send_response (void *cls, size_t size, void *buf)
   if (GNUNET_NO == dh->in_receive)
   {
     dh->in_receive = GNUNET_YES;
-    GNUNET_CLIENT_receive (dh->dns_connection, 
+    GNUNET_CLIENT_receive (dh->dns_connection,
 			   &request_handler, dh,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
   }
@@ -327,11 +327,11 @@ send_response (void *cls, size_t size, void *buf)
       GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
 					   ntohs (qe->msg->size),
 					   GNUNET_TIME_UNIT_FOREVER_REL,
-					   GNUNET_NO, 
+					   GNUNET_NO,
 					   &send_response, dh);
   }
   return len;
-} 
+}
 
 
 /**
@@ -344,7 +344,7 @@ static void
 queue_reply (struct GNUNET_DNS_Handle *dh,
 	     struct ReplyQueueEntry *qe)
 {
-  if (NULL == dh->dns_connection)        
+  if (NULL == dh->dns_connection)
   {
     GNUNET_free (qe);
     return;
@@ -354,12 +354,12 @@ queue_reply (struct GNUNET_DNS_Handle *dh,
 				    qe);
   if (NULL != dh->dns_transmit_handle)
     return;
-  /* trigger sending */ 
+  /* trigger sending */
   dh->dns_transmit_handle =
     GNUNET_CLIENT_notify_transmit_ready (dh->dns_connection,
 					 ntohs (dh->rq_head->msg->size),
 					 GNUNET_TIME_UNIT_FOREVER_REL,
-					 GNUNET_NO, 
+					 GNUNET_NO,
 					 &send_response, dh);
 }
 
@@ -440,7 +440,7 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh)
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,	 
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,	
 			   uint16_t reply_length,
 			   const char *reply)
 {
@@ -480,7 +480,7 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
  * @param flags when to call rh
  * @param rh function to call with DNS requests
  * @param rh_cls closure to pass to rh
- * @return DNS handle 
+ * @return DNS handle
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -489,7 +489,7 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 		    void *rh_cls)
 {
   struct GNUNET_DNS_Handle *dh;
-  
+
   dh = GNUNET_malloc (sizeof (struct GNUNET_DNS_Handle));
   dh->cfg = cfg;
   dh->flags = flags;

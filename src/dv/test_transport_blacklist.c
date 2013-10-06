@@ -42,7 +42,7 @@ test_connection (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", links_succeeded, links_failed);
   if ( (4 == num_peers) && (0 == links_failed) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Testbed connect peers despite blacklist!\n");
     ok = 1;
   }

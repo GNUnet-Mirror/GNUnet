@@ -80,7 +80,7 @@ parent_control_handler (void *cls,
   char sig;
   char *pipe_fd;
   ssize_t ret;
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
   if (0 != (tc->reason &
@@ -275,7 +275,7 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
 #else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via system call\n", sig, proc->pid);
     return PLIBC_KILL (proc->pid, sig);
-#endif    
+#endif
   }
 }
 
@@ -753,7 +753,7 @@ start_process (int pipe_control,
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
- 
+
   /* Search in prefix dir (hopefully - the directory from which
    * the current module was loaded), bindir and libdir, then in PATH
    */
@@ -902,7 +902,7 @@ start_process (int pipe_control,
     else
       SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, 0);
   }
-    
+
 
   stdoh = GetStdHandle (STD_OUTPUT_HANDLE);
   GetHandleInformation (stdoh, &stdof);
@@ -1054,7 +1054,7 @@ start_process (int pipe_control,
 
   if ((NULL == pipe_stdin) && (stdih))
     SetHandleInformation (stdih, HANDLE_FLAG_INHERIT, stdif);
-    
+
 
   if ((NULL == pipe_stdout) && (stdoh))
     SetHandleInformation (stdoh, HANDLE_FLAG_INHERIT, stdof);
@@ -1116,7 +1116,7 @@ start_process (int pipe_control,
     wrote = GNUNET_DISK_file_write (lsocks_write_fd, &count, sizeof (count));
     if (sizeof (count) != wrote)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Failed to write %u count bytes to the child: %u\n",
 		  sizeof (count), GetLastError ());
       break;
@@ -1127,8 +1127,8 @@ start_process (int pipe_control,
       /* Get a socket duplication info */
       if (SOCKET_ERROR == WSADuplicateSocketA (lsocks[i], gnunet_proc->pid, &pi))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		    "Failed to duplicate an socket[%llu]: %u\n", i, 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Failed to duplicate an socket[%llu]: %u\n", i,
 		    GetLastError ());
         break;
       }
@@ -1144,8 +1144,8 @@ start_process (int pipe_control,
       wrote = GNUNET_DISK_file_write (lsocks_write_fd, &size, sizeof (size));
       if (sizeof (size) != wrote)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		    "Failed to write %u size[%llu] bytes to the child: %u\n", 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Failed to write %u size[%llu] bytes to the child: %u\n",
 		    sizeof (size), i, GetLastError ());
         break;
       }
@@ -1153,8 +1153,8 @@ start_process (int pipe_control,
       wrote = GNUNET_DISK_file_write (lsocks_write_fd, &pi, sizeof (pi));
       if (sizeof (pi) != wrote)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		    "Failed to write %u socket[%llu] bytes to the child: %u\n", 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		    "Failed to write %u socket[%llu] bytes to the child: %u\n",
 		    sizeof (pi), i, GetLastError ());
         break;
       }
@@ -1207,7 +1207,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
                              enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
-			     const char *filename, 
+			     const char *filename,
 			     char *const argv[])
 {
   return start_process (pipe_control,
@@ -1328,7 +1328,7 @@ GNUNET_OS_start_process_v (int pipe_control,
 /**
  * Retrieve the status of a process, waiting on him if dead.
  * Nonblocking version.
- * 
+ *
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
@@ -1441,7 +1441,7 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
 
   while ( (pid != (ret = waitpid (pid, NULL, 0))) &&
 	  (EINTR == errno) ) ;
-  if (pid != ret) 
+  if (pid != ret)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
     return GNUNET_SYSERR;

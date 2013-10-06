@@ -207,7 +207,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-zone-to-name",
 				  "namestore",
 				  "test_namestore_api.conf",

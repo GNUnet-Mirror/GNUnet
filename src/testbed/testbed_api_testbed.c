@@ -338,7 +338,7 @@ struct GNUNET_TESTBED_RunHandle
  */
 static uint32_t
 rcop_key (void *rcop)
-{  
+{
   return * ((uint32_t *) &rcop);
 }
 
@@ -397,10 +397,10 @@ static struct RunContextOperation *
 search_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct GNUNET_TESTBED_Operation *op)
 {
   struct SearchContext sc;
-  
+
   sc.query = op;
   sc.result = NULL;
-  if (GNUNET_SYSERR == 
+  if (GNUNET_SYSERR ==
       GNUNET_CONTAINER_multihashmap32_get_multiple (rc->rcop_map,
                                                     rcop_key (op),
                                                     &search_iterator,
@@ -481,7 +481,7 @@ cleanup (void *cls)
 
 
 /**
- * Iterator for cleaning up elements from rcop_map 
+ * Iterator for cleaning up elements from rcop_map
  *
  * @param cls the RunContext
  * @param key the 32-bit key
@@ -546,7 +546,7 @@ rc_cleanup_operations (struct GNUNET_TESTBED_RunHandle *rc)
     rc->topology_operation = NULL;
   }
   /* cancel any exiting operations */
-  GNUNET_assert (GNUNET_SYSERR != 
+  GNUNET_assert (GNUNET_SYSERR !=
                  GNUNET_CONTAINER_multihashmap32_iterate (rc->rcop_map,
                                                           &rcop_cleanup_iterator,
                                                           rc));
@@ -568,7 +568,7 @@ cancel_interrupt_task (struct GNUNET_TESTBED_RunHandle *rc)
 
 /**
  * This callback will be called when all the operations are completed
- * (done/cancelled) 
+ * (done/cancelled)
  *
  * @param cls run context
  */
@@ -624,9 +624,9 @@ interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* reschedule */
   rc->interrupt_task = GNUNET_SCHEDULER_add_delayed
       (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt, rc);
-  rc_cleanup_operations (rc);  
+  rc_cleanup_operations (rc);
   if ( (GNUNET_NO == rc->shutdown)
-       && (NULL != c) 
+       && (NULL != c)
        && (0 != (size = GNUNET_CONTAINER_multihashmap32_size (c->opc_map))))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Shutdown postponed as there are "
@@ -917,7 +917,7 @@ call_cc:
       {
         unsigned long long number;
         unsigned int cap;
-        GNUNET_assert (GNUNET_OK == 
+        GNUNET_assert (GNUNET_OK ==
                        GNUNET_CONFIGURATION_get_value_number (rc->cfg, TESTBED_CONFIG_SECTION,
                                                               SCALE_FREE_CAP,
                                                               &number));
@@ -1199,7 +1199,7 @@ static void
 timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
-  
+
   rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
    GNUNET_SCHEDULER_shutdown ();
@@ -1246,7 +1246,7 @@ GNUNET_TESTBED_run (const char *host_filename,
 {
   struct GNUNET_TESTBED_RunHandle *rc;
   char *topology;
-  struct CompatibilityCheckContext *hc;      
+  struct CompatibilityCheckContext *hc;
   struct GNUNET_TIME_Relative timeout;
   unsigned long long number;
   unsigned int hid;

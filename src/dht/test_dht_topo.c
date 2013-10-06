@@ -43,7 +43,7 @@
 /**
  * Information we keep for each GET operation.
  */
-struct GetOperation 
+struct GetOperation
 {
   /**
    * DLL.
@@ -90,7 +90,7 @@ static struct GetOperation *get_tail;
 
 /**
  * Array of the testbed's peers.
- */ 
+ */
 static struct GNUNET_TESTBED_Peer **my_peers;
 
 /**
@@ -173,10 +173,10 @@ stats_finished (void *cls,
     return;
   }
   for (i = 0; NULL != stats[i].name; i++)
-    FPRINTF (stderr, 
-	     "%6s/%60s = %12llu\n", 
+    FPRINTF (stderr,
+	     "%6s/%60s = %12llu\n",
 	     stats[i].subsystem,
-	     stats[i].name, 
+	     stats[i].name,
 	     stats[i].total);
   GNUNET_SCHEDULER_cancel (put_task);
   GNUNET_DHT_TEST_cleanup (ctx);
@@ -194,7 +194,7 @@ stats_finished (void *cls,
  * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
-static int 
+static int
 handle_stats (void *cls,
 	      const struct GNUNET_TESTBED_Peer *peer,
 	      const char *subsystem,
@@ -221,9 +221,9 @@ handle_stats (void *cls,
  *
  * @param cls the 'struct GNUNET_DHT_TestContext'
  * @param tc scheduler context
- */ 
+ */
 static void
-shutdown_task (void *cls, 
+shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
@@ -285,7 +285,7 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_break (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Get successful\n");
 #if 0
   {
@@ -318,7 +318,7 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 /**
  * Task to put the id of each peer into the DHT.
- * 
+ *
  * @param cls array with NUM_PEERS DHT handles
  * @param tc Task context
  */
@@ -331,7 +331,7 @@ do_puts (void *cls,
   struct GNUNET_HashCode value;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Putting values into DHT\n");
   for (i = 0; i < NUM_PEERS; i++)
   {
@@ -340,13 +340,13 @@ do_puts (void *cls,
     GNUNET_DHT_put (hs[i], &key, 10U,
                     GNUNET_DHT_RO_RECORD_ROUTE |
                     GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-                    GNUNET_BLOCK_TYPE_TEST, 
-		    sizeof (value), &value, 
+                    GNUNET_BLOCK_TYPE_TEST,
+		    sizeof (value), &value,
 		    GNUNET_TIME_UNIT_FOREVER_ABS,
-                    GNUNET_TIME_UNIT_FOREVER_REL, 
+                    GNUNET_TIME_UNIT_FOREVER_REL,
 		    NULL, NULL);
   }
-  put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY, 
+  put_task = GNUNET_SCHEDULER_add_delayed (PUT_FREQUENCY,
 					   &do_puts, hs);
 }
 
@@ -374,7 +374,7 @@ run (void *cls,
 
   GNUNET_assert (NUM_PEERS == num_peers);
   my_peers = peers;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peers setup, starting test\n");
   put_task = GNUNET_SCHEDULER_add_now (&do_puts, dhts);
   for (i=0;i<num_peers;i++)
@@ -386,7 +386,7 @@ run (void *cls,
       GNUNET_CONTAINER_DLL_insert (get_head,
 				   get_tail,
 				   get_op);
-      get_op->get = GNUNET_DHT_get_start (dhts[j], 
+      get_op->get = GNUNET_DHT_get_start (dhts[j],
 					  GNUNET_BLOCK_TYPE_TEST, /* type */
 					  &key,      /*key to search */
 					  4U,     /* replication level */
@@ -396,7 +396,7 @@ run (void *cls,
 					  &dht_get_handler, get_op);
     }
   }
-  timeout_task = GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT, 
+  timeout_task = GNUNET_SCHEDULER_add_delayed (GET_TIMEOUT,
 					       &shutdown_task, ctx);
 }
 
@@ -409,7 +409,7 @@ main (int xargc, char *xargv[])
 {
   const char *cfg_filename;
   const char *test_name;
-  
+
   if (NULL != strstr (xargv[0], "test_dht_2dtorus"))
   {
     cfg_filename = "test_dht_2dtorus.conf";
@@ -418,19 +418,19 @@ main (int xargc, char *xargv[])
   }
   else if (NULL != strstr (xargv[0], "test_dht_line"))
   {
-    cfg_filename = "test_dht_line.conf"; 
+    cfg_filename = "test_dht_line.conf";
     test_name = "test-dht-line";
     NUM_PEERS = 5;
   }
   else if (NULL != strstr (xargv[0], "test_dht_twopeer"))
   {
-    cfg_filename = "test_dht_line.conf"; 
+    cfg_filename = "test_dht_line.conf";
     test_name = "test-dht-twopeer";
     NUM_PEERS = 2;
   }
   else if (NULL != strstr (xargv[0], "test_dht_multipeer"))
   {
-    cfg_filename = "test_dht_multipeer.conf"; 
+    cfg_filename = "test_dht_multipeer.conf";
     test_name = "test-dht-multipeer";
     NUM_PEERS = 10;
   }

@@ -188,7 +188,7 @@ struct GNUNET_MESH_Handle
    * Time to the next reconnect in case one reconnect fails
    */
   struct GNUNET_TIME_Relative reconnect_time;
-  
+
   /**
    * Task for trying to reconnect.
    */
@@ -373,9 +373,9 @@ th_is_payload (struct GNUNET_MESH_TransmitHandle *th)
 
 /**
  * Check whether there is any message ready in the queue and find the size.
- * 
+ *
  * @param h Mesh handle.
- * 
+ *
  * @return The size of the first ready message in the queue,
  *         0 if there is none.
  */
@@ -483,8 +483,8 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
     GNUNET_break (0);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "destroy_tunnel %X\n", 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "destroy_tunnel %X\n",
        t->tid);
   h = t->mesh;
 
@@ -508,7 +508,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
     /* clean up request */
     if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
-    GNUNET_free (th);    
+    GNUNET_free (th);
   }
 
   /* if there are no more pending requests with mesh service, cancel active request */
@@ -528,7 +528,7 @@ destroy_tunnel (struct GNUNET_MESH_Tunnel *t, int call_cleaner)
 
 /**
  * Notify client that the transmission has timed out
- * 
+ *
  * @param cls closure
  * @param tc task context
  */
@@ -590,7 +590,7 @@ send_packet (struct GNUNET_MESH_Handle *h,
 
 /**
  * Send an ack on the tunnel to confirm the processing of a message.
- * 
+ *
  * @param t Tunnel on which to send the ACK.
  */
 static void
@@ -702,7 +702,7 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
         GNUNET_TIME_relative_min (GNUNET_TIME_UNIT_SECONDS,
                                   GNUNET_TIME_relative_multiply
                                   (h->reconnect_time, 2));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Next retry in %s\n",
          GNUNET_STRINGS_relative_time_to_string (h->reconnect_time,
 						 GNUNET_NO));
@@ -916,7 +916,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  %s data on tunnel %s [%X]\n",
        t->tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV ? "fwd" : "bck",
-       GNUNET_i2s (GNUNET_PEER_resolve2(t->peer)), 
+       GNUNET_i2s (GNUNET_PEER_resolve2(t->peer)),
        ntohl (dmsg->tid));
   type = ntohs (payload->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %u\n", type);
@@ -948,7 +948,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
 /**
  * Process a local ACK message, enabling the client to send
  * more data to the service.
- * 
+ *
  * @param h Mesh handle.
  * @param message Message itself.
  */
@@ -1082,7 +1082,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Mesh service disconnected, reconnecting\n", h);
     reconnect (h);
     return;
@@ -1265,7 +1265,7 @@ send_callback (void *cls, size_t size, void *buf)
  * Auxiliary function to send an already constructed packet to the service.
  * Takes care of creating a new queue element, copying the message and
  * calling the tmt_rdy function if necessary.
- * 
+ *
  * @param h mesh handle
  * @param msg message to transmit
  * @param tunnel tunnel this send is related to (NULL if N/A)
@@ -1441,7 +1441,7 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
  * @return handle to the tunnel
  */
 struct GNUNET_MESH_Tunnel *
-GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h, 
+GNUNET_MESH_tunnel_create (struct GNUNET_MESH_Handle *h,
                            void *tunnel_ctx,
                            const struct GNUNET_PeerIdentity *peer,
                            uint32_t port,
@@ -1723,7 +1723,7 @@ static size_t
 mesh_mq_ntr (void *cls, size_t size,
              void *buf)
 {
-  struct GNUNET_MQ_Handle *mq = cls; 
+  struct GNUNET_MQ_Handle *mq = cls;
   struct MeshMQState *state = GNUNET_MQ_impl_state (mq);
   const struct GNUNET_MessageHeader *msg = GNUNET_MQ_impl_current (mq);
   uint16_t msize;
@@ -1769,7 +1769,7 @@ mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
       GNUNET_MESH_notify_transmit_ready (state->tunnel,
                                          /* FIXME: add option for corking */
                                          GNUNET_NO,
-                                         GNUNET_TIME_UNIT_FOREVER_REL, 
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                          ntohs (msg->size),
                                          mesh_mq_ntr, mq);
 
@@ -1781,7 +1781,7 @@ mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
  * destruction of a message queue.
  * Implementations must not free 'mq', but should
  * take care of 'impl_state'.
- * 
+ *
  * @param mq the message queue to destroy
  * @param impl_state state of the implementation
  */

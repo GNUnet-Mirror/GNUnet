@@ -21,7 +21,7 @@
 /**
  * @file testbed/test_testbed_api_barriers.c
  * @brief testcase binary for testing testbed barriers API
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -73,7 +73,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TESTBED_barrier_cancel (barrier);
     barrier = NULL;
   }
-  
+
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -99,7 +99,7 @@ barrier_cb (void *cls,
             const char *emsg)
 {
   static enum GNUNET_TESTBED_BarrierStatus old_status;
-  
+
   GNUNET_assert (NULL == cls);
   GNUNET_assert (_barrier == barrier);
   switch (status)
@@ -109,14 +109,14 @@ barrier_cb (void *cls,
     old_status = status;
     return;
   case GNUNET_TESTBED_BARRIERSTATUS_ERROR:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Barrier initialisation failed: %s", 
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Barrier initialisation failed: %s",
          (NULL == emsg) ? "unknown reason" : emsg);
     barrier = NULL;
-    GNUNET_SCHEDULER_shutdown ();    
+    GNUNET_SCHEDULER_shutdown ();
     return;
   case GNUNET_TESTBED_BARRIERSTATUS_CROSSED:
     LOG (GNUNET_ERROR_TYPE_INFO, "Barrier crossed\n");
-    if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED) 
+    if (old_status == GNUNET_TESTBED_BARRIERSTATUS_INITIALISED)
       result = GNUNET_OK;
     barrier = NULL;
     GNUNET_SCHEDULER_shutdown ();
@@ -161,7 +161,7 @@ test_master (void *cls,
                                          &barrier_cb, NULL);
   shutdown_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_SECONDS, 
+                                    (GNUNET_TIME_UNIT_SECONDS,
                                      10 * (NUM_PEERS + 1)),
                                     &do_shutdown, NULL);
 }
@@ -181,7 +181,7 @@ main (int argc, char **argv)
   result = GNUNET_SYSERR;
   event_mask = 0;
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONFIGURATION_parse (cfg,
                                              "test_testbed_api_barriers.conf.in"));
   if (NULL == getcwd (pwd, PATH_MAX))
@@ -191,7 +191,7 @@ main (int argc, char **argv)
   GNUNET_CONFIGURATION_set_value_string (cfg, "test-barriers","BINARY", binary);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write
                  (cfg, "test_testbed_api_barriers.conf"));
-  GNUNET_CONFIGURATION_destroy (cfg);  
+  GNUNET_CONFIGURATION_destroy (cfg);
   cfg = NULL;
   GNUNET_free (binary);
   binary = NULL;

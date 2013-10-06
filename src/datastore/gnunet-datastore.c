@@ -84,7 +84,7 @@ do_shutdown (void *cls,
 /**
  * Perform next GET operation.
  */
-static void 
+static void
 do_get (void);
 
 
@@ -101,7 +101,7 @@ do_get (void);
  *                space for 0-priority content
  * @param msg NULL on success, otherwise an error message
  */
-static void 
+static void
 do_finish (void *cls,
 	   int32_t success,
 	   struct GNUNET_TIME_Absolute min_expiration,
@@ -135,7 +135,7 @@ do_finish (void *cls,
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
-static void 
+static void
 do_put (void *cls,
 	const struct GNUNET_HashCode *key,
 	size_t size, const void *data,
@@ -156,8 +156,8 @@ do_put (void *cls,
     first_uid = uid;
   qe = GNUNET_DATASTORE_put (db_dst, 0,
 			     key, size, data, type,
-			     priority, anonymity, 
-			     0 /* FIXME: replication is lost... */, 
+			     priority, anonymity,
+			     0 /* FIXME: replication is lost... */,
 			     expiration,
 			     0, 1, GNUNET_TIME_UNIT_FOREVER_REL,
 			     &do_finish, NULL);
@@ -167,7 +167,7 @@ do_put (void *cls,
 /**
  * Perform next GET operation.
  */
-static void 
+static void
 do_get ()
 {
   qe = GNUNET_DATASTORE_get_key (db_src,
@@ -185,7 +185,7 @@ do_get ()
  *
  * @param cls closure
  * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used 
+ * @param cfgfile name of the configuration file used
  * @param cfg configuration -- for destination datastore
  */
 static void
@@ -196,7 +196,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return; /* nothing to be done */
   if (0 == strcmp (cfgfile, alternative_cfg))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     _("Cannot use the same configuration for source and destination\n"));
     ret = 1;
     return;
@@ -253,7 +253,7 @@ main (int argc, char *const *argv)
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "gnunet-datastore",
 			  gettext_noop ("Manipulate GNUnet datastore"),
-			  options, &run, NULL)) 
+			  options, &run, NULL))
     ret = 1;
   GNUNET_free ((void*) argv);
   return ret;

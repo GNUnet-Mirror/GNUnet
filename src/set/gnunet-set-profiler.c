@@ -226,7 +226,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   info1.id = "a";
   info2.id = "b";
-  
+
   info1.sent = GNUNET_CONTAINER_multihashmap_create (num_a+1, GNUNET_NO);
   info2.sent = GNUNET_CONTAINER_multihashmap_create (num_b+1, GNUNET_NO);
   common_sent = GNUNET_CONTAINER_multihashmap_create (num_c+1, GNUNET_NO);

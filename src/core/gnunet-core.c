@@ -72,7 +72,7 @@ shutdown_task (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-connected_peer_callback (void *cls, 
+connected_peer_callback (void *cls,
 			 const struct GNUNET_PeerIdentity *peer)
 {
   if (NULL == peer)

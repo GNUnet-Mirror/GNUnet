@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 
-/** 
+/**
  * @file multicast/multicast.h
  * @brief multicast IPC messages
  * @author Christian Grothoff
@@ -57,7 +57,7 @@ struct MulticastJoinDecisionMessage
   uint32_t relay_count;
 
   /* followed by 'relay_count' peer identities */
-  
+
   /* followed by the join response message */
 
 };
@@ -243,7 +243,7 @@ struct MulticastReplayRequestMessage
 {
 
   /**
-   * The message type can be either 
+   * The message type can be either
    * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST or
    * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL.
    */

@@ -146,8 +146,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 				   (1 +
 				    GNUNET_TIME_absolute_get_duration
 				    (start).rel_value_us) / 1024LL));
-    GAUGER ("FS", 
-	    (GNUNET_YES == indexed) 
+    GAUGER ("FS",
+	    (GNUNET_YES == indexed)
 	    ? "Publishing speed (indexing)"
 	     : "Publishing speed (insertion)",
 	    (unsigned long long) (FILESIZE * 1000000LL /
@@ -160,7 +160,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
         GNUNET_FS_download_start (fs,
                                   event->value.publish.specifics.
                                   completed.chk_uri, NULL, fn, NULL, 0,
-                                  FILESIZE, anonymity_level, 
+                                  FILESIZE, anonymity_level,
 				  GNUNET_FS_DOWNLOAD_OPTION_NONE,
                                   "download", NULL);
     GNUNET_assert (download != NULL);
@@ -173,8 +173,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 				    GNUNET_TIME_absolute_get_duration
 				    (start).rel_value_us) / 1024LL));
     GAUGER ("FS",
-	    (GNUNET_YES == indexed) 
-	    ? "Local download speed (indexed)"  
+	    (GNUNET_YES == indexed)
+	    ? "Local download speed (indexed)"
 	    : "Local download speed (inserted)",
             (unsigned long long) (FILESIZE * 1000000LL /
                                   (1 +

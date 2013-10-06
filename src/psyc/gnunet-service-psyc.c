@@ -80,7 +80,7 @@ struct Channel
   struct TransmitMessage *tmit_head;
   struct TransmitMessage *tmit_tail;
 
-  char *tmit_buf; 
+  char *tmit_buf;
   uint32_t tmit_mod_count;
   uint32_t tmit_mod_recvd;
   uint16_t tmit_size;

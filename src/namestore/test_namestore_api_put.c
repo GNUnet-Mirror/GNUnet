@@ -100,8 +100,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char * name = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Name store added record for `%s': %s\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Name store added record for `%s': %s\n",
 	      name, (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   if (success == GNUNET_OK)
     res = 0;
@@ -131,7 +131,7 @@ create_record (unsigned int count)
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

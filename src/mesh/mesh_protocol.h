@@ -309,12 +309,12 @@ struct GNUNET_MESH_TunnelKeepAlive
    * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_(FWD|BCK)_KEEPALIVE
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * TID of the tunnel
    */
   uint32_t tid GNUNET_PACKED;
-  
+
   /**
    * OID of the tunnel
    */

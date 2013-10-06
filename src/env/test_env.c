@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/** 
+/**
  * @file env/test_env.c
  * @brief Tests for the environment library.
  * @author Gabor X Toth

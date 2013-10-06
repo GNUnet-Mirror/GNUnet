@@ -40,7 +40,7 @@ struct GNUNET_REVOCATION_Query
    * Connection to the service.
    */
   struct GNUNET_CLIENT_Connection *client;
-  
+
   /**
    * Our configuration.
    */
@@ -196,12 +196,12 @@ GNUNET_REVOCATION_query_cancel (struct GNUNET_REVOCATION_Query *q)
  */
 struct GNUNET_REVOCATION_Handle
 {
-  
+
   /**
    * Connection to the service.
    */
   struct GNUNET_CLIENT_Connection *client;
-  
+
   /**
    * Our configuration.
    */
@@ -265,7 +265,7 @@ handle_revocation_response (void *cls,
   rrm = (const struct RevocationResponseMessage *) msg;
   h->func (h->func_cls, ntohl (rrm->is_valid));
   GNUNET_REVOCATION_revoke_cancel (h);
-  
+
 }
 
 
@@ -337,7 +337,7 @@ GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_REVOCATION_Handle *h;
   unsigned long long matching_bits;
 
-  if ( (GNUNET_OK == 
+  if ( (GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_number (cfg,
                                                "REVOCATION",
                                                "WORKBITS",
@@ -398,11 +398,11 @@ pow_hash (const void *buf,
 	  size_t buf_len,
 	  struct GNUNET_HashCode *result)
 {
-  GNUNET_break (0 == 
+  GNUNET_break (0 ==
 		gcry_kdf_derive (buf, buf_len,
 				 GCRY_KDF_SCRYPT,
 				 1 /* subalgo */,
-				 "gnunet-revocation-proof-of-work", 
+				 "gnunet-revocation-proof-of-work",
 				 strlen ("gnunet-revocation-proof-of-work"),
 				 2 /* iterations; keep cost of individual op small */,
 				 sizeof (struct GNUNET_HashCode), result));

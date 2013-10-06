@@ -328,9 +328,9 @@ get_respect_filename (const struct GNUNET_PeerIdentity *id)
 {
   char *fn;
 
-  GNUNET_asprintf (&fn, 
-		   "%s%s%s", 
-		   respectDirectory, 
+  GNUNET_asprintf (&fn,
+		   "%s%s%s",
+		   respectDirectory,
 		   DIR_SEPARATOR_STR,
 		   GNUNET_i2s_full (id));
   return fn;
@@ -542,7 +542,7 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Reserved %d bytes / need to wait %s for reservation\n",
-              (int) amount, 
+              (int) amount,
 	      GNUNET_STRINGS_relative_time_to_string (res_delay, GNUNET_YES));
   cp->rc = NULL;
   if (0 == amount)
@@ -597,7 +597,7 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
   GNUNET_free (fn);
   cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (cp_map, 
+                GNUNET_CONTAINER_multipeermap_put (cp_map,
 						   GSF_connected_peer_get_identity2_ (cp),
                                                    cp,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
@@ -682,7 +682,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
   bt = GNUNET_TIME_relative_ntoh (msm->duration);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Migration of content to peer `%s' blocked for %s\n"),
-              GNUNET_i2s (other), 
+              GNUNET_i2s (other),
 	      GNUNET_STRINGS_relative_time_to_string (bt, GNUNET_YES));
   cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
   if (GNUNET_SCHEDULER_NO_TASK == cp->mig_revive_task)
@@ -1254,7 +1254,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   {
     pr = peerreq->pr;
     prd = GSF_pending_request_get_data_ (pr);
-    if (prd->type == type) 
+    if (prd->type == type)
     {
       if (prd->ttl.abs_value_us >= GNUNET_TIME_absolute_get ().abs_value_us + ttl * 1000LL)
       {
@@ -1278,7 +1278,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 
   peerreq = GNUNET_new (struct PeerRequest);
   peerreq->cp = cp;
-  pr = GSF_pending_request_create_ (options, type, &gm->query, 
+  pr = GSF_pending_request_create_ (options, type, &gm->query,
                                     target,
                                     (bfsize >
                                      0) ? (const char *) &opt[bits] : NULL,
@@ -1813,8 +1813,8 @@ GSF_connected_peer_init_ ()
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_peer (void *cls, 
-	    const struct GNUNET_PeerIdentity *key, 
+clean_peer (void *cls,
+	    const struct GNUNET_PeerIdentity *key,
 	    void *value)
 {
   GSF_peer_disconnect_handler_ (NULL, key);
@@ -1846,8 +1846,8 @@ GSF_connected_peer_done_ ()
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_local_client (void *cls, 
-		    const struct GNUNET_PeerIdentity *key, 
+clean_local_client (void *cls,
+		    const struct GNUNET_PeerIdentity *key,
 		    void *value)
 {
   const struct GSF_LocalClient *lc = cls;

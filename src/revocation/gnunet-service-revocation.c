@@ -34,7 +34,7 @@
  * - broadcast p2p revocations
  * - handle p2p connect (trigger SET union)
  * - optimization: avoid sending revocation back to peer that we got it from;
- * - optimization: have randomized delay in sending revocations to other peers 
+ * - optimization: have randomized delay in sending revocations to other peers
  *                 to make it rare to traverse each link twice (NSE-style)
  */
 #include "platform.h"
@@ -83,7 +83,7 @@ static struct GNUNET_SET_Handle *revocation_set;
 /**
  * Hash map with all revoked keys, maps the hash of the public key
  * to the respective `struct RevokeMessage`.
- */ 
+ */
 static struct GNUNET_CONTAINER_MultiHashMap *revocation_map;
 
 /**
@@ -147,7 +147,7 @@ verify_revoke_message (const struct RevokeMessage *rm)
 				   rm->proof_of_work,
 				   (unsigned int) revocation_work_required))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Proof of work invalid: %llu!\n",
                 (unsigned long long)
                 GNUNET_ntohll (rm->proof_of_work));
@@ -175,7 +175,7 @@ verify_revoke_message (const struct RevokeMessage *rm)
  * @param message the message received
  */
 static void
-handle_query_message (void *cls, 
+handle_query_message (void *cls,
 		      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
@@ -188,15 +188,15 @@ handle_query_message (void *cls,
                       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
                       &hc);
   res = GNUNET_CONTAINER_multihashmap_contains (revocation_map, &hc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-              (GNUNET_NO == res) 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              (GNUNET_NO == res)
 	      ? "Received revocation check for valid key `%s' from client\n"
               : "Received revocation check for revoked key `%s' from client\n",
               GNUNET_h2s (&hc));
   qrm.header.size = htons (sizeof (struct QueryResponseMessage));
   qrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
   qrm.is_valid = htons ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
-  GNUNET_SERVER_notification_context_add (nc, 
+  GNUNET_SERVER_notification_context_add (nc,
                                           client);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               client,
@@ -228,7 +228,7 @@ do_flood (void *cls,
  * Publicize revocation message.   Stores the message locally in the
  * database and passes it to all connected neighbours (and adds it to
  * the set for future connections).
- * 
+ *
  * @param rm message to publicize
  * @return #GNUNET_OK on success, #GNUNET_NO if we encountered an error,
  *         #GNUNET_SYSERR if the message was malformed
@@ -251,12 +251,12 @@ publicize_rm (const struct RevokeMessage *rm)
                 _("Duplicate revocation received from peer. Ignored.\n"));
     return GNUNET_OK;
   }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       verify_revoke_message (rm))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
-  } 
+  }
   /* write to disk */
   if (sizeof (struct RevokeMessage) !=
       GNUNET_DISK_file_write (revocation_db,
@@ -294,7 +294,7 @@ publicize_rm (const struct RevokeMessage *rm)
     return GNUNET_OK;
   }
   /* flood to neighbours */
-  GNUNET_CONTAINER_multipeermap_iterate (peers, 
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
 					 &do_flood,
                                          cp);
   return GNUNET_OK;
@@ -309,7 +309,7 @@ publicize_rm (const struct RevokeMessage *rm)
  * @param message the message received
  */
 static void
-handle_revoke_message (void *cls, 
+handle_revoke_message (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
@@ -317,7 +317,7 @@ handle_revoke_message (void *cls,
   struct RevocationResponseMessage rrm;
   int ret;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REVOKE message from client\n");
   rm = (const struct RevokeMessage *) message;
   if (GNUNET_SYSERR == (ret = publicize_rm (rm)))
@@ -329,7 +329,7 @@ handle_revoke_message (void *cls,
   rrm.header.size = htons (sizeof (struct RevocationResponseMessage));
   rrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
   rrm.is_valid = htons ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
-  GNUNET_SERVER_notification_context_add (nc, 
+  GNUNET_SERVER_notification_context_add (nc,
                                           client);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               client,
@@ -347,13 +347,13 @@ handle_revoke_message (void *cls,
  * @param peer peer identity this message is from (ignored)
  */
 static int
-handle_p2p_revoke_message (void *cls, 
+handle_p2p_revoke_message (void *cls,
 			   const struct GNUNET_PeerIdentity *peer,
 			   const struct GNUNET_MessageHeader *message)
 {
   const struct RevokeMessage *rm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received REVOKE message from peer\n");
   rm = (const struct RevokeMessage *) message;
   GNUNET_break_op (GNUNET_SYSERR != publicize_rm (rm));
@@ -400,7 +400,7 @@ handle_core_connect (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_disconnect (void *cls, 
+handle_core_disconnect (void *cls,
 			const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerEntry *pos;
@@ -418,7 +418,7 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
 #if 0
-  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) 
+  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
@@ -436,7 +436,7 @@ handle_core_disconnect (void *cls,
 
 /**
  * Free all values in a hash map.
- * 
+ *
  * @param cls NULL
  * @param key the key
  * @param value value to free
@@ -506,12 +506,12 @@ shutdown_task (void *cls,
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, 
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
   if (NULL == identity)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Connection to core FAILED!\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -528,7 +528,7 @@ core_init (void *cls,
  * @param c configuration to use
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -562,7 +562,7 @@ run (void *cls,
     return;
   }
   cfg = c;
-  srv = server;  
+  srv = server;
   revocation_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   if (GNUNET_OK !=
@@ -588,7 +588,7 @@ run (void *cls,
   }
   revocation_set = GNUNET_SET_create (cfg,
 				      GNUNET_SET_OPERATION_UNION);
-  
+
   revocation_db = GNUNET_DISK_file_open (fn,
                                          GNUNET_DISK_OPEN_READWRITE |
                                          GNUNET_DISK_OPEN_CREATE,
@@ -607,10 +607,10 @@ run (void *cls,
   }
   if (GNUNET_OK !=
       GNUNET_DISK_file_size (fn, &left, GNUNET_YES, GNUNET_YES))
-    left = 0;                         
+    left = 0;
   while (left > sizeof (struct RevokeMessage))
   {
-    rm = GNUNET_new (struct RevokeMessage);    
+    rm = GNUNET_new (struct RevokeMessage);
     if (sizeof (struct RevokeMessage) !=
         GNUNET_DISK_file_read (revocation_db,
                                rm,
@@ -632,10 +632,10 @@ run (void *cls,
                   GNUNET_CONTAINER_multihashmap_put (revocation_map,
                                                      &hc,
                                                      rm,
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));    
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   GNUNET_free (fn);
-  
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
@@ -668,7 +668,7 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, 
+main (int argc,
       char *const *argv)
 {
   return (GNUNET_OK ==
@@ -683,7 +683,7 @@ main (int argc,
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) 
+void __attribute__ ((constructor))
 GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);

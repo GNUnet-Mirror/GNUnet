@@ -19,8 +19,8 @@
  */
 /**
  * @file vpn/gnunet-helper-vpn-windows.c
- * @brief the helper for the VPN service in win32 builds. 
- * Opens a virtual network-interface, sends data received on the if to stdout, 
+ * @brief the helper for the VPN service in win32 builds.
+ * Opens a virtual network-interface, sends data received on the if to stdout,
  * sends data received on stdin to the interface
  * @author Christian M. Fuchs
  *
@@ -68,7 +68,7 @@
 #endif
 
 /**
- * Will this binary be run in permissions testing mode? 
+ * Will this binary be run in permissions testing mode?
  */
 static boolean privilege_testing = FALSE;
 
@@ -90,7 +90,7 @@ static boolean privilege_testing = FALSE;
 #define INF_FILE64 "share/gnunet/openvpn-tap32/tapw64/OemWin2k.inf"
 
 /**
- * Hardware ID used in the inf-file. 
+ * Hardware ID used in the inf-file.
  * This might change over time, as openvpn advances their driver
  */
 #define HARDWARE_ID "tap0901"
@@ -101,7 +101,7 @@ static boolean privilege_testing = FALSE;
 #define TAP_WIN_MIN_MAJOR 9
 
 /**
- * Minimum minor-id of the driver version we can work with. 
+ * Minimum minor-id of the driver version we can work with.
  * v <= 7 has buggy IPv6.
  * v == 8 is broken for small IPv4 Packets
  */
@@ -109,7 +109,7 @@ static boolean privilege_testing = FALSE;
 
 /**
  * Time in seconds to wait for our virtual device to go up after telling it to do so.
- * 
+ *
  * openvpn doesn't specify a value, 4 seems sane for testing, even for openwrt
  * (in fact, 4 was chosen by a fair dice roll...)
  */
@@ -121,7 +121,7 @@ static boolean privilege_testing = FALSE;
 #define INTERFACE_REGISTRY_LOCATION "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}"
 
 /**
- * Our local process' PID. Used for creating a sufficiently unique additional 
+ * Our local process' PID. Used for creating a sufficiently unique additional
  * hardware ID for our device.
  */
 static char secondary_hwid[LINE_LEN / 2];
@@ -132,13 +132,13 @@ static char secondary_hwid[LINE_LEN / 2];
  */
 static char device_visible_name[256];
 
-/** 
+/**
  * This is our own local instance of a virtual network interface
  * It is (somewhat) equivalent to using tun/tap in unixoid systems
- * 
+ *
  * Upon initialization, we create such an device node.
  * Upon termination, we remove it again.
- * 
+ *
  * If we crash this device might stay around.
  */
 static HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
@@ -149,7 +149,7 @@ static HDEVINFO DeviceInfo = INVALID_HANDLE_VALUE;
 static SP_DEVINFO_DATA DeviceNode;
 
 /**
- * GUID of our virtual device in the form of 
+ * GUID of our virtual device in the form of
  * {12345678-1234-1234-1234-123456789abc} - in hex
  */
 static char device_guid[256];
@@ -161,36 +161,36 @@ static char device_guid[256];
 enum IO_State
 {
 
-  /** 
-   * overlapped I/O is ready for work 
+  /**
+   * overlapped I/O is ready for work
    */
   IOSTATE_READY = 0,
 
-  /** 
-   * overlapped I/O has been queued 
+  /**
+   * overlapped I/O has been queued
    */
   IOSTATE_QUEUED,
 
-  /** 
-   * overlapped I/O has finished, but is waiting for it's write-partner 
+  /**
+   * overlapped I/O has finished, but is waiting for it's write-partner
    */
-  IOSTATE_WAITING, 
-  
-  /** 
+  IOSTATE_WAITING,
+
+  /**
    * there is a full buffer waiting
    */
   IOSTATE_RESUME,
 
-  /** 
+  /**
    * Operlapped IO states for facility objects
-   * overlapped I/O has failed, stop processing 
+   * overlapped I/O has failed, stop processing
    */
-  IOSTATE_FAILED 
+  IOSTATE_FAILED
 
 };
 
 
-/** 
+/**
  * A IO Object + read/writebuffer + buffer-size for windows asynchronous IO handling
  */
 struct io_facility
@@ -229,7 +229,7 @@ struct io_facility
    * Amount of data actually written or read by readfile/writefile.
    */
   DWORD buffer_size_processed;
-  
+
   /**
    * How much of this buffer we have writte in total
    */
@@ -248,32 +248,32 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
 
 /**
  * Determines if the host OS is win32 or win64
- * 
- * @return true if 
+ *
+ * @return true if
  */
 BOOL
 is_win64 ()
 {
 #if defined(_WIN64)
-  //this is a win64 binary, 
-  return TRUE; 
+  //this is a win64 binary,
+  return TRUE;
 #elif defined(_WIN32)
   //this is a 32bit binary, and we need to check if we are running in WOW64
   BOOL success = FALSE;
   BOOL on_wow64 = FALSE;
   LPFN_ISWOW64PROCESS IsWow64Process = (LPFN_ISWOW64PROCESS) GetProcAddress (GetModuleHandle ("kernel32"), "IsWow64Process");
-  
+
   if (NULL != IsWow64Process)
       success = IsWow64Process (GetCurrentProcess (), &on_wow64);
-  
+
   return success && on_wow64;
 #endif
 }
 /**
  * Wrapper for executing a shellcommand in windows.
- * 
+ *
  * @param command - the command + parameters to execute
- * @return * exitcode of the program executed, 
+ * @return * exitcode of the program executed,
  *         * EINVAL (cmd/file not found)
  *         * EPIPE (could not read STDOUT)
  */
@@ -365,7 +365,7 @@ remove_address6 (const char *address)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "FATAL: removing IPv6 address failed: %s\n",
 	     strerror (ret));
 }
@@ -410,8 +410,8 @@ set_address4 (const char *address, const char *mask)
 
   /* Did it work?*/
   if (0 != ret)
-    fprintf (stderr, 
-	     "FATAL: Setting IPv4 address failed: %s\n", 
+    fprintf (stderr,
+	     "FATAL: Setting IPv4 address failed: %s\n",
 	     strerror (ret));
   return ret;
 }
@@ -448,8 +448,8 @@ remove_address4 (const char *address)
 
 
 /**
- * Setup a new virtual interface to use for tunneling. 
- * 
+ * Setup a new virtual interface to use for tunneling.
+ *
  * @return: TRUE if setup was successful, else FALSE
  */
 static BOOL
@@ -457,7 +457,7 @@ setup_interface ()
 {
   /*
    * where to find our inf-file. (+ the "full" path, after windows found")
-   * 
+   *
    * We do not directly input all the props here, because openvpn will update
    * these details over time.
    */
@@ -468,22 +468,22 @@ setup_interface ()
   GUID class_guid;
   int str_length = 0;
 
-  /** 
+  /**
    * Set the device's hardware ID and add it to a list.
-   * This information will later on identify this device in registry. 
+   * This information will later on identify this device in registry.
    */
   strncpy (hwidlist, HARDWARE_ID, LINE_LEN);
   /**
-   * this is kind of over-complicated, but allows keeps things independent of 
-   * how the openvpn-hwid is actually stored. 
-   * 
+   * this is kind of over-complicated, but allows keeps things independent of
+   * how the openvpn-hwid is actually stored.
+   *
    * A HWID list is double-\0 terminated and \0 separated
    */
   str_length = strlen (hwidlist) + 1;
   strncpy (&hwidlist[str_length], secondary_hwid, LINE_LEN);
   str_length += strlen (&hwidlist[str_length]) + 1;
-  
-  /** 
+
+  /**
    * Locate the inf-file, we need to store it somewhere where the system can
    * find it. We need to pick the correct driver for win32/win64.
    */
@@ -493,7 +493,7 @@ setup_interface ()
     GetFullPathNameA (INF_FILE, MAX_PATH, inf_file_path, &temp_inf_filename);
 
   fprintf (stderr, "INFO: Located our driver's .inf file at %s\n", inf_file_path);
-  /** 
+  /**
    * Bootstrap our device info using the drivers inf-file
    */
   if ( ! SetupDiGetINFClassA (inf_file_path,
@@ -502,9 +502,9 @@ setup_interface ()
                             NULL))
     return FALSE;
 
-  /** 
-   * Collect all the other needed information... 
-   * let the system fill our this form 
+  /**
+   * Collect all the other needed information...
+   * let the system fill our this form
    */
   DeviceInfo = SetupDiCreateDeviceInfoList (&class_guid, NULL);
   if (DeviceInfo == INVALID_HANDLE_VALUE)
@@ -549,9 +549,9 @@ setup_interface ()
 
 
 /**
- * Remove our new virtual interface to use for tunneling. 
+ * Remove our new virtual interface to use for tunneling.
  * This function must be called AFTER setup_interface!
- * 
+ *
  * @return: TRUE if destruction was successful, else FALSE
  */
 static BOOL
@@ -567,7 +567,7 @@ remove_interface ()
   remove.Scope = DI_REMOVEDEVICE_GLOBAL;
   remove.ClassInstallHeader.InstallFunction = DIF_REMOVE;
   /*
-   * 1. Prepare our existing device information set, and place the 
+   * 1. Prepare our existing device information set, and place the
    *    uninstall related information into the structure
    */
   if ( ! SetupDiSetClassInstallParamsA (DeviceInfo,
@@ -584,7 +584,7 @@ remove_interface ()
     return FALSE;
 
   SetupDiDestroyDeviceInfoList (DeviceInfo);
-  
+
   fprintf (stderr, "DEBUG: removed interface successfully\n");
 
   return TRUE;
@@ -593,8 +593,8 @@ remove_interface ()
 
 /**
  * Do all the lookup necessary to retrieve the inteface's actual name
- * off the registry. 
- * 
+ * off the registry.
+ *
  * @return: TRUE if we were able to lookup the interface's name, else FALSE
  */
 static BOOL
@@ -618,7 +618,7 @@ resolve_interface_name ()
                                           0, //must be 0
                                           NULL)) //hMachine, we are local
     return FALSE;
-  
+
   fprintf (stderr, "DEBUG: Resolving interface name for network device %s\n",pnp_instance_id);
 
   /* Registry is incredibly slow, retry for up to 30 seconds to allow registry to refresh */
@@ -636,7 +636,7 @@ resolve_interface_name ()
                                           &adapter_key_handle))
         return FALSE;
 
-      /* Of course there is a multitude of entries here, with arbitrary names, 
+      /* Of course there is a multitude of entries here, with arbitrary names,
        * thus we need to iterate through there.
        */
       while (!retval)
@@ -661,7 +661,7 @@ resolve_interface_name ()
                                   NULL,
                                   NULL);
 
-          /* this may fail due to one of two reasons: 
+          /* this may fail due to one of two reasons:
            * we are at the end of the list*/
           if (ERROR_NO_MORE_ITEMS == status)
             break;
@@ -712,8 +712,8 @@ resolve_interface_name ()
           if (status != ERROR_SUCCESS || data_type != REG_SZ)
             goto cleanup;
 
-          /* 
-           * we have successfully found OUR instance, 
+          /*
+           * we have successfully found OUR instance,
            * save the device GUID before exiting
            */
 
@@ -735,7 +735,7 @@ cleanup:
 
 /**
  * Determines the version of the installed TAP32 driver and checks if it's sufficiently new for GNUNET
- * 
+ *
  * @param handle the handle to our tap device
  * @return TRUE if the version is sufficient, else FALSE
  */
@@ -761,7 +761,7 @@ check_tapw32_version (HANDLE handle)
                TAP_WIN_MIN_MINOR);
       return FALSE;
     }
-      
+
   return TRUE;
 }
 
@@ -827,8 +827,8 @@ init_tun ()
 
 /**
  * Brings a TAP device up and sets it to connected state.
- * 
- * @param handle the handle to our TAP device 
+ *
+ * @param handle the handle to our TAP device
  * @return True if the operation succeeded, else false
  */
 static BOOL
@@ -854,25 +854,25 @@ tun_up (HANDLE handle)
 
 /**
  * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
- * 
- * 1. 
+ *
+ * 1.
  * If the input facility is in IOSTATE_READY, it will issue a new read operation to the
- * input handle. Then it goes into IOSTATE_QUEUED state. 
+ * input handle. Then it goes into IOSTATE_QUEUED state.
  * In case the read succeeded instantly the input facility enters 3.
- * 
- * 2. 
+ *
+ * 2.
  * If the input facility is in IOSTATE_QUEUED state, it will check if the queued read has finished already.
  * If it has finished, go to state 3.
  * If it has failed, set IOSTATE_FAILED
- * 
+ *
  * 3.
  * If the output facility is in state IOSTATE_READY, the read-buffer is copied to the output buffer.
  *   The input facility enters state IOSTATE_READY
  *   The output facility enters state IOSTATE_READY
  * If the output facility is in state IOSTATE_QUEUED, the input facility enters IOSTATE_WAITING
- * 
+ *
  * IOSTATE_WAITING is reset by the output facility, once it has completed.
- * 
+ *
  * @param input_facility input named pipe or file to work with.
  * @param output_facility output pipe or file to hand over data to.
  * @return false if an event reset was impossible (OS error), else true
@@ -883,11 +883,11 @@ attempt_read_tap (struct io_facility * input_facility,
 {
   struct GNUNET_MessageHeader * hdr;
   unsigned short size;
-  
+
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
-      { 
+      {
         if (! ResetEvent (input_facility->overlapped.hEvent))
           {
             return FALSE;
@@ -906,9 +906,9 @@ attempt_read_tap (struct io_facility * input_facility,
             /* reset event manually*/
             if (! SetEvent (input_facility->overlapped.hEvent))
               return FALSE;
-            
+
             fprintf (stderr, "DEBUG: tap read succeeded immediately\n");
-            
+
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
@@ -917,7 +917,7 @@ attempt_read_tap (struct io_facility * input_facility,
               { /* hand over this buffers content and apply message header for gnunet */
                 hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
                 size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
-                
+
                 memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
                         input_facility->buffer_size);
@@ -964,7 +964,7 @@ attempt_read_tap (struct io_facility * input_facility,
               return FALSE;
 
             fprintf (stderr, "DEBUG: tap read succeeded delayed\n");
-            
+
             /* we successfully read something from the TAP and now need to
              * send it our via STDOUT. Is that possible at the moment? */
             if ((IOSTATE_READY == output_facility->facility_state ||
@@ -973,7 +973,7 @@ attempt_read_tap (struct io_facility * input_facility,
               { /* hand over this buffers content and apply message header for gnunet */
                 hdr = (struct GNUNET_MessageHeader *) output_facility->buffer;
                 size = input_facility->buffer_size + sizeof (struct GNUNET_MessageHeader);
-                
+
                 memcpy (output_facility->buffer + sizeof (struct GNUNET_MessageHeader),
                         input_facility->buffer,
                         input_facility->buffer_size);
@@ -1026,26 +1026,26 @@ attempt_read_tap (struct io_facility * input_facility,
 
 /**
  * Attempts to read off an input facility (tap or named pipe) in overlapped mode.
- * 
- * 1. 
+ *
+ * 1.
  * If the input facility is in IOSTATE_READY, it will issue a new read operation to the
- * input handle. Then it goes into IOSTATE_QUEUED state. 
+ * input handle. Then it goes into IOSTATE_QUEUED state.
  * In case the read succeeded instantly the input facility enters 3.
- * 
- * 2. 
+ *
+ * 2.
  * If the input facility is in IOSTATE_QUEUED state, it will check if the queued read has finished already.
  * If it has finished, go to state 3.
  * If it has failed, set IOSTATE_FAILED
- * 
+ *
  * 3.
  * If the facility is finished with ready
  *   The read-buffer is copied to the output buffer, except for the GNUNET_MessageHeader.
  *   The input facility enters state IOSTATE_READY
  *   The output facility enters state IOSTATE_READY
  * If the output facility is in state IOSTATE_QUEUED, the input facility enters IOSTATE_WAITING
- * 
+ *
  * IOSTATE_WAITING is reset by the output facility, once it has completed.
- * 
+ *
  * @param input_facility input named pipe or file to work with.
  * @param output_facility output pipe or file to hand over data to.
  * @return false if an event reset was impossible (OS error), else true
@@ -1055,17 +1055,17 @@ attempt_read_stdin (struct io_facility * input_facility,
                     struct io_facility * output_facility)
 {
   struct GNUNET_MessageHeader * hdr;
-  
+
   switch (input_facility->facility_state)
     {
     case IOSTATE_READY:
       {
         input_facility->buffer_size = 0;
-        
+
 partial_read_iostate_ready:
         if (! ResetEvent (input_facility->overlapped.hEvent))
           return FALSE;
-       
+
         /* Check how the task is handled */
         if (ReadFile (input_facility->handle,
                            input_facility->buffer + input_facility->buffer_size,
@@ -1113,7 +1113,7 @@ partial_read_iostate_ready:
               input_facility->facility_state = IOSTATE_WAITING;
             else /* we read nothing */
               input_facility->facility_state = IOSTATE_READY;
-          } 
+          }
         else /* operation was either queued or failed*/
           {
             int err = GetLastError ();
@@ -1141,13 +1141,13 @@ partial_read_iostate_ready:
                                  FALSE))
           {/* successful return for a queued operation */
             hdr = (struct GNUNET_MessageHeader *) input_facility->buffer;
-            
+
             if (! ResetEvent (input_facility->overlapped.hEvent))
               return FALSE;
-            
+
             fprintf (stderr, "DEBUG: stdin read succeeded delayed\n");
             input_facility->buffer_size += input_facility->buffer_size_processed;
-            
+
             if ((ntohs (hdr->type) != GNUNET_MESSAGE_TYPE_VPN_HELPER) ||
                 (ntohs (hdr->size) > sizeof (input_facility->buffer)))
               {
@@ -1209,7 +1209,7 @@ partial_read_iostate_ready:
  * Attempts to write to an output facility (tap or named pipe) in overlapped mode.
  *
  * TODO: high level description
- * 
+ *
  * @param output_facility output pipe or file to hand over data to.
  * @param input_facility input named pipe or file to work with.
  * @return false if an event reset was impossible (OS error), else true
@@ -1222,7 +1222,7 @@ attempt_write (struct io_facility * output_facility,
     {
     case IOSTATE_READY:
       output_facility->buffer_size_written = 0;
-      
+
 continue_partial_write:
       if (! ResetEvent (output_facility->overlapped.hEvent))
         return FALSE;
@@ -1237,7 +1237,7 @@ continue_partial_write:
 
           fprintf (stderr, "DEBUG: write succeeded immediately\n");
           output_facility->buffer_size_written += output_facility->buffer_size_processed;
-          
+
           /* reset event manually*/
           if (! SetEvent (output_facility->overlapped.hEvent))
             return FALSE;
@@ -1245,7 +1245,7 @@ continue_partial_write:
           /* partial write */
           if (output_facility->buffer_size_written < output_facility->buffer_size)
             goto continue_partial_write;
-          
+
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
 
@@ -1272,7 +1272,7 @@ continue_partial_write:
       return TRUE;
     case IOSTATE_QUEUED:
       // there was an operation going on already, check if that has completed now.
-      
+
       if (GetOverlappedResult (output_facility->handle,
                                     &output_facility->overlapped,
                                     &output_facility->buffer_size_processed,
@@ -1280,17 +1280,17 @@ continue_partial_write:
         {/* successful return for a queued operation */
           if (! ResetEvent (output_facility->overlapped.hEvent))
             return FALSE;
-          
+
           fprintf (stderr, "DEBUG: write succeeded delayed\n");
           output_facility->buffer_size_written += output_facility->buffer_size_processed;
-          
+
           /* partial write */
           if (output_facility->buffer_size_written < output_facility->buffer_size)
             goto continue_partial_write;
-          
+
           /* we are now waiting for our buffer to be filled*/
           output_facility->facility_state = IOSTATE_WAITING;
-          
+
           /* we successfully wrote something and now need to reset our reader */
           if (IOSTATE_WAITING == input_facility->facility_state)
             input_facility->facility_state = IOSTATE_RESUME;
@@ -1307,7 +1307,7 @@ continue_partial_write:
               fprintf (stderr, "FATAL: Write to handle failed, exiting\n");
             }
         }
-    default: 
+    default:
       return TRUE;
     }
 }
@@ -1315,7 +1315,7 @@ continue_partial_write:
 
 /**
  * Initialize a overlapped structure
- * 
+ *
  * @param elem the element to initilize
  * @param initial_state the initial state for this instance
  * @param signaled if the hEvent created should default to signaled or not
@@ -1361,7 +1361,7 @@ run (HANDLE tap_handle)
   /* tun up: */
   /* we do this HERE and not beforehand (in init_tun()), in contrast to openvpn
    * to remove the need to flush the arp cache, handle DHCP and wrong IPs.
-   *  
+   *
    * DHCP and such are all features we will never use in gnunet afaik.
    * But for openvpn those are essential.
    */
@@ -1383,12 +1383,12 @@ run (HANDLE tap_handle)
   /* Debug output to console STDIN/STDOUT*/
   std_in.handle = parent_std_in_handle;
   std_out.handle = parent_std_out_handle;
-  
+
 #else
   fprintf (stderr, "DEBUG: reopening stdin/out for overlapped IO\n");
-  /* 
-   * Find out the types of our handles. 
-   * This part is a problem, because in windows we need to handle files, 
+  /*
+   * Find out the types of our handles.
+   * This part is a problem, because in windows we need to handle files,
    * pipes and the console differently.
    */
   if ((FILE_TYPE_PIPE != GetFileType (parent_std_in_handle)) ||
@@ -1472,16 +1472,16 @@ main (int argc, char **argv)
   int global_ret = 0;
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
-  
+
   if (argc > 1 && 0 != strcmp (argv[1], "-d")){
       privilege_testing = TRUE;
-      fprintf (stderr, 
+      fprintf (stderr,
 	       "%s",
 	       "DEBUG: Running binary in privilege testing mode.");
       argv++;
       argc--;
     }
-  
+
   if (6 != argc)
     {
       fprintf (stderr,
@@ -1493,9 +1493,9 @@ main (int argc, char **argv)
   strncpy (hwid, argv[1], LINE_LEN);
   hwid[LINE_LEN - 1] = '\0';
 
-  /* 
-   * We use our PID for finding/resolving the control-panel name of our virtual 
-   * device. PIDs are (of course) unique at runtime, thus we can safely use it 
+  /*
+   * We use our PID for finding/resolving the control-panel name of our virtual
+   * device. PIDs are (of course) unique at runtime, thus we can safely use it
    * as additional hardware-id for our device.
    */
   snprintf (secondary_hwid, LINE_LEN / 2, "%s-%d",

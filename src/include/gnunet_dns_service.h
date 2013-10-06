@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_dns_service.h
- * @brief API to access the DNS service. 
+ * @brief API to access the DNS service.
  * @author Christian Grothoff
  */
 #ifndef GNUNET_DNS_SERVICE_H
@@ -41,7 +41,7 @@ struct GNUNET_DNS_RequestHandle;
 
 /**
  * Flags that specify when to call the client's handler.
- */ 
+ */
 enum GNUNET_DNS_Flags
 {
 
@@ -153,7 +153,7 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		   
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		
 			   uint16_t reply_length,
 			   const char *reply);
 
@@ -165,7 +165,7 @@ GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
  * @param flags when to call rh
  * @param rh function to call with DNS requests
  * @param rh_cls closure to pass to rh
- * @return DNS handle 
+ * @return DNS handle
  */
 struct GNUNET_DNS_Handle *
 GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,

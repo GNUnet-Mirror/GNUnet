@@ -58,14 +58,14 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   end = GNUNET_TIME_absolute_get();
   fprintf (stderr, "\n");
-  fflush(stdout);  
+  fflush(stdout);
 }
 
 
 /**
  *
  */
-static void 
+static void
 check (void *cls, char *const *args,
        const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *
@@ -90,7 +90,7 @@ main (int argc, char *argv[])
   time_t start_real;
   time_t end_real;
   struct GNUNET_TIME_Relative delta;
-  
+
   start_real = time (NULL);
   start = GNUNET_TIME_absolute_get();
   GNUNET_PROGRAM_run ((sizeof (argvn) / sizeof (char *)) - 1, argvn, "test-speedup",
@@ -101,19 +101,19 @@ main (int argc, char *argv[])
 
   if (delta.rel_value_us >  ((end_real - start_real) * 1500LL * 1000LL))
   {
-    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG, 
-		 "Execution time in GNUnet time: %s\n", 
+    GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
+		 "Execution time in GNUnet time: %s\n",
 		 GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
     GNUNET_log  (GNUNET_ERROR_TYPE_DEBUG,
-		 "Execution time in system time: %llu ms\n", 
+		 "Execution time in system time: %llu ms\n",
 		 (unsigned long long) ((end_real - start_real) * 1000LL));
     return 0;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-	      "Execution time in GNUnet time: %s\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Execution time in GNUnet time: %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_YES));
-  GNUNET_log  (GNUNET_ERROR_TYPE_ERROR, 
-	       "Execution time in system time: %llu ms\n", 
+  GNUNET_log  (GNUNET_ERROR_TYPE_ERROR,
+	       "Execution time in system time: %llu ms\n",
 	       (unsigned long long) ((end_real - start_real) * 1000LL));
   return 1;
 }

@@ -288,7 +288,7 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client);
  *                          serious error)
  */
 void
-GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, 
+GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client,
 			    int success);
 
 
@@ -326,7 +326,7 @@ GNUNET_SERVER_client_get_user_context_ (struct GNUNET_SERVER_Client *client,
  * @param ptr pointer to user context
  * @param size number of bytes in user context struct (for verification only)
  */
-void 
+void
 GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
 					void *ptr,
 					size_t size);
@@ -500,7 +500,7 @@ GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
 
 /**
  * Ask the server to stop notifying us whenever a client disconnects.
- * Arguments must match exactly those given to 
+ * Arguments must match exactly those given to
  * #GNUNET_SERVER_disconnect_notify.  It is not necessary to call this
  * function during shutdown of the server; in fact, most applications
  * will never use this function.
@@ -517,7 +517,7 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
 
 /**
  * Ask the server to stop notifying us whenever a client connects.
- * Arguments must match exactly those given to 
+ * Arguments must match exactly those given to
  * #GNUNET_SERVER_connect_notify.  It is not necessary to call this
  * function during shutdown of the server; in fact, most applications
  * will never use this function.
@@ -693,7 +693,7 @@ GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
 void
 GNUNET_SERVER_notification_context_unicast (struct GNUNET_SERVER_NotificationContext *nc,
                                             struct GNUNET_SERVER_Client *client,
-                                            const struct GNUNET_MessageHeader *msg, 
+                                            const struct GNUNET_MessageHeader *msg,
                                             int can_drop);
 
 
@@ -706,7 +706,7 @@ GNUNET_SERVER_notification_context_unicast (struct GNUNET_SERVER_NotificationCon
  */
 void
 GNUNET_SERVER_notification_context_broadcast (struct GNUNET_SERVER_NotificationContext *nc,
-                                              const struct GNUNET_MessageHeader *msg, 
+                                              const struct GNUNET_MessageHeader *msg,
                                               int can_drop);
 
 
@@ -811,7 +811,7 @@ typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);
  * @param one_shot only call callback once, keep rest of message in buffer
  * @return #GNUNET_OK if we are done processing (need more data)
  *         #GNUNET_NO if one_shot was set and we have another message ready
- *         #GNUNET_SYSERR if the data stream is corrupt 
+ *         #GNUNET_SYSERR if the data stream is corrupt
  */
 typedef int (*GNUNET_SERVER_MstReceiveCallback) (void *cls, void *mst,
                                                  struct GNUNET_SERVER_Client *client,

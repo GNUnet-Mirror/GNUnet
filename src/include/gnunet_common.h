@@ -217,7 +217,7 @@ extern "C"
 /**
  * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32
  */
-#define GNUNET_NETWORK_STRUCT_BEGIN 
+#define GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Define as empty, GNUNET_PACKED should suffice, but this won't work on W32;
@@ -307,9 +307,9 @@ GNUNET_get_log_skip ();
 
 #if !defined(GNUNET_CULL_LOGGING)
 int
-GNUNET_get_log_call_status (int caller_level, 
+GNUNET_get_log_call_status (int caller_level,
                             const char *comp,
-                            const char *file, 
+                            const char *file,
                             const char *function, int line);
 #endif
 
@@ -403,7 +403,7 @@ GNUNET_log_from_nocheck (enum GNUNET_ErrorType kind, const char *comp,
  * @param option name of missing option
  */
 void
-GNUNET_log_config_missing (enum GNUNET_ErrorType kind, 
+GNUNET_log_config_missing (enum GNUNET_ErrorType kind,
 			   const char *section,
 			   const char *option);
 
@@ -418,7 +418,7 @@ GNUNET_log_config_missing (enum GNUNET_ErrorType kind,
  * @param required what is required that is invalid about the option
  */
 void
-GNUNET_log_config_invalid (enum GNUNET_ErrorType kind, 
+GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
 			   const char *section,
 			   const char *option,
 			   const char *required);
@@ -651,7 +651,7 @@ GNUNET_htonll (uint64_t n);
  * @param d the value in network byte order
  * @return the same value in host byte order
  */
-double 
+double
 GNUNET_hton_double (double d);
 
 /**
@@ -659,7 +659,7 @@ GNUNET_hton_double (double d);
  * @param d the value in network byte order
  * @return the same value in host byte order
  */
-double 
+double
 GNUNET_ntoh_double (double d);
 
 /* ************************* allocation functions ****************** */

@@ -63,7 +63,7 @@ struct GNUNET_DV_TransmitHandle
    * Closure for 'cb'.
    */
   void *cb_cls;
-  
+
   /**
    * The actual message (allocated at the end of this struct).
    */
@@ -78,7 +78,7 @@ struct GNUNET_DV_TransmitHandle
    * UID of our message, if any.
    */
   uint32_t uid;
-  
+
 };
 
 
@@ -107,7 +107,7 @@ struct GNUNET_DV_ServiceHandle
    * Closure for the callbacks.
    */
   void *cls;
-  
+
   /**
    * Function to call on connect events.
    */
@@ -221,12 +221,12 @@ start_transmit (struct GNUNET_DV_ServiceHandle *sh)
   if (NULL != sh->th)
     return;
   if (NULL == sh->th_head)
-    return; 
+    return;
   sh->th =
     GNUNET_CLIENT_notify_transmit_ready (sh->client,
 					 ntohs (sh->th_head->msg->size),
 					 GNUNET_TIME_UNIT_FOREVER_REL,
-					 GNUNET_NO, 
+					 GNUNET_NO,
 					 &transmit_pending, sh);
 }
 
@@ -291,7 +291,7 @@ process_ack (void *cls,
  * @param msg the message that was received
  */
 static void
-handle_message_receipt (void *cls, 
+handle_message_receipt (void *cls,
 			const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DV_ServiceHandle *sh = cls;
@@ -302,7 +302,7 @@ handle_message_receipt (void *cls,
   const struct GNUNET_MessageHeader *payload;
   const struct GNUNET_DV_AckMessage *ack;
   struct AckContext ctx;
-  
+
   if (NULL == msg)
   {
     /* Connection closed */
@@ -389,7 +389,7 @@ handle_message_receipt (void *cls,
     reconnect (sh);
     break;
   }
-  GNUNET_CLIENT_receive (sh->client, 
+  GNUNET_CLIENT_receive (sh->client,
 			 &handle_message_receipt, sh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
@@ -402,7 +402,7 @@ handle_message_receipt (void *cls,
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes written to buf
- */ 
+ */
 static size_t
 transmit_start (void *cls,
 		size_t size,
@@ -464,7 +464,7 @@ cleanup_send_cb (void *cls,
  */
 static void
 reconnect (struct GNUNET_DV_ServiceHandle *sh)
-{ 
+{
   if (NULL != sh->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (sh->th);
@@ -538,7 +538,7 @@ void
 GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
 {
   struct GNUNET_DV_TransmitHandle *pos;
-  
+
   if (NULL == sh)
     return;
   if (NULL != sh->th)
@@ -553,7 +553,7 @@ GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
 				 pos);
     GNUNET_free (pos);
   }
-  if (NULL != sh->client) 
+  if (NULL != sh->client)
   {
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
@@ -607,7 +607,7 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
   th->msg = (const struct GNUNET_MessageHeader *) &th[1];
   sm = (struct GNUNET_DV_SendMessage *) &th[1];
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_DV_SEND);
-  sm->header.size = htons (sizeof (struct GNUNET_DV_SendMessage) + 
+  sm->header.size = htons (sizeof (struct GNUNET_DV_SendMessage) +
 			   ntohs (msg->size));
   if (0 == sh->uid_gen)
     sh->uid_gen = 1;

@@ -172,7 +172,7 @@ transmit_callback (void *cls, size_t size, void *buf)
  * @param msg message to transmit, will be freed!
  */
 static void
-transmit (struct GNUNET_SERVER_Client *client, 
+transmit (struct GNUNET_SERVER_Client *client,
 	  struct GNUNET_MessageHeader *msg)
 {
   struct TransmitCallbackContext *tcc;
@@ -188,7 +188,7 @@ transmit (struct GNUNET_SERVER_Client *client,
   tcc->msg = msg;
   if (NULL ==
       (tcc->th =
-       GNUNET_SERVER_notify_transmit_ready (client, 
+       GNUNET_SERVER_notify_transmit_ready (client,
 					    ntohs (msg->size),
                                             GNUNET_TIME_UNIT_FOREVER_REL,
                                             &transmit_callback, tcc)))
@@ -242,7 +242,7 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
 
 
 static void
-process_ip_lookup_result (void* cls, 
+process_ip_lookup_result (void* cls,
 			  uint32_t rd_count,
 			  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
@@ -547,7 +547,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     namelen = 0;
   if (namelen > 0)
     hostname = (char *) u16_to_u8 (name, namelen + 1, NULL, &strl);
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "W32 DNS resolver asked to look up %s for `%s'.\n",
               af == AF_INET ? "IPv4" : af == AF_INET6 ? "IPv6" : "anything",
@@ -631,7 +631,7 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
       sc.Data1, sc.Data2, sc.Data3, data4);
   for (i = 0; i < 8; i++)
     sc.Data4[i] = 0xFF & (data4 >> ((7 - i) * 8));
-  
+
   hostname = (const wchar_t *) &msg[1];
   if (hostname[size - 1] != L'\0')
   {

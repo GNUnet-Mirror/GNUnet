@@ -21,7 +21,7 @@
 /**
  * @file fs/fs_publish_ublock.c
  * @brief publish a UBLOCK in GNUnet
- * @see https://gnunet.org/encoding and #2564 
+ * @see https://gnunet.org/encoding and #2564
  * @author Krista Bennett
  * @author Christian Grothoff
  */
@@ -41,7 +41,7 @@
  * @param iv where to store the IV
  * @param label label to use for key derivation
  * @param pub public key to use for key derivation
- */ 
+ */
 static void
 derive_ublock_encryption_key (struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
 			      struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
@@ -69,7 +69,7 @@ derive_ublock_encryption_key (struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
  * @param ns public key under which the UBlock was stored
  * @param label label under which the UBlock was stored
  * @param output where to write the result, has input_len bytes
- */ 
+ */
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,
@@ -124,7 +124,7 @@ struct GNUNET_FS_PublishUblockContext
  * @param msg NULL on success, otherwise an error message
  */
 static void
-ublock_put_cont (void *cls, 
+ublock_put_cont (void *cls,
 		 int32_t success,
 		 struct GNUNET_TIME_Absolute min_expiration,
 		 const char *msg)
@@ -221,7 +221,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   }
   size = sizeof (struct UBlock) + slen + mdsize + ulen;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Publishing under identifier `%s'\n",
               label);
   /* get public key of the namespace */
@@ -232,11 +232,11 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 
   /* encrypt ublock */
   ub_enc = GNUNET_malloc (size);
-  GNUNET_CRYPTO_symmetric_encrypt (&ub_plain[1], 
+  GNUNET_CRYPTO_symmetric_encrypt (&ub_plain[1],
 			     ulen + slen + mdsize,
 			     &skey, &iv,
                              &ub_enc[1]);
-  ub_enc->purpose.size = htonl (ulen + slen + mdsize + 
+  ub_enc->purpose.size = htonl (ulen + slen + mdsize +
 				sizeof (struct UBlock)
 				- sizeof (struct GNUNET_CRYPTO_EccSignature));
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);

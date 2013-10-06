@@ -1033,7 +1033,7 @@ ril_get_agent (struct GAS_RIL_Handle *solver, const struct GNUNET_PeerIdentity *
 
   for (cur = solver->agents_head; NULL != cur; cur = cur->next)
   {
-    if (0 == memcmp (peer, 
+    if (0 == memcmp (peer,
 		     &cur->peer,
 		     sizeof (struct GNUNET_PeerIdentity)))
     {

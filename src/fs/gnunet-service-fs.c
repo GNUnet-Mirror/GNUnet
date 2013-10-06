@@ -248,7 +248,7 @@ update_latencies (void *cls,
 		  int active,
 		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-		  const struct GNUNET_ATS_Information *ats, 
+		  const struct GNUNET_ATS_Information *ats,
 		  uint32_t ats_count)
 {
   unsigned int i;
@@ -270,7 +270,7 @@ update_latencies (void *cls,
 			   gettext_noop
 			   ("# running average P2P latency (ms)"),
 			   GSF_avg_latency.rel_value_us / 1000LL, GNUNET_NO);
-    break;    
+    break;
   }
 }
 
@@ -416,7 +416,7 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Considering mesh-based download for block\n");
       GSF_mesh_lookup_ (pr);
-      break; 
+      break;
     case GNUNET_BLOCK_TYPE_FS_UBLOCK:
       /* the above block types are in the DHT */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -625,7 +625,7 @@ main_init (struct GNUNET_SERVER_Handle *server,
   anon_p2p_off = (GNUNET_YES ==
 		  GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
 							"fs",
-							"DISABLE_ANON_TRANSFER"));  
+							"DISABLE_ANON_TRANSFER"));
   GSF_core =
       GNUNET_CORE_connect (GSF_cfg, NULL, &peer_init_handler,
                            &peer_connect_handler, &GSF_peer_disconnect_handler_,

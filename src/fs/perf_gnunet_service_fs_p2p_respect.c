@@ -178,7 +178,7 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
  * Function that gathers stats from all daemons.
  */
 static void
-stat_run (void *cls, 
+stat_run (void *cls,
 	  struct GNUNET_TESTBED_Operation *op,
 	  void *ca_result,
 	  const char *emsg);
@@ -202,7 +202,7 @@ get_done (void *cls, int success)
 /**
  * Adapter function called to establish a connection to
  * statistics service.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
@@ -221,11 +221,11 @@ statistics_connect_adapter (void *cls,
 /**
  * Adapter function called to destroy a connection to
  * statistics service.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 statistics_disconnect_adapter (void *cls,
 			       void *op_result)
 {
@@ -237,7 +237,7 @@ statistics_disconnect_adapter (void *cls,
  * Function that gathers stats from all daemons.
  */
 static void
-stat_run (void *cls, 
+stat_run (void *cls,
 	  struct GNUNET_TESTBED_Operation *op,
 	  void *ca_result,
 	  const char *emsg)
@@ -362,7 +362,7 @@ do_downloads (void *cls, const struct GNUNET_FS_Uri *u2,
 
 
 static void
-do_publish2 (void *cls,	     
+do_publish2 (void *cls,	
 	     const struct GNUNET_FS_Uri *u1,
 	     const char *fn)
 {
@@ -398,7 +398,7 @@ do_publish2 (void *cls,
 
 
 static void
-do_publish1 (void *cls, 
+do_publish1 (void *cls,
 	     struct GNUNET_TESTBED_Operation *op,
 	     const char *emsg)
 {
@@ -433,7 +433,7 @@ do_publish1 (void *cls,
 
 
 static void
-do_connect (void *cls, 
+do_connect (void *cls,
             struct GNUNET_TESTBED_RunHandle *h,
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers,
@@ -443,7 +443,7 @@ do_connect (void *cls,
   static unsigned int coco;
   unsigned int i;
   unsigned int j;
- 
+
   GNUNET_assert (NUM_DAEMONS == num_peers);
   for (i=0;i<num_peers;i++)
     daemons[i] = peers[i];

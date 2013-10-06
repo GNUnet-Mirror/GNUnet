@@ -43,7 +43,7 @@ pow_hash (const void *buf,
 	  size_t buf_len,
 	  struct GNUNET_HashCode *result)
 {
-  GNUNET_break (0 == 
+  GNUNET_break (0 ==
 		gcry_kdf_derive (buf, buf_len,
 				 GCRY_KDF_SCRYPT,
 				 1 /* subalgo */,

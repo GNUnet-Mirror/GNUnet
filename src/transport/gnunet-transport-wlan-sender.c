@@ -74,7 +74,7 @@ getRadiotapHeader (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *header,
  * @return GNUNET_YES if there was no error
  */
 static int
-getWlanHeader (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *Header, 
+getWlanHeader (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame *Header,
 	       const struct GNUNET_TRANSPORT_WLAN_MacAddress *to_mac_addr,
                const struct GNUNET_TRANSPORT_WLAN_MacAddress *mac, unsigned int size)
 {
@@ -148,14 +148,14 @@ main (int argc, char *argv[])
   /* Setup communication pipeline first */
   if (pipe (commpipe))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to create pipe: %s\n",
 	     STRERROR (errno));
     exit (1);
   }
   if (pipe (macpipe))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to create pipe: %s\n",
 	     STRERROR (errno));
     exit (1);
@@ -164,8 +164,8 @@ main (int argc, char *argv[])
   /* Attempt to fork and check for errors */
   if ((pid = fork ()) == -1)
   {
-    fprintf (stderr, "Failed to fork: %s\n", 
-	     STRERROR (errno));    
+    fprintf (stderr, "Failed to fork: %s\n",
+	     STRERROR (errno));
     exit (1);
   }
   memset (msg_buf, 0x42, sizeof (msg_buf));
@@ -183,12 +183,12 @@ main (int argc, char *argv[])
 	       "Failed to close fd: %s\n",
 	       strerror (errno));
     if (sizeof (hcm) != read (macpipe[0], &hcm, sizeof (hcm)))
-      fprintf (stderr, 
+      fprintf (stderr,
 	       "Failed to read hcm...\n");
     fprintf (stderr,
-	     "Got MAC %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n", 
+	     "Got MAC %.2X:%.2X:%.2X:%.2X:%.2X:%.2X\n",
 	     hcm.mac.mac[0], hcm.mac.mac[1],
-	     hcm.mac.mac[2], hcm.mac.mac[3], hcm.mac.mac[4], hcm.mac.mac[5]);				  
+	     hcm.mac.mac[2], hcm.mac.mac[3], hcm.mac.mac[4], hcm.mac.mac[5]);				
     radiotap = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) msg_buf;
     getRadiotapHeader (radiotap, WLAN_MTU);
     getWlanHeader (&radiotap->frame, &outmac, &inmac,
@@ -212,7 +212,7 @@ main (int argc, char *argv[])
 	printf ("send %f kbytes/s\n", bytes_per_s);
 	start = akt;
 	count = 0;
-      }     
+      }
     }
   }
   else

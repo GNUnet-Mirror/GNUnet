@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 
-/** 
+/**
  * @file include/gnunet_identity_service.h
  * @brief Identity service; implements identity management for GNUnet
  * @author Christian Grothoff
@@ -49,22 +49,22 @@ extern "C"
 #include "gnunet_util_lib.h"
 
 
-/** 
+/**
  * Version number of GNUnet Identity API.
  */
 #define GNUNET_IDENTITY_VERSION 0x00000000
 
-/** 
+/**
  * Handle to access the identity service.
  */
 struct GNUNET_IDENTITY_Handle;
 
-/** 
+/**
  * Handle for a ego.
  */
 struct GNUNET_IDENTITY_Ego;
 
-/** 
+/**
  * Handle for an operation with the identity service.
  */
 struct GNUNET_IDENTITY_Operation;
@@ -100,9 +100,9 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
 				    struct GNUNET_CRYPTO_EccPublicSignKey *pk);
 
 
-/** 
+/**
  * Method called to inform about the egos of
- * this peer. 
+ * this peer.
  *
  * When used with #GNUNET_IDENTITY_connect, this function is
  * initially called for all egos and then again whenever a
@@ -116,11 +116,11 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
  * @a ego does indicate an error (i.e. name is taken or no default
  * value is known).  If @a ego is non-NULL and if '*ctx'
  * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if
  * that one was not NULL).
  *
  * When an identity is renamed, this function is called with the
- * (known) @a ego but the NEW @a name.  
+ * (known) @a ego but the NEW @a name.
  *
  * When an identity is deleted, this function is called with the
  * (known) ego and "NULL" for the @a name.  In this case,
@@ -141,7 +141,7 @@ typedef void (*GNUNET_IDENTITY_Callback)(void *cls,
 					 const char *name);
 
 
-/** 
+/**
  * Connect to the identity service.
  *
  * @param cfg Configuration to contact the identity service.
@@ -205,12 +205,12 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
  * Disconnect from identity service.
  *
  * @param h identity service to disconnect
- */ 
+ */
 void
 GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 
 
-/** 
+/**
  * Create a new identity with the given name.
  *
  * @param id identity service to use
@@ -226,7 +226,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 			void *cont_cls);
 
 
-/** 
+/**
  * Renames an existing identity.
  *
  * @param id identity service to use
@@ -244,7 +244,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
 			void *cb_cls);
 
 
-/** 
+/**
  * Delete an existing identity.
  *
  * @param id identity service to use
@@ -279,13 +279,13 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
  *
  * @param cls closure
  * @param ego NULL on error / ego not found
- */ 
+ */
 typedef void (*GNUNET_IDENTITY_EgoCallback)(void *cls,
 					    const struct GNUNET_IDENTITY_Ego *ego);
 
 /**
  * Handle for ego lookup.
- */ 
+ */
 struct GNUNET_IDENTITY_EgoLookup;
 
 

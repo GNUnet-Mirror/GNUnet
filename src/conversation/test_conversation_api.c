@@ -76,7 +76,7 @@ check ()
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_conversation_api", 
+  GNUNET_log_setup ("test_conversation_api",
 		    "WARNING",
 		    NULL);
   return check ();

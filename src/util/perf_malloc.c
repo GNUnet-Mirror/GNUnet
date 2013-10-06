@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include <gauger.h>
 
-static uint64_t 
+static uint64_t
 perfMalloc ()
 {
   size_t i;

@@ -93,7 +93,7 @@ end_badly_now ()
 }
 
 
-static void 
+static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -110,7 +110,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   struct in_addr a;
   int i;
   char* addr;
-  
+
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
@@ -150,7 +150,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
       }
     }
   }
-  
+
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -165,7 +165,7 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   char name[GNUNET_DNSPARSER_MAX_NAME_LENGTH];
   char* pos;
   struct GNUNET_CRYPTO_ShortHashAsciiEncoded hash_str;
-  
+
   gns_handle = GNUNET_GNS_connect(cfg);
   if (NULL == gns_handle)
   {
@@ -286,8 +286,8 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-gns-simple-zkey-lookup",
                     "WARNING",
                     NULL);
-  GNUNET_TESTING_peer_run ("test-gns-simple-zkey-lookup", 
-			   "test_gns_simple_lookup.conf", 
+  GNUNET_TESTING_peer_run ("test-gns-simple-zkey-lookup",
+			   "test_gns_simple_lookup.conf",
 			   &do_check, NULL);
   return ok;
 }

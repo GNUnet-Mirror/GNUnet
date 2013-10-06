@@ -92,7 +92,7 @@ end_badly_now ()
 }
 
 
-static void 
+static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -109,7 +109,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   struct in_addr a;
   int i;
   char* addr;
-  
+
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
@@ -221,7 +221,7 @@ do_check (void *cls,
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
-  
+
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);

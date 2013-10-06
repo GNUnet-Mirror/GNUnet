@@ -73,7 +73,7 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h);
 
 /**
  * Continuation called with a status result.
- * 
+ *
  * @param cls closure
  * @param emsg error message, NULL on success
  */

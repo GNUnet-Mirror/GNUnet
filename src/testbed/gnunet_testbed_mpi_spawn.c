@@ -26,7 +26,7 @@ static int ret;
 static struct GNUNET_OS_Process *child;
 
 /**
- * The arguments including the binary to spawn 
+ * The arguments including the binary to spawn
  */
 static char **argv2;
 
@@ -79,7 +79,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
   if (0 != child_exit_code)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Child exited with error code: %lu\n", 
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Child exited with error code: %lu\n",
          child_exit_code);
     ret = 128 + (int) child_exit_code;
   }
@@ -101,7 +101,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static int hard_kill;
 
   GNUNET_assert (NULL != child);
-  terminate_task_id = 
+  terminate_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &terminate_task, NULL);
   if (0 != hard_kill)
@@ -110,7 +110,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
     case 1:
     case 2:
-      LOG (GNUNET_ERROR_TYPE_WARNING, 
+      LOG (GNUNET_ERROR_TYPE_WARNING,
            "%d more interrupts needed to send SIGKILL to the child\n",
            3 - hard_kill);
       hard_kill++;
@@ -190,7 +190,7 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *hostname;
   size_t hostname_len;
   unsigned int nhosts;
-  
+
   null_cfg = GNUNET_CONFIGURATION_create ();
   nhosts = GNUNET_TESTBED_hosts_load_from_loadleveler (null_cfg, &hosts);
   if (0 == nhosts)
@@ -223,7 +223,7 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL == tmpdir)
     tmpdir = getenv ("TMP");
   if (NULL == tmpdir)
-    tmpdir = getenv ("TEMP");  
+    tmpdir = getenv ("TEMP");
   if (NULL == tmpdir)
     tmpdir = "/tmp";
   (void) GNUNET_asprintf (&fn, "%s/gnunet-testbed-spawn.lock", tmpdir);
@@ -304,7 +304,7 @@ main (int argc, char *argv[])
     GNUNET_break (0);
     return 1;
   }
-  if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, 
+  if (NULL == (sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO,
                                            GNUNET_NO, GNUNET_NO)))
   {
     GNUNET_break (0);
@@ -321,7 +321,7 @@ main (int argc, char *argv[])
   argv2 = GNUNET_malloc (sizeof (char *) * argc);
   for (cnt = 1; cnt < argc; cnt++)
     argv2[cnt - 1] = argv[cnt];
-  GNUNET_SCHEDULER_run (run, NULL);  
+  GNUNET_SCHEDULER_run (run, NULL);
   GNUNET_free (argv2);
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;

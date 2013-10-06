@@ -54,11 +54,11 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
   pi->value.search.sc = sc;
   pi->value.search.cctx = (NULL != sc) ? sc->client_info : NULL;
   pi->value.search.pctx =
-    ((NULL == sc) || (NULL == sc->psearch_result)) 
-    ? NULL 
+    ((NULL == sc) || (NULL == sc->psearch_result))
+    ? NULL
     : sc->psearch_result->client_info;
   pi->value.search.query = (NULL != sc) ? sc->uri : NULL;
-  pi->value.search.duration = (NULL != sc) 
+  pi->value.search.duration = (NULL != sc)
     ? GNUNET_TIME_absolute_get_duration (sc->start_time)
     : GNUNET_TIME_UNIT_ZERO;
   pi->value.search.anonymity = (NULL != sc) ? sc->anonymity : 0;
@@ -125,7 +125,7 @@ notify_client_chk_update (struct GNUNET_FS_SearchContext *sc,
                           struct GNUNET_FS_SearchResult *sr)
 {
   struct GNUNET_FS_ProgressInfo pi;
- 
+
   pi.status = GNUNET_FS_STATUS_SEARCH_UPDATE;
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
@@ -135,7 +135,7 @@ notify_client_chk_update (struct GNUNET_FS_SearchContext *sc,
   pi.value.search.specifics.update.availability_certainty =
       sr->availability_trials;
   pi.value.search.specifics.update.applicability_rank = sr->optional_support;
-  pi.value.search.specifics.update.current_probe_time 
+  pi.value.search.specifics.update.current_probe_time
     = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
 }
@@ -194,12 +194,12 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
   pi.value.search.specifics.update.cctx = sr->client_info;
   pi.value.search.specifics.update.meta = sr->meta;
   pi.value.search.specifics.update.uri = sr->uri;
-  pi.value.search.specifics.update.availability_rank 
+  pi.value.search.specifics.update.availability_rank
     = 2 * sr->availability_success - sr->availability_trials;
-  pi.value.search.specifics.update.availability_certainty 
+  pi.value.search.specifics.update.availability_certainty
     = sr->availability_trials;
   pi.value.search.specifics.update.applicability_rank = sr->optional_support;
-  pi.value.search.specifics.update.current_probe_time 
+  pi.value.search.specifics.update.current_probe_time
     = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
   sr->client_info = GNUNET_FS_search_make_status_ (&pi, sr->h, sr->sc);
   GNUNET_FS_search_start_probe_ (sr);
@@ -380,7 +380,7 @@ probe_ping_task (void *cls,
   struct GNUNET_FS_SearchResult *sr = cls;
 
   signal_probe_result (sr);
-  sr->probe_ping_task 
+  sr->probe_ping_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_FS_PROBE_UPDATE_FREQUENCY,
 				    &probe_ping_task,
 				    sr);
@@ -434,7 +434,7 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
                                 len, sr->anonymity,
                                 GNUNET_FS_DOWNLOAD_NO_TEMPORARIES |
                                 GNUNET_FS_DOWNLOAD_IS_PROBE, sr, NULL);
-  sr->probe_ping_task 
+  sr->probe_ping_task
     = GNUNET_SCHEDULER_add_now (&probe_ping_task,
 				sr);
 }
@@ -465,7 +465,7 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
   sr->uri = GNUNET_FS_uri_dup (uri);
   sr->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
   sr->client_info = client_info;
-  sr->anonymity = anonymity; 
+  sr->anonymity = anonymity;
   GNUNET_FS_search_start_probe_ (sr);
   return sr;
 }
@@ -473,8 +473,8 @@ GNUNET_FS_probe (struct GNUNET_FS_Handle *h,
 
 /**
  * Stop probing activity associated with a search result.
- * 
- * @param sr search result 
+ *
+ * @param sr search result
  */
 static void
 GNUNET_FS_search_stop_probe_ (struct GNUNET_FS_SearchResult *sr)
@@ -674,7 +674,7 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
  * @param edata encrypted data
  * @param edata_size number of bytes in @a edata (and @a data)
  * @param data where to store the plaintext
- * @return keyword index on success, #GNUNET_SYSERR on error (no such 
+ * @return keyword index on success, #GNUNET_SYSERR on error (no such
  *         keyword, internal error)
  */
 static int
@@ -683,7 +683,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
 			    const void *edata,
 			    size_t edata_size,
 			    char *data)
-{ 
+{
   const struct GNUNET_CRYPTO_EccPrivateKey *anon;
   struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
   unsigned int i;
@@ -721,7 +721,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
  * @param size size of nb
  */
 static void
-process_kblock (struct GNUNET_FS_SearchContext *sc, 
+process_kblock (struct GNUNET_FS_SearchContext *sc,
 		const struct UBlock *ub,
                 size_t size)
 {
@@ -749,7 +749,7 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
   if (NULL == (uri = GNUNET_FS_uri_parse (&pt[1], &emsg)))
   {
     GNUNET_break_op (0);        /* ublock malformed */
-    GNUNET_free_non_null (emsg);   
+    GNUNET_free_non_null (emsg);
     return;
   }
   j = eos - pt + 1;
@@ -781,7 +781,7 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
  * @param size size of sb
  */
 static void
-process_sblock (struct GNUNET_FS_SearchContext *sc, 
+process_sblock (struct GNUNET_FS_SearchContext *sc,
 		const struct UBlock *ub,
                 size_t size)
 {
@@ -811,8 +811,8 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
   }
   if (NULL == (uri = GNUNET_FS_uri_parse (uris, &emsg)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		_("Failed to parse URI `%s': %s\n"), 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to parse URI `%s': %s\n"),
 		uris, emsg);
     GNUNET_break_op (0);        /* ublock malformed */
     GNUNET_free_non_null (emsg);
@@ -837,9 +837,9 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
  * @param size size of data
  */
 static void
-process_result (struct GNUNET_FS_SearchContext *sc, 
+process_result (struct GNUNET_FS_SearchContext *sc,
 		enum GNUNET_BLOCK_Type type,
-                struct GNUNET_TIME_Absolute expiration, 
+                struct GNUNET_TIME_Absolute expiration,
 		const void *data,
                 size_t size)
 {
@@ -1108,7 +1108,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
 					 &dpub);
     GNUNET_CRYPTO_hash (&dpub,
 			sizeof (dpub),
-			&sm->query); 
+			&sm->query);
     mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
     sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
     mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
@@ -1206,7 +1206,7 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
   }
   sc->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (sc->reconnect_backoff);
   sc->task =
-      GNUNET_SCHEDULER_add_delayed (sc->reconnect_backoff, 
+      GNUNET_SCHEDULER_add_delayed (sc->reconnect_backoff,
 				    &do_reconnect,
                                     sc);
 }
@@ -1293,8 +1293,8 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
 					   keyword,
 					   "fs-ublock",
 					   &sre->dpub);
-      GNUNET_CRYPTO_hash (&sre->dpub, 
-			  sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), 
+      GNUNET_CRYPTO_hash (&sre->dpub,
+			  sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 			  &sre->uquery);
       sre->mandatory = (sc->uri->data.ksk.keywords[i][0] == '+');
       if (sre->mandatory)

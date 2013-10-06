@@ -21,7 +21,7 @@
 /**
  * @file include/gnunet_testbed_logger_service.h
  * @brief API for submitting data to the testbed logger service
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #ifndef GNUNET_TESTBED_LOGGER_SERVICE_H

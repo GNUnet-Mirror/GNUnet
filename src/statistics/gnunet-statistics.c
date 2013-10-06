@@ -166,7 +166,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_STATISTICS_watch_cancel (h, subsystem, name, &printer, h));
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
-  h = NULL;  
+  h = NULL;
 }
 
 
@@ -248,16 +248,16 @@ main_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure with our configuration
  * @param result #GNUNET_YES if the resolver is running
- */ 
+ */
 static void
-resolver_test_task (void *cls, 
+resolver_test_task (void *cls,
 		    int result)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
   if (GNUNET_YES != result)
    {
-     FPRINTF (stderr, 
+     FPRINTF (stderr,
 	      _("Trying to connect to remote host, but service `%s' is not running\n"), "resolver");
      return;
    }
@@ -272,13 +272,13 @@ resolver_test_task (void *cls,
   }
   else if (65535 <= remote_port)
   {
-    FPRINTF (stderr, 
+    FPRINTF (stderr,
 	     _("A port has to be between 1 and 65535 to connect to host `%s'\n"), remote_host);
     return;
   }
 
   /* Manipulate configuration */
-  GNUNET_CONFIGURATION_set_value_string (cfg, 
+  GNUNET_CONFIGURATION_set_value_string (cfg,
 					 "statistics", "UNIXPATH", "");
   GNUNET_CONFIGURATION_set_value_string (cfg,
 					 "statistics", "HOSTNAME", remote_host);
@@ -312,7 +312,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     set_value = GNUNET_YES;
   }
   if (NULL != remote_host)
-    GNUNET_CLIENT_service_test ("resolver", cfg, GNUNET_TIME_UNIT_SECONDS, 
+    GNUNET_CLIENT_service_test ("resolver", cfg, GNUNET_TIME_UNIT_SECONDS,
 				&resolver_test_task, (void *) cfg);
   else
     GNUNET_SCHEDULER_add_now (&main_task, (void *) cfg);

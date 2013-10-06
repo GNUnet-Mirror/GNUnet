@@ -153,7 +153,7 @@ zone_proc (void *cls,
 	static int returned_records;
 	static int fail = GNUNET_NO;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Comparing results name %s\n", 
+	      "Comparing results name %s\n",
 	      name);
 
   if (0 != memcmp (zone_key, privkey, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
@@ -191,7 +191,7 @@ zone_proc (void *cls,
   }
 
   if (2 == ++returned_records)
-  {  
+  {
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -254,7 +254,7 @@ create_record (unsigned int count)
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -266,7 +266,7 @@ run (void *cls,
 		  "zonefiles%s%s",
 		  DIR_SEPARATOR_STR,
 		  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Using zonekey file `%s' \n", hostkey_file);
   privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
@@ -334,7 +334,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-monitoring",
 				  "namestore",
 				  "test_namestore_api.conf",

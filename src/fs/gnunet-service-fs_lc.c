@@ -375,7 +375,7 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
     if (0 != (SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
       options |= GSF_PRO_LOCAL_ONLY;
     cr->pr = GSF_pending_request_create_ (options, type,
-					  &sm->query, 
+					  &sm->query,
                                           (0 !=
                                            memcmp (&sm->target, &all_zeros,
                                                    sizeof (struct GNUNET_HashCode)))

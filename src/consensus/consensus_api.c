@@ -20,7 +20,7 @@
 
 /**
  * @file consensus/consensus_api.c
- * @brief 
+ * @brief
  * @author Florian Dold
  */
 #include "platform.h"
@@ -103,7 +103,7 @@ struct InsertDoneInfo
 
 /**
  * Called when the server has sent is a new element
- * 
+ *
  * @param cls consensus handle
  * @param mh element message
  */
@@ -129,7 +129,7 @@ handle_new_element (void *cls,
 /**
  * Called when the server has announced
  * that the conclusion is over.
- * 
+ *
  * @param cls consensus handle
  * @param msg conclude done message
  */
@@ -220,7 +220,7 @@ idc_adapter (void *cls)
  *
  * @param consensus handle for the consensus session
  * @param element the element to be inserted
- * @param idc function called when we are done with this element and it 
+ * @param idc function called when we are done with this element and it
  *            is thus allowed to call GNUNET_CONSENSUS_insert again
  * @param idc_cls closure for 'idc'
  */
@@ -240,7 +240,7 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT);
 
   memcpy (&element_msg[1], element->data, element->size);
-  
+
   if (NULL != idc)
   {
     i = GNUNET_new (struct InsertDoneInfo);

@@ -175,13 +175,13 @@ struct IntersectionEvaluateOperation
    * was created.
    */
   unsigned int generation_created;
-  
+
   /**
    * Evaluate operations are held in
    * a linked list.
    */
   struct IntersectionEvaluateOperation *next;
-  
+
    /**
    * Evaluate operations are held in
    * a linked list.
@@ -224,7 +224,7 @@ struct ElementEntry
   int removed;
 
   /**
-   * Generation the element was removed by the client. 
+   * Generation the element was removed by the client.
    * Operations of later generations will not consider the element.
    * Only valid if is_removed is GNUNET_YES.
    */
@@ -374,7 +374,7 @@ destroy_key_to_element_iter (void *cls,
                              void *value)
 {
   struct KeyEntry *k = value;
-  
+
   while (NULL != k)
   {
     struct KeyEntry *k_tmp = k;
@@ -395,7 +395,7 @@ void
 _GSS_union_operation_destroy (struct UnionEvaluateOperation *eo)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying union op\n");
-  
+
   if (NULL != eo->tunnel)
   {
     GNUNET_MESH_tunnel_destroy (eo->tunnel);
@@ -457,7 +457,7 @@ fail_union_operation (struct UnionEvaluateOperation *eo)
 
 
 /**
- * Derive the IBF key from a hash code and 
+ * Derive the IBF key from a hash code and
  * a salt.
  *
  * @param src the hash code
@@ -863,14 +863,14 @@ decode_and_send (struct UnionEvaluateOperation *eo)
       next_order++;
       if (next_order <= MAX_IBF_ORDER)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    "decoding failed, sending larger ibf (size %u)\n",
                     1<<next_order);
         send_ibf (eo, next_order);
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "set union failed: reached ibf limit\n");
       }
       break;
@@ -950,7 +950,7 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     fail_union_operation (eo);
     return;
   }
-  
+
   ibf_read_slice (&msg[1], eo->ibf_buckets_received, buckets_in_message, eo->remote_ibf);
   eo->ibf_buckets_received += buckets_in_message;
 
@@ -1106,7 +1106,7 @@ peer_done_sent_cb (void *cls)
 
 /**
  * Handle a done message from a remote peer
- * 
+ *
  * @param cls the union operation
  * @param mh the message
  */
@@ -1160,15 +1160,15 @@ _GSS_intersection_evaluate (struct GNUNET_SET_EvaluateMessage *m, struct Set *se
   eo->se = strata_estimator_dup (set->state.i->se);
   eo->salt = ntohs (m->salt);
   eo->app_id = m->app_id;
-  
+
   context_msg = GNUNET_MQ_extract_nested_mh (m);
   if (NULL != context_msg)
   {
     eo->context_msg = GNUNET_copy_message (context_msg);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-	      "evaluating intersection operation, (app %s)\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "evaluating intersection operation, (app %s)\n",
               GNUNET_h2s (&eo->app_id));
 
   eo->tc = GNUNET_new (struct TunnelContext);
@@ -1231,7 +1231,7 @@ _GSS_intersection_set_create (void)
   struct Set *set;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "intersection set created\n");
-  
+
   set = GNUNET_malloc (sizeof (struct Set) + sizeof (struct IntersectionState));
   set->state.i = (struct IntersectionState *) &set[1];
   set->operation = GNUNET_SET_OPERATION_INTERSECTION;
@@ -1239,7 +1239,7 @@ _GSS_intersection_set_create (void)
    * want the hash map to copy them */
   set->state.i->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set->state.i->se = strata_estimator_create (SE_STRATA_COUNT,
-                                              SE_IBF_SIZE, SE_IBF_HASH_NUM);  
+                                              SE_IBF_SIZE, SE_IBF_HASH_NUM);
   return set;
 }
 

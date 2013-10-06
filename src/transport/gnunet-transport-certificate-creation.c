@@ -28,7 +28,7 @@
 
 
 static void
-removecerts (const char *file1, 
+removecerts (const char *file1,
 	     const char *file2)
 {
   if (GNUNET_YES == GNUNET_DISK_file_test (file1))
@@ -55,7 +55,7 @@ main (int argc, char **argv)
 
   if (3 != argc)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Invalid arguments.\n");
     return 1;
   }
@@ -68,7 +68,7 @@ main (int argc, char **argv)
                                "-out", argv[1], "1024", NULL);
   if (NULL == openssl)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to run openssl.  Is openssl installed?\n");
     return 2;
   }
@@ -83,7 +83,7 @@ main (int argc, char **argv)
                                "-new", "-x509", "-key", argv[1], NULL);
   if (NULL == openssl)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to create self-signed certificate with openssl.\n");
     return 3;
   }

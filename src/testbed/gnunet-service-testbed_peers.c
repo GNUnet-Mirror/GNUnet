@@ -22,7 +22,7 @@
 /**
  * @file testbed/gnunet-service-testbed_peers.c
  * @brief implementation of TESTBED service that deals with peer management
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "gnunet-service-testbed.h"
@@ -70,12 +70,12 @@ struct ManageServiceContext
    * The client which requested to manage the peer's service
    */
   struct GNUNET_SERVER_Client *client;
-  
+
   /**
    * The operation id of the associated request
    */
   uint64_t op_id;
-  
+
   /**
    * 1 if the service at the peer has to be started; 0 if it has to be stopped
    */
@@ -85,7 +85,7 @@ struct ManageServiceContext
    * Is this context expired?  Do not work on this context if it is set to
    * GNUNET_YES
    */
-  uint8_t expired;  
+  uint8_t expired;
 };
 
 
@@ -343,7 +343,7 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   if (UINT32_MAX == peer_id)
-  {    
+  {
     GST_send_operation_fail_msg (client, GNUNET_ntohll (msg->operation_id),
                                  "Cannot create peer with given ID");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -793,7 +793,7 @@ prc_stop_cb (void *cls, struct GNUNET_TESTING_Peer *p, int success)
   struct PeerReconfigureContext *prc = cls;
   struct Peer *peer;
   char *emsg;
-  
+
   GNUNET_assert (VALID_PEER_ID (prc->peer_id));
   peer = GST_peer_list [prc->peer_id];
   GNUNET_assert (GNUNET_NO == peer->is_remote);
@@ -815,13 +815,13 @@ prc_stop_cb (void *cls, struct GNUNET_TESTING_Peer *p, int success)
   }
   if (GNUNET_OK != start_peer (peer))
   {
-    
+
     GST_send_operation_fail_msg (prc->client, prc->op_id,
                                  "Failed to start reconfigured peer");
     goto cleanup;
   }
   GST_send_operation_success_msg (prc->client, prc->op_id);
-  
+
  cleanup:
   cleanup_prc (prc);
   return;
@@ -849,7 +849,7 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t op_id;
   uint32_t peer_id;
   uint16_t msize;
-  
+
   msize = ntohs (message->size);
   if (msize <= sizeof (struct GNUNET_TESTBED_PeerReconfigureMessage))
   {
@@ -907,7 +907,7 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
   cfg = GNUNET_TESTBED_extract_config_ (message);
   if (NULL == cfg)
   {
-    GNUNET_break (0);    
+    GNUNET_break (0);
     GST_send_operation_fail_msg (client, op_id, "Compression error");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -916,7 +916,7 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
   prc->cfg = cfg;
   prc->peer_id = peer_id;
   prc->op_id = op_id;
-  prc->client = client;  
+  prc->client = client;
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert_tail (prc_head, prc_tail, prc);
   GNUNET_TESTING_peer_stop_async (peer->details.local.peer, prc_stop_cb, prc);
@@ -1032,8 +1032,8 @@ arm_ret_string (enum GNUNET_ARM_Result result)
  * @param result result of the operation
  */
 static void
-service_manage_result_cb (void *cls, 
-                          enum GNUNET_ARM_RequestStatus rs, 
+service_manage_result_cb (void *cls,
+                          enum GNUNET_ARM_RequestStatus rs,
                           const char *service, enum GNUNET_ARM_Result result)
 {
   struct ManageServiceContext *mctx = cls;
@@ -1072,7 +1072,7 @@ service_manage_result_cb (void *cls,
     goto ret;
   }
   /* service started successfully */
-  
+
  ret:
   if (NULL != emsg)
   {
@@ -1107,17 +1107,17 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t op_id;
   uint32_t peer_id;
   uint16_t msize;
-  
+
 
   msize = ntohs (message->size);
   if (msize <= sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage))
   {
-    GNUNET_break_op (0);  
+    GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   msg = (const struct GNUNET_TESTBED_ManagePeerServiceMessage *) message;
-  service = (const char *) &msg[1];  
+  service = (const char *) &msg[1];
   if ('\0' != service[msize - sizeof
                       (struct GNUNET_TESTBED_ManagePeerServiceMessage) - 1])
   {
@@ -1129,7 +1129,7 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;    
+    return;
   }
   peer_id = ntohl (msg->peer_id);
   op_id = GNUNET_ntohll (msg->operation_id);
@@ -1247,7 +1247,7 @@ GST_destroy_peers ()
   {
     peer = GST_peer_list[id];
     if (NULL == peer)
-      continue;    
+      continue;
     if (GNUNET_NO == peer->is_remote)
     {
       if (GNUNET_YES == peer->details.local.is_running)
@@ -1288,7 +1288,7 @@ shutdown_peers_timeout_cb (void *cls,
     GNUNET_free (hc);
     hc = NULL;
   }
-  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);  
+  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
   GNUNET_SERVER_client_drop (fo_ctxt->client);
   GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);
   GNUNET_free (fo_ctxt);
@@ -1309,14 +1309,14 @@ shutdown_peers_reply_cb (void *cls,
 {
   struct ForwardedOperationContext *fo_ctxt = cls;
   struct HandlerContext_ShutdownPeers *hc;
-  
+
   hc = fo_ctxt->cls;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != fo_ctxt->timeout_task);
   GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
   fo_ctxt->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (0 < hc->nslaves);
   hc->nslaves--;
-  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS != 
+  if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS !=
       ntohs (msg->type))
     hc->timeout = GNUNET_YES;
   if (0 == hc->nslaves)
@@ -1398,5 +1398,5 @@ GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
     GST_send_operation_success_msg (client, op_id);
     GNUNET_free (hc);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

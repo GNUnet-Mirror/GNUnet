@@ -79,9 +79,9 @@ struct GNUNET_GNS_ClientLookupMessage
    * the type of record to look up
    */
   int32_t type GNUNET_PACKED;
-  
+
   /**
-   * The key for shorten, if @e have_key is set 
+   * The key for shorten, if @e have_key is set
    */
   struct GNUNET_CRYPTO_EccPrivateKey shorten_key;
 
@@ -106,7 +106,7 @@ struct GNUNET_GNS_ClientLookupResultMessage
 
   /**
    * The number of records contained in response
-   */  
+   */
   uint32_t rd_count GNUNET_PACKED;
 
   /* followed by rd_count GNUNET_NAMESTORE_RecordData structs*/

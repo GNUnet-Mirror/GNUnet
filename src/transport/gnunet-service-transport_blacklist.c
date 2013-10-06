@@ -244,7 +244,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * @param option name of the option
  * @param value value of the option
  */
-static void 
+static void
 blacklist_cfg_iter (void *cls, const char *section,
 		    const char *option,
 		    const char *value)
@@ -255,10 +255,10 @@ blacklist_cfg_iter (void *cls, const char *section,
   char *pos;
 
   if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (option,
-								  strlen (option), 
+								  strlen (option),
 								  &peer.public_key))
     return;
-  
+
   if ((NULL == value) || (0 == strcmp(value, "")))
   {
     /* Blacklist whole peer */
@@ -295,9 +295,9 @@ read_blacklist_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char cfg_sect[512];
   unsigned int res = 0;
 
-  GNUNET_snprintf (cfg_sect, 
+  GNUNET_snprintf (cfg_sect,
 		   sizeof (cfg_sect),
-		   "transport-blacklist-%s", 
+		   "transport-blacklist-%s",
 		   GNUNET_i2s_full (my_id));
   GNUNET_CONFIGURATION_iterate_section_values (cfg, cfg_sect, &blacklist_cfg_iter, &res);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -636,7 +636,7 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
     blacklist =
       GNUNET_CONTAINER_multipeermap_create (TRANSPORT_BLACKLIST_HT_SIZE,
 					    GNUNET_NO);
-  
+
   GNUNET_CONTAINER_multipeermap_put (blacklist, peer,
                                      transport,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -653,7 +653,7 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
  * @return #GNUNET_OK if the entry does not match, #GNUNET_NO if it matches
  */
 static int
-test_blacklisted (void *cls, 
+test_blacklisted (void *cls,
 		  const struct GNUNET_PeerIdentity *key,
 		  void *value)
 {

@@ -126,7 +126,7 @@ GNUNET_NETWORK_socket_box_native (SOCKTYPE fd);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, 
+GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
 				    int doBlock);
 
 

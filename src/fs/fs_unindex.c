@@ -322,8 +322,8 @@ unindex_finish (struct GNUNET_FS_UnindexContext *uc)
  * @param reason kind of progress we are making
  */
 static void
-unindex_directory_scan_cb (void *cls, 
-			   const char *filename, 
+unindex_directory_scan_cb (void *cls,
+			   const char *filename,
 			   int is_directory,
 			   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
@@ -381,7 +381,7 @@ GNUNET_FS_unindex_do_extract_keywords_ (struct GNUNET_FS_UnindexContext *uc)
     ex = NULL;
   uc->dscan = GNUNET_FS_directory_scan_start (uc->filename,
 					      GNUNET_NO, ex,
-					      &unindex_directory_scan_cb, 
+					      &unindex_directory_scan_cb,
 					      uc);
   GNUNET_free_non_null (ex);
 }
@@ -391,7 +391,7 @@ GNUNET_FS_unindex_do_extract_keywords_ (struct GNUNET_FS_UnindexContext *uc)
  * Continuation called to notify client about result of the remove
  * operation for the UBlock.
  *
- * @param cls the 'struct GNUNET_FS_UnindexContext *' 
+ * @param cls the 'struct GNUNET_FS_UnindexContext *'
  * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
  *                GNUNET_NO if content was already there
  *                GNUNET_YES (or other positive value) on success
@@ -409,10 +409,10 @@ continue_after_remove (void *cls,
   struct GNUNET_FS_UnindexContext *uc = cls;
 
   uc->dqe = NULL;
-  if (success != GNUNET_YES)  
+  if (success != GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to remove UBlock: %s\n"),
-		msg);  
+		msg);
   uc->ksk_offset++;
   GNUNET_FS_unindex_do_remove_kblocks_ (uc);
 }
@@ -464,14 +464,14 @@ process_kblock_for_unindex (void *cls,
   if (0 == uc->first_uid)
   {
     /* remember UID of first result to detect cycles */
-    uc->first_uid = uid;    
+    uc->first_uid = uid;
   }
   else if (uid == uc->first_uid)
   {
     /* no more additional results */
     uc->ksk_offset++;
     GNUNET_FS_unindex_do_remove_kblocks_ (uc);
-    return;  
+    return;
   }
   GNUNET_assert (GNUNET_BLOCK_TYPE_FS_UBLOCK == type);
   if (size < sizeof (struct UBlock))
@@ -489,10 +489,10 @@ process_kblock_for_unindex (void *cls,
     goto get_next;
   }
   {
-    char pt[size - sizeof (struct UBlock)];  
+    char pt[size - sizeof (struct UBlock)];
     struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
     const char *keyword;
-     
+
     GNUNET_CRYPTO_ecc_key_get_public_for_signature (GNUNET_CRYPTO_ecc_key_get_anonymous (),
 						    &anon_pub);
     keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
@@ -757,7 +757,7 @@ GNUNET_FS_unindex_signal_suspend_ (void *cls)
  * @return NULL on error, otherwise handle
  */
 struct GNUNET_FS_UnindexContext *
-GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h, 
+GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
 			 const char *filename,
                          void *cctx)
 {

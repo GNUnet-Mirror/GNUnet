@@ -118,7 +118,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     if (cnt < 3)
     {
-      GNUNET_assert (0 == strcmp ("totakura", 
+      GNUNET_assert (0 == strcmp ("totakura",
                                   GNUNET_TESTBED_host_get_username_
                                   (hosts[cnt])));
       GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
@@ -126,7 +126,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     if (3 == cnt)
     {
-      GNUNET_assert (0 == strcmp ("totakura", 
+      GNUNET_assert (0 == strcmp ("totakura",
                                   GNUNET_TESTBED_host_get_username_
                                   (hosts[cnt])));
       GNUNET_assert (NULL != GNUNET_TESTBED_host_get_hostname (hosts[cnt]));
@@ -134,7 +134,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     if (4 == cnt)
     {
-      GNUNET_assert (0 == strcmp ("totakura", 
+      GNUNET_assert (0 == strcmp ("totakura",
                                   GNUNET_TESTBED_host_get_username_
                                   (hosts[cnt])));
       GNUNET_assert (0 == strcmp ("asgard.realm",

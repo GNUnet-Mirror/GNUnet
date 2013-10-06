@@ -199,7 +199,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
     GNUNET_free (sme);
   }
   GNUNET_SCHEDULER_cancel (session->typemap_task);
-  GSC_CLIENTS_notify_clients_about_neighbour (&session->peer, 
+  GSC_CLIENTS_notify_clients_about_neighbour (&session->peer,
                                               session->tmap, NULL);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (sessions,

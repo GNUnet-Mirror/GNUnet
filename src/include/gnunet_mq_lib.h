@@ -143,22 +143,22 @@ struct GNUNET_MQ_Envelope;
 
 /**
  * Error codes for the queue.
- */ 
+ */
 enum GNUNET_MQ_Error
 {
   /**
    * FIXME: document!
-   */ 
+   */
   GNUNET_MQ_ERROR_READ = 1,
 
   /**
    * FIXME: document!
-   */ 
+   */
   GNUNET_MQ_ERROR_WRITE = 2,
 
   /**
    * FIXME: document!
-   */ 
+   */
   GNUNET_MQ_ERROR_TIMEOUT = 4
 };
 
@@ -193,7 +193,7 @@ typedef void
  * destruction of a message queue.
  * Implementations must not free @a mq, but should
  * take care of @a impl_state.
- * 
+ *
  * @param mq the message queue to destroy
  * @param impl_state state of the implementation
  */
@@ -203,7 +203,7 @@ typedef void
 
 /**
  * Implementation function that cancels the currently sent message.
- * 
+ *
  * @param mq message queue
  * @param impl_state state specific to the implementation
  */
@@ -239,7 +239,7 @@ typedef void
 struct GNUNET_MQ_MessageHandler
 {
   /**
-   * Callback, called every time a new message of 
+   * Callback, called every time a new message of
    * the specified type has been receied.
    */
   GNUNET_MQ_MessageCallback cb;
@@ -262,7 +262,7 @@ struct GNUNET_MQ_MessageHandler
 
 /**
  * Create a new envelope.
- * 
+ *
  * @param mhp message header to store the allocated message header in, can be NULL
  * @param size size of the message to allocate
  * @param type type of the message, will be set in the allocated message
@@ -286,12 +286,12 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm);
 /**
  * Send a message with the give message queue.
  * May only be called once per message.
- * 
+ *
  * @param mq message queue
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, 
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
 		struct GNUNET_MQ_Envelope *ev);
 
 
@@ -385,7 +385,7 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
                                const struct GNUNET_MQ_MessageHandler *handlers,
                                GNUNET_MQ_ErrorHandler error_handler,
                                void *cls);
-                               
+
 
 
 /**

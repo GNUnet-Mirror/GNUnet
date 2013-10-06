@@ -95,7 +95,7 @@ struct Value
    * Type of the block.
    */
   enum GNUNET_BLOCK_Type type;
-  
+
 };
 
 
@@ -110,7 +110,7 @@ struct PutContext
   /**
    * Expiration time for the new value.
    */
-  struct GNUNET_TIME_Absolute discard_time; 
+  struct GNUNET_TIME_Absolute discard_time;
 
   /**
    * Data for the new value.
@@ -155,7 +155,7 @@ struct PutContext
  *
  * @param cls the 'struct PutContext'
  * @param key the key for the value(s)
- * @param value an existing value 
+ * @param value an existing value
  * @return GNUNET_YES if not found (to continue to iterate)
  */
 static int
@@ -170,16 +170,16 @@ put_cb (void *cls,
        (val->type == put_ctx->type) &&
        (0 == memcmp (&val[1], put_ctx->data, put_ctx->size)) )
   {
-    put_ctx->found = GNUNET_YES;    
+    put_ctx->found = GNUNET_YES;
     val->discard_time = GNUNET_TIME_absolute_max (val->discard_time,
 						  put_ctx->discard_time);
     /* replace old path with new path */
     GNUNET_array_grow (val->path_info,
 		       val->path_info_len,
 		       put_ctx->path_info_len);
-    memcpy (val->path_info, 
+    memcpy (val->path_info,
 	    put_ctx->path_info,
-	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));   
+	    put_ctx->path_info_len * sizeof (struct GNUNET_PeerIdentity));
     GNUNET_CONTAINER_heap_update_cost (put_ctx->heap,
 				       val->hn,
 				       val->discard_time.abs_value_us);
@@ -289,7 +289,7 @@ struct GetContext
  *
  * @param cls the 'struct GetContext'
  * @param key the key for the value(s)
- * @param value an existing value 
+ * @param value an existing value
  * @return GNUNET_YES to continue to iterate
  */
 static int
@@ -341,7 +341,7 @@ heap_plugin_get (void *cls, const struct GNUNET_HashCode * key,
 
   get_ctx.type = type;
   get_ctx.iter = iter;
-  get_ctx.iter_cls = iter_cls;  
+  get_ctx.iter_cls = iter_cls;
   get_ctx.cnt = 0;
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
 					      key,
@@ -363,7 +363,7 @@ heap_plugin_del (void *cls)
 {
   struct Plugin *plugin = cls;
   struct Value *val;
-  
+
   val = GNUNET_CONTAINER_heap_remove_root (plugin->heap);
   if (NULL == val)
     return GNUNET_SYSERR;

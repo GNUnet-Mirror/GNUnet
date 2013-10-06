@@ -30,7 +30,7 @@
 
 /**
  * Struct containing information about a client of the service
- * 
+ *
  * TODO: add a list of 'waiting' ports
  */
 struct MeshClient
@@ -462,7 +462,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   {
     ch->root = NULL;
   }
-  else 
+  else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "  channel %X client %p (%p, %p)\n",
@@ -538,7 +538,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
            ch->root->handle == client)
          ||
           (!fwd &&
-           ch->dest && 
+           ch->dest &&
            ch->dest->handle == client) ) )
   {
     GNUNET_break (0);
@@ -654,16 +654,16 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 //   struct GNUNET_SERVER_Client *client = cls;
 //   struct MeshChannel *ch = value;
 //   struct GNUNET_MESH_LocalMonitor *msg;
-// 
+//
 //   msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor));
 //   msg->channel_id = htonl (ch->gid);
 //   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
 //   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-// 
+//
 //   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 //               "*  sending info about tunnel %s\n",
 //               GNUNET_i2s (&msg->owner));
-// 
+//
 //   GNUNET_SERVER_notification_context_unicast (nc, client,
 //                                               &msg->header, GNUNET_NO);
 //   return GNUNET_YES;

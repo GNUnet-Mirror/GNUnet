@@ -416,7 +416,7 @@ status_cb (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg_, int status
     cp = NULL;
     FAIL_TEST (0, return);
     return;
-  }  
+  }
   event_mask = 0;
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_START);
   event_mask |= (1L << GNUNET_TESTBED_ET_PEER_STOP);

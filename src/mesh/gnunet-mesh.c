@@ -95,7 +95,7 @@ tunnels_callback (void *cls,
  * @param cls Closure.
  * @param peer Peer in the tunnel's tree.
  * @param parent Parent of the current peer. All 0 when peer is root.
- * 
+ *
  */
 static void
 tunnel_callback (void *cls,

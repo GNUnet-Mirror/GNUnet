@@ -92,7 +92,7 @@ static unsigned char *opus_data;
 static float *pcm_buffer;
 
 /**
- * Length of the pcm data needed for one OPUS frame 
+ * Length of the pcm data needed for one OPUS frame
  */
 static int pcm_length;
 
@@ -151,7 +151,7 @@ packetizer ()
   size_t off;
   ssize_t ret;
   int len; // FIXME: int?
-  size_t msg_size;  
+  size_t msg_size;
 
   while (transmit_buffer_length >= transmit_buffer_index + pcm_length)
   {
@@ -195,9 +195,9 @@ packetizer ()
   if (0 != new_size)
   {
     nbuf = pa_xmalloc (new_size);
-    memmove (nbuf, 
+    memmove (nbuf,
 	     &transmit_buffer[transmit_buffer_index],
-	     new_size);    
+	     new_size);
     pa_xfree (transmit_buffer);
     transmit_buffer = nbuf;
   }
@@ -207,7 +207,7 @@ packetizer ()
     transmit_buffer = NULL;
   }
   transmit_buffer_index = 0;
-  transmit_buffer_length = new_size;  
+  transmit_buffer_length = new_size;
 }
 
 
@@ -216,7 +216,7 @@ packetizer ()
  */
 static void
 stream_read_callback (pa_stream * s,
-		      size_t length, 
+		      size_t length,
 		      void *userdata)
 {
   const void *data;
@@ -233,7 +233,7 @@ stream_read_callback (pa_stream * s,
 
   if (pa_stream_peek (s, (const void **) &data, &length) < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_stream_peek() failed: %s\n"),
 		pa_strerror (pa_context_errno (context)));
     quit (1);
@@ -243,9 +243,9 @@ stream_read_callback (pa_stream * s,
   GNUNET_assert (length > 0);
   if (NULL != transmit_buffer)
   {
-    transmit_buffer = pa_xrealloc (transmit_buffer, 
+    transmit_buffer = pa_xrealloc (transmit_buffer,
 				   transmit_buffer_length + length);
-    memcpy (&transmit_buffer[transmit_buffer_length], 
+    memcpy (&transmit_buffer[transmit_buffer_length],
 	    data,
 	    length);
     transmit_buffer_length += length;
@@ -266,12 +266,12 @@ stream_read_callback (pa_stream * s,
  * Exit callback for SIGTERM and SIGINT
  */
 static void
-exit_signal_callback (pa_mainloop_api * m, 
-		      pa_signal_event * e, 
+exit_signal_callback (pa_mainloop_api * m,
+		      pa_signal_event * e,
 		      int sig,
 		      void *userdata)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Got signal, exiting.\n"));
   quit (1);
 }
@@ -289,17 +289,17 @@ stream_state_callback (pa_stream * s, void *userdata)
   {
   case PA_STREAM_CREATING:
   case PA_STREAM_TERMINATED:
-    break;    
+    break;
   case PA_STREAM_READY:
     {
       const pa_buffer_attr *a;
 
       char cmt[PA_CHANNEL_MAP_SNPRINT_MAX],
 	sst[PA_SAMPLE_SPEC_SNPRINT_MAX];
-      
+
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Stream successfully created.\n"));
-      
+
       if (!(a = pa_stream_get_buffer_attr (s)))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -313,24 +313,24 @@ stream_state_callback (pa_stream * s, void *userdata)
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    _("Buffer metrics: maxlength=%u, fragsize=%u\n"),
 		    a->maxlength, a->fragsize);
-      }       
+      }
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Using sample spec '%s', channel map '%s'.\n"),
 		  pa_sample_spec_snprint (sst, sizeof (sst),
 					  pa_stream_get_sample_spec (s)),
 		  pa_channel_map_snprint (cmt, sizeof (cmt),
 					  pa_stream_get_channel_map (s)));
-      
+
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Connected to device %s (%u, %ssuspended).\n"),
 		  pa_stream_get_device_name (s),
 		  pa_stream_get_device_index (s),
 		  pa_stream_is_suspended (s) ? "" : "not ");
-    }    
+    }
     break;
   case PA_STREAM_FAILED:
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Stream error: %s\n"),
 		pa_strerror (pa_context_errno (pa_stream_get_context (s))));
     quit (1);
@@ -357,9 +357,9 @@ context_state_callback (pa_context * c,
   {
     int r;
     pa_buffer_attr na;
-    
-    GNUNET_assert (!stream_in);    
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+
+    GNUNET_assert (!stream_in);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Connection established.\n"));
     if (! (stream_in =
 	   pa_stream_new (c, "GNUNET_VoIP recorder", &sample_spec, NULL)))
@@ -374,7 +374,7 @@ context_state_callback (pa_context * c,
     memset (&na, 0, sizeof (na));
     na.maxlength = UINT32_MAX;
     na.fragsize = pcm_length;
-    if ((r = pa_stream_connect_record (stream_in, NULL, &na, 
+    if ((r = pa_stream_connect_record (stream_in, NULL, &na,
 				       PA_STREAM_ADJUST_LATENCY)) < 0)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -382,12 +382,12 @@ context_state_callback (pa_context * c,
 		  pa_strerror (pa_context_errno (c)));
       goto fail;
     }
-    
+
     break;
-  }  
+  }
   case PA_CONTEXT_TERMINATED:
     quit (0);
-    break;    
+    break;
   case PA_CONTEXT_FAILED:
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -413,13 +413,13 @@ pa_init ()
 
   if (!pa_sample_spec_valid (&sample_spec))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Wrong Spec\n"));
   }
   /* set up main record loop */
   if (!(m = pa_mainloop_new ()))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_mainloop_new() failed.\n"));
   }
   mainloop_api = pa_mainloop_get_api (m);
@@ -434,9 +434,9 @@ pa_init ()
 
   if (!(context = pa_context_new (mainloop_api, "GNUNET VoIP")))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_context_new() failed.\n"));
-  }  
+  }
   pa_context_set_state_callback (context, &context_state_callback, NULL);
   if (pa_context_connect (context, NULL, 0, NULL) < 0)
   {
@@ -446,7 +446,7 @@ pa_init ()
   }
   if (pa_mainloop_run (m, &i) < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_mainloop_run() failed.\n"));
   }
 }
@@ -466,7 +466,7 @@ opus_init ()
   pcm_buffer = pa_xmalloc (pcm_length);
   opus_data = GNUNET_malloc (max_payload_bytes);
   enc = opus_encoder_create (SAMPLING_RATE,
-			     channels, 
+			     channels,
 			     OPUS_APPLICATION_VOIP,
 			     &err);
   opus_encoder_ctl (enc,

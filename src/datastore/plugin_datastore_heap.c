@@ -33,7 +33,7 @@
 
 /**
  * A value that we are storing.
- */ 
+ */
 struct Value
 {
 
@@ -67,11 +67,11 @@ struct Value
    * only used if anonymity is zero.
    */
   unsigned int zero_anon_offset;
-  
+
   /**
    * Number of bytes in 'data'.
    */
-  uint32_t size;    
+  uint32_t size;
 
   /**
    * Priority of the value.
@@ -82,7 +82,7 @@ struct Value
    * Anonymity level for the value.
    */
   uint32_t anonymity;
-  
+
   /**
    * Replication level for the value.
    */
@@ -209,10 +209,10 @@ heap_plugin_estimate_size (void *cls)
  * @return GNUNET_OK on success
  */
 static int
-heap_plugin_put (void *cls, 
-		 const struct GNUNET_HashCode * key, 
+heap_plugin_put (void *cls,
+		 const struct GNUNET_HashCode * key,
 		 uint32_t size,
-		 const void *data, 
+		 const void *data,
 		 enum GNUNET_BLOCK_Type type,
 		 uint32_t priority, uint32_t anonymity,
 		 uint32_t replication,
@@ -328,7 +328,7 @@ struct GetContext
    * The plugin.
    */
   struct Plugin *plugin;
-		  
+		
   /**
    * Requested value hash.
    */
@@ -343,7 +343,7 @@ struct GetContext
    * Function to call with the result.
    */
   PluginDatumProcessor proc;
-  
+
   /**
    * Closure for 'proc'.
    */
@@ -358,7 +358,7 @@ struct GetContext
  * @param value the value to check against the query
  * @return GNUNET_YES if the value matches
  */
-static int 
+static int
 match (const struct GetContext *gc,
        struct Value *value)
 {
@@ -421,7 +421,7 @@ get_iterator (void *cls,
   if (0 != gc->offset--)
     return GNUNET_OK;
   if (GNUNET_NO ==
-      gc->proc (gc->proc_cls, 
+      gc->proc (gc->proc_cls,
 		key,
 		value->size,
 		&value[1],
@@ -476,7 +476,7 @@ heap_plugin_get_key (void *cls, uint64_t offset,
 					   &gc);
     if (0 == gc.offset)
     {
-      proc (proc_cls, 
+      proc (proc_cls,
 	    NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
@@ -489,11 +489,11 @@ heap_plugin_get_key (void *cls, uint64_t offset,
   {
     GNUNET_CONTAINER_multihashmap_get_multiple (plugin->keyvalue,
 						key,
-						&count_iterator, 
+						&count_iterator,
 						&gc);
     if (0 == gc.offset)
     {
-      proc (proc_cls, 
+      proc (proc_cls,
 	    NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
       return;
     }
@@ -518,7 +518,7 @@ heap_plugin_get_key (void *cls, uint64_t offset,
  * @param proc_cls closure for proc
  */
 static void
-heap_plugin_get_replication (void *cls, 
+heap_plugin_get_replication (void *cls,
 			     PluginDatumProcessor proc,
 			     void *proc_cls)
 {
@@ -528,7 +528,7 @@ heap_plugin_get_replication (void *cls,
   value = GNUNET_CONTAINER_heap_remove_root (plugin->by_replication);
   if (NULL == value)
   {
-    proc (proc_cls, 
+    proc (proc_cls,
 	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -537,18 +537,18 @@ heap_plugin_get_replication (void *cls,
     value->replication--;
     value->replication_heap = GNUNET_CONTAINER_heap_insert (plugin->by_replication,
 							    value,
-							    value->replication); 
+							    value->replication);
   }
   else
   {
     /* need a better way to pick a random item, replication level is always 0 */
     value->replication_heap = GNUNET_CONTAINER_heap_insert (plugin->by_replication,
 							    value,
-							    value->replication); 
+							    value->replication);
     value = GNUNET_CONTAINER_heap_walk_get_next (plugin->by_replication);
   }
   if (GNUNET_NO ==
-      proc (proc_cls, 
+      proc (proc_cls,
 	    &value->key,
 	    value->size,
 	    &value[1],
@@ -579,12 +579,12 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
   value = GNUNET_CONTAINER_heap_peek (plugin->by_expiration);
   if (NULL == value)
   {
-    proc (proc_cls, 
+    proc (proc_cls,
 	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
   if (GNUNET_NO ==
-      proc (proc_cls, 
+      proc (proc_cls,
 	    &value->key,
 	    value->size,
 	    &value[1],
@@ -618,8 +618,8 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @return GNUNET_OK on success
  */
 static int
-heap_plugin_update (void *cls, 
-		    uint64_t uid, 
+heap_plugin_update (void *cls,
+		    uint64_t uid,
 		    int delta,
 		    struct GNUNET_TIME_Absolute expire, char **msg)
 {
@@ -675,10 +675,10 @@ heap_plugin_get_zero_anonymity (void *cls, uint64_t offset,
   }
   if (0 == count)
   {
-    proc (proc_cls, 
+    proc (proc_cls,
 	  NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
-  }  
+  }
   offset = offset % count;
   for (zabt = plugin->zero_head; NULL != zabt; zabt = zabt->next)
   {
@@ -695,7 +695,7 @@ heap_plugin_get_zero_anonymity (void *cls, uint64_t offset,
   GNUNET_assert (NULL != zabt);
   value = zabt->array[offset];
   if (GNUNET_NO ==
-      proc (proc_cls, 
+      proc (proc_cls,
 	    &value->key,
 	    value->size,
 	    &value[1],
@@ -749,8 +749,8 @@ return_value (void *cls,
 	      void *val)
 {
   struct GetAllContext *gac = cls;
- 
-  gac->proc (gac->proc_cls, 
+
+  gac->proc (gac->proc_cls,
 	     key,
 	     1);
   return GNUNET_OK;

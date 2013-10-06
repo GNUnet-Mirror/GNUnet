@@ -44,7 +44,7 @@ static int verbose;
  * @param peer newly connected peer
  * @param distance distance to the peer
  */
-static void 
+static void
 connect_cb (void *cls,
 	    const struct GNUNET_PeerIdentity *peer,
 	    uint32_t distance)
@@ -62,7 +62,7 @@ connect_cb (void *cls,
  * @param peer connected peer
  * @param distance new distance to the peer
  */
-static void 
+static void
 change_cb (void *cls,
 	   const struct GNUNET_PeerIdentity *peer,
 	   uint32_t distance)
@@ -79,7 +79,7 @@ change_cb (void *cls,
  * @param cls closure
  * @param peer peer that disconnected
  */
-static void 
+static void
 disconnect_cb (void *cls,
 	       const struct GNUNET_PeerIdentity *peer)
 {
@@ -96,7 +96,7 @@ disconnect_cb (void *cls,
  * @param distance how far did the message travel
  * @param msg actual message payload
  */
-static void 
+static void
 message_cb (void *cls,
 	    const struct GNUNET_PeerIdentity *sender,
 	    uint32_t distance,
@@ -171,7 +171,7 @@ main (int argc, char *const *argv)
     return 2;
 
   res = GNUNET_PROGRAM_run (argc, argv, "gnunet-dv",
-			    gettext_noop ("Print information about DV state"), 
+			    gettext_noop ("Print information about DV state"),
 			    options, &run,
 			    NULL);
   GNUNET_free ((void *) argv);

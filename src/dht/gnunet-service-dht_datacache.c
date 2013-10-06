@@ -137,7 +137,7 @@ struct GetRequestContext
  * to stop iteration.
  */
 static int
-datacache_get_iterator (void *cls, 
+datacache_get_iterator (void *cls,
                         const struct GNUNET_HashCode * key, size_t size,
                         const char *data, enum GNUNET_BLOCK_Type type,
 			struct GNUNET_TIME_Absolute exp,
@@ -239,7 +239,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.xquery_size = xquery_size;
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
-  r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator, 
+  r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "DATACACHE GET for key %s completed (%d). %u results found.\n",

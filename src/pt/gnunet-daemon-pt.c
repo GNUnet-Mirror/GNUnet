@@ -64,7 +64,7 @@ enum RequestGroup
   /**
    * DNS answers
    */
-  ANSWERS = 0, 
+  ANSWERS = 0,
 
   /**
    * DNS authority records
@@ -92,7 +92,7 @@ struct ReplyContext
    * Handle to submit the final result.
    */
   struct GNUNET_DNS_RequestHandle *rh;
-  
+
   /**
    * DNS packet that is being modified.
    */
@@ -117,7 +117,7 @@ struct ReplyContext
    * Group that is being modified
    */
   enum RequestGroup group;
-  
+
 };
 
 
@@ -144,7 +144,7 @@ struct MeshExit
    * not initialze a tunnel to this peer yet.
    */
   struct GNUNET_MESH_Tunnel *mesh_tunnel;
-  
+
   /**
    * At what time did the peer's advertisement expire?
    */
@@ -177,7 +177,7 @@ struct MeshExit
 
   /**
    * Identity of the peer that is providing the exit for us.
-   */ 
+   */
   struct GNUNET_PeerIdentity peer;
 
   /**
@@ -218,7 +218,7 @@ struct RequestContext
    * Handle for interaction with DNS service.
    */
   struct GNUNET_DNS_RequestHandle *rh;
-  
+
   /**
    * Message we're sending out via MESH, allocated at the
    * end of this struct.
@@ -243,7 +243,7 @@ struct RequestContext
   /**
    * #GNUNET_NO if this request is still in the transmit_queue,
    * #GNUNET_YES if we are in the receive_queue.
-   */ 
+   */
   int16_t was_transmitted;
 
 };
@@ -388,7 +388,7 @@ get_tunnel_weight (struct MeshExit *exit)
   uint32_t dropped;
   uint32_t drop_percent;
   uint32_t good_percent;
-  
+
   GNUNET_assert (exit->num_transmitted >= exit->num_answered);
   dropped = exit->num_transmitted - exit->num_answered;
   if (exit->num_transmitted > 0)
@@ -408,7 +408,7 @@ get_tunnel_weight (struct MeshExit *exit)
 
 /**
  * Choose a mesh exit for a DNS request.  We try to use a tunnel
- * that is reliable and currently available.  All existing 
+ * that is reliable and currently available.  All existing
  * tunnels are given a base weight of 1, plus a score relating
  * to the total number of queries answered in relation to the
  * total number of queries we sent to that tunnel.  That
@@ -520,7 +520,7 @@ submit_request (struct ReplyContext *rc);
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
- *                traffic to this IP will now be redirected to the 
+ *                traffic to this IP will now be redirected to the
  *                specified target peer; NULL on error
  */
 static void
@@ -633,7 +633,7 @@ submit_request (struct ReplyContext *rc)
       finish_request (rc);
       return;
     default:
-      GNUNET_assert (0);      
+      GNUNET_assert (0);
     }
     for (i=rc->offset;i<ra_len;i++)
     {
@@ -694,7 +694,7 @@ work_test (const struct GNUNET_DNSPARSER_Record *ra,
 
 
 /**
- * This function is called AFTER we got an IP address for a 
+ * This function is called AFTER we got an IP address for a
  * DNS request.  Now, the PT daemon has the chance to substitute
  * the IP address with one from the VPN range to tunnel requests
  * destined for this IP address via VPN and MESH.
@@ -704,7 +704,7 @@ work_test (const struct GNUNET_DNSPARSER_Record *ra,
  * @param request_length number of bytes in request
  * @param request udp payload of the DNS request
  */
-static void 
+static void
 dns_post_request_handler (void *cls,
 			  struct GNUNET_DNS_RequestHandle *rh,
 			  size_t request_length,
@@ -809,7 +809,7 @@ timeout_request (void *cls,
 {
   struct RequestContext *rc = cls;
   struct MeshExit *exit = rc->exit;
-  
+
   if (rc->was_transmitted)
   {
     exit->num_transmitted++;
@@ -844,7 +844,7 @@ timeout_request (void *cls,
 				      exit_tail,
 				      exit);
     /* go back to semi-innocent: mark as not great, but
-       avoid a prohibitively negative score (see 
+       avoid a prohibitively negative score (see
        #get_tunnel_weight, which checks for a certain
        minimum number of transmissions before making
        up an opinion) */
@@ -858,7 +858,7 @@ timeout_request (void *cls,
 
 
 /**
- * This function is called *before* the DNS request has been 
+ * This function is called *before* the DNS request has been
  * given to a "local" DNS resolver.  Tunneling for DNS requests
  * was enabled, so we now need to send the request via some MESH
  * tunnel to a DNS EXIT for resolution.
@@ -868,7 +868,7 @@ timeout_request (void *cls,
  * @param request_length number of bytes in request
  * @param request udp payload of the DNS request
  */
-static void 
+static void
 dns_pre_request_handler (void *cls,
 			 struct GNUNET_DNS_RequestHandle *rh,
 			 size_t request_length,
@@ -943,7 +943,7 @@ dns_pre_request_handler (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_dns_response (void *cls, 
+receive_dns_response (void *cls,
 		      struct GNUNET_MESH_Tunnel *tunnel,
 		      void **tunnel_ctx,
 		      const struct GNUNET_MessageHeader *message)
@@ -979,7 +979,7 @@ receive_dns_response (void *cls,
       GNUNET_free (rc);
       exit->num_answered++;
       exit->num_transmitted++;
-      return GNUNET_OK;      
+      return GNUNET_OK;
     }
   }
   GNUNET_STATISTICS_update (stats,
@@ -993,7 +993,7 @@ receive_dns_response (void *cls,
  * Abort all pending DNS requests with the given mesh exit.
  *
  * @param exit mesh exit to abort requests for
- */ 
+ */
 static void
 abort_all_requests (struct MeshExit *exit)
 {
@@ -1006,7 +1006,7 @@ abort_all_requests (struct MeshExit *exit)
 				 rc);
     GNUNET_DNS_request_drop (rc->rh);
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
-    GNUNET_free (rc);    
+    GNUNET_free (rc);
   }
   while (NULL != (rc = exit->transmit_queue_head))
   {
@@ -1015,7 +1015,7 @@ abort_all_requests (struct MeshExit *exit)
 				 rc);
     GNUNET_DNS_request_drop (rc->rh);
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
-    GNUNET_free (rc);    
+    GNUNET_free (rc);
   }
 }
 
@@ -1093,7 +1093,7 @@ cleanup (void *cls,
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
  * the associated state and attempt to build a new one.
- * 
+ *
  * It must NOT call #GNUNET_MESH_tunnel_destroy on the tunnel.
  *
  * @param cls closure (the `struct MeshExit` set from #GNUNET_MESH_connect)
@@ -1103,12 +1103,12 @@ cleanup (void *cls,
  */
 static void
 mesh_tunnel_end_cb (void *cls,
-		    const struct GNUNET_MESH_Tunnel *tunnel, 
+		    const struct GNUNET_MESH_Tunnel *tunnel,
 		    void *tunnel_ctx)
 {
   struct MeshExit *exit = tunnel_ctx;
   struct MeshExit *alt;
-  struct RequestContext *rc;  
+  struct RequestContext *rc;
 
   if (NULL != exit->mesh_th)
   {
@@ -1149,7 +1149,7 @@ mesh_tunnel_end_cb (void *cls,
   else
   {
     /* the same peer was chosen, just make sure the queue processing is restarted */
-    alt = exit; 
+    alt = exit;
   }
   if ( (NULL == alt->mesh_th) &&
        (NULL != (rc = alt->transmit_queue_head)) )
@@ -1163,7 +1163,7 @@ mesh_tunnel_end_cb (void *cls,
 
 
 /**
- * Function called whenever we find an advertisement for a 
+ * Function called whenever we find an advertisement for a
  * DNS exit in the DHT.  If we don't have a mesh tunnel,
  * we should build one; otherwise, we should save the
  * advertisement for later use.
@@ -1185,7 +1185,7 @@ static void
 handle_dht_result (void *cls,
 		   struct GNUNET_TIME_Absolute exp,
 		   const struct GNUNET_HashCode *key,
-		   const struct GNUNET_PeerIdentity *get_path, 
+		   const struct GNUNET_PeerIdentity *get_path,
 		   unsigned int get_path_length,
 		   const struct GNUNET_PeerIdentity *put_path,
 		   unsigned int put_path_length,
@@ -1201,7 +1201,7 @@ handle_dht_result (void *cls,
     return;
   }
   ad = data;
-  for (exit = exit_head; NULL != exit; exit = exit->next)  
+  for (exit = exit_head; NULL != exit; exit = exit->next)
     if (0 == memcmp (&ad->peer,
 		     &exit->peer,
 		     sizeof (struct GNUNET_PeerIdentity)))
@@ -1240,23 +1240,23 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("pt", cfg);
   ipv4_pt = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_IPV4");
-  ipv6_pt = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_IPV6"); 
-  dns_tunnel = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_DNS"); 
+  ipv6_pt = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_IPV6");
+  dns_tunnel = GNUNET_CONFIGURATION_get_value_yesno (cfg, "pt", "TUNNEL_DNS");
   if (! (ipv4_pt || ipv6_pt || dns_tunnel))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No useful service enabled.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
-    return;    
+    return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
   if (ipv4_pt || ipv6_pt)
   {
-    dns_post_handle 
-      = GNUNET_DNS_connect (cfg, 
+    dns_post_handle
+      = GNUNET_DNS_connect (cfg,
 			    GNUNET_DNS_FLAG_POST_RESOLUTION,
 			    &dns_post_request_handler, NULL);
-    if (NULL == dns_post_handle)       
+    if (NULL == dns_post_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to %s service.  Exiting.\n"),
@@ -1281,11 +1281,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       {NULL, 0, 0}
     };
 
-    dns_pre_handle 
-      = GNUNET_DNS_connect (cfg, 
+    dns_pre_handle
+      = GNUNET_DNS_connect (cfg,
 			    GNUNET_DNS_FLAG_PRE_RESOLUTION,
 			    &dns_pre_request_handler, NULL);
-    if (NULL == dns_pre_handle)       
+    if (NULL == dns_pre_handle)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Failed to connect to %s service.  Exiting.\n"),

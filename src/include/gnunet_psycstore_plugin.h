@@ -49,7 +49,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   void *cls;
 
-  /** 
+  /**
    * Store join/leave events for a PSYC channel in order to be able to answer
    * membership test queries later.
    *
@@ -66,7 +66,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                        uint64_t effective_since,
                        uint64_t group_generation);
 
-  /** 
+  /**
    * Test if a member was admitted to the channel at the given message ID.
    *
    * @see GNUNET_PSYCSTORE_membership_test()
@@ -80,7 +80,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                       const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
                       uint64_t message_id);
 
-  /** 
+  /**
    * Store a message fragment sent to a channel.
    *
    * @see GNUNET_PSYCSTORE_fragment_store()
@@ -93,7 +93,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                      const struct GNUNET_MULTICAST_MessageHeader *message,
                      uint32_t psycstore_flags);
 
-  /** 
+  /**
    * Set additional flags for a given message.
    *
    * They are OR'd with any existing flags set.
@@ -111,7 +111,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                         uint64_t message_id,
                         uint64_t psycstore_flags);
 
-  /** 
+  /**
    * Retrieve a message fragment by fragment ID.
    *
    * @see GNUNET_PSYCSTORE_fragment_get()
@@ -125,7 +125,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                    GNUNET_PSYCSTORE_FragmentCallback cb,
                    void *cb_cls);
 
-  /** 
+  /**
    * Retrieve all fragments of a message.
    *
    * @see GNUNET_PSYCSTORE_message_get()
@@ -140,7 +140,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                   GNUNET_PSYCSTORE_FragmentCallback cb,
                   void *cb_cls);
 
-  /** 
+  /**
    * Retrieve a fragment of message specified by its message ID and fragment
    * offset.
    *
@@ -156,7 +156,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                            GNUNET_PSYCSTORE_FragmentCallback cb,
                            void *cb_cls);
 
-  /** 
+  /**
    * Retrieve the max. values of message counters for a channel.
    *
    * @see GNUNET_PSYCSTORE_counters_get()
@@ -170,7 +170,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                            uint64_t *max_message_id,
                            uint64_t *max_group_generation);
 
-  /** 
+  /**
    * Retrieve the max. values of state counters for a channel.
    *
    * @see GNUNET_PSYCSTORE_counters_get()
@@ -183,7 +183,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                          uint64_t *max_state_message_id);
 
 
-  /** 
+  /**
    * Begin modifying current state.
    *
    * @see GNUNET_PSYCSTORE_state_modify()
@@ -195,7 +195,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
                          uint64_t message_id, uint64_t state_delta);
 
-  /** 
+  /**
    * Set the current value of a state variable.
    *
    * The state modification process is started with state_modify_begin(),
@@ -212,7 +212,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                        const char *name, const void *value, size_t value_size);
 
 
-  /** 
+  /**
    * End modifying current state.
    *
    * @see GNUNET_PSYCSTORE_state_modify()
@@ -225,7 +225,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                        uint64_t message_id);
 
 
-  /** 
+  /**
    * Begin synchronizing state.
    *
    * @see GNUNET_PSYCSTORE_state_sync()
@@ -236,7 +236,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   (*state_sync_begin) (void *cls,
                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
 
-  /** 
+  /**
    * Set the value of a state variable while synchronizing state.
    *
    * The state synchronization process is started with state_sync_begin(),
@@ -253,7 +253,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                      const char *name, const void *value, size_t value_size);
 
 
-  /** 
+  /**
    * End synchronizing state.
    *
    * @see GNUNET_PSYCSTORE_state_sync()
@@ -266,7 +266,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                      uint64_t message_id);
 
 
-  /** 
+  /**
    * Reset the state of a channel.
    *
    * Delete all state variables stored for the given channel.
@@ -289,7 +289,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
 
 
-  /** 
+  /**
    * Retrieve a state variable by name (exact match).
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
@@ -301,7 +301,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                 GNUNET_PSYCSTORE_StateCallback cb,
                 void *cb_cls);
 
-  /** 
+  /**
    * Retrieve all state variables for a channel with the given prefix.
    *
    * @see GNUNET_PSYCSTORE_state_get_prefix()
@@ -316,7 +316,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                        void *cb_cls);
 
 
-  /** 
+  /**
    * Retrieve all signed state variables for a channel.
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR

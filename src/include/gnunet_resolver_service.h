@@ -132,7 +132,7 @@ GNUNET_RESOLVER_local_fqdn_get (void);
  * Perform a reverse DNS lookup.
  *
  * @param sa host address
- * @param salen length of @a sa 
+ * @param salen length of @a sa
  * @param do_resolve use #GNUNET_NO to return numeric hostname
  * @param timeout how long to try resolving
  * @param callback function to call with hostnames

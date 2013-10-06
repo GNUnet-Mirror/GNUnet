@@ -144,7 +144,7 @@ typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
  */
 enum GNUNET_NAMESTORE_RecordFlags
 {
-  
+
   /**
    * No special options.
    */
@@ -251,7 +251,7 @@ struct GNUNET_NAMESTORE_Block
    * of encrypted data that follow.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-  
+
   /**
    * Expiration time of the block.
    */
@@ -266,7 +266,7 @@ GNUNET_NETWORK_STRUCT_END
 
 /**
  * Store an item in the namestore.  If the item is already present,
- * it is replaced with the new record.  
+ * it is replaced with the new record.
  *
  * @param h handle to the namestore
  * @param block block to store
@@ -317,7 +317,7 @@ typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
 
 /**
  * Get a result for a particular key from the namestore.  The processor
- * will only be called once.  
+ * will only be called once.
  *
  * @param h handle to the namestore
  * @param derived_hash hash of zone key combined with name to lookup
@@ -328,7 +328,7 @@ typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
  * @return a handle that can be used to cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h, 
+GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
 			       GNUNET_NAMESTORE_BlockProcessor proc, void *proc_cls);
 
@@ -363,7 +363,7 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
  *         cancel
  */
 struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h, 
+GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
 			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
 			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
@@ -444,7 +444,7 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
 
 
 /**
- * Function called once the monitor has caught up with the current 
+ * Function called once the monitor has caught up with the current
  * state of the database.  Will be called AGAIN after each disconnect
  * (record monitor called with 'NULL' for zone_key) once we're again
  * in sync.
@@ -534,7 +534,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 
 
 /**
- * Convert the binary value @a data of a record of 
+ * Convert the binary value @a data of a record of
  * type @a type to a human-readable string.
  *
  * @param type type of the record
@@ -587,7 +587,7 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type);
 
 /**
  * Test if a given record is expired.
- * 
+ *
  * @param rd record to test
  * @return #GNUNET_YES if the record is expired,
  *         #GNUNET_NO if not
@@ -619,11 +619,11 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z);
 
 /**
  * Convert public key to the respective absolute domain name in the
- * ".zkey" pTLD. 
+ * ".zkey" pTLD.
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
- * 
- * @param pkey a public key with a point on the eliptic curve 
+ *
+ * @param pkey a public key with a point on the eliptic curve
  * @return string "X.zkey" where X is the coordinates of the public
  *         key in an encoding suitable for DNS labels.
  */
@@ -634,10 +634,10 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey
 /**
  * Convert an absolute domain name in the ".zkey" pTLD to the
  * respective public key.
- * 
+ *
  * @param zkey string "X.zkey" where X is the public
  *         key in an encoding suitable for DNS labels.
- * @param pkey set to a public key on the eliptic curve 
+ * @param pkey set to a public key on the eliptic curve
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
@@ -647,7 +647,7 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
 
 /**
  * Calculate the DHT query for a given @a label in a given @a zone.
- * 
+ *
  * @param zone private key of the zone
  * @param label label of the record
  * @param query hash to use for the query
@@ -660,7 +660,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
 
 /**
  * Calculate the DHT query for a given @a label in a given @a zone.
- * 
+ *
  * @param pub public key of the zone
  * @param label label of the record
  * @param query hash to use for the query
@@ -707,7 +707,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
  * @param label the name for the records
  * @param proc function to call with the result
  * @param proc_cls closure for @a proc
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was
  *        not well-formed
  */
 int
@@ -722,7 +722,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
  * Compares if two records are equal
  *
  * @param a a record
- * @param b another record 
+ * @param b another record
  * @return #GNUNET_YES if the records are equal, or #GNUNET_NO if not.
  */
 int
@@ -736,11 +736,11 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  * expiration time.
  *
  * @param rd_count number of records given in @a rd
- * @param rd array of records 
+ * @param rd array of records
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
-GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count, 
+GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
 					     const struct GNUNET_NAMESTORE_RecordData *rd);
 
 

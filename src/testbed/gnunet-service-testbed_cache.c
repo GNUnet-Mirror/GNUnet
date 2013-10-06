@@ -352,7 +352,7 @@ close_handles (struct CacheEntry *entry)
   if (NULL != entry->transport_op)
   {
     GNUNET_TESTBED_operation_done (entry->transport_op);
-    entry->transport_op = NULL;    
+    entry->transport_op = NULL;
   }
   if (NULL != entry->core_op)
   {
@@ -610,7 +610,7 @@ oprelease_get_handle_transport (void *cls)
  * @param my_identity ID of this peer, NULL if we failed
  */
 static void
-core_startup_cb (void *cls, 
+core_startup_cb (void *cls,
                  const struct GNUNET_PeerIdentity *my_identity)
 {
   struct CacheEntry *entry = cls;
@@ -836,7 +836,7 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_assert (NULL != entry);
   GNUNET_break (0 == entry->demand);
   LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (cache, key, value));
   close_handles (entry);
   GNUNET_free_non_null (entry->hello);

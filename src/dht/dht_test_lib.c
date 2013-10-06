@@ -49,7 +49,7 @@ struct GNUNET_DHT_TEST_Context
    * Main function of the test to run once all DHTs are available.
    */
   GNUNET_DHT_TEST_AppMain app_main;
-  
+
   /**
    * Closure for 'app_main'.
    */
@@ -73,7 +73,7 @@ struct GNUNET_DHT_TEST_Context
  *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
-static void * 
+static void *
 dht_connect_adapter (void *cls,
 		     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -88,7 +88,7 @@ dht_connect_adapter (void *cls,
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 dht_disconnect_adapter (void *cls,
 			void *op_result)
 {
@@ -107,7 +107,7 @@ dht_disconnect_adapter (void *cls,
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-static void 
+static void
 dht_connect_cb (void *cls,
 		struct GNUNET_TESTBED_Operation *op,
 		void *ca_result,
@@ -115,7 +115,7 @@ dht_connect_cb (void *cls,
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
   unsigned int i;
- 
+
   if (NULL != emsg)
   {
     fprintf (stderr, "Failed to connect to DHT service: %s\n",
@@ -134,7 +134,7 @@ dht_connect_cb (void *cls,
 		 ctx,
 		 ctx->num_peers,
 		 ctx->peers,
-		 ctx->dhts);		 
+		 ctx->dhts);		
 }
 
 
@@ -192,7 +192,7 @@ dht_test_run (void *cls,
  * @param tmain main function to run once the testbed is ready
  * @param tmain_cls closure for 'tmain'
  */
-void 
+void
 GNUNET_DHT_TEST_run (const char *testname,
 		     const char *cfgname,
 		     unsigned int num_peers,
@@ -200,7 +200,7 @@ GNUNET_DHT_TEST_run (const char *testname,
 		     void *tmain_cls)
 {
   struct GNUNET_DHT_TEST_Context *ctx;
-  
+
   ctx = GNUNET_malloc (sizeof (struct GNUNET_DHT_TEST_Context));
   ctx->num_peers = num_peers;
   ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));

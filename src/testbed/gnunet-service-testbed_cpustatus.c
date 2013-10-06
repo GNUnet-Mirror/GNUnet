@@ -318,7 +318,7 @@ updateUsage ()
     kc = kstat_open ();
     if (kc == NULL)
       {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");        
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kstat_close");
         goto ABORT_KSTAT;
       }
 
@@ -633,7 +633,7 @@ get_nproc ()
   nproc = 0;
   while (NULL != (ent = readdir (dir)))
   {
-    if((*ent->d_name > '0') && (*ent->d_name <= '9')) 
+    if((*ent->d_name > '0') && (*ent->d_name <= '9'))
       nproc++;
   }
   closedir (dir);
@@ -669,14 +669,14 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   now = GNUNET_TIME_absolute_get ();
   nbs = GNUNET_asprintf (&str, "%llu %d %d %u %u\n", now.abs_value_us / 1000LL / 1000LL,
                          ld_cpu, ld_disk, mem_usage, nproc);
-  if (0 < nbs) 
+  if (0 < nbs)
   {
     GNUNET_BIO_write (bw, str, nbs);
   }
   else
     GNUNET_break (0);
   GNUNET_free (str);
-  
+
  reschedule:
   sample_load_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -696,7 +696,7 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *stats_dir;
   char *fn;
   size_t len;
-  
+
 #if MINGW
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Load statistics logging now available for windows\n");
@@ -716,7 +716,7 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free (hostname);
     return;
   }
-  fn = NULL;  
+  fn = NULL;
   (void) GNUNET_asprintf (&fn, "%s/%.*s-%jd.dat", stats_dir, len,
                           hostname, (intmax_t) getpid());
   GNUNET_free (stats_dir);
@@ -740,7 +740,7 @@ GST_stats_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   initMachCpuStats ();
 #endif
   updateUsage ();               /* initialize */
-  
+
 }
 
 

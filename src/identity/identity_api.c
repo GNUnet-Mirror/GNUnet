@@ -32,7 +32,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "identity-api",__VA_ARGS__)
 
-/** 
+/**
  * Handle for an ego.
  */
 struct GNUNET_IDENTITY_Ego
@@ -59,7 +59,7 @@ struct GNUNET_IDENTITY_Ego
 };
 
 
-/** 
+/**
  * Handle for an operation with the identity service.
  */
 struct GNUNET_IDENTITY_Operation
@@ -69,7 +69,7 @@ struct GNUNET_IDENTITY_Operation
    * Main identity handle.
    */
   struct GNUNET_IDENTITY_Handle *h;
-  
+
   /**
    * We keep operations in a DLL.
    */
@@ -139,12 +139,12 @@ struct GNUNET_IDENTITY_Handle
 
   /**
    * Head of active operations.
-   */ 
+   */
   struct GNUNET_IDENTITY_Operation *op_head;
 
   /**
    * Tail of active operations.
-   */ 
+   */
   struct GNUNET_IDENTITY_Operation *op_tail;
 
   /**
@@ -172,7 +172,7 @@ struct GNUNET_IDENTITY_Handle
 
 /**
  * Obtain the ego representing 'anonymous' users.
- * 
+ *
  * @return handle for the anonymous user, must not be freed
  */
 const struct GNUNET_IDENTITY_Ego *
@@ -240,7 +240,7 @@ reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-message_handler (void *cls, 
+message_handler (void *cls,
 		 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
@@ -307,7 +307,7 @@ message_handler (void *cls,
     }
     um = (const struct GNUNET_IDENTITY_UpdateMessage *) msg;
     name_len = ntohs (um->name_len);
-    
+
     str = (const char *) &um[1];
     if ( (size != name_len + sizeof (struct GNUNET_IDENTITY_UpdateMessage)) ||
 	 ( (0 != name_len) &&
@@ -369,7 +369,7 @@ message_handler (void *cls,
       /* ego changed name */
       GNUNET_free (ego->name);
       ego->name = GNUNET_strdup (str);
-    }    
+    }
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     /* inform application about change */
@@ -456,14 +456,14 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h);
  * @return number of bytes copied to buf
  */
 static size_t
-send_next_message (void *cls, 
-		   size_t size, 
+send_next_message (void *cls,
+		   size_t size,
 		   void *buf)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Operation *op = h->op_head;
   size_t ret;
-  
+
   h->th = NULL;
   if (NULL == op)
     return 0;
@@ -472,7 +472,7 @@ send_next_message (void *cls,
   {
     reschedule_connect (h);
     return 0;
-  }  
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending message of type %d to identity service\n",
        ntohs (op->msg->type));
@@ -543,7 +543,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ( (NULL == h->op_head) ||
        (GNUNET_MESSAGE_TYPE_IDENTITY_START != ntohs (h->op_head->msg->type)) )
   {
-    op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) + 
+    op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 			sizeof (struct GNUNET_MessageHeader));
     op->h = h;
     op->msg = (const struct GNUNET_MessageHeader *) &op[1];
@@ -633,7 +633,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
   struct GNUNET_IDENTITY_GetDefaultMessage *gdm;
   size_t slen;
 
-  slen = strlen (service_name) + 1; 
+  slen = strlen (service_name) + 1;
   if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_GetDefaultMessage))
   {
     GNUNET_break (0);
@@ -641,7 +641,7 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_GetDefaultMessage) +
-		      slen);  
+		      slen);
   op->h = id;
   op->cb = cb;
   op->cls = cb_cls;
@@ -691,7 +691,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) +
-		      slen);  
+		      slen);
   op->h = id;
   op->cont = cont;
   op->cls = cont_cls;
@@ -713,7 +713,7 @@ GNUNET_IDENTITY_set (struct GNUNET_IDENTITY_Handle *id,
 }
 
 
-/** 
+/**
  * Create a new identity with the given name.
  *
  * @param id identity service to use
@@ -744,7 +744,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) +
-		      slen);  
+		      slen);
   op->h = id;
   op->cont = cont;
   op->cls = cont_cls;
@@ -767,7 +767,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 }
 
 
-/** 
+/**
  * Renames an existing identity.
  *
  * @param id identity service to use
@@ -824,7 +824,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
 }
 
 
-/** 
+/**
  * Delete an existing identity.
  *
  * @param id identity service to use
@@ -851,7 +851,7 @@ GNUNET_IDENTITY_delete (struct GNUNET_IDENTITY_Handle *id,
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_Operation) +
 		      sizeof (struct GNUNET_IDENTITY_DeleteMessage) +
-		      slen);  
+		      slen);
   op->h = id;
   op->cont = cb;
   op->cls = cb_cls;

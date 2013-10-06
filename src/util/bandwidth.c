@@ -254,7 +254,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
 
   if (av->available_bytes_per_s__ == 0)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Tracker %p delay is infinity\n", av);
     return GNUNET_TIME_UNIT_FOREVER_REL;
   }
@@ -270,9 +270,9 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
   ret.rel_value_us =
       (1000LL * 1000LL * bytes_needed) /
       (unsigned long long) av->available_bytes_per_s__;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p delay for %u bytes is %s\n",
-       av, (unsigned int) size, 
+       av, (unsigned int) size,
        GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
   return ret;
 }
@@ -321,7 +321,7 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
   uint32_t new_limit;
 
   new_limit = ntohl (bytes_per_second_limit.value__);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tracker %p bandwidth changed to %u Bps\n", av,
        (unsigned int) new_limit);
   update_tracker (av);

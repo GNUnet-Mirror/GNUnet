@@ -236,7 +236,7 @@ signal_index_ok (struct IndexInfo *ii)
                 _
                 ("Index request received for file `%s' is already indexed as `%s'.  Permitting anyway.\n"),
                 ii->filename,
-		ir->filename);           
+		ir->filename);
     GNUNET_SERVER_transmit_context_append_data (ii->tc, NULL, 0,
                                                 GNUNET_MESSAGE_TYPE_FS_INDEX_START_OK);
     GNUNET_SERVER_transmit_context_run (ii->tc, GNUNET_TIME_UNIT_MINUTES);
@@ -468,7 +468,7 @@ GNUNET_FS_handle_unindex (void *cls, struct GNUNET_SERVER_Client *client,
  * @param msg error message
  */
 static void
-remove_cont (void *cls, int success, 
+remove_cont (void *cls, int success,
 	     struct GNUNET_TIME_Absolute min_expiration,
 	     const char *msg)
 {

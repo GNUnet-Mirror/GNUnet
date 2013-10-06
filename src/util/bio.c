@@ -30,7 +30,7 @@
 
 /**
  * Size for I/O buffers.
- */ 
+ */
 #define BIO_BUFFER_SIZE 65536
 
 /**
@@ -135,7 +135,7 @@ GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, 
+GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
                  const char *what,
                  void *result, size_t len)
 {
@@ -175,7 +175,7 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
     if (0 == ret)
     {
       GNUNET_asprintf (&h->emsg,
-		       _("Error reading `%s': %s"), 
+		       _("Error reading `%s': %s"),
 		       what,
                        _("End of file"));
       return GNUNET_SYSERR;
@@ -199,10 +199,10 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, 
-                    const char *file, 
+GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
+                    const char *file,
                     int line,
-                    void *result, 
+                    void *result,
                     size_t len)
 {
   char what[1024];
@@ -225,7 +225,7 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
 int
 GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
                         const char *what,
-                        char **result, 
+                        char **result,
                         size_t max_length)
 {
   char *buf;
@@ -272,7 +272,7 @@ GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, 
+GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h,
                            const char *what,
                            struct GNUNET_CONTAINER_MetaData **result)
 {
@@ -345,9 +345,9 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, 
+GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h,
                          const char *file,
-                         int line, 
+                         int line,
                          int64_t *i)
 {
   int64_t big;
@@ -368,7 +368,7 @@ struct GNUNET_BIO_WriteHandle
    * Underlying file handle.
    */
   struct GNUNET_DISK_FileHandle *fd;
-  
+
   /**
    * I/O buffer.  Do not free, allocated at the end of the struct.
    */
@@ -504,7 +504,7 @@ GNUNET_BIO_write (struct GNUNET_BIO_WriteHandle *h, const void *buffer,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h, 
+GNUNET_BIO_write_string (struct GNUNET_BIO_WriteHandle *h,
 			 const char *s)
 {
   uint32_t slen;
@@ -562,7 +562,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, 
+GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h,
                         int32_t i)
 {
   int32_t big;
@@ -580,7 +580,7 @@ GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, 
+GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h,
                         int64_t i)
 {
   int64_t big;

@@ -22,7 +22,7 @@
  * @file include/gnunet_configuration_lib.h
  * @brief configuration API
  * @author Christian Grothoff
- * @defgroup configuration Configuration management 
+ * @defgroup configuration Configuration management
  * @{
  */
 #ifndef GNUNET_CONFIGURATION_LIB_H
@@ -324,9 +324,9 @@ GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                        const char *section,
-                                       const char *option, 
+                                       const char *option,
                                        char **value);
 
 

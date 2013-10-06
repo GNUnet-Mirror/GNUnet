@@ -21,7 +21,7 @@
 /**
  * @file fs/fs_publish_ublock.h
  * @brief publish a UBLOCK in GNUnet
- * @see https://gnunet.org/encoding and #2564 
+ * @see https://gnunet.org/encoding and #2564
  * @author Krista Bennett
  * @author Christian Grothoff
  */
@@ -42,7 +42,7 @@
  * @param ns public key under which the UBlock was stored
  * @param label label under which the UBlock was stored
  * @param output where to write the result, has input_len bytes
- */ 
+ */
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,

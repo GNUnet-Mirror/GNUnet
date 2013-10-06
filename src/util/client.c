@@ -251,8 +251,8 @@ try_unixpath (const char *service_name,
   struct sockaddr_un s_un;
 
   unixpath = NULL;
-  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
-      (0 < strlen (unixpath)))     
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) &&
+      (0 < strlen (unixpath)))
   {
     /* We have a non-NULL unixpath, need to validate it */
     if (strlen (unixpath) >= sizeof (s_un.sun_path))
@@ -299,8 +299,8 @@ test_service_configuration (const char *service_name,
 #if AF_UNIX
   char *unixpath = NULL;
 
-  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) && 
-      (0 < strlen (unixpath)))     
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) &&
+      (0 < strlen (unixpath)))
     ret = GNUNET_OK;
   GNUNET_free_non_null (unixpath);
 #endif
@@ -308,7 +308,7 @@ test_service_configuration (const char *service_name,
   if ( (GNUNET_YES ==
 	GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT")) &&
        (GNUNET_OK ==
-	GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port)) && 
+	GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port)) &&
        (port <= 65535) && (0 != port) &&
        (GNUNET_OK ==
 	GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME",
@@ -406,7 +406,7 @@ GNUNET_CLIENT_connect (const char *service_name,
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_CONNECTION_Handle *connection;
 
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       test_service_configuration (service_name,
 				  cfg))
     return NULL;
@@ -629,7 +629,7 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
 /**
  * Handle for a test to check if a service is running.
  */
-struct GNUNET_CLIENT_TestHandle 
+struct GNUNET_CLIENT_TestHandle
 {
   /**
    * Function to call with the result of the test.
@@ -643,7 +643,7 @@ struct GNUNET_CLIENT_TestHandle
 
   /**
    * Client connection we are using for the test, if any.
-   */ 
+   */
   struct GNUNET_CLIENT_Connection *client;
 
   /**
@@ -707,7 +707,7 @@ report_result (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TestHandle *th = cls;
-  
+
   th->task = GNUNET_SCHEDULER_NO_TASK;
   th->cb (th->cb_cls, th->result);
   GNUNET_CLIENT_service_test_cancel (th);
@@ -726,7 +726,7 @@ service_test_report (struct GNUNET_CLIENT_TestHandle *th,
 {
   th->result = result;
   th->task = GNUNET_SCHEDULER_add_now (&report_result,
-				       th);				       
+				       th);				
 }
 
 
@@ -775,18 +775,18 @@ write_test (void *cls, size_t size, void *buf)
   th->th = NULL;
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Failed to transmit TEST request.\n");
     service_test_report (th, GNUNET_NO);
     return 0;                   /* client disconnected */
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Transmitting `%s' request.\n", 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting `%s' request.\n",
        "TEST");
   msg = (struct GNUNET_MessageHeader *) buf;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TEST);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
-  GNUNET_CLIENT_receive (th->client, 
+  GNUNET_CLIENT_receive (th->client,
 			 &confirm_handler, th,
                          GNUNET_TIME_absolute_get_remaining
                          (th->test_deadline));
@@ -822,7 +822,7 @@ GNUNET_CLIENT_service_test (const char *service,
   th->cb = cb;
   th->cb_cls = cb_cls;
   th->test_deadline = GNUNET_TIME_relative_to_absolute (timeout);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Testing if service `%s' is running.\n",
        service);
 #ifdef AF_UNIX
@@ -874,7 +874,7 @@ GNUNET_CLIENT_service_test (const char *service,
 	  service_test_report (th, GNUNET_YES);
 	  return th;
 	}
-	(void) GNUNET_NETWORK_socket_close (sock);        
+	(void) GNUNET_NETWORK_socket_close (sock);
         /* let's try IP */
       }
     }
@@ -1026,7 +1026,7 @@ client_delayed_retry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
   struct GNUNET_TIME_Relative delay;
-  
+
   th->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -1116,7 +1116,7 @@ client_notify (void *cls, size_t size, void *buf)
     {
       GNUNET_CONNECTION_receive_cancel (client->connection);
       client->in_receive = GNUNET_NO;
-    }    
+    }
     GNUNET_CONNECTION_destroy (client->connection);
     client->connection = NULL;
     delay = GNUNET_TIME_relative_min (delay, client->back_off);

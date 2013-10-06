@@ -433,7 +433,7 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
   connection->addr = uaddr;
   connection->addrlen = addrlen;
   connection->sock = sock;
-  LOG (GNUNET_ERROR_TYPE_INFO, 
+  LOG (GNUNET_ERROR_TYPE_INFO,
        _("Accepting connection from `%s': %p\n"),
        GNUNET_a2s (uaddr, addrlen), connection);
   return connection;
@@ -473,7 +473,7 @@ signal_receive_error (struct GNUNET_CONNECTION_Handle *connection, int errcode)
   GNUNET_CONNECTION_Receiver receiver;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Receive encounters error (%s), connection closed (%p)\n", 
+       "Receive encounters error (%s), connection closed (%p)\n",
        STRERROR (errcode),
        connection);
   GNUNET_assert (NULL != (receiver = connection->receiver));
@@ -608,14 +608,14 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 connect_success_continuation (struct GNUNET_CONNECTION_Handle *connection)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connection to `%s' succeeded! (%p)\n",
        GNUNET_a2s (connection->addr, connection->addrlen), connection);
   /* trigger jobs that waited for the connection */
   if (NULL != connection->receiver)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Connection succeeded, starting with receiving data (%p)\n", 
+         "Connection succeeded, starting with receiving data (%p)\n",
 	 connection);
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->read_task);
     connection->read_task =
@@ -989,10 +989,10 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
   if ( (NULL != connection->sock) &&
        (GNUNET_YES != connection->persist) )
   {
-    if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR)) && 
-	(ENOTCONN != errno) && 
+    if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR)) &&
+	(ENOTCONN != errno) &&
 	(ECONNRESET != errno) )
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "shutdown");    
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "shutdown");
   }
   if (NULL != connection->sock)
   {
@@ -1286,7 +1286,7 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_assert (NULL != connection->sock);
-  if (NULL == tc->write_ready) 
+  if (NULL == tc->write_ready)
   {
     /* special circumstances (in particular, PREREQ_DONE after
      * connect): not yet ready to write, but no "fatal" error either.
@@ -1400,7 +1400,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
   connection->nth.notify_size = size;
   connection->nth.transmit_timeout = GNUNET_TIME_relative_to_absolute (timeout);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == connection->nth.timeout_task);
-  if ((NULL == connection->sock) && 
+  if ((NULL == connection->sock) &&
       (NULL == connection->ap_head) &&
       (NULL == connection->dns_active))
   {

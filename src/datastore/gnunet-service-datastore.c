@@ -409,7 +409,7 @@ quota_processor (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
               "Deleting %llu bytes of low-priority (%u) content `%s' of type %u at %s prior to expiration (still trying to free another %llu bytes)\n",
               (unsigned long long) (size + GNUNET_DATASTORE_ENTRY_OVERHEAD),
 	      (unsigned int) priority,
-              GNUNET_h2s (key), type, 
+              GNUNET_h2s (key), type,
 	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
 						      GNUNET_YES),
 	      *need);
@@ -1473,7 +1473,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
-  char *fn;  
+  char *fn;
   char *pfn;
   unsigned int bf_size;
   int refresh_bf;
@@ -1504,7 +1504,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cache_size = quota / 8;       /* Or should we make this an option? */
   GNUNET_STATISTICS_set (stats, gettext_noop ("# cache size"), cache_size,
                          GNUNET_NO);
-  if (quota / (32 * 1024LL) > (1 << 31)) 
+  if (quota / (32 * 1024LL) > (1 << 31))
     bf_size = (1 << 31);          /* absolute limit: ~2 GB, beyond that BF just won't help anyway */
   else
     bf_size = quota / (32 * 1024LL);         /* 8 bit per entry, 1 bit per 32 kb in DB */
@@ -1610,7 +1610,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Rebuilding bloomfilter.  Please be patient.\n"));
     if (NULL != plugin->api->get_keys)
-      plugin->api->get_keys (plugin->api->cls, &add_key_to_bloomfilter, filter);  
+      plugin->api->get_keys (plugin->api->cls, &add_key_to_bloomfilter, filter);
     else
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Plugin does not support get_keys function. Please fix!\n"));

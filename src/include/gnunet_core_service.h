@@ -281,7 +281,7 @@ GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * expected to track which peers are connected based on the connect/disconnect
  * callbacks from #GNUNET_CORE_connect.  This function is NOT part of the
  * 'versioned', 'official' API.  This function returns
- * synchronously after looking in the CORE API cache. 
+ * synchronously after looking in the CORE API cache.
  *
  * @param h the core handle
  * @param pid the identity of the peer to check if it has been connected to us

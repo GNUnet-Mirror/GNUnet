@@ -181,7 +181,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i <= asize + bsize; i++)
   {
     res = ibf_decode (ibf_a, &side, &ibf_key);
-    if (GNUNET_SYSERR == res) 
+    if (GNUNET_SYSERR == res)
     {
       printf ("decode failed, %u/%u elements left\n",
          GNUNET_CONTAINER_multihashmap_size (set_a) + GNUNET_CONTAINER_multihashmap_size (set_b),

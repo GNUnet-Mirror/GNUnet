@@ -277,11 +277,11 @@ update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
 #if HAVE_MALLINFO
   {
     struct mallinfo mi;
-    
+
     mi = mallinfo();
-    current_heap_size = mi.uordblks + mi.fordblks;  
+    current_heap_size = mi.uordblks + mi.fordblks;
   }
-#endif  
+#endif
 #if HAVE_GETRUSAGE
   {
     struct rusage ru;
@@ -289,7 +289,7 @@ update_memory_statistics (struct GNUNET_STATISTICS_Handle *h)
     if (0 == getrusage (RUSAGE_SELF, &ru))
     {
       current_rss = 1024LL * ru.ru_maxrss;
-    }    
+    }
   }
 #endif
   if (current_heap_size > h->peak_heap_size)
@@ -381,12 +381,12 @@ static void
 do_disconnect (struct GNUNET_STATISTICS_Handle *h)
 {
   struct GNUNET_STATISTICS_GetHandle *c;
-  
+
   if (NULL != h->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
-  } 
+  }
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
@@ -421,10 +421,10 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
     return GNUNET_NO;
   if (NULL != h->client)
     return GNUNET_YES;
-  h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);  
+  h->client = GNUNET_CLIENT_connect ("statistics", h->cfg);
   if (NULL != h->client)
   {
-    gn = h->action_head; 
+    gn = h->action_head;
     while (NULL != (gh = gn))
     {
       gn = gh->next;
@@ -601,8 +601,8 @@ process_watch_value (struct GNUNET_STATISTICS_Handle *h,
     return GNUNET_SYSERR;
   }
   w = h->watches[wid];
-  if (NULL == w)  
-    return GNUNET_NO;  
+  if (NULL == w)
+    return GNUNET_NO;
   (void) w->proc (w->proc_cls, w->subsystem, w->name,
                   GNUNET_ntohll (wvm->value),
                   0 != (ntohl (wvm->flags) & GNUNET_STATISTICS_PERSIST_BIT));
@@ -674,7 +674,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     else
     {
       h->receiving = GNUNET_NO;
-    }    
+    }
     h->current = NULL;
     schedule_action (h);
     if (NULL != c->cont)
@@ -686,7 +686,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     {
       do_disconnect (h);
       reconnect_later (h);
-      return;     
+      return;
     }
     /* finally, look for more! */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -697,12 +697,12 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
     return;
   case GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE:
-    if (GNUNET_OK != 
+    if (GNUNET_OK !=
 	(ret = process_watch_value (h, msg)))
     {
       do_disconnect (h);
       if (GNUNET_NO == ret)
-	h->backoff = GNUNET_TIME_UNIT_MILLISECONDS; 
+	h->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
       reconnect_later (h);
       return;
     }
@@ -710,7 +710,7 @@ receive_stats (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_assert (h->watches_size > 0);
     GNUNET_CLIENT_receive (h->client, &receive_stats, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    return;    
+    return;
   default:
     GNUNET_break (0);
     do_disconnect (h);
@@ -976,7 +976,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
         h->current = NULL;
       }
     }
-    next = h->action_head; 
+    next = h->action_head;
     while (NULL != (pos = next))
     {
       next = pos->next;
@@ -1018,7 +1018,7 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first)
   for (i = 0; i < h->watches_size; i++)
   {
     if (NULL == h->watches[i])
-      continue; 
+      continue;
     GNUNET_free (h->watches[i]->subsystem);
     GNUNET_free (h->watches[i]->name);
     GNUNET_free (h->watches[i]);
@@ -1232,7 +1232,7 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
 
 
 /**
- * Stop watching statistics from the peer.  
+ * Stop watching statistics from the peer.
  *
  * @param handle identification of the statistics service
  * @param subsystem limit to the specified subsystem, never NULL
@@ -1264,9 +1264,9 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
       GNUNET_free (w->name);
       GNUNET_free (w->subsystem);
       GNUNET_free (w);
-      handle->watches[i] = NULL;      
+      handle->watches[i] = NULL;
       return GNUNET_OK;
-    }	 
+    }	
   }
   return GNUNET_SYSERR;
 }
@@ -1305,7 +1305,7 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h, const char *name,
   for (ai = h->action_head; NULL != ai; ai = ai->next)
   {
     if (! ( (0 == strcmp (ai->subsystem, h->subsystem)) &&
-	    (0 == strcmp (ai->name, name)) && 
+	    (0 == strcmp (ai->name, name)) &&
 	    ( (ACTION_UPDATE == ai->type) ||
 	      (ACTION_SET == ai->type) ) ) )
       continue;
@@ -1351,7 +1351,7 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h, const char *name,
     }
     ai->timeout = GNUNET_TIME_relative_to_absolute (SET_TRANSMIT_TIMEOUT);
     ai->make_persistent = make_persistent;
-    return;  
+    return;
   }
   /* no existing entry matches, create a fresh one */
   ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));

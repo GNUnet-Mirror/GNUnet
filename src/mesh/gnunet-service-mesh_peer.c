@@ -79,7 +79,7 @@ struct MeshPeer
    * Transmission queue to core DLL head
    */
   struct MeshPeerQueue *queue_head;
-  
+
   /**
    * Transmission queue to core DLL tail
    */
@@ -121,8 +121,8 @@ static unsigned long long max_peers;
  *         #GNUNET_NO if not.
  */
 static int
-shutdown_tunnel (void *cls, 
-                 const struct GNUNET_PeerIdentity *key, 
+shutdown_tunnel (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
                  void *value)
 {
   struct MeshPeer *p = value;
@@ -148,10 +148,10 @@ peer_destroy (struct MeshPeer *peer)
   struct GNUNET_PeerIdentity id;
   struct MeshPeerPath *p;
   struct MeshPeerPath *nextp;
-  
+
   GNUNET_PEER_resolve (peer->id, &id);
   GNUNET_PEER_change_rc (peer->id, -1);
-  
+
   if (GNUNET_YES !=
     GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
@@ -188,10 +188,10 @@ static int
 peer_is_used (struct MeshPeer *peer)
 {
   struct MeshPeerPath *p;
-  
+
   if (NULL != peer->tunnel)
     return GNUNET_YES;
-  
+
   for (p = peer->path_head; NULL != p; p = p->next)
   {
     if (p->length < 3)
@@ -215,14 +215,14 @@ peer_get_oldest (void *cls,
 {
   struct MeshPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
-  
+
   /* Don't count active peers */
   if (GNUNET_YES == peer_is_used (p))
     return GNUNET_YES;
-  
+
   if (abs->abs_value_us < p->last_contact.abs_value_us)
     abs->abs_value_us = p->last_contact.abs_value_us;
-  
+
   return GNUNET_YES;
 }
 
@@ -241,7 +241,7 @@ peer_timeout (void *cls,
 {
   struct MeshPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
-  
+
   if (p->last_contact.abs_value_us == abs->abs_value_us &&
     GNUNET_NO == peer_is_used (p))
   {
@@ -259,9 +259,9 @@ static void
 peer_delete_oldest (void)
 {
   struct GNUNET_TIME_Absolute abs;
-  
+
   abs = GNUNET_TIME_UNIT_FOREVER_ABS;
-  
+
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &peer_get_oldest,
                                          &abs);
@@ -283,7 +283,7 @@ static struct MeshPeer *
 peer_get (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct MeshPeer *peer;
-  
+
   peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
   if (NULL == peer)
   {
@@ -297,7 +297,7 @@ peer_get (const struct GNUNET_PeerIdentity *peer_id)
         peer->id = GNUNET_PEER_intern (peer_id);
   }
     peer->last_contact = GNUNET_TIME_absolute_get();
-    
+
     return peer;
 }
 
@@ -333,13 +333,13 @@ peer_get_path_cost (const struct MeshPeer *peer,
   unsigned int overlap;
   unsigned int i;
   unsigned int j;
-  
+
   if (NULL == path)
     return 0;
-  
+
   overlap = 0;
   GNUNET_assert (NULL != peer->tunnel);
-  
+
   for (i = 0; i < path->length; i++)
   {
     for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
@@ -373,7 +373,7 @@ peer_get_best_path (const struct MeshPeer *peer)
   struct MeshConnection *c;
   unsigned int best_cost;
   unsigned int cost;
-  
+
   best_cost = UINT_MAX;
   best_p = NULL;
   for (p = peer->path_head; NULL != p; p = p->next)
@@ -383,7 +383,7 @@ peer_get_best_path (const struct MeshPeer *peer)
         break;
       if (NULL != c)
         continue; /* If path is in use in a connection, skip it. */
-        
+
             if ((cost = peer_get_path_cost (peer, p)) < best_cost)
             {
               best_cost = cost;
@@ -410,7 +410,7 @@ peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
   struct MeshPeerPath *aux;
   unsigned int l;
   unsigned int l2;
-  
+
   if ((NULL == peer_info) || (NULL == path))
   {
     GNUNET_break (0);
@@ -444,17 +444,17 @@ peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
                             GNUNET_realloc (path->peers, path->length * sizeof (GNUNET_PEER_Id));
           }
         }
-        
+
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
                       path->length, peer2s (peer_info));
-          
+
           l = path_get_length (path);
           if (0 == l)
           {
             path_destroy (path);
             return;
           }
-          
+
             GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
             for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
             {
@@ -569,7 +569,7 @@ GMP_connect (struct MeshPeer *peer)
       {
         /* This case can happen when the path includes a first hop that is
          * not yet known to be connected.
-         * 
+         *
          * This happens quite often during testing when running mesh
          * under valgrind: core connect notifications come very late and the
          * DHT result has already come and created a valid path.

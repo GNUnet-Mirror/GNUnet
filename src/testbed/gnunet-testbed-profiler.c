@@ -49,7 +49,7 @@ struct GNUNET_TESTBED_Operation *topology_op;
 /**
  * Name of the file with the hosts to run the test over (configuration option).
  * It will be NULL if ENABLE_LL is set
- */ 
+ */
 static char *hosts_file;
 
 /**
@@ -216,7 +216,7 @@ controller_event_cb (void *cls,
  * @param links_failed the number of overlay link
  */
 static void
-test_run (void *cls, 
+test_run (void *cls,
           struct GNUNET_TESTBED_RunHandle *h,
           unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
           unsigned int links_succeeded,

@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file arm/test_gnunet_service_arm.c 
+ * @file arm/test_gnunet_service_arm.c
  * @brief testcase for gnunet-service-arm.c; tests ARM by making it start the resolver
  * @author Safey
  * @author Christian Grothoff
@@ -55,9 +55,9 @@ trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-arm_stop_cb (void *cls, 
-	     enum GNUNET_ARM_RequestStatus status, 
-	     const char *servicename, 
+arm_stop_cb (void *cls,
+	     enum GNUNET_ARM_RequestStatus status,
+	     const char *servicename,
 	     enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
@@ -69,12 +69,12 @@ arm_stop_cb (void *cls,
 
 
 static void
-service_list (void *cls, 
+service_list (void *cls,
 	      enum GNUNET_ARM_RequestStatus rs,
 	      unsigned int count, const char *const*list)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "%u services are are currently running\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "%u services are are currently running\n",
 	      count);
   GNUNET_break (count == 1);
   GNUNET_break (0 == strcasecmp (list[0], "resolver (gnunet-service-resolver)"));
@@ -107,9 +107,9 @@ hostNameResolveCB (void *cls, const struct sockaddr *addr, socklen_t addrlen)
 
 
 static void
-arm_start_cb (void *cls, 
-	      enum GNUNET_ARM_RequestStatus status, 
-	      const char *servicename, 
+arm_start_cb (void *cls,
+	      enum GNUNET_ARM_RequestStatus status,
+	      const char *servicename,
 	      enum GNUNET_ARM_Result result)
 {
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);

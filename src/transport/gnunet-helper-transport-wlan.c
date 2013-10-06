@@ -140,15 +140,15 @@
 #include "plugin_transport_wlan.h"
 
 /**
- * Packet format type for the messages we receive from 
+ * Packet format type for the messages we receive from
  * the kernel.  This is for Ethernet 10Mbps format (no
  * performance information included).
  */
-#define ARPHRD_ETHER        1 
+#define ARPHRD_ETHER        1
 
 
 /**
- * Packet format type for the messages we receive from 
+ * Packet format type for the messages we receive from
  * the kernel.  This is for plain messages (with no
  * performance information included).
  */
@@ -156,13 +156,13 @@
 
 
 /**
- * Packet format type for the messages we receive from 
+ * Packet format type for the messages we receive from
  * the kernel.  This is for the PRISM format.
  */
 #define ARPHRD_IEEE80211_PRISM  802
 
 /**
- * Packet format type for the messages we receive from 
+ * Packet format type for the messages we receive from
  * the kernel.  This is for messages with a
  * 'struct Ieee80211RadiotapHeader' (see below).
  */
@@ -195,35 +195,35 @@
  * Drivers appear to use a 64bit counter to hold mactime internal
  * the then fill the prism header with the lower 32 bits
  */
-#define PRISM_DID_MACTIME 0x2041 
+#define PRISM_DID_MACTIME 0x2041
 
 /**
  * Channel element
  */
-#define PRISM_DID_CHANNEL 0x3041 
+#define PRISM_DID_CHANNEL 0x3041
 
 /**
  * Signal element.  Should be the signal strength in dbm, some people
  * suggest that instead "100 - (strength in dbm)" is used (to make this
  * a positive integer).
  */
-#define PRISM_DID_SIGNAL 0x6041 
+#define PRISM_DID_SIGNAL 0x6041
 
 /**
  * Noise element
  */
-#define PRISM_DID_NOISE 0x7041 
+#define PRISM_DID_NOISE 0x7041
 
 /**
  * Rate element, in units/multiples of 500Khz
  */
-#define PRISM_DID_RATE 0x8041 
+#define PRISM_DID_RATE 0x8041
 
 
 /**
  * Value is set (supplied)
  */
-#define PRISM_STATUS_OK 0 
+#define PRISM_STATUS_OK 0
 
 /**
  * Value not supplied.
@@ -240,24 +240,24 @@ struct PrismValue
    * This has a different ID for each parameter, see
    * PRISM_DID_* constants.
    */
-  uint32_t did; 
-  
+  uint32_t did;
+
   /**
    * See PRISM_STATUS_*-constants.  Note that they are unusual: 0 = set;  1 = not set
    */
-  uint16_t status; 
-  
+  uint16_t status;
+
   /**
    * length of data (which is always a uint32_t, but presumably this can be used
    * to specify that fewer bytes are used (with values in 'len' from 0-4).  We
    * ignore this field.
    */
-  uint16_t len; 
+  uint16_t len;
 
   /**
    * The data value
    */
-  uint32_t data; 
+  uint32_t data;
 
 } __attribute__ ((packed));
 
@@ -271,11 +271,11 @@ struct PrismHeader
    * We expect this to be a PRISM_MSGCODE_*.
    */
   uint32_t msgcode;
-  
+
   /**
    * The length of the entire header.
    */
-  uint32_t msglen;     
+  uint32_t msglen;
 
   /**
    * Name of the device that captured the packet.
@@ -402,7 +402,7 @@ enum RadiotapType
    */
   IEEE80211_RADIOTAP_DBM_TX_POWER = 10,
 
-  /** 
+  /**
    * IEEE80211_RADIOTAP_ANTENNA           uint8_t           antenna index
    *
    *      Unitless indication of the Rx/Tx antenna for this packet.
@@ -433,10 +433,10 @@ enum RadiotapType
    */
   IEEE80211_RADIOTAP_RX_FLAGS = 14,
 
-  /** 
+  /**
    * IEEE80211_RADIOTAP_TX_FLAGS          __le16       bitmap
    *
-   *     Properties of transmitted frames. See flags defined below.  
+   *     Properties of transmitted frames. See flags defined below.
    */
   IEEE80211_RADIOTAP_TX_FLAGS = 15,
 
@@ -462,7 +462,7 @@ enum RadiotapType
 };
 
 /**
- * Bitmask indicating an extension of the bitmask is used. 
+ * Bitmask indicating an extension of the bitmask is used.
  * (Mask corresponding to IEEE80211_RADIOTAP_EXT).
  */
 #define IEEE80211_RADIOTAP_PRESENT_EXTEND_MASK (1 << IEEE80211_RADIOTAP_EXT)
@@ -487,7 +487,7 @@ enum RadiotapType
  *
  * Frame was sent/received with short preamble
  */
-#define	IEEE80211_RADIOTAP_F_SHORTPRE	0x02  
+#define	IEEE80211_RADIOTAP_F_SHORTPRE	0x02
 
 /**
  * Bit in IEEE80211_RADIOTAP_FLAGS (which we might get
@@ -497,7 +497,7 @@ enum RadiotapType
  *
  * Frame was sent/received with WEP encryption
  */
-#define	IEEE80211_RADIOTAP_F_WEP	0x04 
+#define	IEEE80211_RADIOTAP_F_WEP	0x04
 
 /**
  * Bit in IEEE80211_RADIOTAP_FLAGS (which we might get
@@ -507,7 +507,7 @@ enum RadiotapType
  *
  * Frame was sent/received with fragmentation
  */
-#define	IEEE80211_RADIOTAP_F_FRAG	0x08 
+#define	IEEE80211_RADIOTAP_F_FRAG	0x08
 
 /**
  * Bit in IEEE80211_RADIOTAP_FLAGS (which we might get
@@ -517,7 +517,7 @@ enum RadiotapType
  *
  * Frame includes FCS (CRC at the end that needs to be removeD).
  */
-#define	IEEE80211_RADIOTAP_F_FCS	0x10    
+#define	IEEE80211_RADIOTAP_F_FCS	0x10
 
 /**
  * Bit in IEEE80211_RADIOTAP_FLAGS (which we might get
@@ -528,32 +528,32 @@ enum RadiotapType
  * Frame has padding between 802.11 header and payload
  * (to 32-bit boundary)
  */
-#define	IEEE80211_RADIOTAP_F_DATAPAD	0x20    
+#define	IEEE80211_RADIOTAP_F_DATAPAD	0x20
 
 
 /**
  * For IEEE80211_RADIOTAP_RX_FLAGS:
  * frame failed crc check
  */
-#define IEEE80211_RADIOTAP_F_RX_BADFCS	0x0001  
+#define IEEE80211_RADIOTAP_F_RX_BADFCS	0x0001
 
 /**
  * For IEEE80211_RADIOTAP_TX_FLAGS ('txflags' in 'struct RadiotapTransmissionHeader'):
  * failed due to excessive retries
  */
-#define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001  
+#define IEEE80211_RADIOTAP_F_TX_FAIL	0x0001
 
 /**
  * For IEEE80211_RADIOTAP_TX_FLAGS ('txflags' in 'struct RadiotapTransmissionHeader'):
  * used cts 'protection'
  */
-#define IEEE80211_RADIOTAP_F_TX_CTS	0x0002  
+#define IEEE80211_RADIOTAP_F_TX_CTS	0x0002
 
 /**
  * For IEEE80211_RADIOTAP_TX_FLAGS ('txflags' in 'struct RadiotapTransmissionHeader'):
- * used rts/cts handshake 
+ * used rts/cts handshake
  */
-#define IEEE80211_RADIOTAP_F_TX_RTS	0x0004  
+#define IEEE80211_RADIOTAP_F_TX_RTS	0x0004
 
 /**
  * For IEEE80211_RADIOTAP_TX_FLAGS ('txflags' in 'struct RadiotapTransmissionHeader'):
@@ -563,7 +563,7 @@ enum RadiotapType
 
 /**
  * For IEEE80211_RADIOTAP_TX_FLAGS ('txflags' in 'struct RadiotapTransmissionHeader'):
- * sequence number handled by userspace 
+ * sequence number handled by userspace
  */
 #define IEEE80211_RADIOTAP_F_TX_NOSEQ	0x0010
 
@@ -591,7 +591,7 @@ struct Ieee80211RadiotapHeader
   uint8_t it_version;
 
   /**
-   * Padding.  Set to 0.  
+   * Padding.  Set to 0.
    */
   uint8_t it_pad;
 
@@ -611,7 +611,7 @@ struct Ieee80211RadiotapHeader
 
 
 /**
- * Format of the header we need to prepend to messages to be sent to the 
+ * Format of the header we need to prepend to messages to be sent to the
  * Kernel.
  */
 struct RadiotapTransmissionHeader
@@ -752,7 +752,7 @@ struct SendBuffer
    * destination?  Always smaller than 'size'.
    */
   size_t pos;
-  
+
   /**
    * Buffered data; twice the maximum allowed message size as we add some
    * headers.
@@ -794,7 +794,7 @@ static struct SendBuffer write_std;
  * @param cls closure
  * @param message the actual message
  */
-typedef void (*MessageTokenizerCallback) (void *cls, 
+typedef void (*MessageTokenizerCallback) (void *cls,
 					  const struct
 					  GNUNET_MessageHeader *
 					  message);
@@ -1059,7 +1059,7 @@ mst_destroy (struct MessageStreamTokenizer *mst)
  */
 static int
 ieee80211_radiotap_iterator_init (struct Ieee80211RadiotapHeaderIterator *iterator,
-                                  const struct Ieee80211RadiotapHeader *radiotap_header, 
+                                  const struct Ieee80211RadiotapHeader *radiotap_header,
 				  size_t max_length)
 {
   if ( (iterator == NULL) ||
@@ -1204,26 +1204,26 @@ ieee80211_radiotap_iterator_next (struct Ieee80211RadiotapHeaderIterator *iterat
 	/* need padding (by 'wanted_alignment - unalignment') */
 	iterator->arg_index += wanted_alignment - unalignment;
       }
-      
+
       /*
        * this is what we will return to user, but we need to
        * move on first so next call has something fresh to test
-       */     
+       */
       iterator->this_arg_index = iterator->arg_index;
       iterator->this_arg = iterator->arg;
 
       /* internally move on the size of this arg (using lower nybble from
-	 the table) */ 
+	 the table) */
       iterator->arg += rt_sizes[iterator->arg_index] & 0x0f;
-      
+
       /*
        * check for insanity where we are given a bitmap that
        * claims to have more arg content than the length of the
        * radiotap section.  We will normally end up equalling this
        * max_length on the last arg, never exceeding it.
-       */      
+       */
       if ((((void *) iterator->arg) - ((void *) iterator->rtheader)) > iterator->max_length)
-	return -1;      
+	return -1;
     }
 
     /* Now, move on to next bit / next entry */
@@ -1245,7 +1245,7 @@ ieee80211_radiotap_iterator_next (struct Ieee80211RadiotapHeaderIterator *iterat
       }
     }
     else
-    {                           
+    {
       /* just try the next bit (while loop will move on) */
       iterator->bitmap_shifter >>= 1;
     }
@@ -1364,7 +1364,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
   if (((crc) & 0xFF) == buf[0] && ((crc >> 8) & 0xFF) == buf[1] &&
       ((crc >> 16) & 0xFF) == buf[2] && ((crc >> 24) & 0xFF) == buf[3])
     return 0;
-  return 1;     
+  return 1;
 }
 
 
@@ -1431,7 +1431,7 @@ linux_get_channel (const struct HardwareInfos *dev)
  * @return number of bytes written to 'buf'
  */
 static ssize_t
-linux_read (struct HardwareInfos *dev, 
+linux_read (struct HardwareInfos *dev,
 	    unsigned char *buf, size_t buf_size,
             struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *ri)
 {
@@ -1452,7 +1452,7 @@ linux_read (struct HardwareInfos *dev,
     return -1;
   }
 
-  memset (ri, 0, sizeof (*ri)); 
+  memset (ri, 0, sizeof (*ri));
   switch (dev->arptype_in)
   {
   case ARPHRD_IEEE80211_PRISM:
@@ -1511,7 +1511,7 @@ linux_read (struct HardwareInfos *dev,
 	    break;
 	  }
 	}
-      } 
+      }
       if ( (n < 8) || (n >= caplen) )
 	return 0; /* invalid format */
     }
@@ -1540,7 +1540,7 @@ linux_read (struct HardwareInfos *dev,
 	  if (!got_signal)
 	  {
 	    ri->ri_power = * ((int8_t*) iterator.this_arg);
-	    got_signal = 1;	  
+	    got_signal = 1;	
 	  }
 	  break;
 	case IEEE80211_RADIOTAP_DB_ANTSIGNAL:
@@ -1594,7 +1594,7 @@ linux_read (struct HardwareInfos *dev,
 	  break;
 	} /* end of 'switch' */
       } /* end of the 'while' loop */
-    }       
+    }
     break;
   case ARPHRD_IEEE80211:
     n = 0; /* no header */
@@ -1607,7 +1607,7 @@ linux_read (struct HardwareInfos *dev,
 	      tmpbuf + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame),
 	      caplen - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4 /* 4 byte FCS */);
       return caplen - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee8023Frame) - 4;
-    }	    
+    }	
   default:
     errno = ENOTSUP; /* unsupported format */
     return -1;
@@ -1617,8 +1617,8 @@ linux_read (struct HardwareInfos *dev,
     ri->ri_channel = linux_get_channel (dev);
 
   /* detect CRC32 at the end, even if the flag wasn't set and remove it */
-  if ( (0 == fcs_removed) && 
-       (0 == check_crc_buf_osdep (tmpbuf + n, caplen - sizeof (uint32_t))) )  
+  if ( (0 == fcs_removed) &&
+       (0 == check_crc_buf_osdep (tmpbuf + n, caplen - sizeof (uint32_t))) )
   {
     /* NOTE: this heuristic can of course fail if there happens to
        be a matching checksum at the end. Would be good to have
@@ -1751,9 +1751,9 @@ open_device_raw (struct HardwareInfos *dev)
       setsockopt (dev->fd_raw, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mr,
                   sizeof (mr)))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to enable promiscuous mode on interface `%.*s'\n",
-             IFNAMSIZ, 
+             IFNAMSIZ,
 	     dev->iface);
     return 1;
   }
@@ -1775,13 +1775,13 @@ test_wlan_interface (const char *iface)
   struct stat sbuf;
   int ret;
 
-  ret = snprintf (strbuf, sizeof (strbuf), 
+  ret = snprintf (strbuf, sizeof (strbuf),
 		  "/sys/class/net/%s/phy80211/subsystem",
 		  iface);
   if ((ret < 0) || (ret >= sizeof (strbuf)) || (0 != stat (strbuf, &sbuf)))
   {
-    fprintf (stderr, 
-	     "Did not find 802.11 interface `%s'. Exiting.\n", 
+    fprintf (stderr,
+	     "Did not find 802.11 interface `%s'. Exiting.\n",
 	     iface);
     exit (1);
   }
@@ -1852,7 +1852,7 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   sendsize = ntohs (hdr->size);
   if ( (sendsize <
 	sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage)) ||
-       (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) ) 
+       (GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER != ntohs (hdr->type)) )
   {
     fprintf (stderr, "Received malformed message\n");
     exit (1);
@@ -1870,10 +1870,10 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
   case ARPHRD_IEEE80211_FULL:
   case ARPHRD_IEEE80211:
     rtheader.header.it_version = 0;
-    rtheader.header.it_pad = 0; 
+    rtheader.header.it_pad = 0;
     rtheader.header.it_len = GNUNET_htole16 (sizeof (rtheader));
     rtheader.header.it_present = GNUNET_htole16 (IEEE80211_RADIOTAP_OUR_TRANSMISSION_HEADER_MASK);
-    rtheader.rate = header->rate; 
+    rtheader.rate = header->rate;
     rtheader.pad1 = 0;
     rtheader.txflags = GNUNET_htole16 (IEEE80211_RADIOTAP_F_TX_NOACK | IEEE80211_RADIOTAP_F_TX_NOSEQ);
     memcpy (write_pout.buf, &rtheader, sizeof (rtheader));
@@ -1934,7 +1934,7 @@ main (int argc, char *argv[])
     return 254;
   }
 #else
-  if (0 != seteuid (0)) 
+  if (0 != seteuid (0))
   {
     fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
     return 254;
@@ -2012,9 +2012,9 @@ main (int argc, char *argv[])
     memcpy (&macmsg.mac, &dev.pl_mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
     memcpy (write_std.buf, &macmsg, sizeof (macmsg));
     write_std.size = sizeof (macmsg);
-  }  
+  }
 
-  stdin_mst = mst_create (&stdin_send_hw, &dev);  
+  stdin_mst = mst_create (&stdin_send_hw, &dev);
   stdin_open = 1;
   while (1)
   {
@@ -2071,7 +2071,7 @@ main (int argc, char *argv[])
     if (FD_ISSET (dev.fd_raw, &wfds))
     {
       ssize_t ret =
-	write (dev.fd_raw, write_pout.buf + write_std.pos, 
+	write (dev.fd_raw, write_pout.buf + write_std.pos,
 	       write_pout.size - write_pout.pos);
       if (0 > ret)
       {
@@ -2097,7 +2097,7 @@ main (int argc, char *argv[])
 
     if (FD_ISSET (STDIN_FILENO, &rfds))
     {
-      ssize_t ret = 
+      ssize_t ret =
 	read (STDIN_FILENO, readbuf, sizeof (readbuf));
       if (0 > ret)
       {
@@ -2120,9 +2120,9 @@ main (int argc, char *argv[])
       rrm = (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) write_std.buf;
       ret =
           linux_read (&dev, (unsigned char *) &rrm->frame,
-                      sizeof (write_std.buf) 
-		      - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
-		      + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame), 
+                      sizeof (write_std.buf)
+		      - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
+		      + sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame),
 		      rrm);
       if (0 > ret)
       {
@@ -2131,8 +2131,8 @@ main (int argc, char *argv[])
       }
       if ((0 < ret) && (0 == mac_test (&rrm->frame, &dev)))
       {
-        write_std.size = ret 
-	  + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage) 
+        write_std.size = ret
+	  + sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)
 	  - sizeof (struct GNUNET_TRANSPORT_WLAN_Ieee80211Frame);
         rrm->header.size = htons (write_std.size);
         rrm->header.type = htons (GNUNET_MESSAGE_TYPE_WLAN_DATA_FROM_HELPER);

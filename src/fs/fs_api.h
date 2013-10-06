@@ -414,7 +414,7 @@ typedef void (*GNUNET_FS_QueueStop) (void *cls);
 
 /**
  * Priorities for the queue.
- */ 
+ */
 enum GNUNET_FS_QueuePriority
   {
     /**
@@ -1259,7 +1259,7 @@ struct GNUNET_FS_PublishContext
    * Set to GNUNET_YES if all processing has completed.
    */
   int all_done;
-  
+
   /**
    * Flag set to GNUNET_YES if the next callback from
    * GNUNET_FS_file_information_inspect should be skipped because it
@@ -1284,7 +1284,7 @@ enum UnindexState
    * the respective DBlocks and IBlocks.
    */
   UNINDEX_STATE_DS_REMOVE = 1,
-  
+
   /**
    * Find out which keywords apply.
    */
@@ -1300,12 +1300,12 @@ enum UnindexState
    * the unindexing.
    */
   UNINDEX_STATE_FS_NOTIFY = 4,
-  
+
   /**
    * We're done.
    */
   UNINDEX_STATE_COMPLETE = 5,
-  
+
   /**
    * We've encountered a fatal error.
    */
@@ -1323,7 +1323,7 @@ struct GNUNET_FS_UnindexContext
    * The content hash key of the last block we processed, will in the
    * end be set to the CHK from the URI.  Used to remove the KBlocks.
    */
-  struct ContentHashKey chk; 
+  struct ContentHashKey chk;
 
   /**
    * Global FS context.
@@ -1460,7 +1460,7 @@ struct SearchRequestEntry
 
   /**
    * Derived public key, hashes to 'uquery'.
-   */ 
+   */
   struct GNUNET_CRYPTO_EccPublicSignKey dpub;
 
   /**

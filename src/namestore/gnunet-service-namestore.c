@@ -260,7 +260,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param client identification of the client
  */
 static void
-client_disconnect_notification (void *cls, 
+client_disconnect_notification (void *cls,
 				struct GNUNET_SERVER_Client *client)
 {
   struct ZoneIteration *no;
@@ -269,8 +269,8 @@ client_disconnect_notification (void *cls,
 
   if (NULL == client)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Client %p disconnected\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client %p disconnected\n",
 	      client);
   if (NULL == (nc = GNUNET_SERVER_client_get_user_context (client, struct NamestoreClient)))
     return;
@@ -315,7 +315,7 @@ client_lookup (struct GNUNET_SERVER_Client *client)
   nc = GNUNET_SERVER_client_get_user_context (client, struct NamestoreClient);
   if (NULL != nc)
     return nc;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Client %p connected\n",
 	      client);
   nc = GNUNET_new (struct NamestoreClient);
@@ -361,7 +361,7 @@ handle_lookup_block_it (void *cls,
   size_t esize;
 
   esize = ntohl (block->purpose.size)
-    - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) 
+    - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)
     - sizeof (struct GNUNET_TIME_AbsoluteNBO);
   r = GNUNET_malloc (sizeof (struct LookupBlockResponseMessage) + esize);
   r->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE);
@@ -369,15 +369,15 @@ handle_lookup_block_it (void *cls,
   r->gns_header.r_id = htonl (lnc->request_id);
   r->expire = block->expiration_time;
   r->signature = block->signature;
-  r->derived_key = block->derived_key;  
+  r->derived_key = block->derived_key;
   memcpy (&r[1], &block[1], esize);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message with expiration time %s\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message with expiration time %s\n",
 	      "NAMESTORE_LOOKUP_BLOCK_RESPONSE",
               GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (r->expire)));
-  GNUNET_SERVER_notification_context_unicast (snc, 
-					      lnc->nc->client, 
-					      &r->gns_header.header, 
+  GNUNET_SERVER_notification_context_unicast (snc,
+					      lnc->nc->client,
+					      &r->gns_header.header,
 					      GNUNET_NO);
   GNUNET_free (r);
 }
@@ -401,38 +401,38 @@ handle_lookup_block (void *cls,
   struct LookupBlockResponseMessage zir_end;
   int ret;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received `%s' message\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message\n",
 	      "NAMESTORE_LOOKUP_BLOCK");
   nc = client_lookup(client);
   ln_msg = (const struct LookupBlockMessage *) message;
   lnc.request_id = ntohl (ln_msg->gns_header.r_id);
   lnc.nc = nc;
   if (GNUNET_SYSERR ==
-      (ret = GSN_database->lookup_block (GSN_database->cls, 
+      (ret = GSN_database->lookup_block (GSN_database->cls,
 					 &ln_msg->query,
 					 &handle_lookup_block_it, &lnc)))
   {
     /* internal error (in database plugin); might be best to just hang up on
-       plugin rather than to signal that there are 'no' results, which 
+       plugin rather than to signal that there are 'no' results, which
        might also be false... */
-    GNUNET_break (0); 
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
-  }  
+  }
   if (0 == ret)
   {
     /* no records match at all, generate empty response */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Sending empty `%s' message\n", 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Sending empty `%s' message\n",
 		"NAMESTORE_LOOKUP_BLOCK_RESPONSE");
     memset (&zir_end, 0, sizeof (zir_end));
     zir_end.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE);
     zir_end.gns_header.header.size = htons (sizeof (struct LookupBlockResponseMessage));
     zir_end.gns_header.r_id = ln_msg->gns_header.r_id;
-    GNUNET_SERVER_notification_context_unicast (snc, 
-						client, 
-						&zir_end.gns_header.header, 
+    GNUNET_SERVER_notification_context_unicast (snc,
+						client,
+						&zir_end.gns_header.header,
 						GNUNET_NO);
 
   }
@@ -453,7 +453,7 @@ handle_block_cache (void *cls,
 		     const struct GNUNET_MessageHeader *message)
 {
   struct NamestoreClient *nc;
-  const struct BlockCacheMessage *rp_msg;  
+  const struct BlockCacheMessage *rp_msg;
   struct BlockCacheResponseMessage rpr_msg;
   struct GNUNET_NAMESTORE_Block *block;
   size_t esize;
@@ -475,7 +475,7 @@ handle_block_cache (void *cls,
 			       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 			       esize);
   block->expiration_time = rp_msg->expire;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message with expiration time %s\n",
 	      "NAMESTORE_BLOCK_CACHE",
               GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (block->expiration_time)));
@@ -488,9 +488,9 @@ handle_block_cache (void *cls,
   rpr_msg.gns_header.header.size = htons (sizeof (struct BlockCacheResponseMessage));
   rpr_msg.gns_header.r_id = rp_msg->gns_header.r_id;
   rpr_msg.op_result = htonl (res);
-  GNUNET_SERVER_notification_context_unicast (snc, 
-					      nc->client, 
-					      &rpr_msg.gns_header.header, 
+  GNUNET_SERVER_notification_context_unicast (snc,
+					      nc->client,
+					      &rpr_msg.gns_header.header,
 					      GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -525,7 +525,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   char *rd_ser;
 
   name_len = strlen (name) + 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);  
+  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   msg_size = sizeof (struct RecordResultMessage) + name_len + rd_ser_len;
 
   zir_msg = GNUNET_malloc (msg_size);
@@ -540,13 +540,13 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
   GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message with %u records and size %u\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message with %u records and size %u\n",
 	      "RECORD_RESULT",
 	      rd_count,
 	      msg_size);
   GNUNET_SERVER_notification_context_unicast (nc,
-					      client, 
+					      client,
 					      &zir_msg->gns_header.header,
 					      GNUNET_NO);
   GNUNET_free (zir_msg);
@@ -569,7 +569,7 @@ refresh_block (const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
                const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct GNUNET_NAMESTORE_Block *block;
-  
+
   if (0 == rd_count)
     block = GNUNET_NAMESTORE_block_create (zone_key,
                                            GNUNET_TIME_UNIT_ZERO_ABS,
@@ -589,7 +589,7 @@ refresh_block (const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
                 _("Failed to cache encrypted block of my own zone!\n"));
   }
   GNUNET_free (block);
-}    
+}
 
 
 /**
@@ -620,8 +620,8 @@ handle_record_store (void *cls,
   struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
   struct ZoneMonitor *zm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received `%s' message\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message\n",
 	      "NAMESTORE_RECORD_STORE");
   if (ntohs (message->size) < sizeof (struct RecordStoreMessage))
   {
@@ -686,9 +686,9 @@ handle_record_store (void *cls,
 		conv_name,
 		GNUNET_NAMESTORE_z2s (&pubkey));
 
-    if ( (0 == rd_count) && 
-         (GNUNET_NO == 
-          GSN_database->iterate_records (GSN_database->cls, 
+    if ( (0 == rd_count) &&
+         (GNUNET_NO ==
+          GSN_database->iterate_records (GSN_database->cls,
                                          &rp_msg->private_key, 0, NULL, 0)) )
     {
       /* This name does not exist, so cannot be removed */
@@ -701,15 +701,15 @@ handle_record_store (void *cls,
     {
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
-					 conv_name,				       
+					 conv_name,				
 					 rd_count, rd);
       if (GNUNET_OK == res)
       {
         refresh_block (&rp_msg->private_key,
                        conv_name,
                        rd_count, rd);
-  
-        for (zm = monitor_head; NULL != zm; zm = zm->next)    
+
+        for (zm = monitor_head; NULL != zm; zm = zm->next)
           if (0 == memcmp (&rp_msg->private_key, &zm->zone,
                            sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
             send_lookup_response (monitor_nc,
@@ -722,10 +722,10 @@ handle_record_store (void *cls,
       GNUNET_free (conv_name);
     }
   }
-  
+
   /* Send response */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Sending `%s' message\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Sending `%s' message\n",
 	      "RECORD_STORE_RESPONSE");
   rcr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE);
   rcr_msg.gns_header.header.size = htons (sizeof (struct RecordStoreResponseMessage));
@@ -788,8 +788,8 @@ handle_zone_to_name_it (void *cls,
   char *name_tmp;
   char *rd_tmp;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Found result for zone-to-name lookup: `%s'\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Found result for zone-to-name lookup: `%s'\n",
 	      name);
   res = GNUNET_YES;
   name_len = (NULL == name) ? 0 : strlen (name) + 1;
@@ -840,7 +840,7 @@ handle_zone_to_name (void *cls,
   struct ZoneToNameCtx ztn_ctx;
   struct ZoneToNameResponseMessage ztnr_msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message\n",
 	      "ZONE_TO_NAME");
   ztn_msg = (const struct ZoneToNameMessage *) message;
@@ -849,7 +849,7 @@ handle_zone_to_name (void *cls,
   ztn_ctx.nc = nc;
   ztn_ctx.success = GNUNET_NO;
   if (GNUNET_SYSERR ==
-      GSN_database->zone_to_name (GSN_database->cls, 
+      GSN_database->zone_to_name (GSN_database->cls,
 				  &ztn_msg->zone,
 				  &ztn_msg->value_zone,
 				  &handle_zone_to_name_it, &ztn_ctx))
@@ -858,7 +858,7 @@ handle_zone_to_name (void *cls,
        that might be wrong */
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;    
+    return;
   }
   if (GNUNET_NO == ztn_ctx.success)
   {
@@ -945,17 +945,17 @@ zone_iteraterate_proc (void *cls,
 
   if ((NULL == zone_key) && (NULL == name))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Iteration done\n");
     proc->res_iteration_finished = IT_SUCCESS_NOT_MORE_RESULTS_AVAILABLE;
     return;
   }
-  if ((NULL == zone_key) || (NULL == name)) 
+  if ((NULL == zone_key) || (NULL == name))
   {
     /* what is this!? should never happen */
     proc->res_iteration_finished = IT_START;
     GNUNET_break (0);
-    return;    
+    return;
   }
   proc->res_iteration_finished = IT_SUCCESS_MORE_AVAILABLE;
   send_lookup_response (snc,
@@ -1001,11 +1001,11 @@ run_zone_iteration_round (struct ZoneIteration *zi)
   while (IT_START == proc.res_iteration_finished)
   {
     if (GNUNET_SYSERR ==
-	(ret = GSN_database->iterate_records (GSN_database->cls, 
-					      (0 == memcmp (&zi->zone, &zero, sizeof (zero))) 
-					      ? NULL 
+	(ret = GSN_database->iterate_records (GSN_database->cls,
+					      (0 == memcmp (&zi->zone, &zero, sizeof (zero)))
+					      ? NULL
 					      : &zi->zone,
-					      zi->offset, 
+					      zi->offset,
 					      &zone_iteraterate_proc, &proc)))
     {
       GNUNET_break (0);
@@ -1027,10 +1027,10 @@ run_zone_iteration_round (struct ZoneIteration *zi)
   rrm.gns_header.header.size = htons (sizeof (rrm));
   rrm.gns_header.r_id = htonl (zi->request_id);
   GNUNET_SERVER_notification_context_unicast (snc,
-					      zi->client->client, 
+					      zi->client->client,
 					      &rrm.gns_header.header,
 					      GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (zi->client->op_head, 
+  GNUNET_CONTAINER_DLL_remove (zi->client->op_head,
 			       zi->client->op_tail,
 			       zi);
   GNUNET_free (zi);
@@ -1159,7 +1159,7 @@ handle_iteration_next (void *cls,
  * Send 'sync' message to zone monitor, we're now in sync.
  *
  * @param zm monitor that is now in sync
- */ 
+ */
 static void
 monitor_sync (struct ZoneMonitor *zm)
 {
@@ -1234,8 +1234,8 @@ handle_monitor_start (void *cls,
 {
   const struct ZoneMonitorStartMessage *zis_msg;
   struct ZoneMonitor *zm;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received `%s' message\n",
 	      "ZONE_MONITOR_START");
   zis_msg = (const struct ZoneMonitorStartMessage *) message;
@@ -1249,7 +1249,7 @@ handle_monitor_start (void *cls,
   GNUNET_SERVER_disable_receive_done_warning (client);
   GNUNET_SERVER_notification_context_add (monitor_nc,
 					  client);
-  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);  
+  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
 }
 
 
@@ -1265,7 +1265,7 @@ monitor_next (void *cls,
 {
   struct ZoneMonitor *zm = cls;
   int ret;
-  
+
   zm->task = GNUNET_SCHEDULER_NO_TASK;
   ret = GSN_database->iterate_records (GSN_database->cls,
 				       &zm->zone,
@@ -1332,7 +1332,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_free (database);
   if (NULL == GSN_database)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Could not load database backend `%s'\n",
 		db_lib_name);
     GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);

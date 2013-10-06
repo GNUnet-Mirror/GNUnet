@@ -84,7 +84,7 @@ end_badly ()
  * @param put_path Path of the put request.
  * @param put_path_length Length of the put_path.
  */
-static void 
+static void
 found_cb (void *cls,
 	  const struct GNUNET_PeerIdentity *id,
 	  const struct GNUNET_PeerIdentity *get_path,
@@ -106,7 +106,7 @@ run (void *cls,
   die_task =
     GNUNET_SCHEDULER_add_delayed (TOTAL_TIMEOUT,
 				  &end_badly, NULL);
-  a = GNUNET_REGEX_announce (cfg, 
+  a = GNUNET_REGEX_announce (cfg,
 			     "my long prefix - hello world(0|1)*",
 			     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
 							    5),

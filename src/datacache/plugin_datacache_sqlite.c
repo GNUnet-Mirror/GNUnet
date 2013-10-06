@@ -96,13 +96,13 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
  * @param type type of the value
  * @param discard_time when to discard the value in any case
  * @param path_info_len number of entries in 'path_info'
- * @param path_info array of peers that have processed the request 
+ * @param path_info array of peers that have processed the request
  * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
 static ssize_t
 sqlite_plugin_put (void *cls,
 		   const struct GNUNET_HashCode *key,
-		   size_t size, const char *data, 
+		   size_t size, const char *data,
 		   enum GNUNET_BLOCK_Type type,
                    struct GNUNET_TIME_Absolute discard_time,
 		   unsigned int path_info_len,
@@ -135,11 +135,11 @@ sqlite_plugin_put (void *cls,
 			  key, sizeof (struct GNUNET_HashCode),
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_blob (stmt, 4,
-				       data, size, 
+				       data, size,
 				       SQLITE_TRANSIENT)) ||
-      (SQLITE_OK != sqlite3_bind_blob (stmt, 5, 
-				       path_info, 
-				       path_info_len * sizeof (struct GNUNET_PeerIdentity), 
+      (SQLITE_OK != sqlite3_bind_blob (stmt, 5,
+				       path_info,
+				       path_info_len * sizeof (struct GNUNET_PeerIdentity),
 				       SQLITE_TRANSIENT)))
   {
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

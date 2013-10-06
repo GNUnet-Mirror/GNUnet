@@ -1,17 +1,17 @@
 /*
   This file is part of GNUnet
   (C) 2013 Christian Grothoff (and other contributing authors)
-  
+
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3, or (at your
   option) any later version.
-  
+
   GNUnet is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with GNUnet; see the file COPYING.  If not, write to the
   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -57,17 +57,17 @@ struct Speaker
 static int
 enable (void *cls)
 {
-  struct Speaker *spe = cls;  
-  static char *playback_helper_argv[] = 
+  struct Speaker *spe = cls;
+  static char *playback_helper_argv[] =
   {
     "gnunet-helper-audio-playback",
     NULL
   };
-  
+
   spe->playback_helper = GNUNET_HELPER_start (GNUNET_NO,
 					      "gnunet-helper-audio-playback",
 					      playback_helper_argv,
-					      NULL, 
+					      NULL,
 					      NULL, spe);
   if (NULL == spe->playback_helper)
   {
@@ -143,8 +143,8 @@ play (void *cls,
   am->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
   memcpy (&am[1], data, data_size);
   (void) GNUNET_HELPER_send (spe->playback_helper,
-			     &am->header, 
-			     GNUNET_NO, 
+			     &am->header,
+			     GNUNET_NO,
 			     NULL, NULL);
 }
 

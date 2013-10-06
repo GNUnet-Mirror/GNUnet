@@ -95,8 +95,8 @@ verifyCrypto ()
   };
   unsigned char encrresult[] =
   {
-    155, 88, 106, 174, 124, 172, 47, 149, 85, 15, 208, 176, 65, 124, 155, 
-    74, 215, 25, 177, 231, 162, 109, 165, 4, 133, 165, 93, 44, 213, 77, 
+    155, 88, 106, 174, 124, 172, 47, 149, 85, 15, 208, 176, 65, 124, 155,
+    74, 215, 25, 177, 231, 162, 109, 165, 4, 133, 165, 93, 44, 213, 77,
     206, 204, 1
   };
 
@@ -109,7 +109,7 @@ verifyCrypto ()
       GNUNET_CRYPTO_symmetric_encrypt (plain, GNUNET_CRYPTO_AES_KEY_LENGTH, &key,
                                        (const struct
                                         GNUNET_CRYPTO_SymmetricInitializationVector *)
-                                       "testtesttesttesttesttesttesttest", 
+                                       "testtesttesttesttesttesttesttest",
                                        result))
   {
     printf ("Wrong return value from encrypt block.\n");

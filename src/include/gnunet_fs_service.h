@@ -134,7 +134,7 @@ GNUNET_FS_uri_ksk_to_string_fancy (const struct GNUNET_FS_Uri *uri);
  * @param is_mandatory is this keyword mandatory?
  */
 void
-GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri, 
+GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
 			       const char *keyword,
                                int is_mandatory);
 
@@ -303,7 +303,7 @@ GNUNET_FS_uri_ksk_create (const char *keywords, char **emsg);
  *  if keywords is not legal (i.e. empty).
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create_from_args (unsigned int argc, 
+GNUNET_FS_uri_ksk_create_from_args (unsigned int argc,
 				    const char **argv);
 
 
@@ -337,7 +337,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns, 
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
 			  const char *id);
 
 
@@ -1698,7 +1698,7 @@ typedef int (*GNUNET_FS_FileInformationProcessor) (void *cls,
  * file information structures.
  *
  * @param s structure to get the filename for
- * @return NULL on error, otherwise filename that can be used 
+ * @return NULL on error, otherwise filename that can be used
  *         to read this fi-struct from disk.
  */
 const char *
@@ -2055,7 +2055,7 @@ struct GNUNET_FS_PublishSksContext;
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
                        const struct GNUNET_CRYPTO_EccPrivateKey *ns,
-                       const char *identifier, 
+                       const char *identifier,
 		       const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
@@ -2146,10 +2146,10 @@ GNUNET_FS_unindex_stop (struct GNUNET_FS_UnindexContext *uc);
  * @param last_meta metadata associated with @a last_uri
  * @param next_id identifier that should be used for updates
  */
-typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls, 
+typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls,
 					       const char *last_id,
                                                const struct GNUNET_FS_Uri *last_uri,
-                                               const struct GNUNET_CONTAINER_MetaData *last_meta, 
+                                               const struct GNUNET_CONTAINER_MetaData *last_meta,
 					       const char *next_id);
 
 
@@ -2283,7 +2283,7 @@ enum GNUNET_FS_DownloadOptions
    * No options (use defaults for everything).
    */
   GNUNET_FS_DOWNLOAD_OPTION_NONE = 0,
-  
+
   /**
    * Only download from the local host, do not access remote systems (no P2P)
    */
@@ -2600,9 +2600,9 @@ enum GNUNET_FS_DirScannerProgressUpdateReason
  *                     #GNUNET_SYSERR if it is neither (or unknown)
  * @param reason kind of progress we are making
  */
-typedef void (*GNUNET_FS_DirScannerProgressCallback) (void *cls, 
+typedef void (*GNUNET_FS_DirScannerProgressCallback) (void *cls,
 						      const char *filename,
-						      int is_directory, 
+						      int is_directory,
 						      enum GNUNET_FS_DirScannerProgressUpdateReason reason);
 
 
@@ -2685,9 +2685,9 @@ struct GNUNET_FS_DirScanner;
  */
 struct GNUNET_FS_DirScanner *
 GNUNET_FS_directory_scan_start (const char *filename,
-				int disable_extractor, 
+				int disable_extractor,
 				const char *ex,
-				GNUNET_FS_DirScannerProgressCallback cb, 
+				GNUNET_FS_DirScannerProgressCallback cb,
 				void *cb_cls);
 
 

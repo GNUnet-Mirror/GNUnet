@@ -317,7 +317,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
  * Wait for set operation requests for the given application ID.
  * If the connection to the set service is lost, the listener is
  * re-created transparently with exponential backoff.
- * 
+ *
  * @param cfg configuration to use for connecting to
  *            the set service
  * @param operation operation we want to listen for
@@ -351,7 +351,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
  * GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
  * afterwards.
  * Call GNUNET_SET_commit to provide the local set to use for the operation,
- * and to begin the exchange with the remote peer. 
+ * and to begin the exchange with the remote peer.
  *
  * @param request request to accept
  * @param result_mode specified how results will be returned,
@@ -375,7 +375,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  * set information and call the result callback with the
  * result information.
  *
- * @param oh handle to the set operation 
+ * @param oh handle to the set operation
  * @param set the set to use for the operation
  * @return GNUNET_OK on success, GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)

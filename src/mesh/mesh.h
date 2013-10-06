@@ -63,14 +63,14 @@ extern "C"
  * notify_transmit_ready                None (queue / GNUNET_CLIENT_ntf_tmt_rdy)
  * notify_transmit_ready_cancel         None (clear of internal data structures)
  *
- * 
+ *
  * EVENT                                MESSAGE USED
  * -----                                ------------
  * data                                 GNUNET_MESH_Unicast OR
  *                                      GNUNET_MESH_Multicast OR
  *                                      GNUNET_MESH_ToOrigin
  * data ack                             GNUNET_MESH_LocalAck
- * 
+ *
  * new incoming tunnel                  GNUNET_MESH_PeerControl
  * peer connects to a tunnel            FIXME
  * peer disconnects from a tunnel       FIXME
@@ -305,9 +305,9 @@ GMC_min_pid (uint32_t a, uint32_t b);
  * Generated with:
  * FIND:        "#define ([^ ]+)[ ]*([0-9]+)"
  * REPLACE:     "    case \2: return "\1"; break;"
- * 
+ *
  * @param m Message type.
- * 
+ *
  * @return Human readable string description.
  */
 const char *

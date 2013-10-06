@@ -271,7 +271,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *connections;
 static unsigned long long max_connections;
 
 /**
- * How many messages *in total* are we willing to queue, divide by number of 
+ * How many messages *in total* are we willing to queue, divide by number of
  * connections to get connection queue size.
  */
 static unsigned long long max_msgs_queue;
@@ -293,7 +293,7 @@ static struct GNUNET_CORE_Handle *core_handle;
  *
  * @param s Tunnel state.
  *
- * @return String representation. 
+ * @return String representation.
  */
 static const char *
 GMC_DEBUG_state2s (enum MeshTunnelState s)
@@ -317,7 +317,7 @@ GMC_DEBUG_state2s (enum MeshTunnelState s)
 
 /**
  * Initialize a Flow Control structure to the initial state.
- * 
+ *
  * @param fc Flow Control structure to initialize.
  */
 static void
@@ -680,7 +680,7 @@ queue_add (void *cls, uint16_t type, size_t size,
     GNUNET_break (0);
     return;
   }
-  
+
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
@@ -1172,9 +1172,9 @@ static unsigned int
 connection_get_buffer (struct MeshConnection *c, int fwd)
 {
   struct MeshFlowControl *fc;
-  
+
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  
+
   return (fc->queue_max - fc->queue_n);
 }
 
@@ -1337,7 +1337,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%X]\n",
               GNUNET_h2s (&c->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n",
               fc == &c->fwd_fc ? "FWD" : "BCK");
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
@@ -1378,7 +1378,7 @@ connection_get_prev_hop (struct MeshConnection *c)
  *
  * @param c Connection.
  *
- * @return Next peer in the connection. 
+ * @return Next peer in the connection.
  */
 static struct MeshPeer *
 connection_get_next_hop (struct MeshConnection *c)
@@ -1400,7 +1400,7 @@ connection_get_next_hop (struct MeshConnection *c)
  * @param c Connection.
  * @param fwd Next hop?
  *
- * @return Next peer in the connection. 
+ * @return Next peer in the connection.
  */
 static struct MeshPeer *
 connection_get_hop (struct MeshConnection *c, int fwd)
@@ -1598,7 +1598,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, 
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
@@ -2310,7 +2310,7 @@ handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ? 
+  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ?
         GNUNET_YES : GNUNET_NO;
 
   /* Check if origin is as expected */

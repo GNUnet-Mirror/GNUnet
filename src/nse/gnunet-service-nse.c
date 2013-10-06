@@ -53,7 +53,7 @@
 
 /**
  * Should messages be delayed randomly?  This option should be set to
- * #GNUNET_NO only for experiments, not in production.  
+ * #GNUNET_NO only for experiments, not in production.
  */
 #define USE_RANDOM_DELAYS GNUNET_YES
 
@@ -406,13 +406,13 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
  * @param message the message received
  */
 static void
-handle_start_message (void *cls, 
+handle_start_message (void *cls,
 		      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_NSE_ClientMessage em;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received START message from client\n");
   GNUNET_SERVER_notification_context_add (nc, client);
   setup_estimate_message (&em);
@@ -483,7 +483,7 @@ pow_hash (const void *buf,
 	  size_t buf_len,
 	  struct GNUNET_HashCode *result)
 {
-  GNUNET_break (0 == 
+  GNUNET_break (0 ==
 		gcry_kdf_derive (buf, buf_len,
 				 GCRY_KDF_SCRYPT,
 				 1 /* subalgo */,
@@ -572,7 +572,7 @@ get_transmit_delay (int round_offset)
  * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls, 
+transmit_task_cb (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -586,7 +586,7 @@ transmit_task_cb (void *cls,
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_ready (void *cls, 
+transmit_ready (void *cls,
 		size_t size,
 		void *buf)
 {
@@ -635,7 +635,7 @@ transmit_ready (void *cls,
                             GNUNET_NO);
 #if ENABLE_NSE_HISTOGRAM
   peer_entry->transmitted_messages++;
-  peer_entry->last_transmitted_size = 
+  peer_entry->last_transmitted_size =
       ntohl(size_estimate_messages[idx].matching_bits);
 #endif
   memcpy (buf, &size_estimate_messages[idx],
@@ -651,7 +651,7 @@ transmit_ready (void *cls,
  * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls, 
+transmit_task_cb (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NSEPeerEntry *peer_entry = cls;
@@ -681,8 +681,8 @@ update_network_size_estimate ()
   struct GNUNET_NSE_ClientMessage em;
 
   setup_estimate_message (&em);
-  GNUNET_SERVER_notification_context_broadcast (nc, 
-						&em.header, 
+  GNUNET_SERVER_notification_context_broadcast (nc,
+						&em.header,
 						GNUNET_YES);
 }
 
@@ -734,8 +734,8 @@ setup_flood_message (unsigned int slot,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-schedule_current_round (void *cls, 
-			const struct GNUNET_PeerIdentity * key, 
+schedule_current_round (void *cls,
+			const struct GNUNET_PeerIdentity * key,
 			void *value)
 {
   struct NSEPeerEntry *peer_entry = value;
@@ -774,7 +774,7 @@ schedule_current_round (void *cls,
  * @param tc context for this message
  */
 static void
-update_flood_message (void *cls, 
+update_flood_message (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative offset;
@@ -989,8 +989,8 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-update_flood_times (void *cls, 
-		    const struct GNUNET_PeerIdentity *key, 
+update_flood_times (void *cls,
+		    const struct GNUNET_PeerIdentity *key,
 		    void *value)
 {
   struct NSEPeerEntry *exclude = cls;
@@ -1032,7 +1032,7 @@ update_flood_times (void *cls,
  * @param peer peer identity this message is from (ignored)
  */
 static int
-handle_p2p_size_estimate (void *cls, 
+handle_p2p_size_estimate (void *cls,
 			  const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
@@ -1059,12 +1059,12 @@ handle_p2p_size_estimate (void *cls,
     char pred[5];
     struct GNUNET_PeerIdentity os;
 
-    GNUNET_snprintf (origin, 
-		     sizeof (origin), 
-		     "%4s", 
+    GNUNET_snprintf (origin,
+		     sizeof (origin),
+		     "%4s",
 		     GNUNET_i2s (&incoming_flood->origin));
-    GNUNET_snprintf (pred, 
-		     sizeof (pred), 
+    GNUNET_snprintf (pred,
+		     sizeof (pred),
 		     "%4s",
 		     GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1083,7 +1083,7 @@ handle_p2p_size_estimate (void *cls,
   }
 #if ENABLE_NSE_HISTOGRAM
   peer_entry->received_messages++;
-  if (peer_entry->transmitted_messages > 0 && 
+  if (peer_entry->transmitted_messages > 0 &&
       peer_entry->last_transmitted_size >= matching_bits)
     GNUNET_STATISTICS_update(stats, "# cross messages", 1, GNUNET_NO);
 #endif
@@ -1117,7 +1117,7 @@ handle_p2p_size_estimate (void *cls,
   {
     /* send to self, update our own estimate IF this also comes from us! */
     if (0 ==
-        memcmp (&incoming_flood->origin, 
+        memcmp (&incoming_flood->origin,
 		&my_identity, sizeof (my_identity)))
       update_network_size_estimate ();
     return GNUNET_OK;
@@ -1131,7 +1131,7 @@ handle_p2p_size_estimate (void *cls,
     peer_entry->previous_round = GNUNET_YES;
     if (idx != estimate_index)
     {
-      /* do not transmit information for the previous round to this peer 
+      /* do not transmit information for the previous round to this peer
          anymore (but allow current round) */
       return GNUNET_OK;
     }
@@ -1249,7 +1249,7 @@ handle_core_connect (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_disconnect (void *cls, 
+handle_core_disconnect (void *cls,
 			const struct GNUNET_PeerIdentity *peer)
 {
   struct NSEPeerEntry *pos;
@@ -1288,8 +1288,8 @@ handle_core_disconnect (void *cls,
  * @param cls NULL
  * @param size the amount of data sent (ignored)
  */
-static void 
-flush_comp_cb (void *cls, 
+static void
+flush_comp_cb (void *cls,
 	       size_t size)
 {
   GNUNET_TESTBED_LOGGER_disconnect (lh);
@@ -1359,7 +1359,7 @@ shutdown_task (void *cls,
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, 
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
   struct GNUNET_TIME_Absolute now;
@@ -1406,7 +1406,7 @@ core_init (void *cls,
  * @param c configuration to use
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -1424,7 +1424,7 @@ run (void *cls,
   struct GNUNET_CRYPTO_EccPrivateKey *pk;
 
   cfg = c;
-  srv = server;  
+  srv = server;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "INTERVAL",
 					   &gnunet_nse_interval))
@@ -1436,7 +1436,7 @@ run (void *cls,
   }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (cfg, "NSE", "WORKDELAY",
-					   &proof_find_delay)) 
+					   &proof_find_delay))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       "NSE", "WORKDELAY");
@@ -1461,7 +1461,7 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  
+
 #if ENABLE_NSE_HISTOGRAM
   if (NULL == (lh = GNUNET_TESTBED_LOGGER_connect (cfg)))
   {
@@ -1477,7 +1477,7 @@ run (void *cls,
   pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
 						  &my_identity.public_key);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
@@ -1486,7 +1486,7 @@ run (void *cls,
                 _
                 ("NSE service is lacking key configuration settings.  Exiting.\n"));
     GNUNET_free (my_private_key);
-    my_private_key = NULL;    
+    my_private_key = NULL;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -1530,7 +1530,7 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, 
+main (int argc,
       char *const *argv)
 {
   return (GNUNET_OK ==
@@ -1545,7 +1545,7 @@ main (int argc,
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) 
+void __attribute__ ((constructor))
 GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);

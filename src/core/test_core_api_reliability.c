@@ -356,7 +356,7 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 
 
 static void
-init_notify (void *cls, 
+init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
   struct PeerContext *p = cls;

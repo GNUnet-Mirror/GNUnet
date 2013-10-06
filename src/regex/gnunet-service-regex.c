@@ -193,7 +193,7 @@ reannounce (void *cls,
  * @param message the actual message
  */
 static void
-handle_announce (void *cls, 
+handle_announce (void *cls,
 		 struct GNUNET_SERVER_Client *client,
 		 const struct GNUNET_MessageHeader *message)
 {
@@ -238,7 +238,7 @@ handle_announce (void *cls,
     return;
   }
   GNUNET_CONTAINER_DLL_insert (client_head,
-			       client_tail, 
+			       client_tail,
 			       ce);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -254,7 +254,7 @@ handle_announce (void *cls,
  * @param put_path Path of the put request.
  * @param put_path_length Length of the put_path.
  */
-static void 
+static void
 handle_search_result (void *cls,
 		      const struct GNUNET_PeerIdentity *id,
 		      const struct GNUNET_PeerIdentity *get_path,
@@ -283,11 +283,11 @@ handle_search_result (void *cls,
   result->put_path_length = htons ((uint16_t) put_path_length);
   result->id = *id;
   gp = &result->id;
-  memcpy (&gp[1], 
+  memcpy (&gp[1],
 	  get_path,
 	  get_path_length * sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&gp[1 + get_path_length], 
-	  put_path, 
+  memcpy (&gp[1 + get_path_length],
+	  put_path,
 	  put_path_length * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_SERVER_notification_context_unicast (nc,
 					      ce->client,
@@ -304,7 +304,7 @@ handle_search_result (void *cls,
  * @param message the actual message
  */
 static void
-handle_search (void *cls, 
+handle_search (void *cls,
 	       struct GNUNET_SERVER_Client *client,
 	       const struct GNUNET_MessageHeader *message)
 {
@@ -338,7 +338,7 @@ handle_search (void *cls,
     return;
   }
   GNUNET_CONTAINER_DLL_insert (client_head,
-			       client_tail, 
+			       client_tail,
 			       ce);
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -364,7 +364,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
   if (NULL == my_private_key)
-  {   
+  {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }

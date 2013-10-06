@@ -455,7 +455,7 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
  *
  * @param ac handle for the add operation to cancel
  */
-void 
+void
 GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac)
 {
   struct GNUNET_PEERINFO_Handle *h = ac->h;
@@ -528,7 +528,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       h->in_receive = GNUNET_YES;
       GNUNET_CLIENT_receive (h->client, &peerinfo_handler, h,
 			     GNUNET_TIME_absolute_get_remaining (h->ic_head->timeout));
-    }    
+    }
     if (NULL != cb)
       cb (cb_cls, NULL, NULL, NULL);
     return;
@@ -557,11 +557,11 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
          "Received HELLO for peer `%s', expected peer `%s'\n",
 	 GNUNET_i2s (&im->peer),
 	 GNUNET_i2s (&ic->peer));
-    
+
     GNUNET_break (0);
     GNUNET_PEERINFO_iterate_cancel (ic);
     reconnect (h);
-    if (NULL != cb)      
+    if (NULL != cb)
       cb (cb_cls, NULL, NULL,
 	  _("Received invalid message from `PEERINFO' service."));
     return;
@@ -576,7 +576,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       GNUNET_PEERINFO_iterate_cancel (ic);
       reconnect (h);
-      if (NULL != cb)      
+      if (NULL != cb)
         cb (cb_cls, NULL, NULL,
 	    _("Received invalid message from `PEERINFO' service."));
       return;
@@ -587,7 +587,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       GNUNET_PEERINFO_iterate_cancel (ic);
       reconnect (h);
-      if (NULL != cb)      
+      if (NULL != cb)
         cb (cb_cls, NULL, NULL,
 	    _("Received invalid message from `PEERINFO' service."));
       return;
@@ -598,7 +598,7 @@ peerinfo_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       GNUNET_PEERINFO_iterate_cancel (ic);
       reconnect (h);
-      if (NULL != cb)      
+      if (NULL != cb)
         cb (cb_cls, NULL, NULL,
 	    _("Received invalid message from `PEERINFO' service."));
       return;

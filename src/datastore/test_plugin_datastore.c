@@ -226,7 +226,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test aborted.\n");
     crc->phase = RP_ERROR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "In phase %d, iteration %u\n", crc->phase, crc->cnt);
   switch (crc->phase)
   {

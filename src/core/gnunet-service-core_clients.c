@@ -517,7 +517,7 @@ client_tokenizer_callback (void *cls, void *client,
   GNUNET_snprintf (buf, sizeof (buf),
 		   gettext_noop ("# bytes of messages of type %u received"),
 		   (unsigned int) ntohs (message->type));
-  GNUNET_STATISTICS_update (GSC_stats, buf, ntohs (message->size), GNUNET_NO);  
+  GNUNET_STATISTICS_update (GSC_stats, buf, ntohs (message->size), GNUNET_NO);
   if (0 ==
       memcmp (&car->target, &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
@@ -536,7 +536,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_FULL_INBOUND);
     GSC_CLIENTS_deliver_message (&GSC_my_identity, message,
 				 sizeof (struct GNUNET_MessageHeader),
-				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);    
+				 GNUNET_CORE_OPTION_SEND_HDR_INBOUND);
   }
   else
   {
@@ -548,7 +548,7 @@ client_tokenizer_callback (void *cls, void *client,
 				 GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND);
     GSC_CLIENTS_deliver_message (&car->target, message,
 				 sizeof (struct GNUNET_MessageHeader),
-				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);  
+				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);
     GSC_SESSIONS_transmit (car, message, tc->cork);
   }
   return GNUNET_OK;
@@ -564,7 +564,7 @@ client_tokenizer_callback (void *cls, void *client,
  * @return #GNUNET_YES (continue iteration)
  */
 static int
-destroy_active_client_request (void *cls, 
+destroy_active_client_request (void *cls,
 			       const struct GNUNET_PeerIdentity *key,
                                void *value)
 {
@@ -765,7 +765,7 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
   struct GSC_Client *c;
 
   for (c = client_head; c != NULL; c = c->next)
-    GSC_CLIENTS_notify_client_about_neighbour (c, neighbour, 
+    GSC_CLIENTS_notify_client_about_neighbour (c, neighbour,
                                                tmap_old, tmap_new);
 }
 
@@ -784,7 +784,7 @@ GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
 void
 GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
                              const struct GNUNET_MessageHeader *msg,
-                             uint16_t msize, 
+                             uint16_t msize,
                              uint32_t options)
 {
   size_t size = msize + sizeof (struct NotifyTrafficMessage);

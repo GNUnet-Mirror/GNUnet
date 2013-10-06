@@ -120,7 +120,7 @@ struct Request
   struct MHD_PostProcessor *pp;
 
   /**
-   * URL to serve in response to this POST (if this request 
+   * URL to serve in response to this POST (if this request
    * was a 'POST')
    */
   const char *post_url;
@@ -129,7 +129,7 @@ struct Request
    * Active request with the namestore.
    */
   struct GNUNET_NAMESTORE_QueueEntry *qe;
-  
+
   /**
    * Current processing phase.
    */
@@ -171,7 +171,7 @@ struct ZoneinfoRequest
    * Buffer length
    */
   size_t buf_len;
-  
+
   /**
    * Buffer write offset
    */
@@ -270,8 +270,8 @@ iterate_cb (void *cls,
     MHD_add_response_header (response,
 			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
-    MHD_queue_response (zr->connection, 
-			    MHD_HTTP_OK, 
+    MHD_queue_response (zr->connection,
+			    MHD_HTTP_OK,
 			    response);
     MHD_destroy_response (response);
     GNUNET_free (zr->zoneinfo);
@@ -305,9 +305,9 @@ iterate_cb (void *cls,
     zr->zoneinfo = new_buf;
     zr->buf_len *= 2;
   }
-  sprintf (zr->zoneinfo + zr->write_offset, 
-	   "<tr><td>%s</td><td>%s</td></tr>", 
-	   name, 
+  sprintf (zr->zoneinfo + zr->write_offset,
+	   "<tr><td>%s</td><td>%s</td></tr>",
+	   name,
 	   pkey);
   zr->write_offset = strlen (zr->zoneinfo);
   GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
@@ -359,8 +359,8 @@ serve_main_page (struct MHD_Connection *connection)
   MHD_add_response_header (response,
 			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
-  ret = MHD_queue_response (connection, 
-			    MHD_HTTP_OK, 
+  ret = MHD_queue_response (connection,
+			    MHD_HTTP_OK,
 			    response);
   MHD_destroy_response (response);
   return ret;
@@ -394,8 +394,8 @@ fill_s_reply (const char *info,
   MHD_add_response_header (response,
 			   MHD_HTTP_HEADER_CONTENT_TYPE,
 			   MIME_HTML);
-  ret = MHD_queue_response (connection, 
-			    MHD_HTTP_OK, 
+  ret = MHD_queue_response (connection,
+			    MHD_HTTP_OK,
 			    response);
   MHD_destroy_response (response);
   return ret;
@@ -471,7 +471,7 @@ post_iterator (void *cls,
  *                GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
-static void 
+static void
 put_continuation (void *cls,
 		  int32_t success,
 		  const char *emsg)
@@ -502,7 +502,7 @@ put_continuation (void *cls,
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
  */
-static void 
+static void
 zone_to_name_cb (void *cls,
 		 const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 		 const char *name,
@@ -512,7 +512,7 @@ zone_to_name_cb (void *cls,
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
   struct GNUNET_CRYPTO_EccPublicSignKey pub;
-  
+
   request->qe = NULL;
   if (NULL != name)
   {
@@ -548,14 +548,14 @@ zone_to_name_cb (void *cls,
  * @param rd_count number of entries in 'rd' array
  * @param rd array of records with data to store
  */
-static void 
+static void
 lookup_result_processor (void *cls,
 			 unsigned int rd_count,
 			 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_EccPublicSignKey pub;
-  
+
   if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -606,7 +606,7 @@ lookup_block_processor (void *cls,
   }
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (&fcfs_zone_pkey,
 				    &pub);
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_decrypt (block,
 				      &pub,
 				      request->domain_name,
@@ -650,7 +650,7 @@ create_response (void *cls,
 		 const char *url,
 		 const char *method,
 		 const char *version,
-		 const char *upload_data, 
+		 const char *upload_data,
 		 size_t *upload_data_size,
 		 void **ptr)
 {
@@ -688,7 +688,7 @@ create_response (void *cls,
 			_("Failed to setup post processor for `%s'\n"),
 			url);
 	    return MHD_NO; /* internal error */
-	  }    
+	  }
 	return MHD_YES;
       }
       if (NULL != request->pp)
@@ -759,14 +759,14 @@ create_response (void *cls,
 	  GNUNET_break (0);
 	  return MHD_NO;
 	}
-	return MHD_YES; /* will have a reply later... */    
+	return MHD_YES; /* will have a reply later... */
     }
   /* unsupported HTTP method */
   response = MHD_create_response_from_buffer (strlen (METHOD_ERROR),
 					      (void *) METHOD_ERROR,
 					      MHD_RESPMEM_PERSISTENT);
-  ret = MHD_queue_response (connection, 
-			    MHD_HTTP_METHOD_NOT_ACCEPTABLE, 
+  ret = MHD_queue_response (connection,
+			    MHD_HTTP_METHOD_NOT_ACCEPTABLE,
 			    response);
   MHD_destroy_response (response);
   return ret;
@@ -900,7 +900,7 @@ do_shutdown (void *cls,
 }
 
 
-/** 
+/**
  * Method called to inform about the egos of this peer.
  *
  * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
@@ -908,7 +908,7 @@ do_shutdown (void *cls,
  * @a ego does indicate an error (i.e. name is taken or no default
  * value is known).  If @a ego is non-NULL and if '*ctx'
  * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if
  * that one was not NULL).
  *
  * @param cls closure, NULL
@@ -941,12 +941,12 @@ identity_cb (void *cls,
     {
       httpd = MHD_start_daemon (options,
 				(uint16_t) port,
-				NULL, NULL, 
-				&create_response, NULL, 
+				NULL, NULL,
+				&create_response, NULL,
 				MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 128,
 				MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 1,
 				MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
-				MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024), 
+				MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (4 * 1024),
 				MHD_OPTION_NOTIFY_COMPLETED, &request_completed_callback, NULL,
 				MHD_OPTION_END);
       if (MHD_USE_DEBUG == options)
@@ -1026,7 +1026,7 @@ main (int argc, char *const *argv)
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "fcfsd",
-                           _("GNU Name System First Come First Serve name registration service"), 
+                           _("GNU Name System First Come First Serve name registration service"),
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);

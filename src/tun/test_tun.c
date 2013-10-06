@@ -56,7 +56,7 @@ test_udp (size_t pll,
 				      pll);
   if (crc != ntohs (udp.crc))
   {
-    fprintf (stderr, "Got CRC: %u, wanted: %u\n", 
+    fprintf (stderr, "Got CRC: %u, wanted: %u\n",
 	     ntohs (udp.crc),
 	     crc);
     ret = 1;

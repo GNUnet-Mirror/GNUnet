@@ -102,7 +102,7 @@ static int ready_pipe[2];
  * Message callback
  */
 static int
-stdin_receiver (void *cls, 
+stdin_receiver (void *cls,
 		void *client,
 		const struct GNUNET_MessageHeader *msg)
 {
@@ -113,7 +113,7 @@ stdin_receiver (void *cls,
   {
   case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
     audio = (struct AudioMessage *) msg;
-    
+
     ret = opus_decode_float (dec,
 			     (const unsigned char *) &audio[1],
 			     ntohs (audio->header.size) - sizeof (struct AudioMessage),
@@ -132,12 +132,12 @@ stdin_receiver (void *cls,
     if (pa_stream_write
 	(stream_out, pcm_buffer, pcm_length, NULL, 0,
 	 PA_SEEK_RELATIVE) < 0)
-    {      
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("pa_stream_write() failed: %s\n"),
 		  pa_strerror (pa_context_errno (context)));
       return GNUNET_OK;
-    }    
+    }
     break;
   default:
     break;
@@ -161,8 +161,8 @@ quit (int ret)
  * Callback when data is there for playback
  */
 static void
-stream_write_callback (pa_stream * s, 
-		       size_t length, 
+stream_write_callback (pa_stream * s,
+		       size_t length,
 		       void *userdata)
 {
   /* unblock 'main' */
@@ -192,7 +192,7 @@ exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
  * Pulseaudio stream state callback
  */
 static void
-context_state_callback (pa_context * c, 
+context_state_callback (pa_context * c,
 			void *userdata)
 {
   int p;
@@ -203,7 +203,7 @@ context_state_callback (pa_context * c,
   case PA_CONTEXT_CONNECTING:
   case PA_CONTEXT_AUTHORIZING:
   case PA_CONTEXT_SETTING_NAME:
-    break;    
+    break;
   case PA_CONTEXT_READY:
   {
     GNUNET_assert (!stream_out);
@@ -216,12 +216,12 @@ context_state_callback (pa_context * c,
 		  _("pa_stream_new() failed: %s\n"),
 		  pa_strerror (pa_context_errno (c)));
       goto fail;
-    }    
-    pa_stream_set_write_callback (stream_out, 
+    }
+    pa_stream_set_write_callback (stream_out,
 				  &stream_write_callback,
 				  NULL);
     if ((p =
-	 pa_stream_connect_playback (stream_out, NULL, 
+	 pa_stream_connect_playback (stream_out, NULL,
 				     NULL,
 				     PA_STREAM_ADJUST_LATENCY | PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE,
 				     NULL,  NULL)) < 0)
@@ -232,19 +232,19 @@ context_state_callback (pa_context * c,
       goto fail;
     }
     break;
-  }  
+  }
   case PA_CONTEXT_TERMINATED:
     quit (0);
     break;
-    
+
   case PA_CONTEXT_FAILED:
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Connection failure: %s\n"),
 		pa_strerror (pa_context_errno (c)));
     goto fail;
-  }  
-  return;  
+  }
+  return;
  fail:
   quit (1);
 }
@@ -260,13 +260,13 @@ pa_init ()
 
   if (!pa_sample_spec_valid (&sample_spec))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Wrong Spec\n"));
-  }  
-  /* set up threaded playback mainloop */  
+  }
+  /* set up threaded playback mainloop */
   if (!(m = pa_threaded_mainloop_new ()))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_mainloop_new() failed.\n"));
   }
   mainloop_api = pa_threaded_mainloop_get_api (m);
@@ -280,9 +280,9 @@ pa_init ()
   /* connect to the main pulseaudio context */
   if (!(context = pa_context_new (mainloop_api, "GNUnet VoIP")))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_context_new() failed.\n"));
-  }  
+  }
   pa_context_set_state_callback (context, context_state_callback, NULL);
 
   if (pa_context_connect (context, NULL, 0, NULL) < 0)
@@ -290,10 +290,10 @@ pa_init ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_context_connect() failed: %s\n"),
 		pa_strerror (pa_context_errno (context)));
-  }  
+  }
   if (pa_threaded_mainloop_start (m) < 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("pa_mainloop_run() failed.\n"));
   }
 }
@@ -354,7 +354,7 @@ main (int argc, char *argv[])
   ready_pipe[1] = -1;
   while (1)
   {
-    ret = read (0, readbuf, sizeof (readbuf));   
+    ret = read (0, readbuf, sizeof (readbuf));
     toff += ret;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received %d bytes of audio data (total: %llu)\n",
@@ -363,10 +363,10 @@ main (int argc, char *argv[])
     if (0 > ret)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Read error from STDIN: %s\n"), 
+		  _("Read error from STDIN: %s\n"),
 		  strerror (errno));
       break;
-    }    
+    }
     if (0 == ret)
       break;
     GNUNET_SERVER_mst_receive (stdin_mst, NULL,

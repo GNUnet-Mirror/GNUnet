@@ -192,7 +192,7 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq, const struct GNUNET_Messa
       handled = GNUNET_YES;
     }
   }
-  
+
   if (GNUNET_NO == handled)
     LOG (GNUNET_ERROR_TYPE_WARNING, "no handler for message of type %d\n", ntohs (mh->type));
 }
@@ -233,7 +233,7 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm)
 /**
  * Send a message with the give message queue.
  * May only be called once per message.
- * 
+ *
  * @param mq message queue
  * @param ev the envelope with the message to send.
  */
@@ -242,7 +242,7 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
 {
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL == ev->parent_queue);
-  
+
   /* is the implementation busy? queue it! */
   if (NULL != mq->current_envelope)
   {
@@ -465,7 +465,7 @@ server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
                             void *impl_state)
 {
   struct ServerClientSocketState *state = impl_state;
-  
+
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL != state);
   GNUNET_SERVER_client_drop (state->client);
@@ -483,7 +483,7 @@ server_client_send_impl (struct GNUNET_MQ_Handle *mq,
 
   GNUNET_MQ_impl_send_commit (mq);
 
-  state->th = 
+  state->th =
       GNUNET_SERVER_notify_transmit_ready (state->client, ntohs (msg->size),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            &transmit_queued, mq);
@@ -522,7 +522,7 @@ handle_client_message (void *cls,
   struct ClientConnectionState *state;
 
   state = mq->impl_state;
-  
+
   if (NULL == msg)
   {
     GNUNET_MQ_inject_error (mq, GNUNET_MQ_ERROR_READ);
@@ -600,8 +600,8 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
 
   GNUNET_MQ_impl_send_commit (mq);
 
-  state->th = 
-      GNUNET_CLIENT_notify_transmit_ready (state->connection, ntohs (msg->size), 
+  state->th =
+      GNUNET_CLIENT_notify_transmit_ready (state->connection, ntohs (msg->size),
                                            GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
                                            &connection_client_transmit_queued, mq);
 }

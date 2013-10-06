@@ -67,13 +67,13 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
 
   switch (record->type)
   {
-  case GNUNET_DNSPARSER_TYPE_A:    
+  case GNUNET_DNSPARSER_TYPE_A:
     if (record->data.raw.data_len != sizeof (struct in_addr))
       return;
     if (NULL != n4)
     {
       if (verbosity > 1)
-	fprintf (stderr, 
+	fprintf (stderr,
 		 "Changing A record from `%s' to `%s'\n",
 		 inet_ntop (AF_INET, record->data.raw.data, buf, sizeof (buf)),
 		 n4);
@@ -86,7 +86,7 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
     if (NULL != n6)
     {
       if (verbosity > 1)
-	fprintf (stderr, 
+	fprintf (stderr,
 		 "Changing AAAA record from `%s' to `%s'\n",
 		 inet_ntop (AF_INET6, record->data.raw.data, buf, sizeof (buf)),
 		 n6);
@@ -129,7 +129,7 @@ modify_record (const struct GNUNET_DNSPARSER_Record *record)
  * @param request_length number of bytes in request
  * @param request udp payload of the DNS request
  */
-static void 
+static void
 modify_request (void *cls,
 		struct GNUNET_DNS_RequestHandle *rh,
 		size_t request_length,
@@ -156,7 +156,7 @@ modify_request (void *cls,
   if (GNUNET_OK != ret)
   {
     if (GNUNET_NO == ret)
-      fprintf (stderr, 
+      fprintf (stderr,
 	       "Modified DNS response did not fit, keeping old response\n");
     else
       GNUNET_break (0); /* our modifications should have been sane! */
@@ -169,7 +169,7 @@ modify_request (void *cls,
 	       "Injecting modified DNS response\n");
     GNUNET_DNS_request_answer (rh, len, buf);
   }
-  GNUNET_free_non_null (buf);      
+  GNUNET_free_non_null (buf);
 }
 
 
@@ -219,7 +219,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   handle =
-    GNUNET_DNS_connect (cfg, 
+    GNUNET_DNS_connect (cfg,
 			GNUNET_DNS_FLAG_POST_RESOLUTION,
 			&modify_request,
 			NULL);

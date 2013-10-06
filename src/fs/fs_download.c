@@ -690,7 +690,7 @@ try_top_down_reconstruction (struct GNUNET_FS_DownloadContext *dc,
     drc = dr->children[i];
     GNUNET_assert (drc->offset >= dr->offset);
     child_block_size = GNUNET_FS_tree_compute_tree_size (drc->depth);
-    GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);     
+    GNUNET_assert (0 == (drc->offset - dr->offset) % child_block_size);
     if (BRS_INIT == drc->state)
     {
       drc->state = BRS_CHK_SET;
@@ -1083,7 +1083,7 @@ process_result_with_request (void *cls, const struct GNUNET_HashCode * key,
   pi.value.download.specifics.progress.respect_offered = prc->respect_offered;
   pi.value.download.specifics.progress.num_transmissions = prc->num_transmissions;
   if (prc->last_transmission.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
-    pi.value.download.specifics.progress.block_download_duration 
+    pi.value.download.specifics.progress.block_download_duration
       = GNUNET_TIME_absolute_get_duration (prc->last_transmission);
   else
     pi.value.download.specifics.progress.block_download_duration
@@ -1445,7 +1445,7 @@ try_reconnect (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will try to reconnect in %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (dc->reconnect_backoff, GNUNET_YES));
   dc->task =
-    GNUNET_SCHEDULER_add_delayed (dc->reconnect_backoff, 
+    GNUNET_SCHEDULER_add_delayed (dc->reconnect_backoff,
 				  &do_reconnect,
 				  dc);
 }
@@ -1539,7 +1539,7 @@ deactivate_fs_download (void *cls)
  *         the specified depth
  */
 static struct DownloadRequest *
-create_download_request (struct DownloadRequest *parent, 
+create_download_request (struct DownloadRequest *parent,
 			 unsigned int chk_idx,
 			 unsigned int depth,
                          uint64_t dr_offset, uint64_t file_start_offset,
@@ -1558,7 +1558,7 @@ create_download_request (struct DownloadRequest *parent,
   if (0 == depth)
     return dr;
   child_block_size = GNUNET_FS_tree_compute_tree_size (depth - 1);
-  
+
   /* calculate how many blocks at this level are not interesting
    * from the start (rounded down), either because of the requested
    * file offset or because this IBlock is further along */
@@ -1570,7 +1570,7 @@ create_download_request (struct DownloadRequest *parent,
   {
     head_skip = 0;
   }
-  
+
   /* calculate index of last block at this level that is interesting (rounded up) */
   dr->num_children = (file_start_offset + desired_length - dr_offset) / child_block_size;
   if (dr->num_children * child_block_size <
@@ -1585,12 +1585,12 @@ create_download_request (struct DownloadRequest *parent,
 	      (unsigned long long) dr_offset,
 	      depth,
 	      dr->num_children);
-  
+
   /* now we can get the total number of *interesting* children for this block */
 
   /* why else would we have gotten here to begin with? (that'd be a bad logic error) */
   GNUNET_assert (dr->num_children > 0);
-  
+
   dr->children =
     GNUNET_malloc (dr->num_children * sizeof (struct DownloadRequest *));
   for (i = 0; i < dr->num_children; i++)
@@ -1616,7 +1616,7 @@ reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
 
-  /* clean up state from tree encoder */  
+  /* clean up state from tree encoder */
   if (dc->task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
@@ -1965,7 +1965,7 @@ GNUNET_FS_download_start_task_ (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Trying bottom-up reconstruction of file `%s'\n", dc->filename);
     dc->te =
-      GNUNET_FS_tree_encoder_create (dc->h, 
+      GNUNET_FS_tree_encoder_create (dc->h,
 				     GNUNET_FS_uri_chk_get_file_size (dc->uri),
 				     dc, &fh_reader,
 				     &reconstruct_cb, NULL,
@@ -2116,7 +2116,7 @@ create_download_context (struct GNUNET_FS_Handle *h,
     else
       dc->temp_filename = GNUNET_DISK_mktemp ("gnunet-directory-download-tmp");
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting download `%s' of %llu bytes with tree depth %u\n",
 	      filename,
 	      (unsigned long long) length,
@@ -2267,7 +2267,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
       GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
                         dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
 			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
-			? GNUNET_FS_QUEUE_PRIORITY_NORMAL 
+			? GNUNET_FS_QUEUE_PRIORITY_NORMAL
 			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Download %p put into queue as job %p\n",

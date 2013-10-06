@@ -294,7 +294,7 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
 
 /**
  * Send data to a client.
- * 
+ *
  * If the client is ready, send directly, otherwise buffer while listening
  * for a local ACK.
  *
@@ -377,7 +377,7 @@ channel_get (struct MeshTunnel2 *t, MESH_ChannelNumber chid)
 
 /**
  * Add a client to a channel, initializing all needed data structures.
- * 
+ *
  * @param ch Channel to which add the client.
  * @param c Client which to add to the channel.
  */
@@ -466,7 +466,7 @@ static unsigned int
 channel_get_buffer (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel;
-  
+
   rel = fwd ? ch->dest_rel : ch->root_rel;
 
   /* If rel is NULL it means that the end is not yet created,
@@ -735,7 +735,7 @@ channel_send_connections_ack (struct MeshChannel *ch,
  * Destroy a reliable message after it has been acknowledged, either by
  * direct mid ACK or bitfield. Updates the appropriate data structures and
  * timers and frees all memory.
- * 
+ *
  * @param copy Message that is no longer needed: remote peer got it.
  */
 static void
@@ -907,7 +907,7 @@ send_client_buffered_data (struct MeshChannel *ch,
 
 /**
  * Destroy a channel and free all resources.
- * 
+ *
  * @param ch Channel to destroy.
  */
 static void
@@ -1004,7 +1004,7 @@ channel_new (struct MeshTunnel2 *t,
 
 /**
  * Set options in a channel, extracted from a bit flag field
- * 
+ *
  * @param ch Channel to set options to.
  * @param options Bit array in host byte order.
  */
@@ -1145,7 +1145,7 @@ GMCH_send_channel_destroy (struct MeshChannel *ch, int fwd)
 
 /**
  * Send data on a channel.
- * 
+ *
  * If the destination is local, send it to client, otherwise encrypt and
  * send to next hop.
  *

@@ -68,7 +68,7 @@ typedef void (*GNUNET_DHT_TEST_AppMain) (void *cls,
  * @param tmain main function to run once the testbed is ready
  * @param tmain_cls closure for 'tmain'
  */
-void 
+void
 GNUNET_DHT_TEST_run (const char *testname,
 		     const char *cfgname,
 		     unsigned int num_peers,

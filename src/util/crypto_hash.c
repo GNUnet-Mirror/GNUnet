@@ -289,7 +289,7 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc,
 
 /**
  * @ingroup hash
- * 
+ *
  * Compute the distance between 2 hashcodes.  The computation must be
  * fast, not involve bits[0] or bits[4] (they're used elsewhere), and be
  * somewhat consistent. And of course, the result should be a positive
@@ -457,7 +457,7 @@ GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode * first,
  * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
  */
 int
-GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode *h1, 
+GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode *h1,
                         const struct GNUNET_HashCode *h2)
 {
   unsigned int *i1;
@@ -543,8 +543,8 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
                                  const void *salt, size_t salt_len,
                                  va_list argp)
 {
-  GNUNET_CRYPTO_kdf_v (key->key, sizeof (key->key), 
-                       salt, salt_len, 
+  GNUNET_CRYPTO_kdf_v (key->key, sizeof (key->key),
+                       salt, salt_len,
                        rkey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                        argp);
 }

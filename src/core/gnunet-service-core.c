@@ -58,7 +58,7 @@ static struct GNUNET_SERVER_Handle *GSC_server;
 /**
  * Last task run during shutdown.  Disconnects us from
  * the transport.
- * 
+ *
  * @param cls NULL, unused
  * @param tc scheduler context, unused
  */
@@ -114,7 +114,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
-  if ((GNUNET_OK != GSC_KX_init (pk)) || 
+  if ((GNUNET_OK != GSC_KX_init (pk)) ||
       (GNUNET_OK != GSC_NEIGHBOURS_init ()))
   {
     GNUNET_SCHEDULER_shutdown ();

@@ -21,7 +21,7 @@
 /**
  * @file testbed/test_testbed_api_statistics.c
  * @brief testcase for testing GNUNET_TESTBED_get_statistics() implementation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -95,7 +95,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test timed out -- Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != op)
-  {  
+  {
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
   }
@@ -121,12 +121,12 @@ stats_iterator (void *cls,
                 int is_persistent)
 {
   unsigned int cnt;
-    
+
   FAIL_TEST (cls == dummy_cls, return GNUNET_SYSERR);
   for (cnt = 0; cnt < num_seen_peers; cnt++)
     FAIL_TEST (peer != seen_peers[cnt], return GNUNET_SYSERR);
   FAIL_TEST (NULL != subsystem, return GNUNET_SYSERR);
-  FAIL_TEST (NULL != name, return GNUNET_SYSERR);  
+  FAIL_TEST (NULL != name, return GNUNET_SYSERR);
   GNUNET_array_append (seen_peers, num_seen_peers,
                        (struct GNUNET_TESTBED_Peer *) peer);
   return GNUNET_SYSERR;
@@ -151,7 +151,7 @@ op_comp_cb (void *cls,
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
   GNUNET_SCHEDULER_cancel (abort_task);
-  GNUNET_SCHEDULER_shutdown ();  
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 

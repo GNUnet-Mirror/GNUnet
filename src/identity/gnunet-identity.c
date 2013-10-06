@@ -104,7 +104,7 @@ shutdown_task (void *cls,
   {
     GNUNET_IDENTITY_cancel (delete_op);
     delete_op = NULL;
-  }  
+  }
   GNUNET_IDENTITY_disconnect (sh);
   sh = NULL;
 }
@@ -121,7 +121,7 @@ test_finished ()
        (NULL == set_op) &&
        (NULL == set_ego) &&
        (! list) &&
-       (! monitor) )  
+       (! monitor) )
     GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -201,11 +201,11 @@ set_done (void *cls,
  * 'ego' does indicate an error (i.e. name is taken or no default
  * value is known).  If 'ego' is non-NULL and if '*ctx'
  * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of 'GNUNET_IDENTITY_connect' (if 
+ * call to the identity callback of 'GNUNET_IDENTITY_connect' (if
  * that one was not NULL).
  *
  * When an identity is renamed, this function is called with the
- * (known) ego but the NEW identifier.  
+ * (known) ego but the NEW identifier.
  *
  * When an identity is deleted, this function is called with the
  * (known) ego and "NULL" for the 'identifier'.  In this case,
@@ -232,7 +232,7 @@ print_ego (void *cls,
   if ( (NULL != set_ego) &&
        (NULL != ego) &&
        (NULL != identifier) &&
-       (0 == strcmp (identifier, 
+       (0 == strcmp (identifier,
 		     set_ego)) )
     {
       set_op = GNUNET_IDENTITY_set (sh,
@@ -348,7 +348,7 @@ main (int argc, char *const *argv)
     return 2;
 
   res = GNUNET_PROGRAM_run (argc, argv, "gnunet-identity",
-			    gettext_noop ("Maintain egos"), 
+			    gettext_noop ("Maintain egos"),
 			    options, &run,
 			    NULL);
   GNUNET_free ((void *) argv);

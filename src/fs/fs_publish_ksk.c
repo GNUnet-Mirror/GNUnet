@@ -21,7 +21,7 @@
 /**
  * @file fs/fs_publish_ksk.c
  * @brief publish a URI under a keyword in GNUnet
- * @see https://gnunet.org/encoding and #2564 
+ * @see https://gnunet.org/encoding and #2564
  * @author Krista Bennett
  * @author Christian Grothoff
  */
@@ -93,7 +93,7 @@ struct GNUNET_FS_PublishKskContext
 
   /**
    * Options to use.
-   */ 
+   */
   enum GNUNET_FS_PublishOptions options;
 
   /**
@@ -113,7 +113,7 @@ struct GNUNET_FS_PublishKskContext
  * @param tc unused
  */
 static void
-publish_ksk_cont (void *cls, 
+publish_ksk_cont (void *cls,
 		  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -133,7 +133,7 @@ kb_put_cont (void *cls,
   pkc->uc = NULL;
   if (NULL != msg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"KBlock PUT operation failed: %s\n", msg);
     pkc->cont (pkc->cont_cls, NULL, msg);
     GNUNET_FS_publish_ksk_cancel (pkc);

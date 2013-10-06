@@ -99,7 +99,7 @@ main (int argc, char *argv[])
   }
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "ASCII");
   WANT ("TEST", b);
-  
+
   at = GNUNET_TIME_UNIT_FOREVER_ABS;
   bc = GNUNET_STRINGS_absolute_time_to_string (at);
   GNUNET_assert (GNUNET_OK ==

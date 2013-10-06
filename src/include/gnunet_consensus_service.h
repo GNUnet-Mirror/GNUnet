@@ -95,7 +95,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * GNUNET_CONSENSUS_destroy instead.
  *
  * @param cls
- * @param success GNUNET_OK on success, GNUNET_SYSERR if 
+ * @param success GNUNET_OK on success, GNUNET_SYSERR if
  *        the insertion and thus the consensus failed for good
  */
 typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
@@ -111,7 +111,7 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
  *
  * @param consensus handle for the consensus session
  * @param element the element to be inserted
- * @param idc function called when we are done with this element and it 
+ * @param idc function called when we are done with this element and it
  *            is thus allowed to call GNUNET_CONSENSUS_insert again
  * @param idc_cls closure for 'idc'
  */

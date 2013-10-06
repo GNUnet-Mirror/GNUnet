@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 
-/** 
+/**
  * @file include/gnunet_psyc_service.h
  * @brief PSYC service; high-level access to the PSYC protocol
  *        note that clients of this API are NOT expected to
@@ -90,13 +90,13 @@ extern "C"
 #include "gnunet_multicast_service.h"
 
 
-/** 
+/**
  * Version number of GNUnet-PSYC API.
  */
 #define GNUNET_PSYC_VERSION 0x00000000
 
 
-/** 
+/**
  * Policy flags for a channel.
  */
 enum GNUNET_PSYC_ChannelFlags
@@ -113,7 +113,7 @@ enum GNUNET_PSYC_ChannelFlags
   GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY = 1 << 1,
 };
 
-/** 
+/**
  * PSYC channel policies.
  */
 enum GNUNET_PSYC_Policy
@@ -125,7 +125,7 @@ enum GNUNET_PSYC_Policy
    */
   GNUNET_PSYC_CHANNEL_ANONYMOUS = 0,
 
-  /** 
+  /**
    * The master must approve membership to the channel, messages must only be
    * distributed to current channel slaves.  This includes the channel
    * state as well as transient messages.
@@ -135,7 +135,7 @@ enum GNUNET_PSYC_Policy
     | GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY,
 
 #if IDEAS_FOR_FUTURE
-  /** 
+  /**
    * Anyone can freely join the channel (no approval required);
    * however, messages must only be distributed to current channel
    * slaves, so the master must still acknowledge that the slave
@@ -170,7 +170,7 @@ enum GNUNET_PSYC_MessageFlags
    */
   GNUNET_PSYC_MESSAGE_LAST_FRAGMENT = 1 << 1,
 
-  /** 
+  /**
    * OR'ed flags if message is not fragmented.
    */
   GNUNET_PSYC_MESSAGE_NOT_FRAGMENTED
@@ -274,7 +274,7 @@ struct GNUNET_PSYC_MessageData
   uint8_t status;
 };
 
-/** 
+/**
  * Handle that identifies a join request.
  *
  * Used to match calls to #GNUNET_PSYC_JoinCallback to the
@@ -283,7 +283,7 @@ struct GNUNET_PSYC_MessageData
 struct GNUNET_PSYC_JoinHandle;
 
 
-/** 
+/**
  * Method called from PSYC upon receiving a message indicating a call to a
  * @e method.
  *
@@ -316,7 +316,7 @@ typedef int
                        enum GNUNET_PSYC_MessageFlags flags);
 
 
-/** 
+/**
  * Method called from PSYC upon receiving a join request.
  *
  * @param cls Closure.
@@ -341,7 +341,7 @@ typedef int
                              struct GNUNET_PSYC_JoinHandle *jh);
 
 
-/** 
+/**
  * Function to call with the decision made for a join request.
  *
  * Must be called once and only once in response to an invocation of the
@@ -375,13 +375,13 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            size_t data_size);
 
 
-/** 
+/**
  * Handle for the master of a PSYC channel.
  */
 struct GNUNET_PSYC_Master;
 
 
-/** 
+/**
  * Function called after the channel master started.
  *
  * @param cls Closure.
@@ -391,7 +391,7 @@ typedef void
 (*GNUNET_PSYC_MasterStartCallback) (void *cls, uint64_t max_message_id);
 
 
-/** 
+/**
  * Start a PSYC master channel.
  *
  * Will start a multicast group identified by the given ECC key.  Messages
@@ -429,7 +429,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           void *cls);
 
 
-/** 
+/**
  * Function called to provide data for a transmission via PSYC.
  *
  * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
@@ -459,13 +459,13 @@ typedef int
 enum GNUNET_PSYC_MasterTransmitFlags
 {
   GNUNET_PSYC_MASTER_TRANSMIT_NONE = 0,
-  /** 
+  /**
    * Whether this message should reset the channel state,
    * i.e. remove all previously stored state variables.
    */
   GNUNET_PSYC_MASTER_TRANSMIT_RESET_STATE = 1 << 0,
 
-  /** 
+  /**
    * Whether we need to increment the group generation counter after
    * transmitting this message.
    */
@@ -478,13 +478,13 @@ enum GNUNET_PSYC_MasterTransmitFlags
 };
 
 
-/** 
+/**
  * Handle for a pending PSYC transmission operation.
  */
 struct GNUNET_PSYC_MasterTransmitHandle;
 
 
-/** 
+/**
  * Send a message to call a method to all members in the PSYC channel.
  *
  * @param master Handle to the PSYC channel.
@@ -505,7 +505,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              enum GNUNET_PSYC_MasterTransmitFlags flags);
 
 
-/** 
+/**
  * Resume transmission to the channel.
  *
  * @param th Handle of the request that is being resumed.
@@ -514,7 +514,7 @@ void
 GNUNET_PSYC_master_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th);
 
 
-/** 
+/**
  * Abort transmission request to channel.
  *
  * @param th Handle of the request that is being aborted.
@@ -523,7 +523,7 @@ void
 GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th);
 
 
-/** 
+/**
  * Stop a PSYC master channel.
  *
  * @param master PSYC channel master to stop.
@@ -532,13 +532,13 @@ void
 GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master);
 
 
-/** 
+/**
  * Handle for a PSYC channel slave.
  */
 struct GNUNET_PSYC_Slave;
 
 
-/** 
+/**
  * Function called after the slave joined.
  *
  * @param cls Closure.
@@ -548,7 +548,7 @@ typedef void
 (*GNUNET_PSYC_SlaveJoinCallback) (void *cls, uint64_t max_message_id);
 
 
-/** 
+/**
  * Join a PSYC channel.
  *
  * The entity joining is always the local peer.  The user must immediately use
@@ -594,7 +594,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         size_t data_size);
 
 
-/** 
+/**
  * Part a PSYC channel.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
@@ -606,7 +606,7 @@ void
 GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
 
 
-/** 
+/**
  * Function called to provide data for a transmission to the channel master
  * (a.k.a. the @e host of the channel).
  *
@@ -638,13 +638,13 @@ enum GNUNET_PSYC_SlaveTransmitFlags
 };
 
 
-/** 
+/**
  * Handle for a pending PSYC transmission operation.
  */
 struct GNUNET_PSYC_SlaveTransmitHandle;
 
 
-/** 
+/**
  * Request a message to be sent to the channel master.
  *
  * @param slave Slave handle.
@@ -664,7 +664,7 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
                             enum GNUNET_PSYC_SlaveTransmitFlags flags);
 
 
-/** 
+/**
  * Resume transmission to the master.
  *
  * @param th Handle of the request that is being resumed.
@@ -673,7 +673,7 @@ void
 GNUNET_PSYC_slave_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th);
 
 
-/** 
+/**
  * Abort transmission request to master.
  *
  * @param th Handle of the request that is being aborted.
@@ -682,13 +682,13 @@ void
 GNUNET_PSYC_slave_transmit_cancel (struct GNUNET_PSYC_SlaveTransmitHandle *th);
 
 
-/** 
+/**
  * Handle to access PSYC channel operations for both the master and slaves.
  */
 struct GNUNET_PSYC_Channel;
 
 
-/** 
+/**
  * Convert a channel @a master to a @e channel handle to access the @e channel
  * APIs.
  *
@@ -699,7 +699,7 @@ struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master);
 
 
-/** 
+/**
  * Convert @a slave to a @e channel handle to access the @e channel APIs.
  *
  * @param slave Slave handle.
@@ -709,7 +709,7 @@ struct GNUNET_PSYC_Channel *
 GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
 
 
-/** 
+/**
  * Add a slave to the channel's membership list.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
@@ -738,7 +738,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
                                uint64_t effective_since);
 
 
-/** 
+/**
  * Remove a slave from the channel's membership list.
  *
  * Note that this will NOT generate any PSYC traffic, it will merely update the
@@ -766,7 +766,7 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   uint64_t announced_at);
 
 
-/** 
+/**
  * Function called to inform a member about stored state values for a channel.
  *
  * @param cls Closure.
@@ -791,13 +791,13 @@ typedef void
 (*GNUNET_PSYC_FinishCallback) (void *cls);
 
 
-/** 
+/**
  * Handle to a story telling operation.
  */
 struct GNUNET_PSYC_Story;
 
 
-/** 
+/**
  * Request to be told the message history of the channel.
  *
  * Historic messages (but NOT the state at the time) will be replayed (given to
@@ -827,7 +827,7 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 void *cls);
 
 
-/** 
+/**
  * Abort story telling.
  *
  * This function must not be called from within method handlers (as given to
@@ -845,7 +845,7 @@ GNUNET_PSYC_channel_story_tell_cancel (struct GNUNET_PSYC_Story *story);
 struct GNUNET_PSYC_StateQuery;
 
 
-/** 
+/**
  * Retrieve the best matching channel state variable.
  *
  * If the requested variable name is not present in the state, the nearest
@@ -867,7 +867,7 @@ GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
                                void *cb_cls);
 
 
-/** 
+/**
  * Return all channel state variables whose name matches a given prefix.
  *
  * A name matches if it starts with the given @a name_prefix, thus requesting
@@ -890,7 +890,7 @@ GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
                                       void *cb_cls);
 
 
-/** 
+/**
  * Cancel a state query operation.
  *
  * @param query Handle for the operation to cancel.

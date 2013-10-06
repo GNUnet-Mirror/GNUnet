@@ -207,7 +207,7 @@ show_end_data (void)
 
 /**
  * Shut down peergroup, clean up.
- * 
+ *
  * @param cls Closure (unused).
  * @param tc Task Context.
  */
@@ -221,7 +221,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Disconnect from mesh services af all peers, call shutdown.
- * 
+ *
  * @param cls Closure (unused).
  * @param tc Task Context.
  */
@@ -260,7 +260,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Abort test: schedule disconnect and shutdown immediately
- * 
+ *
  * @param line Line in the code the abort is requested from (__LINE__).
  */
 static void
@@ -276,11 +276,11 @@ abort_test (long line)
 
 /**
  * Transmit ready callback.
- * 
+ *
  * @param cls Closure (message type).
  * @param size Size of the tranmist buffer.
  * @param buf Pointer to the beginning of the buffer.
- * 
+ *
  * @return Number of bytes written to buf.
  */
 static size_t
@@ -289,7 +289,7 @@ tmt_rdy (void *cls, size_t size, void *buf);
 
 /**
  * Task to schedule a new data transmission.
- * 
+ *
  * @param cls Closure (peer #).
  * @param tc Task Context.
  */
@@ -385,7 +385,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
       GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }
   }
-  
+
   return size_payload;
 }
 
@@ -615,10 +615,10 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 
 /**
  * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
- * 
+ *
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback funtion ch.
- * 
+ *
  * @param cls Closure (unsued).
  * @param tc Task Context.
  */
@@ -663,7 +663,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   data_received = 0;
   data_sent = 0;
   GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL, 
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
                                      size_payload, &tmt_rdy, (void *) 1L);
 }
 

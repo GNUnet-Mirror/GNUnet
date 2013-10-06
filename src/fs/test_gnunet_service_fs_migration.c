@@ -93,7 +93,7 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-do_download (void *cls, 
+do_download (void *cls,
 	     const char *emsg)
 {
   struct DownloadContext *dc = cls;
@@ -160,7 +160,7 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
 
 
 static void
-do_publish (void *cls, 
+do_publish (void *cls,
             struct GNUNET_TESTBED_RunHandle *h,
 	    unsigned int num_peers,
 	    struct GNUNET_TESTBED_Peer **peers,

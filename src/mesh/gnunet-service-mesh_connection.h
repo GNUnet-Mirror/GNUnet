@@ -78,7 +78,7 @@ GMC_destroy (struct MeshConnection *c);
  * Count connections in a DLL.
  */
 unsigned int
-GMC_count (const struct MeshConnection *head); 
+GMC_count (const struct MeshConnection *head);
 
 /**
  * Send FWD keepalive packets for a connection.

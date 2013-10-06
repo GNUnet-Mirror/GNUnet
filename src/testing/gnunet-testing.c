@@ -197,7 +197,7 @@ create_hostkeys (const unsigned int no)
  * Removes the temporary file.
  *
  * @param cls unused
- * @param tc scheduler context 
+ * @param tc scheduler context
  */
 static void
 cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -221,10 +221,10 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Called whenever we can read stdin non-blocking 
+ * Called whenever we can read stdin non-blocking
  *
  * @param cls unused
- * @param tc scheduler context 
+ * @param tc scheduler context
  */
 static void
 stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -259,7 +259,7 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   }
   tid = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL, fh,
-                                        &stdin_cb, NULL);    
+                                        &stdin_cb, NULL);
 }
 
 
@@ -282,7 +282,7 @@ testing_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if (GNUNET_SYSERR == 
+  if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_write ((struct GNUNET_CONFIGURATION_Handle *) cfg,
                                   tmpfilename))
   {
@@ -322,7 +322,7 @@ run_no_scheduler (void *cls, char *const *args, const char *cfgfile,
   {
     if (create_no > 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Creating %u configuration files based on template `%s'\n", create_no, create_cfg_template);
       ret = create_unique_cfgs (create_cfg_template, create_no);
     }

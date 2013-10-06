@@ -211,8 +211,8 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* stop probes if possible */
     num_probes_change = - num_probes_active;
     num_downloads_change = h->max_parallel_requests - h->active_downloads;
-  } 
-  else 
+  }
+  else
   {
     /* start all downloads */
     num_downloads_change = num_downloads_waiting;
@@ -220,7 +220,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     num_probes_change = GNUNET_MIN (num_probes_waiting,
 				    h->max_parallel_requests - (h->active_downloads + num_downloads_waiting));
   }
-       
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Changing %d probes and %d downloads\n",
 	      num_probes_change,
@@ -232,7 +232,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     next = qe->next;
     if (GNUNET_FS_QUEUE_PRIORITY_PROBE != qe->priority)
       continue;
-    if (num_probes_change < 0) 
+    if (num_probes_change < 0)
     {
       stop_job (qe);
       num_probes_change++;
@@ -266,7 +266,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	   ( (qe->blocks + h->active_blocks <= h->max_parallel_requests) ||
 	     ( (qe->blocks > h->max_parallel_requests) &&
 	       (0 == h->active_downloads) ) ) )
-      {    
+      {
 	start_job (qe);
 	num_downloads_change--;
       }
@@ -284,7 +284,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "AD: %u, MP: %u; %d probes and %d downloads to start, will run again in %s\n",
 	      h->active_downloads,
-	      h->max_parallel_requests,	      
+	      h->max_parallel_requests,	
 	      num_probes_change,
 	      num_downloads_change,
 	      GNUNET_STRINGS_relative_time_to_string (restart_at, GNUNET_YES));
@@ -467,7 +467,7 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
       return 0;
     }
   }
-  if ( (GNUNET_SYSERR == 
+  if ( (GNUNET_SYSERR ==
 	GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET)) ||
        (-1 == (ret = GNUNET_DISK_file_read (fi->fd, buf, max))) )
   {
@@ -1398,7 +1398,7 @@ cleanup:
  * @return NULL if srch was not found in this subtree
  */
 static struct GNUNET_FS_FileInformation *
-find_file_position (struct GNUNET_FS_FileInformation *pos, 
+find_file_position (struct GNUNET_FS_FileInformation *pos,
 		    const char *srch)
 {
   struct GNUNET_FS_FileInformation *r;
@@ -1409,7 +1409,7 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
       return pos;
     if ( (GNUNET_YES == pos->is_directory) &&
 	 (NULL != (r = find_file_position (pos->data.dir.entries, srch))) )
-      return r;    
+      return r;
     pos = pos->next;
   }
   return NULL;
@@ -1556,7 +1556,7 @@ deserialize_publish_file (void *cls, const char *filename)
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
     pc->upload_task =
         GNUNET_SCHEDULER_add_with_priority
-        (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, 
+        (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
 	 &GNUNET_FS_publish_main_, pc);
   }
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
@@ -2031,8 +2031,8 @@ cleanup:
   if (NULL != wh)
     (void) GNUNET_BIO_write_close (wh);
   remove_sync_file_in_dir (sr->h,
-                           (NULL == sr->sc->psearch_result) 
-			   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH 
+                           (NULL == sr->sc->psearch_result)
+			   ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
 			   : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
                            sr->sc->serialization, sr->serialization);
   GNUNET_free (sr->serialization);
@@ -2057,8 +2057,8 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
   const char *category;
 
   category =
-      (NULL == sc->psearch_result) 
-    ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH 
+      (NULL == sc->psearch_result)
+    ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
     : GNUNET_FS_SYNC_PATH_CHILD_SEARCH;
   if (NULL == sc->serialization)
     sc->serialization = make_serialization_file_name (sc->h, category);
@@ -2163,7 +2163,7 @@ deserialize_unindex_file (void *cls, const char *filename)
   {
     GNUNET_break (0);
     goto cleanup;
-  }  
+  }
   uc->state = (enum UnindexState) state;
   switch (state)
   {
@@ -2316,8 +2316,8 @@ deserialize_search_result (void *cls, const char *filename)
     if (NULL != ser)
     {
       remove_sync_file_in_dir (sc->h,
-                               (NULL == sc->psearch_result) 
-			       ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH 
+                               (NULL == sc->psearch_result)
+			       ? GNUNET_FS_SYNC_PATH_MASTER_SEARCH
 			       : GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
                                sc->serialization, ser);
       GNUNET_free (ser);

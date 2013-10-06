@@ -1,17 +1,17 @@
 /*
   This file is part of GNUnet
   (C) 2013 Christian Grothoff (and other contributing authors)
-  
+
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3, or (at your
   option) any later version.
-  
+
   GNUnet is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with GNUnet; see the file COPYING.  If not, write to the
   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -25,7 +25,7 @@
  * @author Andreas Fuchs
  * @author Christian Grothoff
  *
- * 
+ *
  * NOTE: This API is deliberately deceptively simple; the idea
  * is that advanced features (such as answering machines) will
  * be done with a separate service (an answering machine service)
@@ -109,17 +109,17 @@ struct GNUNET_CONVERSATION_PhoneRecord
 enum GNUNET_CONVERSATION_EventCode
 {
   /**
-   * The phone is ringing, caller ID is provided in the varargs as 
+   * The phone is ringing, caller ID is provided in the varargs as
    * a `const char *`.  The caller ID will be a GNS name.
    */
   GNUNET_CONVERSATION_EC_RING,
 
   /**
-   * We are the caller and are now ringing the other party.  
+   * We are the caller and are now ringing the other party.
    * The varargs will be empty.
    */
   GNUNET_CONVERSATION_EC_RINGING,
-  
+
   /**
    * We are ready to talk, metadata about the call may be supplied
    * as a `const char *` in the varargs.
@@ -139,7 +139,7 @@ enum GNUNET_CONVERSATION_EventCode
    * client must no longer call #GNUNET_CONVERSATION_call_stop.
    */
   GNUNET_CONVERSATION_EC_BUSY,
-  
+
   /**
    * The conversation was terminated, a reason may be supplied as a
    * `const char *` in the varargs.  After this invocation, the
@@ -147,7 +147,7 @@ enum GNUNET_CONVERSATION_EventCode
    * client must no longer call #GNUNET_CONVERSATION_call_stop.
    */
   GNUNET_CONVERSATION_EC_TERMINATED
-  
+
 };
 
 
@@ -207,7 +207,7 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
 
 
 /**
- * Picks up a (ringing) phone.  This will connect the speaker 
+ * Picks up a (ringing) phone.  This will connect the speaker
  * to the microphone of the other party, and vice versa.
  *
  * @param phone phone to pick up

@@ -61,12 +61,12 @@ static int ret;
  * @param option name of the option
  * @param value value of the option
  */
-static void 
+static void
 print_option (void *cls, const char *section,
 	      const char *option,
 	      const char *value)
 {
-  fprintf (stdout, 
+  fprintf (stdout,
 	   "%s = %s\n", option, value);
 }
 
@@ -136,11 +136,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     out = GNUNET_CONFIGURATION_dup (cfg);
     GNUNET_CONFIGURATION_set_value_string (out, section, option, value);
-    if (GNUNET_OK != 
+    if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_write (out, cfgfile))
       ret = 2;
     GNUNET_CONFIGURATION_destroy (out);
-    return;    
+    return;
   }
 }
 

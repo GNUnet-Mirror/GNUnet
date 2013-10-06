@@ -21,7 +21,7 @@
 /**
  * @file testing/test_testing_sharedservices.c
  * @brief test case for testing service sharing among peers started by testing
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -47,7 +47,7 @@ struct TestingContext
    * The testing system
    */
   struct GNUNET_TESTING_System *system;
-  
+
   /**
    * The peer which has been started by the testing system
    */
@@ -81,7 +81,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       continue;
     (void) GNUNET_TESTING_peer_stop (peer);
     GNUNET_TESTING_peer_destroy (peer);
-  }  
+  }
   if (NULL != test_ctx->cfg)
     GNUNET_CONFIGURATION_destroy (test_ctx->cfg);
   if (NULL != test_ctx->system)
@@ -108,7 +108,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned int cnt;
 
   test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
-  test_ctx->system = 
+  test_ctx->system =
       GNUNET_TESTING_system_create ("test-gnunet-testing",
                                     "127.0.0.1", NULL, ss);
   emsg = NULL;

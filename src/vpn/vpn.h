@@ -46,7 +46,7 @@ struct RedirectToIpRequestMessage
    * Always zero.
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * How long should the redirection be maintained at most?
    */
@@ -69,7 +69,7 @@ struct RedirectToIpRequestMessage
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
-  
+
 };
 
 
@@ -89,7 +89,7 @@ struct RedirectToServiceRequestMessage
    * Always zero.
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * How long should the redirection be maintained at most?
    */
@@ -99,7 +99,7 @@ struct RedirectToServiceRequestMessage
    * Desired protocol (IPPROTO_UDP or IPPROTO_TCP)
    */
   int32_t protocol GNUNET_PACKED;
-  
+
   /**
    * Address family desired for the result (AF_INET or AF_INET6 or AF_UNSPEC, in nbo)
    */
@@ -130,7 +130,7 @@ struct RedirectToServiceRequestMessage
  */
 struct RedirectToIpResponseMessage
 {
-  
+
   /**
    * Type is #GNUNET_MESSAGE_TYPE_VPN_CLIENT_USE_IP
    */
@@ -148,7 +148,7 @@ struct RedirectToIpResponseMessage
   uint64_t request_id GNUNET_PACKED;
 
   /* followed by destination address ('struct in_addr' or 'struct in6_addr') */
-  
+
 };
 
 GNUNET_NETWORK_STRUCT_END

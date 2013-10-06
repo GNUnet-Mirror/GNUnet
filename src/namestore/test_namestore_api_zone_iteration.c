@@ -173,7 +173,7 @@ zone_proc (void *cls,
     else
       res = 1;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     		"Received last result, iteration done after receing %u results\n",
     		returned_records );
     GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -414,7 +414,7 @@ empty_zone_proc (void *cls,
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -438,7 +438,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-zone-iteration",
 				  "namestore",
 				  "test_namestore_api.conf",

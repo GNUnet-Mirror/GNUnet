@@ -93,7 +93,7 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, 
+GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
                     const char *file, int line,
                     void *result, size_t len);
 

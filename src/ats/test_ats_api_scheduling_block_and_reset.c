@@ -150,7 +150,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   if (3 == stage)
   {
       /* Suggestion after resetting block interval */
-      reset_block_duration = GNUNET_TIME_absolute_get_difference (reset_block_start, 
+      reset_block_duration = GNUNET_TIME_absolute_get_difference (reset_block_start,
 								  GNUNET_TIME_absolute_get());
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Address suggestion after resetting blocking took about %s!\n",
@@ -180,7 +180,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       if (((initial_duration.rel_value_us * 3) <= block_duration.rel_value_us) &&
           ((reset_block_duration.rel_value_us * 3) <= block_duration.rel_value_us))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		    "Address suggestion after resetting blocking and initial suggestion (%llu us) much faster than with blocking (%llu us)\n",
                     (unsigned long long) initial_duration.rel_value_us,
                     (unsigned long long) block_duration.rel_value_us);
@@ -188,7 +188,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "Address suggestion after resetting blocking and initial suggestion (%llu us) not faster than with blocking (%llu us)\n",
                     (unsigned long long) initial_duration.rel_value_us,
                     (unsigned long long) block_duration.rel_value_us);
@@ -211,7 +211,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "Stage %u: Callback with correct address `%s'\n", stage,
                       GNUNET_i2s (&address->peer));
           ret = 0;
@@ -228,7 +228,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
       if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "Stage %u: Callback with incorrect ats info \n");
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
         GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -246,16 +246,16 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Initial suggestion */
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		    "Stage %u: Callback with correct address `%s'\n", 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Stage %u: Callback with correct address `%s'\n",
 		    stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		    "Stage %u: Callback with invalid address `%s'\n", 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Stage %u: Callback with invalid address `%s'\n",
 		    stage,
                     GNUNET_i2s (&address->peer));
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
@@ -265,7 +265,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (GNUNET_OK != compare_ats(atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Stage %u: Callback with incorrect ats info\n",
 		  stage);
       GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
@@ -274,8 +274,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     }
     stage++;
     initial_duration = GNUNET_TIME_absolute_get_difference(initial_start, GNUNET_TIME_absolute_get());
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
-		"Stage %u: Initial suggestion took about %s\n", 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Stage %u: Initial suggestion took about %s\n",
 		stage,
                 GNUNET_STRINGS_relative_time_to_string (block_duration,
 							GNUNET_YES));
@@ -288,8 +288,8 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Startup suggestion */
     if (GNUNET_OK == compare_addresses (address, session, &test_hello_address, test_session))
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		    "Stage %u: Callback with correct address `%s'\n", 
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		    "Stage %u: Callback with correct address `%s'\n",
 		    stage,
                     GNUNET_i2s (&address->peer));
         ret = 0;
@@ -297,7 +297,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     else
     {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Stage %u: Callback with invalid address `%s'\n", 
+		    "Stage %u: Callback with invalid address `%s'\n",
 		    stage,
                     GNUNET_i2s (&address->peer));
         GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
@@ -307,7 +307,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
     if (GNUNET_OK != compare_ats (atsi, ats_count, test_ats_info, test_ats_count))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  "Stage %u: Callback with incorrect ats info\n",
 		  stage);
       GNUNET_ATS_suggest_address_cancel (sched_ats, &p.id);
@@ -325,7 +325,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -336,7 +336,7 @@ run (void *cls,
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Could not connect to ATS scheduling!\n");
     ret = 1;
     end ();

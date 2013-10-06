@@ -23,7 +23,7 @@
  * @brief API for the scalarproduct
  * @author Christian Fuchs
  * @author Gaurav Kukreja
- * 
+ *
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -145,9 +145,9 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
 
 
 /**
- * Handles the RESULT received in reply of prepare_response from the 
+ * Handles the RESULT received in reply of prepare_response from the
  * service
- * 
+ *
  * @param cls Handle to the Master Context
  * @param msg Pointer to the response received
  */
@@ -163,9 +163,9 @@ process_status_message (void *cls,
 
 
 /**
- * Handles the RESULT received in reply of prepare_response from the 
+ * Handles the RESULT received in reply of prepare_response from the
  * service
- * 
+ *
  * @param cls Handle to the Master Context
  * @param msg Pointer to the response received
  */
@@ -215,7 +215,7 @@ process_result_message (void *cls,
  * Called when a response is received from the service. After basic check
  * handler in qe->response_proc is called. This functions handles the response
  * to the client which used the API.
- * 
+ *
  * @param cls Pointer to the Master Context
  * @param msg Pointer to the data received in response
  */
@@ -245,7 +245,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
       status = GNUNET_SCALARPRODUCT_Status_Success;
     }
-  
+
   if (qe->cont_datum != NULL)
     qe->response_proc (qe, msg, status);
 
@@ -256,11 +256,11 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
 /**
  * Transmits the request to the VectorProduct Sevice
- * 
+ *
  * @param cls Closure
  * @param size Size of the buffer
  * @param buf Pointer to the buffer
- * 
+ *
  * @return Size of the message sent
  */
 static size_t
@@ -279,7 +279,7 @@ transmit_request (void *cls, size_t size,
       // notify caller about the error, done here.
       if (qe->cont_datum != NULL)
         qe->response_proc (qe, NULL, GNUNET_SCALARPRODUCT_Status_Failure);
-      
+
       GNUNET_SCALARPRODUCT_cancel (cls);
       return 0;
     }
@@ -307,8 +307,8 @@ transmit_request (void *cls, size_t size,
 
 
 /**
- * Used by Bob's client to cooperate with Alice, 
- * 
+ * Used by Bob's client to cooperate with Alice,
+ *
  * @param h handle to the master context
  * @param key Session key - unique to the requesting client
  * @param elements Array of elements of the vector
@@ -358,7 +358,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->response_proc = &process_status_message;
   h->cfg = cfg;
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-  
+
   msg = (struct GNUNET_SCALARPRODUCT_client_request*) GNUNET_malloc (size);
   h->msg = msg;
   msg->header.size = htons (size);
@@ -393,7 +393,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Request by Alice's client for computing a scalar product
- * 
+ *
  * @param h handle to the master context
  * @param key Session key - unique to the requesting client
  * @param peer PeerID of the other peer
@@ -451,7 +451,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->response_proc = &process_result_message;
   h->cfg = cfg;
   memcpy (&h->key, key, sizeof (struct GNUNET_HashCode));
-  
+
   msg = (struct GNUNET_SCALARPRODUCT_client_request*) GNUNET_malloc (size);
   h->msg = msg;
   msg->header.size = htons (size);
@@ -463,7 +463,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
   // copy each element over to the message
   for (i = 0; i < element_count; i++)
     vector[i] = htonl (elements[i]);
-  
+
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&msg->key, key, sizeof (struct GNUNET_HashCode));
   memcpy (&vector[element_count], mask, mask_bytes);
@@ -489,7 +489,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Disconnect from the scalarproduct service.
- * 
+ *
  * @param h a computation handle to cancel
  */
 void

@@ -110,7 +110,7 @@ static struct PendingResolutions *head;
 static struct PendingResolutions *tail;
 
 
-static void 
+static void
 end (void *cls,
      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -149,7 +149,7 @@ end (void *cls,
 }
 
 
-static void 
+static void
 transport_addr_to_str_cb (void *cls, const char *address)
 {
   struct PendingResolutions * pr = cls;
@@ -226,7 +226,7 @@ transport_addr_to_str_cb (void *cls, const char *address)
 }
 
 
-static void 
+static void
 ats_perf_cb (void *cls,
 	     const struct GNUNET_HELLO_Address *address,
 	     int active,

@@ -37,7 +37,7 @@ enum
   ADD_NEW_ENTRY,
   REMOVE_SECTION,
   REMOVE_ENTRY,
-  COMPARE, 
+  COMPARE,
   PRINT
 };
 
@@ -236,14 +236,14 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
   GNUNET_CONFIGURATION_iterate (cfg, diffsCallBack, &cbData);
   if (1 == (ret = cbData.status))
   {
-    FPRINTF (stderr, "%s", 
+    FPRINTF (stderr, "%s",
              "Incorrect Configuration Diffs: Diffs may contain data not actually edited\n");
     goto housekeeping;
   }
   cbData.cfgDiffs = cfg;
   GNUNET_CONFIGURATION_iterate (cfgDiffs, diffsCallBack, &cbData);
   if ((ret = cbData.status) == 1)
-    FPRINTF (stderr, "%s", 
+    FPRINTF (stderr, "%s",
              "Incorrect Configuration Diffs: Data may be missing in diffs\n");
 
 housekeeping:

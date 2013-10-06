@@ -53,7 +53,7 @@ struct MeshClient;
 
 /**
  * Initialize server subsystem.
- * 
+ *
  * @param handle Server handle.
  */
 void
@@ -123,7 +123,7 @@ GML_send_channel_destroy (struct MeshClient *c, uint32_t id);
 
 /**
  * Modify the mesh message TID from global to local and send to client.
- * 
+ *
  * @param ch Channel on which to send the message.
  * @param msg Message to modify and send.
  * @param c Client to send to.

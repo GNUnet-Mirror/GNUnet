@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-service-testbed_barriers.c
  * @brief barrier handling at the testbed controller
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "gnunet-service-testbed.h"
@@ -200,12 +200,12 @@ struct Barrier
    * Identifier for the timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier tout_task;
-  
+
   /**
    * The status of this barrier
    */
   enum GNUNET_TESTBED_BarrierStatus status;
-  
+
   /**
    * Number of barriers wrapped in the above DLL
    */
@@ -235,7 +235,7 @@ struct Barrier
    * Quorum percentage to be reached
    */
   uint8_t quorum;
-  
+
 };
 
 
@@ -261,7 +261,7 @@ static struct GNUNET_SERVICE_Context *ctx;
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
-static size_t 
+static size_t
 transmit_ready_cb (void *cls, size_t size, void *buf)
 {
   struct ClientCtx *ctx = cls;
@@ -276,7 +276,7 @@ transmit_ready_cb (void *cls, size_t size, void *buf)
   {
     GNUNET_assert (NULL != ctx->client);
     GNUNET_SERVER_client_drop (ctx->client);
-    ctx->client = NULL;    
+    ctx->client = NULL;
     return 0;
   }
   mq = ctx->mq_head;
@@ -306,7 +306,7 @@ queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueue *mq;
   struct GNUNET_SERVER_Client *client = ctx->client;
-  
+
   mq = GNUNET_malloc (sizeof (struct MessageQueue));
   mq->msg = msg;
   LOG_DEBUG ("Queueing message of type %u, size %u for sending\n",
@@ -328,12 +328,12 @@ static void
 cleanup_clientctx (struct ClientCtx *ctx)
 {
   struct MessageQueue *mq;
-  
+
   if (NULL != ctx->client)
   {
     GNUNET_SERVER_client_set_user_context_ (ctx->client, NULL, 0);
     GNUNET_SERVER_client_drop (ctx->client);
-  } 
+  }
   if (NULL != ctx->tx)
     GNUNET_SERVER_notify_transmit_ready_cancel (ctx->tx);
   if (NULL != (mq = ctx->mq_head))
@@ -356,7 +356,7 @@ static void
 remove_barrier (struct Barrier *barrier)
 {
   struct ClientCtx *ctx;
-  
+
   GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (barrier_map,
                                                                     &barrier->hash,
                                                                     barrier));
@@ -397,7 +397,7 @@ cancel_wrappers (struct Barrier *barrier)
  * @param name the barrier name
  * @param status the status of the barrier
  * @param emsg the error message; should be non-NULL for
- *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR 
+ *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR
  */
 static void
 send_client_status_msg (struct GNUNET_SERVER_Client *client,
@@ -431,7 +431,7 @@ send_client_status_msg (struct GNUNET_SERVER_Client *client,
  *
  * @param barrier the corresponding barrier
  * @param emsg the error message; should be non-NULL for
- *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR 
+ *   status=GNUNET_TESTBED_BARRIERSTATUS_ERROR
  */
 static void
 send_barrier_status_msg (struct Barrier *barrier, const char *emsg)
@@ -464,7 +464,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_HashCode key;
   size_t name_len;
   uint16_t msize;
-  
+
   msize = ntohs (message->size);
   if (msize <= sizeof (struct GNUNET_TESTBED_BarrierWait))
   {
@@ -500,7 +500,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_client_keep (client);
     client_ctx->barrier = barrier;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->head, barrier->tail, client_ctx);
-    GNUNET_SERVER_client_set_user_context (client, client_ctx); 
+    GNUNET_SERVER_client_set_user_context (client, client_ctx);
   }
   barrier->nreached++;
   if ((barrier->num_wbarriers_reached == barrier->num_wbarriers)
@@ -525,7 +525,7 @@ static void
 disconnect_cb (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct ClientCtx *client_ctx;
-  
+
   if (NULL == client)
     return;
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
@@ -554,7 +554,7 @@ GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg)
                               GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN);
   srv = GNUNET_SERVICE_get_server (ctx);
   GNUNET_SERVER_add_handlers (srv, message_handlers);
-  GNUNET_SERVER_disconnect_notify (srv, &disconnect_cb, NULL);  
+  GNUNET_SERVER_disconnect_notify (srv, &disconnect_cb, NULL);
 }
 
 
@@ -568,7 +568,7 @@ GST_barriers_init (struct GNUNET_CONFIGURATION_Handle *cfg)
  *         iterate,
  *         #GNUNET_NO if not.
  */
-static int 
+static int
 barrier_destroy_iterator (void *cls,
                           const struct GNUNET_HashCode *key,
                           void *value)
@@ -612,7 +612,7 @@ GST_barriers_destroy ()
  * @param emsg if the status were to be GNUNET_SYSERR, this parameter has the
  *   error messsage
  */
-static void 
+static void
 wbarrier_status_cb (void *cls, const char *name,
                     struct GNUNET_TESTBED_Barrier *b_,
                     enum GNUNET_TESTBED_BarrierStatus status,
@@ -679,7 +679,7 @@ static void
 fwd_tout_barrier_init (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Barrier *barrier = cls;
-  
+
   cancel_wrappers (barrier);
   barrier->status = GNUNET_TESTBED_BARRIERSTATUS_ERROR;
   send_barrier_status_msg (barrier,
@@ -713,7 +713,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   size_t name_len;
   unsigned int cnt;
   uint16_t msize;
-  
+
   if (NULL == GST_context)
   {
     GNUNET_break_op (0);
@@ -741,7 +741,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
   LOG_DEBUG ("Received BARRIER_INIT for barrier `%s'\n", name);
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (barrier_map, &hash))
   {
-    
+
     send_client_status_msg (client, name, GNUNET_TESTBED_BARRIERSTATUS_ERROR,
                             "A barrier with the same name already exists");
     GNUNET_free (name);
@@ -821,7 +821,7 @@ GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
-  }  
+  }
   if (client != GST_context->client)
   {
     GNUNET_break_op (0);
@@ -850,7 +850,7 @@ GST_handle_barrier_cancel (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (NULL != barrier);
   cancel_wrappers (barrier);
   remove_barrier (barrier);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -868,20 +868,20 @@ GST_handle_barrier_status (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
-  struct Barrier *barrier; 
+  struct Barrier *barrier;
   struct ClientCtx *client_ctx;
   const char *name;
   struct GNUNET_HashCode key;
   enum GNUNET_TESTBED_BarrierStatus status;
   uint16_t msize;
   uint16_t name_len;
-  
+
   if (NULL == GST_context)
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
-  }  
+  }
   if (client != GST_context->client)
   {
     GNUNET_break_op (0);

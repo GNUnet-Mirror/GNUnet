@@ -112,7 +112,7 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
  * @param msg error message (or NULL)
  */
 static void
-ds_put_cont (void *cls, int success, 
+ds_put_cont (void *cls, int success,
 	     struct GNUNET_TIME_Absolute min_expiration,
 	     const char *msg)
 {
@@ -206,14 +206,14 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
  * @param msg error message (typically NULL, not used)
  */
 static void
-finish_release_reserve (void *cls, int success, 
+finish_release_reserve (void *cls, int success,
 			struct GNUNET_TIME_Absolute min_expiration,
 			const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   pc->qre = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Releasing reserve done!\n");
   signal_publish_completion (pc->fi, pc);
   pc->all_done = GNUNET_YES;
@@ -268,8 +268,8 @@ publish_sblock (struct GNUNET_FS_PublishContext *pc)
 {
   if (NULL != pc->ns)
     pc->sks_pc = GNUNET_FS_publish_sks (pc->h,
-					pc->ns, 
-					pc->nid, 
+					pc->ns,
+					pc->nid,
 					pc->nuid,
 					pc->fi->meta,
 					pc->fi->chk_uri,
@@ -300,7 +300,7 @@ publish_kblocks_cont (void *cls, const struct GNUNET_FS_Uri *uri,
   pc->ksk_pc = NULL;
   if (NULL != emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Error uploading KSK blocks: %s\n",
                 emsg);
     signal_publish_error (p, pc, emsg);
@@ -359,7 +359,7 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
   }
   else
   {
-    if (UINT64_MAX == offset) 
+    if (UINT64_MAX == offset)
     {
       if (&GNUNET_FS_data_reader_file_ == p->data.file.reader)
       {	
@@ -408,10 +408,10 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error during tree walk: %s\n", 
+		"Error during tree walk: %s\n",
 		emsg);
     GNUNET_asprintf (&p->emsg,
-		     _("Publishing failed: %s"), 
+		     _("Publishing failed: %s"),
 		     emsg);
     GNUNET_free (emsg);
     pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
@@ -603,7 +603,7 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
       GNUNET_FS_file_information_sync_ (p);
     }
     size = (GNUNET_YES == p->is_directory) ? p->data.dir.dir_size : p->data.file.file_size;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Creating tree encoder\n");
     p->te =
         GNUNET_FS_tree_encoder_create (pc->h, size, pc, &block_reader,
@@ -625,7 +625,7 @@ publish_content (struct GNUNET_FS_PublishContext *pc)
  * @param msg the response we got
  */
 static void
-process_index_start_response (void *cls, 
+process_index_start_response (void *cls,
 			      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
@@ -696,7 +696,7 @@ hash_for_index_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                p->filename, 
+                p->filename,
 		_("failed to compute hash"));
     p->data.file.do_index = GNUNET_NO;
     GNUNET_FS_file_information_sync_ (p);
@@ -741,7 +741,7 @@ hash_for_index_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Can not index file `%s': %s.  Will try to insert instead.\n"),
-                p->filename, 
+                p->filename,
 		_("could not connect to `fs' service"));
     p->data.file.do_index = GNUNET_NO;
     publish_content (pc);
@@ -810,8 +810,8 @@ GNUNET_FS_publish_main_ (void *cls,
     return;
   }
   /* find starting position */
-  while ( (GNUNET_YES == p->is_directory) && 
-	  (NULL != p->data.dir.entries) && 
+  while ( (GNUNET_YES == p->is_directory) &&
+	  (NULL != p->data.dir.entries) &&
 	  (NULL == p->emsg) &&
 	  (NULL == p->data.dir.entries->chk_uri) )
   {
@@ -822,8 +822,8 @@ GNUNET_FS_publish_main_ (void *cls,
   /* abort on error */
   if (NULL != p->emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-		"Error uploading: %s\n", 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Error uploading: %s\n",
 		p->emsg);
     /* error with current file, abort all
      * related files as well! */
@@ -928,9 +928,9 @@ fip_signal_start (void *cls,
 		  struct GNUNET_FS_FileInformation *fi,
                   uint64_t length,
 		  struct GNUNET_CONTAINER_MetaData *meta,
-                  struct GNUNET_FS_Uri **uri, 
+                  struct GNUNET_FS_Uri **uri,
 		  struct GNUNET_FS_BlockOptions *bo,
-                  int *do_index, 
+                  int *do_index,
 		  void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
@@ -1013,7 +1013,7 @@ suspend_operation (struct GNUNET_FS_FileInformation *fi,
     GNUNET_FS_publish_sks_cancel (pc->sks_pc);
     pc->sks_pc = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Suspending publish operation\n");
   GNUNET_free_non_null (fi->serialization);
   fi->serialization = NULL;
@@ -1051,10 +1051,10 @@ suspend_operation (struct GNUNET_FS_FileInformation *fi,
 static int
 fip_signal_suspend (void *cls,
 		    struct GNUNET_FS_FileInformation *fi,
-                    uint64_t length, 
+                    uint64_t length,
 		    struct GNUNET_CONTAINER_MetaData *meta,
                     struct GNUNET_FS_Uri **uri,
-                    struct GNUNET_FS_BlockOptions *bo, 
+                    struct GNUNET_FS_BlockOptions *bo,
 		    int *do_index,
                     void **client_info)
 {
@@ -1112,7 +1112,7 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
  * @param msg error message on error, otherwise NULL
  */
 static void
-finish_reserve (void *cls, int success, 
+finish_reserve (void *cls, int success,
 		struct GNUNET_TIME_Absolute min_expiration,
 		const char *msg)
 {
@@ -1122,7 +1122,7 @@ finish_reserve (void *cls, int success,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reservation complete (%d)!\n", success);
   if ((msg != NULL) || (success <= 0))
   {
-    GNUNET_asprintf (&pc->fi->emsg, 
+    GNUNET_asprintf (&pc->fi->emsg,
 		     _("Insufficient space for publishing: %s"),
                      msg);
     signal_publish_error (pc->fi, pc, pc->fi->emsg);

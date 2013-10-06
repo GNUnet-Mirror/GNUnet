@@ -33,7 +33,7 @@
  * - relay corking down to core
  * - set ttl relative to path length
  * TODO END
- * 
+ *
  * Dictionary:
  * - peer: other mesh instance. If there is direct connection it's a neighbor.
  * - tunnel: encrypted connection to a peer, neighbor or not.
@@ -409,7 +409,7 @@ tunnel_notify_connection_broken (struct MeshTunnel2 *t,
  * @brief Use the given path for the tunnel.
  * Update the next and prev hops (and RCs).
  * (Re)start the path refresh in case the tunnel is locally owned.
- * 
+ *
  * @param t Tunnel to update.
  * @param p Path to use.
  *
@@ -420,10 +420,10 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p);
 
 /**
  * Tunnel is empty: destroy it.
- * 
+ *
  * Notifies all participants (peers, cleints) about the destruction.
- * 
- * @param t Tunnel to destroy. 
+ *
+ * @param t Tunnel to destroy.
  */
 static void
 tunnel_destroy_empty (struct MeshTunnel2 *t);
@@ -469,7 +469,7 @@ __mesh_divider______________________________________________________________();
  *
  * @param s Tunnel state.
  *
- * @return String representation. 
+ * @return String representation.
  */
 static const char *
 GNUNET_MESH_DEBUG_TS2S (enum MeshTunnelState s)
@@ -640,7 +640,7 @@ tunnel_get_buffer (struct MeshTunnel2 *t, int fwd)
 
 
 /**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Encrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
@@ -660,7 +660,7 @@ tunnel_encrypt (struct MeshTunnel2 *t,
 
 
 /**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Decrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
@@ -763,7 +763,7 @@ send_connection_create (struct MeshConnection *connection)
  * @param fwd Is this a fwd ACK? (First is bck (SYNACK), second is fwd (ACK))
  */
 static void
-send_connection_ack (struct MeshConnection *connection, int fwd) 
+send_connection_ack (struct MeshConnection *connection, int fwd)
 {
   struct MeshTunnel2 *t;
 
@@ -938,7 +938,7 @@ connection_debug (struct MeshConnection *c)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection %s:%X\n",
               peer2s (c->t->peer), GNUNET_h2s (&c->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  state: %u, pending msgs: %u\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  state: %u, pending msgs: %u\n",
               c->state, c->pending_messages);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
   fc_debug (&c->fwd_fc);
@@ -1099,8 +1099,8 @@ tunnel_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
  * some of its peers. Sends a notification towards the root of the tree.
  * In case the peer is the owner of the tree, notifies the client that owns
  * the tunnel and tries to reconnect.
- * 
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME 
+ *
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  *
  * @param t Tunnel affected.
  * @param p1 Peer that got disconnected from p2.
@@ -1117,13 +1117,13 @@ tunnel_notify_connection_broken (struct MeshTunnel2* t,
 //   {
 //     return;
 //   }
-// 
+//
 //   if (tree_get_predecessor (t->tree) != 0)
 //   {
 //     /* We are the peer still connected, notify owner of the disconnection. */
 //     struct GNUNET_MESH_PathBroken msg;
 //     struct GNUNET_PeerIdentity neighbor;
-// 
+//
 //     msg.header.size = htons (sizeof (msg));
 //     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN);
 //     GNUNET_PEER_resolve (t->id.oid, &msg.oid);
@@ -1184,7 +1184,7 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
     GNUNET_assert (NULL != ch);
     channel_send_connections_ack (ch, buffer, fwd);
   }
-  else 
+  else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
     connection_send_ack (c, buffer, fwd);
@@ -1358,7 +1358,7 @@ tunnel_destroy (struct MeshTunnel2 *t)
  *
  * Notifies all connections about the destruction.
  *
- * @param t Tunnel to destroy. 
+ * @param t Tunnel to destroy.
  */
 static void
 tunnel_destroy_empty (struct MeshTunnel2 *t)
@@ -1910,7 +1910,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (c);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
                                                   &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

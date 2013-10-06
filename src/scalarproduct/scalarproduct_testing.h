@@ -17,7 +17,7 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
  */
-/** 
+/**
  * @file scalarproduct/scalarproduct_testing.h
  * @brief VectorProduct testcase common declarations
  * @author Gaurav Kukreja
@@ -32,14 +32,14 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-    
+
 struct GNUNET_SCALARPRODUCT_TESTING_handle
 {
   /**
    * Testing library system handle
    */
   struct GNUNET_TESTING_System *tl_system;
-  
+
   /**
    * head DLL of peers
    */
@@ -51,7 +51,7 @@ struct GNUNET_SCALARPRODUCT_TESTING_handle
   struct PeerContext *p_tail;
 };
 
-struct PeerContext 
+struct PeerContext
 {
   /**
    * Next element in the DLL
@@ -72,17 +72,17 @@ struct PeerContext
    * Peer identity
    */
   struct GNUNET_PeerIdentity id;
-  
+
   /**
    * Handle for the peer's ARM process
    */
   struct GNUNET_OS_Process *arm_proc;
-  
+
   /**
    * Pointer to Vector Product Handle
    */
   struct GNUNET_SCALARPRODUCT_Handle *vh;
-  
+
   /**
    * Closure for the callbacks
    */
@@ -92,23 +92,23 @@ struct PeerContext
    * An unique number to identify the peer
    */
   unsigned int no;
-  
+
   /**
    * Peer's configuration
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Pointer to the master testing handle
    */
   struct GNUNET_SCALARPRODUCT_TESTING_handle * vth;
-  
+
   /**
     * Callback when two peers are connected and both have called the connect callback
     * to notify clients about a new peer
     */
    void (*start_cb) (struct PeerContext * p, void *cls);
-  
+
 //  /**
 //   * Pointer to function where the test occurs
 //   */

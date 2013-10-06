@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-service-testbed_connectionpool.c
  * @brief connection pooling for connections to peers' services
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "gnunet-service-testbed.h"
@@ -268,7 +268,7 @@ destroy_pooled_connection (struct PooledConnection *entry)
   if (entry->in_lru)
     GNUNET_CONTAINER_DLL_remove (head_lru, tail_lru, entry);
   if (entry->in_pool)
-    GNUNET_assert (GNUNET_OK == 
+    GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap32_remove (map,
                                                            entry->index,
                                                            entry));
@@ -466,7 +466,7 @@ transport_peer_connect_notify_cb (void *cls,
                                   const struct GNUNET_PeerIdentity *peer)
 {
   struct PooledConnection *entry = cls;
-  
+
   peer_connect_notify_cb (entry, peer, GST_CONNECTIONPOOL_SERVICE_TRANSPORT);
 }
 
@@ -532,7 +532,7 @@ static void
 core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PooledConnection *entry = cls;
-  
+
   peer_connect_notify_cb (entry, peer, GST_CONNECTIONPOOL_SERVICE_CORE);
 }
 
@@ -550,7 +550,7 @@ core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param my_identity ID of this peer, NULL if we failed
  */
 static void
-core_startup_cb (void *cls, 
+core_startup_cb (void *cls,
                  const struct GNUNET_PeerIdentity *my_identity)
 {
   struct PooledConnection *entry = cls;
@@ -642,9 +642,9 @@ cleanup_iterator (void *cls,
                   void *value)
 {
   struct PooledConnection *entry = value;
-  
+
   GNUNET_assert (NULL != entry);
-  GNUNET_assert (GNUNET_OK == 
+  GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_remove (map, key, entry));
   if (entry->in_lru)
     GNUNET_CONTAINER_DLL_remove (head_lru, tail_lru, entry);
@@ -678,7 +678,7 @@ void
 GST_connection_pool_destroy ()
 {
   struct PooledConnection *entry;
-  
+
   if (NULL != map)
   {
     GNUNET_assert (GNUNET_SYSERR !=
@@ -776,7 +776,7 @@ GST_connection_pool_get_handle (unsigned int peer_id,
   {
     entry = GNUNET_new (struct PooledConnection);
     entry->index = peer_id32;
-    if ((NULL != map) 
+    if ((NULL != map)
         && (GNUNET_CONTAINER_multihashmap32_size (map) < max_size))
     {
       GNUNET_assert (GNUNET_OK ==
@@ -859,7 +859,7 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
     GNUNET_CONTAINER_DLL_remove (entry->head_notify, entry->head_notify, gh);
   GNUNET_free (gh);
   gh = NULL;
-  GNUNET_assert (!entry->in_lru);  
+  GNUNET_assert (!entry->in_lru);
   if ( (!entry->in_pool) && (NULL != map) )
   {
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap32_contains (map,
@@ -871,8 +871,8 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
     destroy_pooled_connection (head_lru);
     GNUNET_CONTAINER_DLL_remove (head_not_pooled, tail_not_pooled, entry);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multihashmap32_put (map, 
-                                                        entry->index, 
+                   GNUNET_CONTAINER_multihashmap32_put (map,
+                                                        entry->index,
                                                         entry,
                                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     entry->in_pool = GNUNET_YES;

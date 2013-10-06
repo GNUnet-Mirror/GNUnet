@@ -725,7 +725,7 @@ regex_found_handler (void *cls,
 
   if (GNUNET_YES == peer->search_str_matched)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "String %s on peer %u already matched!\n",
                 peer->search_str, peer->id);
     return;
@@ -824,7 +824,7 @@ search_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Search timed out after %s."
-              "Collecting stats and shutting down.\n", 
+              "Collecting stats and shutting down.\n",
               GNUNET_STRINGS_relative_time_to_string (search_timeout_time,
                                                       GNUNET_NO));
 
@@ -1008,7 +1008,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting daemon %u\n", next_search);
   peer = &peers[next_search];
-  peer->daemon_op = 
+  peer->daemon_op =
   GNUNET_TESTBED_peer_manage_service (NULL,
                                       peer->peer_handle,
                                       "regexprofiler",
@@ -1113,7 +1113,7 @@ dht_da (void *cls, void *op_result)
  * @param links_failed the number of overlay link connection attempts that
  *          failed
  */
-static void 
+static void
 test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers_,
@@ -1148,7 +1148,7 @@ test_master (void *cls,
     settle_time =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
                                      10 * num_peers);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Waiting for DHT for %s to settle new connections.\n\n",
                 GNUNET_STRINGS_relative_time_to_string(settle_time, GNUNET_NO));
     GNUNET_SCHEDULER_add_delayed (settle_time, &do_announce, NULL);
@@ -1168,7 +1168,7 @@ test_master (void *cls,
  * @param event information on what is happening
  */
 static void
-master_controller_cb (void *cls, 
+master_controller_cb (void *cls,
                       const struct GNUNET_TESTBED_EventInformation *event)
 {
   switch (event->type)
@@ -1315,7 +1315,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                            "REANNOUNCE_PERIOD_MAX",
                                            &reannounce_period_max))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "reannounce_period_max not given. Using 10 minutes.\n");
     reannounce_period_max =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
@@ -1424,7 +1424,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                            "SETUP_TIMEOUT",
                                            &abort_time))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "SETUP_TIMEOUT not given. Using 15 minutes.\n");
     abort_time =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15);

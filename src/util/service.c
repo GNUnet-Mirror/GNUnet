@@ -101,7 +101,7 @@ GNUNET_SPEEDUP_stop_ (void);
  * with a semicolon). The network must be given in dotted-decimal
  * notation. The netmask can be given in CIDR notation (/16) or
  * in dotted-decimal (/255.255.0.0).
- * 
+ *
  * @param routeList a string specifying the forbidden networks
  * @return the converted list, NULL if the synatx is flawed
  */
@@ -254,7 +254,7 @@ parse_ipv4_specification (const char *routeList)
  * with a semicolon). The network must be given in colon-hex
  * notation.  The netmask must be given in CIDR notation (/16) or
  * can be omitted to specify a single host.
- * 
+ *
  * @param routeListX a string specifying the forbidden networks
  * @return the converted list, NULL if the synatx is flawed
  */
@@ -659,18 +659,18 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
 #ifndef WINDOWS
   case AF_UNIX:
     ret = GNUNET_OK;            /* always OK for now */
-    if (GNUNET_YES == sctx->match_uid) 
+    if (GNUNET_YES == sctx->match_uid)
     {
       /* UID match required */
       ret = (NULL != uc) && ( (0 == uc->uid) || (uc->uid == geteuid ()) );
     }
     else if ( (GNUNET_YES == sctx->match_gid) &&
-	      ( (NULL == uc) || 
+	      ( (NULL == uc) ||
 		( (0 != uc->uid) &&
 		  (uc->uid != geteuid ()) ) ) )
     {
       /* group match required and UID does not match */
-      if (NULL == uc) 
+      if (NULL == uc)
       {
 	/* no credentials, group match not possible */
 	ret = GNUNET_NO;
@@ -718,7 +718,7 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
   if (GNUNET_OK != ret)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _("Access from `%s' denied to service `%s'\n"), 
+         _("Access from `%s' denied to service `%s'\n"),
 	 GNUNET_a2s (addr, addrlen),
          sctx->service_name);
   }
@@ -750,9 +750,9 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
  * Parse an IPv4 access control list.
  *
  * @param ret location where to write the ACL (set)
- * @param sctx service context to use to get the configuration 
+ * @param sctx service context to use to get the configuration
  * @param option name of the ACL option to parse
- * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including 
+ * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including
  *         no ACL configured)
  */
 static int
@@ -763,7 +763,7 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
 
   if (!GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name, option))
   {
-    *ret = NULL;    
+    *ret = NULL;
     return GNUNET_OK;
   }
   GNUNET_break (GNUNET_OK ==
@@ -787,9 +787,9 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
  * Parse an IPv6 access control list.
  *
  * @param ret location where to write the ACL (set)
- * @param sctx service context to use to get the configuration 
+ * @param sctx service context to use to get the configuration
  * @param option name of the ACL option to parse
- * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including 
+ * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including
  *         no ACL configured)
  */
 static int
@@ -1825,7 +1825,7 @@ shutdown:
 #if HAVE_MALLINFO
   {
     char *counter;
-    
+
     if ( (GNUNET_YES ==
 	  GNUNET_CONFIGURATION_have_value (sctx.cfg, service_name,
 					   "GAUGER_HEAP")) &&
@@ -1835,11 +1835,11 @@ shutdown:
 						 &counter)) )
     {
       struct mallinfo mi;
-      
+
       mi = mallinfo ();
       GAUGER (service_name, counter, mi.usmblks, "blocks");
       GNUNET_free (counter);
-    }     
+    }
   }
 #endif
   GNUNET_SPEEDUP_stop_ ();
@@ -1944,7 +1944,7 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
 #if HAVE_MALLINFO
   {
     char *counter;
-    
+
     if ( (GNUNET_YES ==
 	  GNUNET_CONFIGURATION_have_value (sctx->cfg, sctx->service_name,
 					   "GAUGER_HEAP")) &&
@@ -1954,11 +1954,11 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
 						 &counter)) )
     {
       struct mallinfo mi;
-      
+
       mi = mallinfo ();
       GAUGER (sctx->service_name, counter, mi.usmblks, "blocks");
       GNUNET_free (counter);
-    }     
+    }
   }
 #endif
   if (GNUNET_SCHEDULER_NO_TASK != sctx->shutdown_task)

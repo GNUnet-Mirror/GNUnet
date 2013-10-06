@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/** 
+/**
  * @file include/gnunet_env_lib.h
  * @brief Library providing operations for the @e environment of
  *        PSYC and Social messages, and for (de)serializing variable values.
@@ -38,38 +38,38 @@ extern "C"
 #endif
 
 
-/** 
+/**
  * Possible operations on PSYC state (persistent) and transient variables (per message).
  */
 enum GNUNET_ENV_Operator
 {
-  /** 
+  /**
    * Set value of a transient variable.
    */
   GNUNET_ENV_OP_SET = ':',
 
-  /** 
+  /**
    * Assign value for a persistent state variable.
    *
    * If an assigned value is NULL, the variable is deleted.
    */
   GNUNET_ENV_OP_ASSIGN = '=',
 
-  /** 
+  /**
    * Augment state variable.
    *
    * Used for appending strings, adding numbers, and adding new items to a list or dictionary.
    */
   GNUNET_ENV_OP_AUGMENT = '+',
 
-  /** 
+  /**
    * Diminish state variable.
    *
    * Used for subtracting numbers, and removing items from a list or dictionary.
    */
   GNUNET_ENV_OP_DIMINISH = '-',
 
-  /** 
+  /**
    * Update state variable.
    *
    * Used for modifying a single item of a list or dictionary.
@@ -78,7 +78,7 @@ enum GNUNET_ENV_Operator
 };
 
 
-/** 
+/**
  * PSYC variable types.
  */
 enum GNUNET_ENV_Type
@@ -90,26 +90,26 @@ enum GNUNET_ENV_Type
 };
 
 
-/** 
+/**
  * PSYC state modifier.
  */
 struct GNUNET_ENV_Modifier {
-  /** 
+  /**
    * State operation.
    */
   enum GNUNET_ENV_Operator oper;
 
-  /** 
+  /**
    * Variable name.
    */
   const char *name;
 
-  /** 
+  /**
    * Size of @a value.
    */
   size_t value_size;
 
-  /** 
+  /**
    * Value of variable.
    */
   const void *value;
@@ -126,7 +126,7 @@ struct GNUNET_ENV_Modifier {
 };
 
 
-/** 
+/**
  * Environment for a message.
  *
  * Contains modifiers.
@@ -134,16 +134,16 @@ struct GNUNET_ENV_Modifier {
 struct GNUNET_ENV_Environment;
 
 
-/** 
+/**
  * Create an environment.
- * 
+ *
  * @return A newly allocated environment.
  */
 struct GNUNET_ENV_Environment *
 GNUNET_ENV_environment_create ();
 
 
-/** 
+/**
  * Add a modifier to the environment.
  *
  * @param env The environment.
@@ -158,7 +158,7 @@ GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
                                 const void *value, size_t value_size);
 
 
-/** 
+/**
  * Iterator for modifiers in the environment.
  *
  * @param cls Closure.
@@ -171,7 +171,7 @@ typedef int
 (*GNUNET_ENV_Iterator) (void *cls, struct GNUNET_ENV_Modifier *mod);
 
 
-/** 
+/**
  * Iterate through all modifiers in the environment.
  *
  * @param env The environment.
@@ -183,7 +183,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
                                 GNUNET_ENV_Iterator it, void *it_cls);
 
 
-/** 
+/**
  * Get the number of modifiers in the environment.
  *
  * @param env The environment.
@@ -194,7 +194,7 @@ size_t
 GNUNET_ENV_environment_get_mod_count (const struct GNUNET_ENV_Environment *env);
 
 
-/** 
+/**
  * Destroy an environment.
  *
  * @param env The environment to destroy.
@@ -203,18 +203,18 @@ void
 GNUNET_ENV_environment_destroy (struct GNUNET_ENV_Environment *env);
 
 
-/** 
+/**
  * Get the type of variable.
  *
  * @param name Name of the variable.
- * 
+ *
  * @return Variable type.
  */
 enum GNUNET_ENV_Type
 GNUNET_ENV_var_get_type (char *name);
 
 
-/** 
+/**
  * Perform an operation on a variable.
  *
  * @param name Name of variable.
@@ -225,7 +225,7 @@ GNUNET_ENV_var_get_type (char *name);
  * @param args_size Size of @a args.
  * @param return_value Return value.
  * @param return_value_size Size of @a return_value.
- * 
+ *
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 int
@@ -234,7 +234,7 @@ GNUNET_ENV_operation (char *name, void *current_value, size_t current_value_size
                       void **return_value, size_t *return_value_size);
 
 
-/** 
+/**
  * Get the variable's value as an integer.
  *
  * @param size Size of value.
@@ -247,7 +247,7 @@ int
 GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
 
 
-/** 
+/**
  * Get the variable's value as a list.
  *
  * @param size Size of value.
@@ -260,7 +260,7 @@ int
 GNUNET_ENV_value_to_list (size_t size, const void *value, struct GNUNET_CONTAINER_SList **list);
 
 
-/** 
+/**
  * Get the variable's value as a dictionary.
  *
  * @param size Size of value.
@@ -273,36 +273,36 @@ int
 GNUNET_ENV_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINER_MultiHashMap **dict);
 
 
-/** 
+/**
  * Create a PSYC variable value from an integer.
  *
  * @param number The number to convert.
  * @param[out] value_size Size of returned value.
- * 
+ *
  * @return A newly allocated value or NULL on error.
  */
 void *
 GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
 
 
-/** 
+/**
  * Create a PSYC variable value from a list.
  *
  * @param list The list to convert.
  * @param[out] value_size Size of returned value.
- * 
+ *
  * @return A newly allocated value or NULL on error.
  */
 void *
 GNUNET_ENV_value_from_list (struct GNUNET_CONTAINER_SList *list, size_t *value_size);
 
 
-/** 
+/**
  * Create a PSYC variable value from a dictionary.
  *
  * @param dict The dict to convert.
  * @param[out] value_size Size of returned value.
- * 
+ *
  * @return A newly allocated value or NULL on error.
  */
 void *

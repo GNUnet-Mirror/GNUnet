@@ -64,10 +64,10 @@ struct NodeComCtx
 {
   struct NodeComCtx *prev;
   struct NodeComCtx *next;
-  
+
   struct Node *n;
   struct Experiment *e;
-  
+
   size_t size;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
   void *notify_cls;
@@ -79,7 +79,7 @@ struct NodeComCtx
  *
  * @param m peermap to update values from
  */
-static void 
+static void
 update_stats (struct GNUNET_CONTAINER_MultiPeerMap *m)
 {
   GNUNET_assert (NULL != m);
@@ -122,14 +122,14 @@ cleanup_node (void *cls,
   struct NodeComCtx *e_cur;
   struct NodeComCtx *e_next;
   struct GNUNET_CONTAINER_MultiPeerMap *cur = cls;
-  
+
   n = value;
   if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (n->timeout_task);
     n->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  
+
   if (NULL != n->cth)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (n->cth);
@@ -154,7 +154,7 @@ cleanup_node (void *cls,
  * @param id the id to check
  * @return GNUNET_YES or GNUNET_NO
  */
-static int 
+static int
 is_me (const struct GNUNET_PeerIdentity *id)
 {
   if (0 == memcmp (&me, id, sizeof (me)))
@@ -187,14 +187,14 @@ transmit_read_wrapper (void *cls, size_t bufsize, void *buf)
 {
   struct NodeComCtx *e_ctx = cls;
   struct NodeComCtx *next;
-  
+
   size_t res = e_ctx->notify (e_ctx->notify_cls, bufsize, buf);
   e_ctx->n->cth = NULL;
-  
+
   GNUNET_CONTAINER_DLL_remove (e_ctx->n->e_req_head, e_ctx->n->e_req_tail, e_ctx);
   next = e_ctx->n->e_req_head;
   GNUNET_free (e_ctx);
-  
+
   if (NULL != next)
   {
     /* Schedule next message */
@@ -209,9 +209,9 @@ schedule_transmisson (struct NodeComCtx *e_ctx)
 {
   if (NULL != e_ctx->n->cth)
     return;
-  
+
   e_ctx->n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT,
-						     &e_ctx->n->id, e_ctx->size, 
+						     &e_ctx->n->id, e_ctx->size,
 						     transmit_read_wrapper, e_ctx);
   if (NULL == e_ctx->n->cth)
   {
@@ -219,7 +219,7 @@ schedule_transmisson (struct NodeComCtx *e_ctx)
 		_("Cannot send message to peer `%s' for experiment `%s'\n"),
 		GNUNET_i2s(&e_ctx->n->id), e_ctx->e->name);
     GNUNET_free (e_ctx);
-  }  
+  }
 }
 
 
@@ -233,10 +233,10 @@ static void
 remove_request (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Node *n = cls;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Removing request for peer %s due to timeout\n",
-	      GNUNET_i2s (&n->id));  
+	      GNUNET_i2s (&n->id));
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_requested, &n->id))
   {
     GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (nodes_requested, &n->id, n));
@@ -271,7 +271,7 @@ append_public_key (void *cls,
  * @param buf the buffer to copy to
  * @return bytes passed
  */
-static size_t 
+static size_t
 send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
 {
   struct Node *n = cls;
@@ -315,22 +315,22 @@ send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
  *
  * @param peer the peer to send to
  */
-static void 
+static void
 send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 {
   struct Node *n;
   struct NodeComCtx *e_ctx;
   size_t size;
   size_t c_issuers;
-  
-  c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);  
+
+  c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   size = sizeof (struct Experimentation_Request) +
     c_issuers * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   n = GNUNET_new (struct Node);
   n->id = *peer;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &remove_request, n);
   n->capabilities = NONE;
-  
+
   e_ctx = GNUNET_new (struct NodeComCtx);
   e_ctx->n = n;
   e_ctx->e = NULL;
@@ -339,10 +339,10 @@ send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
   e_ctx->notify_cls = n;
   GNUNET_CONTAINER_DLL_insert_tail(n->e_req_head, n->e_req_tail, e_ctx);
   schedule_transmisson (e_ctx);
-  
-  GNUNET_assert (GNUNET_OK == 
+
+  GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multipeermap_put (nodes_requested,
-						    peer, n, 
+						    peer, n,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   update_stats (nodes_requested);
 }
@@ -361,17 +361,17 @@ send_response_cb (void *cls, size_t bufsize, void *buf)
 {
   struct Node *n = cls;
   struct Experimentation_Response msg;
-  size_t c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);  
+  size_t c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   size_t ri_size = c_issuers * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   size_t msg_size = sizeof (msg);
   size_t total_size = msg_size + ri_size;
   struct GNUNET_CRYPTO_EccPublicSignKey *issuers;
-  
+
   n->cth = NULL;
   if (buf == NULL)
   {
     /* client disconnected */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Client disconnected\n");
     return 0;
   }
@@ -399,7 +399,7 @@ get_experiments_cb (struct Node *n, struct Experiment *e)
   static int counter = 0;
   if (NULL == e)
     return; /* Done */
-  
+
   /* Tell the scheduler to add a node with an experiment */
   GED_scheduler_add (n, e, GNUNET_YES);
   counter ++;
@@ -417,19 +417,19 @@ get_node (const struct GNUNET_PeerIdentity *id)
   tmp = GNUNET_CONTAINER_multipeermap_get (nodes_active, id);
   if (res == NULL)
     res = tmp;
-  
+
   tmp = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, id);
   if (res == NULL)
     res = tmp;
   else
     GNUNET_break (0); /* Multiple instances */
-  
+
   tmp = GNUNET_CONTAINER_multipeermap_get (nodes_requested, id);
   if (res == NULL)
     res = tmp;
   else
     GNUNET_break (0); /* Multiple instances */
-  
+
   return res;
 }
 
@@ -439,7 +439,7 @@ get_node (const struct GNUNET_PeerIdentity *id)
  *
  * @param n the node
  */
-static void 
+static void
 node_make_active (struct Node *n)
 {
   int c1;
@@ -452,7 +452,7 @@ node_make_active (struct Node *n)
 	      GNUNET_i2s (&n->id));
   /* Request experiments for this node to start them */
   for (c1 = 0; c1 < n->issuer_count; c1++)
-  {    
+  {
     GED_experiments_get (n, &n->issuer_id[c1], &get_experiments_cb);
   }
 }
@@ -478,20 +478,20 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   uint32_t ic;
   uint32_t ic_accepted;
   int make_active;
-  
+
   if (ntohs (message->size) < sizeof (struct Experimentation_Request))
   {
     GNUNET_break (0);
     return;
   }
   ic = ntohl (rm->issuer_count);
-  if (ntohs (message->size) != 
+  if (ntohs (message->size) !=
       sizeof (struct Experimentation_Request) + ic * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
   {
     GNUNET_break (0);
     return;
   }
-  
+
   make_active = GNUNET_NO;
   if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_active, peer)))
   {
@@ -522,10 +522,10 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
     n->capabilities = NONE;
     make_active = GNUNET_YES;
   }
-  
+
   /* Update node */
   n->capabilities = ntohl (rm->capabilities);
-  
+
   /* Filter accepted issuer */
   ic_accepted = 0;
   for (c1 = 0; c1 < ic; c1++)
@@ -533,7 +533,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
     if (GNUNET_YES == GED_experiments_issuer_accepted(&rmi[c1]))
       ic_accepted ++;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Request from peer `%s' with %u issuers, we accepted %u issuer \n",
 	      GNUNET_i2s (peer), ic, ic_accepted);
   GNUNET_free_non_null (n->issuer_id);
@@ -548,19 +548,19 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
     }
   }
   n->issuer_count = ic_accepted;
-  
+
   if (GNUNET_YES == make_active)
     node_make_active (n);
-  
+
   /* Send response */
   e_ctx = GNUNET_new (struct NodeComCtx);
   e_ctx->n = n;
   e_ctx->e = NULL;
-  e_ctx->size = sizeof (struct Experimentation_Response) + 
+  e_ctx->size = sizeof (struct Experimentation_Response) +
     my_issuer_count * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   e_ctx->notify = &send_response_cb;
   e_ctx->notify_cls = n;
-  
+
   GNUNET_CONTAINER_DLL_insert_tail(n->e_req_head, n->e_req_tail, e_ctx);
   schedule_transmisson (e_ctx);
 }
@@ -583,7 +583,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
   int make_active;
   unsigned int c1;
   unsigned int c2;
-  
+
   if (ntohs (message->size) < sizeof (struct Experimentation_Response))
     {
       GNUNET_break (0);
@@ -595,7 +595,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   make_active = GNUNET_NO;
   if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_active, peer)))
   {
@@ -618,7 +618,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
   }
   else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_inactive, peer)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received %s from peer `%s'\n",
 		"RESPONSE", "inactive", GNUNET_i2s (peer));
     GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_remove (nodes_inactive, peer, n));
@@ -631,10 +631,10 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 		"RESPONSE", "unknown", GNUNET_i2s (peer));
     return;
   }
-  
+
   /* Update */
   n->capabilities = ntohl (rm->capabilities);
-  
+
   /* Filter accepted issuer */
   ic_accepted = 0;
   for (c1 = 0; c1 < ic; c1++)
@@ -657,7 +657,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
     }
   }
   n->issuer_count = ic_accepted;
-  
+
   if (GNUNET_YES == make_active)
     node_make_active (n);
 }
@@ -669,7 +669,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
  * @param peer the source
  * @param message the message
  */
-static void 
+static void
 handle_start (const struct GNUNET_PeerIdentity *peer,
 	      const struct GNUNET_MessageHeader *message)
 {
@@ -679,7 +679,7 @@ handle_start (const struct GNUNET_PeerIdentity *peer,
   const char *name;
   struct Node *n;
   struct Experiment *e;
-  
+
   if (NULL == peer)
   {
     GNUNET_break (0);
@@ -690,7 +690,7 @@ handle_start (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   size = ntohs (message->size);
   if (size < sizeof (struct GED_start_message))
   {
@@ -704,7 +704,7 @@ handle_start (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   n = get_node (peer);
   if (NULL == n)
   {
@@ -716,18 +716,18 @@ handle_start (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
     return;
-  }  
+  }
   if (name_len != strlen (name) + 1)
   {
     GNUNET_break (0);
     return;
-  }  
+  }
   e = GED_experiments_find (&msg->issuer, name, GNUNET_TIME_absolute_ntoh(msg->version_nbo));
   if (NULL == e)
   {
     GNUNET_break (0);
     return;
-  }  
+  }
   GED_scheduler_handle_start (n, e);
 }
 
@@ -748,7 +748,7 @@ handle_start_ack (const struct GNUNET_PeerIdentity *peer,
   const char *name;
   struct Node *n;
   struct Experiment *e;
-  
+
   if (NULL == peer)
   {
     GNUNET_break (0);
@@ -759,7 +759,7 @@ handle_start_ack (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   size = ntohs (message->size);
   if (size < sizeof (struct GED_start_ack_message))
   {
@@ -773,7 +773,7 @@ handle_start_ack (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   n = get_node (peer);
   if (NULL == n)
   {
@@ -791,7 +791,7 @@ handle_start_ack (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-  
+
   e = GED_experiments_find (&msg->issuer, name, GNUNET_TIME_absolute_ntoh(msg->version_nbo));
   if (NULL == e)
   {
@@ -885,19 +885,19 @@ core_connect_handler (void *cls,
 {
   if (GNUNET_YES == is_me(peer))
     return;
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Connected to peer %s\n"),
 	      GNUNET_i2s (peer));
-  
+
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_requested, peer))
     return; /* We already sent a request */
-  
+
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_active, peer))
     return; /* This peer is known as active  */
-  
+
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (nodes_inactive, peer))
     return; /* This peer is known as inactive  */
-  
+
   send_experimentation_request (peer);
 }
 

@@ -140,7 +140,7 @@ typedef int (*PluginPut) (void *cls, const struct GNUNET_HashCode * key, uint32_
  * @param key key in the data store
  * @param count how many values are stored under this key in the datastore
  */
-typedef void (*PluginKeyProcessor) (void *cls, 
+typedef void (*PluginKeyProcessor) (void *cls,
 				    const struct GNUNET_HashCode *key,
 				    unsigned int count);
 
@@ -322,7 +322,7 @@ struct GNUNET_DATASTORE_PluginFunctions
    * Iterate over all keys in the database.
    */
   PluginGetKeys get_keys;
-  
+
 };
 
 

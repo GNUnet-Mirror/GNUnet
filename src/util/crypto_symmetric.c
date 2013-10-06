@@ -39,10 +39,10 @@
 void
 GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key)
 {
-  gcry_randomize (key->aes_key, 
+  gcry_randomize (key->aes_key,
                   GNUNET_CRYPTO_AES_KEY_LENGTH,
                   GCRY_STRONG_RANDOM);
-  gcry_randomize (key->twofish_key, 
+  gcry_randomize (key->twofish_key,
                   GNUNET_CRYPTO_AES_KEY_LENGTH,
                   GCRY_STRONG_RANDOM);
 }
@@ -66,12 +66,12 @@ setup_cipher_aes (gcry_cipher_hd_t *handle,
   GNUNET_assert (0 ==
                  gcry_cipher_open (handle, GCRY_CIPHER_AES256,
                                    GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (*handle, 
-                           sessionkey->aes_key, 
+  rc = gcry_cipher_setkey (*handle,
+                           sessionkey->aes_key,
                            sizeof (sessionkey->aes_key));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (*handle, 
-                          iv->aes_iv, 
+  rc = gcry_cipher_setiv (*handle,
+                          iv->aes_iv,
                           sizeof (iv->aes_iv));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
   return GNUNET_OK;
@@ -94,13 +94,13 @@ setup_cipher_twofish (gcry_cipher_hd_t *handle,
   int rc;
 
   GNUNET_assert (0 ==
-                 gcry_cipher_open (handle, GCRY_CIPHER_TWOFISH, 
+                 gcry_cipher_open (handle, GCRY_CIPHER_TWOFISH,
                                    GCRY_CIPHER_MODE_CFB, 0));
-  rc = gcry_cipher_setkey (*handle, 
-                           sessionkey->twofish_key, 
+  rc = gcry_cipher_setkey (*handle,
+                           sessionkey->twofish_key,
                            sizeof (sessionkey->twofish_key));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
-  rc = gcry_cipher_setiv (*handle, 
+  rc = gcry_cipher_setiv (*handle,
                           iv->twofish_iv,
                           sizeof (iv->twofish_iv));
   GNUNET_assert ((0 == rc) || ((char) rc == GPG_ERR_WEAK_KEY));
@@ -121,7 +121,7 @@ setup_cipher_twofish (gcry_cipher_hd_t *handle,
  * @returns the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_CRYPTO_symmetric_encrypt (const void *block, 
+GNUNET_CRYPTO_symmetric_encrypt (const void *block,
                                  size_t len,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
                                  const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
@@ -157,7 +157,7 @@ GNUNET_CRYPTO_symmetric_encrypt (const void *block,
 ssize_t
 GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result)
 {
   gcry_cipher_hd_t handle;
@@ -219,13 +219,13 @@ GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializatio
   memcpy (&aes_salt[salt_len], "AES!", 4);
   memcpy (twofish_salt, salt, salt_len);
   memcpy (&twofish_salt[salt_len], "FISH", 4);
-  GNUNET_CRYPTO_kdf_v (iv->aes_iv, sizeof (iv->aes_iv), 
-                       aes_salt, salt_len + 4, 
-                       skey->aes_key, sizeof (skey->aes_key), 
+  GNUNET_CRYPTO_kdf_v (iv->aes_iv, sizeof (iv->aes_iv),
+                       aes_salt, salt_len + 4,
+                       skey->aes_key, sizeof (skey->aes_key),
                        argp);
   GNUNET_CRYPTO_kdf_v (iv->twofish_iv, sizeof (iv->twofish_iv),
-                       twofish_salt, salt_len + 4, 
-                       skey->twofish_key, sizeof (skey->twofish_key), 
+                       twofish_salt, salt_len + 4,
+                       skey->twofish_key, sizeof (skey->twofish_key),
                        argp);
 }
 

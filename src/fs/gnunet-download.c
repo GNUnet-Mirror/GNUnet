@@ -79,9 +79,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param n total size of the download
  * @param w desired number of steps in the progress bar
  */
-static void 
-display_bar (unsigned long long x, 
-	     unsigned long long n, 
+static void
+display_bar (unsigned long long x,
+	     unsigned long long n,
 	     unsigned int w)
 {
   char buf[w + 20];
@@ -142,7 +142,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     {
       s = GNUNET_strdup (GNUNET_STRINGS_relative_time_to_string (info->value.download.eta,
 								 GNUNET_YES));
-      if (info->value.download.specifics.progress.block_download_duration.rel_value_us 
+      if (info->value.download.specifics.progress.block_download_duration.rel_value_us
           == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
         s2 = _("<unknown time>");
       else

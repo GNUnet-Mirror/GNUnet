@@ -154,7 +154,7 @@ check ()
 
 
 static void
-ready6 (void *cls, 
+ready6 (void *cls,
 	int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
@@ -236,7 +236,7 @@ check_start_stop ()
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_PROGRAM_run (3, argv, "test-service-program", "no help",
                                      options, &start_stop_main, &ret));
-  
+
   GNUNET_break (0 == ret);
   return ret;
 }

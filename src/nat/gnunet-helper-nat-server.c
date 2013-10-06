@@ -602,7 +602,7 @@ main (int argc, char *const *argv)
   }
 
   /* select failed (internal error or OS out of resources) */
-  global_ret = 11; 
+  global_ret = 11;
 error_exit:
   if (-1 != icmpsock)
     (void) close (icmpsock);

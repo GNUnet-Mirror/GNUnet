@@ -168,7 +168,7 @@ struct udp_header
 };
 
 /**
- * Will this binary be run in permissions testing mode? 
+ * Will this binary be run in permissions testing mode?
  */
 static boolean privilege_testing = FALSE;
 
@@ -468,10 +468,10 @@ main (int argc, char *const *argv)
   struct in_addr target;
   WSADATA wsaData;
   unsigned int p;
-  
+
   if (argc > 1 && 0 != strcmp (argv[1], "-d")){
       privilege_testing = TRUE;
-      fprintf (stderr, 
+      fprintf (stderr,
 	       "%s",
 	       "DEBUG: Running binary in privilege testing mode.");
       argv++;
@@ -489,14 +489,14 @@ main (int argc, char *const *argv)
       (1 != inet_pton (AF_INET, argv[2], &target)))
   {
     fprintf (stderr,
-	     "Error parsing IPv4 address: %s\n", 
+	     "Error parsing IPv4 address: %s\n",
 	     strerror (errno));
     return 1;
   }
   if ((1 != sscanf (argv[3], "%u", &p)) || (0 == p) || (0xFFFF < p))
   {
-    fprintf (stderr, 
-	     "Error parsing port value `%s'\n", 
+    fprintf (stderr,
+	     "Error parsing port value `%s'\n",
 	     argv[3]);
     return 1;
   }
@@ -504,14 +504,14 @@ main (int argc, char *const *argv)
 
   if (0 != WSAStartup (MAKEWORD (2, 1), &wsaData))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "%s",
 	     "Failed to find Winsock 2.1 or better.\n");
     return 2;
   }
   if (1 != inet_pton (AF_INET, DUMMY_IP, &dummy))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "%s",
 	     "Internal error converting dummy IP to binary.\n");
     return 2;
@@ -522,7 +522,7 @@ main (int argc, char *const *argv)
     send_icmp (&external, &target);
     send_icmp_udp (&external, &target);
   }
-  closesocket (rawsock); 
+  closesocket (rawsock);
   WSACleanup ();
   return 0;
 }

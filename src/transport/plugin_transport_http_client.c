@@ -107,17 +107,17 @@ struct Session;
 
 /**
  * A connection handle
- * 
+ *
  */
 struct ConnectionHandle
 {
   /**
-   * The curl easy handle 
+   * The curl easy handle
    */
   CURL *easyhandle;
-  
+
   /**
-   * The related session 
+   * The related session
    */
   struct Session *s;
 };
@@ -363,7 +363,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin, int now);
 
 
 /**
- * Connect a HTTP put connection 
+ * Connect a HTTP put connection
  *
  * @param s the session to connect
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for success
@@ -407,7 +407,7 @@ client_exist_session (struct HTTP_Client_Plugin *plugin, struct Session *s)
  * @return always 0
  */
 static int
-client_log (CURL *curl, curl_infotype type, 
+client_log (CURL *curl, curl_infotype type,
 	    const char *data, size_t size, void *cls)
 {
   struct ConnectionHandle *ch = cls;
@@ -755,7 +755,7 @@ http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
 
 /**
  * Check if a sessions exists for an specific address
- * 
+ *
  * @param plugin the plugin
  * @param address the address
  * @return the session or NULL
@@ -946,7 +946,7 @@ client_receive_mst_cb (void *cls, void *client,
                      "Client: peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL,
-							   s->plugin->protocol, 
+							   s->plugin->protocol,
 							   s->addr, s->addrlen),
                      GNUNET_STRINGS_relative_time_to_string (delay,
 							     GNUNET_YES));
@@ -1002,7 +1002,7 @@ client_receive (void *stream, size_t size, size_t nmemb, void *cls)
         GNUNET_TIME_absolute_get_difference (now, s->next_receive);
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %s\n",
-                     s, s->client_get, 
+                     s, s->client_get,
 		     GNUNET_STRINGS_relative_time_to_string (delta,
 							     GNUNET_YES));
     if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1231,7 +1231,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Connect GET connection for a session
- * 
+ *
  * @param s the session to connect
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
@@ -1306,7 +1306,7 @@ client_connect_get (struct Session *s)
 }
 
 /**
- * Connect a HTTP put connection 
+ * Connect a HTTP put connection
  *
  * @param s the session to connect
  * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
@@ -1383,7 +1383,7 @@ client_connect_put (struct Session *s)
 
 /**
  * Connect both PUT and GET connection for a session
- * 
+ *
  * @param s the session to connect
  * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
  */
@@ -1627,7 +1627,7 @@ client_start_session_timeout (struct Session *s)
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %s\n",
-             s, 
+             s,
 	     GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
 						     GNUNET_YES));
 }

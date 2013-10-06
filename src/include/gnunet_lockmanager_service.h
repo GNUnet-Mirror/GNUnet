@@ -87,7 +87,7 @@ enum GNUNET_LOCKMANAGER_Status
  *
  * @param cls the closure from GNUNET_LOCKMANAGER_lock call
  *
- * @param domain_name the locking domain of the lock 
+ * @param domain_name the locking domain of the lock
  *
  * @param lock the lock for which this status is relevant
  *
@@ -95,11 +95,11 @@ enum GNUNET_LOCKMANAGER_Status
  *          acquired; GNUNET_LOCKMANAGER_RELEASE when the acquired lock is
  *          lost.
  */
-typedef void 
+typedef void
 (*GNUNET_LOCKMANAGER_StatusCallback) (void *cls,
                                       const char *domain_name,
                                       uint32_t lock,
-                                      enum GNUNET_LOCKMANAGER_Status 
+                                      enum GNUNET_LOCKMANAGER_Status
                                       status);
 
 

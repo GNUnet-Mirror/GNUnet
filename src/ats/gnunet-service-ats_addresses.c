@@ -584,8 +584,8 @@ struct CompareAddressContext
  * @return #GNUNET_YES to continue, #GNUNET_NO if address is founce
  */
 static int
-compare_address_it (void *cls, 
-		    const struct GNUNET_PeerIdentity *key, 
+compare_address_it (void *cls,
+		    const struct GNUNET_PeerIdentity *key,
 		    void *value)
 {
   struct CompareAddressContext *cac = cls;
@@ -675,7 +675,7 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
   cac.base_address = NULL;
   cac.search = addr;
   GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
-					      peer, 
+					      peer,
 					      &compare_address_it, &cac);
 
   if (cac.exact_address == NULL)
@@ -1076,7 +1076,7 @@ destroy_by_session_id (void *cls,
 
       /* Notify solver about deletion */
       GNUNET_assert(
-          GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses, 
+          GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
 							      &aa->peer, aa));
       handle->s_del (handle->solver, aa, GNUNET_NO);
       free_address (aa);
@@ -1321,16 +1321,16 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
  * @return #GNUNET_OK to continue
  */
 static int
-reset_address_it (void *cls, 
-		  const struct GNUNET_PeerIdentity *key, 
+reset_address_it (void *cls,
+		  const struct GNUNET_PeerIdentity *key,
 		  void *value)
 {
   struct ATS_Address *aa = value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	     "Resetting interval for peer `%s' address %p from %llu to 0\n",
-	     GNUNET_i2s (&aa->peer), 
-	     aa, 
+	     GNUNET_i2s (&aa->peer),
+	     aa,
 	     aa->block_interval);
   aa->blocked_until = GNUNET_TIME_UNIT_ZERO_ABS;
   aa->block_interval = GNUNET_TIME_UNIT_ZERO;
@@ -1846,7 +1846,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     GNUNET_ATS_NetworkTypeCount);
 
   ah->solver = ah->s_init (cfg, stats, ah->addresses, quotas, quotas_in,
-			   quotas_out, quota_count, 
+			   quotas_out, quota_count,
 			   &bandwidth_changed_cb, ah, &get_preferences_cb,
 			   NULL, &get_property_cb, NULL );
   if (NULL == ah->solver)
@@ -1873,7 +1873,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_all_address_it (void *cls, 
+destroy_all_address_it (void *cls,
 			const struct GNUNET_PeerIdentity *key,
 			void *value)
 {
@@ -1881,7 +1881,7 @@ destroy_all_address_it (void *cls,
   struct ATS_Address *aa = value;
 
   /* Remove */
-  GNUNET_assert(GNUNET_YES == 
+  GNUNET_assert(GNUNET_YES ==
 		GNUNET_CONTAINER_multipeermap_remove (handle->addresses, key, value));
   /* Notify */
   handle->s_del (handle->solver, aa, GNUNET_NO);
@@ -1958,7 +1958,7 @@ struct PeerIteratorContext
  * @return #GNUNET_OK to continue
  */
 static int
-peer_it (void *cls, 
+peer_it (void *cls,
 	 const struct GNUNET_PeerIdentity *key,
 	 void *value)
 {
@@ -2000,7 +2000,7 @@ GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
     ip_ctx.it_cls = p_it_cls;
     ip_ctx.peers_returned = GNUNET_CONTAINER_multipeermap_create (size,
 								  GNUNET_NO);
-    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses, 
+    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses,
 					   &peer_it,
 					   &ip_ctx);
     GNUNET_CONTAINER_multipeermap_destroy (ip_ctx.peers_returned);

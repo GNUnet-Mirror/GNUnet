@@ -73,7 +73,7 @@ typedef void (*GNUNET_MESH_TEST_AppMain) (void *cls,
  * @param handlers Message handlers.
  * @param ports Ports the peers offer.
  */
-void 
+void
 GNUNET_MESH_TEST_run (const char *testname,
                       const char *cfgname,
                       unsigned int num_peers,

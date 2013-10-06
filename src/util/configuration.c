@@ -183,7 +183,7 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
     if (NULL == pos)
     {
       line_orig = GNUNET_strndup (&mem[r_bytes], line_size = to_read);
-      r_bytes += line_size;    
+      r_bytes += line_size;
     }
     else
     {
@@ -220,10 +220,10 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
       continue;
 
     /* handle special "@INLINE@" directive */
-    if (0 == strncasecmp (line, 
+    if (0 == strncasecmp (line,
 			  "@INLINE@ ",
 			  strlen ("@INLINE@ ")))
-    {      
+    {
       /* @INLINE@ value */
       value = &line[strlen ("@INLINE@ ")];
       if (GNUNET_YES == allow_inline)
@@ -250,19 +250,19 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
       value = &line[1];
       GNUNET_free (section);
       section = GNUNET_strdup (value);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
-	   "Config section `%s'\n", 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Config section `%s'\n",
 	   section);
       continue;
     }
     if (NULL != (eq = strchr (line, '=')))
     {
       /* tag = value */
-      tag = GNUNET_strndup (line, eq - line); 
+      tag = GNUNET_strndup (line, eq - line);
       /* remove tailing whitespace */
       for (i = strlen (tag) - 1; (i >= 1) && (isspace ((unsigned char) tag[i]));i--)
 	tag[i] = '\0';
-      
+
       /* Strip whitespace */
       value = eq + 1;
       while (isspace ((unsigned char) value[0]))
@@ -285,14 +285,14 @@ GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     /* parse error */
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _("Syntax error while deserializing in line %u\n"), 
+	 _("Syntax error while deserializing in line %u\n"),
 	 nr);
     ret = GNUNET_SYSERR;
     break;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished deserializing config\n");
   GNUNET_free_non_null (line_orig);
-  GNUNET_free (section);  
+  GNUNET_free (section);
   GNUNET_assert ( (GNUNET_OK != ret) || (r_bytes == size) );
   return ret;
 }
@@ -323,7 +323,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   if (fn == NULL)
     return GNUNET_SYSERR;
   dirty = cfg->dirty;           /* back up value! */
-  if (GNUNET_SYSERR == 
+  if (GNUNET_SYSERR ==
        GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -349,7 +349,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Deserializing contents of file `%s'\n", fn);
   GNUNET_free (fn);
-  ret = GNUNET_CONFIGURATION_deserialize (cfg, mem, fs, GNUNET_YES);  
+  ret = GNUNET_CONFIGURATION_deserialize (cfg, mem, fs, GNUNET_YES);
   GNUNET_free (mem);
   /* restore dirty flag - anything we set in the meantime
    * came from disk */
@@ -425,7 +425,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mem = GNUNET_malloc (m_size);
   sec = cfg->sections;
   c_size = 0;
-  *size = c_size;  
+  *size = c_size;
   while (NULL != sec)
   {
     len = GNUNET_asprintf (&cbuf, "[%s]\n", sec->name);
@@ -487,9 +487,9 @@ GNUNET_CONFIGURATION_write (struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   cfg_buf = GNUNET_CONFIGURATION_serialize (cfg, &size);
   if (size != GNUNET_DISK_fn_write (fn, cfg_buf, size,
-				    GNUNET_DISK_PERM_USER_READ 
+				    GNUNET_DISK_PERM_USER_READ
 				    | GNUNET_DISK_PERM_USER_WRITE
-				    | GNUNET_DISK_PERM_GROUP_READ 
+				    | GNUNET_DISK_PERM_GROUP_READ
 				    | GNUNET_DISK_PERM_GROUP_WRITE))
   {
     GNUNET_free (fn);
@@ -1090,7 +1090,7 @@ GNUNET_CONFIGURATION_get_value_filename (const struct
                                          const char *option, char **value)
 {
   char *tmp;
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Asked to retrieve filename `%s' in section `%s'\n", option, section);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, option, &tmp))

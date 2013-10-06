@@ -61,7 +61,7 @@
 
 /**
  * For how long do we blacklist anyone under any cirumstances at most after a failed connection
- * attempt?  This is the absolute maximum, regardless of what the calculation based on 
+ * attempt?  This is the absolute maximum, regardless of what the calculation based on
  * exponential back-off returns.
  */
 #define GREYLIST_AFTER_ATTEMPT_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
@@ -981,7 +981,7 @@ process_peer (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param my_id ID of this peer, NULL if we failed
  */
 static void
-core_init (void *cls, 
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *my_id)
 {
   if (NULL == my_id)
@@ -993,10 +993,10 @@ core_init (void *cls,
     return;
   }
   my_identity = *my_id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "I am peer `%s'\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "I am peer `%s'\n",
 	      GNUNET_i2s (my_id));
-  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, 
+  peerinfo_notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO,
 					    &process_peer, NULL);
 }
 

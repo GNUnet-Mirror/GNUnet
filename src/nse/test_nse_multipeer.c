@@ -52,7 +52,7 @@ struct NSEPeer
 
   /**
    * Handle to NSE service.
-   */ 
+   */
   struct GNUNET_NSE_Handle *nse_handle;
 };
 
@@ -100,9 +100,9 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
 
   FPRINTF (stderr,
            "Received network size estimate from peer %u. logSize: %f std.dev. %f (%f/%u)\n",
-           (unsigned int) (peer - nse_peers), 
+           (unsigned int) (peer - nse_peers),
 	   estimate, std_dev,
-           GNUNET_NSE_log_estimate_to_n (estimate), 
+           GNUNET_NSE_log_estimate_to_n (estimate),
 	   NUM_PEERS);
   ok = 0;
 }
@@ -118,7 +118,7 @@ handle_estimate (void *cls, struct GNUNET_TIME_Absolute timestamp,
  *          operation has executed successfully.
  */
 static void
-nse_connect_complete_cb (void *cls, 
+nse_connect_complete_cb (void *cls,
 			 struct GNUNET_TESTBED_Operation *op,
 			 void *ca_result,
 			 const char *emsg)
@@ -143,18 +143,18 @@ nse_connect_complete_cb (void *cls,
 /**
  * Adapter function called to establish a connection to
  * the NSE service.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
  *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
-static void * 
+static void *
 nse_connect_adapter (void *cls,
 		     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_NSE_connect (cfg, 
+  return GNUNET_NSE_connect (cfg,
 			     &handle_estimate,
 			     cls);
 }
@@ -163,7 +163,7 @@ nse_connect_adapter (void *cls,
 /**
  * Adapter function called to destroy connection to
  * NSE service.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
@@ -177,7 +177,7 @@ nse_disconnect_adapter (void *cls,
 
 /**
  * Actual "main" function for the testcase.
- * 
+ *
  * @param cls closure
  * @param h the run handle
  * @param num_peers number of peers in 'peers'

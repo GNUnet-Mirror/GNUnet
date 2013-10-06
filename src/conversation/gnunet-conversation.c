@@ -1,17 +1,17 @@
 /*
   This file is part of GNUnet.
   (C) 2013 Christian Grothoff (and other contributing authors)
-  
+
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3, or (at your
   option) any later version.
-  
+
   GNUnet is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with GNUnet; see the file COPYING.  If not, write to the
   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -173,7 +173,7 @@ phone_event_handler (void *cls,
                      ...)
 {
   va_list va;
-  
+
   va_start (va, code);
   switch (code)
   {
@@ -268,7 +268,7 @@ call_event_handler (void *cls,
                     ...)
 {
   va_list va;
-  
+
   va_start (va, code);
   switch (code)
   {
@@ -338,7 +338,7 @@ struct VoipCommand
    * Command the user needs to enter.
    */
   const char *command;
-  
+
   /**
    * Function to call on command.
    */
@@ -380,8 +380,8 @@ do_quit (const char *args)
 static void
 do_unknown (const char *msg)
 {
-  FPRINTF (stderr, 
-	   _("Unknown command `%s'\n"), 
+  FPRINTF (stderr,
+	   _("Unknown command `%s'\n"),
 	   msg);
 }
 
@@ -403,7 +403,7 @@ do_call (const char *arg)
   }
   switch (state)
   {
-  case CS_LOOKUP_EGO: 
+  case CS_LOOKUP_EGO:
     FPRINTF (stderr,
              _("Ego `%s' not available\n"),
              ego_name);
@@ -470,7 +470,7 @@ do_accept (const char *args)
 {
   switch (state)
   {
-  case CS_LOOKUP_EGO:     
+  case CS_LOOKUP_EGO:
   case CS_LISTEN:
   case CS_ERROR:
     FPRINTF (stderr,
@@ -497,7 +497,7 @@ do_accept (const char *args)
     return;
   }
   GNUNET_assert (NULL != phone);
-  GNUNET_CONVERSATION_phone_pick_up (phone, 
+  GNUNET_CONVERSATION_phone_pick_up (phone,
                                      args,
                                      speaker,
                                      mic);
@@ -536,7 +536,7 @@ do_status (const char *args)
 {
   switch (state)
   {
-  case CS_LOOKUP_EGO: 
+  case CS_LOOKUP_EGO:
     FPRINTF (stdout,
              _("We are currently trying to locate the private key for the ego `%s'.\n"),
              ego_name);
@@ -586,7 +586,7 @@ do_reject (const char *args)
 {
   switch (state)
   {
-  case CS_LOOKUP_EGO: 
+  case CS_LOOKUP_EGO:
   case CS_LISTEN:
   case CS_ERROR:
     FPRINTF (stderr,
@@ -604,7 +604,7 @@ do_reject (const char *args)
   if (NULL == call)
   {
     GNUNET_assert (NULL != phone);
-    GNUNET_CONVERSATION_phone_hang_up (phone, 
+    GNUNET_CONVERSATION_phone_hang_up (phone,
                                        args);
     state = CS_LISTEN;
   }
@@ -621,9 +621,9 @@ do_reject (const char *args)
  * List of supported commands.
  */
 static struct VoipCommand commands[] = {
-  {"/address", &do_address, 
+  {"/address", &do_address,
    gettext_noop ("Use `/address' to find out which address this phone should have in GNS")},
-  {"/call", &do_call, 
+  {"/call", &do_call,
    gettext_noop ("Use `/call USER.gnu' to call USER")},
   {"/accept", &do_accept,
    gettext_noop ("Use `/accept MESSAGE' to accept an incoming call")},
@@ -631,11 +631,11 @@ static struct VoipCommand commands[] = {
    gettext_noop ("Use `/cancel MESSAGE' to reject or terminate a call")},
   {"/status", &do_status,
    gettext_noop ("Use `/status' to print status information")},
-  {"/quit", &do_quit, 
+  {"/quit", &do_quit,
    gettext_noop ("Use `/quit' to terminate gnunet-conversation")},
   {"/help", &do_help,
    gettext_noop ("Use `/help command' to get help for a specific command")},
-  {"", &do_unknown, 
+  {"", &do_unknown,
    NULL},
   {NULL, NULL, NULL},
 };
@@ -650,8 +650,8 @@ static void
 do_help (const char *args)
 {
   unsigned int i;
-  
-  i = 0; 
+
+  i = 0;
   while ( (NULL != args) &&
           (0 != strlen (args)) &&
           (commands[i].Action != &do_help))
@@ -659,7 +659,7 @@ do_help (const char *args)
     if (0 ==
 	strncasecmp (&args[1], &commands[i].command[1], strlen (args) - 1))
     {
-      FPRINTF (stdout, 
+      FPRINTF (stdout,
 	       "%s\n",
 	       gettext (commands[i].helptext));
       return;
@@ -667,13 +667,13 @@ do_help (const char *args)
     i++;
   }
   i = 0;
-  FPRINTF (stdout, 
-	   "%s", 
+  FPRINTF (stdout,
+	   "%s",
 	   "Available commands:\n");
   while (commands[i].Action != &do_help)
   {
-    FPRINTF (stdout, 
-	     "%s\n", 
+    FPRINTF (stdout,
+	     "%s\n",
 	     gettext (commands[i].command));
     i++;
   }
@@ -710,7 +710,7 @@ do_stop_task (void *cls,
   {
     GNUNET_SCHEDULER_cancel (handle_cmd_task);
     handle_cmd_task = GNUNET_SCHEDULER_NO_TASK;
-  } 
+  }
   if (NULL != id)
   {
     GNUNET_IDENTITY_disconnect (id);
@@ -799,7 +799,7 @@ identity_cb (void *cls,
                    ego_name))
     return;
   if (NULL == ego)
-  {    
+  {
     if (verbose)
       FPRINTF (stdout,
                _("Our ego `%s' was deleted!\n"),
@@ -826,7 +826,7 @@ identity_cb (void *cls,
  */
 static void
 run (void *cls,
-     char *const *args, 
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -851,7 +851,7 @@ run (void *cls,
 }
 
 
-/** 
+/**
  * The main function to conversation.
  *
  * @param argc number of arguments from the command line

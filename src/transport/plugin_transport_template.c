@@ -212,7 +212,7 @@ template_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-template_plugin_get_network (void *cls, 
+template_plugin_get_network (void *cls,
 			     struct Session *session)
 {
   GNUNET_assert (NULL != session);

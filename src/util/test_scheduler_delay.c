@@ -76,7 +76,7 @@ main (int argc, char *argv[])
   GNUNET_log_setup ("test-scheduler-delay", "WARNING", NULL);
   target = GNUNET_TIME_absolute_get ();
   GNUNET_SCHEDULER_run (&test_task, NULL);
-  FPRINTF (stdout, 
+  FPRINTF (stdout,
 	   "Sleep precision: %llu microseconds (average delta). ",
            cumDelta / (MAXV / INCR));
   if (cumDelta <= 500 * MAXV / INCR)

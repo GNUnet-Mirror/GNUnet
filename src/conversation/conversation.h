@@ -116,7 +116,7 @@ struct ClientPhonePickupMessage
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP
    */
   struct GNUNET_MessageHeader header;
-  
+
   /* followed by variable length 0-terminated string with meta data */
 
 };
@@ -132,7 +132,7 @@ struct ClientPhoneHangupMessage
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP
    */
   struct GNUNET_MessageHeader header;
-  
+
   /* followed by variable length 0-terminated string with meta data */
 
 };
@@ -190,7 +190,7 @@ struct ClientPhonePickedupMessage
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP
    */
   struct GNUNET_MessageHeader header;
-  
+
   /* followed by variable length 0-terminated string with meta data */
 
 };
@@ -233,7 +233,7 @@ struct MeshPhoneRingMessage
 
   /**
    * When does the signature expire?
-   */ 
+   */
   struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**

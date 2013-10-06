@@ -23,7 +23,7 @@
  * @brief helper to install firewall rules to hijack all DNS traffic
  *        and send it to our virtual interface (except for DNS traffic
  *        that originates on the specified port).  We then
- *        allow interacting with our virtual interface via stdin/stdout. 
+ *        allow interacting with our virtual interface via stdin/stdout.
  * @author Philipp Tölke
  * @author Christian Grothoff
  *
@@ -55,13 +55,13 @@
  * Naturally, neither of these problems can be helped as this is the
  * fundamental purpose of the binary.  Certifying that this code is
  * "safe" thus only means that it doesn't allow anything else (such
- * as local priv. escalation, etc.). 
+ * as local priv. escalation, etc.).
  *
  * The following list of people have reviewed this code and considered
  * it safe (within specifications) since the last modification (if you
  * reviewed it, please have your name added to the list):
  *
- * - Christian Grothoff 
+ * - Christian Grothoff
  */
 #include "platform.h"
 
@@ -174,7 +174,7 @@ open_dev_null (int target_fd,
   if (fd == target_fd)
     return;
   if (-1 == dup2 (fd, target_fd))
-  {    
+  {
     (void) close (fd);
     abort ();
   }
@@ -184,13 +184,13 @@ open_dev_null (int target_fd,
 
 /**
  * Run the given command and wait for it to complete.
- * 
+ *
  * @param file name of the binary to run
  * @param cmd command line arguments (as given to 'execv')
  * @return 0 on success, 1 on any error
  */
 static int
-fork_and_exec (const char *file, 
+fork_and_exec (const char *file,
 	       char *const cmd[])
 {
   int status;
@@ -200,8 +200,8 @@ fork_and_exec (const char *file,
   pid = fork ();
   if (-1 == pid)
   {
-    fprintf (stderr, 
-	     "fork failed: %s\n", 
+    fprintf (stderr,
+	     "fork failed: %s\n",
 	     strerror (errno));
     return 1;
   }
@@ -210,25 +210,25 @@ fork_and_exec (const char *file,
     /* we are the child process */
     /* close stdin/stdout to not cause interference
        with the helper's main protocol! */
-    (void) close (0); 
+    (void) close (0);
     open_dev_null (0, O_RDONLY);
-    (void) close (1); 
+    (void) close (1);
     open_dev_null (1, O_WRONLY);
     (void) execv (file, cmd);
     /* can only get here on error */
-    fprintf (stderr, 
-	     "exec `%s' failed: %s\n", 
+    fprintf (stderr,
+	     "exec `%s' failed: %s\n",
 	     file,
 	     strerror (errno));
     _exit (1);
   }
   /* keep running waitpid as long as the only error we get is 'EINTR' */
   while ( (-1 == (ret = waitpid (pid, &status, 0))) &&
-	  (errno == EINTR) ); 
+	  (errno == EINTR) );
   if (-1 == ret)
   {
-    fprintf (stderr, 
-	     "waitpid failed: %s\n", 
+    fprintf (stderr,
+	     "waitpid failed: %s\n",
 	     strerror (errno));
     return 1;
   }
@@ -312,8 +312,8 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   sa6.sin6_family = AF_INET6;
   if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
   {
-    fprintf (stderr, 
-	     "Failed to parse IPv6 address `%s': %s\n", 
+    fprintf (stderr,
+	     "Failed to parse IPv6 address `%s': %s\n",
 	     address,
              strerror (errno));
     exit (1);
@@ -321,11 +321,11 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 
   if (-1 == (fd = socket (PF_INET6, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, 
-	     "Error creating IPv6 socket: %s (ignored)\n", 
+    fprintf (stderr,
+	     "Error creating IPv6 socket: %s (ignored)\n",
 	     strerror (errno));
     /* ignore error, maybe only IPv4 works on this system! */
-    return; 
+    return;
   }
 
   memset (&ifr, 0, sizeof (struct ifreq));
@@ -410,8 +410,8 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (1 != inet_pton (AF_INET, address, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr, 
-	     "Failed to parse IPv4 address `%s': %s\n", 
+    fprintf (stderr,
+	     "Failed to parse IPv4 address `%s': %s\n",
 	     address,
              strerror (errno));
     exit (1);
@@ -420,7 +420,7 @@ set_address4 (const char *dev, const char *address, const char *mask)
   if (-1 == (fd = socket (PF_INET, SOCK_DGRAM, 0)))
   {
     fprintf (stderr,
-	     "Error creating IPv4 socket: %s\n", 
+	     "Error creating IPv4 socket: %s\n",
 	     strerror (errno));
     exit (1);
   }
@@ -619,7 +619,7 @@ run (int fd_tun)
           return;
         }
 	buftun_size -= written;
-	buftun_read += written;        
+	buftun_read += written;
       }
 
       if (FD_ISSET (0, &fds_r))
@@ -749,7 +749,7 @@ main (int argc, char *const*argv)
     return 254;
   }
 #else
-  if (0 != seteuid (0)) 
+  if (0 != seteuid (0))
   {
     fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
     return 254;
@@ -763,7 +763,7 @@ main (int argc, char *const*argv)
     sbin_iptables = "/usr/sbin/iptables";
   else
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Fatal: executable iptables not found in approved directories: %s\n",
 	     strerror (errno));
     return 3;
@@ -805,7 +805,7 @@ main (int argc, char *const*argv)
   /* setup pipe to shutdown nicely on SIGINT */
   if (0 != pipe (cpipe))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Fatal: could not setup control pipe: %s\n",
 	     strerror (errno));
     return 6;
@@ -839,14 +839,14 @@ main (int argc, char *const*argv)
   }
   if ( (SIG_ERR == signal (SIGTERM, &signal_handler)) ||
        (SIG_ERR == signal (SIGINT, &signal_handler)) ||
-       (SIG_ERR == signal (SIGHUP, &signal_handler)) )       
-  { 
-    fprintf (stderr, 
+       (SIG_ERR == signal (SIGHUP, &signal_handler)) )
+  {
+    fprintf (stderr,
 	     "Fatal: could not initialize signal handler: %s\n",
 	     strerror (errno));
     (void) close (cpipe[0]);
     (void) close (cpipe[1]);
-    return 7;   
+    return 7;
   }
 
 
@@ -868,8 +868,8 @@ main (int argc, char *const*argv)
       return 5;
     }
   }
-  
-  
+
+
   /* now open virtual interface (first part that requires root) */
   if (-1 == (fd_tun = init_tun (dev)))
   {
@@ -907,14 +907,14 @@ main (int argc, char *const*argv)
     set_address4 (dev, address, mask);
   }
 
-  
+
   /* update routing tables -- next part why we need SUID! */
   /* Forward everything from our EGID (which should only be held
      by the 'gnunet-service-dns') and with destination
      to port 53 on UDP, without hijacking */
   r = 8; /* failed to fully setup routing table */
   {
-    char *const mangle_args[] = 
+    char *const mangle_args[] =
       {
 	"iptables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
 	"udp", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
@@ -922,7 +922,7 @@ main (int argc, char *const*argv)
       };
     if (0 != fork_and_exec (sbin_iptables, mangle_args))
       goto cleanup_rest;
-  }    
+  }
   /* Mark all of the other DNS traffic using our mark DNS_MARK */
   {
     char *const mark_args[] =
@@ -965,7 +965,7 @@ main (int argc, char *const*argv)
   }
 #else
   /* Note: no 'setuid' here as we must keep our saved UID as root */
-  if (0 != seteuid (uid)) 
+  if (0 != seteuid (uid))
   {
     fprintf (stderr, "Failed to seteuid: %s\n", strerror (errno));
     r = 24;
@@ -977,7 +977,7 @@ main (int argc, char *const*argv)
 
   /* now forward until we hit a problem */
    run (fd_tun);
-  
+
   /* now need to regain privs so we can remove the firewall rules we added! */
 #ifdef HAVE_SETRESUID
   if (0 != setresuid (uid, 0, 0))
@@ -987,19 +987,19 @@ main (int argc, char *const*argv)
     goto cleanup_route_4;
   }
 #else
-  if (0 != seteuid (0)) 
+  if (0 != seteuid (0))
   {
     fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
     r = 40;
     goto cleanup_route_4;
   }
 #endif
- 
+
   /* update routing tables again -- this is why we could not fully drop privs */
   /* now undo updating of routing tables; normal exit or clean-up-on-error case */
  cleanup_route_4:
   {
-    char *const route_clean_args[] = 			 
+    char *const route_clean_args[] = 			
       {
 	"ip", "route", "del", "default", "dev", dev,
 	"table", DNS_TABLE, NULL

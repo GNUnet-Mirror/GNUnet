@@ -36,9 +36,9 @@
  * @param u the userdata (result struct)
  * @return -1 on error else 0
  */
-int 
+int
 gns_resolve_name (int af,
-		  const char *name, 
+		  const char *name,
 		  struct userdata *u)
 {
   FILE *p;
@@ -47,15 +47,15 @@ gns_resolve_name (int af,
 
   if (AF_INET6 == af)
   {
-    if (-1 == asprintf (&cmd, 
-			"%s -t AAAA -u %s\n", 
+    if (-1 == asprintf (&cmd,
+			"%s -t AAAA -u %s\n",
 			"gnunet-gns -r", name))
       return -1;
   }
   else
   {
-    if (-1 == asprintf (&cmd, 
-			"%s %s\n", 
+    if (-1 == asprintf (&cmd,
+			"%s %s\n",
 			"gnunet-gns -r -u", name))
       return -1;
   }

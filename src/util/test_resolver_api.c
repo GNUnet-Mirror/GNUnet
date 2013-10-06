@@ -353,7 +353,7 @@ main (int argc, char *argv[])
   int ok = 1 + 2 + 4 + 8;
   char *fn;
   struct GNUNET_OS_Process *proc;
-  char *const argvx[] = { 
+  char *const argvx[] = {
     "test-resolver-api", "-c", "test_resolver_api_data.conf", NULL
   };
   struct GNUNET_GETOPT_CommandLineOption options[] =
@@ -363,9 +363,9 @@ main (int argc, char *argv[])
                     "WARNING",
                     NULL);
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
-  proc = GNUNET_OS_start_process (GNUNET_YES, 
-				  GNUNET_OS_INHERIT_STD_OUT_AND_ERR, 
-				  NULL, NULL, fn, 
+  proc = GNUNET_OS_start_process (GNUNET_YES,
+				  GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+				  NULL, NULL, fn,
 				  "gnunet-service-resolver",
                                   "-c", "test_resolver_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);

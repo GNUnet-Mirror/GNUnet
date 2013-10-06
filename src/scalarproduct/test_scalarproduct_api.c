@@ -19,7 +19,7 @@
  */
 
 /**
- * Aim of test_scalarproduct_api : This test creates two peers. Peer1 is the 
+ * Aim of test_scalarproduct_api : This test creates two peers. Peer1 is the
  * responder peer, Bob and Peer2 is the initiator peer, Alice. Both peers
  * connect to VectorProduct Service, and use the API to issue requests to
  * service. Test passes, when the expected scalar product is received from the
@@ -219,7 +219,7 @@ do_close (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Shutdown a peer
- * 
+ *
  * @param cls pointer to "struct PeerData" of the peer to be disconnected
  * @param tc Task Context
  */
@@ -272,7 +272,7 @@ controller_event_cb (void *cls,
                      const struct GNUNET_TESTBED_EventInformation *event)
 {
   GNUNET_assert (event->type == GNUNET_TESTBED_ET_OPERATION_FINISHED);
-  
+
   switch (setup_state)
     {
     case PEER1_SCALARPRODUCT_CONNECT:
@@ -366,7 +366,7 @@ requester_callback (void *cls,
     {
       LOG (GNUNET_ERROR_TYPE_INFO, "Requester Client expected response received!\n");
       product_len = ntohl(msg->product_length);
-      
+
       if (0 < product_len)
         {
           gcry_mpi_t result;
@@ -383,7 +383,7 @@ requester_callback (void *cls,
             {
               uint16_t i = 0;
 
-              // calculate expected product 
+              // calculate expected product
               gcry_mpi_t expected_result;
               gcry_mpi_t v1;
               gcry_mpi_t v2;
@@ -424,7 +424,7 @@ requester_callback (void *cls,
                   gcry_mpi_release (v1_v2_prod);
 
                 }
-              
+
               // compare the result
               if (!gcry_mpi_cmp (expected_result, result))
                 {
@@ -453,7 +453,7 @@ requester_callback (void *cls,
 }
 
 /**
- * Prepare the message to be sent by peer2 to its scalarproduct service, to 
+ * Prepare the message to be sent by peer2 to its scalarproduct service, to
  * initiate a request to peer1.
  */
 static struct GNUNET_SCALARPRODUCT_QueueEntry *
@@ -467,9 +467,9 @@ requester_request ()
   int32_t element;
   struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   struct GNUNET_HashCode key;
-  
+
   GNUNET_assert (peer2.vh != NULL);
-  
+
   GNUNET_CRYPTO_hash (input_key, strlen (input_key), &key);
 
   /* Read input_elements_peer2, and put in elements_peer2 array */
@@ -501,7 +501,7 @@ requester_request ()
   while (!exit_loop && element_count_peer2 < max_mids);
   GNUNET_assert (elements_peer2 != NULL);
   GNUNET_assert (element_count_peer2 >= 1);
-  
+
   /* Read input_mask_peer2 and read in mask_peer2 array */
   mask_length = element_count_peer2 / 8 + (element_count_peer2 % 8 ? 1 : 0);
   mask_peer2 = GNUNET_malloc ((element_count_peer2 / 8) + 2);
@@ -584,7 +584,7 @@ responder_prepare_response ()
   int32_t element;
   struct GNUNET_SCALARPRODUCT_QueueEntry *qe;
   struct GNUNET_HashCode key;
-  
+
   GNUNET_CRYPTO_hash (input_key, strlen (input_key), &key);
 
   /* Read input_elements_peer1, and put in elements_peer1 array */
@@ -638,7 +638,7 @@ responder_prepare_response ()
 
 /**
  * Scheduler task to initiate requester client
- * 
+ *
  * @param cls void* to struct PeerData
  * @param tc Task Context
  */
@@ -653,7 +653,7 @@ request_task(void *cls,
 
 /**
  * Scheduler task to initiate responder client
- * 
+ *
  * @param cls void* to struct PeerData
  * @param tc Task Context
  */
@@ -661,7 +661,7 @@ static void
 prepare_response_task(void *cls,
               const struct GNUNET_SCHEDULER_TaskContext
               * tc)
-{ 
+{
   responder_prepare_response();
   return;
 }
@@ -672,7 +672,7 @@ prepare_response_task(void *cls,
  * a service. This function is called when GNUNET_TESTBED_operation_done is
  * called for peer->op, which holds the handle for GNUNET_TESTBED_service_connect
  * operation.
- * 
+ *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
@@ -689,7 +689,7 @@ scalarproduct_da (void *cls, void *op_result)
 /**
  * Adapter function called to establish a connection to
  * a service. This function is called to by GNUNET_TESTBED_service_connect.
- * 
+ *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
  *          GNUNET_TESTBED_operation_done() is called on the operation returned
@@ -729,7 +729,7 @@ scalarproduct_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
         GNUNET_SCHEDULER_add_now(&prepare_response_task, &peer1);
         GNUNET_SCHEDULER_add_now(&request_task, &peer2);
       }
-      
+
       return peer2.vh;
     default:
       GNUNET_assert (0);
@@ -814,7 +814,7 @@ test_master (void *cls, unsigned int num_peers,
                                             GNUNET_TESTBED_PIT_IDENTITY,
                                             &peerinfo_cb, NULL);
   setup_state = PEER1_GET_IDENTITY;
-  
+
   /* Abort task for stopping test on timeout */
   abort_task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -842,7 +842,7 @@ main (int argc, char **argv)
                                   NUM_PEERS, event_mask, &controller_event_cb,
                                   NULL,
                                   &test_master, NULL);
-  
+
   if (GNUNET_SYSERR == ok)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, "Test failing due to some error before calling API for request or prepare_response\n");

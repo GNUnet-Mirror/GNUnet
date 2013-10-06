@@ -65,7 +65,7 @@ struct Request
    * converted to the DNS response.
    */
   struct GNUNET_DNSPARSER_Packet *packet;
-  
+
   /**
    * Our GNS request handle.
    */
@@ -84,7 +84,7 @@ struct Request
 
   /**
    * Number of bytes in 'addr'.
-   */ 
+   */
   size_t addr_len;
 
 };
@@ -217,7 +217,7 @@ send_response (struct Request *request)
 {
   char *buf;
   size_t size;
-  
+
   if (GNUNET_SYSERR ==
       GNUNET_DNSPARSER_pack (request->packet,
 			     UINT16_MAX /* is this not too much? */,
@@ -377,7 +377,7 @@ result_processor (void *cls,
  * @param addr address to use for sending the reply
  * @param addr_len number of bytes in @a addr
  * @param udp_msg DNS request payload
- * @param udp_msg_size number of bytes in @a udp_msg 
+ * @param udp_msg_size number of bytes in @a udp_msg
  */
 static void
 handle_request (struct GNUNET_NETWORK_Handle *lsock,
@@ -408,7 +408,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
 	      (int) packet->num_answers,
 	      (int) packet->num_authority_records,
 	      (int) packet->num_additional_records);
-  if ( (0 != packet->flags.query_or_response) || 
+  if ( (0 != packet->flags.query_or_response) ||
        (0 != packet->num_answers) ||
        (0 != packet->num_authority_records))
     {
@@ -439,7 +439,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   name_len = strlen (name);
   use_gns = GNUNET_NO;
 
-  
+
   if ( (name_len > strlen (fcfs_suffix)) &&
        (0 == strcasecmp (fcfs_suffix,
 			 &name[name_len - strlen (fcfs_suffix)])) )
@@ -481,7 +481,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Using DNS resolver IP `%s' to resolve `%s'\n", 
+		"Using DNS resolver IP `%s' to resolve `%s'\n",
 		dns_ip,
 		name);
     GNUNET_DNSPARSER_free_packet (request->packet);
@@ -501,7 +501,7 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
  *
  * @param cls the 'listen_socket4'
  * @param tc scheduler context
- */ 
+ */
 static void
 read_dns4 (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -525,9 +525,9 @@ read_dns4 (void *cls,
     }
   {
     char buf[size];
-    
+
     addrlen = sizeof (v4);
-    GNUNET_break (size == 
+    GNUNET_break (size ==
 		  GNUNET_NETWORK_socket_recvfrom (listen_socket4,
 						  buf,
 						  size,
@@ -544,7 +544,7 @@ read_dns4 (void *cls,
  *
  * @param cls the 'listen_socket6'
  * @param tc scheduler context
- */ 
+ */
 static void
 read_dns6 (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -568,9 +568,9 @@ read_dns6 (void *cls,
     }
   {
     char buf[size];
-    
+
     addrlen = sizeof (v6);
-    GNUNET_break (size == 
+    GNUNET_break (size ==
 		  GNUNET_NETWORK_socket_recvfrom (listen_socket6,
 						  buf,
 						  size,
@@ -601,7 +601,7 @@ run_dnsd ()
     return;
   }
   listen_socket4 = GNUNET_NETWORK_socket_create (PF_INET,
-						 SOCK_DGRAM, 
+						 SOCK_DGRAM,
 						 IPPROTO_UDP);
   if (NULL != listen_socket4)
     {
@@ -625,7 +625,7 @@ run_dnsd ()
 	}
     }
   listen_socket6 = GNUNET_NETWORK_socket_create (PF_INET6,
-						SOCK_DGRAM, 
+						SOCK_DGRAM,
 						IPPROTO_UDP);
   if (NULL != listen_socket6)
     {
@@ -671,7 +671,7 @@ run_dnsd ()
 }
 
 
-/** 
+/**
  * Method called to inform about the egos of this peer.
  *
  * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
@@ -679,7 +679,7 @@ run_dnsd ()
  * @a ego does indicate an error (i.e. name is taken or no default
  * value is known).  If @a ego is non-NULL and if '*ctx'
  * is set in those callbacks, the value WILL be passed to a subsequent
- * call to the identity callback of #GNUNET_IDENTITY_connect (if 
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if
  * that one was not NULL).
  *
  * @param cls closure, NULL
@@ -747,7 +747,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 						  strlen (gns_zone_str),
 						  &my_zone)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("No valid GNS zone specified!\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -764,7 +764,7 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, 
+main (int argc,
       char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -794,7 +794,7 @@ main (int argc,
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-dns2gns",
-                           _("GNUnet DNS-to-GNS proxy (a DNS server)"), 
+                           _("GNUnet DNS-to-GNS proxy (a DNS server)"),
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);

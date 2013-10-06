@@ -125,7 +125,7 @@ struct GNUNET_MESH_Encrypted
    * Number of hops to live.
    */
   uint32_t ttl GNUNET_PACKED;
- 
+
   /**
    * Always 0.
    */

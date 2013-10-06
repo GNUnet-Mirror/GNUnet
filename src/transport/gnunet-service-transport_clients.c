@@ -978,7 +978,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     setup_monitoring_client (client, &msg->peer);
   else
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);  
+						GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 

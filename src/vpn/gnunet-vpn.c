@@ -122,7 +122,7 @@ do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *                will match 'result_af' from the request
  * @param address IP address (struct in_addr or struct in_addr6, depending on 'af')
  *                that the VPN allocated for the redirection;
- *                traffic to this IP will now be redirected to the 
+ *                traffic to this IP will now be redirected to the
  *                specified target peer; NULL on error
  */
 static void
@@ -167,7 +167,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   int dst_af;
   int req_af;
-  struct GNUNET_PeerIdentity peer; 
+  struct GNUNET_PeerIdentity peer;
   struct GNUNET_HashCode sd;
   const void *addr;
   struct in_addr v4;
@@ -194,7 +194,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (ipv6)
     req_af = AF_INET6;
-  
+
   if (NULL == target_ip)
   {
     if (NULL == service_name)
@@ -233,7 +233,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       FPRINTF (stderr, _("`%s' is not a valid peer identifier.\n"),
                peer_id);
       goto error;
-    }    
+    }
     GNUNET_CRYPTO_hash (service_name,
 			strlen (service_name),
 			&sd);
@@ -265,7 +265,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     {
       dst_af = AF_INET6;
       addr = &v6;
-    }    
+    }
     request = GNUNET_VPN_redirect_to_ip (handle,
 					 req_af,
 					 dst_af,

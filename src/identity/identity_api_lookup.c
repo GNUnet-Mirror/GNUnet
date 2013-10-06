@@ -32,25 +32,25 @@
 
 /**
  * Handle for ego lookup.
- */ 
+ */
 struct GNUNET_IDENTITY_EgoLookup
 {
-  
+
   /**
    * Handle to the identity service.
    */
   struct GNUNET_IDENTITY_Handle *identity;
-  
+
   /**
    * Name of the ego we are looking up.
    */
   char *name;
-  
+
   /**
    * Function to call with the result.
    */
   GNUNET_IDENTITY_EgoCallback cb;
-  
+
   /**
    * Closure for @e cb
    */
@@ -58,7 +58,7 @@ struct GNUNET_IDENTITY_EgoLookup
 };
 
 
-/** 
+/**
  * Method called to inform about the egos of this peer.
  *
  * When used with #GNUNET_IDENTITY_connect, this function is
@@ -81,7 +81,7 @@ struct GNUNET_IDENTITY_EgoLookup
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
-static void 
+static void
 identity_cb (void *cls,
 	     struct GNUNET_IDENTITY_Ego *ego,
 	     void **ctx,
@@ -98,7 +98,7 @@ identity_cb (void *cls,
     GNUNET_IDENTITY_ego_lookup_cancel (el);
     return;
   }
-  if (NULL == ego) 
+  if (NULL == ego)
   {
     /* not found */
     el->cb (el->cb_cls,

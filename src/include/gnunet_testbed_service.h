@@ -1108,7 +1108,7 @@ GNUNET_TESTBED_overlay_connect (void *op_cls,
  * @param nsuccess the number of successful overlay connects
  * @param nfailures the number of overlay connects which failed
  */
-typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls, 
+typedef void (*GNUNET_TESTBED_TopologyCompletionCallback) (void *cls,
                                                           unsigned int nsuccess,
                                                           unsigned int nfailures);
 
@@ -1277,7 +1277,7 @@ GNUNET_TESTBED_service_connect (void *op_cls,
  * cancels the operation, frees its resources and ensures the no event is
  * generated with respect to this operation. Note that however cancelling an
  * operation does NOT guarantee that the operation will be fully undone (or that
- * nothing ever happened). 
+ * nothing ever happened).
  *
  * This function MUST be called for every operation to fully remove the
  * operation from the operation queue.  After calling this function, if
@@ -1491,7 +1491,7 @@ enum GNUNET_TESTBED_BarrierStatus
    * Error status
    */
   GNUNET_TESTBED_BARRIERSTATUS_ERROR,
-  
+
 };
 
 
@@ -1518,7 +1518,7 @@ typedef void (*GNUNET_TESTBED_barrier_status_cb) (void *cls,
 
 /**
  * Initialise a barrier and call the given callback when the required percentage
- * of peers (quorum) reach the barrier.  
+ * of peers (quorum) reach the barrier.
  *
  * @param controller the handle to the controller
  * @param name identification name of the barrier

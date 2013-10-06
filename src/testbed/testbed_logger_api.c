@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_logger_api.c
  * @brief Client-side routines for communicating with the tesbted logger service
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -158,7 +158,7 @@ static void
 cancel_timeout_flush (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   GNUNET_SCHEDULER_cancel (h->timeout_flush_task);
-  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;  
+  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
 
@@ -310,7 +310,7 @@ dispatch_buffer (struct GNUNET_TESTBED_LOGGER_Handle *h)
   msg = GNUNET_realloc (h->buf, msize);
   h->buf = NULL;
   memmove (&msg[1], msg, h->bs);
-  h->bs = 0;    
+  h->bs = 0;
   msg->type = htons (GNUNET_MESSAGE_TYPE_TESTBED_LOGGER_MSG);
   msg->size = htons (msize);
   queue_message (h, msg);
@@ -329,7 +329,7 @@ GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h;
   struct GNUNET_CLIENT_Connection *client;
-  
+
   client = GNUNET_CLIENT_connect ("testbed-logger", cfg);
   if (NULL == client)
     return NULL;
@@ -374,7 +374,7 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h)
 void
 GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
                              const void *data, size_t size)
-{  
+{
   size_t fit_size;
 
   GNUNET_assert (0 != size);
@@ -445,7 +445,7 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
   h->cb = cb;
   h->cb_cls = cb_cls;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->timeout_flush_task);
-  h->timeout_flush_task = 
+  h->timeout_flush_task =
       GNUNET_SCHEDULER_add_delayed (timeout, &timeout_flush, h);
   if (NULL == h->buf)
   {

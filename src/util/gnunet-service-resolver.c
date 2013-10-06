@@ -213,7 +213,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   next = cache_head;
   while ( (NULL != (pos = next)) &&
 	  ( (pos->af != af) ||
-	    (pos->ip_len != ip_len) || 
+	    (pos->ip_len != ip_len) ||
 	    (0 != memcmp (pos->ip, ip, ip_len))) )
   {
     next = pos->next;
@@ -323,7 +323,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
     default:
       /* unsupported, skip */
       break;
-    }     
+    }
     pos = pos->ai_next;
   }
   freeaddrinfo (result);
@@ -364,15 +364,15 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   {
   case AF_INET:
     GNUNET_assert (hp->h_length == sizeof (struct in_addr));
-    GNUNET_SERVER_transmit_context_append_data (tc, 
-						hp->h_addr_list[0], 
+    GNUNET_SERVER_transmit_context_append_data (tc,
+						hp->h_addr_list[0],
 						hp->h_length,
                                                 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
     break;
   case AF_INET6:
     GNUNET_assert (hp->h_length == sizeof (struct in6_addr));
-    GNUNET_SERVER_transmit_context_append_data (tc, 
-						hp->h_addr_list[0], 
+    GNUNET_SERVER_transmit_context_append_data (tc,
+						hp->h_addr_list[0],
 						hp->h_length,
                                                 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
     break;
@@ -406,7 +406,7 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
     return GNUNET_SYSERR;
   }
   GNUNET_assert (hp->h_length == sizeof (struct in_addr));
-  GNUNET_SERVER_transmit_context_append_data (tc, 
+  GNUNET_SERVER_transmit_context_append_data (tc,
 					      hp->h_addr_list[0],
 					      hp->h_length,
                                               GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
@@ -482,7 +482,7 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   {
     /* IP from hostname */
     const char *hostname;
-  
+
     hostname = (const char *) &msg[1];
     if (hostname[size - 1] != '\0')
     {
@@ -521,12 +521,12 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   }
   {
     char buf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Resolver asked to look up IP address `%s'.\n", 
+		"Resolver asked to look up IP address `%s'.\n",
 		inet_ntop (af, ip, buf, sizeof (buf)));
   }
-  get_ip_as_string (client, af, ip);  
+  get_ip_as_string (client, af, ip);
 }
 
 

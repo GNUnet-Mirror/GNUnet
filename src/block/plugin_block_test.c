@@ -116,7 +116,7 @@ block_plugin_test_get_key (void *cls, enum GNUNET_BLOCK_Type type,
  * Entry point for the plugin.
  *
  * @param cls NULL
- * @return the exported block API 
+ * @return the exported block API
  */
 void *
 libgnunet_plugin_block_test_init (void *cls)

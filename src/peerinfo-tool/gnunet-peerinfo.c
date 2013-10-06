@@ -62,7 +62,7 @@ struct AddressRecord
    * Printable address.
    */
   char *result;
-  
+
   /**
    * Print context this address record belongs to.
    */
@@ -90,7 +90,7 @@ struct PrintContext
    * Identity of the peer.
    */
   struct GNUNET_PeerIdentity peer;
-  
+
   /**
    * List of printable addresses.
    */
@@ -140,7 +140,7 @@ static int include_friend_only;
 static int get_self;
 
 /**
- * Option 
+ * Option
  */
 static int get_uri;
 
@@ -155,7 +155,7 @@ static int default_operation;
 static int get_info;
 
 /**
- * Option 
+ * Option
  */
 static char *put_uri;
 
@@ -248,7 +248,7 @@ dump_pc (struct PrintContext *pc)
   GNUNET_free (pc);
   if ( (NULL == pc_head) &&
        (NULL == pic) )
-    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);  
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
 
@@ -330,7 +330,7 @@ print_address (void *cls, const struct GNUNET_HELLO_Address *address,
  * Currently prints the GNUNET_PeerIdentity and the transport address.
  *
  * @param cls the 'struct PrintContext'
- * @param peer identity of the peer 
+ * @param peer identity of the peer
  * @param hello addresses of the peer
  * @param err_msg error message
  */
@@ -346,7 +346,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
     pic = NULL; /* end of iteration */
     if (NULL != err_msg)
     {
-      FPRINTF (stderr, 
+      FPRINTF (stderr,
 	       _("Error in communication with PEERINFO service: %s\n"),
 	       err_msg);
     }
@@ -366,13 +366,13 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   pc = GNUNET_malloc (sizeof (struct PrintContext));
   GNUNET_CONTAINER_DLL_insert (pc_head,
-			       pc_tail, 
+			       pc_tail,
 			       pc);
   pc->peer = *peer;
   pc->friend_only = friend_only;
-  GNUNET_HELLO_iterate_addresses (hello, 
-				  GNUNET_NO, 
-				  &count_address, 
+  GNUNET_HELLO_iterate_addresses (hello,
+				  GNUNET_NO,
+				  &count_address,
 				  pc);
   if (0 == pc->off)
   {
@@ -381,7 +381,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   pc->address_list_size = pc->off;
   pc->address_list = GNUNET_malloc (sizeof (struct AddressRecord) * pc->off);
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, 
+  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
 				  &print_address, pc);
 }
 
@@ -479,7 +479,7 @@ dump_my_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static void
 print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
-              const struct GNUNET_HELLO_Message *hello, 
+              const struct GNUNET_HELLO_Message *hello,
 	      const char *err_msg)
 {
   if (peer == NULL)
@@ -487,7 +487,7 @@ print_my_uri (void *cls, const struct GNUNET_PeerIdentity *peer,
     pic = NULL;
     if (err_msg != NULL)
       FPRINTF (stderr,
-	       _("Error in communication with PEERINFO service: %s\n"), 
+	       _("Error in communication with PEERINFO service: %s\n"),
 	       err_msg);
     tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     return;
@@ -526,7 +526,7 @@ add_continuation (void *cls,
 
 
 /**
- * Parse the PUT URI given at the command line and add it to our peerinfo 
+ * Parse the PUT URI given at the command line and add it to our peerinfo
  * database.
  *
  * @param put_uri URI string to parse
@@ -537,7 +537,7 @@ parse_hello_uri (const char *put_uri)
 {
   struct GNUNET_HELLO_Message *hello = NULL;
 
-  int ret = GNUNET_HELLO_parse_uri(put_uri, &my_peer_identity.public_key, 
+  int ret = GNUNET_HELLO_parse_uri(put_uri, &my_peer_identity.public_key,
 				   &hello, &GPI_plugins_find);
 
   if (NULL != hello) {
@@ -639,10 +639,10 @@ run (void *cls, char *const *args, const char *cfgfile,
     put_uri = GNUNET_strdup (args[0]);
     args++;
   }
-  if (NULL != args[0]) 
+  if (NULL != args[0])
   {
-    FPRINTF (stderr, 
-	     _("Invalid command line argument `%s'\n"), 
+    FPRINTF (stderr,
+	     _("Invalid command line argument `%s'\n"),
 	     args[0]);
     return;
   }
@@ -669,7 +669,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv, 
+    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv,
 						    &my_peer_identity.public_key);
     GNUNET_free (priv);
   }
@@ -719,7 +719,7 @@ state_machine (void *cls,
   {
     get_self = GNUNET_NO;
     if (be_quiet)
-      printf ("%s\n", 
+      printf ("%s\n",
 	      GNUNET_i2s_full (&my_peer_identity));
     else
       printf (_("I am peer `%s'.\n"),

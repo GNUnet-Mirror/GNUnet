@@ -374,10 +374,10 @@ check (void *cls, char *const *args, const char *cfgfile,
 					 (GLP_YES == full_lp_presolv) ? "YES" : "NO",
 					 (GNUNET_OK == full_mip_presolv) ? "YES" : "NO",
 					 (unsigned long long) full_build_dur.rel_value_us,
-					 (unsigned long long) full_lp_dur.rel_value_us, 
+					 (unsigned long long) full_lp_dur.rel_value_us,
 					 (unsigned long long) full_mip_dur.rel_value_us);
 				if ((0 < opt_update_quantity) || (0 < opt_update_percent))
-				  fprintf (stderr, 
+				  fprintf (stderr,
 					   "Update: %03u peers each %02u addresses; rebuild: LP/MIP state [%3s/%3s] presolv [%3s/%3s], (build/LP/MIP in us) %04llu / %04llu / %04llu\n",
 					   cp + 1, ca,
 					   (GNUNET_OK == update_lp_res) ? "OK" : "FAIL",
@@ -385,31 +385,31 @@ check (void *cls, char *const *args, const char *cfgfile,
 					   (GLP_YES == update_lp_presolv) ? "YES" : "NO",
 					   (GNUNET_OK == update_mip_presolv) ? "YES" : "NO",
 					   (unsigned long long) update_build_dur.rel_value_us,
-					   (unsigned long long) update_lp_dur.rel_value_us, 
+					   (unsigned long long) update_lp_dur.rel_value_us,
 					   (unsigned long long) update_mip_dur.rel_value_us);
 				}
 				else
 				{
-				  fprintf (stderr, 
+				  fprintf (stderr,
 					   "Rebuild;%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu\n",
 					   cp + 1, ca,
 					   (GNUNET_OK == full_lp_res) ? "OK" : "FAIL",
 					   (GNUNET_OK == full_mip_res) ? "OK" : "FAIL",
 					   (GLP_YES == full_lp_presolv) ? "YES" : "NO",
 					   (GNUNET_OK == full_mip_presolv) ? "YES" : "NO",
-					   (unsigned long long) full_build_dur.rel_value_us, 
-					   (unsigned long long) full_lp_dur.rel_value_us, 
+					   (unsigned long long) full_build_dur.rel_value_us,
+					   (unsigned long long) full_lp_dur.rel_value_us,
 					   (unsigned long long) full_mip_dur.rel_value_us);
 				  if ((0 < opt_update_quantity) || (0 < opt_update_percent))
-				    fprintf (stderr, 
+				    fprintf (stderr,
 					     "Update;%u;%u;%s;%s;%s;%s;%04llu;%04llu;%04llu\n",
 					     cp + 1, ca,
 					     (GNUNET_OK == update_lp_res) ? "OK" : "FAIL",
 					     (GNUNET_OK == update_mip_res) ? "OK" : "FAIL",
 					     (GLP_YES == update_lp_presolv) ? "YES" : "NO",
 					     (GNUNET_OK == update_mip_presolv) ? "YES" : "NO",
-					     (unsigned long long) update_build_dur.rel_value_us, 
-					     (unsigned long long) update_lp_dur.rel_value_us, 
+					     (unsigned long long) update_build_dur.rel_value_us,
+					     (unsigned long long) update_lp_dur.rel_value_us,
 					     (unsigned long long) update_mip_dur.rel_value_us);
 				}
 			}

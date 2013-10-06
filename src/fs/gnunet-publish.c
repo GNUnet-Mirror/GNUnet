@@ -169,7 +169,7 @@ do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_CONTAINER_meta_data_destroy (meta);
     meta = NULL;
-  }  
+  }
 }
 
 
@@ -187,7 +187,7 @@ stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_FS_directory_scan_abort (ds);
     ds = NULL;
-  } 
+  }
   if (NULL != identity)
   {
     GNUNET_IDENTITY_disconnect (identity);
@@ -477,7 +477,7 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
   if (GNUNET_YES == item->is_directory)
   {
     GNUNET_CONTAINER_meta_data_delete (item->meta,
-				       EXTRACTOR_METATYPE_MIMETYPE, 
+				       EXTRACTOR_METATYPE_MIMETYPE,
 				       NULL, 0);
     GNUNET_FS_meta_data_make_directory (item->meta);
     if (NULL == item->ksk_uri)
@@ -488,9 +488,9 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
     else
       GNUNET_FS_uri_ksk_add_keyword (item->ksk_uri, GNUNET_FS_DIRECTORY_MIME,
 				     GNUNET_NO);
-    fi = GNUNET_FS_file_information_create_empty_directory (ctx, NULL, 
+    fi = GNUNET_FS_file_information_create_empty_directory (ctx, NULL,
 							    item->ksk_uri,
-							    item->meta, 
+							    item->meta,
 							    &bo, item->filename);
     for (child = item->children_head; child; child = child->next)
     {
@@ -500,9 +500,9 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
   }
   else
   {
-    fi = GNUNET_FS_file_information_create_from_file (ctx, NULL, 
+    fi = GNUNET_FS_file_information_create_from_file (ctx, NULL,
 						      item->filename,
-						      item->ksk_uri, item->meta, 
+						      item->ksk_uri, item->meta,
 						      !do_insert,
 						      &bo);
   }
@@ -542,7 +542,7 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
     priv = NULL;
   else
     priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
-  pc = GNUNET_FS_publish_start (ctx, fi, 
+  pc = GNUNET_FS_publish_start (ctx, fi,
 				priv, this_id, next_id,
                                 (do_simulate) ?
                                 GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY :
@@ -569,8 +569,8 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
  * @param reason kind of progress we are making
  */
 static void
-directory_scan_cb (void *cls, 
-		   const char *filename, 
+directory_scan_cb (void *cls,
+		   const char *filename,
 		   int is_directory,
 		   enum GNUNET_FS_DirScannerProgressUpdateReason reason)
 {
@@ -584,21 +584,21 @@ directory_scan_cb (void *cls,
       if (is_directory == GNUNET_YES)
 	FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
       else
-	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);      
+	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);
     }
     break;
   case GNUNET_FS_DIRSCANNER_FILE_IGNORED:
-    FPRINTF (stderr, 
+    FPRINTF (stderr,
 	     _("There was trouble processing file `%s', skipping it.\n"),
 	     filename);
     break;
   case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
     if (verbose)
-      FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));      
+      FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));
     break;
   case GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED:
     if (verbose > 2)
-      FPRINTF (stdout, _("Extracting meta data from file `%s' complete.\n"), filename);      
+      FPRINTF (stdout, _("Extracting meta data from file `%s' complete.\n"), filename);
     break;
   case GNUNET_FS_DIRSCANNER_FINISHED:
     if (verbose > 1)
@@ -630,7 +630,7 @@ directory_scan_cb (void *cls,
  * has been initialized.
  *
  * @param args0 filename to publish
- */ 
+ */
 static void
 identity_continuation (const char *args0)
 {
@@ -673,8 +673,8 @@ identity_continuation (const char *args0)
     return;
   }
   ds = GNUNET_FS_directory_scan_start (args0,
-				       disable_extractor, 
-				       ex, 
+				       disable_extractor,
+				       ex,
 				       &directory_scan_cb, NULL);
   if (NULL == ds)
   {
@@ -706,7 +706,7 @@ identity_cb (void *cls,
 {
   const char *args0 = cls;
 
-  if (NULL == ego) 
+  if (NULL == ego)
   {
     identity_continuation (args0);
     return;

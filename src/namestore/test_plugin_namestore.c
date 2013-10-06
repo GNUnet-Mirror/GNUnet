@@ -79,7 +79,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
-static void 
+static void
 test_record (void *cls,
 						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
 						 const char *label,
@@ -134,7 +134,7 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
     rd[i].data_size = id % 10;
     rd[i].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES).abs_value_us;
     rd[i].record_type = 1 + (id % 13);
-    rd[i].flags = (id  % 7);    
+    rd[i].flags = (id  % 7);
   }
   memset (&zone_private_key, (id % 241), sizeof (zone_private_key));
   memset (&signature, (id % 243), sizeof (signature));
@@ -150,14 +150,14 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_NAMESTORE_PluginFunctions *nsp;  
-  
+  struct GNUNET_NAMESTORE_PluginFunctions *nsp;
+
   ok = 0;
   nsp = load_plugin (cfg);
   if (NULL == nsp)
   {
     FPRINTF (stderr,
-             "%s", 
+             "%s",
 	     "Failed to initialize namestore.  Database likely not setup, skipping test.\n");
     return;
   }

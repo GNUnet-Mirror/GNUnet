@@ -42,10 +42,10 @@ struct GNUNET_ARM_StatusMessage
 {
 
   /**
-   * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_STATUS. 
+   * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_STATUS.
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * Status from the 'enum GNUNET_ARM_ServiceStatus'
    */
@@ -58,12 +58,12 @@ struct GNUNET_ARM_Message
 {
   /**
    * Reply to client, type is GNUNET_MESSAGE_TYPE_ARM_RESULT or
-   * GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT. 
+   * GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
    * OR
    * Request from client, type is GNUNET_MESSAGE_TYPE_ARM_REQUEST
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * ID of a request that is being replied to.
    * OR
@@ -85,7 +85,7 @@ struct GNUNET_ARM_ResultMessage
    * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_RESULT, with an ID.
    */
   struct GNUNET_ARM_Message arm_msg;
-  
+
   /**
    * Result from the 'enum GNUNET_ARM_Result'
    */
@@ -93,8 +93,8 @@ struct GNUNET_ARM_ResultMessage
 };
 
 /**
- * Reply from ARM to client for the 
- * GNUNET_MESSAGE_TYPE_ARM_LIST request followed by count 
+ * Reply from ARM to client for the
+ * GNUNET_MESSAGE_TYPE_ARM_LIST request followed by count
  * '\0' terminated strings. header->size contains the
  * total size (including all strings).
  */

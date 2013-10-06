@@ -84,7 +84,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   socklen_t salen;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
-  
+
   if (args[0] == NULL)
     return;
   if (! reverse)
@@ -92,7 +92,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_RESOLVER_ip_get (args[0], AF_UNSPEC, GET_TIMEOUT, &print_sockaddr, NULL);
     return;
   }
-    
+
   sa = NULL;
   memset (&v4, 0, sizeof (v4));
   v4.sin_family = AF_INET;
@@ -120,7 +120,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (NULL == sa)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "`%s' is not a valid IP: %s\n",
 	     args[0],
 	     strerror (errno));

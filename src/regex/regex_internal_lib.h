@@ -170,13 +170,13 @@ struct REGEX_INTERNAL_Search;
 /**
  * Announce a regular expression: put all states of the automaton in the DHT.
  * Does not free resources, must call REGEX_INTERNAL_announce_cancel for that.
- * 
+ *
  * @param dht An existing and valid DHT service handle. CANNOT be NULL.
  * @param priv our private key, must remain valid until the announcement is cancelled
  * @param regex Regular expression to announce.
  * @param compression How many characters per edge can we squeeze?
  * @param stats Optional statistics handle to report usage. Can be NULL.
- * 
+ *
  * @return Handle to reuse o free cached resources.
  *         Must be freed by calling REGEX_INTERNAL_announce_cancel.
  */
@@ -191,7 +191,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
 /**
  * Announce again a regular expression previously announced.
  * Does use caching to speed up process.
- * 
+ *
  * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
  */
 void
@@ -201,7 +201,7 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h);
 /**
  * Clear all cached data used by a regex announce.
  * Does not close DHT connection.
- * 
+ *
  * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
  */
 void
@@ -236,7 +236,7 @@ typedef void (*REGEX_INTERNAL_Found)(void *cls,
  * @param callback Callback for found peers.
  * @param callback_cls Closure for @c callback.
  * @param stats Optional statistics handle to report usage. Can be NULL.
- * 
+ *
  * @return Handle to stop search and free resources.
  *         Must be freed by calling REGEX_INTERNAL_search_cancel.
  */
@@ -250,7 +250,7 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
 /**
  * Stop search and free all data used by a REGEX_INTERNAL_search call.
  * Does not close DHT connection.
- * 
+ *
  * @param h Handle returned by a previous REGEX_INTERNAL_search call.
  */
 void

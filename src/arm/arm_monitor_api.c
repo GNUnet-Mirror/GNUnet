@@ -167,7 +167,7 @@ init_timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure with the 'struct GNUNET_ARM_MonitorHandle'
  * @param size number of bytes available in buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf 
+ * @return number of bytes written to buf
  */
 static size_t
 transmit_monitoring_init_message (void *cls, size_t size, void *buf)

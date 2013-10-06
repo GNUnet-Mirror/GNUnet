@@ -258,7 +258,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

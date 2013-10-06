@@ -135,7 +135,7 @@ process_shorten_result(void* cls, const char* sname)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shorten test succeeded!\n");
     ok = 0;
   }
-  
+
   GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -205,7 +205,7 @@ void do_check (void *cls,
     end_badly_now ();
     return;
   }
-  
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "SHORTEN_ZONEKEY",
                                                             &shorten_keyfile))
@@ -215,7 +215,7 @@ void do_check (void *cls,
     end_badly_now ();
     return;
   }
-  
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
                                                             "PRIVATE_ZONEKEY",
                                                             &private_keyfile))
@@ -236,7 +236,7 @@ void do_check (void *cls,
 
   GNUNET_free(shorten_keyfile);
   GNUNET_free(private_keyfile);
-  
+
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (our_key, &our_pkey);
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (alice_key, &alice_pkey);
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (bob_key, &bob_pkey);
@@ -251,14 +251,14 @@ void do_check (void *cls,
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, web));
-  
+
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
   rd.flags = GNUNET_NAMESTORE_RF_NONE;
-  
+
   /* put bob into our zone */
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    our_key,
@@ -267,7 +267,7 @@ void do_check (void *cls,
 					    &rd,
 					    NULL,
 					    NULL);
-  
+
   /* put alice into bobs zone */
   GNUNET_CRYPTO_short_hash(&alice_pkey, sizeof(alice_pkey), &alice_hash);
   rd.data = &alice_hash;
@@ -305,7 +305,7 @@ void do_check (void *cls,
                                sig,
                                NULL,
                                NULL);
-  
+
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
@@ -336,7 +336,7 @@ main (int argc, char *argv[])
                     "WARNING",
                     NULL);
   GNUNET_TESTING_peer_run ("test-gns-simple-shorten",
-			   "test_gns_simple_lookup.conf", 
+			   "test_gns_simple_lookup.conf",
 			   &do_check, NULL);
   return ok;
 }

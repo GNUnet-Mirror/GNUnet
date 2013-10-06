@@ -811,7 +811,7 @@ GST_validation_start (unsigned int max_fds)
 	validations_fast_start_threshold = (max_fds / 2);
 	validations_running = 0;
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
-		    validations_fast_start_threshold, 
+		    validations_fast_start_threshold,
 		    GNUNET_STRINGS_relative_time_to_string (validation_delay,
 							    GNUNET_YES));
   validation_map = GNUNET_CONTAINER_multipeermap_create (VALIDATION_MAP_SIZE,
@@ -855,7 +855,7 @@ GST_validation_stop ()
  */
 static void
 multicast_pong (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicSignKey *public_key, 
+                const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
 		struct GNUNET_TIME_Absolute valid_until,
                 struct GNUNET_TIME_Absolute validation_block,
                 const struct GNUNET_HELLO_Address *address)
@@ -1075,7 +1075,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
   }
   pong->signature = *sig_cache;
-  
+
   GNUNET_assert (sender_address != NULL);
 
   /* first see if the session we got this PING from can be used to transmit

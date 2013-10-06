@@ -257,7 +257,7 @@ postgres_plugin_estimate_size (void *cls)
 /**
  * Store an item in the datastore.
  *
- * @param cls closure with the 'struct Plugin' 
+ * @param cls closure with the 'struct Plugin'
  * @param key key for the item
  * @param size number of bytes in data
  * @param data content stored
@@ -335,7 +335,7 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
  */
 static void
 process_result (struct Plugin *plugin, PluginDatumProcessor proc,
-                void *proc_cls, PGresult * res, 
+                void *proc_cls, PGresult * res,
 		const char *filename, int line)
 {
   int iret;
@@ -802,7 +802,7 @@ postgres_plugin_get_keys (void *cls,
     if (sizeof (struct GNUNET_HashCode) != PQgetlength (res, i, 0))
     {
       memcpy (&key, PQgetvalue (res, i, 0), sizeof (struct GNUNET_HashCode));
-      proc (proc_cls, &key, 1);    
+      proc (proc_cls, &key, 1);
     }
   }
   PQclear (res);
@@ -819,7 +819,7 @@ static void
 postgres_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
-  
+
   if (GNUNET_OK != GNUNET_POSTGRES_exec (plugin->dbh, "DROP TABLE gn090"))
     GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "postgres", _("Failed to drop table from database.\n"));
 }

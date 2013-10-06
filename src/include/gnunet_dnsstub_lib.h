@@ -31,12 +31,12 @@
 
 /**
  * Opaque handle to the stub resolver.
- */ 
+ */
 struct GNUNET_DNSSTUB_Context;
 
 /**
  * Opaque handle to a socket doing UDP requests.
- */ 
+ */
 struct GNUNET_DNSSTUB_RequestSocket;
 
 

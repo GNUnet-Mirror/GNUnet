@@ -142,7 +142,7 @@ struct GNUNET_DV_AckMessage
   /**
    * Type: GNUNET_MESSAGE_TYPE_DV_SEND_ACK or
    * GNUNET_MESSAGE_TYPE_DV_SEND_NACK.
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -166,7 +166,7 @@ struct GNUNET_DV_DistanceUpdateMessage
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED.
-   */ 
+   */
   struct GNUNET_MessageHeader header;
 
   /**

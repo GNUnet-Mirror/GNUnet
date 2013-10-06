@@ -50,8 +50,8 @@ main (int argc, char *argv[])
   msg[0].size = htons (sizeof (msg));
   msg[0].type = htons (sizeof (GNUNET_MESSAGE_TYPE_DUMMY));
   mst = GNUNET_SERVER_mst_create(mst_cb, NULL);
-  GNUNET_SERVER_mst_receive (mst, &id,  
-			     (const char *) &msg, 2 * sizeof (msg), 
+  GNUNET_SERVER_mst_receive (mst, &id,
+			     (const char *) &msg, 2 * sizeof (msg),
 			     GNUNET_NO, GNUNET_NO);
   /* If we reach this line, it did not crash */
   return 0;

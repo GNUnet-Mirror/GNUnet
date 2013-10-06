@@ -410,7 +410,7 @@ mktemp_name (const char *t)
     if (NULL == tmpdir)
       tmpdir = getenv ("TMP");
     if (NULL == tmpdir)
-      tmpdir = getenv ("TEMP");  
+      tmpdir = getenv ("TEMP");
     if (NULL == tmpdir)
       tmpdir = "/tmp";
     GNUNET_asprintf (&tmpl, "%s/%s%s", tmpdir, t, "XXXXXX");
@@ -522,7 +522,7 @@ GNUNET_DISK_file_backup (const char *fil)
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 			      "rename",
 			      fil);
-  GNUNET_free (target);  
+  GNUNET_free (target);
 }
 
 
@@ -795,7 +795,7 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
  * @return the number of bytes read on success, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, 
+GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
                        void *result,
                        size_t len)
 {
@@ -850,7 +850,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
  */
 ssize_t
 GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
-				    void *result, 
+				    void *result,
 				    size_t len)
 {
   if (NULL == h)
@@ -921,8 +921,8 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
  * @return number of bytes read, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_fn_read (const char *fn, 
-                     void *result, 
+GNUNET_DISK_fn_read (const char *fn,
+                     void *result,
                      size_t len)
 {
   struct GNUNET_DISK_FileHandle *fh;
@@ -1033,7 +1033,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
  */
 ssize_t
 GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
-                                 const void *buffer, 
+                                 const void *buffer,
                                  size_t n)
 {
   if (NULL == h)
@@ -1152,7 +1152,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   }
   if (!S_ISDIR (istat.st_mode))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, 
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Expected `%s' to be a directory!\n"),
          dir_name);
     GNUNET_free (dname);
@@ -1413,7 +1413,7 @@ GNUNET_DISK_directory_remove (const char *filename)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_copy (const char *src, 
+GNUNET_DISK_file_copy (const char *src,
                        const char *dst)
 {
   char *buf;
@@ -1684,7 +1684,7 @@ GNUNET_DISK_file_open (const char *fn,
     mode = translate_unix_perms (perm);
   }
 
-  fd = open (expfn, oflags 
+  fd = open (expfn, oflags
 #if O_CLOEXEC
 	     | O_CLOEXEC
 #endif

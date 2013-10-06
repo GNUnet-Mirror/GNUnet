@@ -122,12 +122,12 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
-  if (NULL == msg) 
+  if (NULL == msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Service shutdown complete.\n");
     if (shutdown_ctx->cont != NULL)
       shutdown_ctx->cont (shutdown_ctx->cont_cls, GNUNET_NO);
-    
+
     GNUNET_SCHEDULER_cancel (shutdown_ctx->cancel_task);
     GNUNET_CLIENT_disconnect (shutdown_ctx->sock);
     GNUNET_free (shutdown_ctx);
@@ -253,7 +253,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != cbData)
   {
     waitedFor = GNUNET_TIME_absolute_get_duration (startedWaitingAt);
-    LOG ("Waited for: %s\n", 
+    LOG ("Waited for: %s\n",
 	 GNUNET_STRINGS_relative_time_to_string (waitedFor, GNUNET_YES));
   }
   else
@@ -347,7 +347,7 @@ arm_start_cb (void *cls, enum GNUNET_ARM_RequestStatus status, const char *servi
   GNUNET_break (status == GNUNET_ARM_REQUEST_SENT_OK);
   GNUNET_break (result == GNUNET_ARM_RESULT_STARTING);
   GNUNET_break (phase == 0);
-  LOG ("Sent 'START' request for arm to ARM %s\n", 
+  LOG ("Sent 'START' request for arm to ARM %s\n",
        (status == GNUNET_ARM_REQUEST_SENT_OK) ? "successfully" : "unsuccessfully");
 }
 
@@ -431,7 +431,7 @@ init ()
     return GNUNET_SYSERR;
   GNUNET_assert (0 < GNUNET_asprintf (&binary, "%s/%s", pwd, BINARY));
   GNUNET_CONFIGURATION_set_value_string (cfg, SERVICE, "BINARY", binary);
-  GNUNET_free (binary);  
+  GNUNET_free (binary);
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, CFGFILENAME))
   {
     GNUNET_CONFIGURATION_destroy (cfg);

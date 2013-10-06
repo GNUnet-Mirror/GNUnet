@@ -86,7 +86,7 @@ enum AutoPhase
    * Last phase, we're done.
    */
   AUTO_DONE
-  
+
 };
 
 
@@ -105,12 +105,12 @@ struct GNUNET_NAT_AutoHandle
    * Function to call when done.
    */
   GNUNET_NAT_AutoResultCallback fin_cb;
-  
+
   /**
    * Closure for 'fin_cb'.
    */
   void *fin_cb_cls;
-  
+
   /**
    * Handle for active 'GNUNET_NAT_mini_get_external_ipv4'-operation.
    */
@@ -171,7 +171,7 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ah->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat",
 					 "ENABLE_ICMP_SERVER",
 					 "NO");
   next_phase (ah);
@@ -195,10 +195,10 @@ result_callback (void *cls, int success)
   GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      success 
+	      success
 	      ? _("NAT traversal with ICMP Server succeeded.\n")
 	      : _("NAT traversal with ICMP Server failed.\n"));
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_ICMP_SERVER", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_ICMP_SERVER",
 					 success ? "YES": "NO");
   next_phase (ah);
 }
@@ -352,7 +352,7 @@ nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
 
 
 /**
- * Determine our local IP addresses; detect internal IP & IPv6-support 
+ * Determine our local IP addresses; detect internal IP & IPv6-support
  *
  * @param ah auto setup context
  */
@@ -361,7 +361,7 @@ test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
   ah->have_v6 = GNUNET_NO;
   GNUNET_OS_network_interfaces_list (&nipo, ah);
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "DISABLEV6", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "DISABLEV6",
 					 (GNUNET_YES == ah->have_v6) ? "NO" : "YES");
   next_phase (ah);
 }
@@ -396,10 +396,10 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
   /* FIXME: test if upnpc is actually working, that is, if transports
      start to work once we use UPnP */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      (have_upnpc) 
+	      (have_upnpc)
 	      ? _("upnpc found, enabling its use\n")
 	      : _("upnpc not found\n"));
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_UPNP", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_UPNP",
 					 (GNUNET_YES == have_upnpc) ? "YES" : "NO");
   next_phase (ah);
 }
@@ -430,7 +430,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
   GNUNET_free_non_null (tmp);
   GNUNET_free (binary);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      (hns) 
+	      (hns)
 	      ? _("gnunet-helper-nat-server found, testing it\n")
 	      : _("No working gnunet-helper-nat-server found\n"));
   if (hns)
@@ -465,7 +465,7 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
   GNUNET_free_non_null (tmp);
   GNUNET_free (binary);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      (hnc) 
+	      (hnc)
 	      ? _("gnunet-helper-nat-client found, enabling it\n")
 	      : _("gnunet-helper-nat-client not found or behind NAT, disabling it\n"));
   next_phase (ah);
@@ -543,14 +543,14 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ah->initial_cfg = GNUNET_CONFIGURATION_dup (cfg);
 
   /* never use loopback addresses if user wanted autoconfiguration */
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", 
-					 "USE_LOCALADDR", 
+  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat",
+					 "USE_LOCALADDR",
 					 "NO");
   next_phase (ah);
   return ah;
 }
 
-			     
+			
 /**
  * Abort autoconfiguration.
  *

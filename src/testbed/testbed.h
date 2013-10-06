@@ -175,7 +175,7 @@ struct GNUNET_TESTBED_ControllerLinkRequest
  */
 struct GNUNET_TESTBED_ControllerLinkResponse
 {
-  
+
   /**
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT
    */
@@ -453,7 +453,7 @@ struct GNUNET_TESTBED_RemoteOverlayConnectMessage
   /**
    * To be followed by the HELLO message of A
    */
-  struct GNUNET_MessageHeader hello[0]; 
+  struct GNUNET_MessageHeader hello[0];
   // FIXME: we usually do not use this gcc-hack as some
   // compilers / tools really get messed up by it...
 
@@ -763,7 +763,7 @@ struct GNUNET_TESTBED_ManagePeerServiceMessage
    * set this to 1 to start the service; 0 to stop the service
    */
   uint8_t start;
-  
+
   /**
    * The NULL-terminated name of the service to start/stop follows here
    */
@@ -830,7 +830,7 @@ struct GNUNET_TESTBED_BarrierStatusMsg
    * Type is GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * status.  Use enumerated values of enum BarrierStatus
    */
@@ -840,7 +840,7 @@ struct GNUNET_TESTBED_BarrierStatusMsg
    * strlen of the barrier name
    */
   uint16_t name_len GNUNET_PACKED;
-  
+
   /**
    * the barrier name (NULL terminated) concatenated with an error message (NULL
    * terminated) if the status were to indicate an error

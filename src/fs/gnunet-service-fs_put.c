@@ -178,10 +178,10 @@ delay_dht_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        maybe 0 if no unique identifier is available
  */
 static void
-process_dht_put_content (void *cls, 
-			 const struct GNUNET_HashCode * key, 
+process_dht_put_content (void *cls,
+			 const struct GNUNET_HashCode * key,
 			 size_t size,
-                         const void *data, 
+                         const void *data,
 			 enum GNUNET_BLOCK_Type type,
                          uint32_t priority, uint32_t anonymity,
                          struct GNUNET_TIME_Absolute expiration, uint64_t uid)

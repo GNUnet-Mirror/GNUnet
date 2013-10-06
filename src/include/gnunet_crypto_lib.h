@@ -202,7 +202,7 @@ struct GNUNET_PeerIdentity
  * Public ECC key (always for NIST P-521) encoded in a format suitable
  * for network transmission and encryption (ECDH).
  */
-struct GNUNET_CRYPTO_EccPublicEncryptKey 
+struct GNUNET_CRYPTO_EccPublicEncryptKey
 {
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
@@ -397,7 +397,7 @@ GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessio
 ssize_t
 GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result);
 
 
@@ -415,7 +415,7 @@ GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
 ssize_t
 GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
-                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv, 
+                                 const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result);
 
 
@@ -446,8 +446,8 @@ GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationV
 void
 GNUNET_CRYPTO_symmetric_derive_iv_v (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                      const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                                     const void *salt, 
-                                     size_t salt_len, 
+                                     const void *salt,
+                                     size_t salt_len,
                                      va_list argp);
 
 
@@ -653,7 +653,7 @@ GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
  * @return Bit \a bit from hashcode \a code, -1 for invalid index
  */
 int
-GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code, 
+GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code,
 			    unsigned int bit);
 
 
@@ -865,7 +865,7 @@ GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPubli
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc, 
+GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc,
 					       size_t enclen,
 					       struct GNUNET_CRYPTO_EccPublicSignKey *pub);
 
@@ -890,7 +890,7 @@ GNUNET_CRYPTO_ecc_public_encrypt_key_to_string (const struct GNUNET_CRYPTO_EccPu
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_encrypt_key_from_string (const char *enc, 
+GNUNET_CRYPTO_ecc_public_encrypt_key_from_string (const char *enc,
 						  size_t enclen,
 						  struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
 
@@ -939,7 +939,7 @@ GNUNET_CRYPTO_ecc_key_create (void);
 
 /**
  * @ingroup crypto
- * Clear memory that was used to store a private key. 
+ * Clear memory that was used to store a private key.
  *
  * @param pk location of the key
  */

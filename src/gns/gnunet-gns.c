@@ -70,7 +70,7 @@ static int raw;
 static int rtype;
 
 /**
- * Handle to lookup request 
+ * Handle to lookup request
  */
 static struct GNUNET_GNS_LookupRequest *lookup_request;
 
@@ -144,13 +144,13 @@ process_lookup_result (void *cls, uint32_t rd_count,
   const char *typename;
   char* string_val;
 
-  lookup_request = NULL; 
-  if (!raw) 
+  lookup_request = NULL;
+  if (!raw)
   {
     if (0 == rd_count)
       printf ("No results.\n");
     else
-      printf ("%s:\n", 
+      printf ("%s:\n",
 	      name);
   }
   for (i=0; i<rd_count; i++)
@@ -171,11 +171,11 @@ process_lookup_result (void *cls, uint32_t rd_count,
       continue;
     }
     if (raw)
-      printf ("%s\n", 
+      printf ("%s\n",
 	      string_val);
     else
       printf ("Got `%s' record: %s\n",
-	      typename, 
+	      typename,
 	      string_val);
     GNUNET_free (string_val);
   }
@@ -201,13 +201,13 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
 
   if (NULL != lookup_name)
   {
-    lookup_request = GNUNET_GNS_lookup (gns, 
+    lookup_request = GNUNET_GNS_lookup (gns,
 					lookup_name,
 					pkey,
 					rtype,
 					GNUNET_NO, /* Use DHT */
 					shorten_key,
-					&process_lookup_result, 
+					&process_lookup_result,
 					lookup_name);
   }
   else
@@ -220,7 +220,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
 }
 
 
-/** 
+/**
  * Method called to with the ego we are to use for shortening
  * during the lookup.
  *
@@ -232,7 +232,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
-static void 
+static void
 identity_shorten_cb (void *cls,
 		     struct GNUNET_IDENTITY_Ego *ego,
 		     void **ctx,
@@ -276,21 +276,21 @@ lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
 }
 
 
-/** 
+/**
  * Method called to with the ego we are to use for the lookup,
  * when the ego is determined by a name.
  *
  * @param cls closure (NULL, unused)
  * @param ego ego handle, NULL if not found
  */
-static void 
+static void
 identity_zone_cb (void *cls,
 		  const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct GNUNET_CRYPTO_EccPublicSignKey pkey;
 
   el = NULL;
-  if (NULL == ego) 
+  if (NULL == ego)
   {
     fprintf (stderr,
 	     _("Ego for `%s' not found, cannot perform lookup.\n"),
@@ -307,7 +307,7 @@ identity_zone_cb (void *cls,
 }
 
 
-/** 
+/**
  * Method called to with the ego we are to use for the lookup,
  * when the ego is the one for the default master zone.
  *
@@ -319,7 +319,7 @@ identity_zone_cb (void *cls,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
-static void 
+static void
 identity_master_cb (void *cls,
 		    struct GNUNET_IDENTITY_Ego *ego,
 		    void **ctx,
@@ -328,7 +328,7 @@ identity_master_cb (void *cls,
   struct GNUNET_CRYPTO_EccPublicSignKey pkey;
 
   id_op = NULL;
-  if (NULL == ego) 
+  if (NULL == ego)
   {
     fprintf (stderr,
 	     _("Ego for `master-zone' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
@@ -372,7 +372,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 						  strlen (public_key),
 						  &pkey))
     {
-      fprintf (stderr, 
+      fprintf (stderr,
 	       _("Public key `%s' is not well-formed\n"),
 	       public_key);
       GNUNET_SCHEDULER_shutdown ();
@@ -383,7 +383,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (NULL != zone_ego_name)
   {
-    el = GNUNET_IDENTITY_ego_lookup (cfg, 
+    el = GNUNET_IDENTITY_ego_lookup (cfg,
 				     zone_ego_name,
 				     &identity_zone_cb,
 				     NULL);
@@ -447,7 +447,7 @@ main (int argc, char *const *argv)
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-gns",
-                           _("GNUnet GNS resolver tool"), 
+                           _("GNUnet GNS resolver tool"),
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);

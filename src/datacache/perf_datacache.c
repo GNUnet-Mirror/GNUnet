@@ -44,7 +44,7 @@ static const char *plugin_name;
 
 
 static int
-checkIt (void *cls, 
+checkIt (void *cls,
          const struct GNUNET_HashCode * key, size_t size, const char *data,
          enum GNUNET_BLOCK_Type type,
 	 struct GNUNET_TIME_Absolute exp,

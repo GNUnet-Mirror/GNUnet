@@ -40,14 +40,14 @@ static void
 do_speedup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static long long current_offset;
- 
+
   speedup_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   current_offset += delta.rel_value_us;
   GNUNET_TIME_set_offset (current_offset);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Speeding up execution time by %s\n", 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Speeding up execution time by %s\n",
        GNUNET_STRINGS_relative_time_to_string (delta, GNUNET_NO));
   speedup_task = GNUNET_SCHEDULER_add_delayed (interval, &do_speedup, NULL);
 }
@@ -95,7 +95,7 @@ GNUNET_SPEEDUP_stop_ ( )
     GNUNET_SCHEDULER_cancel (speedup_task);
     speedup_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if ( (0 != interval.rel_value_us) && 
+  if ( (0 != interval.rel_value_us) &&
        (0 != delta.rel_value_us) )
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Stopped execution speed up\n");

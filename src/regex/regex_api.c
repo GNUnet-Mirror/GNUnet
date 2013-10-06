@@ -40,11 +40,11 @@ struct GNUNET_REGEX_Announcement
    */
   struct GNUNET_CLIENT_Connection *client;
 
-  /** 
+  /**
    * Our configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Message we're sending to the service.
    */
@@ -55,7 +55,7 @@ struct GNUNET_REGEX_Announcement
 /**
  * We got a response (!?) or disconnect after asking regex
  * to do the announcement.  Retry.
- * 
+ *
  * @param cls the 'struct GNUNET_REGEX_Announcement' to retry
  * @param msg NULL on disconnect
  */
@@ -65,7 +65,7 @@ handle_a_reconnect (void *cls,
 
 
 /**
- * Try sending the announcement request to regex.  On 
+ * Try sending the announcement request to regex.  On
  * errors (i.e. regex died), try again.
  *
  * @param a the announcement to retry
@@ -87,7 +87,7 @@ retry_announcement (struct GNUNET_REGEX_Announcement *a)
 /**
  * We got a response (!?) or disconnect after asking regex
  * to do the announcement.  Retry.
- * 
+ *
  * @param cls the 'struct GNUNET_REGEX_Announcement' to retry
  * @param msg NULL on disconnect
  */
@@ -107,7 +107,7 @@ handle_a_reconnect (void *cls,
  * Announce the given peer under the given regular expression.  Does
  * not free resources, must call GNUNET_REGEX_announce_cancel for
  * that.
- * 
+ *
  * @param cfg configuration to use
  * @param regex Regular expression to announce.
  * @param refresh_delay after what delay should the announcement be repeated?
@@ -151,7 +151,7 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Stop announcing the regex specified by the given handle.
- * 
+ *
  * @param a handle returned by a previous GNUNET_REGEX_announce call.
  */
 void
@@ -172,11 +172,11 @@ struct GNUNET_REGEX_Search
    */
   struct GNUNET_CLIENT_Connection *client;
 
-  /** 
+  /**
    * Our configuration.
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
-  
+
   /**
    * Function to call with results.
    */
@@ -186,7 +186,7 @@ struct GNUNET_REGEX_Search
    * Closure for 'callback'.
    */
   void *callback_cls;
-  
+
   /**
    * Search message to transmit to the service.
    */
@@ -197,7 +197,7 @@ struct GNUNET_REGEX_Search
 /**
  * We got a response or disconnect after asking regex
  * to do the search.  Handle it.
- * 
+ *
  * @param cls the 'struct GNUNET_REGEX_Search' to retry
  * @param msg NULL on disconnect
  */
@@ -207,7 +207,7 @@ handle_search_response (void *cls,
 
 
 /**
- * Try sending the search request to regex.  On 
+ * Try sending the search request to regex.  On
  * errors (i.e. regex died), try again.
  *
  * @param s the search to retry
@@ -229,7 +229,7 @@ retry_search (struct GNUNET_REGEX_Search *s)
 /**
  * We got a response or disconnect after asking regex
  * to do the search.  Handle it.
- * 
+ *
  * @param cls the 'struct GNUNET_REGEX_Search' to retry
  * @param msg NULL on disconnect, otherwise presumably a response
  */
@@ -257,7 +257,7 @@ handle_search_response (void *cls,
     result = (const struct ResultMessage *) msg;
     gpl = ntohs (result->get_path_length);
     ppl = ntohs (result->put_path_length);
-    if (size == (sizeof (struct ResultMessage) + 
+    if (size == (sizeof (struct ResultMessage) +
 		 (gpl + ppl) * sizeof (struct GNUNET_PeerIdentity)))
     {
       const struct GNUNET_PeerIdentity *pid;
@@ -269,7 +269,7 @@ handle_search_response (void *cls,
       s->callback (s->callback_cls,
 		   pid,
 		   &pid[1], gpl,
-		   &pid[1 + gpl], ppl);		   
+		   &pid[1 + gpl], ppl);		
       return;
     }
   }
@@ -323,7 +323,7 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Stop search and free all data used by a GNUNET_REGEX_search call.
- * 
+ *
  * @param s Handle returned by a previous GNUNET_REGEX_search call.
  */
 void

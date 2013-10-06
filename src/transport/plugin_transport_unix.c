@@ -452,7 +452,7 @@ struct LookupCtx
  * @param value a session
  * @return GNUNET_YES if not found (continue looking), GNUNET_NO on success
  */
-static int 
+static int
 lookup_session_it (void *cls,
 		   const struct GNUNET_PeerIdentity * key,
 		   void *value)
@@ -486,8 +486,8 @@ lookup_session_it (void *cls,
  * @return NULL if session was not found
  */
 static struct Session *
-lookup_session (struct Plugin *plugin, 
-		const struct GNUNET_PeerIdentity *sender, 
+lookup_session (struct Plugin *plugin,
+		const struct GNUNET_PeerIdentity *sender,
 		const struct UnixAddress *ua, size_t ua_len)
 {
   struct LookupCtx lctx;
@@ -498,7 +498,7 @@ lookup_session (struct Plugin *plugin,
   lctx.s = NULL;
   lctx.ua = ua;
   lctx.ua_len = ua_len;
-  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map, 
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
 					      sender,
 					      &lookup_session_it, &lctx);
   return lctx.s;
@@ -520,9 +520,9 @@ disconnect_session (struct Session *s)
   struct UNIXMessageWrapper *next;
   int removed;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session for peer `%s' `%s'\n",
-       GNUNET_i2s (&s->target), 
+       GNUNET_i2s (&s->target),
        s->addr);
   plugin->env->session_end (plugin->env->cls, &s->target, s);
   removed = GNUNET_NO;
@@ -539,11 +539,11 @@ disconnect_session (struct Session *s)
                   msgw->payload, 0);
     GNUNET_free (msgw->msg);
     GNUNET_free (msgw);
-    removed = GNUNET_YES;    
+    removed = GNUNET_YES;
   }
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (plugin->session_map, 
-						       &s->target, 
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->session_map,
+						       &s->target,
 						       s));
   GNUNET_STATISTICS_set (plugin->env->stats,
 			 "# UNIX sessions active",
@@ -671,7 +671,7 @@ resend:
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "UNIX transmit %u-byte message to %s (%d: %s)\n",
-       (unsigned int) msgbuf_size, 
+       (unsigned int) msgbuf_size,
        GNUNET_a2s ((const struct sockaddr *)un, un_len),
        (int) sent,
        (sent < 0) ? STRERROR (errno) : "ok");
@@ -684,7 +684,7 @@ resend:
  * Closure for 'get_session_it'.
  */
 struct GetSessionIteratorContext
-{ 
+{
   /**
    * Location to store the session, if found.
    */
@@ -711,8 +711,8 @@ struct GetSessionIteratorContext
  * @return GNUNET_YES if not found (continue looking), GNUNET_NO on success
  */
 static int
-get_session_it (void *cls, 
-		const struct GNUNET_PeerIdentity *key, 
+get_session_it (void *cls,
+		const struct GNUNET_PeerIdentity *key,
 		void *value)
 {
   struct GetSessionIteratorContext *gsi = cls;
@@ -735,11 +735,11 @@ get_session_it (void *cls,
  * @param tc scheduler context
  */
 static void
-session_timeout (void *cls, 
+session_timeout (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *s = cls;
-  
+
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p was idle for %s, disconnecting\n",
@@ -758,7 +758,7 @@ session_timeout (void *cls,
  * @return the network type in HBO or GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-unix_get_network (void *cls, 
+unix_get_network (void *cls,
 		  struct Session *session)
 {
   GNUNET_assert (NULL != session);
@@ -818,12 +818,12 @@ unix_plugin_get_session (void *cls,
   gsi.address = (const char *) address->address;
   gsi.addrlen = address->address_length;
   gsi.res = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map, 
-					      &address->peer, 
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
+					      &address->peer,
 					      &get_session_it, &gsi);
   if (NULL != gsi.res)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Found existing session\n");
     return gsi.res;
   }
@@ -893,23 +893,23 @@ unix_plugin_send (void *cls,
   struct UNIXMessageWrapper *wrapper;
   struct UNIXMessage *message;
   int ssize;
-  
+
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != session);
 
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CONTAINER_multipeermap_contains_value (plugin->session_map,
 						    &session->target,
 						    session))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, 
+    LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Invalid session for peer `%s' `%s'\n",
 	 GNUNET_i2s (&session->target),
 	 (const char *) session->addr);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending %u bytes with session for peer `%s' `%s'\n",
        msgbuf_size,
        GNUNET_i2s (&session->target),
@@ -931,13 +931,13 @@ unix_plugin_send (void *cls,
   wrapper->cont = cont;
   wrapper->cont_cls = cont_cls;
   wrapper->session = session;
-  GNUNET_CONTAINER_DLL_insert (plugin->msg_head, 
+  GNUNET_CONTAINER_DLL_insert (plugin->msg_head,
 			       plugin->msg_tail,
 			       wrapper);
   plugin->bytes_in_queue += ssize;
   GNUNET_STATISTICS_set (plugin->env->stats,
 			 "# bytes currently in UNIX buffers",
-			 plugin->bytes_in_queue, 
+			 plugin->bytes_in_queue,
 			 GNUNET_NO);
   if (GNUNET_NO == plugin->with_ws)
     reschedule_select (plugin);
@@ -1101,25 +1101,25 @@ unix_plugin_select_write (struct Plugin *plugin)
       break; /* Message is ready for sending */
     /* Message has a timeout */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Timeout for message with %u bytes \n", 
+	 "Timeout for message with %u bytes \n",
 	 (unsigned int) msgw->msgsize);
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);
     plugin->bytes_in_queue -= msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats, 
+    GNUNET_STATISTICS_set (plugin->env->stats,
 			   "# bytes currently in UNIX buffers",
-			   plugin->bytes_in_queue, GNUNET_NO);    
+			   plugin->bytes_in_queue, GNUNET_NO);
     GNUNET_STATISTICS_update (plugin->env->stats,
 			      "# UNIX bytes discarded",
 			      msgw->msgsize,
 			      GNUNET_NO);
     if (NULL != msgw->cont)
       msgw->cont (msgw->cont_cls,
-		  &msgw->session->target, 
-		  GNUNET_SYSERR, 
-		  msgw->payload, 
-		  0);    
+		  &msgw->session->target,
+		  GNUNET_SYSERR,
+		  msgw->payload,
+		  0);
     GNUNET_free (msgw->msg);
-    GNUNET_free (msgw);  
+    GNUNET_free (msgw);
   }
   if (NULL == msgw)
     return; /* Nothing to send at the moment */
@@ -1153,7 +1153,7 @@ unix_plugin_select_write (struct Plugin *plugin)
 
     GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
     plugin->bytes_in_queue -= msgw->msgsize;
-    GNUNET_STATISTICS_set (plugin->env->stats, 
+    GNUNET_STATISTICS_set (plugin->env->stats,
 			   "# bytes currently in UNIX buffers",
 			   plugin->bytes_in_queue, GNUNET_NO);
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1167,9 +1167,9 @@ unix_plugin_select_write (struct Plugin *plugin)
   }
   /* successfully sent bytes */
   GNUNET_break (sent > 0);
-  GNUNET_CONTAINER_DLL_remove (plugin->msg_head, 
-			       plugin->msg_tail, 
-			       msgw); 
+  GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
+			       plugin->msg_tail,
+			       msgw);
   GNUNET_assert (plugin->bytes_in_queue >= msgw->msgsize);
   plugin->bytes_in_queue -= msgw->msgsize;
   GNUNET_STATISTICS_set (plugin->env->stats,
@@ -1179,12 +1179,12 @@ unix_plugin_select_write (struct Plugin *plugin)
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    "# bytes transmitted via UNIX",
 			    msgw->msgsize,
-			    GNUNET_NO);  
+			    GNUNET_NO);
   if (NULL != msgw->cont)
-    msgw->cont (msgw->cont_cls, &msgw->session->target, 
+    msgw->cont (msgw->cont_cls, &msgw->session->target,
 		GNUNET_OK,
-		msgw->payload, 
-		msgw->msgsize);  
+		msgw->payload,
+		msgw->msgsize);
   GNUNET_free (msgw->msg);
   GNUNET_free (msgw);
 }
@@ -1553,8 +1553,8 @@ reschedule_session_timeout (struct Session *s)
  * @return GNUNET_YES (always, continue to iterate)
  */
 static int
-get_session_delete_it (void *cls, 
-		       const struct GNUNET_PeerIdentity *key, 
+get_session_delete_it (void *cls,
+		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
   struct Session *s = value;
@@ -1572,14 +1572,14 @@ get_session_delete_it (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the operation failed
  */
 static void
-unix_disconnect (void *cls, 
+unix_disconnect (void *cls,
 		 const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
   GNUNET_assert (plugin != NULL);
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
-					      target, 
+					      target,
 					      &get_session_delete_it, plugin);
 }
 
@@ -1618,7 +1618,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   plugin = GNUNET_malloc (sizeof (struct Plugin));
   plugin->port = port;
   plugin->env = env;
-  GNUNET_asprintf (&plugin->unix_socket_path, 
+  GNUNET_asprintf (&plugin->unix_socket_path,
 		   "/tmp/unix-plugin-sock.%d",
                    plugin->port);
 

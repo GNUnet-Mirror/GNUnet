@@ -103,7 +103,7 @@ send_message (void *cls, size_t size, void *buf)
 
 
 static void
-init (void *cls, 
+init (void *cls,
       const struct GNUNET_PeerIdentity *my_identity)
 {
   if (NULL == my_identity)
@@ -152,7 +152,7 @@ run (void *cls,
   };
   core =
     GNUNET_CORE_connect (cfg, NULL, &init, &connect_cb, NULL, NULL,
-			 0, NULL, 0, handlers); 
+			 0, NULL, 0, handlers);
   die_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 300), &cleanup,

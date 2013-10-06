@@ -98,7 +98,7 @@ struct ClientLookupHandle
   struct GNS_ResolverHandle *lookup;
 
   /**
-   * request id 
+   * request id
    */
   uint32_t request_id;
 
@@ -199,7 +199,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shutting down!\n");
-  GNUNET_SERVER_notification_context_destroy (nc);  
+  GNUNET_SERVER_notification_context_destroy (nc);
   while (NULL != (clh = clh_head))
   {
     GNUNET_SERVER_client_set_user_context (clh->client, NULL);
@@ -266,7 +266,7 @@ publish_zone_dht_next (void *cls,
  * @param tc task context
  */
 static void
-publish_zone_dht_start (void *cls, 
+publish_zone_dht_start (void *cls,
 			const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -280,10 +280,10 @@ static void
 dht_put_continuation (void *cls,
 		      int success)
 {
-  struct GNUNET_TIME_Relative next_put_interval; 
+  struct GNUNET_TIME_Relative next_put_interval;
 
   active_put = NULL;
-  num_public_records++;  
+  num_public_records++;
   if ( (num_public_records > last_num_public_records) &&
        (GNUNET_NO == first_zone_iteration) )
   {
@@ -300,7 +300,7 @@ dht_put_continuation (void *cls,
   GNUNET_STATISTICS_set (statistics,
 			 "Current zone iteration interval (ms)",
 			 next_put_interval.rel_value_us / 1000LL,
-			 GNUNET_NO); 
+			 GNUNET_NO);
   zone_publish_task = GNUNET_SCHEDULER_add_delayed (next_put_interval,
 						    &publish_zone_dht_next,
 						    NULL);
@@ -322,10 +322,10 @@ put_gns_record (void *cls,
                 const char *name,
                 unsigned int rd_count,
                 const struct GNUNET_NAMESTORE_RecordData *rd)
-{  
+{
   struct GNUNET_NAMESTORE_Block *block;
   struct GNUNET_HashCode query;
-  struct GNUNET_TIME_Absolute expire; 
+  struct GNUNET_TIME_Absolute expire;
   struct GNUNET_TIME_Absolute now;
   size_t block_size;
   struct GNUNET_NAMESTORE_RecordData rd_public[rd_count];
@@ -365,8 +365,8 @@ put_gns_record (void *cls,
                            put_interval.rel_value_us / 1000LL,
                            GNUNET_NO);
     GNUNET_STATISTICS_update (statistics,
-                              "Number of zone iterations", 
-			      1, 
+                              "Number of zone iterations",
+			      1,
 			      GNUNET_NO);
     GNUNET_STATISTICS_set (statistics,
                            "Number of public records in DHT",
@@ -377,7 +377,7 @@ put_gns_record (void *cls,
 							&publish_zone_dht_start,
 							NULL);
     else
-      zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start, 
+      zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
 						    NULL);
     return;
   }
@@ -413,8 +413,8 @@ put_gns_record (void *cls,
 					 name,
 					 rd_public,
 					 rd_public_count);
-  block_size = ntohl (block->purpose.size) 
-    + sizeof (struct GNUNET_CRYPTO_EccSignature) 
+  block_size = ntohl (block->purpose.size)
+    + sizeof (struct GNUNET_CRYPTO_EccSignature)
     + sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
   GNUNET_NAMESTORE_query_from_private_key (key,
 					   name,
@@ -429,7 +429,7 @@ put_gns_record (void *cls,
 			       expire,
 			       DHT_OPERATION_TIMEOUT,
 			       &dht_put_continuation,
-			       NULL); 
+			       NULL);
   if (NULL == active_put)
   {
     GNUNET_break (0);
@@ -446,13 +446,13 @@ put_gns_record (void *cls,
  * @param tc task context
  */
 static void
-publish_zone_dht_start (void *cls, 
+publish_zone_dht_start (void *cls,
 			const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   zone_publish_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Scheduling DHT zone update!\n");  
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Scheduling DHT zone update!\n");
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
@@ -480,21 +480,21 @@ send_lookup_response (void* cls,
   struct ClientLookupHandle *clh = cls;
   struct GNUNET_GNS_ClientLookupResultMessage *rmsg;
   size_t len;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message with %d results\n",
-              "LOOKUP_RESULT", 
+              "LOOKUP_RESULT",
 	      rd_count);
-  
+
   len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
-  rmsg = GNUNET_malloc (len + sizeof (struct GNUNET_GNS_ClientLookupResultMessage)); 
+  rmsg = GNUNET_malloc (len + sizeof (struct GNUNET_GNS_ClientLookupResultMessage));
   rmsg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->header.size = htons (len + sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
   rmsg->id = clh->request_id;
-  rmsg->rd_count = htonl (rd_count); 
-  GNUNET_NAMESTORE_records_serialize (rd_count, rd, len, 
+  rmsg->rd_count = htonl (rd_count);
+  GNUNET_NAMESTORE_records_serialize (rd_count, rd, len,
 				      (char*) &rmsg[1]);
-  GNUNET_SERVER_notification_context_unicast (nc, 
+  GNUNET_SERVER_notification_context_unicast (nc,
 					      clh->client,
 					      &rmsg->header,
 					      GNUNET_NO);
@@ -503,11 +503,11 @@ send_lookup_response (void* cls,
   GNUNET_SERVER_client_set_user_context (clh->client, NULL);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
-                            "Completed lookups", 1, 
+                            "Completed lookups", 1,
 			    GNUNET_NO);
   GNUNET_STATISTICS_update (statistics,
-			    "Records resolved", 
-			    rd_count, 
+			    "Records resolved",
+			    rd_count,
 			    GNUNET_NO);
 }
 
@@ -531,9 +531,9 @@ handle_lookup (void *cls,
   const struct GNUNET_CRYPTO_EccPrivateKey *key;
   uint16_t msg_size;
   const struct GNUNET_GNS_ClientLookupMessage *sh_msg;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received `%s' message\n", 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received `%s' message\n",
 	      "LOOKUP");
   msg_size = ntohs (message->size);
   if (msg_size < sizeof (struct GNUNET_GNS_ClientLookupMessage))
@@ -557,8 +557,8 @@ handle_lookup (void *cls,
     return;
   }
   GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK); 
-  
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+
   clh = GNUNET_new (struct ClientLookupHandle);
   GNUNET_SERVER_client_set_user_context (client, clh);
   GNUNET_CONTAINER_DLL_insert (clh_head, clh_tail, clh);
@@ -571,7 +571,7 @@ handle_lookup (void *cls,
 		"LOOKUP: Query for A record but AF_INET not supported!");
     send_lookup_response (clh, 0, NULL);
     return;
-  }  
+  }
   if ( (GNUNET_DNSPARSER_TYPE_AAAA == ntohl (sh_msg->type)) &&
        (GNUNET_OK != v6_enabled) )
   {
@@ -580,14 +580,14 @@ handle_lookup (void *cls,
     send_lookup_response (clh, 0, NULL);
     return;
   }
-  clh->lookup = GNS_resolver_lookup (&sh_msg->zone, 
+  clh->lookup = GNS_resolver_lookup (&sh_msg->zone,
 				     ntohl (sh_msg->type),
 				     name,
 				     key,
 				     ntohl (sh_msg->only_cached),
 				     &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
-                            "Lookup attempts", 
+                            "Lookup attempts",
 			    1, GNUNET_NO);
 }
 
@@ -645,7 +645,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  
+
   put_interval = INITIAL_PUT_INTERVAL;
   zone_publish_time_window = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
 
@@ -677,7 +677,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
-  
+
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (c, "gns", "DNS_ROOT",
 					     &dns_root_name))
@@ -688,7 +688,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 						  &dns_root))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-				 "gns", "DNS_ROOT", 
+				 "gns", "DNS_ROOT",
 				 _("valid public key required"));
       GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
       GNUNET_free (dns_root_name);
@@ -697,7 +697,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"DNS hijacking with root `%s' enabled. Connecting to DNS service.\n",
 		dns_root_name);
-    GNUNET_free (dns_root_name);    
+    GNUNET_free (dns_root_name);
     if (GNUNET_SYSERR ==
 	GNS_interceptor_init (&dns_root, c))
     {
@@ -705,21 +705,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       return;
     }
   }
-  GNS_resolver_init (namestore_handle, dht_handle, 
+  GNS_resolver_init (namestore_handle, dht_handle,
 		     c,
 		     max_parallel_bg_queries);
   GNS_shorten_init (namestore_handle, dht_handle);
   GNUNET_SERVER_disconnect_notify (server,
 				   &notify_client_disconnect,
 				   NULL);
-  /* Schedule periodic put for our records. */    
+  /* Schedule periodic put for our records. */
   first_zone_iteration = GNUNET_YES;
   GNUNET_SERVER_add_handlers (server, handlers);
   statistics = GNUNET_STATISTICS_create ("gns", c);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
-  zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start, 
+  zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
 						NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
 }
 

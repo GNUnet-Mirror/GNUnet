@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 
-/** 
+/**
  * @file multicast/multicast_api.c
  * @brief multicast service; establish tunnels to distant peers
  * @author Christian Grothoff
@@ -30,7 +30,7 @@
 #include "gnunet_multicast_service.h"
 #include "multicast.h"
 
-/** 
+/**
  * Handle for a request to send a message to all multicast group members
  * (from the origin).
  */
@@ -45,7 +45,7 @@ struct GNUNET_MULTICAST_OriginMessageHandle
 };
 
 
-/** 
+/**
  * Handle for the origin of a multicast group.
  */
 struct GNUNET_MULTICAST_Origin
@@ -65,7 +65,7 @@ struct GNUNET_MULTICAST_Origin
 };
 
 
-/** 
+/**
  * Handle for a message to be delivered from a member to the origin.
  */
 struct GNUNET_MULTICAST_MemberRequestHandle
@@ -73,7 +73,7 @@ struct GNUNET_MULTICAST_MemberRequestHandle
 };
 
 
-/** 
+/**
  * Opaque handle for a multicast group member.
  */
 struct GNUNET_MULTICAST_Member
@@ -83,12 +83,12 @@ struct GNUNET_MULTICAST_Member
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-/** 
+/**
  * Header of a request from a member to the origin.
  */
 struct GNUNET_MULTICAST_RequestHeader
 {
-  /** 
+  /**
    * Header for all requests from a member to the origin.
    */
   struct GNUNET_MessageHeader header;
@@ -98,29 +98,29 @@ struct GNUNET_MULTICAST_RequestHeader
    */
   struct GNUNET_CRYPTO_EccPublicSignKey member_key;
 
-  /** 
+  /**
    * ECC signature of the request fragment.
    *
    * Signature must match the public key of the multicast group.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
 
-  /** 
+  /**
    * Purpose for the signature and size of the signed data.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
-  /** 
+  /**
    * Number of the request fragment, monotonically increasing.
    */
   uint64_t fragment_id GNUNET_PACKED;
 
-  /** 
+  /**
    * Byte offset of this @e fragment of the @e request.
    */
   uint64_t fragment_offset GNUNET_PACKED;
 
-  /** 
+  /**
    * Number of the request this fragment belongs to.
    *
    * Set in GNUNET_MULTICAST_origin_to_all().
@@ -135,24 +135,24 @@ struct GNUNET_MULTICAST_RequestHeader
   /* Followed by request body. */
 };
 
-/** 
+/**
  * Header of a join request sent to the origin or another member.
  */
 struct GNUNET_MULTICAST_JoinRequest
 {
-  /** 
+  /**
    * Header for the join request.
    */
   struct GNUNET_MessageHeader header;
 
-  /** 
+  /**
    * ECC signature of the rest of the fields of the join request.
    *
    * Signature must match the public key of the joining member.
    */
   struct GNUNET_CRYPTO_EccSignature signature;
 
-  /** 
+  /**
    * Purpose for the signature and size of the signed data.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
@@ -178,7 +178,7 @@ struct GNUNET_MULTICAST_JoinRequest
 GNUNET_NETWORK_STRUCT_END
 
 
-/** 
+/**
  * Handle that identifies a join request.
  *
  * Used to match calls to #GNUNET_MULTICAST_JoinCallback to the
@@ -189,7 +189,7 @@ struct GNUNET_MULTICAST_JoinHandle
 };
 
 
-/** 
+/**
  * Function to call with the decision made for a join request.
  *
  * Must be called once and only once in response to an invocation of the
@@ -222,7 +222,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
 }
 
 
-/** 
+/**
  * Handle to pass back for the answer of a membership test.
  */
 struct GNUNET_MULTICAST_MembershipTestHandle
@@ -230,7 +230,7 @@ struct GNUNET_MULTICAST_MembershipTestHandle
 };
 
 
-/** 
+/**
  * Call informing multicast about the decision taken for a membership test.
  *
  * @param mth Handle that was given for the query.
@@ -244,7 +244,7 @@ GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestH
 }
 
 
-/** 
+/**
  * Opaque handle to a replay request from the multicast service.
  */
 struct GNUNET_MULTICAST_ReplayHandle
@@ -252,7 +252,7 @@ struct GNUNET_MULTICAST_ReplayHandle
 };
 
 
-/** 
+/**
  * Replay a message fragment for the multicast group.
  *
  * @param rh Replay handle identifying which replay operation was requested.
@@ -267,7 +267,7 @@ GNUNET_MULTICAST_replay_response (struct GNUNET_MULTICAST_ReplayHandle *rh,
 }
 
 
-/** 
+/**
  * Indicate the end of the replay session.
  *
  * Invalidates the replay handle.
@@ -280,7 +280,7 @@ GNUNET_MULTICAST_replay_response_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
 }
 
 
-/** 
+/**
  * Replay a message for the multicast group.
  *
  * @param rh Replay handle identifying which replay operation was requested.
@@ -295,7 +295,7 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
 }
 
 
-/** 
+/**
  * Start a multicast group.
  *
  * Will advertise the origin in the P2P overlay network under the respective
@@ -402,7 +402,7 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
 }
 
-/** 
+/**
  * Send a message to the multicast group.
  *
  * @param origin Handle to the multicast group.
@@ -433,7 +433,7 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
 }
 
 
-/** 
+/**
  * Resume message transmission to multicast group.
  *
  * @param mh Request to cancel.
@@ -445,7 +445,7 @@ GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHand
 }
 
 
-/** 
+/**
  * Cancel request for message transmission to multicast group.
  *
  * @param mh Request to cancel.
@@ -456,7 +456,7 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginMessageHand
 }
 
 
-/** 
+/**
  * Stop a multicast group.
  *
  * @param origin Multicast group to stop.
@@ -468,7 +468,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin)
 }
 
 
-/** 
+/**
  * Join a multicast group.
  *
  * The entity joining is always the local peer.  Further information about the
@@ -530,7 +530,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-/** 
+/**
  * Handle for a replay request.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle
@@ -538,7 +538,7 @@ struct GNUNET_MULTICAST_MemberReplayHandle
 };
 
 
-/** 
+/**
  * Request a fragment to be replayed by fragment ID.
  *
  * Useful if messages below the @e max_known_fragment_id given when joining are
@@ -561,7 +561,7 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
 }
 
 
-/** 
+/**
  * Request a message fragment to be replayed.
  *
  * Useful if messages below the @e max_known_fragment_id given when joining are
@@ -588,7 +588,7 @@ GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *member,
 }
 
 
-/** 
+/**
  * Cancel a replay request.
  *
  * @param rh Request to cancel.
@@ -599,7 +599,7 @@ GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandl
 }
 
 
-/** 
+/**
  * Part a multicast group.
  *
  * Disconnects from all group members and invalidates the @a member handle.
@@ -616,9 +616,9 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member)
 }
 
 
-/** 
+/**
  * Send a message to the origin of the multicast group.
- * 
+ *
  * @param member Membership handle.
  * @param message_id Application layer ID for the message.  Opaque to multicast.
  * @param notify Callback to call to get the message.
@@ -635,7 +635,7 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
 }
 
 
-/** 
+/**
  * Resume message transmission to origin.
  *
  * @param rh Request to cancel.
@@ -647,7 +647,7 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestH
 }
 
 
-/** 
+/**
  * Cancel request for message transmission to origin.
  *
  * @param rh Request to cancel.

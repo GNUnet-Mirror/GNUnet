@@ -57,7 +57,7 @@ GMCH_send_ack (struct MeshChannel *ch, int fwd);
 
 /**
  * Send data on a channel.
- * 
+ *
  * If the destination is local, send it to client, otherwise encrypt and
  * send to next hop.
  *

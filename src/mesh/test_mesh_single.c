@@ -104,7 +104,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
- * 
+ *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
@@ -196,11 +196,11 @@ static struct GNUNET_MESH_MessageHandler handlers1[] = {
 
 /**
  * Data send callback: fillbuffer with test packet.
- * 
+ *
  * @param cls Closure (unused).
  * @param size Buffer size.
  * @param buf Buffer to fill.
- * 
+ *
  * @return size of test packet.
  */
 static size_t
@@ -223,7 +223,7 @@ do_send (void *cls, size_t size, void *buf)
 
 /**
  * Connect to other client and send data
- * 
+ *
  * @param cls Closue (unused).
  * @param tc TaskContext.
  */
@@ -244,13 +244,13 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Initialize framework and start test
- * 
+ *
  * @param cls Closure (unused).
  * @param cfg Configuration handle.
  * @param peer Testing peer handle.
  */
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

@@ -165,7 +165,7 @@ typedef void (*GNUNET_DHT_PutContinuation)(void *cls,
  *        (size too big)
  */
 struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, 
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const struct GNUNET_HashCode *key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options,
@@ -182,7 +182,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
  * go out over the network (we can't stop that); However, if the PUT
  * has not yet been sent to the service, cancelling the PUT will stop
  * this from happening (but there is no way for the user of this API
- * to tell if that is the case).  The only use for this API is to 
+ * to tell if that is the case).  The only use for this API is to
  * prevent a later call to 'cont' from #GNUNET_DHT_put (i.e. because
  * the system is shutting down).
  *
@@ -212,9 +212,9 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph);
 typedef void (*GNUNET_DHT_GetIterator) (void *cls,
                                         struct GNUNET_TIME_Absolute exp,
                                         const struct GNUNET_HashCode *key,
-                                        const struct GNUNET_PeerIdentity *get_path, 
+                                        const struct GNUNET_PeerIdentity *get_path,
 					unsigned int get_path_length,
-                                        const struct GNUNET_PeerIdentity *put_path, 
+                                        const struct GNUNET_PeerIdentity *put_path,
 					unsigned int put_path_length,
                                         enum GNUNET_BLOCK_Type type,
                                         size_t size, const void *data);
@@ -239,11 +239,11 @@ typedef void (*GNUNET_DHT_GetIterator) (void *cls,
  */
 struct GNUNET_DHT_GetHandle *
 GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
-                      enum GNUNET_BLOCK_Type type, 
+                      enum GNUNET_BLOCK_Type type,
                       const struct GNUNET_HashCode *key,
                       uint32_t desired_replication_level,
-                      enum GNUNET_DHT_RouteOption options, 
-                      const void *xquery, size_t xquery_size, 
+                      enum GNUNET_DHT_RouteOption options,
+                      const void *xquery, size_t xquery_size,
                       GNUNET_DHT_GetIterator iter, void *iter_cls);
 
 
@@ -297,7 +297,7 @@ typedef void (*GNUNET_DHT_MonitorGetCB) (void *cls,
                                          enum GNUNET_DHT_RouteOption options,
                                          enum GNUNET_BLOCK_Type type,
                                          uint32_t hop_count,
-                                         uint32_t desired_replication_level, 
+                                         uint32_t desired_replication_level,
                                          unsigned int path_length,
                                          const struct GNUNET_PeerIdentity *path,
                                          const struct GNUNET_HashCode * key);
@@ -346,7 +346,7 @@ typedef void (*GNUNET_DHT_MonitorPutCB) (void *cls,
                                          enum GNUNET_DHT_RouteOption options,
                                          enum GNUNET_BLOCK_Type type,
                                          uint32_t hop_count,
-                                         uint32_t desired_replication_level, 
+                                         uint32_t desired_replication_level,
                                          unsigned int path_length,
                                          const struct GNUNET_PeerIdentity *path,
                                          struct GNUNET_TIME_Absolute exp,

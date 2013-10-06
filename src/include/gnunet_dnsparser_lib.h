@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_dnsparser_lib.h
- * @brief API for helper library to parse DNS packets. 
+ * @brief API for helper library to parse DNS packets.
  * @author Philipp Toelke
  * @author Christian Grothoff
  */
@@ -64,7 +64,7 @@ struct GNUNET_DNSPARSER_Query
 
   /**
    * Name of the record that the query is for (0-terminated).
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -89,7 +89,7 @@ struct GNUNET_DNSPARSER_Query
  */
 struct GNUNET_DNSPARSER_MxRecord
 {
-  
+
   /**
    * Preference for this entry (lower value is higher preference).
    */
@@ -97,7 +97,7 @@ struct GNUNET_DNSPARSER_MxRecord
 
   /**
    * Name of the mail server.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -120,11 +120,11 @@ struct GNUNET_DNSPARSER_MxRecord
  */
 struct GNUNET_DNSPARSER_SrvRecord
 {
-  
+
   /**
    * Service name without the underscore (!).  Note that RFC 6335 clarifies the
    * set of legal characters for service names.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -139,7 +139,7 @@ struct GNUNET_DNSPARSER_SrvRecord
 
   /**
    * Domain name for which the record is valid
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -148,7 +148,7 @@ struct GNUNET_DNSPARSER_SrvRecord
 
   /**
    * Hostname offering the service.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -176,17 +176,17 @@ struct GNUNET_DNSPARSER_SrvRecord
 
 };
 
-  
+
 /**
  * Information from SOA records (RFC 1035).
  */
 struct GNUNET_DNSPARSER_SoaRecord
 {
-  
+
   /**
    * The domainname of the name server that was the
    * original or primary source of data for this zone.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -196,7 +196,7 @@ struct GNUNET_DNSPARSER_SoaRecord
   /**
    * A domainname which specifies the mailbox of the
    * person responsible for this zone.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use 'GNUNET_DNSPARSER_check_label' to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -204,7 +204,7 @@ struct GNUNET_DNSPARSER_SoaRecord
   char *rname;
 
   /**
-   * The version number of the original copy of the zone.  
+   * The version number of the original copy of the zone.
    */
   uint32_t serial;
 
@@ -230,7 +230,7 @@ struct GNUNET_DNSPARSER_SoaRecord
    * from this zone.
    */
   uint32_t minimum_ttl;
-  
+
 };
 
 
@@ -260,7 +260,7 @@ struct GNUNET_DNSPARSER_Record
 
   /**
    * Name of the record that the query is for (0-terminated).
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
@@ -270,23 +270,23 @@ struct GNUNET_DNSPARSER_Record
   /**
    * Payload of the record (which one of these is valid depends on the 'type').
    */
-  union 
+  union
   {
 
     /**
      * For NS, CNAME and PTR records, this is the uncompressed 0-terminated hostname.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA 
+   * In UTF-8 format.  The library will convert from and to DNS-IDNA
    * as necessary.  Use #GNUNET_DNSPARSER_check_label to test if an
    * individual label is well-formed.  If a given name is not well-formed,
    * creating the DNS packet will fail.
      */
     char *hostname;
-    
+
     /**
      * SOA data for SOA records.
      */
     struct GNUNET_DNSPARSER_SoaRecord *soa;
-    
+
     /**
      * MX data for MX records.
      */
@@ -370,7 +370,7 @@ struct GNUNET_DNSPARSER_Packet
 
   /**
    * Bitfield of DNS flags.
-   */ 
+   */
   struct GNUNET_TUN_DnsFlags flags;
 
   /**
@@ -411,7 +411,7 @@ GNUNET_DNSPARSER_check_name (const char *name);
  * processing and manipulation.
  *
  * @param udp_payload wire-format of the DNS packet
- * @param udp_payload_length number of bytes in @a udp_payload 
+ * @param udp_payload_length number of bytes in @a udp_payload
  * @return NULL on error, otherwise the parsed packet
  */
 struct GNUNET_DNSPARSER_Packet *
@@ -431,7 +431,7 @@ GNUNET_DNSPARSER_free_packet (struct GNUNET_DNSPARSER_Packet *p);
 /**
  * Given a DNS packet @a p, generate the corresponding UDP payload.
  * Note that we do not attempt to pack the strings with pointers
- * as this would complicate the code and this is about being 
+ * as this would complicate the code and this is about being
  * simple and secure, not fast, fancy and broken like bind.
  *
  * @param p packet to pack
@@ -645,7 +645,7 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
 
 /**
  * Free the given DNS record.
- * 
+ *
  * @param r record to free
  */
 void

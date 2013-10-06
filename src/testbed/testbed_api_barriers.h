@@ -22,7 +22,7 @@
  * @file testbed/testbed_api_barriers.h
  * @brief interface for barriers API function that are used internally (not
  *   exposed as user API)
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "gnunet_testbed_service.h"

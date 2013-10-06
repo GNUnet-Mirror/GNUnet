@@ -106,7 +106,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
     h->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, 
+        GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
 				      &reconnect, h);
     return;
   }
@@ -118,7 +118,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   client_msg = (const struct GNUNET_NSE_ClientMessage *) msg;
   h->recv_cb (h->recv_cb_cls, GNUNET_TIME_absolute_ntoh (client_msg->timestamp),
-              GNUNET_ntoh_double (client_msg->size_estimate), 
+              GNUNET_ntoh_double (client_msg->size_estimate),
 	      GNUNET_ntoh_double (client_msg->std_deviation));
   GNUNET_CLIENT_receive (h->client, &message_handler, h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -175,13 +175,13 @@ send_start (void *cls, size_t size, void *buf)
   {
     /* Connect error... */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Error while trying to transmit `%s' request.\n", 
+         "Error while trying to transmit `%s' request.\n",
 	 "START");
     reschedule_connect (h);
     return 0;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
-       "Transmitting `%s' request.\n", 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting `%s' request.\n",
        "START");
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
 
@@ -201,7 +201,7 @@ send_start (void *cls, size_t size, void *buf)
  * @param tc scheduler context
  */
 static void
-reconnect (void *cls, 
+reconnect (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NSE_Handle *h = cls;

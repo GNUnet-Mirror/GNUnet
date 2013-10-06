@@ -174,7 +174,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
   if (ntohl (rba->purpose.size) !=
       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-      sizeof (struct GNUNET_HashCode)) 
+      sizeof (struct GNUNET_HashCode))
   {
     GNUNET_break_op(0);
     return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -184,7 +184,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
     /* technically invalid, but can happen without an error, so
        we're nice by reporting it as a 'duplicate' */
     return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
-  }  
+  }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
 				&rba->purpose,

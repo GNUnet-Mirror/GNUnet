@@ -23,7 +23,7 @@
  * @brief constants for network protocols
  * @author Christian Grothoff
  * @defgroup protocols Types of messages used in GNUnet
- * @{ 
+ * @{
  */
 
 /*******************************************************************************
@@ -149,7 +149,7 @@ extern "C"
  ******************************************************************************/
 
 /**
- * Type of data messages from the plugin to the gnunet-wlan-helper 
+ * Type of data messages from the plugin to the gnunet-wlan-helper
  */
 #define GNUNET_MESSAGE_TYPE_WLAN_DATA_TO_HELPER 39
 
@@ -843,7 +843,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     266
 
 /**
- * Request the destruction of a whole tunnel 
+ * Request the destruction of a whole tunnel
  */
 #define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
 
@@ -1888,7 +1888,7 @@ extern "C"
 
 /**
  * Result in response to regex search.
- */ 
+ */
 #define GNUNET_MESSAGE_TYPE_REGEX_RESULT 622
 
 /*******************************************************************************
@@ -2187,7 +2187,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY 741
 
 /**
- * Mesh: audio data 
+ * Mesh: audio data
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO 742
 

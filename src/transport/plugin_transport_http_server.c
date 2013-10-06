@@ -883,7 +883,7 @@ server_disconnect (struct Session *s)
  * @param to timeout in seconds
  */
 static void
-server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin, 
+server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
 			       struct Session *s,
 			       unsigned int to)
 {
@@ -925,7 +925,7 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
 static int
 server_parse_url (struct HTTP_Server_Plugin *plugin,
 		  const char *url,
-		  struct GNUNET_PeerIdentity *target, 
+		  struct GNUNET_PeerIdentity *target,
 		  uint32_t *tag)
 {
   char * tag_start = NULL;
@@ -1012,7 +1012,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
       if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CRYPTO_ecc_public_sign_key_from_string (target_start,
 						     hash_length,
 						     &target->public_key))
@@ -1021,9 +1021,9 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
       if (DEBUG_URL_PARSE) GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   plugin->name,
-		   "Found target `%s' in URL\n", 
+		   "Found target `%s' in URL\n",
 		   GNUNET_i2s_full (target));
   return GNUNET_OK;
 }
@@ -1181,7 +1181,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
     to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL);
-    MHD_set_connection_option (mhd_connection, 
+    MHD_set_connection_option (mhd_connection,
 			       MHD_CONNECTION_OPTION_TIMEOUT, to);
     server_reschedule (plugin, sc->mhd_daemon, GNUNET_NO);
   }
@@ -2902,7 +2902,7 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %s, disconnecting\n",
-              s, 
+              s,
 	      GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
 						      GNUNET_YES));
 

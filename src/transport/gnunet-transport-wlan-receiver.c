@@ -53,7 +53,7 @@ main (int argc, char *argv[])
   /* Setup communication pipeline first */
   if (pipe (commpipe))
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     "Failed to create pipe: %s\n",
 	     STRERROR (errno));
     exit (1);
@@ -62,8 +62,8 @@ main (int argc, char *argv[])
   /* Attempt to fork and check for errors */
   if ((pid = fork ()) == -1)
   {
-    fprintf (stderr, "Failed to fork: %s\n", 
-	     STRERROR (errno));    
+    fprintf (stderr, "Failed to fork: %s\n",
+	     STRERROR (errno));
     exit (1);
   }
 
@@ -90,7 +90,7 @@ main (int argc, char *argv[])
       {
 	bytes_per_s = count / (akt - start);
 	bytes_per_s /= 1024;
-	printf ("recv %f kb/s\n", bytes_per_s); 
+	printf ("recv %f kb/s\n", bytes_per_s);
 	start = akt;
 	count = 0;
       }

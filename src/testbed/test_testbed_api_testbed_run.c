@@ -107,7 +107,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *          failed
  */
 static void
-test_master (void *cls, 
+test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers_,

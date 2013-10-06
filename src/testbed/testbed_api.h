@@ -94,7 +94,7 @@ enum OperationType
   OP_GET_SLAVE_CONFIG,
 
   /**
-   * Stop and destroy all peers  
+   * Stop and destroy all peers
    */
   OP_SHUTDOWN_PEERS,
 
@@ -320,7 +320,7 @@ GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
  * given controller
  *
  * @param c the controller
- * @param opc the operation context to remove 
+ * @param opc the operation context to remove
  */
 void
 GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,

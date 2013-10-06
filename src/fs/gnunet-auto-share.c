@@ -21,7 +21,7 @@
  * @file fs/gnunet-auto-share.c
  * @brief automatically publish files on GNUnet
  * @author Christian Grothoff
- * 
+ *
  * TODO:
  * - support loading meta data / keywords from resource file
  * - add stability timer (a la buildbot)
@@ -204,7 +204,7 @@ load_state ()
   while (n-- > 0)
   {
     if ( (GNUNET_OK !=
-	  GNUNET_BIO_read_string (rh, "filename", &fn, 1024)) || 
+	  GNUNET_BIO_read_string (rh, "filename", &fn, 1024)) ||
 	 (GNUNET_OK !=
 	  GNUNET_BIO_read (rh, "id", &id, sizeof (struct GNUNET_HashCode))) )
       goto error;
@@ -224,7 +224,7 @@ load_state ()
 				       wi,
 				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
-  if (GNUNET_OK == 
+  if (GNUNET_OK ==
       GNUNET_BIO_read_close (rh, &emsg))
     return;
   rh = NULL;
@@ -259,7 +259,7 @@ write_item (void *cls,
 	      "Saving serialization ID of file `%s' with value `%s'\n",
 	      wi->filename,
 	      GNUNET_h2s (&wi->id));
-  if ( (GNUNET_OK != 
+  if ( (GNUNET_OK !=
 	GNUNET_BIO_write_string (wh, wi->filename)) ||
        (GNUNET_OK !=
 	GNUNET_BIO_write (wh,
@@ -381,7 +381,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_OS_process_kill (publish_proc, SIGKILL);
-    type = GNUNET_OS_PROCESS_SIGNALED;    
+    type = GNUNET_OS_PROCESS_SIGNALED;
   }
   GNUNET_OS_process_destroy (publish_proc);
   publish_proc = NULL;
@@ -415,7 +415,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				      wi);
   }
   save_state ();
-  schedule_next_task ();    
+  schedule_next_task ();
 }
 
 
@@ -452,7 +452,7 @@ work (void *cls,
   static char content_prio[20];
   static char repl_level[20];
   struct WorkItem *wi;
-  const struct GNUNET_DISK_FileHandle *pr;  
+  const struct GNUNET_DISK_FileHandle *pr;
   int argc;
 
   run_task = GNUNET_SCHEDULER_NO_TASK;
@@ -553,7 +553,7 @@ determine_id (void *cls,
   /* use hash here to make hierarchical structure distinct from
      all files on the same level */
   GNUNET_CRYPTO_hash (fx, sizeof (fx), &ft);
-  /* use XOR here so that order of the files in the directory 
+  /* use XOR here so that order of the files in the directory
      does not matter! */
   GNUNET_CRYPTO_hash_xor (&ft, id, id);
   return GNUNET_OK;
@@ -613,7 +613,7 @@ add_file (void *cls,
 			       work_tail,
 			       wi);
   if (GNUNET_YES == do_shutdown)
-    return GNUNET_SYSERR; 
+    return GNUNET_SYSERR;
   return GNUNET_OK;
 }
 
@@ -645,7 +645,7 @@ schedule_next_task ()
   struct GNUNET_TIME_Relative delay;
 
   if (GNUNET_YES == do_shutdown)
-    return;  
+    return;
   if (NULL == work_head)
   {
     /* delay by at most 4h, at least 1s, and otherwise in between depending
@@ -694,7 +694,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   load_state ();
   run_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
 						 &scan, NULL);
-  
+
   kill_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
                                     NULL);
@@ -707,7 +707,7 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @param cls NULL (unused)
  * @param key key of the item in the map (unused)
  * @param value the 'struct WorkItem' to free
- * @return GNUNET_OK to continue to iterate 
+ * @return GNUNET_OK to continue to iterate
  */
 static int
 free_item (void *cls,
@@ -731,7 +731,7 @@ free_item (void *cls,
  */
 int
 main (int argc, char *const *argv)
-{  
+{
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "anonymity", "LEVEL",
      gettext_noop ("set the desired LEVEL of sender-anonymity"),

@@ -70,7 +70,7 @@ struct GNUNET_TRANSPORT_PeerIterateContext
    * Backoff for reconnect.
    */
   struct GNUNET_TIME_Relative backoff;
-  
+
   /**
    * Task ID for reconnect.
    */
@@ -116,7 +116,7 @@ send_request (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
   msg.timeout = GNUNET_TIME_absolute_hton (pal_ctx->timeout);
   msg.peer = pal_ctx->peer;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CLIENT_transmit_and_get_response (pal_ctx->client, 
+                 GNUNET_CLIENT_transmit_and_get_response (pal_ctx->client,
 							  &msg.header,
                                                           GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout),
 							  GNUNET_YES,
@@ -126,7 +126,7 @@ send_request (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
 
 /**
  * Task run to re-establish the connection.
- * 
+ *
  * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
  * @param tc scheduler context, unused
  */
@@ -329,7 +329,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct
   pal_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (NULL != peer)
     pal_ctx->peer = *peer;
-  pal_ctx->one_shot = one_shot;  
+  pal_ctx->one_shot = one_shot;
   pal_ctx->client = client;
   send_request (pal_ctx);
 

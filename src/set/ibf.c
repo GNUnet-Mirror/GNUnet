@@ -236,7 +236,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf,
 /**
  * Write buckets from an ibf to a buffer.
  * Exactly (IBF_BUCKET_SIZE*ibf->size) bytes are written to buf.
- * 
+ *
  * @param ibf the ibf to write
  * @param start with which bucket to start
  * @param count how many buckets to write

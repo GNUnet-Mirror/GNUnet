@@ -128,8 +128,8 @@ get_result_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                      unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                      size_t size, const void *data)
 {
-  FPRINTF (stdout, 
-	   _("Result %d, type %d:\n%.*s\n"), 
+  FPRINTF (stdout,
+	   _("Result %d, type %d:\n%.*s\n"),
 	   result_count, type,
            (unsigned int) size, (char *) data);
   result_count++;

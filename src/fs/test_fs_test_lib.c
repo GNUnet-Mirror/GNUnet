@@ -90,7 +90,7 @@ do_download (void *cls, const struct GNUNET_FS_Uri *uri,
 
 
 static void
-do_publish (void *cls, 
+do_publish (void *cls,
 	    struct GNUNET_TESTBED_Operation *op,
 	    const char *emsg)
 {
@@ -113,7 +113,7 @@ do_publish (void *cls,
 
 /**
  * Actual main function for the test.
- * 
+ *
  * @param cls closure
  * @param h the run handle
  * @param num_peers number of peers in 'peers'
@@ -124,7 +124,7 @@ do_publish (void *cls,
  *          failed
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_TESTBED_RunHandle *h,
      unsigned int num_peers,
      struct GNUNET_TESTBED_Peer **peers,
@@ -132,7 +132,7 @@ run (void *cls,
      unsigned int links_failed)
 {
   unsigned int i;
- 
+
   GNUNET_assert (NUM_DAEMONS == num_peers);
   for (i=0;i<num_peers;i++)
     the_peers[i] = peers[i];
@@ -147,7 +147,7 @@ run (void *cls,
 /**
  * Main function that initializes the testbed.
  *
- * @param argc ignored 
+ * @param argc ignored
  * @param argv ignored
  * @return 0 on success
  */
@@ -157,7 +157,7 @@ main (int argc, char *argv[])
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");
   (void) GNUNET_TESTBED_test_run ("test_fs_test_lib",
                                   "fs_test_lib_data.conf",
-                                  NUM_DAEMONS, 
+                                  NUM_DAEMONS,
                                   0, NULL, NULL,
                                   &run, NULL);
   GNUNET_DISK_directory_remove ("/tmp/gnunet-test-fs-lib/");

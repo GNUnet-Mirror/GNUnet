@@ -91,7 +91,7 @@ struct GNUNET_EXIT_TcpInternetStartMessage
 
 
 /**
- * Message send via mesh between VPN and entry and an exit daemon to 
+ * Message send via mesh between VPN and entry and an exit daemon to
  * transmit TCP data between the VPN entry and an exit session.  This
  * format is used for both Internet-exits and service-exits and
  * in both directions (VPN to exit and exit to VPN).
@@ -136,7 +136,7 @@ struct GNUNET_EXIT_UdpServiceMessage
 
   /**
    * Destination port to use for the UDP request.  In NBO.
-   */   
+   */
   uint16_t destination_port GNUNET_PACKED;
 
   /**
@@ -171,7 +171,7 @@ struct GNUNET_EXIT_UdpInternetMessage
 
   /**
    * Destination port to use for the UDP request.  In NBO.
-   */   
+   */
   uint16_t destination_port GNUNET_PACKED;
 
   /* followed by IP address of the destination; either
@@ -201,7 +201,7 @@ struct GNUNET_EXIT_UdpReplyMessage
   /**
    * Destination port to use for the UDP reply (0 to use the same
    * port as for the original request).  In NBO.
-   */   
+   */
   uint16_t destination_port GNUNET_PACKED;
 
   /* followed by UDP payload */

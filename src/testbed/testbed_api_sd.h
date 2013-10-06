@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_api_sd.h
  * @brief functions to calculate standard deviation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #ifndef TESTBED_API_SD_H

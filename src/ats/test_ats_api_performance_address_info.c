@@ -226,7 +226,7 @@ static void next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *mycfg,
      struct GNUNET_TESTING_Peer *peer)
 {

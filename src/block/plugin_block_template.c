@@ -56,7 +56,7 @@ block_plugin_template_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   struct GNUNET_HashCode chash;
   struct GNUNET_HashCode mhash;
   /* FIXME: check validity first... */
-     
+
   /* mandatory duplicate-detection code... */
   if (NULL != bf)
   {

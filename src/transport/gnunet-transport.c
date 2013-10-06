@@ -518,8 +518,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (try_connect)
   {
       /* all done, terminate instantly */
-      FPRINTF (stdout, 
-	       _("Successfully connected to `%s'\n"), 
+      FPRINTF (stdout,
+	       _("Successfully connected to `%s'\n"),
 	       GNUNET_i2s_full (peer));
       ret = 0;
 
@@ -803,12 +803,12 @@ testservice_task (void *cls,
 
   if (GNUNET_YES != result)
   {
-    FPRINTF (stderr, 
+    FPRINTF (stderr,
 	     _("Service `%s' is not running\n"), "transport");
     return;
   }
 
-  if ( (NULL != cpid) && 
+  if ( (NULL != cpid) &&
        (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (cpid,
 								    strlen (cpid),
 								    &pid.public_key)))

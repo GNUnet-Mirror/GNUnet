@@ -1,17 +1,17 @@
 /*
  *  This file is part of GNUnet
  *  (C) 2012 Christian Grothoff (and other contributing authors)
- * 
+ *
  *  GNUnet is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published
  *  by the Free Software Foundation; either version 3, or (at your
  *  option) any later version.
- * 
+ *
  *  GNUnet is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
- * 
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with GNUnet; see the file COPYING.  If not, write to the
  *  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -153,10 +153,10 @@ regex_combine (struct RegexCombineCtx *ctx)
 
 /**
  * Get the number of matching characters on the prefix of both strings.
- * 
+ *
  * @param s1 String 1.
  * @param s2 String 2.
- * 
+ *
  * @return Number of characters of matching prefix.
  */
 static unsigned int
@@ -183,10 +183,10 @@ get_prefix_length (const char *s1, const char *s2)
 /**
  * Return the child context with the longest prefix match with the regex.
  * Usually only one child will match, search all just in case.
- * 
+ *
  * @param ctx Context whose children to search.
  * @param regex String to match.
- * 
+ *
  * @return Child with the longest prefix, NULL if no child matches.
  */
 static struct RegexCombineCtx *

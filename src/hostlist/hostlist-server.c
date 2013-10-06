@@ -434,8 +434,8 @@ process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
   {
     builder = GNUNET_malloc (sizeof (struct HostSet));
-  }  
-  GNUNET_assert (NULL != peerinfo); 
+  }
+  GNUNET_assert (NULL != peerinfo);
   builder->pitr =
       GNUNET_PEERINFO_iterate (peerinfo, GNUNET_NO, NULL, GNUNET_TIME_UNIT_MINUTES,
                                &host_processor, NULL);
@@ -601,7 +601,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                   GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
                                                          "BINDTOIP", &ip));
   }
-  else 
+  else
     ip = NULL;
   if (NULL != ip)
   {

@@ -576,7 +576,7 @@ find_property_index (uint32_t type)
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-find_best_address_it (void *cls, 
+find_best_address_it (void *cls,
 		      const struct GNUNET_PeerIdentity *key,
 		      void *value)
 {
@@ -721,7 +721,7 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
  * @return #GNUNET_NO on double active address else #GNUNET_YES;
  */
 static int
-get_active_address_it (void *cls, 
+get_active_address_it (void *cls,
 		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {

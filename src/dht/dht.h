@@ -281,7 +281,7 @@ struct GNUNET_DHT_MonitorPutMessage
    * Hop count so far.
    */
   uint32_t hop_count GNUNET_PACKED;
-  
+
   /**
    * Replication level for this message
    */
@@ -377,7 +377,7 @@ struct GNUNET_DHT_MonitorGetMessage
    * Hop count
    */
   uint32_t hop_count GNUNET_PACKED;
-  
+
   /**
    * Replication level for this message
    */

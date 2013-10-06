@@ -72,22 +72,22 @@ struct MeshClient
 {
   /**
    * DLL
-   */ 
+   */
   struct MeshClient *next;
 
   /**
    * DLL
-   */ 
+   */
   struct MeshClient *prev;
 
   /**
    * Tunnel for communication.
-   */ 
+   */
   struct GNUNET_MESH_Tunnel *tunnel;
 
   /**
    * Handle for active write operation, or NULL.
-   */ 
+   */
   struct GNUNET_MESH_TransmitHandle *wh;
 
   /**
@@ -99,7 +99,7 @@ struct MeshClient
    * Tail of write queue.
    */
   struct WriteQueueItem *wqi_tail;
-  
+
   /**
    * Current active request to the datastore, if we have one pending.
    */
@@ -117,7 +117,7 @@ struct MeshClient
 
   /**
    * Size of the last write that was initiated.
-   */ 
+   */
   size_t reply_size;
 
 };
@@ -130,12 +130,12 @@ static struct GNUNET_MESH_Handle *listen_tunnel;
 
 /**
  * Head of DLL of mesh clients.
- */ 
+ */
 static struct MeshClient *sc_head;
 
 /**
  * Tail of DLL of mesh clients.
- */ 
+ */
 static struct MeshClient *sc_tail;
 
 /**
@@ -155,7 +155,7 @@ static unsigned long long sc_count_max;
  *
  * @param cls the 'struct MeshClient'
  * @param tc scheduler context
- */ 
+ */
 static void
 timeout_mesh_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -182,7 +182,7 @@ static void
 refresh_timeout_task (struct MeshClient *sc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
-    GNUNET_SCHEDULER_cancel (sc->timeout_task); 
+    GNUNET_SCHEDULER_cancel (sc->timeout_task);
   sc->timeout_task = GNUNET_SCHEDULER_add_delayed (IDLE_TIMEOUT,
 						   &timeout_mesh_task,
 						   sc);
@@ -291,7 +291,7 @@ continue_writing (struct MeshClient *sc)
   }
   sc->wh = GNUNET_MESH_notify_transmit_ready (sc->tunnel, GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
-					      wqi->msize,				      
+					      wqi->msize,				
 					      &write_continuation,
 					      sc);
   if (NULL == sc->wh)
@@ -320,7 +320,7 @@ continue_writing (struct MeshClient *sc)
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
-static void 
+static void
 handle_datastore_reply (void *cls,
 			const struct GNUNET_HashCode *key,
 			size_t size, const void *data,
@@ -416,7 +416,7 @@ request_cb (void *cls,
 				     0,
 				     &sqm->query,
 				     ntohl (sqm->type),
-				     0 /* priority */, 
+				     0 /* priority */,
 				     GSF_datastore_queue_size,
 				     GNUNET_TIME_UNIT_FOREVER_REL,
 				     &handle_datastore_reply, sc);
@@ -481,7 +481,7 @@ accept_cb (void *cls,
  *
  * @param cls NULL
  * @param tunnel tunnel of the disconnecting client
- * @param tunnel_ctx our 'struct MeshClient' 
+ * @param tunnel_ctx our 'struct MeshClient'
  */
 static void
 cleaner_cb (void *cls,
@@ -501,9 +501,9 @@ cleaner_cb (void *cls,
 			    gettext_noop ("# mesh connections active"), -1,
 			    GNUNET_NO);
   if (GNUNET_SCHEDULER_NO_TASK != sc->terminate_task)
-    GNUNET_SCHEDULER_cancel (sc->terminate_task); 
+    GNUNET_SCHEDULER_cancel (sc->terminate_task);
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
-    GNUNET_SCHEDULER_cancel (sc->timeout_task); 
+    GNUNET_SCHEDULER_cancel (sc->timeout_task);
   if (NULL != sc->wh)
     GNUNET_MESH_notify_transmit_ready_cancel (sc->wh);
   if (NULL != sc->qe)

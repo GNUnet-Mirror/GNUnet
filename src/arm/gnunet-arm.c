@@ -167,7 +167,7 @@ delete_files ()
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to remove servicehome directory %s\n"), dir);
-    
+
   }
 }
 
@@ -269,7 +269,7 @@ ret_string (enum GNUNET_ARM_Result result)
  * @param cls closure
  * @param tc scheudler context
  */
-static void 
+static void
 action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -283,11 +283,11 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *                  GNUNET_SYSERR on error.
  */
 static void
-conn_status (void *cls, 
+conn_status (void *cls,
 	     int connected)
 {
   static int once;
-  
+
   if ( (GNUNET_SYSERR == connected) &&
        (0 == once) )
   {
@@ -335,7 +335,7 @@ start_callback (void *cls,
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
     return;
-  }  
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ARM service [re]start successful\n");
   start = 0;
   GNUNET_SCHEDULER_add_now (action_loop, NULL);
@@ -355,7 +355,7 @@ start_callback (void *cls,
  *               according to ARM
  */
 static void
-stop_callback (void *cls, 
+stop_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs, const char *service,
 	       enum GNUNET_ARM_Result result)
 {
@@ -363,7 +363,7 @@ stop_callback (void *cls,
 
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    GNUNET_asprintf (&msg, "%s", 
+    GNUNET_asprintf (&msg, "%s",
 		     _("Failed to send a stop request to the ARM service: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
@@ -380,14 +380,14 @@ stop_callback (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "ARM service shutdown successful\n");
   end = 0;
   if (restart)
   {
     restart = 0;
     start = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Initiating an ARM restart\n");
   }
   GNUNET_SCHEDULER_add_now (&action_loop, NULL);
@@ -407,12 +407,12 @@ stop_callback (void *cls,
  *               according to ARM
  */
 static void
-init_callback (void *cls, 
+init_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs, const char *service,
 	       enum GNUNET_ARM_Result result)
 {
   char *msg;
-  
+
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
     GNUNET_asprintf (&msg, _("Failed to send a request to start the `%s' service: %%s\n"), init);
@@ -431,8 +431,8 @@ init_callback (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Service %s [re]started successfully\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Service %s [re]started successfully\n",
 	      init);
   init = NULL;
   GNUNET_SCHEDULER_add_now (&action_loop, NULL);
@@ -452,7 +452,7 @@ init_callback (void *cls,
  *               according to ARM
  */
 static void
-term_callback (void *cls, 
+term_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs, const char *service,
 	       enum GNUNET_ARM_Result result)
 {
@@ -470,7 +470,7 @@ term_callback (void *cls,
   if ((GNUNET_ARM_RESULT_STOPPED != result) &&
       (GNUNET_ARM_RESULT_IS_STOPPED_ALREADY != result))
   {
-    GNUNET_asprintf (&msg, 
+    GNUNET_asprintf (&msg,
 		     _("Failed to kill the `%s' service: %s\n"),
                      term, ret_string (result));
     FPRINTF (stdout, msg, service);
@@ -479,7 +479,7 @@ term_callback (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Service %s stopped successfully\n", term);
   term = NULL;
   GNUNET_SCHEDULER_add_now (&action_loop, NULL);
@@ -497,7 +497,7 @@ term_callback (void *cls,
  * @param list list of services that are running
  */
 static void
-list_callback (void *cls, 
+list_callback (void *cls,
 	       enum GNUNET_ARM_RequestStatus rs, unsigned int count,
 	       const char *const*list)
 {
@@ -546,7 +546,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (NULL != term)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Termination action\n");
-        GNUNET_ARM_request_service_stop (h, term, 
+        GNUNET_ARM_request_service_stop (h, term,
 					 (0 == timeout.rel_value_us) ? STOP_TIMEOUT : timeout,
 					 &term_callback, NULL);
 	return;
@@ -556,7 +556,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (end || restart)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "End action\n");
-        GNUNET_ARM_request_service_stop (h, "arm", 
+        GNUNET_ARM_request_service_stop (h, "arm",
 					 (0 == timeout.rel_value_us) ? STOP_TIMEOUT_ARM : timeout,
 					 &stop_callback, NULL);
         return;
@@ -585,7 +585,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       }
       break;
     case 4:
-      if (list) 
+      if (list)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "Going to list all running services controlled by ARM.\n");	
@@ -593,10 +593,10 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 					 (0 == timeout.rel_value_us) ? LIST_TIMEOUT : timeout,
 					 &list_callback, &list);
 	return;
-      }    
+      }
       break;
     case 5:
-      if (monitor) 
+      if (monitor)
 	{
 	  if (! quiet)
 	    fprintf (stderr,
@@ -621,7 +621,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param status status of the service
  */
 static void
-srv_status (void *cls, 
+srv_status (void *cls,
 	    const char *service, enum GNUNET_ARM_ServiceStatus status)
 {
   const char *msg;
@@ -663,8 +663,8 @@ srv_status (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, 
-     char *const *args, 
+run (void *cls,
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -672,7 +672,7 @@ run (void *cls,
 
   cfg = GNUNET_CONFIGURATION_dup (c);
   config_file = cfgfile;
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME", &dir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,

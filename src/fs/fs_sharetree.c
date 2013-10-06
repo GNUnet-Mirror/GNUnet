@@ -174,7 +174,7 @@ add_to_keyword_counter (void *cls, const char *keyword, int is_mandatory)
     cnt->value = (const char *) &cnt[1];
     memcpy (&cnt[1], keyword, klen);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multihashmap_put (mcm, 
+		   GNUNET_CONTAINER_multihashmap_put (mcm,
 						      &hc, cnt,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
@@ -313,7 +313,7 @@ migrate_and_drop_metadata (void *cls, const struct GNUNET_HashCode * key, void *
 				       counter->type,
 				       counter->format,
 				       counter->data_mime_type, counter->data,
-				       counter->data_size); 
+				       counter->data_size);
   }
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (tc->metacounter,
@@ -350,7 +350,7 @@ share_tree_trim (struct TrimContext *tc,
   if (tree->is_directory == GNUNET_YES)
   {
     const char *user = getenv ("USER");
-    if ( (user == NULL) || 
+    if ( (user == NULL) ||
 	 (0 != strncasecmp (user, tree->short_filename, strlen(user))))
     {
       /* only use filename if it doesn't match $USER */
@@ -366,12 +366,12 @@ share_tree_trim (struct TrimContext *tc,
 
   if (1 >= num_children)
     return; /* nothing to trim */
-  
+
   /* now, count keywords and meta data in children */
   for (pos = tree->children_head; NULL != pos; pos = pos->next)
   {
     if (NULL != pos->meta)
-      GNUNET_CONTAINER_meta_data_iterate (pos->meta, &add_to_meta_counter, tc->metacounter);    
+      GNUNET_CONTAINER_meta_data_iterate (pos->meta, &add_to_meta_counter, tc->metacounter);
     if (NULL != pos->ksk_uri)
       GNUNET_FS_uri_ksk_get_keywords (pos->ksk_uri, &add_to_keyword_counter, tc->keywordcounter);
   }
@@ -393,10 +393,10 @@ share_tree_trim (struct TrimContext *tc,
 
   /* add high-frequency meta data and keywords to parent */
   tc->pos = tree;
-  GNUNET_CONTAINER_multihashmap_iterate (tc->keywordcounter, 
+  GNUNET_CONTAINER_multihashmap_iterate (tc->keywordcounter,
 					 &migrate_and_drop_keywords,
 					 tc);
-  GNUNET_CONTAINER_multihashmap_iterate (tc->metacounter, 
+  GNUNET_CONTAINER_multihashmap_iterate (tc->metacounter,
 					 &migrate_and_drop_metadata,
 					 tc);
 }
@@ -414,7 +414,7 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel)
   struct TrimContext tc;
 
   if (toplevel == NULL)
-    return;  
+    return;
   tc.keywordcounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   tc.metacounter = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
   share_tree_trim (&tc, toplevel);

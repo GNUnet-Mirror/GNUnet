@@ -123,8 +123,8 @@ GNUNET_STRINGS_conv (const char *input, size_t len,
  * @return the converted string (0-terminated)
  */
 char *
-GNUNET_STRINGS_to_utf8 (const char *input, 
-			size_t len, 
+GNUNET_STRINGS_to_utf8 (const char *input,
+			size_t len,
 			const char *charset);
 
 
@@ -137,8 +137,8 @@ GNUNET_STRINGS_to_utf8 (const char *input,
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_from_utf8 (const char *input, 
-			  size_t len, 
+GNUNET_STRINGS_from_utf8 (const char *input,
+			  size_t len,
 			  const char *charset);
 
 
@@ -150,7 +150,7 @@ GNUNET_STRINGS_from_utf8 (const char *input,
  * @param output output buffer
  */
 void
-GNUNET_STRINGS_utf8_tolower (const char* input, 
+GNUNET_STRINGS_utf8_tolower (const char* input,
 			     char** output);
 
 
@@ -198,9 +198,9 @@ GNUNET_STRINGS_filename_expand (const char *fil);
  *         (or number of bytes that would have been written)
  */
 size_t
-GNUNET_STRINGS_buffer_fill (char *buffer, 
-			    size_t size, 
-			    unsigned int count, 
+GNUNET_STRINGS_buffer_fill (char *buffer,
+			    size_t size,
+			    unsigned int count,
 			    ...);
 
 
@@ -237,7 +237,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
 /**
  * Give relative time in human-readable fancy format.
  * This is one of the very few calls in the entire API that is
- * NOT reentrant! 
+ * NOT reentrant!
  *
  * @param delta time in milli seconds
  * @param do_round are we allowed to round a bit?
@@ -279,9 +279,9 @@ GNUNET_STRINGS_get_short_name (const char *filename);
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (const void *data, 
+GNUNET_STRINGS_data_to_string (const void *data,
 			       size_t size,
-			       char *out, 
+			       char *out,
 			       size_t out_size);
 
 
@@ -296,9 +296,9 @@ GNUNET_STRINGS_data_to_string (const void *data,
  * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
  */
 int
-GNUNET_STRINGS_string_to_data (const char *enc, 
+GNUNET_STRINGS_string_to_data (const char *enc,
 			       size_t enclen,
-			       void *out, 
+			       void *out,
 			       size_t out_size);
 
 
@@ -319,7 +319,7 @@ GNUNET_STRINGS_string_to_data (const char *enc,
  *         (if they weren't NULL).
  */
 int
-GNUNET_STRINGS_parse_uri (const char *path, 
+GNUNET_STRINGS_parse_uri (const char *path,
 			  char **scheme_part,
 			  const char **path_part);
 
@@ -339,9 +339,9 @@ GNUNET_STRINGS_parse_uri (const char *path,
  * @return GNUNET_YES if 'filename' is absolute, GNUNET_NO otherwise.
  */
 int
-GNUNET_STRINGS_path_is_absolute (const char *filename, 
+GNUNET_STRINGS_path_is_absolute (const char *filename,
 				 int can_be_uri,
-				 int *r_is_uri, 
+				 int *r_is_uri,
 				 char **r_uri_scheme);
 
 
@@ -367,7 +367,7 @@ enum GNUNET_STRINGS_FilenameCheck
 
   /**
    * Check that the path is an absolute path.
-   */ 
+   */
   GNUNET_STRINGS_CHECK_IS_ABSOLUTE = 0x00000008
 };
 
@@ -375,7 +375,7 @@ enum GNUNET_STRINGS_FilenameCheck
 /**
  * Perform checks on 'filename'.  FIXME: some duplication with
  * "GNUNET_DISK_"-APIs.  We should unify those.
- * 
+ *
  * @param filename file to check
  * @param checks checks to perform
  * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
@@ -389,7 +389,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
 /**
  * Tries to convert 'zt_addr' string to an IPv6 address.
  * The string is expected to have the format "[ABCD::01]:80".
- * 
+ *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill. Initially gets filled with zeroes,
@@ -398,7 +398,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr, 
+GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 				uint16_t addrlen,
 				struct sockaddr_in6 *r_buf);
 
@@ -406,7 +406,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 /**
  * Tries to convert 'zt_addr' string to an IPv4 address.
  * The string is expected to have the format "1.2.3.4:80".
- * 
+ *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill.
@@ -414,7 +414,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
  *         the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, 
+GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 				uint16_t addrlen,
 				struct sockaddr_in *r_buf);
 
@@ -422,7 +422,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 /**
  * Tries to convert 'addr' string to an IP (v4 or v6) address.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
- * 
+ *
  * @param addr a string, may not be 0-terminated.
  * @param addrlen number of bytes in addr (if addr is 0-terminated,
  *        0-terminator should not be counted towards addrlen).
@@ -451,8 +451,8 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GNUNET_STRINGS_get_utf8_args (int argc, 
-			      char *const *argv, 
+GNUNET_STRINGS_get_utf8_args (int argc,
+			      char *const *argv,
 			      int *u8argc,
                               char *const **u8argv);
 

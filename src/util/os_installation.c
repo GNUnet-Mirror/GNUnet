@@ -741,16 +741,16 @@ GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *p
     char parameters[512];
     PROCESS_INFORMATION proc;
     DWORD exit_value;
-    
-    GNUNET_snprintf (parameters, 
-		     sizeof (parameters), 
+
+    GNUNET_snprintf (parameters,
+		     sizeof (parameters),
 		     "-d %s", params);
     memset (&start, 0, sizeof (start));
     start.cb = sizeof (start);
     memset (&proc, 0, sizeof (proc));
 
-            
-    // Start the child process. 
+
+    // Start the child process.
     if ( ! (CreateProcess( p,   // current windows (2k3 and up can handle / instead of \ in paths))
         parameters,           // execute dryrun/priviliege checking mode
         NULL,           // Process handle not inheritable
@@ -758,12 +758,12 @@ GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *p
         FALSE,          // Set handle inheritance to FALSE
         CREATE_DEFAULT_ERROR_MODE, // No creation flags
         NULL,           // Use parent's environment block
-        NULL,           // Use parent's starting directory 
+        NULL,           // Use parent's starting directory
         &start,            // Pointer to STARTUPINFO structure
         &proc )           // Pointer to PROCESS_INFORMATION structure
-                               )) 
+                               ))
       {
-        LOG (GNUNET_ERROR_TYPE_ERROR, 
+        LOG (GNUNET_ERROR_TYPE_ERROR,
              _("CreateProcess failed for binary %s (%d).\n"),
              p, GetLastError());
         return GNUNET_SYSERR;
@@ -771,17 +771,17 @@ GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *p
 
     // Wait until child process exits.
     WaitForSingleObject( proc.hProcess, INFINITE );
-    
+
     if ( ! GetExitCodeProcess (proc.hProcess, &exit_value)){
-        LOG (GNUNET_ERROR_TYPE_ERROR, 
-             _("GetExitCodeProcess failed for binary %s (%d).\n"), 
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("GetExitCodeProcess failed for binary %s (%d).\n"),
              p, GetLastError() );
         return GNUNET_SYSERR;
       }
-    // Close process and thread handles. 
+    // Close process and thread handles.
     CloseHandle( proc.hProcess );
     CloseHandle( proc.hThread );
-  
+
     if (!exit_value)
       return GNUNET_YES;
 #endif

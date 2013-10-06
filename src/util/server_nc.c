@@ -268,7 +268,7 @@ GNUNET_SERVER_notification_context_add (struct GNUNET_SERVER_NotificationContext
 
   for (cl = nc->clients_head; NULL != cl; cl = cl->next)
     if (cl->client == client)
-      return; /* already present */    
+      return; /* already present */
   cl = GNUNET_malloc (sizeof (struct ClientList));
   GNUNET_CONTAINER_DLL_insert (nc->clients_head,
 			       nc->clients_tail,

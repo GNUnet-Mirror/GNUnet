@@ -357,7 +357,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct in6_addr v6;
   void *addr;
   enum MHD_FLAG flags;
-  
+
   vpn = GNUNET_VPN_connect (cfg);
   GNUNET_assert (NULL != vpn);
   flags = MHD_USE_DEBUG;
@@ -366,8 +366,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   mhd =
       MHD_start_daemon (flags, PORT, NULL, NULL, &mhd_ahc, NULL,
                         MHD_OPTION_END);
-  
-  
+
+
   GNUNET_assert (NULL != mhd);
   mhd_main ();
   addr = NULL;
@@ -384,7 +384,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
   default:
     GNUNET_assert (0);
   }
-  rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr, 
+  rr = GNUNET_VPN_redirect_to_ip (vpn, src_af, dest_af, addr,
                                   GNUNET_TIME_UNIT_FOREVER_ABS, &allocation_cb,
                                   NULL);
   ctrl_c_task_id =
@@ -436,7 +436,7 @@ main (int argc, char *const *argv)
     return 1;
   }
   type++;
-  /* on Windows, .exe is suffixed to these binaries, 
+  /* on Windows, .exe is suffixed to these binaries,
    * thus cease comparison after the 6th char.
    */
   if (0 == strncmp (type, "4_to_6",6))
@@ -468,7 +468,7 @@ main (int argc, char *const *argv)
     fprintf (stderr, "invalid binary suffix `%s'\n", type);
     return 1;
   }
-  if ((GNUNET_OK != GNUNET_NETWORK_test_pf (src_af)) || 
+  if ((GNUNET_OK != GNUNET_NETWORK_test_pf (src_af)) ||
       (GNUNET_OK != GNUNET_NETWORK_test_pf (dest_af)))
   {
     fprintf (stderr,
@@ -483,8 +483,8 @@ main (int argc, char *const *argv)
   if (0 !=
       GNUNET_TESTING_peer_run ("test-gnunet-vpn", "test_gnunet_vpn.conf", &run,
                                NULL))
-    return 1;  
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");  
+    return 1;
+  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-vpn");
   return global_ret;
 }
 

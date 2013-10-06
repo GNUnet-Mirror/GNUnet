@@ -79,7 +79,7 @@
 #define SETUP_CONNECTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
- * How long are we willing to wait for a successful reconnect if 
+ * How long are we willing to wait for a successful reconnect if
  * an existing connection went down?  Much shorter than the
  * usual SETUP_CONNECTION_TIMEOUT as we do not inform the
  * higher layers about the disconnect during this period.
@@ -271,7 +271,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * setup a connection/session for data exchange.  A 'SESSION_CONNECT'
  * should be answered with a 'SESSION_CONNECT_ACK' with the same body
  * to confirm.  A 'SESSION_CONNECT_ACK' should then be followed with
- * a 'SESSION_ACK'.  Once the 'SESSION_ACK' is received, both peers 
+ * a 'SESSION_ACK'.  Once the 'SESSION_ACK' is received, both peers
  * should be connected.
  */
 struct SessionConnectMessage
@@ -298,7 +298,7 @@ struct SessionConnectMessage
 
 /**
  * Message we send to the other peer to notify him that we intentionally
- * are disconnecting (to reduce timeouts).  This is just a friendly 
+ * are disconnecting (to reduce timeouts).  This is just a friendly
  * notification, peers must not rely on always receiving disconnect
  * messages.
  */
@@ -448,8 +448,8 @@ struct MessageQueue
  * and set the 'send_connect_ack' to 2.  If we then receive a
  * 'SESSION_ACK', we go to 'S_CONNECTED' (and reset 'send_connect_ack'
  * to 0).
- * 
- */ 
+ *
+ */
 enum State
 {
   /**
@@ -525,7 +525,7 @@ enum State
    */
   S_CONNECTED_SWITCHING_BLACKLIST,
 
-  /** 
+  /**
    * We have some primary connection, but ATS suggested we switch
    * to some alternative; we now sent a CONNECT message for the
    * alternative session to the other peer and waiting for a
@@ -589,7 +589,7 @@ struct NeighbourAddress
    * Did we tell ATS that this is our 'active' address?
    */
   int ats_active;
-  
+
 };
 
 
@@ -644,7 +644,7 @@ struct NeighbourMapEntry
   struct GNUNET_TIME_Absolute keep_alive_time;
 
   /**
-   * At what time did we sent the last keep-alive message?  Used 
+   * At what time did we sent the last keep-alive message?  Used
    * to calculate round-trip time ("latency").
    */
   struct GNUNET_TIME_Absolute last_keep_alive_time;
@@ -713,7 +713,7 @@ struct NeighbourMapEntry
  */
 struct BlackListCheckContext
 {
-  
+
   /**
    * We keep blacklist checks in a DLL.
    */
@@ -954,7 +954,7 @@ set_address (struct NeighbourAddress *na,
 	     int is_active)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))  
+  if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
     return;
@@ -976,17 +976,17 @@ set_address (struct NeighbourAddress *na,
       /* FIXME: is this the right place to set quotas? */
       GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
       send_outbound_quota (&address->peer, bandwidth_out);
-    }    
+    }
     return;
   }
   free_address (na);
   if (NULL == session)
-    session = papi->get_session (papi->cls, address);    
+    session = papi->get_session (papi->cls, address);
   if (NULL == session)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Failed to obtain new session for peer `%s' and  address '%s'\n",
-		GNUNET_i2s (&address->peer), GST_plugins_a2s (address));    
+		GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
@@ -1037,8 +1037,8 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
      least internally we need to get clean... */
   if (GNUNET_YES == test_connected (n))
   {
-    GNUNET_STATISTICS_set (GST_stats, 
-			   gettext_noop ("# peers connected"), 
+    GNUNET_STATISTICS_set (GST_stats,
+			   gettext_noop ("# peers connected"),
 			   --neighbours_connected,
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
@@ -1226,7 +1226,7 @@ send_disconnect (struct NeighbourMapEntry *n)
 static void
 disconnect_neighbour (struct NeighbourMapEntry *n)
 {
-  /* depending on state, notify neighbour and/or upper layers of this peer 
+  /* depending on state, notify neighbour and/or upper layers of this peer
      about disconnect */
   switch (n->state)
   {
@@ -1238,7 +1238,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     free_neighbour (n, GNUNET_NO);
     return;
   case S_CONNECT_SENT:
-    send_disconnect (n); 
+    send_disconnect (n);
     n->state = S_DISCONNECT;
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
@@ -1250,9 +1250,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     return;
   case S_CONNECT_RECV_ACK:
     /* we DID ACK the other peer's request, must send DISCONNECT */
-    send_disconnect (n); 
+    send_disconnect (n);
     n->state = S_DISCONNECT;
-    break;   
+    break;
   case S_CONNECTED:
   case S_RECONNECT_BLACKLIST:
   case S_RECONNECT_SENT:
@@ -1261,8 +1261,8 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     /* we are currently connected, need to send disconnect and do
        internal notifications and update statistics */
     send_disconnect (n);
-    GNUNET_STATISTICS_set (GST_stats, 
-			   gettext_noop ("# peers connected"), 
+    GNUNET_STATISTICS_set (GST_stats,
+			   gettext_noop ("# peers connected"),
 			   --neighbours_connected,
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
@@ -1326,7 +1326,7 @@ transmit_send_continuation (void *cls,
     n->is_active = NULL;
     if (GNUNET_SCHEDULER_NO_TASK != n->task)
       GNUNET_SCHEDULER_cancel (n->task);
-    n->task = GNUNET_SCHEDULER_add_now (&master_task, n);    
+    n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
   }
   if (bytes_in_send_queue < mq->message_buf_size)
   {
@@ -1355,7 +1355,7 @@ transmit_send_continuation (void *cls,
 			      gettext_noop
 			      ("# transmission failures for messages to other peers"),
 			      1, GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending message to `%s' of type %u was a %s\n",
 	      GNUNET_i2s (receiver),
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
@@ -1389,7 +1389,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     GNUNET_break (0);
     return;
   }
-  if ((0 == n->primary_address.address->address_length) && 
+  if ((0 == n->primary_address.address->address_length) &&
       (NULL == n->primary_address.session))
   {
     /* no address, why are we here? */
@@ -1399,7 +1399,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
   if (NULL != n->is_active)
   {
     /* transmission already pending */
-    return;                     
+    return;
   }
 
   /* timeout messages from the queue that are past their due date */
@@ -1535,7 +1535,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Latency for peer `%s' is %s\n",
-              GNUNET_i2s (&n->id), 
+              GNUNET_i2s (&n->id),
 	      GNUNET_STRINGS_relative_time_to_string (n->latency,
 						      GNUNET_YES));
   /* append latency */
@@ -1570,7 +1570,7 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
-  
+
   if (NULL == neighbours)
   {
     *do_forward = GNUNET_NO;
@@ -1634,7 +1634,7 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
                 GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# ms throttling suggested"),
-                              (int64_t) ret.rel_value_us / 1000LL, 
+                              (int64_t) ret.rel_value_us / 1000LL,
 			      GNUNET_NO);
   }
   return ret;
@@ -1708,13 +1708,13 @@ send_session_connect (struct NeighbourAddress *na)
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
 
-  if (NULL == (papi = GST_plugins_find (na->address->transport_name)))  
+  if (NULL == (papi = GST_plugins_find (na->address->transport_name)))
   {
     GNUNET_break (0);
     return;
   }
   if (NULL == na->session)
-    na->session = papi->get_session (papi->cls, na->address);    
+    na->session = papi->get_session (papi->cls, na->address);
   if (NULL == na->session)
   {
     GNUNET_break (0);
@@ -1750,13 +1750,13 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
 
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))  
+  if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
     return;
   }
   if (NULL == session)
-    session = papi->get_session (papi->cls, address);    
+    session = papi->get_session (papi->cls, address);
   if (NULL == session)
   {
     GNUNET_break (0);
@@ -1788,7 +1788,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   struct NeighbourMapEntry *n;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating new neighbour entry for `%s'\n", 
+              "Creating new neighbour entry for `%s'\n",
 	      GNUNET_i2s (peer));
   n = MEMDEBUG_malloc (sizeof (struct NeighbourMapEntry), __LINE__);
   n->id = *peer;
@@ -1842,7 +1842,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
 
-  if (NULL == neighbours)  
+  if (NULL == neighbours)
   {
   	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   		      "Asked to connect to peer `%s' during shutdown\n",
@@ -1881,7 +1881,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       		"Ignoring request to try to connect to `%s', already trying!\n",
 		  GNUNET_i2s (target));
       return; /* already trying */
-    case S_CONNECTED:      
+    case S_CONNECTED:
     case S_RECONNECT_ATS:
     case S_RECONNECT_BLACKLIST:
     case S_RECONNECT_SENT:
@@ -1896,8 +1896,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       free_neighbour (n, GNUNET_NO);
       break;
     case S_DISCONNECT_FINISHED:
-      /* should not be possible */      
-      GNUNET_assert (0); 
+      /* should not be possible */
+      GNUNET_assert (0);
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
       GNUNET_break (0);
@@ -1905,8 +1905,8 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       break;
     }
   }
-  n = setup_neighbour (target);  
-  n->state = S_INIT_ATS; 
+  n = setup_neighbour (target);
+  n->state = S_INIT_ATS;
   n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
 
   GNUNET_ATS_reset_backoff (GST_ats, target);
@@ -1988,7 +1988,7 @@ handle_test_blacklist_cont (void *cls,
 					n->primary_address.session,
 					n->connect_ack_timestamp);
     }
-    break; 
+    break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
     if (GNUNET_OK == result)
     	GST_ats_add_address (bcc->na.address, bcc->na.session);
@@ -2011,7 +2011,7 @@ handle_test_blacklist_cont (void *cls,
       send_session_connect_ack_message (bcc->na.address,
 					bcc->na.session,
 					n->connect_ack_timestamp);
-      if (1 == n->send_connect_ack) 
+      if (1 == n->send_connect_ack)
 	n->send_connect_ack = 2;
     }
     else
@@ -2038,13 +2038,13 @@ handle_test_blacklist_cont (void *cls,
 					n->primary_address.session,
 					n->connect_ack_timestamp);
     }
-    break; 
+    break;
   case S_CONNECTED:
     /* already connected, don't care about blacklist */
     break;
   case S_RECONNECT_ATS:
     /* still waiting on ATS suggestion, don't care about blacklist */
-    break;     
+    break;
   case S_RECONNECT_BLACKLIST:
     if ( (GNUNET_OK == result) &&
 	 (1 == n->send_connect_ack) )
@@ -2083,7 +2083,7 @@ handle_test_blacklist_cont (void *cls,
 					n->primary_address.session,
 					n->connect_ack_timestamp);
     }
-    break;     
+    break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
     if (GNUNET_YES != address_matches (&bcc->na, &n->alternative_address))
       break; /* result for an address we currently don't care about */
@@ -2111,7 +2111,7 @@ handle_test_blacklist_cont (void *cls,
 					n->primary_address.session,
 					n->connect_ack_timestamp);
     }
-    break;     
+    break;
   case S_DISCONNECT:
     /* Nothing to do here, ATS will already do what can be done */
     break;
@@ -2163,10 +2163,10 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
   GNUNET_CONTAINER_DLL_insert (bc_head,
 			       bc_tail,
 			       bcc);
-  if (NULL != (bc = GST_blacklist_test_allowed (peer, 
+  if (NULL != (bc = GST_blacklist_test_allowed (peer,
 						address->transport_name,
 						&handle_test_blacklist_cont, bcc)))
-    bcc->bc = bc; 
+    bcc->bc = bc;
   /* if NULL == bc, 'cont' was already called and 'bcc' already free'd, so
      we must only store 'bc' if 'bc' is non-NULL... */
 }
@@ -2193,7 +2193,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   struct GNUNET_TIME_Absolute ts;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received CONNECT message from peer `%s'\n", 
+              "Received CONNECT message from peer `%s'\n",
 	      GNUNET_i2s (peer));
 
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
@@ -2213,7 +2213,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   n->connect_ack_timestamp = ts;
 
   switch (n->state)
-  {  
+  {
   case S_NOT_CONNECTED:
     n->state = S_CONNECT_RECV_BLACKLIST_INBOUND;
     /* Do a blacklist check for the new address */
@@ -2229,7 +2229,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
-    /* It can never hurt to have an alternative address in the above cases, 
+    /* It can never hurt to have an alternative address in the above cases,
        see if it is allowed */
     check_blacklist (peer, ts, address, session);
     break;
@@ -2247,7 +2247,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   case S_RECONNECT_ATS:
   case S_RECONNECT_BLACKLIST:
   case S_RECONNECT_SENT:
-    /* It can never hurt to have an alternative address in the above cases, 
+    /* It can never hurt to have an alternative address in the above cases,
        see if it is allowed */
     check_blacklist (peer, ts, address, session);
     break;
@@ -2286,7 +2286,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
 
 /**
  * For an existing neighbour record, set the active connection to
- * use the given address.  
+ * use the given address.
  *
  * @param peer identity of the peer to switch the address for
  * @param address address of the other peer, NULL if other peer
@@ -2355,7 +2355,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Failed to obtain new session for peer `%s' and  address '%s'\n",
-		GNUNET_i2s (&address->peer), GST_plugins_a2s (address));    
+		GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
@@ -2529,7 +2529,7 @@ master_task (void *cls,
   struct GNUNET_TIME_Relative delay;
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
-  delay = GNUNET_TIME_absolute_get_remaining (n->timeout);  
+  delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
@@ -2698,11 +2698,11 @@ master_task (void *cls,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
     GNUNET_break (0);
-    break;  
+    break;
   }
   if ( (S_CONNECTED_SWITCHING_CONNECT_SENT == n->state) ||
        (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
-       (S_CONNECTED == n->state) )    
+       (S_CONNECTED == n->state) )
   {
     /* if we are *now* in one of these three states, we're sending
        keep alive messages, so we need to consider the keepalive
@@ -2789,14 +2789,14 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               gettext_noop
                               ("# unexpected CONNECT_ACK messages (not ready)"),
                               1, GNUNET_NO);
-    break;    
+    break;
   case S_CONNECT_SENT:
     if (ts.abs_value_us != n->primary_address.connect_timestamp.abs_value_us)
       break; /* ACK does not match our original CONNECT message */
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-    GNUNET_STATISTICS_set (GST_stats, 
-			   gettext_noop ("# peers connected"), 
+    GNUNET_STATISTICS_set (GST_stats,
+			   gettext_noop ("# peers connected"),
 			   ++neighbours_connected,
 			   GNUNET_NO);
     connect_notify_cb (callback_cls, &n->id,
@@ -2858,7 +2858,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
 		 GNUNET_YES);
     free_address (&n->alternative_address);
     send_session_ack_message (n);
-    break;    
+    break;
   case S_DISCONNECT:
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -2871,7 +2871,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
     GNUNET_break (0);
-    break;   
+    break;
   }
 }
 
@@ -2945,7 +2945,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
-  case S_CONNECT_RECV_ATS:    
+  case S_CONNECT_RECV_ATS:
   case S_CONNECT_RECV_BLACKLIST:
   case S_CONNECT_RECV_ACK:
     /* error on inbound session; free neighbour entirely */
@@ -2972,7 +2972,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
     /* primary went down while we were checking secondary against
-       blacklist, adopt secondary as primary */       
+       blacklist, adopt secondary as primary */
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
@@ -2981,7 +2981,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
-       secondary as primary */       
+       secondary as primary */
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
@@ -3026,7 +3026,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received SESSION_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
   if (ntohs (message->size) != sizeof (struct GNUNET_MessageHeader))
@@ -3049,8 +3049,8 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
   }
   n->state = S_CONNECTED;
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_STATISTICS_set (GST_stats, 
-			 gettext_noop ("# peers connected"), 
+  GNUNET_STATISTICS_set (GST_stats,
+			 gettext_noop ("# peers connected"),
 			 ++neighbours_connected,
 			 GNUNET_NO);
   connect_notify_cb (callback_cls, &n->id,
@@ -3263,7 +3263,7 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
 {
   struct IteratorContext ic;
 
-  if (NULL == neighbours)  
+  if (NULL == neighbours)
     return; /* can happen during shutdown */
   ic.cb = cb;
   ic.cb_cls = cb_cls;
@@ -3296,7 +3296,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
  * Obtain current latency information for the given neighbour.
  *
  * @param peer to get the latency for
- * @return observed latency of the address, FOREVER if the 
+ * @return observed latency of the address, FOREVER if the
  *         the connection is not up
  */
 struct GNUNET_TIME_Relative
@@ -3305,7 +3305,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   struct NeighbourMapEntry *n;
 
   n = lookup_neighbour (peer);
-  if (NULL == n) 
+  if (NULL == n)
     return GNUNET_TIME_UNIT_FOREVER_REL;
   switch (n->state)
   {
@@ -3332,7 +3332,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
     GNUNET_break (0);
     break;
   }
-  return GNUNET_TIME_UNIT_FOREVER_REL;   
+  return GNUNET_TIME_UNIT_FOREVER_REL;
 }
 
 
@@ -3388,13 +3388,13 @@ GST_neighbours_start (void *cls,
  * @return GNUNET_OK (continue to iterate)
  */
 static int
-disconnect_all_neighbours (void *cls, 
-			   const struct GNUNET_PeerIdentity *key, 
+disconnect_all_neighbours (void *cls,
+			   const struct GNUNET_PeerIdentity *key,
 			   void *value)
 {
   struct NeighbourMapEntry *n = value;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
   n->state = S_DISCONNECT_FINISHED;
@@ -3411,7 +3411,7 @@ GST_neighbours_stop ()
 {
   if (NULL == neighbours)
     return;
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours, 
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
 					 &disconnect_all_neighbours,
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);

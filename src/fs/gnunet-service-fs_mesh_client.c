@@ -44,7 +44,7 @@
 #define CLIENT_RETRY_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
-/** 
+/**
  * Handle for a mesh to another peer.
  */
 struct MeshHandle;
@@ -99,7 +99,7 @@ struct GSF_MeshRequest
 };
 
 
-/** 
+/**
  * Handle for a mesh to another peer.
  */
 struct MeshHandle
@@ -127,12 +127,12 @@ struct MeshHandle
 
   /**
    * Handle for active write operation, or NULL.
-   */ 
+   */
   struct GNUNET_MESH_TransmitHandle *wh;
 
   /**
    * Which peer does this mesh go to?
-   */ 
+   */
   struct GNUNET_PeerIdentity target;
 
   /**
@@ -177,7 +177,7 @@ transmit_pending (struct MeshHandle *mh);
 
 
 /**
- * Iterator called on each entry in a waiting map to 
+ * Iterator called on each entry in a waiting map to
  * move it back to the pending list.
  *
  * @param cls the 'struct MeshHandle'
@@ -192,7 +192,7 @@ move_to_pending (void *cls,
 {
   struct MeshHandle *mh = cls;
   struct GSF_MeshRequest *sr = value;
-  
+
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (mh->waiting_map,
 						       key,
@@ -342,7 +342,7 @@ transmit_sqm (void *cls,
   transmit_pending (mh);
   return sizeof (sqm);
 }
-	  
+	
 
 /**
  * Transmit pending requests via the mesh.
@@ -371,7 +371,7 @@ struct HandleReplyClosure
 
   /**
    * Reply payload.
-   */ 
+   */
   const void *data;
 
   /**
@@ -384,11 +384,11 @@ struct HandleReplyClosure
    */
   size_t data_size;
 
-  /** 
+  /**
    * Type of the block.
    */
   enum GNUNET_BLOCK_Type type;
-  
+
   /**
    * Did we have a matching query?
    */
@@ -397,7 +397,7 @@ struct HandleReplyClosure
 
 
 /**
- * Iterator called on each entry in a waiting map to 
+ * Iterator called on each entry in a waiting map to
  * process a result.
  *
  * @param cls the 'struct HandleReplyClosure'
@@ -412,7 +412,7 @@ handle_reply (void *cls,
 {
   struct HandleReplyClosure *hrc = cls;
   struct GSF_MeshRequest *sr = value;
-  
+
   sr->proc (sr->proc_cls,
 	    hrc->type,
 	    hrc->expiration,
@@ -462,7 +462,7 @@ reply_cb (void *cls,
 			    type,
 			    &srm[1], msize, &query))
   {
-    GNUNET_break_op (0); 
+    GNUNET_break_op (0);
     reset_mesh_async (mh);
     return GNUNET_SYSERR;
   }
@@ -611,7 +611,7 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
 
 
 /**
- * Iterator called on each entry in a waiting map to 
+ * Iterator called on each entry in a waiting map to
  * call the 'proc' continuation and release associated
  * resources.
  *
@@ -641,7 +641,7 @@ free_waiting_entry (void *cls,
  *
  * @param cls NULL
  * @param tunnel tunnel of the disconnecting client
- * @param tunnel_ctx our 'struct MeshClient' 
+ * @param tunnel_ctx our 'struct MeshClient'
  */
 static void
 cleaner_cb (void *cls,

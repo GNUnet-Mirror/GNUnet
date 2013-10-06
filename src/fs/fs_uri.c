@@ -98,7 +98,7 @@
  * @param key where to store the unique key
  */
 void
-GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri, 
+GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
 		      struct GNUNET_HashCode *key)
 {
   switch (uri->type)
@@ -368,7 +368,7 @@ uri_sks_parse (const char *s, char **emsg)
   end = strchr (&s[pos], '/');
   if ( (NULL == end) ||
        (GNUNET_OK !=
-	GNUNET_STRINGS_string_to_data (&s[pos], 
+	GNUNET_STRINGS_string_to_data (&s[pos],
 				       end - &s[pos],
 				       &ns,
 				       sizeof (ns))) )
@@ -526,12 +526,12 @@ struct LocUriAssembly
 
   /**
    * File being offered.
-   */ 
+   */
   struct FileIdentifier fi;
 
   /**
    * Peer offering the file.
-   */ 
+   */
   struct GNUNET_PeerIdentity peer;
 
 };
@@ -947,7 +947,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns, 
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
 			  const char *id)
 {
   struct GNUNET_FS_Uri *ns_uri;
@@ -1424,7 +1424,7 @@ GNUNET_FS_uri_test_loc (const struct GNUNET_FS_Uri *uri)
  * Add a keyword as non-mandatory (with ' '-prefix) to the
  * given keyword list at offset 'index'.  The array is
  * guaranteed to be long enough.
- * 
+ *
  * @param s keyword to add
  * @param array array to add the keyword to
  * @param index offset where to add the keyword
@@ -1439,14 +1439,14 @@ insert_non_mandatory_keyword (const char *s, char **array, int index)
 
 
 /**
- * Test if the given keyword 's' is already present in the 
+ * Test if the given keyword 's' is already present in the
  * given array, ignoring the '+'-mandatory prefix in the array.
  *
  * @param s keyword to test
  * @param array keywords to test against, with ' ' or '+' prefix to ignore
  * @param array_length length of the array
  * @return GNUNET_YES if the keyword exists, GNUNET_NO if not
- */ 
+ */
 static int
 find_duplicate (const char *s, const char **array, int array_length)
 {
@@ -1535,7 +1535,7 @@ u8_strcount (const uint8_t *s)
  *        to it are used to check for duplicates). ignored if array == NULL.
  * @return number of tokens counted (including duplicates), or number of
  *         tokens extracted (excluding duplicates). 0 if there are no
- *         matching parens in the string (when counting), or when all tokens 
+ *         matching parens in the string (when counting), or when all tokens
  *         were duplicates (when extracting).
  */
 static int
@@ -1612,7 +1612,7 @@ get_keywords_from_parens (const char *s, char **array, int index)
       else
 	count++;
       close_paren[0] = tmp;
-    }   
+    }
   }
   GNUNET_free (ss);
   return count;
@@ -1900,7 +1900,7 @@ uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
   GNUNET_assert (NULL != ret);
   ret[0] = '\0';
   GNUNET_asprintf (&ret, "%s%s%s/%s", GNUNET_FS_URI_PREFIX,
-                   GNUNET_FS_URI_SKS_INFIX, buf, 
+                   GNUNET_FS_URI_SKS_INFIX, buf,
 		   uri->data.sks.identifier);
   return ret;
 }
@@ -2003,7 +2003,7 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   peerSig =
       bin2enc (&uri->data.loc.contentSignature,
                sizeof (struct GNUNET_CRYPTO_EccSignature));
-  GNUNET_asprintf (&ret, 
+  GNUNET_asprintf (&ret,
 		   "%s%s%s.%s.%llu.%s.%s.%llu", GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX, (const char *) &keyhash,
                    (const char *) &queryhash,

@@ -281,7 +281,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 end:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Allowing receive from peer %s to continue in %s\n",
-              GNUNET_i2s (peer), 
+              GNUNET_i2s (peer),
 	      GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
   return ret;
 }

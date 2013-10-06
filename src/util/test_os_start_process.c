@@ -37,12 +37,12 @@ static int ok;
 static struct GNUNET_OS_Process *proc;
 
 /**
- * Pipe to write to started processes stdin (on write end) 
+ * Pipe to write to started processes stdin (on write end)
  */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
 
 /**
- * Pipe to read from started processes stdout (on read end) 
+ * Pipe to read from started processes stdout (on read end)
  */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
 
@@ -204,7 +204,7 @@ check_kill ()
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
-			     "gnunet-service-resolver", "-", NULL); 
+			     "gnunet-service-resolver", "-", NULL);
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   GNUNET_free (fn);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
@@ -235,7 +235,7 @@ check_instant_kill ()
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
-			     "gnunet-service-resolver", "-", NULL); 
+			     "gnunet-service-resolver", "-", NULL);
   if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");

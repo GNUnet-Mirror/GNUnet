@@ -93,7 +93,7 @@ restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   rtask = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_FS_stop (fs);
-  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence", 
+  fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence",
 			&progress_cb, NULL,
                         GNUNET_FS_FLAGS_PERSISTENCE,
 			GNUNET_FS_OPTIONS_END);
@@ -223,7 +223,7 @@ progress_cb (void *cls,
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 {

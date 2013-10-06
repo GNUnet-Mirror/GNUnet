@@ -47,12 +47,12 @@ struct Ego
 
   /**
    * We keep egos in a DLL.
-   */ 
+   */
   struct Ego *next;
 
   /**
    * We keep egos in a DLL.
-   */ 
+   */
   struct Ego *prev;
 
   /**
@@ -195,7 +195,7 @@ send_result_code (struct GNUNET_SERVER_Client *client,
 	      "Sending result %d (%s) to client\n",
 	      (int) result_code,
 	      emsg);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_NO);  
+  GNUNET_SERVER_notification_context_unicast (nc, client, &rcm->header, GNUNET_NO);
   GNUNET_free (rcm);
 }
 
@@ -211,7 +211,7 @@ create_update_message (struct Ego *ego)
 {
   struct GNUNET_IDENTITY_UpdateMessage *um;
   size_t name_len;
- 
+
   name_len = (NULL == ego->identifier) ? 0 : (strlen (ego->identifier) + 1);
   um = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_UpdateMessage) + name_len);
   um->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE);
@@ -252,7 +252,7 @@ create_set_default_message (struct Ego *ego,
 
 /**
  * Handler for START message from client, sends information
- * about all identities to the client immediately and 
+ * about all identities to the client immediately and
  * adds the client to the notification context for future
  * updates.
  *
@@ -268,7 +268,7 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_IDENTITY_UpdateMessage ume;
   struct Ego *ego;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received START message from client\n");
   GNUNET_SERVER_notification_context_add (nc, client);
   for (ego = ego_head; NULL != ego; ego = ego->next)
@@ -282,7 +282,7 @@ handle_start_message (void *cls, struct GNUNET_SERVER_Client *client,
   ume.header.size = htons (sizeof (struct GNUNET_IDENTITY_UpdateMessage));
   ume.end_of_list = htons (GNUNET_YES);
   ume.name_len = htons (0);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_NO);  
+  GNUNET_SERVER_notification_context_unicast (nc, client, &ume.header, GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -325,7 +325,7 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received GET_DEFAULT for service `%s' from client\n",
 	      name);
   if (GNUNET_OK !=
@@ -335,7 +335,7 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 					     &identifier))
   {
     send_result_code (client, 1, gettext_noop ("no default known"));
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);   
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   for (ego = ego_head; NULL != ego; ego = ego->next)
@@ -356,7 +356,7 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Failed to find ego `%s'\n",
 	      name);
-  send_result_code (client, 1, 
+  send_result_code (client, 1,
 		    gettext_noop ("default configured, but ego unknown (internal error)"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -364,7 +364,7 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Compare the given two private keys for equality.
- * 
+ *
  * @param pk1 one private key
  * @param pk2 another private key
  * @return 0 if the keys are equal
@@ -405,7 +405,7 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
   sdm = (const struct GNUNET_IDENTITY_SetDefaultMessage *) message;
   name_len = ntohs (sdm->name_len);
   GNUNET_break (0 == ntohs (sdm->reserved));
-  if (name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) != size) 
+  if (name_len + sizeof (struct GNUNET_IDENTITY_SetDefaultMessage) != size)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -418,7 +418,7 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received SET_DEFAULT for service `%s' from client\n",
 	      str);
   for (ego = ego_head; NULL != ego; ego = ego->next)
@@ -430,7 +430,7 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
 					     str,
 					     "DEFAULT_IDENTIFIER",
 					     ego->identifier);
-      if (GNUNET_OK != 
+      if (GNUNET_OK !=
 	  GNUNET_CONFIGURATION_write (subsystem_cfg,
 				      subsystem_cfg_file))
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -440,7 +440,7 @@ handle_set_default_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  }  
+  }
   send_result_code (client, 1, _("Unknown ego specified for service (internal error)"));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -481,7 +481,7 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   const char *str;
   char *fn;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received CREATE message from client\n");
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_CreateRequestMessage))
@@ -493,7 +493,7 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   crm = (const struct GNUNET_IDENTITY_CreateRequestMessage *) message;
   name_len = ntohs (crm->name_len);
   GNUNET_break (0 == ntohs (crm->reserved));
-  if (name_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size) 
+  if (name_len + sizeof (struct GNUNET_IDENTITY_CreateRequestMessage) != size)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -528,14 +528,14 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   (void) GNUNET_DISK_directory_create_for_file (fn);
   if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) !=
       GNUNET_DISK_fn_write (fn,
-			    &crm->private_key, 
+			    &crm->private_key,
 			    sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
 			    GNUNET_DISK_PERM_USER_READ |
 			    GNUNET_DISK_PERM_USER_WRITE))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 			      "write", fn);
   GNUNET_free (fn);
-  notify_listeners (ego);  
+  notify_listeners (ego);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -543,7 +543,7 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Closure for 'handle_ego_rename'.
  */
-struct RenameContext 
+struct RenameContext
 {
   /**
    * Old name.
@@ -579,14 +579,14 @@ handle_ego_rename (void *cls,
     return;
   if (0 != strcmp (id, rc->old_name))
   {
-    GNUNET_free (id);  
+    GNUNET_free (id);
     return;
   }
   GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
 					 section,
 					 "DEFAULT_IDENTIFIER",
 					 rc->new_name);
-  GNUNET_free (id);  
+  GNUNET_free (id);
 }
 
 
@@ -613,7 +613,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
   char *fn_old;
   char *fn_new;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received RENAME message from client\n");
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_RenameMessage))
@@ -643,7 +643,7 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
 		     new_name))
     {
       send_result_code (client, 1, gettext_noop ("target name already exists"));
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);      
+      GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
   }
@@ -661,14 +661,14 @@ handle_rename_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_CONFIGURATION_iterate_sections (subsystem_cfg,
 					     &handle_ego_rename,
 					     &rename_ctx);
-      if (GNUNET_OK != 
+      if (GNUNET_OK !=
 	  GNUNET_CONFIGURATION_write (subsystem_cfg,
 				      subsystem_cfg_file))
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    _("Failed to write subsystem default identifier map to `%s'.\n"),
 		    subsystem_cfg_file);
       ego->identifier = GNUNET_strdup (new_name);
-      fn_new = get_ego_filename (ego);      
+      fn_new = get_ego_filename (ego);
       if (0 != RENAME (fn_old, fn_new))
 	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "rename", fn_old);
       GNUNET_free (fn_old);
@@ -708,14 +708,14 @@ handle_ego_delete (void *cls,
     return;
   if (0 != strcmp (id, identifier))
   {
-    GNUNET_free (id);  
+    GNUNET_free (id);
     return;
   }
   GNUNET_CONFIGURATION_set_value_string (subsystem_cfg,
 					 section,
 					 "DEFAULT_IDENTIFIER",
 					 NULL);
-  GNUNET_free (id);  
+  GNUNET_free (id);
 }
 
 
@@ -738,7 +738,7 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
   const char *name;
   char *fn;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received DELETE message from client\n");
   size = ntohs (message->size);
   if (size <= sizeof (struct GNUNET_IDENTITY_DeleteMessage))
@@ -769,7 +769,7 @@ handle_delete_message (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_CONFIGURATION_iterate_sections (subsystem_cfg,
 					     &handle_ego_delete,
 					     ego->identifier);
-      if (GNUNET_OK != 
+      if (GNUNET_OK !=
 	  GNUNET_CONFIGURATION_write (subsystem_cfg,
 				      subsystem_cfg_file))
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -830,7 +830,7 @@ process_ego_file (void *cls,
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Loaded ego `%s'\n",
-	      fn + 1);  
+	      fn + 1);
   ego->identifier = GNUNET_strdup (fn + 1);
   GNUNET_CONTAINER_DLL_insert (ego_head,
 			       ego_tail,
@@ -847,7 +847,7 @@ process_ego_file (void *cls,
  * @param c configuration to use
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -892,7 +892,7 @@ run (void *cls,
   subsystem_cfg = GNUNET_CONFIGURATION_create ();
   if ( (GNUNET_YES ==
 	GNUNET_DISK_file_test (subsystem_cfg_file)) &&
-       (GNUNET_OK != 
+       (GNUNET_OK !=
 	GNUNET_CONFIGURATION_parse (subsystem_cfg,
 				    subsystem_cfg_file)) )
   {
@@ -931,7 +931,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "identity", 
+          GNUNET_SERVICE_run (argc, argv, "identity",
 			      GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }

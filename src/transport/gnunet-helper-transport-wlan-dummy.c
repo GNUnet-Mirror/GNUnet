@@ -238,7 +238,7 @@ main (int argc, char *argv[])
       erg = mkfifo (FIFO_FILE1, 0666);
       if ( (0 != erg) && (EEXIST != errno) )
 	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE1,
-		 strerror (errno));    
+		 strerror (errno));
     }
   }
   else

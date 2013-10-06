@@ -43,7 +43,7 @@ generatePeerIdList ()
   for (i = 0; i < NUMBER_OF_PEERS; i++)
   {
     gcry_randomize (&pidArr[i],
-                    sizeof (struct GNUNET_PeerIdentity), 
+                    sizeof (struct GNUNET_PeerIdentity),
                     GCRY_STRONG_RANDOM);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Peer %d: %s\n", i, GNUNET_i2s (&pidArr[i]));

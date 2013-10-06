@@ -154,7 +154,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
 
   ret = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_Handle));
-  
+
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF"))
   {
@@ -166,12 +166,12 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
     if (NULL != ret->bloom_name)
     {
       ret->filter = GNUNET_CONTAINER_bloomfilter_load (ret->bloom_name, quota / 1024,     /* 8 bit per entry in DB, expect 1k entries */
-						       5); 
-    }    
+						       5);
+    }
     if (NULL == ret->filter)
     {
 	ret->filter = GNUNET_CONTAINER_bloomfilter_init (NULL, bf_size, 5); /* approx. 3% false positives at max use */
-    }  
+    }
   }
   ret->stats = GNUNET_STATISTICS_create ("datacache", cfg);
   ret->section = GNUNET_strdup (section);
@@ -247,8 +247,8 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
 {
   ssize_t used;
 
-  used = h->api->put (h->api->cls, key, 
-		      size, data, 
+  used = h->api->put (h->api->cls, key,
+		      size, data,
 		      type, discard_time,
 		      path_info_len, path_info);
   if (-1 == used)

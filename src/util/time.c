@@ -50,7 +50,7 @@ GNUNET_TIME_set_offset (long long offset)
  *
  * @return the offset we currently skew the locale time by
  */
-long long 
+long long
 GNUNET_TIME_get_offset ()
 {
   return timestamp_offset;
@@ -579,10 +579,10 @@ GNUNET_TIME_get_current_year ()
 /**
  * Convert an expiration time to the respective year (rounds)
  *
- * @param at absolute time 
+ * @param at absolute time
  * @return year a year (after 1970), 0 on error
  */
-unsigned int 
+unsigned int
 GNUNET_TIME_time_to_year (struct GNUNET_TIME_Absolute at)
 {
   struct tm *t;

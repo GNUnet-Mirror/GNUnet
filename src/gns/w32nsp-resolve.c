@@ -34,7 +34,7 @@
 typedef int (WSPAPI *LPNSPSTARTUP) (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines);
 
 GUID host = {0x0002a800,0,0,{ 0xC0,0,0,0,0,0,0,0x46 }};
-GUID ip4 = {0x00090035,0,1,{ 0xc0,0,0,0,0,0,0,0x046}}; 
+GUID ip4 = {0x00090035,0,1,{ 0xc0,0,0,0,0,0,0,0x046}};
 GUID ip6 = {0x00090035,0,0x001c, { 0xc0,0,0,0,0,0,0,0x046}};
 
 DEFINE_GUID(W32_DNS, 0x22059D40, 0x7E9E, 0x11CF, 0xAE, 0x5A, 0x00, 0xAA, 0x00, 0xA7, 0x11, 0x2B);
@@ -57,7 +57,7 @@ DEFINE_GUID(SVCID_INET_HOSTADDRBYNAME, 0x0002a803, 0x0000, 0x0000, 0xc0, 0x00, 0
 // to convert structures returned as BLOBs.
 //
 
-VOID 
+VOID
 FixList(PCHAR ** List, PCHAR Base)
 {
     if(*List)
@@ -78,7 +78,7 @@ FixList(PCHAR ** List, PCHAR Base)
 // Routine to convert a hostent returned in a BLOB to one with
 // usable pointers. The structure is converted in-place.
 //
-VOID 
+VOID
 UnpackHostEnt(struct hostent * hostent)
 {
      PCHAR pch;
@@ -210,7 +210,7 @@ main (int argc, char **argv)
   if (wargc == 5)
   {
     HMODULE nsp;
-   
+
     nsp = LoadLibraryW (wargv[3]);
     if (nsp == NULL)
     {

@@ -459,7 +459,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   for (mc = dc->head; NULL != mc; mc = mc->next)
     if (mc->fragment_id > fid)
       last++;
-  
+
   mc = dc->head;
   while ((NULL != mc) && (fid != mc->fragment_id))
     mc = mc->next;
@@ -538,13 +538,13 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   }
   /* send ACK */
   if (mc->frag_times_write_offset - mc->frag_times_start_offset > 1)
-  { 
+  {
     dc->latency = estimate_latency (mc);
   }
   delay = GNUNET_TIME_relative_multiply (dc->latency, bc + 1);
   if ( (last + fid == num_fragments) ||
-       (0 == mc->bits) || 
-       (GNUNET_YES == duplicate))     
+       (0 == mc->bits) ||
+       (GNUNET_YES == duplicate))
   {
     /* message complete or duplicate or last missing fragment in
        linear sequence; ACK now! */

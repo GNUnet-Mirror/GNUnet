@@ -1,17 +1,17 @@
 /*
   This file is part of GNUnet
   (C) 2013 Christian Grothoff (and other contributing authors)
-  
+
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3, or (at your
   option) any later version.
-  
+
   GNUnet is distributed in the hope that it will be useful, but
   WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   General Public License for more details.
-  
+
   You should have received a copy of the GNU General Public License
   along with GNUnet; see the file COPYING.  If not, write to the
   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -101,8 +101,8 @@ enable (void *cls,
 	GNUNET_MICROPHONE_RecordedDataCallback rdc,
 	void *rdc_cls)
 {
-  struct Microphone *mic = cls;  
-  static char * const record_helper_argv[] = 
+  struct Microphone *mic = cls;
+  static char * const record_helper_argv[] =
   {
     "gnunet-helper-audio-record",
     NULL
@@ -113,14 +113,14 @@ enable (void *cls,
   mic->record_helper = GNUNET_HELPER_start (GNUNET_NO,
 					    "gnunet-helper-audio-record",
 					    record_helper_argv,
-					    &process_record_messages, 
-					    NULL, mic);  
+					    &process_record_messages,
+					    NULL, mic);
   if (NULL == mic->record_helper)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Could not start record audio helper\n"));
     return GNUNET_SYSERR;
-  }  
+  }
   return GNUNET_OK;
 }
 

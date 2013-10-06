@@ -112,7 +112,7 @@ end ()
     ok = disconnects;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Fail! Had %u disconnects while waiting %s\n",
-                disconnects, 
+                disconnects,
 		GNUNET_STRINGS_relative_time_to_string (WAIT,
 							GNUNET_YES));
   }
@@ -223,7 +223,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 
   shutdown_flag = GNUNET_NO;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Waiting for %s\n",
 	      GNUNET_STRINGS_relative_time_to_string (WAIT,
 						      GNUNET_YES));

@@ -437,7 +437,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  *         GNUNET_NO if not.
  */
 static int
-neighbour_delete (void *cls, 
+neighbour_delete (void *cls,
 		  const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct GNUNET_TRANSPORT_Handle *handle = cls;
@@ -1341,7 +1341,7 @@ GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *hand
 {
   GNUNET_assert (NULL != handle);
   GNUNET_assert (NULL != peer);
-  
+
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (handle->neighbours, peer))
     return GNUNET_YES;
   else
@@ -1364,7 +1364,7 @@ call_hello_update_cb_async (void *cls,
   GNUNET_assert (NULL != ghh->handle->my_hello);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != ghh->notify_task);
   ghh->notify_task = GNUNET_SCHEDULER_NO_TASK;
-  ghh->rec (ghh->rec_cls, 
+  ghh->rec (ghh->rec_cls,
             (const struct GNUNET_MessageHeader *) ghh->handle->my_hello);
 }
 
@@ -1564,7 +1564,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
     delay.rel_value_us = 0;        /* notify immediately (with failure) */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Bandwidth tracker allows next transmission to peer %s in %s\n",
-       GNUNET_i2s (target), 
+       GNUNET_i2s (target),
        GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
   n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap, n, delay.rel_value_us);
   schedule_transmission (handle);

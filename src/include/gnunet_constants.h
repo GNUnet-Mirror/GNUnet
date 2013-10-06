@@ -119,7 +119,7 @@ extern "C"
 
 /**
  * Largest block that can be stored in the DHT.
- */ 
+ */
 #define GNUNET_CONSTANTS_MAX_BLOCK_SIZE (62 * 1024)
 
 

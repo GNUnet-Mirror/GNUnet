@@ -284,7 +284,7 @@ struct GNUNET_NAT_AutoHandle *
 GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     GNUNET_NAT_AutoResultCallback cb,
 			     void *cb_cls);
-			     
+			
 
 /**
  * Abort autoconfiguration.

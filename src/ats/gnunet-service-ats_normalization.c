@@ -654,7 +654,7 @@ find_min_max_it (void *cls,
 
 
 static int
-normalize_address (void *cls, 
+normalize_address (void *cls,
 		   const struct GNUNET_PeerIdentity *h,
 		   void *k)
 {
@@ -693,8 +693,8 @@ normalize_address (void *cls,
  */
 static void
 property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-		    struct Property *p, 
-		    struct ATS_Address *address, 
+		    struct Property *p,
+		    struct ATS_Address *address,
 		    uint32_t avg_value)
 {
   struct FindMinMaxCtx find_ctx;
@@ -762,7 +762,7 @@ property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
  */
 void
 GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-				      struct ATS_Address *address, 
+				      struct ATS_Address *address,
 				      const struct GNUNET_ATS_Information *atsi,
 				      uint32_t atsi_count)
 {

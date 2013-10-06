@@ -22,7 +22,7 @@
  * @file testbed/test_testbed_api_peers_manage_services.c
  * @brief testcase for testing GNUNET_TESTBED_peer_manage_service()
  *          implementation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -68,7 +68,7 @@ enum {
    * Peers have been started
    */
   STATE_PEERS_STARTED,
-  
+
   /**
    * statistics service went down
    */
@@ -111,7 +111,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != op)
-  {  
+  {
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
   }

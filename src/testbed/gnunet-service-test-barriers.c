@@ -22,7 +22,7 @@
  * @file testbed/gnunet-service-test-barriers.c
  * @brief Daemon acting as a service for testing testbed barriers.  It is
  *   started as a peer service and waits for a barrier to be crossed.
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -81,7 +81,7 @@ barrier_wait_cb (void *cls, const char *name, int status)
  *
  * @param cls NULL
  * @param tc scheduler task context
- * @return 
+ * @return
  */
 static void
 do_wait (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -126,7 +126,7 @@ int main (int argc, char **argv)
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
-  
+
   ret =
       GNUNET_PROGRAM_run (argc, argv,
                           "test-barriers", "nohelp", options, &run, NULL);

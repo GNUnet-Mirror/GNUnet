@@ -232,8 +232,8 @@ GED_scheduler_handle_start (struct Node *n, struct Experiment *e)
     GNUNET_break_op (0);
     return;
   }
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received %s message from peer %s for experiment `%s'\n",
 	      "START", GNUNET_i2s (&n->id), e->name);
   GED_scheduler_add (n, e, GNUNET_NO);

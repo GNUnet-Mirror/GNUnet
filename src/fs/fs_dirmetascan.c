@@ -53,13 +53,13 @@ struct GNUNET_FS_DirScanner
    * Second argument to helper process.
    */
   char *ex_arg;
-  
+
   /**
    * The function that will be called every time there's a progress
    * message.
    */
   GNUNET_FS_DirScannerProgressCallback progress_callback;
-  
+
   /**
    * A closure for progress_callback.
    */
@@ -68,7 +68,7 @@ struct GNUNET_FS_DirScanner
   /**
    * After the scan is finished, it will contain a pointer to the
    * top-level directory entry in the directory tree built by the
-   * scanner. 
+   * scanner.
    */
   struct GNUNET_FS_ShareTreeItem *toplevel;
 
@@ -103,7 +103,7 @@ GNUNET_FS_directory_scan_abort (struct GNUNET_FS_DirScanner *ds)
   /* terminate helper */
   if (NULL != ds->helper)
     GNUNET_HELPER_stop (ds->helper, GNUNET_NO);
-  
+
   /* free resources */
   if (NULL != ds->toplevel)
     GNUNET_FS_share_tree_free (ds->toplevel);
@@ -132,7 +132,7 @@ GNUNET_FS_directory_scan_get_result (struct GNUNET_FS_DirScanner *ds)
   GNUNET_assert (NULL == ds->helper);
   /* preserve result */
   result = ds->toplevel;
-  ds->toplevel = NULL; 
+  ds->toplevel = NULL;
   GNUNET_FS_directory_scan_abort (ds);
   return result;
 }
@@ -149,7 +149,7 @@ static struct GNUNET_FS_ShareTreeItem *
 advance (struct GNUNET_FS_ShareTreeItem *pos)
 {
   int moved;
-  
+
   GNUNET_assert (NULL != pos);
   moved = 0; /* must not terminate, even on file, otherwise "normal" */
   while ( (pos->is_directory == GNUNET_YES) ||
@@ -214,7 +214,7 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
   if (NULL != parent)
       GNUNET_CONTAINER_DLL_insert (parent->children_head,
 				   parent->children_tail,
-				   chld);  
+				   chld);
   return chld;
 }
 
@@ -237,9 +237,9 @@ finish_scan (void *cls,
     GNUNET_HELPER_stop (ds->helper, GNUNET_NO);
     ds->helper = NULL;
   }
-  ds->progress_callback (ds->progress_callback_cls, 
+  ds->progress_callback (ds->progress_callback_cls,
 			 NULL, GNUNET_SYSERR,
-			 GNUNET_FS_DIRSCANNER_FINISHED);    
+			 GNUNET_FS_DIRSCANNER_FINISHED);
 }
 
 
@@ -252,7 +252,7 @@ finish_scan (void *cls,
  * @param msg message from the helper process
  */
 static int
-process_helper_msgs (void *cls, 
+process_helper_msgs (void *cls,
 		     void *client,
 		     const struct GNUNET_MessageHeader *msg)
 {
@@ -275,7 +275,7 @@ process_helper_msgs (void *cls,
       GNUNET_break (0);
       break;
     }
-    ds->progress_callback (ds->progress_callback_cls, 
+    ds->progress_callback (ds->progress_callback_cls,
 			   filename, GNUNET_NO,
 			   GNUNET_FS_DIRSCANNER_FILE_START);
     if (NULL == ds->toplevel)
@@ -301,7 +301,7 @@ process_helper_msgs (void *cls,
       ds->pos = ds->pos->parent;
       return GNUNET_OK;
     }
-    ds->progress_callback (ds->progress_callback_cls, 
+    ds->progress_callback (ds->progress_callback_cls,
 			   filename, GNUNET_YES,
 			   GNUNET_FS_DIRSCANNER_FILE_START);
     ds->pos = expand_tree (ds->pos,
@@ -314,7 +314,7 @@ process_helper_msgs (void *cls,
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_SKIP_FILE:
     if ('\0' != filename[left-1])
       break;
-    ds->progress_callback (ds->progress_callback_cls, 
+    ds->progress_callback (ds->progress_callback_cls,
 			   filename, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_FILE_IGNORED);
     return GNUNET_OK;
@@ -329,7 +329,7 @@ process_helper_msgs (void *cls,
       GNUNET_break (0);
       break;
     }
-    ds->progress_callback (ds->progress_callback_cls, 
+    ds->progress_callback (ds->progress_callback_cls,
 			   NULL, GNUNET_SYSERR,
 			   GNUNET_FS_DIRSCANNER_ALL_COUNTED);
     ds->pos = ds->toplevel;
@@ -340,7 +340,7 @@ process_helper_msgs (void *cls,
     {
       size_t nlen;
       const char *end;
-      
+
       if (NULL == ds->pos)
       {
 	GNUNET_break (0);
@@ -361,7 +361,7 @@ process_helper_msgs (void *cls,
 	GNUNET_break (0);
 	break;
       }
-      ds->progress_callback (ds->progress_callback_cls, 
+      ds->progress_callback (ds->progress_callback_cls,
 			     filename, GNUNET_YES,
 			     GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED);
       if (0 < left)
@@ -373,18 +373,18 @@ process_helper_msgs (void *cls,
 	  break;
 	}
 	/* having full filenames is too dangerous; always make sure we clean them up */
-	GNUNET_CONTAINER_meta_data_delete (ds->pos->meta, 
+	GNUNET_CONTAINER_meta_data_delete (ds->pos->meta,
 					   EXTRACTOR_METATYPE_FILENAME,
 					   NULL, 0);
 	/* instead, put in our 'safer' original filename */
 	GNUNET_CONTAINER_meta_data_insert (ds->pos->meta, "<libgnunetfs>",
 					   EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME,
 					   EXTRACTOR_METAFORMAT_UTF8, "text/plain",
-					   ds->pos->short_filename, 
+					   ds->pos->short_filename,
 					   strlen (ds->pos->short_filename) + 1);
       }
       ds->pos->ksk_uri = GNUNET_FS_uri_ksk_create_from_meta_data (ds->pos->meta);
-      ds->pos = advance (ds->pos);      
+      ds->pos = advance (ds->pos);
       return GNUNET_OK;
     }
   case GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED:
@@ -397,7 +397,7 @@ process_helper_msgs (void *cls,
     {
       GNUNET_break (0);
       break;
-    }   
+    }
     if (NULL == ds->toplevel)
     {
       GNUNET_break (0);
@@ -410,7 +410,7 @@ process_helper_msgs (void *cls,
     GNUNET_break (0);
     break;
   }
-  ds->progress_callback (ds->progress_callback_cls, 
+  ds->progress_callback (ds->progress_callback_cls,
 			 NULL, GNUNET_SYSERR,
 			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
   return GNUNET_OK;
@@ -430,9 +430,9 @@ helper_died_cb (void *cls)
   ds->helper = NULL;
   if (GNUNET_SCHEDULER_NO_TASK != ds->stop_task)
     return; /* normal death, was finished */
-  ds->progress_callback (ds->progress_callback_cls, 
+  ds->progress_callback (ds->progress_callback_cls,
 			 NULL, GNUNET_SYSERR,
-			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);  
+			 GNUNET_FS_DIRSCANNER_INTERNAL_ERROR);
 }
 
 
@@ -449,7 +449,7 @@ helper_died_cb (void *cls)
 struct GNUNET_FS_DirScanner *
 GNUNET_FS_directory_scan_start (const char *filename,
 				int disable_extractor, const char *ex,
-				GNUNET_FS_DirScannerProgressCallback cb, 
+				GNUNET_FS_DirScannerProgressCallback cb,
 				void *cb_cls)
 {
   struct stat sbuf;
@@ -468,9 +468,9 @@ GNUNET_FS_directory_scan_start (const char *filename,
   ds->progress_callback = cb;
   ds->progress_callback_cls = cb_cls;
   ds->filename_expanded = filename_expanded;
-  if (disable_extractor)  
+  if (disable_extractor)
     ds->ex_arg = GNUNET_strdup ("-");
-  else 
+  else
     ds->ex_arg = (NULL != ex) ? GNUNET_strdup (ex) : NULL;
   ds->args[0] = "gnunet-helper-fs-publish";
   ds->args[1] = ds->filename_expanded;

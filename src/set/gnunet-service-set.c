@@ -530,7 +530,7 @@ handle_client_iterate (void *cls,
                        const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
-  
+
   set = set_get (client);
   if (NULL == set)
   {
@@ -717,7 +717,7 @@ handle_client_add_remove (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   msg = (const struct GNUNET_SET_ElementMessage *) m;
   el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "client ins/rem element of size %u\n", el.size);
   el.data = &msg[1];
   if (GNUNET_MESSAGE_TYPE_SET_REMOVE == ntohs (m->type))
@@ -829,7 +829,7 @@ handle_client_iter_ack (void *cls,
                    const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
-  
+
   set = set_get (client);
   if (NULL == set)
   {
@@ -1023,7 +1023,7 @@ tunnel_new_cb (void *cls,
   incoming->tc = GNUNET_new (struct TunnelContext);;
   incoming->tc->vt = &incoming_vt;
   incoming->tc->op = (struct OperationState *) incoming;
-  incoming->timeout_task = 
+  incoming->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, incoming_timeout_cb, incoming);
   GNUNET_CONTAINER_DLL_insert_tail (incoming_head, incoming_tail, incoming);
 
@@ -1057,7 +1057,7 @@ tunnel_end_cb (void *cls,
 /**
  * Functions with this signature are called whenever a message is
  * received.
- * 
+ *
  * Each time the function must call GNUNET_MESH_receive_done on the tunnel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
@@ -1066,7 +1066,7 @@ tunnel_end_cb (void *cls,
  * @param tunnel Connection to the other end.
  * @param tunnel_ctx Place to store local state associated with the tunnel.
  * @param message The actual message.
- * 
+ *
  * @return GNUNET_OK to keep the tunnel open,
  *         GNUNET_SYSERR to close it (signal serious error).
  */

@@ -92,7 +92,7 @@ struct Target
 
 /**
  * Message exchanged between DV services (via core), requesting a
- * message to be routed.  
+ * message to be routed.
  */
 struct RouteMessage
 {
@@ -176,7 +176,7 @@ struct DirectNeighbor
    * with other applications.
    */
   struct GNUNET_HashCode real_session_id;
-  
+
   /**
    * Head of linked list of messages to send to this peer.
    */
@@ -197,7 +197,7 @@ struct DirectNeighbor
    * Keys are peer identities, values are 'struct Target' entries.
    * Note that the distances in the targets are from the point-of-view
    * of the peer, not from us!
-   */ 
+   */
   struct GNUNET_CONTAINER_MultiPeerMap *neighbor_table;
 
   /**
@@ -206,7 +206,7 @@ struct DirectNeighbor
    * Keys are peer identities, values are 'struct Target' entries.
    * Note that the distances in the targets are from the point-of-view
    * of the peer, not from us!
-   */ 
+   */
   struct GNUNET_CONTAINER_MultiPeerMap *neighbor_table_consensus;
 
   /**
@@ -318,13 +318,13 @@ struct ConsensusSet
 
 /**
  * Peermap of all of our neighbors; processing these usually requires
- * first checking to see if the peer is core-connected and if the 
+ * first checking to see if the peer is core-connected and if the
  * distance is 1, in which case they are direct neighbors.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *direct_neighbors;
 
 /**
- * Hashmap with all routes that we currently support; contains 
+ * Hashmap with all routes that we currently support; contains
  * routing information for all peers from distance 2
  * up to distance DEFAULT_FISHEYE_DEPTH.
  */
@@ -367,7 +367,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * Handle to ATS service.
  */
 static struct GNUNET_ATS_PerformanceHandle *ats;
- 
+
 
 /**
  * Start creating a new DV set union by initiating the connection.
@@ -375,7 +375,7 @@ static struct GNUNET_ATS_PerformanceHandle *ats;
  * @param cls the 'struct DirectNeighbor' of the peer we're building
  *        a routing consensus with
  * @param tc scheduler context
- */    
+ */
 static void
 initiate_set_union (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -396,7 +396,7 @@ initiate_set_union (void *cls,
  *        necessary to specify the set we want to do the operation with,
  *        whith sometimes can be derived from the context message.
  *        Also necessary to specify the timeout.
- */    
+ */
 static void
 listen_set_union (void *cls,
 		  const struct GNUNET_PeerIdentity *other_peer,
@@ -412,7 +412,7 @@ listen_set_union (void *cls,
  * @param distance distance to the original sender of the message
  */
 static void
-send_data_to_plugin (const struct GNUNET_MessageHeader *message, 
+send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 		     const struct GNUNET_PeerIdentity *origin,
 		     uint32_t distance)
 {
@@ -422,10 +422,10 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering message from peer `%s'\n",
               GNUNET_i2s (origin));
-  size = sizeof (struct GNUNET_DV_ReceivedMessage) + 
+  size = sizeof (struct GNUNET_DV_ReceivedMessage) +
     ntohs (message->size);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
-  {    
+  {
     GNUNET_break (0); /* too big */
     return;
   }
@@ -435,7 +435,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   received_msg->distance = htonl (distance);
   received_msg->sender = *origin;
   memcpy (&received_msg[1], message, ntohs (message->size));
-  GNUNET_SERVER_notification_context_broadcast (nc, 
+  GNUNET_SERVER_notification_context_broadcast (nc,
 						&received_msg->header,
 						GNUNET_YES);
   GNUNET_free (received_msg);
@@ -450,7 +450,7 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
 static void
 send_control_to_plugin (const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_notification_context_broadcast (nc, 
+  GNUNET_SERVER_notification_context_broadcast (nc,
 						message,
 						GNUNET_NO);
 }
@@ -464,7 +464,7 @@ send_control_to_plugin (const struct GNUNET_MessageHeader *message)
  * @param nack GNUNET_NO to send ACK, GNUNET_YES to send NACK
  */
 static void
-send_ack_to_plugin (const struct GNUNET_PeerIdentity *target, 
+send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
 		    uint32_t uid,
 		    int nack)
 {
@@ -474,7 +474,7 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
               "Delivering ACK for message to peer `%s'\n",
               GNUNET_i2s (target));
   ack_msg.header.size = htons (sizeof (ack_msg));
-  ack_msg.header.type = htons ((GNUNET_YES == nack) 
+  ack_msg.header.type = htons ((GNUNET_YES == nack)
 			       ? GNUNET_MESSAGE_TYPE_DV_SEND_NACK
 			       : GNUNET_MESSAGE_TYPE_DV_SEND_ACK);
   ack_msg.uid = htonl (uid);
@@ -490,7 +490,7 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
  * @param distance new distance to the peer
  */
 static void
-send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer, 
+send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
 				uint32_t distance)
 {
   struct GNUNET_DV_DistanceUpdateMessage du_msg;
@@ -513,7 +513,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
  * @param distance distance to the target
  */
 static void
-send_connect_to_plugin (const struct GNUNET_PeerIdentity *target, 
+send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
 			uint32_t distance)
 {
   struct GNUNET_DV_ConnectMessage cm;
@@ -585,7 +585,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 				 dn->pm_tail,
                                  pending);
     memcpy (&cbuf[off], pending->msg, msize);
-    if (0 != pending->uid) 
+    if (0 != pending->uid)
       send_ack_to_plugin (&pending->ultimate_target,
 			  pending->uid,
 			  GNUNET_NO);
@@ -599,7 +599,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 					 0 /* priority */,
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 &dn->peer,
-					 msize,					 
+					 msize,					
 					 &core_transmit_notify, dn);
   return off;
 }
@@ -662,7 +662,7 @@ forward_payload (struct DirectNeighbor *target,
 						     0 /* priority */,
 						     GNUNET_TIME_UNIT_FOREVER_REL,
 						     &target->peer,
-						     msize,					 
+						     msize,					
 						     &core_transmit_notify, target);
 }
 
@@ -738,7 +738,7 @@ move_route (struct Route *route,
   release_route (route);
   i = get_consensus_slot (new_distance);
   route->set_offset = i;
-  consensi[new_distance].targets[i] = route;     
+  consensi[new_distance].targets[i] = route;
   route->target.distance = htonl (new_distance);
 }
 
@@ -785,13 +785,13 @@ build_set (void *cls)
   while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
 	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
-    neighbor->consensus_insertion_offset++;  
+    neighbor->consensus_insertion_offset++;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Adding element to SET\n");
   GNUNET_SET_add_element (neighbor->my_set,
 			  &element,
 			  &build_set, neighbor);
-  
+
 }
 
 
@@ -814,9 +814,9 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
   GNUNET_STATISTICS_update (stats,
 			    "# peers connected (1-hop)",
 			    1, GNUNET_NO);
-  route = GNUNET_CONTAINER_multipeermap_get (all_routes, 
+  route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     &neighbor->peer);
-  if (NULL != route)  
+  if (NULL != route)
   {
     send_disconnect_to_plugin (&neighbor->peer);
     release_route (route);
@@ -839,7 +839,7 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 		  sizeof (struct GNUNET_PeerIdentity)))
   {
     neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
-							neighbor);  
+							neighbor);
   }
   else
   {
@@ -861,16 +861,16 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_connect (void *cls, 
+handle_core_connect (void *cls,
 		     const struct GNUNET_PeerIdentity *peer)
 {
   struct DirectNeighbor *neighbor;
- 
+
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   /* check if entry exists */
-  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors, 
+  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						peer);
   if (NULL != neighbor)
   {
@@ -929,14 +929,14 @@ free_targets (void *cls,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-check_possible_route (void *cls, 
-		      const struct GNUNET_PeerIdentity *key, 
+check_possible_route (void *cls,
+		      const struct GNUNET_PeerIdentity *key,
 		      void *value)
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target = value;
   struct Route *route;
-  
+
   route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     key);
   if (NULL != route)
@@ -975,15 +975,15 @@ check_possible_route (void *cls,
  * @return GNUNET_YES to continue iteration
  */
 static int
-refresh_routes (void *cls, 
-		const struct GNUNET_PeerIdentity *key, 
+refresh_routes (void *cls,
+		const struct GNUNET_PeerIdentity *key,
 		void *value)
 {
   struct DirectNeighbor *neighbor = value;
 
   if ( (GNUNET_YES != neighbor->connected) ||
        (DIRECT_NEIGHBOR_COST != neighbor->distance) )
-    return GNUNET_YES;    
+    return GNUNET_YES;
   if (NULL != neighbor->neighbor_table)
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
 					   &check_possible_route,
@@ -1024,8 +1024,8 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
  */
 static int
-cull_routes (void *cls, 
-	     const struct GNUNET_PeerIdentity *key, 
+cull_routes (void *cls,
+	     const struct GNUNET_PeerIdentity *key,
 	     void *value)
 {
   struct DirectNeighbor *neighbor = cls;
@@ -1047,7 +1047,7 @@ cull_routes (void *cls,
  * disrupted.  Remove all routes via that peer and
  * stop the consensus with it.
  *
- * @param neighbor peer that was disconnected (or at least is no 
+ * @param neighbor peer that was disconnected (or at least is no
  *    longer at distance 1)
  */
 static void
@@ -1118,7 +1118,7 @@ handle_ats_update (void *cls,
 		   int active,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-		   const struct GNUNET_ATS_Information *ats, 
+		   const struct GNUNET_ATS_Information *ats,
 		   uint32_t ats_count)
 {
   struct DirectNeighbor *neighbor;
@@ -1126,25 +1126,25 @@ handle_ats_update (void *cls,
 
   if (GNUNET_NO == active)
   	return;
-  distance = get_atsi_distance (ats, ats_count); 
+  distance = get_atsi_distance (ats, ats_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "ATS says distance to %s is %u\n",
 	      GNUNET_i2s (&address->peer),
 	      (unsigned int) distance);
   /* check if entry exists */
-  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors, 
+  neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						&address->peer);
   if (NULL != neighbor)
-  {    
+  {
     if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
 	 (DIRECT_NEIGHBOR_COST == distance) )
       return; /* no change */
-    if (DIRECT_NEIGHBOR_COST == neighbor->distance) 
+    if (DIRECT_NEIGHBOR_COST == neighbor->distance)
     {
       neighbor->distance = distance;
       GNUNET_STATISTICS_update (stats,
 				"# peers connected (1-hop)",
-				-1, GNUNET_NO);  
+				-1, GNUNET_NO);
       handle_direct_disconnect (neighbor);
       GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					     &refresh_routes,
@@ -1153,7 +1153,7 @@ handle_ats_update (void *cls,
     }
     neighbor->distance = distance;
     if (DIRECT_NEIGHBOR_COST != neighbor->distance)
-      return;    
+      return;
     if (GNUNET_YES != neighbor->connected)
       return;
     handle_direct_connect (neighbor);
@@ -1167,7 +1167,7 @@ handle_ats_update (void *cls,
 						    neighbor,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   neighbor->connected = GNUNET_NO; /* not yet */
-  neighbor->distance = distance; 
+  neighbor->distance = distance;
 }
 
 
@@ -1357,7 +1357,7 @@ handle_set_union_result (void *cls,
       /* check if we got an alternative for the removed routes */
       GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					     &refresh_routes,
-					     NULL);    
+					     NULL);
     }
     /* add targets that appeared (and check for improved routes) */
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
@@ -1406,7 +1406,7 @@ handle_set_union_result (void *cls,
  *        necessary to specify the set we want to do the operation with,
  *        whith sometimes can be derived from the context message.
  *        Also necessary to specify the timeout.
- */    
+ */
 static void
 listen_set_union (void *cls,
 		  const struct GNUNET_PeerIdentity *other_peer,
@@ -1446,7 +1446,7 @@ listen_set_union (void *cls,
  * @param cls the 'struct DirectNeighbor' of the peer we're building
  *        a routing consensus with
  * @param tc scheduler context
- */    
+ */
 static void
 initiate_set_union (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1550,7 +1550,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 		   &rm->target,
 		   &rm->sender,
 		   payload);
-  return GNUNET_OK;  
+  return GNUNET_OK;
 }
 
 
@@ -1627,12 +1627,12 @@ cleanup_neighbor (struct DirectNeighbor *neighbor)
     neighbor->pm_queue_size--;
     GNUNET_CONTAINER_DLL_remove (neighbor->pm_head,
 				 neighbor->pm_tail,
-				 pending);    
+				 pending);
     GNUNET_free (pending);
   }
   handle_direct_disconnect (neighbor);
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_remove (direct_neighbors, 
+		 GNUNET_CONTAINER_multipeermap_remove (direct_neighbors,
 						       &neighbor->peer,
 						       neighbor));
   GNUNET_free (neighbor);
@@ -1669,7 +1669,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     GNUNET_STATISTICS_update (stats,
 			      "# peers connected (1-hop)",
-			      -1, GNUNET_NO);  
+			      -1, GNUNET_NO);
   }
   cleanup_neighbor (neighbor);
   GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
@@ -1770,13 +1770,13 @@ add_route (void *cls,
   struct GNUNET_SERVER_Client *client = cls;
   struct Route *route = value;
   struct GNUNET_DV_ConnectMessage cm;
-  
+
   cm.header.size = htons (sizeof (cm));
   cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
   cm.distance = htonl (route->target.distance);
   cm.peer = route->target.peer;
 
-  GNUNET_SERVER_notification_context_unicast (nc, 
+  GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
 					      &cm.header,
 					      GNUNET_NO);
@@ -1796,7 +1796,7 @@ static void
 handle_start (void *cls, struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_notification_context_add (nc, client);  
+  GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_CONTAINER_multipeermap_iterate (all_routes,
 					 &add_route,
@@ -1837,11 +1837,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, 0, 0}
   };
   static struct GNUNET_SERVER_MessageHandler plugin_handlers[] = {
-    {&handle_start, NULL, 
-     GNUNET_MESSAGE_TYPE_DV_START, 
+    {&handle_start, NULL,
+     GNUNET_MESSAGE_TYPE_DV_START,
      sizeof (struct GNUNET_MessageHeader) },
-    { &handle_dv_send_message, NULL, 
-      GNUNET_MESSAGE_TYPE_DV_SEND, 
+    { &handle_dv_send_message, NULL,
+      GNUNET_MESSAGE_TYPE_DV_SEND,
       0},
     {NULL, NULL, 0, 0}
   };
@@ -1850,11 +1850,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   direct_neighbors = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   all_routes = GNUNET_CONTAINER_multipeermap_create (65536, GNUNET_NO);
   core_api = GNUNET_CORE_connect (cfg, NULL,
-				  &core_init, 
+				  &core_init,
 				  &handle_core_connect,
 				  &handle_core_disconnect,
-				  NULL, GNUNET_NO, 
-				  NULL, GNUNET_NO, 
+				  NULL, GNUNET_NO,
+				  NULL, GNUNET_NO,
 				  core_handlers);
 
   if (NULL == core_api)

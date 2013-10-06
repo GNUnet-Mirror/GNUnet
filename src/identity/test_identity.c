@@ -50,7 +50,7 @@ static struct GNUNET_IDENTITY_Operation *op;
 
 /**
  * Handle for task for timeout termination.
- */ 
+ */
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 
@@ -105,7 +105,7 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Finish the testcase (successfully).
  */
-static void 
+static void
 end ()
 {
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
@@ -195,9 +195,9 @@ fail_rename_cont (void *cls,
 		  const char *emsg)
 {
   GNUNET_assert (NULL != emsg);
-  op = GNUNET_IDENTITY_delete (h, 
+  op = GNUNET_IDENTITY_delete (h,
 			       "test",
-			       &delete_cont, 
+			       &delete_cont,
 			       NULL);
    end (); /* yepee */
 }
@@ -214,10 +214,10 @@ success_rename_cont (void *cls,
 		     const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
-  op = GNUNET_IDENTITY_rename (h, 
+  op = GNUNET_IDENTITY_rename (h,
 			       "test-id",
 			       "test",
-			       &fail_rename_cont, 
+			       &fail_rename_cont,
 			       NULL);
 }
 
@@ -231,12 +231,12 @@ success_rename_cont (void *cls,
 static void
 create_cb (void *cls,
 	   const char *emsg)
-{  
+{
   GNUNET_assert (NULL == emsg);
-  op = GNUNET_IDENTITY_rename (h, 
+  op = GNUNET_IDENTITY_rename (h,
 			       "test-id",
 			       "test",
-			       &success_rename_cont, 
+			       &success_rename_cont,
 			       NULL);
 }
 
@@ -249,19 +249,19 @@ create_cb (void *cls,
  * @param peer handle to access more of the peer (not used)
  */
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
-						&endbadly, NULL); 
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+						&endbadly, NULL);
   h = GNUNET_IDENTITY_connect (cfg, &notification_cb, NULL);
   GNUNET_assert (NULL != h);
   op = GNUNET_IDENTITY_create (h,
 			       "test-id",
 			       &create_cb,
 			       NULL);
-  
+
 }
 
 
@@ -270,7 +270,7 @@ main (int argc, char *argv[])
 {
   GNUNET_DISK_directory_remove ("/tmp/test-identity-service");
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-identity",
 				  "identity",
 				  "test_identity.conf",

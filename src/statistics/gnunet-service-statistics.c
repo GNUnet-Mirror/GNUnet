@@ -291,7 +291,7 @@ save ()
   struct StatsEntry *pos;
   char *fn;
   struct GNUNET_BIO_WriteHandle *wh;
-  
+
   uint16_t size;
   unsigned long long total;
 
@@ -716,7 +716,7 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Actually perform the shutdown.
  */
-static void 
+static void
 do_shutdown ()
 {
   struct WatchEntry *we;
@@ -726,7 +726,7 @@ do_shutdown ()
     return;
   save ();
   GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;  
+  nc = NULL;
   GNUNET_assert (NULL == client_head);
   while (NULL != (se = start))
   {

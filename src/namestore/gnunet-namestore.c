@@ -336,7 +336,7 @@ display_record (void *cls,
     if ( (NULL == del_qe) &&
 	 (NULL == list_qe) &&
 	 (NULL == add_qe_uri) &&
-	 (NULL == add_qe) )    
+	 (NULL == add_qe) )
       GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -365,12 +365,12 @@ display_record (void *cls,
       at.abs_value_us = rd[i].expiration_time;
       ets = GNUNET_STRINGS_absolute_time_to_string (at);
     }
-    FPRINTF (stdout, 
+    FPRINTF (stdout,
 	     "\t%s: %s (%s)\n",
-	     typestring, 
+	     typestring,
 	     s,
              ets);
-    GNUNET_free (s);    
+    GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
@@ -435,7 +435,7 @@ get_existing_record (void *cls,
   }
   else if (GNUNET_NO == etime_is_rel)
     rde->expiration_time = etime_abs.abs_value_us;
-  else    
+  else
     rde->expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_assert (NULL != name);
   add_qe = GNUNET_NAMESTORE_records_store (ns,
@@ -479,7 +479,7 @@ display_records_from_block (void *cls,
   }
   FPRINTF (stdout,
 	   "%s:\n",
-	   name);  
+	   name);
   for (i=0;i<rd_len;i++)
   {
     typestring = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
@@ -492,11 +492,11 @@ display_records_from_block (void *cls,
 	       (unsigned int) rd[i].record_type);
       continue;
     }
-    FPRINTF (stdout, 
+    FPRINTF (stdout,
 	     "\t%s: %s\n",
-	     typestring, 
+	     typestring,
 	     s);
-    GNUNET_free (s);    
+    GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
 }
@@ -521,7 +521,7 @@ handle_block (void *cls,
   {
     fprintf (stderr,
 	     "No matching block found\n");
-  } 
+  }
   else if (GNUNET_OK !=
 	   GNUNET_NAMESTORE_block_decrypt (block,
 					   &zone_pubkey,
@@ -535,7 +535,7 @@ handle_block (void *cls,
   if ( (NULL == del_qe) &&
        (NULL == list_it) &&
        (NULL == add_qe_uri) &&
-       (NULL == add_qe) )    
+       (NULL == add_qe) )
     GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -558,17 +558,17 @@ testservice_task (void *cls,
 
   if (GNUNET_YES != result)
   {
-    FPRINTF (stderr, _("Service `%s' is not running\n"), 
+    FPRINTF (stderr, _("Service `%s' is not running\n"),
 	     "namestore");
     return;
   }
   if (! (add|del|list|(NULL != uri)))
   {
-    /* nothing more to be done */  
+    /* nothing more to be done */
     fprintf (stderr,
              _("No options given\n"));
     GNUNET_SCHEDULER_shutdown ();
-    return; 
+    return;
   }
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
                                     &pub);
@@ -588,8 +588,8 @@ testservice_task (void *cls,
                _("Missing option `%s' for operation `%s'\n"),
                "-n", _("add"));
       GNUNET_SCHEDULER_shutdown ();
-      ret = 1;    
-      return;     
+      ret = 1;
+      return;
     }
     if (NULL == typestring)
     {
@@ -598,7 +598,7 @@ testservice_task (void *cls,
 	       "-t", _("add"));
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
-      return;     
+      return;
     }
     type = GNUNET_NAMESTORE_typename_to_number (typestring);
     if (UINT32_MAX == type)
@@ -613,9 +613,9 @@ testservice_task (void *cls,
       fprintf (stderr,
 	       _("Missing option `%s' for operation `%s'\n"),
 	       "-V", _("add"));
-      ret = 1;   
+      ret = 1;
       GNUNET_SCHEDULER_shutdown ();
-      return;     
+      return;
     }
     if (GNUNET_OK !=
 	GNUNET_NAMESTORE_string_to_value (type,
@@ -636,8 +636,8 @@ testservice_task (void *cls,
 	       _("Missing option `%s' for operation `%s'\n"),
 	       "-e", _("add"));
       GNUNET_SCHEDULER_shutdown ();
-      ret = 1;    
-      return;     
+      ret = 1;
+      return;
     }
     if (0 == strcmp (expirationstring, "never"))
     {
@@ -650,7 +650,7 @@ testservice_task (void *cls,
     {
       etime_is_rel = GNUNET_YES;
     }
-    else if (GNUNET_OK == 
+    else if (GNUNET_OK ==
              GNUNET_STRINGS_fancy_time_to_absolute (expirationstring,
                                                     &etime_abs))
     {
@@ -663,7 +663,7 @@ testservice_task (void *cls,
                expirationstring);
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
-      return;     
+      return;
     }
     add_zit = GNUNET_NAMESTORE_zone_iteration_start (ns,
 						     &zone_pkey,
@@ -679,7 +679,7 @@ testservice_task (void *cls,
                "-n", _("del"));
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
-      return;     
+      return;
     }
     del_qe = GNUNET_NAMESTORE_records_store (ns,
 					     &zone_pkey,
@@ -726,7 +726,7 @@ testservice_task (void *cls,
          (GNUNET_OK !=
           GNUNET_CRYPTO_ecc_public_sign_key_from_string (sh, strlen (sh), &pkey)) )
     {
-      fprintf (stderr, 
+      fprintf (stderr,
                _("Invalid URI `%s'\n"),
                uri);
       GNUNET_SCHEDULER_shutdown ();
@@ -744,7 +744,7 @@ testservice_task (void *cls,
     }
     else if (GNUNET_NO == etime_is_rel)
       rd.expiration_time = etime_abs.abs_value_us;
-    else    
+    else
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
     if (1 != shadow)
       rd.flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
@@ -772,7 +772,7 @@ testservice_task (void *cls,
  * An @a ego of NULL means the ego was not found.
  *
  * @param cls closure with the configuration
- * @param ego an ego known to identity service, or NULL 
+ * @param ego an ego known to identity service, or NULL
  */
 static void
 identity_cb (void *cls,
@@ -783,7 +783,7 @@ identity_cb (void *cls,
   el = NULL;
   if (NULL == ego)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     _("Ego `%s' not known to identity service\n"),
 	     ego_name);
     GNUNET_SCHEDULER_shutdown ();
@@ -813,7 +813,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   if (NULL == ego_name)
   {
-    fprintf (stderr, 
+    fprintf (stderr,
 	     _("You must specify which zone should be accessed\n"));
     return;
   }
@@ -846,28 +846,28 @@ main (int argc, char *const *argv)
      &GNUNET_GETOPT_set_one, &add},
     {'d', "delete", NULL,
      gettext_noop ("delete record"), 0,
-     &GNUNET_GETOPT_set_one, &del},   
+     &GNUNET_GETOPT_set_one, &del},
     {'D', "display", NULL,
      gettext_noop ("display records"), 0,
-     &GNUNET_GETOPT_set_one, &list},   
+     &GNUNET_GETOPT_set_one, &list},
     {'e', "expiration", "TIME",
      gettext_noop ("expiration time for record to use (for adding only), \"never\" is possible"), 1,
-     &GNUNET_GETOPT_set_string, &expirationstring},   
+     &GNUNET_GETOPT_set_string, &expirationstring},
     {'m', "monitor", NULL,
      gettext_noop ("monitor changes in the namestore"), 0,
-     &GNUNET_GETOPT_set_one, &monitor},   
+     &GNUNET_GETOPT_set_one, &monitor},
     {'n', "name", "NAME",
      gettext_noop ("name of the record to add/delete/display"), 1,
-     &GNUNET_GETOPT_set_string, &name},   
+     &GNUNET_GETOPT_set_string, &name},
     {'t', "type", "TYPE",
      gettext_noop ("type of the record to add/delete/display"), 1,
-     &GNUNET_GETOPT_set_string, &typestring},   
+     &GNUNET_GETOPT_set_string, &typestring},
     {'u', "uri", "URI",
      gettext_noop ("URI to import into our zone"), 1,
-     &GNUNET_GETOPT_set_string, &uri},   
+     &GNUNET_GETOPT_set_string, &uri},
     {'V', "value", "VALUE",
      gettext_noop ("value of the record to add/delete"), 1,
-     &GNUNET_GETOPT_set_string, &value},   
+     &GNUNET_GETOPT_set_string, &value},
     {'p', "public", NULL,
      gettext_noop ("create or list public record"), 0,
      &GNUNET_GETOPT_set_one, &public},
@@ -876,7 +876,7 @@ main (int argc, char *const *argv)
      &GNUNET_GETOPT_set_one, &shadow},
     {'z', "zone", "EGO",
      gettext_noop ("name of the ego controlling the zone"), 1,
-     &GNUNET_GETOPT_set_string, &ego_name},   
+     &GNUNET_GETOPT_set_string, &ego_name},
     GNUNET_GETOPT_OPTION_END
   };
 
@@ -886,7 +886,7 @@ main (int argc, char *const *argv)
   GNUNET_log_setup ("gnunet-namestore", "WARNING", NULL);
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "gnunet-namestore",
-			  _("GNUnet zone manipulation tool"), 
+			  _("GNUnet zone manipulation tool"),
 			  options,
 			  &run, NULL))
   {

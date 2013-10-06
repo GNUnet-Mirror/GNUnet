@@ -381,8 +381,8 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
  */
 char *
 GNUNET_STRINGS_conv (const char *input,
-		     size_t len, 
-		     const char *input_charset, 
+		     size_t len,
+		     const char *input_charset,
 		     const char *output_charset)
 {
   char *ret;
@@ -391,10 +391,10 @@ GNUNET_STRINGS_conv (const char *input,
   size_t u8_string_length;
   size_t encoded_string_length;
 
-  u8_string = u8_conv_from_encoding (input_charset, 
-				     iconveh_error, 
-				     input, len, 
-				     NULL, NULL, 
+  u8_string = u8_conv_from_encoding (input_charset,
+				     iconveh_error,
+				     input, len,
+				     NULL, NULL,
 				     &u8_string_length);
   if (NULL == u8_string)
   {
@@ -409,9 +409,9 @@ GNUNET_STRINGS_conv (const char *input,
     free (u8_string);
     return ret;
   }
-  encoded_string = u8_conv_to_encoding (output_charset, iconveh_error, 
-					u8_string, u8_string_length, 
-					NULL, NULL, 
+  encoded_string = u8_conv_to_encoding (output_charset, iconveh_error,
+					u8_string, u8_string_length,
+					NULL, NULL,
 					&encoded_string_length);
   free (u8_string);
   if (NULL == encoded_string)
@@ -644,14 +644,14 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
     return _("forever");
   if (0 == delta.rel_value_us)
     return _("0 ms");
-  if ( ( (GNUNET_YES == do_round) && 
-	 (dval > 5 * 1000) ) || 
+  if ( ( (GNUNET_YES == do_round) &&
+	 (dval > 5 * 1000) ) ||
        (0 == (dval % 1000) ))
   {
     dval = dval / 1000;
     unit = _( /* time unit */ "ms");
-    if ( ( (GNUNET_YES == do_round) && 
-	   (dval > 5 * 1000) ) || 
+    if ( ( (GNUNET_YES == do_round) &&
+	   (dval > 5 * 1000) ) ||
 	 (0 == (dval % 1000) ))
     {
       dval = dval / 1000;
@@ -663,7 +663,7 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
 	dval = dval / 60;
 	unit = _( /* time unit */ "m");
 	if ( ( (GNUNET_YES == do_round) &&
-	       (dval > 5 * 60) ) || 
+	       (dval > 5 * 60) ) ||
 	     (0 == (dval % 60) ))
 	{
 	  dval = dval / 60;
@@ -756,7 +756,7 @@ getValue__ (unsigned char a)
  * Convert binary data to ASCII encoding.  The ASCII encoding is rather
  * GNUnet specific.  It was chosen such that it only uses characters
  * in [0-9A-V], can be produced without complex arithmetics and uses a
- * small number of characters.  
+ * small number of characters.
  * Does not append 0-terminator, but returns a pointer to the place where
  * it should be placed, if needed.
  *
@@ -771,7 +771,7 @@ char *
 GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t out_size)
 {
   /**
-   * 32 characters for encoding 
+   * 32 characters for encoding
    */
   static char *encTable__ = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
   unsigned int wpos;
@@ -1040,7 +1040,7 @@ GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
 
 /**
  * Perform 'checks' on 'filename'
- * 
+ *
  * @param filename file to check
  * @param checks checks to perform
  * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
@@ -1081,7 +1081,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
 /**
  * Tries to convert 'zt_addr' string to an IPv6 address.
  * The string is expected to have the format "[ABCD::01]:80".
- * 
+ *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill. Initially gets filled with zeroes,
@@ -1090,7 +1090,7 @@ GNUNET_STRINGS_check_filename (const char *filename,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr, 
+GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 				uint16_t addrlen,
 				struct sockaddr_in6 *r_buf)
 {
@@ -1100,7 +1100,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
   unsigned int port;
 
   if (addrlen < 6)
-    return GNUNET_SYSERR;  
+    return GNUNET_SYSERR;
   memcpy (zbuf, zt_addr, addrlen);
   if ('[' != zbuf[0])
   {
@@ -1152,7 +1152,7 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 /**
  * Tries to convert 'zt_addr' string to an IPv4 address.
  * The string is expected to have the format "1.2.3.4:80".
- * 
+ *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill.
@@ -1191,7 +1191,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 /**
  * Tries to convert 'addr' string to an IP (v4 or v6) address.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
- * 
+ *
  * @param addr a string, may not be 0-terminated.
  * @param addrlen number of bytes in addr (if addr is 0-terminated,
  *        0-terminator should not be counted towards addrlen).
@@ -1200,7 +1200,7 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
  *         case the contents of r_buf are undefined.
  */
 int
-GNUNET_STRINGS_to_address_ip (const char *addr, 
+GNUNET_STRINGS_to_address_ip (const char *addr,
 			      uint16_t addrlen,
 			      struct sockaddr_storage *r_buf)
 {

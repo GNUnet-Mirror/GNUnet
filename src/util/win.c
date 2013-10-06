@@ -45,7 +45,7 @@ int plibc_conv_to_win_path(const char *pszUnix, char *pszWindows);
       ULONG Length; \
       DWORD Flags; \
     }; \
-  }; 
+  };
 
 #define _IP_ADAPTER_UNICAST_ADDRESS_BASE \
   SOCKET_ADDRESS                     Address; \
@@ -106,7 +106,7 @@ typedef enum _NET_IF_CONNECTION_TYPE {
   NET_IF_CONNECTION_DEDICATED   = 1,
   NET_IF_CONNECTION_PASSIVE,
   NET_IF_CONNECTION_DEMAND,
-  NET_IF_CONNECTION_MAXIMUM 
+  NET_IF_CONNECTION_MAXIMUM
 } NET_IF_CONNECTION_TYPE, *PNET_IF_CONNECTION_TYPE;
 
 typedef enum  {
@@ -116,7 +116,7 @@ typedef enum  {
   TUNNEL_TYPE_6TO4,
   TUNNEL_TYPE_ISATAP,
   TUNNEL_TYPE_TEREDO,
-  TUNNEL_TYPE_IPHTTPS 
+  TUNNEL_TYPE_IPHTTPS
 } TUNNEL_TYPE, *PTUNNEL_TYPE;
 #endif
 
@@ -209,7 +209,7 @@ typedef struct _IP_ADAPTER_ADDRESSES##suffix { \
   _IP_ADAPTER_ADDRESSES_BASE \
   addition \
 } IP_ADAPTER_ADDRESSES##suffix, *PIP_ADAPTER_ADDRESSES##suffix;
-  
+
 
 /* _IP_ADAPTER_ADDRESSES_DEFINE(,) defined in w32api headers */
 _IP_ADAPTER_ADDRESSES_DEFINE(_XPSP1,_IP_ADAPTER_ADDRESSES_ADD_XPSP1)

@@ -202,7 +202,7 @@ exop_insert (struct GNUNET_TESTBED_Operation *op)
 
   entry = GNUNET_malloc (sizeof (struct ExpireOperationEntry));
   entry->op = op;
-  GNUNET_CONTAINER_DLL_insert_tail (exop_head, exop_tail, entry);  
+  GNUNET_CONTAINER_DLL_insert_tail (exop_head, exop_tail, entry);
 }
 
 
@@ -281,7 +281,7 @@ opc_search_iterator (void *cls, uint32_t key, void *value)
 {
   struct SearchContext *sc = cls;
   struct OperationContext *opc = value;
-  
+
   GNUNET_assert (NULL != opc);
   GNUNET_assert (NULL == sc->opc);
   if (opc->id != sc->id)
@@ -307,7 +307,7 @@ find_opc (const struct GNUNET_TESTBED_Controller *c, const uint64_t id)
   sc.id = id;
   sc.opc = NULL;
   GNUNET_assert (NULL != c->opc_map);
-  if (GNUNET_SYSERR != 
+  if (GNUNET_SYSERR !=
       GNUNET_CONTAINER_multihashmap32_get_multiple (c->opc_map, (uint32_t) id,
                                                     &opc_search_iterator, &sc))
     return NULL;
@@ -330,7 +330,7 @@ GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
   if (NULL == c->opc_map)
     c->opc_map = GNUNET_CONTAINER_multihashmap32_create (256);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap32_put (c->opc_map, 
+                 GNUNET_CONTAINER_multihashmap32_put (c->opc_map,
                                                       (uint32_t) opc->id, opc,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
 }
@@ -341,7 +341,7 @@ GNUNET_TESTBED_insert_opc_ (struct GNUNET_TESTBED_Controller *c,
  * given controller
  *
  * @param c the controller
- * @param opc the operation context to remove 
+ * @param opc the operation context to remove
  */
 void
 GNUNET_TESTBED_remove_opc_ (const struct GNUNET_TESTBED_Controller *c,
@@ -465,7 +465,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
   }
   GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
-  exop_insert (event.op);  
+  exop_insert (event.op);
   if (0 != (c->event_mask & (1L << GNUNET_TESTBED_ET_OPERATION_FINISHED)))
   {
     if (NULL != c->cc)
@@ -611,7 +611,7 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
   if (0 != (mask & c->event_mask))
   {
     if (NULL != c->cc)
-      c->cc (c->cc_cls, &event);    
+      c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
       return GNUNET_YES;
   }
@@ -689,7 +689,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
       c->cc (c->cc_cls, &event);
     if (GNUNET_NO == exop_check (event.op))
       return GNUNET_YES;
-  }  
+  }
   if (NULL != cb)
     cb (cb_cls, opc->op, NULL);
    /* You could have marked the operation as done by now */
@@ -738,12 +738,12 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
   pinfo = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerInformation));
-  pinfo->pit = data->pit;  
+  pinfo->pit = data->pit;
   cb = data->cb;
   cb_cls = data->cb_cls;
   GNUNET_assert (NULL != cb);
   GNUNET_free (data);
-  opc->data = NULL;  
+  opc->data = NULL;
   switch (pinfo->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
@@ -760,7 +760,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
     break;
   }
   opc->data = pinfo;
-  GNUNET_TESTBED_remove_opc_ (opc->c, opc);  
+  GNUNET_TESTBED_remove_opc_ (opc->c, opc);
   opc->state = OPC_STATE_FINISHED;
   cb (cb_cls, opc->op, pinfo, NULL);
   /* We dont check whether the operation is marked as done here as the
@@ -871,7 +871,7 @@ handle_op_fail_event (struct GNUNET_TESTBED_Controller *c,
   case OP_FORWARDED:
     GNUNET_assert (0);
   case OP_LINK_CONTROLLERS:    /* No secondary callback */
-    break;    
+    break;
   case OP_SHUTDOWN_PEERS:
   {
     struct ShutdownPeersData *data;
@@ -1156,7 +1156,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
                              msg);
     break;
   case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT:
-    status = 
+    status =
         handle_link_controllers_result (c,
                                         (const struct
                                          GNUNET_TESTBED_ControllerLinkResponse
@@ -1365,7 +1365,7 @@ oprelease_link_controllers (void *cls)
   switch (opc->state)
   {
   case OPC_STATE_INIT:
-    GNUNET_free (data->msg);    
+    GNUNET_free (data->msg);
     break;
   case OPC_STATE_STARTED:
     GNUNET_TESTBED_remove_opc_ (opc->c, opc);
@@ -1543,7 +1543,7 @@ opc_free_iterator (void *cls, uint32_t key, void *value)
 
   GNUNET_assert (NULL != opc);
   GNUNET_break (0);
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (map, key, value));
   GNUNET_free (opc);
   return GNUNET_YES;
@@ -1638,7 +1638,7 @@ GNUNET_TESTBED_compress_cfg_ (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *xconfig;
   size_t size_;
   size_t xsize_;
-  
+
   config = GNUNET_CONFIGURATION_serialize (cfg, &size_);
   xsize_ = GNUNET_TESTBED_compress_config_ (config, size_, &xconfig);
   GNUNET_free (config);
@@ -1689,7 +1689,7 @@ GNUNET_TESTBED_controller_link (void *op_cls,
   uint32_t slave_host_id;
   uint32_t delegated_host_id;
   uint16_t msg_size;
-  
+
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_TESTBED_is_host_registered_ (delegated_host, master));
   slave_host_id =
@@ -1875,7 +1875,7 @@ GNUNET_TESTBED_create_helper_init_msg_ (const char *trusted_ip,
  * cancels the operation, frees its resources and ensures the no event is
  * generated with respect to this operation. Note that however cancelling an
  * operation does NOT guarantee that the operation will be fully undone (or that
- * nothing ever happened). 
+ * nothing ever happened).
  *
  * This function MUST be called for every operation to fully remove the
  * operation from the operation queue.  After calling this function, if
@@ -1949,11 +1949,11 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
     {
       const struct GNUNET_TESTBED_AddHostMessage *imsg;
       uint16_t osize;
-      
+
       imsg = (const struct GNUNET_TESTBED_AddHostMessage *) msg;
       data_len = (uLong) ntohs (imsg->config_size);
       osize = sizeof (struct GNUNET_TESTBED_AddHostMessage) +
-          ntohs (imsg->username_length) + ntohs (imsg->hostname_length); 
+          ntohs (imsg->username_length) + ntohs (imsg->hostname_length);
       xdata_len = ntohs (imsg->header.size) - osize;
       xdata = (const Bytef *) ((const void *) imsg + osize);
     }
@@ -1961,10 +1961,10 @@ GNUNET_TESTBED_extract_config_ (const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT:
     {
       const struct GNUNET_TESTBED_ControllerLinkResponse *imsg;
-      
+
       imsg = (const struct GNUNET_TESTBED_ControllerLinkResponse *) msg;
       data_len = ntohs (imsg->config_size);
-      xdata_len = ntohs (imsg->header.size) - 
+      xdata_len = ntohs (imsg->header.size) -
           sizeof (const struct GNUNET_TESTBED_ControllerLinkResponse);
       xdata = (const Bytef *) &imsg[1];
     }
@@ -2077,7 +2077,7 @@ opstart_shutdown_peers (void *cls)
 
   opc->state = OPC_STATE_STARTED;
   msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
-  msg->header.size = 
+  msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS);
   msg->operation_id = GNUNET_htonll (opc->id);
@@ -2146,7 +2146,7 @@ GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
   opc->data = data;
   opc->id =  GNUNET_TESTBED_get_next_op_id (c);
   opc->type = OP_SHUTDOWN_PEERS;
-  opc->state = OPC_STATE_INIT;  
+  opc->state = OPC_STATE_INIT;
   opc->op = GNUNET_TESTBED_operation_create_ (opc, &opstart_shutdown_peers,
                                               &oprelease_shutdown_peers);
   GNUNET_TESTBED_operation_queue_insert_ (opc->c->opq_parallel_operations,

@@ -105,7 +105,7 @@ opstart_peer_create (void *cls)
   size_t xc_size;
   uint16_t msize;
 
-  GNUNET_assert (OP_PEER_CREATE == opc->type);  
+  GNUNET_assert (OP_PEER_CREATE == opc->type);
   GNUNET_assert (NULL != data);
   GNUNET_assert (NULL != data->peer);
   opc->state = OPC_STATE_STARTED;
@@ -464,7 +464,7 @@ opstart_peer_reconfigure (void *cls)
   char *xconfig;
   size_t xc_size;
   uint16_t msize;
-  
+
   opc->state = OPC_STATE_STARTED;
   GNUNET_assert (NULL != data);
   xc_size = GNUNET_TESTBED_compress_config_ (data->config, data->cfg_size,
@@ -472,7 +472,7 @@ opstart_peer_reconfigure (void *cls)
   GNUNET_free (data->config);
   data->config = NULL;
   GNUNET_assert (xc_size <= UINT16_MAX);
-  msize = (uint16_t) xc_size + 
+  msize = (uint16_t) xc_size +
       sizeof (struct GNUNET_TESTBED_PeerReconfigureMessage);
   msg = GNUNET_realloc (xconfig, msize);
   (void) memmove (&msg[1], msg, xc_size);
@@ -498,7 +498,7 @@ oprelease_peer_reconfigure (void *cls)
 {
   struct OperationContext *opc = cls;
   struct PeerReconfigureData *data = opc->data;
- 
+
   switch (opc->state)
   {
   case OPC_STATE_INIT:
@@ -508,7 +508,7 @@ oprelease_peer_reconfigure (void *cls)
   case OPC_STATE_STARTED:
     GNUNET_TESTBED_remove_opc_ (opc->c, opc);
     break;
-  case OPC_STATE_FINISHED:    
+  case OPC_STATE_FINISHED:
     break;
   }
   GNUNET_free (opc);
@@ -874,15 +874,15 @@ opstart_manage_service (void *cls)
   struct OperationContext *opc = cls;
   struct ManageServiceData *data = opc->data;
   struct GNUNET_TESTBED_ManagePeerServiceMessage *msg;
-  
-  GNUNET_assert (NULL != data);  
+
+  GNUNET_assert (NULL != data);
   msg = GNUNET_malloc (data->msize);
   msg->header.size = htons (data->msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_MANAGE_PEER_SERVICE);
   msg->peer_id = htonl (data->peer->unique_id);
   msg->operation_id = GNUNET_htonll (opc->id);
   msg->start = (uint8_t) data->start;
-  (void) memcpy (&msg[1], data->service_name, data->msize 
+  (void) memcpy (&msg[1], data->service_name, data->msize
                  - sizeof (struct GNUNET_TESTBED_ManagePeerServiceMessage));
   GNUNET_free (data->service_name);
   data->service_name = NULL;

@@ -144,7 +144,7 @@ name_lookup_proc (void *cls,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
-static void 
+static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
@@ -154,7 +154,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_assert (NULL != cls);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Name store added record for `%s': %s\n", 
+	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
@@ -168,7 +168,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -176,7 +176,7 @@ run (void *cls,
   char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, 
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
   GNUNET_asprintf (&hostkey_file,
 		   "zonefiles%s%s",
@@ -213,7 +213,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api",
 				  "namestore",
 				  "test_namestore_api.conf",

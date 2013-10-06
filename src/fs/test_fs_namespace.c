@@ -281,8 +281,8 @@ testNamespace ()
   bo.expiration_time =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
   sks_uri = GNUNET_FS_uri_sks_create (&nsid, "root");
-  GNUNET_FS_publish_ksk (fs, 
-			 ksk_uri, meta, sks_uri, 
+  GNUNET_FS_publish_ksk (fs,
+			 ksk_uri, meta, sks_uri,
 			 &bo, GNUNET_FS_PUBLISH_OPTION_NONE,
 			 &adv_cont, NULL);
   GNUNET_FS_uri_destroy (sks_uri);
@@ -296,7 +296,7 @@ testNamespace ()
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

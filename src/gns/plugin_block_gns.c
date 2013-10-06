@@ -77,7 +77,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   }
-  
+
   /* this is a reply */
   if (reply_block_size < sizeof (struct GNUNET_NAMESTORE_Block))
     {
@@ -99,7 +99,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_verify (block))
     {
       GNUNET_break_op (0);

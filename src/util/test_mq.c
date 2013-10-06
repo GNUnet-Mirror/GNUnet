@@ -42,7 +42,7 @@ test1 ()
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct MyMessage *mm;
-  
+
   mm = NULL;
   mqm = NULL;
 

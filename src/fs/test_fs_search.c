@@ -59,7 +59,7 @@ static int err;
 
 static void
 abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{					       
+{					
   if (NULL != publish)
   {
     GNUNET_FS_publish_stop (publish);

@@ -59,7 +59,7 @@ struct GNUNET_REGEX_Search;
  * Announce this peer under the given regular expression.  Does
  * not free resources, must call #GNUNET_REGEX_announce_cancel for
  * that.
- * 
+ *
  * @param cfg configuration to use
  * @param regex Regular expression to announce.
  * @param refresh_delay after what delay should the announcement be repeated?
@@ -76,7 +76,7 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Stop announcing the regex specified by the given handle.
- * 
+ *
  * @param a handle returned by a previous #GNUNET_REGEX_announce call.
  */
 void
@@ -122,7 +122,7 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Stop search and free all data used by a #GNUNET_REGEX_search call.
- * 
+ *
  * @param s Handle returned by a previous #GNUNET_REGEX_search call.
  */
 void

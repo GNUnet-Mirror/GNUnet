@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-service-testbed_barriers.h
  * @brief Interface for the barrier initialisation handler routine
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #ifndef GNUNET_SERVER_TESTBED_BARRIERS_H_

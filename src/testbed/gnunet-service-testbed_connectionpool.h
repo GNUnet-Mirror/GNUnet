@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-service-testbed_connectionpool.h
  * @brief Interface for connection pooling subroutines
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 
@@ -78,7 +78,7 @@ GST_connection_pool_destroy ();
  * @param peer_id the identity of the peer. Will be NULL if ch is NULL. In other
  *          cases, its value being NULL means that CORE connection has failed.
  */
-typedef void 
+typedef void
 (*GST_connection_pool_connection_ready_cb) (void *cls,
                                             struct GNUNET_CORE_Handle * ch,
                                             struct GNUNET_TRANSPORT_Handle * th,

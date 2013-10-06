@@ -122,7 +122,7 @@ do_start_process (int pipe_control, unsigned int std_inheritance,
   va_end (ap);
   argv[argv_size] = NULL;
   binary_path = argv[0];
-  proc = GNUNET_OS_start_process_v (pipe_control, std_inheritance, lsocks, 
+  proc = GNUNET_OS_start_process_v (pipe_control, std_inheritance, lsocks,
 				    binary_path, argv);
   while (argv_size > 0)
     GNUNET_free (argv[--argv_size]);

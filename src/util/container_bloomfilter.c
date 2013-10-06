@@ -558,8 +558,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
   }
   bf->bitArraySize = size;
   bf->addressesPerElement = k;
-  if (GNUNET_YES != must_read)      
-    return bf; /* already done! */  
+  if (GNUNET_YES != must_read)
+    return bf; /* already done! */
   /* Read from the file what bits we can */
   rbuff = GNUNET_malloc (BUFFSIZE);
   pos = 0;

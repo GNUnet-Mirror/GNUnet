@@ -22,7 +22,7 @@
 /**
  * @file testbed/testbed_api_sd.c
  * @brief test cases for calculating standard deviation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -58,7 +58,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     ret = 1;
     goto err;
   }
-  GNUNET_TESTBED_SD_add_data_ (h, 30); 
+  GNUNET_TESTBED_SD_add_data_ (h, 30);
   if (GNUNET_SYSERR == GNUNET_TESTBED_SD_deviation_factor_ (h, 80, &sd))
   {
     GNUNET_break (0);

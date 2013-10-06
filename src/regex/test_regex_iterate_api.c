@@ -60,7 +60,7 @@ struct RegexStringPair
 
 
 static void
-key_iterator (void *cls, const struct GNUNET_HashCode *key, 
+key_iterator (void *cls, const struct GNUNET_HashCode *key,
 	      const char *proof,
               int accepting, unsigned int num_edges,
               const struct REGEX_BLOCK_Edge *edges)

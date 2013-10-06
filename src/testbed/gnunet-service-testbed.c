@@ -446,7 +446,7 @@ parse_shared_services (char *ss_str, struct GNUNET_CONFIGURATION_Handle *cfg)
     (void) memcpy (&slist[n - 1], &ss,                                  \
                    sizeof (struct GNUNET_TESTING_SharedService));       \
   } while (0)
-  
+
   slist = NULL;
   n = 0;
   ss.cfg = cfg;
@@ -590,7 +590,7 @@ handle_add_host (void *cls, struct GNUNET_SERVER_Client *client,
   username_length = ntohs (msg->username_length);
   hostname_length = ntohs (msg->hostname_length);
   /* msg must contain hostname */
-  if ((msize <= (sizeof (struct GNUNET_TESTBED_AddHostMessage) + 
+  if ((msize <= (sizeof (struct GNUNET_TESTBED_AddHostMessage) +
                  username_length))
       || (0 == hostname_length))
   {
@@ -731,7 +731,7 @@ void
 GST_clear_fopcq ()
 {
   struct ForwardedOperationContext *fopc;
-  
+
   while (NULL != (fopc = fopcq_head))
   {
     GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
@@ -747,7 +747,7 @@ GST_clear_fopcq ()
     case OP_SHUTDOWN_PEERS:
       {
         struct HandlerContext_ShutdownPeers *hc = fopc->cls;
-        
+
         GNUNET_assert (0 < hc->nslaves);
         hc->nslaves--;
         if (0 == hc->nslaves)
@@ -901,9 +901,9 @@ testbed_run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage)},
     {&GST_handle_peer_reconfigure, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_RECONFIGURE_PEER, 0},
-    {&GST_handle_barrier_init, NULL, 
+    {&GST_handle_barrier_init, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_INIT, 0},
-    {&GST_handle_barrier_cancel, NULL, 
+    {&GST_handle_barrier_cancel, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_CANCEL, 0},
     {&GST_handle_barrier_status, NULL,
      GNUNET_MESSAGE_TYPE_TESTBED_BARRIER_STATUS, 0},

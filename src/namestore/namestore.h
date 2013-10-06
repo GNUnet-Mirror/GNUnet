@@ -171,7 +171,7 @@ struct RecordStoreMessage
   uint16_t rd_len GNUNET_PACKED;
 
   /**
-   * Number of records contained 
+   * Number of records contained
    */
   uint16_t rd_count GNUNET_PACKED;
 
@@ -221,12 +221,12 @@ struct ZoneToNameMessage
   struct GNUNET_NAMESTORE_Header gns_header;
 
   /**
-   * The private key of the zone to look up in 
+   * The private key of the zone to look up in
    */
   struct GNUNET_CRYPTO_EccPrivateKey zone;
 
   /**
-   * The public key of the target zone  
+   * The public key of the target zone
    */
   struct GNUNET_CRYPTO_EccPublicSignKey value_zone;
 };
@@ -259,7 +259,7 @@ struct ZoneToNameResponseMessage
 
   /**
    * result in NBO: #GNUNET_OK on success, #GNUNET_NO if there were no
-   * results, #GNUNET_SYSERR on error 
+   * results, #GNUNET_SYSERR on error
    */
   int16_t res GNUNET_PACKED;
 
@@ -297,7 +297,7 @@ struct RecordResultMessage
   uint16_t rd_len GNUNET_PACKED;
 
   /**
-   * Number of records contained 
+   * Number of records contained
    */
   uint16_t rd_count GNUNET_PACKED;
 

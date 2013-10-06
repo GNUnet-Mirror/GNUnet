@@ -22,7 +22,7 @@
  * @file vpn/gnunet-service-vpn.c
  * @brief service that opens a virtual interface and allows its clients
  *        to allocate IPs on the virtual interface and to then redirect
- *        IP traffic received on those IPs via the GNUnet mesh 
+ *        IP traffic received on those IPs via the GNUnet mesh
  * @author Philipp Toelke
  * @author Christian Grothoff
  *
@@ -150,14 +150,14 @@ struct DestinationEntry
 
     } service_destination;
 
-    struct 
+    struct
     {
-  
+
       /**
        * Address family used (AF_INET or AF_INET6).
        */
       int af;
-      
+
       /**
        * IP address of the ultimate destination (only used for exit tunnels).
        */
@@ -177,7 +177,7 @@ struct DestinationEntry
     } exit_destination;
 
   } details;
-    
+
 };
 
 
@@ -195,7 +195,7 @@ struct TunnelMessageQueueEntry
    * This is a doubly-linked list.
    */
   struct TunnelMessageQueueEntry *prev;
-  
+
   /**
    * Number of bytes in 'msg'.
    */
@@ -244,7 +244,7 @@ struct TunnelState
   /**
    * Tail of list of messages scheduled for transmission.
    */
-  struct TunnelMessageQueueEntry *tmq_tail;  
+  struct TunnelMessageQueueEntry *tmq_tail;
 
   /**
    * Destination entry that has a pointer to this tunnel state;
@@ -284,7 +284,7 @@ struct TunnelState
      * Address if af is AF_INET.
      */
     struct in_addr v4;
-    
+
     /**
      * Address if af is AF_INET6.
      */
@@ -302,7 +302,7 @@ struct TunnelState
      * Address if af is AF_INET.
      */
     struct in_addr v4;
-    
+
     /**
      * Address if af is AF_INET6.
      */
@@ -506,7 +506,7 @@ send_client_reply (struct GNUNET_SERVER_Client *client,
   switch (result_af)
   {
   case AF_INET:
-    rlen = sizeof (struct in_addr);    
+    rlen = sizeof (struct in_addr);
     break;
   case AF_INET6:
     rlen = sizeof (struct in6_addr);
@@ -632,8 +632,8 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
   ret = tnq->len;
   GNUNET_free (tnq);
   if (NULL != (tnq = ts->tmq_head))
-    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
-						GNUNET_NO /* cork */, 
+    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
+						GNUNET_NO /* cork */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
 						tnq->len,
 						&send_to_peer_notify_callback,
@@ -678,12 +678,12 @@ send_to_tunnel (struct TunnelMessageQueueEntry *tnq,
     ts->th = NULL;
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Bytes dropped in mesh queue (overflow)"),
-			      dq->len, 
+			      dq->len,
 			      GNUNET_NO);
     GNUNET_free (dq);
   }
   if (NULL == ts->th)
-    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel, 
+    ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
 						GNUNET_NO /* cork */,
 						GNUNET_TIME_UNIT_FOREVER_REL,
 						tnq->len,
@@ -803,7 +803,7 @@ create_tunnel_to_destination (struct DestinationTunnel *dt,
       char address[GNUNET_TUN_IPV4_REGEXLEN];
 
       GNUNET_TUN_ipv4toregexsearch (&dt->destination->details.exit_destination.ip.v4,
-				    "255.255.255.255", 
+				    "255.255.255.255",
 				    address);
       GNUNET_asprintf (&policy, "%s%s%s:%u",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
@@ -815,7 +815,7 @@ create_tunnel_to_destination (struct DestinationTunnel *dt,
     case AF_INET6:
     {
       char address[GNUNET_TUN_IPV6_REGEXLEN];
-      
+
       GNUNET_TUN_ipv6toregexsearch (&dt->destination->details.exit_destination.ip.v6,
 				    128, address);
       GNUNET_asprintf (&policy, "%s%s%s:%u",
@@ -862,7 +862,7 @@ expire_tunnel (struct TunnelState *except)
 
 
 /**
- * Route a packet via mesh to the given destination.  
+ * Route a packet via mesh to the given destination.
  *
  * @param destination description of the destination
  * @param af address family on this end (AF_INET or AF_INET6)
@@ -930,7 +930,7 @@ route_packet (struct DestinationEntry *destination,
 	/* blame kernel? */
 	GNUNET_break (0);
 	return;
-      }      
+      }
       udp = NULL; /* make compiler happy */
       icmp = NULL;  /* make compiler happy */
       tcp = payload;
@@ -950,8 +950,8 @@ route_packet (struct DestinationEntry *destination,
 			       &key);
     }
     break;
-  case IPPROTO_ICMP:  
-  case IPPROTO_ICMPV6:  
+  case IPPROTO_ICMP:
+  case IPPROTO_ICMPV6:
     {
       if ( (AF_INET == af) ^ (protocol == IPPROTO_ICMP) )
       {
@@ -986,7 +986,7 @@ route_packet (struct DestinationEntry *destination,
   }
   alen = 0;
   if (! destination->is_service)
-  {  
+  {
     switch (destination->details.exit_destination.af)
     {
     case AF_INET:
@@ -1003,7 +1003,7 @@ route_packet (struct DestinationEntry *destination,
       char sbuf[INET6_ADDRSTRLEN];
       char dbuf[INET6_ADDRSTRLEN];
       char xbuf[INET6_ADDRSTRLEN];
-      
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Routing %s packet from %s:%u -> %s:%u to destination %s:%u\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
@@ -1025,7 +1025,7 @@ route_packet (struct DestinationEntry *destination,
     {
       char sbuf[INET6_ADDRSTRLEN];
       char dbuf[INET6_ADDRSTRLEN];
-      
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Routing %s packet from %s:%u -> %s:%u to service %s at peer %s\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
@@ -1066,7 +1066,7 @@ route_packet (struct DestinationEntry *destination,
     ts->destination_container = NULL; /* no longer 'contained' */
     /* now bind existing "unbound" tunnel to our IP/port tuple */
     ts->protocol = protocol;
-    ts->af = af; 
+    ts->af = af;
     if (AF_INET == af)
     {
       ts->source_ip.v4 = * (const struct in_addr *) source_ip;
@@ -1086,7 +1086,7 @@ route_packet (struct DestinationEntry *destination,
 		   GNUNET_CONTAINER_multihashmap_put (tunnel_map,
 						      &key,
 						      ts,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)); 
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Active tunnels"),
 			      1, GNUNET_NO);
@@ -1096,12 +1096,12 @@ route_packet (struct DestinationEntry *destination,
   else
   {
     is_new = GNUNET_NO;
-    GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+    GNUNET_CONTAINER_heap_update_cost (tunnel_heap,
 				       ts->heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value_us);
   }
   GNUNET_assert (NULL != ts->tunnel);
-  
+
   /* send via tunnel */
   switch (protocol)
   {
@@ -1110,7 +1110,7 @@ route_packet (struct DestinationEntry *destination,
     {
       struct GNUNET_EXIT_UdpServiceMessage *usm;
 
-      mlen = sizeof (struct GNUNET_EXIT_UdpServiceMessage) + 
+      mlen = sizeof (struct GNUNET_EXIT_UdpServiceMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
@@ -1139,7 +1139,7 @@ route_packet (struct DestinationEntry *destination,
       struct in6_addr *ip6dst;
       void *payload;
 
-      mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) + 
+      mlen = sizeof (struct GNUNET_EXIT_UdpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_UdpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
@@ -1151,7 +1151,7 @@ route_packet (struct DestinationEntry *destination,
       tnq->msg = &tnq[1];
       uim = (struct GNUNET_EXIT_UdpInternetMessage *) &tnq[1];
       uim->header.size = htons ((uint16_t) mlen);
-      uim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET); 
+      uim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_UDP_TO_INTERNET);
       uim->af = htonl (destination->details.exit_destination.af);
       uim->source_port = (ntohs (udp->source_port) < 32000) ? udp->source_port : 0;
       uim->destination_port = udp->destination_port;
@@ -1182,7 +1182,7 @@ route_packet (struct DestinationEntry *destination,
       {
 	struct GNUNET_EXIT_TcpServiceStartMessage *tsm;
 
-	mlen = sizeof (struct GNUNET_EXIT_TcpServiceStartMessage) + 
+	mlen = sizeof (struct GNUNET_EXIT_TcpServiceStartMessage) +
 	  payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
 	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	{
@@ -1209,7 +1209,7 @@ route_packet (struct DestinationEntry *destination,
 	struct in6_addr *ip6dst;
 	void *payload;
 
-	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) + 
+	mlen = sizeof (struct GNUNET_EXIT_TcpInternetStartMessage) +
 	  alen + payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
 	if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
 	{
@@ -1248,7 +1248,7 @@ route_packet (struct DestinationEntry *destination,
     {
       struct GNUNET_EXIT_TcpDataMessage *tdm;
 
-      mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) + 
+      mlen = sizeof (struct GNUNET_EXIT_TcpDataMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_TcpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
@@ -1274,7 +1274,7 @@ route_packet (struct DestinationEntry *destination,
     {
       struct GNUNET_EXIT_IcmpServiceMessage *ism;
 
-      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) + 
+      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) +
 	payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
@@ -1303,7 +1303,7 @@ route_packet (struct DestinationEntry *destination,
 	case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
 	case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:
 	  /* throw away ICMP payload, won't be useful for the other side anyway */
-	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader); 
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
 	  break;
 	default:
 	  GNUNET_STATISTICS_update (stats,
@@ -1321,7 +1321,7 @@ route_packet (struct DestinationEntry *destination,
 	case GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED:
 	case GNUNET_TUN_ICMPTYPE6_PARAMETER_PROBLEM:
 	  /* throw away ICMP payload, won't be useful for the other side anyway */
-	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader); 
+	  payload_length = sizeof (struct GNUNET_TUN_IcmpHeader);
 	  break;
 	case GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST:
 	case GNUNET_TUN_ICMPTYPE6_ECHO_REPLY:
@@ -1340,8 +1340,8 @@ route_packet (struct DestinationEntry *destination,
       }
 
       /* update length calculations, as payload_length may have changed */
-      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) + 
-	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);      
+      mlen = sizeof (struct GNUNET_EXIT_IcmpServiceMessage) +
+	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
       tnq->len = mlen;
       ism->header.size = htons ((uint16_t) mlen);
       /* finally, copy payload (if there is any left...) */
@@ -1356,7 +1356,7 @@ route_packet (struct DestinationEntry *destination,
       struct in6_addr *ip6dst;
       void *payload;
 
-      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) + 
+      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) +
 	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
       if (mlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
       {
@@ -1366,7 +1366,7 @@ route_packet (struct DestinationEntry *destination,
       tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueueEntry) + mlen);
       tnq->msg = &tnq[1];
       iim = (struct GNUNET_EXIT_IcmpInternetMessage *) &tnq[1];
-      iim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET); 
+      iim->header.type = htons (GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET);
       iim->icmp_header = *icmp;
       /* Perform ICMP protocol-translation (depending on destination AF and source AF)
 	 and throw away ICMP payload depending on ICMP message type */
@@ -1375,11 +1375,11 @@ route_packet (struct DestinationEntry *destination,
       case AF_INET:
 	switch (icmp->type)
 	{
-	case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:	  
+	case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:	
 	  if (destination->details.exit_destination.af == AF_INET6)
 	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_ECHO_REPLY;
 	  break;
-	case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:	  
+	case GNUNET_TUN_ICMPTYPE_ECHO_REQUEST:	
 	  if (destination->details.exit_destination.af == AF_INET6)
 	    iim->icmp_header.type = GNUNET_TUN_ICMPTYPE6_ECHO_REQUEST;
 	  break;
@@ -1411,7 +1411,7 @@ route_packet (struct DestinationEntry *destination,
 	  GNUNET_STATISTICS_update (stats,
 				    gettext_noop ("# ICMPv4 packets dropped (type not allowed)"),
 				    1, GNUNET_NO);
-	  GNUNET_free (tnq);	    
+	  GNUNET_free (tnq);	
 	  return;
 	}
 	/* end of AF_INET */
@@ -1467,17 +1467,17 @@ route_packet (struct DestinationEntry *destination,
 	    GNUNET_STATISTICS_update (stats,
 				      gettext_noop ("# ICMPv6 packets dropped (type not allowed)"),
 				      1, GNUNET_NO);
-	    GNUNET_free (tnq);	    
+	    GNUNET_free (tnq);	
 	    return;
 	  }
 	/* end of AF_INET6 */
 	break;
       default:
 	GNUNET_assert (0);
-      } 
+      }
       /* update length calculations, as payload_length may have changed */
-      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) + 
-	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);      
+      mlen = sizeof (struct GNUNET_EXIT_IcmpInternetMessage) +
+	alen + payload_length - sizeof (struct GNUNET_TUN_IcmpHeader);
       tnq->len = mlen;
       iim->header.size = htons ((uint16_t) mlen);
 
@@ -1549,7 +1549,7 @@ message_token (void *cls,
   case ETH_P_IPV6:
     {
       const struct GNUNET_TUN_IPv6Header *pkt6;
-      
+
       if (mlen < sizeof (struct GNUNET_TUN_IPv6Header))
       {
 	/* blame kernel */
@@ -1576,8 +1576,8 @@ message_token (void *cls,
       route_packet (de,
 		    AF_INET6,
 		    pkt6->next_header,
-		    &pkt6->source_address,		    
-		    &pkt6->destination_address,		    
+		    &pkt6->source_address,		
+		    &pkt6->destination_address,		
 		    &pkt6[1],
 		    mlen - sizeof (struct GNUNET_TUN_IPv6Header));
     }
@@ -1612,14 +1612,14 @@ message_token (void *cls,
       if (pkt4->header_length * 4 != sizeof (struct GNUNET_TUN_IPv4Header))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    _("Received IPv4 packet with options (dropping it)\n"));		    
+		    _("Received IPv4 packet with options (dropping it)\n"));		
         return GNUNET_OK;
       }
       route_packet (de,
 		    AF_INET,
 		    pkt4->protocol,
-		    &pkt4->source_address,		    
-		    &pkt4->destination_address,		    
+		    &pkt4->source_address,		
+		    &pkt4->destination_address,		
 		    &pkt4[1],
 		    mlen - sizeof (struct GNUNET_TUN_IPv4Header));
     }
@@ -1696,7 +1696,7 @@ make_up_icmpv6_payload (struct TunnelState *ts,
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
- */ 
+ */
 static int
 receive_icmp_back (void *cls,
 		   struct GNUNET_MESH_Tunnel *tunnel,
@@ -1731,7 +1731,7 @@ receive_icmp_back (void *cls,
   {
     char sbuf[INET6_ADDRSTRLEN];
     char dbuf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received ICMP packet from mesh, sending %u bytes from %s -> %s via TUN\n",
 		(unsigned int) mlen,
@@ -1742,8 +1742,8 @@ receive_icmp_back (void *cls,
   {
   case AF_INET:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv4Header) 
-	+ sizeof (struct GNUNET_TUN_IcmpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv4Header)
+	+ sizeof (struct GNUNET_TUN_IcmpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -1767,12 +1767,12 @@ receive_icmp_back (void *cls,
 	memcpy (&icmp[1],
 		&i2v[1],
 		mlen);
-	/* For some ICMP types, we need to adjust (make up) the payload here. 
-	   Also, depending on the AF used on the other side, we have to 
+	/* For some ICMP types, we need to adjust (make up) the payload here.
+	   Also, depending on the AF used on the other side, we have to
 	   do ICMP PT (translate ICMP types) */
 	switch (ntohl (i2v->af))
 	{
-	case AF_INET:	  
+	case AF_INET:	
 	  switch (icmp->type)
 	  {
 	  case GNUNET_TUN_ICMPTYPE_ECHO_REPLY:
@@ -1780,11 +1780,11 @@ receive_icmp_back (void *cls,
 	    break;
 	  case GNUNET_TUN_ICMPTYPE_DESTINATION_UNREACHABLE:
 	  case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
-	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	  
+	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	
 	    {
 	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -1814,7 +1814,7 @@ receive_icmp_back (void *cls,
 	    {
 	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -1831,7 +1831,7 @@ receive_icmp_back (void *cls,
 	    {
 	      struct GNUNET_TUN_IPv4Header *ipp = (struct GNUNET_TUN_IPv4Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -1881,8 +1881,8 @@ receive_icmp_back (void *cls,
     break;
   case AF_INET6:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv6Header) 
-	+ sizeof (struct GNUNET_TUN_IcmpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv6Header)
+	+ sizeof (struct GNUNET_TUN_IcmpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -1905,12 +1905,12 @@ receive_icmp_back (void *cls,
 		&i2v[1],
 		mlen);
 
-	/* For some ICMP types, we need to adjust (make up) the payload here. 
-	   Also, depending on the AF used on the other side, we have to 
+	/* For some ICMP types, we need to adjust (make up) the payload here.
+	   Also, depending on the AF used on the other side, we have to
 	   do ICMP PT (translate ICMP types) */
 	switch (ntohl (i2v->af))
 	{
-	case AF_INET:	  
+	case AF_INET:	
 	  /* ICMP PT 4-to-6 and possibly making up payloads */
 	  switch (icmp->type)
 	  {
@@ -1925,7 +1925,7 @@ receive_icmp_back (void *cls,
 	    {
 	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -1937,12 +1937,12 @@ receive_icmp_back (void *cls,
 	      make_up_icmpv6_payload (ts, ipp, udp);
 	    }
 	    break;
-	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	  
+	  case GNUNET_TUN_ICMPTYPE_TIME_EXCEEDED:	
 	    icmp->type = GNUNET_TUN_ICMPTYPE6_TIME_EXCEEDED;
 	    {
 	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -1957,7 +1957,7 @@ receive_icmp_back (void *cls,
 	  case GNUNET_TUN_ICMPTYPE_SOURCE_QUENCH:
 	    GNUNET_STATISTICS_update (stats,
 				      gettext_noop ("# ICMPv4 packets dropped (impossible PT to v6)"),
-				      1, GNUNET_NO);	    
+				      1, GNUNET_NO);	
 	    return GNUNET_OK;
 	  default:
 	    GNUNET_break_op (0);
@@ -1978,7 +1978,7 @@ receive_icmp_back (void *cls,
 	    {
 	      struct GNUNET_TUN_IPv6Header *ipp = (struct GNUNET_TUN_IPv6Header *) &icmp[1];
 	      struct GNUNET_TUN_UdpHeader *udp = (struct GNUNET_TUN_UdpHeader *) &ipp[1];
-	      
+	
 	      if (mlen != 0)
 		{
 		  /* sender did not strip ICMP payload? */
@@ -2018,7 +2018,7 @@ receive_icmp_back (void *cls,
   default:
     GNUNET_assert (0);
   }
-  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap,
 				     ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
@@ -2035,7 +2035,7 @@ receive_icmp_back (void *cls,
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
- */ 
+ */
 static int
 receive_udp_back (void *cls,
 		  struct GNUNET_MESH_Tunnel *tunnel,
@@ -2070,7 +2070,7 @@ receive_udp_back (void *cls,
   {
     char sbuf[INET6_ADDRSTRLEN];
     char dbuf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received UDP reply from mesh, sending %u bytes from %s:%u -> %s:%u via TUN\n",
 		(unsigned int) mlen,
@@ -2083,8 +2083,8 @@ receive_udp_back (void *cls,
   {
   case AF_INET:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv4Header) 
-	+ sizeof (struct GNUNET_TUN_UdpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv4Header)
+	+ sizeof (struct GNUNET_TUN_UdpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -2128,8 +2128,8 @@ receive_udp_back (void *cls,
     break;
   case AF_INET6:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv6Header) 
-	+ sizeof (struct GNUNET_TUN_UdpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv6Header)
+	+ sizeof (struct GNUNET_TUN_UdpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -2173,7 +2173,7 @@ receive_udp_back (void *cls,
   default:
     GNUNET_assert (0);
   }
-  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap,
 				     ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
@@ -2190,7 +2190,7 @@ receive_udp_back (void *cls,
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
- */ 
+ */
 static int
 receive_tcp_back (void *cls,
 		  struct GNUNET_MESH_Tunnel *tunnel,
@@ -2220,7 +2220,7 @@ receive_tcp_back (void *cls,
   {
     char sbuf[INET6_ADDRSTRLEN];
     char dbuf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Received TCP reply from mesh, sending %u bytes from %s:%u -> %s:%u via TUN\n",
 		(unsigned int) mlen,
@@ -2238,8 +2238,8 @@ receive_tcp_back (void *cls,
   {
   case AF_INET:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv4Header) 
-	+ sizeof (struct GNUNET_TUN_TcpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv4Header)
+	+ sizeof (struct GNUNET_TUN_TcpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -2277,8 +2277,8 @@ receive_tcp_back (void *cls,
     break;
   case AF_INET6:
     {
-      size_t size = sizeof (struct GNUNET_TUN_IPv6Header) 
-	+ sizeof (struct GNUNET_TUN_TcpHeader) 
+      size_t size = sizeof (struct GNUNET_TUN_IPv6Header)
+	+ sizeof (struct GNUNET_TUN_TcpHeader)
 	+ sizeof (struct GNUNET_MessageHeader) +
 	sizeof (struct GNUNET_TUN_Layer2PacketHeader) +
 	mlen;
@@ -2315,7 +2315,7 @@ receive_tcp_back (void *cls,
     }
     break;
   }
-  GNUNET_CONTAINER_heap_update_cost (tunnel_heap, 
+  GNUNET_CONTAINER_heap_update_cost (tunnel_heap,
 				     ts->heap_node,
 				     GNUNET_TIME_absolute_get ().abs_value_us);
   return GNUNET_OK;
@@ -2342,10 +2342,10 @@ allocate_v4_address (struct in_addr *v4)
   unsigned int tries;
 
   GNUNET_assert (1 == inet_pton (AF_INET, ipv4addr, &addr));
-  GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &mask));           
-  /* Given 192.168.0.1/255.255.0.0, we want a mask 
+  GNUNET_assert (1 == inet_pton (AF_INET, ipv4mask, &mask));
+  /* Given 192.168.0.1/255.255.0.0, we want a mask
      of '192.168.255.255', thus:  */
-  mask.s_addr = addr.s_addr | ~mask.s_addr;  
+  mask.s_addr = addr.s_addr | ~mask.s_addr;
   tries = 0;
   do
     {
@@ -2357,9 +2357,9 @@ allocate_v4_address (struct in_addr *v4)
 	return GNUNET_SYSERR;
       }
       /* Pick random IPv4 address within the subnet, except 'addr' or 'mask' itself */
-      rnd.s_addr = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+      rnd.s_addr = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 					     UINT32_MAX);	
-      v4->s_addr = (addr.s_addr | rnd.s_addr) & mask.s_addr;          
+      v4->s_addr = (addr.s_addr | rnd.s_addr) & mask.s_addr;
       get_destination_key_from_ip (AF_INET,
 				   v4,
 				   &key);
@@ -2399,7 +2399,7 @@ allocate_v6_address (struct in6_addr *v6)
   mask = addr;
   for (i=127;i>=ipv6prefix;i--)
     mask.s6_addr[i / 8] |= (1 << (i % 8));
-  
+
   /* Pick random IPv6 address within the subnet, except 'addr' or 'mask' itself */
   tries = 0;
   do
@@ -2414,7 +2414,7 @@ allocate_v6_address (struct in6_addr *v6)
 	}
       for (i=0;i<16;i++)
 	{
-	  rnd.s6_addr[i] = (unsigned char) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+	  rnd.s6_addr[i] = (unsigned char) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 								     256);
 	  v6->s6_addr[i]
 	    = (addr.s6_addr[i] | rnd.s6_addr[i]) & mask.s6_addr[i];
@@ -2466,7 +2466,7 @@ free_destination_entry (struct DestinationEntry *de)
   if (NULL != de->heap_node)
   {
     GNUNET_CONTAINER_heap_remove_node (de->heap_node);
-    de->heap_node = NULL;  
+    de->heap_node = NULL;
     GNUNET_assert (GNUNET_YES ==
 		   GNUNET_CONTAINER_multihashmap_remove (destination_map,
 							 &de->key,
@@ -2481,7 +2481,7 @@ free_destination_entry (struct DestinationEntry *de)
  *
  * @param except destination that must NOT be cleaned up, even if it is the oldest
  */
-static void 
+static void
 expire_destination (struct DestinationEntry *except)
 {
   struct DestinationEntry *de;
@@ -2495,13 +2495,13 @@ expire_destination (struct DestinationEntry *except)
 
 
 /**
- * Allocate an IP address for the response.  
+ * Allocate an IP address for the response.
  *
  * @param result_af desired address family; set to the actual
  *        address family; can initially be AF_UNSPEC if there
  *        is no preference; will be set to AF_UNSPEC if the
  *        allocation failed
- * @param addr set to either v4 or v6 depending on which 
+ * @param addr set to either v4 or v6 depending on which
  *         storage location was used; set to NULL if allocation failed
  * @param v4 storage space for an IPv4 address
  * @param v6 storage space for an IPv6 address
@@ -2550,7 +2550,7 @@ allocate_response_ip (int *result_af,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
-}		      
+}		
 
 
 /**
@@ -2577,7 +2577,7 @@ service_redirect_to_ip (void *cls,
   void *addr;
   struct DestinationEntry *de;
   struct GNUNET_HashCode key;
-  
+
   /* validate and parse request */
   mlen = ntohs (message->size);
   if (mlen < sizeof (struct RedirectToIpRequestMessage))
@@ -2596,7 +2596,7 @@ service_redirect_to_ip (void *cls,
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;      
+      return;
     }
     break;
   case AF_INET6:
@@ -2604,13 +2604,13 @@ service_redirect_to_ip (void *cls,
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;      
+      return;
     }
     break;
   default:
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;      
+    return;
   }
 
   /* allocate response IP */
@@ -2620,13 +2620,13 @@ service_redirect_to_ip (void *cls,
 					 &v4, &v6))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;      
+    return;
   }
   /* send reply with our IP address */
   send_client_reply (client,
 		     msg->request_id,
 		     result_af,
-		     addr);  
+		     addr);
   if (result_af == AF_UNSPEC)
   {
     /* failure, we're done */
@@ -2637,14 +2637,14 @@ service_redirect_to_ip (void *cls,
   {
     char sbuf[INET6_ADDRSTRLEN];
     char dbuf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Allocated address %s for redirection via exit to %s\n",
 		inet_ntop (result_af, addr, sbuf, sizeof (sbuf)),
 		inet_ntop (addr_af,
 			   &msg[1], dbuf, sizeof (dbuf)));
   }
-  
+
   /* setup destination record */
   de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_NO;
@@ -2683,7 +2683,7 @@ service_redirect_to_ip (void *cls,
  * @param message redirection request (a `struct RedirectToPeerRequestMessage`)
  */
 static void
-service_redirect_to_service (void *cls, 
+service_redirect_to_service (void *cls,
 			     struct GNUNET_SERVER_Client *client,
 			     const struct GNUNET_MessageHeader *message)
 {
@@ -2696,7 +2696,7 @@ service_redirect_to_service (void *cls,
   struct GNUNET_HashCode key;
   struct TunnelState *ts;
   struct DestinationTunnel *dt;
-  
+
   /*  parse request */
   msg = (const struct RedirectToServiceRequestMessage *) message;
 
@@ -2707,12 +2707,12 @@ service_redirect_to_service (void *cls,
 					 &v4, &v6))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;      
+    return;
   }
   send_client_reply (client,
 		     msg->request_id,
 		     result_af,
-		     addr);  
+		     addr);
   if (result_af == AF_UNSPEC)
   {
     /* failure, we're done */
@@ -2724,14 +2724,14 @@ service_redirect_to_service (void *cls,
 
   {
     char sbuf[INET6_ADDRSTRLEN];
-    
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Allocated address %s for redirection to service %s on peer %s\n",
 		inet_ntop (result_af, addr, sbuf, sizeof (sbuf)),
 		GNUNET_h2s (&msg->service_descriptor),
 		GNUNET_i2s (&msg->target));
   }
-  
+
   /* setup destination record */
   de = GNUNET_new (struct DestinationEntry);
   de->is_service = GNUNET_YES;
@@ -2778,15 +2778,15 @@ service_redirect_to_service (void *cls,
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
  * any associated state.
- * 
+ *
  * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored (our `struct TunnelState`)
- */ 
+ */
 static void
-tunnel_cleaner (void *cls, 
-		const struct GNUNET_MESH_Tunnel *tunnel, 
+tunnel_cleaner (void *cls,
+		const struct GNUNET_MESH_Tunnel *tunnel,
 		void *tunnel_ctx)
 {
   struct TunnelState *ts = tunnel_ctx;
@@ -2851,7 +2851,7 @@ cleanup (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "VPN is shutting down\n");
   if (NULL != destination_map)
-  {  
+  {
     GNUNET_CONTAINER_multihashmap_iterate (destination_map,
 					   &cleanup_destination,
 					   NULL);
@@ -2864,7 +2864,7 @@ cleanup (void *cls,
     destination_heap = NULL;
   }
   if (NULL != tunnel_map)
-  {  
+  {
     GNUNET_CONTAINER_multihashmap_iterate (tunnel_map,
 					   &cleanup_tunnel,
 					   NULL);
@@ -2916,8 +2916,8 @@ run (void *cls,
   static const struct GNUNET_SERVER_MessageHandler service_handlers[] = {
     /* callback, cls, type, size */
     { &service_redirect_to_ip, NULL, GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_IP, 0},
-    { &service_redirect_to_service, NULL, 
-     GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE, 
+    { &service_redirect_to_service, NULL,
+     GNUNET_MESSAGE_TYPE_VPN_CLIENT_REDIRECT_TO_SERVICE,
      sizeof (struct RedirectToServiceRequestMessage) },
     {NULL, NULL, 0, 0}
   };
@@ -2982,7 +2982,7 @@ run (void *cls,
 						 &ipv6addr) ||
 	  (1 != inet_pton (AF_INET6, ipv6addr, &v6))) )
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6ADDR", 
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV6ADDR",
 				 _("Must specify valid IPv6 address"));
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -3023,7 +3023,7 @@ run (void *cls,
 						 &ipv4addr) ||
 	  (1 != inet_pton (AF_INET, ipv4addr, &v4))) )
     {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4ADDR", 
+      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "VPN", "IPV4ADDR",
 				 _("Must specify valid IPv4 address"));
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -3051,9 +3051,9 @@ run (void *cls,
   vpn_argv[6] = NULL;
 
   mesh_handle =
-    GNUNET_MESH_connect (cfg_, NULL, 
-			 NULL, 
-			 &tunnel_cleaner, 
+    GNUNET_MESH_connect (cfg_, NULL,
+			 NULL,
+			 &tunnel_cleaner,
 			 mesh_handlers,
 			 NULL);
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
@@ -3076,7 +3076,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "vpn", 
+          GNUNET_SERVICE_run (argc, argv, "vpn",
 			      GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? global_ret : 1;
 }

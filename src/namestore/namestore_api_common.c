@@ -68,7 +68,7 @@ struct NetworkRecord
    * Flags for the record, network byte order.
    */
   uint32_t flags GNUNET_PACKED;
-  
+
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -103,7 +103,7 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z)
   static char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) * 8];
   char *end;
 
-  end = GNUNET_STRINGS_data_to_string ((const unsigned char *) z, 
+  end = GNUNET_STRINGS_data_to_string ((const unsigned char *) z,
 				       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
 				       buf, sizeof (buf));
   if (NULL == end)
@@ -137,7 +137,7 @@ GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
     GNUNET_assert ((ret + rd[i].data_size) >= ret);
     ret += rd[i].data_size;
   }
-  return ret;  
+  return ret;
 }
 
 
@@ -159,7 +159,7 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
   struct NetworkRecord rec;
   unsigned int i;
   size_t off;
-  
+
   off = 0;
   for (i=0;i<rd_count;i++)
   {
@@ -211,11 +211,11 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Expiration time %llu != %llu\n",
-         a->expiration_time, 
+         a->expiration_time,
          b->expiration_time);
     return GNUNET_NO;
   }
-  if ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS) 
+  if ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS)
        != (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -227,8 +227,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
   if (a->data_size != b->data_size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Data size %lu != %lu\n", 
-         a->data_size, 
+         "Data size %lu != %lu\n",
+         a->data_size,
          b->data_size);
     return GNUNET_NO;
   }
@@ -262,7 +262,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
   struct NetworkRecord rec;
   unsigned int i;
   size_t off;
-  
+
   off = 0;
   for (i=0;i<rd_count;i++)
   {
@@ -284,7 +284,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
          dest[i].flags,
          (unsigned long long) dest[i].expiration_time);
   }
-  return GNUNET_OK; 
+  return GNUNET_OK;
 }
 
 
@@ -298,7 +298,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
-GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count, 
+GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
 					     const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   unsigned int c;
@@ -309,7 +309,7 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
   if (NULL == rd)
     return GNUNET_TIME_UNIT_ZERO_ABS;
   expire = GNUNET_TIME_UNIT_FOREVER_ABS;
-  for (c = 0; c < rd_count; c++)  
+  for (c = 0; c < rd_count; c++)
   {
     if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
     {
@@ -320,7 +320,7 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
     {
       at.abs_value_us = rd[c].expiration_time;
     }
-    expire = GNUNET_TIME_absolute_min (at, expire);  
+    expire = GNUNET_TIME_absolute_min (at, expire);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Determined expiration time for block with %u records to be %s\n",
@@ -392,10 +392,10 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
   GNUNET_assert (payload_len ==
 		 GNUNET_NAMESTORE_records_serialize (rd_count, rd,
-						     payload_len, &payload[sizeof (uint32_t)])); 
+						     payload_len, &payload[sizeof (uint32_t)]));
   block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) +
 			 sizeof (uint32_t) + payload_len);
-  block->purpose.size = htonl (sizeof (uint32_t) + payload_len + 
+  block->purpose.size = htonl (sizeof (uint32_t) + payload_len +
 			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
 			       sizeof (struct GNUNET_TIME_AbsoluteNBO));
   block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
@@ -436,8 +436,8 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
  */
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
-{  
-  return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN, 
+{
+  return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
 				   &block->purpose,
 				   &block->signature,
 				   &block->derived_key);
@@ -452,7 +452,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
  * @param label the name for the records
  * @param proc function to call with the result
  * @param proc_cls closure for proc
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was 
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the block was
  *        not well-formed
  */
 int
@@ -468,7 +468,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
 
-  if (ntohl (block->purpose.size) <      
+  if (ntohl (block->purpose.size) <
       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO))
   {
@@ -477,7 +477,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
   }
   derive_block_aes_key (&iv, &skey, label, zone_key);
   {
-    char payload[payload_len];    
+    char payload[payload_len];
     uint32_t rd_count;
 
     GNUNET_break (payload_len ==
@@ -496,7 +496,7 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
     }
     {
       struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-      
+
       if (GNUNET_OK !=
 	  GNUNET_NAMESTORE_records_deserialize (payload_len - sizeof (uint32_t),
 						&payload[sizeof (uint32_t)],
@@ -555,7 +555,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       {
 	GNUNET_break_op (0);
 	return NULL;
-      }      
+      }
       return ns;
     }
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -572,7 +572,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       {
 	GNUNET_break_op (0);
 	return NULL;
-      }      
+      }
       return cname;
     }
   case GNUNET_DNSPARSER_TYPE_SOA:
@@ -590,13 +590,13 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	GNUNET_break_op (0);
 	return NULL;
       }
-      GNUNET_asprintf (&result, 
+      GNUNET_asprintf (&result,
 		       "rname=%s mname=%s %lu,%lu,%lu,%lu,%lu",
-		       soa->rname, 
+		       soa->rname,
 		       soa->mname,
-		       soa->serial, 
+		       soa->serial,
 		       soa->refresh,
-		       soa->retry, 
+		       soa->retry,
 		       soa->expire,
 		       soa->minimum_ttl);
       GNUNET_DNSPARSER_free_soa (soa);
@@ -616,7 +616,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       {
 	GNUNET_break_op (0);
 	return NULL;
-      }      
+      }
       return ptr;
     }
   case GNUNET_DNSPARSER_TYPE_MX:
@@ -634,8 +634,8 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	GNUNET_break_op (0);
 	return NULL;
       }
-      GNUNET_asprintf (&result, 
-		       "%hu,%s", 
+      GNUNET_asprintf (&result,
+		       "%hu,%s",
 		       mx->preference,
 		       mx->mxhost);
       GNUNET_DNSPARSER_free_mx (mx);
@@ -710,7 +710,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       {
 	GNUNET_break_op (0);
 	return NULL;
-      }      
+      }
       return ns;
     }
   case GNUNET_DNSPARSER_TYPE_SRV:
@@ -729,7 +729,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	GNUNET_break_op (0);
 	return NULL;
       }
-      GNUNET_asprintf (&result, 
+      GNUNET_asprintf (&result,
 		       "%d %d %d _%s._%s.%s",
 		       srv->priority,
 		       srv->weight,
@@ -750,7 +750,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	   ('\0' != cdata[data_size - 1]) )
 	return NULL; /* malformed */
       tlsa = data;
-      if (0 == GNUNET_asprintf (&tlsa_str, 
+      if (0 == GNUNET_asprintf (&tlsa_str,
 				"%c %c %c %s",
 				tlsa->usage,
 				tlsa->selector,
@@ -794,7 +794,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
   char s_peer[103 + 1];
   char s_serv[253 + 1];
   unsigned int proto;
-  
+
   if (NULL == s)
     return GNUNET_SYSERR;
   switch (type)
@@ -820,7 +820,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     {
       char nsbuf[256];
       size_t off;
-    
+
       off = 0;
       if (GNUNET_OK !=
 	  GNUNET_DNSPARSER_builder_add_name (nsbuf,
@@ -842,7 +842,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     {
       char cnamebuf[256];
       size_t off;
-      
+
       off = 0;
       if (GNUNET_OK !=
 	  GNUNET_DNSPARSER_builder_add_name (cnamebuf,
@@ -873,7 +873,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       unsigned int soa_min;
       size_t off;
 
-      if (7 != SSCANF (s, 
+      if (7 != SSCANF (s,
 		       "rname=%253s mname=%253s %u,%u,%u,%u,%u",
 		       soa_rname, soa_mname,
 		       &soa_serial, &soa_refresh, &soa_retry, &soa_expire, &soa_min))
@@ -912,7 +912,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     {
       char ptrbuf[256];
       size_t off;
-    
+
       off = 0;
       if (GNUNET_OK !=
 	  GNUNET_DNSPARSER_builder_add_name (ptrbuf,
@@ -970,7 +970,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = strlen (s);
     return GNUNET_OK;
   case GNUNET_DNSPARSER_TYPE_AAAA:
-    if (1 != inet_pton (AF_INET6, s, &value_aaaa))    
+    if (1 != inet_pton (AF_INET6, s, &value_aaaa))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Unable to parse IPv6 address `%s'\n"),
@@ -1005,7 +1005,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 	   (1 != sscanf (s, "%u-", &line)) ||
 	   (GNUNET_OK !=
 	    GNUNET_CRYPTO_ecc_public_sign_key_from_string (dash + 1,
-							   strlen (dash + 1), 
+							   strlen (dash + 1),
 							   &peer.public_key)) )
       {
 	LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -1055,7 +1055,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     {
       char nsbuf[256];
       size_t off;
-    
+
       off = 0;
       if (GNUNET_OK !=
 	  GNUNET_DNSPARSER_builder_add_name (nsbuf,
@@ -1083,7 +1083,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 		     (char*)&tlsa[1]))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Unable to parse TLSA record string `%s'\n"), 
+           _("Unable to parse TLSA record string `%s'\n"),
            s);
       *data_size = 0;
       GNUNET_free (tlsa);
@@ -1103,9 +1103,9 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-static struct { 
-  const char *name; 
-  uint32_t number; 
+static struct {
+  const char *name;
+  uint32_t number;
 } name_map[] = {
   { "A", GNUNET_DNSPARSER_TYPE_A },
   { "NS", GNUNET_DNSPARSER_TYPE_NS },
@@ -1141,7 +1141,7 @@ GNUNET_NAMESTORE_typename_to_number (const char *dns_typename)
   while ( (name_map[i].name != NULL) &&
 	  (0 != strcasecmp (dns_typename, name_map[i].name)) )
     i++;
-  return name_map[i].number;  
+  return name_map[i].number;
 }
 
 
@@ -1160,13 +1160,13 @@ GNUNET_NAMESTORE_number_to_typename (uint32_t type)
   while ( (name_map[i].name != NULL) &&
 	  (type != name_map[i].number) )
     i++;
-  return name_map[i].name;  
+  return name_map[i].name;
 }
 
 
 /**
  * Test if a given record is expired.
- * 
+ *
  * @return #GNUNET_YES if the record is expired,
  *         #GNUNET_NO if not
  */
@@ -1184,7 +1184,7 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
 
 /**
  * Calculate the DHT query for a given @a label in a given @a zone.
- * 
+ *
  * @param zone private key of the zone
  * @param label label of the record
  * @param query hash to use for the query
@@ -1203,7 +1203,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
 
 /**
  * Calculate the DHT query for a given @a label in a given @a zone.
- * 
+ *
  * @param pub public key of the zone
  * @param label label of the record
  * @param query hash to use for the query
@@ -1222,12 +1222,12 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSign
 
 /**
  * Convert public key to the respective absolute domain name in the
- * ".zkey" pTLD. 
+ * ".zkey" pTLD.
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
- * 
- * @param pkey a public key with a point on the eliptic curve 
- * @return string "X.zkey" where X is the public 
+ *
+ * @param pkey a public key with a point on the eliptic curve
+ * @return string "X.zkey" where X is the public
  *         key in an encoding suitable for DNS labels.
  */
 const char *
@@ -1249,10 +1249,10 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey
 /**
  * Convert an absolute domain name in the ".zkey" pTLD to the
  * respective public key.
- * 
+ *
  * @param zkey string "X.zkey" where X is the coordinates of the public
  *         key in an encoding suitable for DNS labels.
- * @param pkey set to a public key on the eliptic curve 
+ * @param pkey set to a public key on the eliptic curve
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
@@ -1262,13 +1262,13 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
   char *cpy;
   char *dot;
   const char *x;
-    
+
   cpy = GNUNET_strdup (zkey);
   x = cpy;
   if (NULL == (dot = strchr (x, (int) '.')))
     goto error;
   *dot = '\0';
-  if (0 != strcasecmp (dot + 1, 
+  if (0 != strcasecmp (dot + 1,
 		       "zkey"))
     goto error;
 

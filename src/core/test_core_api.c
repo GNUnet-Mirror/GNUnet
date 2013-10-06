@@ -263,7 +263,7 @@ connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-init_notify (void *cls, 
+init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
   struct PeerContext *p = cls;
@@ -299,8 +299,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, 
-			     NULL, NULL, 
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+			     NULL, NULL,
 			     binary,
 			     "gnunet-service-arm",
                                "-c", cfgname, NULL);

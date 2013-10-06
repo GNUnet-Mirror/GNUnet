@@ -83,12 +83,12 @@ struct GetPseuAuthorityHandle
   struct GNUNET_CRYPTO_EccPublicSignKey target_zone;
 
   /**
-   * Handle for DHT lookups. Should be NULL if no lookups are in progress 
+   * Handle for DHT lookups. Should be NULL if no lookups are in progress
    */
   struct GNUNET_DHT_GetHandle *get_handle;
 
   /**
-   * Handle to namestore request 
+   * Handle to namestore request
    */
   struct GNUNET_NAMESTORE_QueueEntry *namestore_task;
 
@@ -158,8 +158,8 @@ free_get_pseu_authority_handle (struct GetPseuAuthorityHandle *gph)
  * @param emsg unused
  */
 static void
-create_pkey_cont (void* cls, 
-		  int32_t success, 
+create_pkey_cont (void* cls,
+		  int32_t success,
 		  const char *emsg)
 {
   struct GetPseuAuthorityHandle* gph = cls;
@@ -205,7 +205,7 @@ process_pseu_block_ns (void *cls,
   }
   GNUNET_CRYPTO_ecc_key_get_public_for_signature (&gph->shorten_zone_key,
 				    &pub);
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_decrypt (block,
 				      &pub,
 				      gph->current_label,
@@ -225,10 +225,10 @@ process_pseu_block_ns (void *cls,
  * @param gph the handle to our shorten operation
  * @param label the label to lookup
  */
-static void 
+static void
 perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
 		     const char *label)
-{ 
+{
   struct GNUNET_CRYPTO_EccPublicSignKey pub;
   struct GNUNET_HashCode query;
 
@@ -266,7 +266,7 @@ process_pseu_lookup_ns (void *cls,
   if (rd_count > 0)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Name `%s' already taken, cannot shorten.\n", 
+               "Name `%s' already taken, cannot shorten.\n",
 	       gph->current_label);
     /* if this was not yet the original label, try one more
        time, this time not using PSEU but the original label */
@@ -283,7 +283,7 @@ process_pseu_lookup_ns (void *cls,
   }
   /* name is available */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Shortening `%s' to `%s'\n", 
+	      "Shortening `%s' to `%s'\n",
 	      GNUNET_NAMESTORE_z2s (&gph->target_zone),
 	      gph->current_label);
   new_pkey.expiration_time = UINT64_MAX;
@@ -293,7 +293,7 @@ process_pseu_lookup_ns (void *cls,
   new_pkey.flags = GNUNET_NAMESTORE_RF_NONE
                  | GNUNET_NAMESTORE_RF_PRIVATE
                  | GNUNET_NAMESTORE_RF_PENDING;
-  gph->namestore_task 
+  gph->namestore_task
     = GNUNET_NAMESTORE_records_store (namestore_handle,
 				      &gph->shorten_zone_key,
 				      gph->current_label,
@@ -309,7 +309,7 @@ process_pseu_lookup_ns (void *cls,
  * @param pseu the pseu result or NULL
  */
 static void
-process_pseu_result (struct GetPseuAuthorityHandle* gph, 
+process_pseu_result (struct GetPseuAuthorityHandle* gph,
 		     const char *pseu)
 {
   if (NULL == pseu)
@@ -320,7 +320,7 @@ process_pseu_result (struct GetPseuAuthorityHandle* gph,
 		gph->label);
     perform_pseu_lookup (gph, gph->label);
     return;
-  }  
+  }
   /* check if 'pseu' is taken */
   perform_pseu_lookup (gph, pseu);
 }
@@ -373,7 +373,7 @@ process_auth_records (void *cls,
 	      rd[i].data,
 	      rd[i].data_size);
       pseu[rd[i].data_size] = '\0';
-      process_pseu_result (gph, 
+      process_pseu_result (gph,
 			   pseu);
       return;
     }
@@ -432,18 +432,18 @@ process_auth_discovery_dht_result (void* cls,
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
     process_pseu_result (gph, NULL);
-    return;   
+    return;
   }
   block = data;
   if (size !=
-      ntohl (block->purpose.size) + 
+      ntohl (block->purpose.size) +
       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
       sizeof (struct GNUNET_CRYPTO_EccSignature))
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
     process_pseu_result (gph, NULL);
-    return;   
+    return;
   }
   if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_decrypt (block,
@@ -455,7 +455,7 @@ process_auth_discovery_dht_result (void* cls,
     /* other peer encrypted invalid block, complain */
     GNUNET_break_op (0);
     process_pseu_result (gph, NULL);
-    return;   
+    return;
   }
 }
 
@@ -479,7 +479,7 @@ process_zone_to_name_discover (void *cls,
 {
   struct GetPseuAuthorityHandle* gph = cls;
   struct GNUNET_HashCode lookup_key;
-  
+
   gph->namestore_task = NULL;
   if (0 != rd_len)
   {
@@ -492,10 +492,10 @@ process_zone_to_name_discover (void *cls,
   }
   /* record does not yet exist, go into DHT to find PSEU record */
   GNUNET_NAMESTORE_query_from_public_key (&gph->target_zone,
-					  GNUNET_GNS_TLD_PLUS, 					  
+					  GNUNET_GNS_TLD_PLUS, 					
 					  &lookup_key);
   gph->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-						    &handle_auth_discovery_timeout, 
+						    &handle_auth_discovery_timeout,
 						    gph);
   gph->get_handle = GNUNET_DHT_get_start (dht_handle,
 					  GNUNET_BLOCK_TYPE_GNS_NAMERECORD,

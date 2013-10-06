@@ -20,7 +20,7 @@
 
 /**
  * @file fs/gnunet-fs-profiler.c
- * @brief tool to benchmark/profile file-sharing 
+ * @brief tool to benchmark/profile file-sharing
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -137,7 +137,7 @@ terminate_task (void *cls,
  *          failed
  */
 static void
-test_master (void *cls, 
+test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers,
@@ -152,7 +152,7 @@ test_master (void *cls,
     terminate_taskid = GNUNET_SCHEDULER_add_delayed (timeout,
 						     &terminate_task, NULL);
   else
-    terminate_taskid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+    terminate_taskid = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 						     &terminate_task,
 						     NULL);
 }

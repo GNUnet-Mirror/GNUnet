@@ -59,8 +59,8 @@ GNUNET_htonll (uint64_t n)
  * @param d the value in network byte order
  * @return the same value in host byte order
  */
-double 
-GNUNET_hton_double (double d) 
+double
+GNUNET_hton_double (double d)
 {
   double res;
   uint64_t *in = (uint64_t *) &d;
@@ -77,15 +77,15 @@ GNUNET_hton_double (double d)
  * @param d the value in network byte order
  * @return the same value in host byte order
  */
-double 
-GNUNET_ntoh_double (double d) 
+double
+GNUNET_ntoh_double (double d)
 {
   double res;
   uint64_t *in = (uint64_t *) &d;
   uint64_t *out = (uint64_t *) &res;
 
   out[0] = GNUNET_ntohll(in[0]);
- 
+
   return res;
 }
 

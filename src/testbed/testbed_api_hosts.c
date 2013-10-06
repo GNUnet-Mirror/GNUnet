@@ -318,7 +318,7 @@ GNUNET_TESTBED_host_replace_cfg_ (struct GNUNET_TESTBED_Host *host,
  */
 struct GNUNET_TESTBED_Host *
 GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
-                                    const char *username, 
+                                    const char *username,
                                     const struct GNUNET_CONFIGURATION_Handle
                                     *cfg,
                                     uint16_t port)
@@ -338,7 +338,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
   host->port = (0 == port) ? 22 : port;
   host->cfg = GNUNET_CONFIGURATION_dup (cfg);
   host->opq_parallel_overlay_connect_operations =
-      GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_ADAPTIVE, 
+      GNUNET_TESTBED_operation_queue_create_ (OPERATION_QUEUE_TYPE_ADAPTIVE,
                                               UINT_MAX);
   new_size = host_list_size;
   while (id >= new_size)
@@ -371,7 +371,7 @@ GNUNET_TESTBED_host_create (const char *hostname, const char *username,
   static uint32_t uid_generator;
 
   if (NULL == hostname)
-    return GNUNET_TESTBED_host_create_with_id (0, hostname, username, 
+    return GNUNET_TESTBED_host_create_with_id (0, hostname, username,
                                                cfg, port);
   return GNUNET_TESTBED_host_create_with_id (++uid_generator, hostname,
                                              username, cfg, port);
@@ -398,7 +398,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   //struct GNUNET_TESTBED_Host **host_array;
   struct GNUNET_TESTBED_Host *starting_host;
   char *data;
-  char *buf;  
+  char *buf;
   char *username;
   char *hostname;
   regex_t rex;
@@ -417,12 +417,12 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
   }
   if (GNUNET_OK !=
       GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
-    fs = 0;  
+    fs = 0;
   if (0 == fs)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Hosts file %s has no data\n"), filename);
     return 0;
-  }  
+  }
   data = GNUNET_malloc (fs);
   if (fs != GNUNET_DISK_fn_read (filename, data, fs))
   {
@@ -440,9 +440,9 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
                                "^(([[:alnum:]]+)@)?" /* username */
                                "([[:alnum:]]+[-[:alnum:]_\\.]+)" /* hostname */
                                "(:([[:digit:]]{1,5}))?", /* port */
-                               REG_EXTENDED | REG_ICASE));  
+                               REG_EXTENDED | REG_ICASE));
   while (offset < (fs - 1))
-  {    
+  {
     offset++;
     if (((data[offset] == '\n')) && (buf != &data[offset]))
     {
@@ -469,7 +469,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
       }
       if (-1 != pmatch[5].rm_so)
       {
-        (void) SSCANF (buf + pmatch[5].rm_so, "%5hd", &port); 
+        (void) SSCANF (buf + pmatch[5].rm_so, "%5hd", &port);
       }
       size = pmatch[3].rm_eo - pmatch[3].rm_so;
       hostname = GNUNET_malloc (size + 1);
@@ -489,7 +489,7 @@ GNUNET_TESTBED_hosts_load_from_file (const char *filename,
         (void) GNUNET_TESTBED_host_create (hostname, username, cfg, port);
       count++;
       GNUNET_free_non_null (username);
-      GNUNET_free (hostname);        
+      GNUNET_free (hostname);
       buf = &data[offset + 1];
     }
     else if ((data[offset] == '\n') || (data[offset] == '\0'))
@@ -516,7 +516,7 @@ const char *
 simple_resolve (const char *host)
 {
   struct addrinfo *res;
-  const struct sockaddr_in *in_addr; 
+  const struct sockaddr_in *in_addr;
   char *hostip;
   struct addrinfo hint;
   unsigned int rc;
@@ -566,13 +566,13 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
                                             struct GNUNET_TESTBED_Host ***hosts)
 {
 #if !ENABLE_LL
-  LOG (GNUNET_ERROR_TYPE_ERROR, 
+  LOG (GNUNET_ERROR_TYPE_ERROR,
        _("The function %s is only available when compiled with (--with-ll)\n"),
        __func__);
   GNUNET_assert (0);
 #else
   const char *hostfile;
-  
+
   if (NULL == (hostfile = getenv ("MP_SAVEHOSTFILE")))
   {
     GNUNET_break (0);
@@ -930,7 +930,7 @@ gen_rsh_suffix_args (const char * const *append_args)
   }
   if (NULL != append_args)
   {
-    for (append_cnt = 0; NULL != append_args[append_cnt]; append_cnt++)      
+    for (append_cnt = 0; NULL != append_args[append_cnt]; append_cnt++)
       GNUNET_array_append (rshell_args, cnt, GNUNET_strdup (append_args[append_cnt]));
   }
   GNUNET_array_append (rshell_args, cnt, NULL);
@@ -1070,7 +1070,7 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
   static char *const binary_argv[] = {
     HELPER_TESTBED_BINARY, NULL
   };
-  
+
   GNUNET_assert (NULL != host);
   GNUNET_assert (NULL != (cfg = GNUNET_TESTBED_host_get_cfg_ (host)));
   hostname = NULL;
@@ -1118,7 +1118,7 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     argstr = GNUNET_strdup ("");
     for (cnt = 0; NULL != cp->helper_argv[cnt]; cnt++)
     {
-      aux = argstr;      
+      aux = argstr;
       GNUNET_assert (0 < GNUNET_asprintf (&argstr, "%s %s", aux, cp->helper_argv[cnt]));
       GNUNET_free (aux);
     }
@@ -1334,7 +1334,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
                                              "HELPER_BINARY_PATH",
                                              &stat_args[1]))
     stat_args[1] =
-        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);  
+        GNUNET_OS_get_libexec_binary_path (HELPER_TESTBED_BINARY);
   GNUNET_asprintf (&port, "%u", host->port);
   rsh_args = gen_rsh_args (port, hostname, host->username);
   GNUNET_free (port);
@@ -1523,12 +1523,12 @@ GNUNET_TESTBED_cancel_registration (struct GNUNET_TESTBED_HostRegistrationHandle
  *
  * @param h the host handle
  * @param op the operation to queue in the given host's parally overlay connect
- *          queue 
+ *          queue
  */
 void
-GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h, 
+GNUNET_TESTBED_host_queue_oc_ (struct GNUNET_TESTBED_Host *h,
                                struct GNUNET_TESTBED_Operation *op)
-{  
+{
   GNUNET_TESTBED_operation_queue_insert_
       (h->opq_parallel_overlay_connect_operations, op);
 }

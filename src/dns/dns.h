@@ -60,7 +60,7 @@ struct GNUNET_DNS_Request
    * Always zero.
    */
   uint32_t reserved GNUNET_PACKED;
-  
+
   /**
    * Unique request ID.
    */
@@ -85,7 +85,7 @@ struct GNUNET_DNS_Response
    * Zero to drop, 1 for no change (no payload), 2 for update (message has payload).
    */
   uint32_t drop_flag GNUNET_PACKED;
-  
+
   /**
    * Unique request ID.
    */

@@ -166,13 +166,13 @@ struct OperationState
    * belongs to.
    */
   struct Set *set;
-  
+
   /**
    * Evaluate operations are held in
    * a linked list.
    */
   struct OperationState *next;
-  
+
    /**
     * Evaluate operations are held in
     * a linked list.
@@ -273,7 +273,7 @@ destroy_key_to_element_iter (void *cls,
                              void *value)
 {
   struct KeyEntry *k = value;
-  
+
   while (NULL != k)
   {
     struct KeyEntry *k_tmp = k;
@@ -374,7 +374,7 @@ fail_union_operation (struct OperationState *eo)
 
 
 /**
- * Derive the IBF key from a hash code and 
+ * Derive the IBF key from a hash code and
  * a salt.
  *
  * @param src the hash code
@@ -788,7 +788,7 @@ decode_and_send (struct OperationState *eo)
   prepare_ibf (eo, eo->remote_ibf->size);
   diff_ibf = ibf_dup (eo->local_ibf);
   ibf_subtract (diff_ibf, eo->remote_ibf);
-  
+
   ibf_destroy (eo->remote_ibf);
   eo->remote_ibf = NULL;
 
@@ -826,14 +826,14 @@ decode_and_send (struct OperationState *eo)
       next_order++;
       if (next_order <= MAX_IBF_ORDER)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    "decoding failed, sending larger ibf (size %u)\n",
                     1<<next_order);
         send_ibf (eo, next_order);
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    "set union failed: reached ibf limit\n");
       }
       break;
@@ -862,7 +862,7 @@ decode_and_send (struct OperationState *eo)
        * so that we don't request it again with the next ibf if decoding fails */
       ev = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
                                         GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
-      
+
       *(struct IBF_Key *) &msg[1] = key;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element request\n");
       GNUNET_MQ_send (eo->mq, ev);
@@ -930,7 +930,7 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     fail_union_operation (eo);
     return;
   }
-  
+
   ibf_read_slice (&msg[1], eo->ibf_buckets_received, buckets_in_message, eo->remote_ibf);
   eo->ibf_buckets_received += buckets_in_message;
 
@@ -1080,7 +1080,7 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 
 /**
  * Handle a done message from a remote peer
- * 
+ *
  * @param cls the union operation
  * @param mh the message
  */
@@ -1139,8 +1139,8 @@ union_evaluate (struct OperationSpecification *spec,
   eo->tunnel = tunnel;
   eo->mq = GNUNET_MESH_mq_create (tunnel);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "evaluating union operation, (app %s)\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "evaluating union operation, (app %s)\n",
               GNUNET_h2s (&eo->spec->app_id));
 
   /* we started the operation, thus we have to send the operation request */
@@ -1201,10 +1201,10 @@ union_set_create (void)
   struct SetState *set_state;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "union set created\n");
-  
+
   set_state = GNUNET_new (struct SetState);
   set_state->se = strata_estimator_create (SE_STRATA_COUNT,
-                                              SE_IBF_SIZE, SE_IBF_HASH_NUM);  
+                                              SE_IBF_SIZE, SE_IBF_HASH_NUM);
   return set_state;
 }
 

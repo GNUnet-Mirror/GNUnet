@@ -363,7 +363,7 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Updating value %llu adding %d to priority and maxing exp at %s\n",
-              vkey, delta, 
+              vkey, delta,
 	      GNUNET_STRINGS_absolute_time_to_string (expire));
   ret =
     GNUNET_MYSQL_statement_run_prepared (plugin->mc, plugin->update_entry, NULL,
@@ -454,7 +454,7 @@ execute_select (struct Plugin *plugin, struct GNUNET_MYSQL_StatementHandle *stmt
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Found %u-byte value under key `%s' with prio %u, anon %u, expire %s selecting from gn090 table\n",
               (unsigned int) size, GNUNET_h2s (&key),
-	      priority, anonymity, 
+	      priority, anonymity,
 	      GNUNET_STRINGS_absolute_time_to_string (expiration));
   GNUNET_assert (size < MAX_DATUM_SIZE);
   ret =
@@ -769,7 +769,7 @@ mysql_plugin_get_keys (void *cls,
   struct GNUNET_HashCode key;
   MYSQL_BIND cbind[1];
   unsigned long length;
- 
+
   statement = GNUNET_MYSQL_statement_get_stmt (plugin->mc,
 					       plugin->get_all_keys);
   if (statement == NULL)
@@ -812,14 +812,14 @@ mysql_plugin_get_keys (void *cls,
   while (0 == (ret = mysql_stmt_fetch (statement)))
   {
     if (sizeof (struct GNUNET_HashCode) == length)
-      proc (proc_cls, &key, 1);    
+      proc (proc_cls, &key, 1);
   }
   if (ret != MYSQL_NO_DATA)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("`%s' failed at %s:%d with error: %s\n"),
 		     "mysql_stmt_fetch", __FILE__, __LINE__,
-		     mysql_stmt_error (statement));    
+		     mysql_stmt_error (statement));
     GNUNET_MYSQL_statements_invalidate (plugin->mc);
     return;
   }

@@ -95,7 +95,7 @@ struct GetStatsContext
    * The task for calling the continuation callback
    */
   GNUNET_SCHEDULER_TaskIdentifier call_completion_task_id;
-  
+
   /**
    * The number of peers present in the peers array.  This number also
    * represents the number of service connect operations in the ops array
@@ -180,7 +180,7 @@ op_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   sc = peer_sc->sc;
   peer_sc->op_done_task_id = GNUNET_SCHEDULER_NO_TASK;
-  op = &sc->ops[peer_sc->peer_index];  
+  op = &sc->ops[peer_sc->peer_index];
   GNUNET_assert (NULL != *op);
   GNUNET_TESTBED_operation_done (*op);
   *op = NULL;
@@ -202,7 +202,7 @@ iteration_completion_cb (void *cls, int success)
 
   GNUNET_break (GNUNET_OK == success);
   sc = peer_sc->sc;
-  peer_sc->get_handle = NULL; 
+  peer_sc->get_handle = NULL;
   sc->num_completed++;
   peer_sc->op_done_task_id = GNUNET_SCHEDULER_add_now (&op_done_task, peer_sc);
   if (sc->num_completed == sc->num_peers)
@@ -239,7 +239,7 @@ iterator_cb (void *cls, const char *subsystem,
   LOG_DEBUG ("Peer %u: [%s,%s] -> %lu\n", peer_sc->peer_index,
              subsystem, name, (unsigned long) value);
   ret = sc->proc (sc->cb_cls, peer,
-                  subsystem, name, value, is_persistent);  
+                  subsystem, name, value, is_persistent);
   if (GNUNET_SYSERR == ret)
     LOG_DEBUG ("Aborting iteration for peer %u\n", peer_sc->peer_index);
   return ret;
@@ -283,11 +283,11 @@ service_connect_comp (void *cls,
  *          from GNUNET_TESTBED_service_connect()
  * @return service handle to return in 'op_result', NULL on error
  */
-static void * 
+static void *
 statistics_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct PeerGetStatsContext *peer_sc = cls;
-  
+
   LOG_DEBUG ("Connecting to statistics service of peer %u\n",
              peer_sc->peer_index);
   return GNUNET_STATISTICS_create ("<testbed-api>", cfg);
@@ -300,7 +300,7 @@ statistics_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cls the PeerGetStatsContext
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 statistics_da (void *cls, void *op_result)
 {
   struct PeerGetStatsContext *peer_sc = cls;
@@ -331,7 +331,7 @@ opstart_get_stats (void *cls)
   unsigned int peer;
 
   LOG_DEBUG ("Starting get_statistics operation\n");
-  sc->ops = GNUNET_malloc (sc->num_peers * 
+  sc->ops = GNUNET_malloc (sc->num_peers *
                            sizeof (struct GNUNET_TESTBED_Operation *));
   for (peer = 0; peer < sc->num_peers; peer++)
   {
@@ -343,7 +343,7 @@ opstart_get_stats (void *cls)
     peer_sc = GNUNET_malloc (sizeof (struct PeerGetStatsContext));
     peer_sc->sc = sc;
     peer_sc->peer_index = peer;
-    sc->ops[peer] = 
+    sc->ops[peer] =
         GNUNET_TESTBED_service_connect (sc, sc->peers[peer], "statistics",
                                         &service_connect_comp,
                                         peer_sc,
@@ -364,7 +364,7 @@ oprelease_get_stats (void *cls)
 {
   struct GetStatsContext *sc = cls;
   unsigned int peer;
-  
+
   LOG_DEBUG ("Cleaning up get_statistics operation\n");
   if (GNUNET_SCHEDULER_NO_TASK != sc->call_completion_task_id)
     GNUNET_SCHEDULER_cancel (sc->call_completion_task_id);
@@ -383,7 +383,7 @@ oprelease_get_stats (void *cls)
   GNUNET_free_non_null (sc->subsystem);
   GNUNET_free_non_null (sc->name);
   GNUNET_free (sc);
-  if (GNUNET_YES == 
+  if (GNUNET_YES ==
       GNUNET_TESTBED_operation_queue_destroy_empty_ (no_wait_queue))
     no_wait_queue = NULL;
 }
@@ -415,7 +415,7 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
   GNUNET_assert (NULL != proc);
   GNUNET_assert (NULL != cont);
   if (NULL == no_wait_queue)
-    no_wait_queue = GNUNET_TESTBED_operation_queue_create_ 
+    no_wait_queue = GNUNET_TESTBED_operation_queue_create_
         (OPERATION_QUEUE_TYPE_FIXED, UINT_MAX);
   sc = GNUNET_malloc (sizeof (struct GetStatsContext));
   sc->peers = peers;

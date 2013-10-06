@@ -383,7 +383,7 @@ is_ready (struct Task *task, struct GNUNET_TIME_Absolute now,
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
   if (reason == 0)
     return GNUNET_NO;           /* not ready */
-  reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;  
+  reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
   task->reason = reason;
   return GNUNET_YES;
 }
@@ -442,7 +442,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
   pos = pending;
   while (pos != NULL)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Checking readiness of task: %llu / %p\n",
          pos->id, pos->callback_cls);
     next = pos->next;
@@ -568,7 +568,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     if (GNUNET_TIME_absolute_get_duration (pos->start_time).rel_value_us >
         DELAY_THRESHOLD.rel_value_us)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, 
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Task %llu took %s to be scheduled\n",
            (unsigned long long) pos->id,
            GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time), GNUNET_YES));
@@ -587,7 +587,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
         (pos->write_fd != -1) &&
         (!GNUNET_NETWORK_fdset_test_native (ws, pos->write_fd)))
       GNUNET_abort ();          // added to ready in previous select loop!
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Running task: %llu / %p\n", pos->id,
          pos->callback_cls);
     pos->callback (pos->callback_cls, &tc);
@@ -1052,7 +1052,7 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
                                     GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-  return GNUNET_SCHEDULER_add_select (prio, 
+  return GNUNET_SCHEDULER_add_select (prio,
                                       GNUNET_TIME_UNIT_ZERO, NULL, NULL, task,
                                       task_cls);
 }
@@ -1175,7 +1175,7 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
  * to run) might get to run first.  Just as with delays, clients must
  * not rely on any particular order of execution between tasks
  * scheduled concurrently.
- * 
+ *
  * The task will be run with the DEFAULT priority.
  *
  * @param task main function of the task
@@ -1250,7 +1250,7 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  */
 #ifndef MINGW
 static GNUNET_SCHEDULER_TaskIdentifier
-add_without_sets (struct GNUNET_TIME_Relative delay, 
+add_without_sets (struct GNUNET_TIME_Relative delay,
 		  enum GNUNET_SCHEDULER_Priority priority,
 		  int rfd, int wfd,
                   GNUNET_SCHEDULER_Task task, void *task_cls)
@@ -1396,7 +1396,7 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
   GNUNET_NETWORK_fdset_destroy (rs);
   return ret;
 #else
-  return add_without_sets (delay, 
+  return add_without_sets (delay,
 			   priority,
 			   GNUNET_NETWORK_get_fd (rfd), -1, task,
                            task_cls);
@@ -1441,7 +1441,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
   return ret;
 #else
   GNUNET_assert (GNUNET_NETWORK_get_fd (wfd) >= 0);
-  return add_without_sets (delay, 
+  return add_without_sets (delay,
 			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 			   -1, GNUNET_NETWORK_get_fd (wfd), task,
                            task_cls);
@@ -1486,7 +1486,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   int fd;
 
   GNUNET_DISK_internal_file_handle_ (rfd, &fd, sizeof (int));
-  return add_without_sets (delay, 
+  return add_without_sets (delay,
 			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 			   fd, -1, task, task_cls);
 
@@ -1532,7 +1532,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
 
   GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
   GNUNET_assert (fd >= 0);
-  return add_without_sets (delay, 
+  return add_without_sets (delay,
 			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
 			   -1, fd, task, task_cls);
 

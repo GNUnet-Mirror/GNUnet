@@ -42,7 +42,7 @@ extern "C"
 #define KEYBITS 2048
 
 /**
- * When performing our crypto, we may add two encrypted values with each 
+ * When performing our crypto, we may add two encrypted values with each
  * a maximal length of GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH.
  * thus we can receive a slightly longer element (+1 byte)
  */
@@ -60,7 +60,7 @@ extern "C"
 ///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Message type passed from client to service 
+ * Message type passed from client to service
  * to initiate a request or responder role
  */
 struct GNUNET_SCALARPRODUCT_client_request
@@ -94,7 +94,7 @@ struct GNUNET_SCALARPRODUCT_client_request
    * followed by long vector[element_count] | [unsigned char mask[mask_bytes]]
    */
 };
-  
+
 /**
  * Message type passed from requesting service Alice to responding service Bob
  * to initiate a request and make bob participate in our protocol
@@ -109,12 +109,12 @@ struct GNUNET_SCALARPRODUCT_service_request {
    * how many elements the total message including all multipart msgs contains
    */
   uint32_t total_element_count GNUNET_PACKED;
-  
+
     /**
    * how many elements are actually included after the mask was applied.
    */
   uint32_t contained_element_count GNUNET_PACKED;
-  
+
   /**
    * how many bytes the mask has
    */
@@ -153,7 +153,7 @@ struct GNUNET_SCALARPRODUCT_multipart_message {
    * how many elements we supply within this message
    */
   uint32_t multipart_element_count GNUNET_PACKED;
-  
+
   // followed by vector[multipart_element_count] or k[i][perm]
 };
 
@@ -171,12 +171,12 @@ struct GNUNET_SCALARPRODUCT_service_response {
    * how many elements the session input had
    */
   uint32_t total_element_count GNUNET_PACKED;
-  
+
   /**
    * how many elements were included after the mask was applied including all multipart msgs.
    */
   uint32_t used_element_count GNUNET_PACKED;
-  
+
   /**
    * how many elements this individual message delivers
    */
@@ -227,7 +227,7 @@ struct GNUNET_SCALARPRODUCT_client_response
    * followed by product of length product_length (or nothing)
    */
 };
-  
+
 #ifdef	__cplusplus
 }
 #endif

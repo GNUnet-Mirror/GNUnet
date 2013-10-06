@@ -475,7 +475,7 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
       GNUNET_assert (pos->response_proc != NULL);
       /* move 'pos' element to head so that it will be
        * killed on 'NULL' call below */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Dropping request from datastore queue\n");     
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Dropping request from datastore queue\n");
       GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, pos);
       GNUNET_CONTAINER_DLL_insert (h->queue_head, h->queue_tail, pos);
       GNUNET_STATISTICS_update (h->stats,
@@ -691,7 +691,7 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
  * @param emsg error message
  */
 static void
-drop_status_cont (void *cls, int32_t result, 
+drop_status_cont (void *cls, int32_t result,
 		  struct GNUNET_TIME_Absolute min_expiration,
 		  const char *emsg)
 {
@@ -800,7 +800,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
   h->retry_time = GNUNET_TIME_UNIT_ZERO;
   process_queue (h);
   if (rc.cont != NULL)
-    rc.cont (rc.cont_cls, status, 
+    rc.cont (rc.cont_cls, status,
 	     GNUNET_TIME_absolute_ntoh (sm->min_expiration),
 	     emsg);
 }
@@ -1039,7 +1039,7 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
     cont = &drop_status_cont;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to update entry %llu raising priority by %u and expiration to %s\n",
-       uid, 
+       uid,
        (unsigned int) priority,
        GNUNET_STRINGS_absolute_time_to_string (expiration));
   qc.sc.cont = cont;

@@ -511,7 +511,7 @@ struct MeshTunnel
 
 /**
  * Struct containing information about a client of the service
- * 
+ *
  * TODO: add a list of 'waiting' ports
  */
 struct MeshClient
@@ -626,7 +626,7 @@ static unsigned long long dht_replication_level;
 static unsigned long long max_tunnels;
 
 /**
- * How many messages *in total* are we willing to queue, divided by number of 
+ * How many messages *in total* are we willing to queue, divided by number of
  * tunnels to get tunnel queue size.
  */
 static unsigned long long max_msgs_queue;
@@ -879,7 +879,7 @@ tunnel_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @brief Use the given path for the tunnel.
  * Update the next and prev hops (and RCs).
  * (Re)start the path refresh in case the tunnel is locally owned.
- * 
+ *
  * @param t Tunnel to update.
  * @param p Path to use.
  */
@@ -888,10 +888,10 @@ tunnel_use_path (struct MeshTunnel *t, struct MeshPeerPath *p);
 
 /**
  * Tunnel is empty: destroy it.
- * 
+ *
  * Notifies all participants (peers, cleints) about the destruction.
- * 
- * @param t Tunnel to destroy. 
+ *
+ * @param t Tunnel to destroy.
  */
 static void
 tunnel_destroy_empty (struct MeshTunnel *t);
@@ -915,12 +915,12 @@ tunnel_destroy (struct MeshTunnel *t);
 
 /**
  * @brief Queue and pass message to core when possible.
- * 
+ *
  * If type is payload (UNICAST, TO_ORIGIN, MULTICAST) checks for queue status
  * and accounts for it. In case the queue is full, the message is dropped and
  * a break issued.
- * 
- * Otherwise, message is treated as internal and allowed to go regardless of 
+ *
+ * Otherwise, message is treated as internal and allowed to go regardless of
  * queue status.
  *
  * @param cls Closure (@c type dependant). It will be used by queue_send to
@@ -1169,7 +1169,7 @@ send_local_tunnel_destroy (struct MeshTunnel *t, int fwd)
 
 /**
  * Build a local ACK message and send it to a local client.
- * 
+ *
  * @param t Tunnel on which to send the ACK.
  * @param c Client to whom send the ACK.
  * @param is_fwd Set to GNUNET_YES for FWD ACK (dest->owner)
@@ -1310,7 +1310,7 @@ send_path_create (struct MeshTunnel *t)
  * @param t Tunnel which to confirm.
  */
 static void
-send_path_ack (struct MeshTunnel *t) 
+send_path_ack (struct MeshTunnel *t)
 {
   struct MeshPeer *neighbor;
 
@@ -1327,7 +1327,7 @@ send_path_ack (struct MeshTunnel *t)
 
 /**
  * Build an ACK message and queue it to send to the given peer.
- * 
+ *
  * @param t Tunnel on which to send the ACK.
  * @param peer Peer to whom send the ACK.
  * @param ack Value of the ACK.
@@ -1536,7 +1536,7 @@ peer_get_short (const GNUNET_PEER_Id peer)
  *
  * @param pi Peer we want to poll.
  * @param t Tunnel about which we want to poll.
- * 
+ *
  * @return PID to use, either last sent or first_in_queue - 1
  */
 static uint32_t
@@ -1571,7 +1571,7 @@ peer_get_first_payload_pid (struct MeshPeer *p, struct MeshTunnel *t)
 
 /**
  * Choose the best path towards a peer considering the tunnel properties.
- * 
+ *
  * @param peer The destination peer.
  * @param t The tunnel the path is for.
  *
@@ -1626,7 +1626,7 @@ peer_connect (struct MeshPeer *peer, struct MeshTunnel *t)
 
     GNUNET_PEER_resolve (peer->id, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Starting DHT GET for peer %s\n", 
+                "Starting DHT GET for peer %s\n",
 		GNUNET_i2s (&id));
     GNUNET_CRYPTO_hash (&id, sizeof (my_full_id), &phash);
     peer->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
@@ -1947,7 +1947,7 @@ peer_add_path_to_origin (struct MeshPeer *peer_info,
 /**
  * Add a tunnel to the list of tunnels a peer participates in.
  * Update the tunnel's destination.
- * 
+ *
  * @param p Peer to add to.
  * @param t Tunnel to add.
  */
@@ -1968,7 +1968,7 @@ peer_add_tunnel (struct MeshPeer *p, struct MeshTunnel *t)
 /**
  * Remove a tunnel from the list of tunnels a peer participates in.
  * Free the tunnel's destination.
- * 
+ *
  * @param p Peer to clean.
  * @param t Tunnel to remove.
  */
@@ -2034,7 +2034,7 @@ tunnel_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_break (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** peer: %s!\n", 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** peer: %s!\n",
                 GNUNET_i2s(GNUNET_PEER_resolve2 (peer)));
   if (0 == peer)
   {
@@ -2274,7 +2274,7 @@ tunnel_change_state (struct MeshTunnel *t, enum MeshTunnelState state)
 
 /**
  * Add a client to a tunnel, initializing all needed data structures.
- * 
+ *
  * @param t Tunnel to which add the client.
  * @param c Client which to add to the tunnel.
  */
@@ -2368,13 +2368,13 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 //   {
 //     return;
 //   }
-// 
+//
 //   if (tree_get_predecessor (t->tree) != 0)
 //   {
 //     /* We are the peer still connected, notify owner of the disconnection. */
 //     struct GNUNET_MESH_PathBroken msg;
 //     struct GNUNET_PeerIdentity neighbor;
-// 
+//
 //     msg.header.size = htons (sizeof (msg));
 //     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN);
 //     GNUNET_PEER_resolve (t->id.oid, &msg.oid);
@@ -2390,7 +2390,7 @@ tunnel_notify_connection_broken (struct MeshTunnel *t, GNUNET_PEER_Id p1,
 
 /**
  * Send an end-to-end FWD ACK message for the most recent in-sequence payload.
- * 
+ *
  * @param t Tunnel this is about.
  * @param fwd Is for FWD traffic? (ACK dest->owner)
  */
@@ -2447,7 +2447,7 @@ tunnel_send_data_ack (struct MeshTunnel *t, int fwd)
  * If buffering is on, send when sent to children and buffer space is free.
  * Note that although the name is fwd_ack, the FWD mean forward *traffic*,
  * the ACK itself goes "back" (towards root).
- * 
+ *
  * @param t Tunnel on which to send the ACK.
  * @param type Type of message that triggered the ACK transmission.
  * @param fwd Is this FWD ACK? (Going dest->owner)
@@ -2518,7 +2518,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
     delta_mid = rel->mid_sent - rel->head_sent->mid;
   else
     delta_mid = 0;
-  if (0 > delta || (GNUNET_YES == t->reliable && 
+  if (0 > delta || (GNUNET_YES == t->reliable &&
                     NULL != o &&
                     (10 < rel->n_sent || 64 <= delta_mid)))
     delta = 0;
@@ -2549,7 +2549,7 @@ tunnel_send_ack (struct MeshTunnel *t, uint16_t type, int fwd)
 
 /**
  * Modify the mesh message TID from global to local and send to client.
- * 
+ *
  * @param t Tunnel on which to send the message.
  * @param msg Message to modify and send.
  * @param c Client to send to.
@@ -2585,7 +2585,7 @@ tunnel_send_client_to_tid (struct MeshTunnel *t,
 
 /**
  * Modify the unicast message TID from global to local and send to client.
- * 
+ *
  * @param t Tunnel on which to send the message.
  * @param msg Message to modify and send.
  * @param fwd Forward?
@@ -2604,7 +2604,7 @@ tunnel_send_client_data (struct MeshTunnel *t,
 
 /**
  * Send up to 64 buffered messages to the client for in order delivery.
- * 
+ *
  * @param t Tunnel on which to empty the message buffer.
  * @param c Client to send to.
  * @param rel Reliability structure to corresponding peer.
@@ -2650,7 +2650,7 @@ tunnel_send_client_buffered_data (struct MeshTunnel *t, struct MeshClient *c,
 /**
  * We have received a message out of order, buffer it until we receive
  * the missing one and we can feed the rest to the client.
- * 
+ *
  * @param t Tunnel to add to.
  * @param msg Message to buffer.
  * @param rel Reliability data to the corresponding direction.
@@ -2697,7 +2697,7 @@ tunnel_add_buffered_data (struct MeshTunnel *t,
  * Destroy a reliable message after it has been acknowledged, either by
  * direct mid ACK or bitfield. Updates the appropriate data structures and
  * timers and frees all memory.
- * 
+ *
  * @param copy Message that is no longer needed: remote peer got it.
  */
 static void
@@ -3111,7 +3111,7 @@ tunnel_destroy (struct MeshTunnel *t)
       GNUNET_break (0);
       r = GNUNET_SYSERR;
     }
-    if (GNUNET_YES != 
+    if (GNUNET_YES !=
         GNUNET_CONTAINER_multihashmap32_remove (incoming_tunnels,
                                                 t->local_tid_dest, t))
     {
@@ -3163,10 +3163,10 @@ tunnel_destroy (struct MeshTunnel *t)
 
 /**
  * Tunnel is empty: destroy it.
- * 
+ *
  * Notifies all participants (peers, cleints) about the destruction.
- * 
- * @param t Tunnel to destroy. 
+ *
+ * @param t Tunnel to destroy.
  */
 static void
 tunnel_destroy_empty (struct MeshTunnel *t)
@@ -3192,7 +3192,7 @@ tunnel_destroy_empty (struct MeshTunnel *t)
 
 /**
  * Initialize a Flow Control structure to the initial state.
- * 
+ *
  * @param fc Flow Control structure to initialize.
  */
 static void
@@ -3209,12 +3209,12 @@ fc_init (struct MeshFlowControl *fc)
 
 /**
  * Create a new tunnel
- * 
+ *
  * @param owner Who is the owner of the tunnel (short ID).
  * @param tid Tunnel Number of the tunnel.
  * @param client Clients that owns the tunnel, NULL for foreign tunnels.
  * @param local Tunnel Number for the tunnel, for the client point of view.
- * 
+ *
  * @return A new initialized tunnel. NULL on error.
  */
 static struct MeshTunnel *
@@ -3277,7 +3277,7 @@ tunnel_new (GNUNET_PEER_Id owner,
 
 /**
  * Set options in a tunnel, extracted from a bit flag field
- * 
+ *
  * @param t Tunnel to set options to.
  * @param options Bit array in host byte order.
  */
@@ -3789,12 +3789,12 @@ queue_send (void *cls, size_t size, void *buf)
 
 /**
  * @brief Queue and pass message to core when possible.
- * 
+ *
  * If type is payload (UNICAST, TO_ORIGIN) checks for queue status and
  * accounts for it. In case the queue is full, the message is dropped and
  * a break issued.
- * 
- * Otherwise, message is treated as internal and allowed to go regardless of 
+ *
+ * Otherwise, message is treated as internal and allowed to go regardless of
  * queue status.
  *
  * @param cls Closure (@c type dependant). It will be used by queue_send to
@@ -4065,7 +4065,7 @@ handle_mesh_path_create (void *cls, const struct GNUNET_PeerIdentity *peer,
      /* Eliminate tunnel when origin dies */
     tunnel_reset_timeout (t, GNUNET_YES);
     /* Keep tunnel alive in direction dest->owner*/
-    tunnel_reset_timeout (t, GNUNET_NO); 
+    tunnel_reset_timeout (t, GNUNET_NO);
   }
   else
   {
@@ -4753,7 +4753,7 @@ handle_mesh_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ? 
+  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ?
         GNUNET_YES : GNUNET_NO;
   c   = fwd ? t->client   : t->owner;
   hop = fwd ? t->next_hop : t->prev_hop;
@@ -4845,7 +4845,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_PEER_resolve (peer->tunnels[i]->id.oid, &id);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... tunnel %s:%X (%X / %X)\n",
                 GNUNET_i2s (&id), peer->tunnels[i]->id.tid,
-                peer->tunnels[i]->local_tid, 
+                peer->tunnels[i]->local_tid,
                 peer->tunnels[i]->local_tid_dest);
     if (peer->tunnels[i]->state == MESH_TUNNEL_SEARCHING)
     {
@@ -5152,7 +5152,7 @@ handle_local_tunnel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     peer_remove_tunnel (peer_get_short (t->dest), t);
     t->owner = NULL;
   }
-  else 
+  else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "  tunnel %X client %p (%p, %p)\n",
@@ -5225,7 +5225,7 @@ handle_local_data (void *cls, struct GNUNET_SERVER_Client *client,
            t->owner->handle == client)
          ||
           (tid >= GNUNET_MESH_LOCAL_TUNNEL_ID_SERV &&
-           t->client && 
+           t->client &&
            t->client->handle == client) ) )
   {
     GNUNET_break (0);
@@ -5621,7 +5621,7 @@ server_init (void)
  * @param identity the public identity of this peer
  */
 static void
-core_init (void *cls, 
+core_init (void *cls,
            const struct GNUNET_PeerIdentity *identity)
 {
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
@@ -5901,7 +5901,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, 
+  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
 						  &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

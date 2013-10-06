@@ -36,12 +36,12 @@ static int result;
  * Function run on CTRL-C or shutdown (i.e. success/timeout/etc.).
  * Cleans up.
  */
-static void 
+static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   shutdown_tid = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != dht_op)
-  {  
+  {
     GNUNET_TESTBED_operation_done (dht_op); /* indirectly calls the dht_da() for closing
                                                down the connection to the DHT */
     dht_op = NULL;
@@ -68,15 +68,15 @@ service_connect_comp (void *cls,
                       struct GNUNET_TESTBED_Operation *op,
                       void *ca_result,
                       const char *emsg)
-{    
+{
   GNUNET_assert (op == dht_op);
   dht_handle = ca_result;
-  /* Service to DHT successful; here we'd usually do something 
+  /* Service to DHT successful; here we'd usually do something
      with the DHT (ok, if successful) */
 
   /* for now, just indiscriminately terminate after 10s */
   GNUNET_SCHEDULER_cancel (shutdown_tid);
-  shutdown_tid = GNUNET_SCHEDULER_add_delayed 
+  shutdown_tid = GNUNET_SCHEDULER_add_delayed
       (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
        &shutdown_task, NULL);
 }
@@ -102,7 +102,7 @@ dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct MyContext *ctxt = cls;
 
   /* Use the provided configuration to connect to service */
-  dht_handle = GNUNET_DHT_connect (cfg, ctxt->ht_len);  
+  dht_handle = GNUNET_DHT_connect (cfg, ctxt->ht_len);
   return dht_handle;
 }
 
@@ -114,12 +114,12 @@ dht_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cls closure
  * @param op_result whatever we returned from 'dht_ca'
  */
-static void 
+static void
 dht_da (void *cls, void *op_result)
 {
   struct MyContext *ctxt = cls;
-  
-  /* Disconnect from DHT service */  
+
+  /* Disconnect from DHT service */
   GNUNET_DHT_disconnect ((struct GNUNET_DHT_Handle *) op_result);
   dht_handle = NULL;
 }
@@ -138,7 +138,7 @@ dht_da (void *cls, void *op_result)
  * @param links_failed number of links testbed was unable to establish
  */
 static void
-test_master (void *cls, 
+test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers,
@@ -152,7 +152,7 @@ test_master (void *cls,
   ctxt.ht_len = 10;
 
   /* connect to a peers service */
-  dht_op = GNUNET_TESTBED_service_connect 
+  dht_op = GNUNET_TESTBED_service_connect
       (NULL,                    /* Closure for operation */
        peers[0],                /* The peer whose service to connect to */
        "dht",                   /* The name of the service */
@@ -175,7 +175,7 @@ main (int argc, char **argv)
   int ret;
 
   result = GNUNET_SYSERR;
-  ret = GNUNET_TESTBED_test_run 
+  ret = GNUNET_TESTBED_test_run
       ("awesome-test",  /* test case name */
        "template.conf", /* template configuration */
        NUM_PEERS,       /* number of peers to start */

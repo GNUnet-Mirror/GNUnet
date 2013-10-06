@@ -61,7 +61,7 @@ static struct GNUNET_REVOCATION_Query *q;
 
 /**
  * Handle for revocation.
- */ 
+ */
 static struct GNUNET_REVOCATION_Handle *h;
 
 /**
@@ -71,12 +71,12 @@ static struct GNUNET_IDENTITY_EgoLookup *el;
 
 /**
  * Our configuration.
- */ 
+ */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Number of matching bits required for revocation.
- */ 
+ */
 static unsigned long long matching_bits;
 
 
@@ -178,7 +178,7 @@ print_revocation_result (void *cls,
 /**
  * Data needed to perform a revocation.
  */
-struct RevocationData 
+struct RevocationData
 {
   /**
    * Public key.
@@ -226,7 +226,7 @@ calculate_pow (void *cls,
 
   if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)) ||
        (0 == (rd->pow % 128) ) )
-  {    
+  {
     if (0 == (rd->pow % 128 * 1024))
     {
       if (0 == (rd->pow % (1024 * 128 * 80)))
@@ -308,7 +308,7 @@ ego_callback (void *cls,
                                       &key);
   rd = GNUNET_new (struct RevocationData);
   if ( (NULL != filename) &&
-       (GNUNET_YES == 
+       (GNUNET_YES ==
         GNUNET_DISK_file_test (filename)) &&
        (sizeof (struct RevocationData) ==
         GNUNET_DISK_fn_read (filename,
@@ -325,10 +325,10 @@ ego_callback (void *cls,
                revoke_ego);
       GNUNET_free (rd);
       return;
-    }    
+    }
   }
   else
-  {    
+  {
     GNUNET_REVOCATION_sign_revocation (GNUNET_IDENTITY_ego_get_private_key (ego),
                                        &rd->sig);
     rd->key = key;
@@ -362,8 +362,8 @@ ego_callback (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, 
-     char *const *args, 
+run (void *cls,
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {

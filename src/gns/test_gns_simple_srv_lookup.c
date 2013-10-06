@@ -109,7 +109,7 @@ on_lookup_result(void *cls, uint32_t rd_count,
   int i;
   uint16_t *srv_data;
   char* srv;
-  
+
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
   {
       GNUNET_SCHEDULER_cancel (die_task);
@@ -229,7 +229,7 @@ do_check (void *cls,
 
   rd.expiration_time = UINT64_MAX;
   GNUNET_assert(1 == inet_pton (AF_INET, ip, sipserver));
-  
+
   GNUNET_CRYPTO_short_hash(&bob_pkey, sizeof(bob_pkey), &bob_hash);
 
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
@@ -262,7 +262,7 @@ do_check (void *cls,
                                NULL,
                                NULL);
   GNUNET_free (sig);
-  
+
   rd.data_size = sizeof (struct GNUNET_TUN_DnsSrvRecord)+strlen(TEST_SRV_NAME)+1;
   srv_data->port = srv_port;
   srv_data->prio = srv_prio;

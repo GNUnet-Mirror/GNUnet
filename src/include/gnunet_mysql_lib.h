@@ -76,7 +76,7 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Destroy a mysql context.  Also frees all associated prepared statements.
- * 
+ *
  * @param mc context to destroy
  */
 void

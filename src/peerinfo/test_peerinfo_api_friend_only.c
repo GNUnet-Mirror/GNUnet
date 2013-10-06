@@ -129,7 +129,7 @@ process (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

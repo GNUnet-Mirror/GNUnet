@@ -22,7 +22,7 @@
  * @file testbed/test_testbed_api_peer_reconfiguration.c
  * @brief testcase for testing GNUNET_TESTBED_peer_manage_service()
  *          implementation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -63,7 +63,7 @@ enum {
    * Peers have been started
    */
   STATE_PEER_STARTED,
-  
+
   /**
    * Peer has been reconfigured.  Test completed successfully
    */
@@ -97,7 +97,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
   abort_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != op)
-  {  
+  {
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
   }
@@ -128,7 +128,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     fprintf (stderr, "Operation failed: %s\n",
              event->details.operation_finished.emsg);
     GNUNET_TESTBED_operation_done (op);
-    op = NULL;    
+    op = NULL;
     FAIL_TEST (0, return);
   }
   GNUNET_TESTBED_operation_done (op);
@@ -152,7 +152,7 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
  *          failed
  */
 static void
-test_master (void *cls, 
+test_master (void *cls,
              struct GNUNET_TESTBED_RunHandle *h,
              unsigned int num_peers,
              struct GNUNET_TESTBED_Peer **peers_,

@@ -27,14 +27,14 @@
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
-#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS 
+#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
 
 /**
  * Name of the curve we are using.  Note that we have hard-coded
  * structs that use 256 bits, so using a bigger curve will require
  * changes that break stuff badly.  The name of the curve given here
  * must be agreed by all peers and be supported by libgcrypt.
- * 
+ *
  * NOTE: this will change to Curve25519 before GNUnet 0.10.0.
  */
 #define CURVE "NIST P-256"
@@ -73,13 +73,13 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
   unsigned int idx;
 
   list = gcry_sexp_find_token (sexp, topname, 0);
-  if (! list)  
-    return 1;  
+  if (! list)
+    return 1;
   l2 = gcry_sexp_cadr (list);
   gcry_sexp_release (list);
   list = l2;
-  if (! list)  
-    return 2;  
+  if (! list)
+    return 2;
 
   idx = 0;
   for (s = elems; *s; s++, idx++)
@@ -136,7 +136,7 @@ adjust (unsigned char *buf,
 
 /**
  * Output the given MPI value to the given buffer.
- * 
+ *
  * @param buf where to output to
  * @param size number of bytes in @a buf
  * @param val value to write to @a buf
@@ -171,7 +171,7 @@ mpi_scan (gcry_mpi_t *result,
   int rc;
 
   if (0 != (rc = gcry_mpi_scan (result,
-				GCRYMPI_FMT_USG, 
+				GCRYMPI_FMT_USG,
 				data, size, &size)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
@@ -203,7 +203,7 @@ decode_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *priv)
   gcry_mpi_release (d);
   if (0 != rc)
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc); 
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     GNUNET_assert (0);
   }
 #if EXTRA_CHECKS
@@ -224,7 +224,7 @@ decode_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *priv)
  * @param q point on curve
  * @param pub public key struct to initialize
  * @param ctx context to use for ECC operations
- */ 
+ */
 static void
 point_to_public_sign_key (gcry_mpi_point_t q,
 			  gcry_ctx_t ctx,
@@ -232,7 +232,7 @@ point_to_public_sign_key (gcry_mpi_point_t q,
 {
   gcry_mpi_t q_x;
   gcry_mpi_t q_y;
-  
+
   q_x = gcry_mpi_new (256);
   q_y = gcry_mpi_new (256);
   if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
@@ -255,7 +255,7 @@ point_to_public_sign_key (gcry_mpi_point_t q,
  * @param q point on curve
  * @param pub public key struct to initialize
  * @param ctx context to use for ECC operations
- */ 
+ */
 static void
 point_to_public_encrypt_key (gcry_mpi_point_t q,
 			     gcry_ctx_t ctx,
@@ -263,7 +263,7 @@ point_to_public_encrypt_key (gcry_mpi_point_t q,
 {
   gcry_mpi_t q_x;
   gcry_mpi_t q_y;
-  
+
   q_x = gcry_mpi_new (256);
   q_y = gcry_mpi_new (256);
   if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
@@ -346,9 +346,9 @@ GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPubli
     keylen += 5 - keylen % 5;
   keylen /= 5;
   pubkeybuf = GNUNET_malloc (keylen + 1);
-  end = GNUNET_STRINGS_data_to_string ((unsigned char *) pub, 
-				       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), 
-				       pubkeybuf, 
+  end = GNUNET_STRINGS_data_to_string ((unsigned char *) pub,
+				       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+				       pubkeybuf,
 				       keylen);
   if (NULL == end)
   {
@@ -369,7 +369,7 @@ GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPubli
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc, 
+GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc,
 					  size_t enclen,
 					  struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 {
@@ -408,7 +408,7 @@ decode_public_sign_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
   mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
   mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
   q = gcry_mpi_point_new (256);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE); 
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
   gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
 
@@ -426,7 +426,7 @@ decode_public_sign_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
 
 /**
  * @ingroup crypto
- * Clear memory that was used to store a private key. 
+ * Clear memory that was used to store a private key.
  *
  * @param pk location of the key
  */
@@ -503,8 +503,8 @@ GNUNET_CRYPTO_ecc_key_get_anonymous ()
 
   if (once)
     return &anonymous;
-  mpi_print (anonymous.d, 
-	     sizeof (anonymous.d), 
+  mpi_print (anonymous.d,
+	     sizeof (anonymous.d),
 	     GCRYMPI_CONST_ONE);
   once = 1;
   return &anonymous;
@@ -700,7 +700,7 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
   struct GNUNET_CRYPTO_EccPrivateKey *priv;
   char *fn;
 
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY", &fn))
     return NULL;
   priv = GNUNET_CRYPTO_ecc_key_create_from_file (fn);
@@ -865,7 +865,7 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
   /* build s-expression for signature */
   mpi_scan (&r, sig->r, sizeof (sig->r));
   mpi_scan (&s, sig->s, sizeof (sig->s));
-  if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL, 
+  if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL,
 				  "(sig-val(ecdsa(r %m)(s %m)))",
                                   r, s)))
   {
@@ -917,7 +917,7 @@ decode_public_encrypt_key (const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub)
   mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
   mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
   q = gcry_mpi_point_new (256);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE); 
+  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
   gcry_mpi_release (q_x);
   gcry_mpi_release (q_y);
 
@@ -945,7 +945,7 @@ int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
                         const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub,
                         struct GNUNET_HashCode *key_material)
-{ 
+{
   gcry_mpi_point_t result;
   gcry_mpi_point_t q;
   gcry_mpi_t d;
@@ -993,7 +993,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
 
 
 /**
- * Derive the 'h' value for key derivation, where 
+ * Derive the 'h' value for key derivation, where
  * 'h = H(l,P)'.
  *
  * @param pub public key for deriviation
@@ -1001,8 +1001,8 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @param context additional context to use for HKDF of 'h';
  *        typically the name of the subsystem/application
  * @return h value
- */ 
-static gcry_mpi_t 
+ */
+static gcry_mpi_t
 derive_h (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
 	  const char *label,
 	  const char *context)
@@ -1090,7 +1090,7 @@ GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicSignKey
   gcry_mpi_point_t v;
 
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  
+
   /* obtain point 'q' from original public key */
   mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
   mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));

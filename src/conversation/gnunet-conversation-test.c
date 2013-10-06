@@ -25,8 +25,8 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_speaker_lib.h" 
-#include "gnunet_microphone_lib.h" 
+#include "gnunet_speaker_lib.h"
+#include "gnunet_microphone_lib.h"
 
 /**
  * How long do we record before we replay?
@@ -117,7 +117,7 @@ do_shutdown (void *cls,
 				 rec);
     GNUNET_free (rec);
   }
-  fprintf (stderr, 
+  fprintf (stderr,
 	   _("\nEnd of transmission.  Have a GNU day.\n"));
 }
 
@@ -145,7 +145,7 @@ switch_to_speaker (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  fprintf (stderr, 
+  fprintf (stderr,
 	   _("\nWe are now playing your recording back.  If you can hear it, your audio settings are working..."));
   for (rec=rec_head; NULL != rec; rec = rec->next)
   {
@@ -170,7 +170,7 @@ switch_to_speaker (void *cls,
  * @param data_size number of bytes in @a data
  * @param data audio data to play
  */
-static void 
+static void
 record (void *cls,
 	size_t data_size,
 	const void *data)
@@ -211,7 +211,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   st = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				     &do_shutdown,
 				     NULL);
-  fprintf (stderr, 
+  fprintf (stderr,
 	   _("We will now be recording you for %s. After that time, the recording will be played back to you..."),
 	   GNUNET_STRINGS_relative_time_to_string (TIMEOUT, GNUNET_YES));
   if (GNUNET_OK !=

@@ -66,7 +66,7 @@ create_keys (const char *fn)
 	   _("Generating %u keys, please wait"),
 	   make_keys);
   while (0 < make_keys--)
-  {    
+  {
     fprintf (stderr,
 	     ".");
     if (NULL == (pk = GNUNET_CRYPTO_ecc_key_create ()))
@@ -74,7 +74,7 @@ create_keys (const char *fn)
        GNUNET_break (0);
        break;
     }
-    if (GNUNET_TESTING_HOSTKEYFILESIZE != 
+    if (GNUNET_TESTING_HOSTKEYFILESIZE !=
 	fwrite (pk, 1,
 		GNUNET_TESTING_HOSTKEYFILESIZE, f))
     {
@@ -140,7 +140,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
     GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
     str = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pub);
-    fprintf (stdout, 
+    fprintf (stdout,
              "%s\n",
              str);
     GNUNET_free (str);

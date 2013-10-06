@@ -152,7 +152,7 @@ get_resp_callback (void *cls,
                    const void *data,
                    size_t size)
 {
-  FPRINTF (stdout, 
+  FPRINTF (stdout,
 	   "RESPONSE #%u: type %d, key `%s', data `%.*s'\n",
            result_count,
            (int) type,
@@ -191,7 +191,7 @@ put_callback (void *cls,
               const void *data,
               size_t size)
 {
-  FPRINTF (stdout, 
+  FPRINTF (stdout,
 	   "PUT %u: type %d, key `%s', data `%.*s'\n",
            result_count,
            (int) type,
@@ -221,14 +221,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (NULL == (dht_handle = GNUNET_DHT_connect (cfg, 1)))
   {
-    FPRINTF (stderr, "%s",  
+    FPRINTF (stderr, "%s",
 	     _("Failed to connect to DHT service!\n"));
     ret = 1;
     return;
   }
   if (GNUNET_BLOCK_TYPE_ANY == block_type)      /* Type of data not set */
     block_type = GNUNET_BLOCK_TYPE_TEST;
-  if (NULL != query_key) 
+  if (NULL != query_key)
     {
       key = &hc;
       if (GNUNET_OK !=
@@ -240,8 +240,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       key = NULL;
     }
   if (verbose)
-    FPRINTF (stderr, 
-	     "Monitoring for %s\n", 
+    FPRINTF (stderr,
+	     "Monitoring for %s\n",
 	     GNUNET_STRINGS_relative_time_to_string (timeout_request, GNUNET_NO));
   GNUNET_SCHEDULER_add_delayed (timeout_request, &cleanup_task, NULL);
   monitor_handle = GNUNET_DHT_monitor_start (dht_handle,

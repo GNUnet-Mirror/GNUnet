@@ -230,7 +230,7 @@ logger_run (void *cls, struct GNUNET_SERVER_Handle *server,
       GNUNET_CONFIGURATION_get_value_filename (cfg, "TESTBED-LOGGER", "DIR",
                                                &dir))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Not logging directory definied.  Exiting\n");    
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Not logging directory definied.  Exiting\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -272,7 +272,7 @@ main (int argc, char *const *argv)
 {
   //sleep (15);                 /* Debugging */
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "testbed-logger", 
+          GNUNET_SERVICE_run (argc, argv, "testbed-logger",
                               GNUNET_SERVICE_OPTION_NONE,
                               &logger_run, NULL)) ? 0 : 1;
 }

@@ -144,7 +144,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
   table[ret]->rc = 1;
   table[ret]->pid = ret;
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (map, 
+                GNUNET_CONTAINER_multipeermap_put (map,
 						   &table[ret]->id,
                                                    table[ret],
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));

@@ -206,7 +206,7 @@ new_element_cb (void *cls,
   int idx = chp - consensus_handles;
 
   GNUNET_assert (NULL != cls);
-  
+
   results_for_peer[idx]++;
 
   GNUNET_assert (sizeof (struct GNUNET_HashCode) == element->size);

@@ -164,7 +164,7 @@ static struct Pattern *download_tail;
 
 
 /**
- * Parse a pattern string and store the corresponding 
+ * Parse a pattern string and store the corresponding
  * 'struct Pattern' in the given head/tail.
  *
  * @param head where to store the head
@@ -243,7 +243,7 @@ make_file (uint64_t length,
       return NULL;
   /* initialize data with 'unique' data only depending on 'kval' and 'size',
      making sure that blocks do not repeat */
-  for (i=0;i<length; i+=8)  
+  for (i=0;i<length; i+=8)
   {
     xor = length ^ kval ^ (uint64_t) (i / 32 / 1024);
     memcpy (&data[i], &xor, GNUNET_MIN (length - i, sizeof (uint64_t)));
@@ -396,8 +396,8 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     p = info->value.publish.cctx;
     GNUNET_STATISTICS_update (stats_handle,
-			      "# publishing time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
+			      "# publishing time (ms)",
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL,
 			      GNUNET_NO);
     p->task = GNUNET_SCHEDULER_add_now (&publish_stop_task, p);
     return p;
@@ -424,9 +424,9 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     p = info->value.download.cctx;
     GNUNET_STATISTICS_update (stats_handle,
-			      "# download time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
-			      GNUNET_NO); 
+			      "# download time (ms)",
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL,
+			      GNUNET_NO);
     p->task = GNUNET_SCHEDULER_add_now (&download_stop_task, p);
     return p;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
@@ -450,12 +450,12 @@ progress_cb (void *cls,
     if (p->y != GNUNET_FS_uri_chk_get_file_size (uri))
       return NULL; /* not what we want */
     GNUNET_STATISTICS_update (stats_handle,
-			      "# search time (ms)", 
-			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL, 
+			      "# search time (ms)",
+			      (long long) GNUNET_TIME_absolute_get_duration (p->start_time).rel_value_us / 1000LL,
 			      GNUNET_NO);
     p->start_time = GNUNET_TIME_absolute_get ();
     p->ctx = GNUNET_FS_download_start (fs_handle, uri,
-				       NULL, NULL, NULL, 
+				       NULL, NULL, NULL,
 				       0, GNUNET_FS_uri_chk_get_file_size (uri),
 				       anonymity_level,
 				       GNUNET_FS_DOWNLOAD_NO_TEMPORARIES,
@@ -483,7 +483,7 @@ progress_cb (void *cls,
       GNUNET_free (p);
     }
     return NULL;
-  default: 
+  default:
     /* unexpected event during profiling */
     GNUNET_break (0);
     return NULL;
@@ -497,7 +497,7 @@ progress_cb (void *cls,
  * @param cls the 'struct Pattern' specifying the operation to perform
  * @param tc scheduler context
  */
-static void 
+static void
 start_publish (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -522,7 +522,7 @@ start_publish (void *cls,
  * @param cls the 'struct Pattern' specifying the operation to perform
  * @param tc scheduler context
  */
-static void 
+static void
 start_download (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -563,7 +563,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
                                 NULL);
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, 
+      GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "TESTBED", "PEERID",
                                              &my_peerid))
   {
@@ -574,28 +574,28 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, 
+      GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "FSPROFILER", "ANONYMITY_LEVEL",
                                              &anonymity_level))
     anonymity_level = 1;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, 
+      GNUNET_CONFIGURATION_get_value_number (cfg,
 					     "FSPROFILER", "REPLICATION_LEVEL",
-                                             &replication_level))   
+                                             &replication_level))
     replication_level = 1;
   GNUNET_snprintf (myoptname, sizeof (myoptname),
 		   "DOWNLOAD-PATTERN-%u", my_peerid);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, 
+      GNUNET_CONFIGURATION_get_value_string (cfg,
 					     "FSPROFILER", myoptname,
-                                             &download_pattern))   
+                                             &download_pattern))
     download_pattern = GNUNET_strdup ("");
   GNUNET_snprintf (myoptname, sizeof (myoptname),
 		   "PUBLISH-PATTERN-%u", my_peerid);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, 
+      GNUNET_CONFIGURATION_get_value_string (cfg,
 					     "FSPROFILER", myoptname,
-                                             &publish_pattern))   
+                                             &publish_pattern))
     publish_pattern = GNUNET_strdup ("");
   if ( (GNUNET_OK !=
 	parse_pattern (&download_head,

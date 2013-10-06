@@ -43,7 +43,7 @@ struct AnnounceMessage
    * How many characters can we squeeze per edge?
    */
   uint16_t compression;
-  
+
   /**
    * Always zero.
    */
@@ -97,7 +97,7 @@ struct ResultMessage
    * Identity of the peer that was found.
    */
   struct GNUNET_PeerIdentity id;
- 
+
   /* followed by GET path and PUT path arrays */
 
 };

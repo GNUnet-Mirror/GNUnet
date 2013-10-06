@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_api_barriers.c
  * @brief API implementation for testbed barriers
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -55,7 +55,7 @@ struct GNUNET_TESTBED_Barrier
    * The controller handle given while initiliasing this barrier
    */
   struct GNUNET_TESTBED_Controller *c;
-  
+
   /**
    * The name of the barrier
    */
@@ -70,7 +70,7 @@ struct GNUNET_TESTBED_Barrier
    * the closure for the above callback
    */
   void *cls;
- 
+
   /**
    * Should the barrier crossed status message be echoed back to the controller?
    */
@@ -125,15 +125,15 @@ GNUNET_TESTBED_handle_barrier_status_ (struct GNUNET_TESTBED_Controller *c,
   struct GNUNET_TESTBED_Barrier *barrier;
   char *emsg;
   const char *name;
-  struct GNUNET_HashCode key;  
+  struct GNUNET_HashCode key;
   size_t emsg_len;
   int status;
   uint16_t msize;
   uint16_t name_len;
-  
+
   emsg = NULL;
   barrier = NULL;
-  msize = ntohs (msg->header.size);  
+  msize = ntohs (msg->header.size);
   name = msg->data;
   name_len = ntohs (msg->name_len);
   LOG_DEBUG ("Received BARRIER_STATUS msg\n");
@@ -219,7 +219,7 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
   struct GNUNET_HashCode key;
   size_t name_len;
   uint16_t msize;
-  
+
   GNUNET_assert (quorum <= 100);
   GNUNET_assert (NULL != cb);
   name_len = strlen (name);
@@ -310,11 +310,11 @@ struct GNUNET_TESTBED_BarrierWaitHandle
    * The name of the barrier
    */
   char *name;
-  
+
   /**
    * Then configuration used for the client connection
    */
-  struct GNUNET_CONFIGURATION_Handle *cfg;  
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * The client connection
@@ -376,7 +376,7 @@ receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
   const struct GNUNET_TESTBED_BarrierStatusMsg *msg;
   uint16_t msize;
-  
+
   if (NULL == message)
   {
     GNUNET_break_op (0);
@@ -386,13 +386,13 @@ receive_handler (void *cls, const struct GNUNET_MessageHeader *message)
   {
     GNUNET_break_op (0);
     goto fail;
-  } 
+  }
   msize = ntohs (message->size);
   if (msize <= sizeof (struct GNUNET_TESTBED_BarrierStatusMsg))
   {
     GNUNET_break_op (0);
     goto fail;
-  } 
+  }
   msg = (const struct GNUNET_TESTBED_BarrierStatusMsg *) message;
   switch (ntohs (msg->status))
   {
@@ -432,7 +432,7 @@ transmit_notify (void *cls, size_t size, void *buf)
 {
   struct GNUNET_TESTBED_BarrierWaitHandle *h = cls;
   uint16_t msize;
-  
+
   h->tx = NULL;
   if ((0 == size) || (NULL == buf))
   {
@@ -507,7 +507,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
   msg->header.size = htons (msize);
   (void) memcpy (msg->name, name, name_len);
   h->msg = &msg->header;
-  h->tx = 
+  h->tx =
       GNUNET_CLIENT_notify_transmit_ready (h->conn, msize,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO,

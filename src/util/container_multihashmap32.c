@@ -350,7 +350,7 @@ GNUNET_CONTAINER_multihashmap32_contains (const struct
 int
 GNUNET_CONTAINER_multihashmap32_contains_value (const struct
                                                 GNUNET_CONTAINER_MultiHashMap32
-                                                *map, 
+                                                *map,
                                                 uint32_t key,
                                                 const void *value)
 {
@@ -470,7 +470,7 @@ int
 GNUNET_CONTAINER_multihashmap32_get_multiple (const struct
                                               GNUNET_CONTAINER_MultiHashMap32
                                               *map, uint32_t key,
-                                              GNUNET_CONTAINER_HashMapIterator32 
+                                              GNUNET_CONTAINER_HashMapIterator32
                                               it, void *it_cls)
 {
   int count;

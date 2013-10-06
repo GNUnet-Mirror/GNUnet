@@ -111,7 +111,7 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh);
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-is_tld (const char *name, 
+is_tld (const char *name,
 	const char *tld);
 
 

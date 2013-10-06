@@ -357,7 +357,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return #GNUNET_YES (continue)
  */
 static int
-disconnect_and_free_peer_entry (void *cls, 
+disconnect_and_free_peer_entry (void *cls,
 				const struct GNUNET_PeerIdentity *key,
                                 void *value)
 {
@@ -572,7 +572,7 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls closure with the 'struct GNUNET_CORE_Handle'
  * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf 
+ * @return number of bytes written to buf
  */
 static size_t
 transmit_message (void *cls, size_t size, void *buf)
@@ -649,7 +649,7 @@ transmit_message (void *cls, size_t size, void *buf)
   ret =
     th->get_message (th->get_message_cls,
 		     size - sizeof (struct SendMessage), &sm[1]);
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting SEND request to `%s' yielded %u bytes.\n",
        GNUNET_i2s (&pr->peer), ret);
@@ -1093,7 +1093,7 @@ reconnect (struct GNUNET_CORE_Handle *h)
     else
       opt |= GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, 
+  LOG (GNUNET_ERROR_TYPE_INFO,
        "(Re)connecting to CORE service, monitoring messages of type %u\n",
        opt);
 

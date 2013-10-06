@@ -96,8 +96,8 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-remove_cont (void *cls, 
-	     int32_t success, 
+remove_cont (void *cls,
+	     int32_t success,
 	     const char *emsg)
 {
   if (GNUNET_YES != success)
@@ -128,16 +128,16 @@ rd_decrypt_cb (void *cls,
 
   GNUNET_assert (GNUNET_NO == removed);
   GNUNET_assert (1 == rd_count);
-  GNUNET_assert (NULL != rd);  
+  GNUNET_assert (NULL != rd);
   memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-  
+
   GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
   GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
   GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Block was decrypted successfully, removing records \n");
-  
+
   nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
 					 0, NULL, &remove_cont, (void *) name);
 }
@@ -178,14 +178,14 @@ name_lookup_proc (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK == 
+  GNUNET_assert (GNUNET_OK ==
 		 GNUNET_NAMESTORE_block_decrypt (block,
 						 &pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
 
 static void
-put_cont (void *cls, int32_t success, 
+put_cont (void *cls, int32_t success,
 	  const char *emsg)
 {
   const char *name = cls;
@@ -195,7 +195,7 @@ put_cont (void *cls, int32_t success,
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		"Namestore could not store record: `%s'\n", 
+		"Namestore could not store record: `%s'\n",
 		emsg);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -229,7 +229,7 @@ put_cont (void *cls, int32_t success,
 
 
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -274,7 +274,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-  if (0 != 
+  if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api",
 				  "namestore",
 				  "test_namestore_api.conf",

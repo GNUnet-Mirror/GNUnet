@@ -216,7 +216,7 @@ http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param added length of created address
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
-int 
+int
 http_string_to_address (void *cls,
 			const char *addr,
 			uint16_t addrlen,
@@ -363,7 +363,7 @@ lookup_session_old (struct Plugin *plugin, const struct GNUNET_PeerIdentity *tar
       e_peer = GNUNET_YES;
       if ( (addrlen == t->addrlen) &&
 	   (0 == memcmp (addr, t->addr, addrlen)) )
-	e_addr = GNUNET_YES;    
+	e_addr = GNUNET_YES;
       if ( (t == session) &&
 	   (t->addrlen == session->addrlen) &&
 	   (0 == memcmp (session->addr, t->addr, t->addrlen)) )

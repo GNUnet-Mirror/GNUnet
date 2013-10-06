@@ -368,7 +368,7 @@ GNUNET_SERVER_client_get_user_context_ (struct GNUNET_SERVER_Client *client,
  * @param ptr pointer to user context
  * @param size number of bytes in user context struct (for verification only)
  */
-void 
+void
 GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
 					void *ptr,
 					size_t size)
@@ -977,7 +977,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
 	       (GNUNET_SCHEDULER_NO_TASK == sender->warn_task) )
           {
 	    GNUNET_break (0 != type); /* type should never be 0 here, as we don't use 0 */
-            sender->warn_start = GNUNET_TIME_absolute_get ();	    
+            sender->warn_start = GNUNET_TIME_absolute_get ();	
             sender->warn_task =
                 GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                               &warn_no_receive_done, sender);
@@ -1061,7 +1061,7 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server leaves instant processing loop: ret = %d, server = %p, shutdown = %d, suspended = %u\n",
-       ret, client->server, 
+       ret, client->server,
        client->shutdown_now,
        client->suspended);
   if (GNUNET_NO == ret)
@@ -1367,7 +1367,7 @@ GNUNET_SERVER_disconnect_notify (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
-			      GNUNET_SERVER_ConnectCallback callback, 
+			      GNUNET_SERVER_ConnectCallback callback,
 			      void *callback_cls)
 {
   struct NotifyList *n;
@@ -1419,7 +1419,7 @@ GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
-				     GNUNET_SERVER_ConnectCallback callback, 
+				     GNUNET_SERVER_ConnectCallback callback,
 				     void *callback_cls)
 {
   struct NotifyList *pos;
@@ -1453,7 +1453,7 @@ destroy_connection (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
-  
+
   GNUNET_CONNECTION_destroy (connection);
 }
 
@@ -1489,7 +1489,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
     GNUNET_CONNECTION_receive_cancel (client->connection);
     client->receive_pending = GNUNET_NO;
   }
-  client->shutdown_now = GNUNET_YES;    
+  client->shutdown_now = GNUNET_YES;
   client->reference_count++; /* make sure nobody else clean up client... */
   if ( (NULL != client->mst) &&
        (NULL != server) )
@@ -1656,7 +1656,7 @@ GNUNET_SERVER_client_persist_ (struct GNUNET_SERVER_Client *client)
  *                          serious error)
  */
 void
-GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client, 
+GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client,
 			    int success)
 {
   if (NULL == client)

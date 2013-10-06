@@ -332,7 +332,7 @@ handle_response (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   uint16_t size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Receiving response from DNS service\n");
   if (NULL == msg)
   {
@@ -920,7 +920,7 @@ GNUNET_RESOLVER_hostname_resolve (int af,
     return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Resolving our hostname `%s'\n", 
+       "Resolving our hostname `%s'\n",
        hostname);
   return GNUNET_RESOLVER_ip_get (hostname, af, timeout, callback, cls);
 }

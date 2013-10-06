@@ -193,14 +193,14 @@ handle_updates (void *cls,
       GNUNET_break (0);
       reconnect (zm);
       return;
-    }  
+    }
     GNUNET_CLIENT_receive (zm->h,
 			   &handle_updates,
 			   zm,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    zm->monitor (zm->cls, 
+    zm->monitor (zm->cls,
 		 &lrm->private_key,
-		 name_tmp, 
+		 name_tmp,
 		 rd_count, rd);
   }
 }
@@ -224,7 +224,7 @@ transmit_monitor_message (void *cls,
 
   zm->th = NULL;
   if (size < sizeof (struct ZoneMonitorStartMessage))
-  {    
+  {
     reconnect (zm);
     return 0;
   }

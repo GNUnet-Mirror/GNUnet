@@ -34,7 +34,7 @@ struct GSF_MeshRequest;
 
 /**
  * Function called with a reply from the mesh.
- * 
+ *
  * @param cls closure
  * @param type type of the block, ANY on error
  * @param expiration expiration time for the block

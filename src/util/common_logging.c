@@ -294,7 +294,7 @@ GNUNET_abort ()
  * Rotate logs, deleting the oldest log.
  *
  * @param new_name new name to add to the rotation
- */ 
+ */
 static void
 log_rotate (const char *new_name)
 {
@@ -313,7 +313,7 @@ log_rotate (const char *new_name)
     GNUNET_free (discard);
   }
   rotation[rotation_off % ROTATION_KEEP] = GNUNET_strdup (new_name);
-  rotation_off++;  
+  rotation_off++;
 }
 
 
@@ -326,14 +326,14 @@ log_rotate (const char *new_name)
 static int
 setup_log_file (const struct tm *tm)
 {
-  static char last_fn[PATH_MAX + 1];  
+  static char last_fn[PATH_MAX + 1];
   char fn[PATH_MAX + 1];
   int dirwarn;
   int altlog_fd;
   int dup_return;
   FILE *altlog;
   char *leftsquare;
-  
+
   if (NULL == log_file_name)
     return GNUNET_SYSERR;
   if (0 == strftime (fn, sizeof (fn), log_file_name, tm))
@@ -392,7 +392,7 @@ setup_log_file (const struct tm *tm)
                   fn);
     return GNUNET_SYSERR;
   }
-  GNUNET_stderr = altlog; 
+  GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
 
@@ -665,7 +665,7 @@ parse_all_definitions ()
  */
 int
 GNUNET_log_setup (const char *comp,
-		  const char *loglevel, 
+		  const char *loglevel,
 		  const char *logfile)
 {
   const char *env_logfile;
@@ -831,7 +831,7 @@ flush_bulk (const char *datestr)
  * @param check_reset #GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (int n, 
+GNUNET_log_skip (int n,
 		 int check_reset)
 {
   int ok;
@@ -872,7 +872,7 @@ GNUNET_get_log_skip ()
  */
 static void
 mylog (enum GNUNET_ErrorType kind,
-       const char *comp, 
+       const char *comp,
        const char *message,
        va_list va)
 {
@@ -949,7 +949,7 @@ mylog (enum GNUNET_ErrorType kind,
       strftime (date2, DATE_STR_SIZE, "%b %d %H:%M:%S-%%06u", tmptr);
       snprintf (date, sizeof (date), date2, timeofday.tv_usec);
     }
-#endif  
+#endif
     VSNPRINTF (buf, size, message, va);
     if (NULL != tmptr)
       (void) setup_log_file (tmptr);
@@ -959,7 +959,7 @@ mylog (enum GNUNET_ErrorType kind,
     {
       last_bulk_repeat++;
       if ( (GNUNET_TIME_absolute_get_duration (last_bulk_time).rel_value_us >
-	    BULK_DELAY_THRESHOLD) || 
+	    BULK_DELAY_THRESHOLD) ||
 	   (last_bulk_repeat > BULK_REPEAT_THRESHOLD) )
         flush_bulk (date);
       return;
@@ -983,7 +983,7 @@ mylog (enum GNUNET_ErrorType kind,
  * @param ... arguments for format string
  */
 void
-GNUNET_log_nocheck (enum GNUNET_ErrorType kind, 
+GNUNET_log_nocheck (enum GNUNET_ErrorType kind,
 		    const char *message, ...)
 {
   va_list va;
@@ -1199,7 +1199,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
  * @param option name of missing option
  */
 void
-GNUNET_log_config_missing (enum GNUNET_ErrorType kind, 
+GNUNET_log_config_missing (enum GNUNET_ErrorType kind,
 			   const char *section,
 			   const char *option)
 {
@@ -1219,7 +1219,7 @@ GNUNET_log_config_missing (enum GNUNET_ErrorType kind,
  * @param required what is required that is invalid about the option
  */
 void
-GNUNET_log_config_invalid (enum GNUNET_ErrorType kind, 
+GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
 			   const char *section,
 			   const char *option,
 			   const char *required)

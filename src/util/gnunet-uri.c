@@ -117,12 +117,12 @@ run (void *cls, char *const *args, const char *cfgfile,
   rt = GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				       GNUNET_DISK_pipe_handle (sigpipe,
 								GNUNET_DISK_PIPE_END_READ),
-				       &maint_child_death, NULL);   
+				       &maint_child_death, NULL);
   p = GNUNET_OS_start_process (GNUNET_NO, 0,
 			       NULL, NULL,
 			       program,
 			       program,
-			       args[0], 
+			       args[0],
 			       NULL);
   GNUNET_free (program);
   if (NULL == p)
@@ -176,7 +176,7 @@ main (int argc, char *const *argv)
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
-  sigpipe = NULL; 
+  sigpipe = NULL;
   GNUNET_free ((void *) argv);
   return (GNUNET_OK == ret) ? 0 : 1;
 }

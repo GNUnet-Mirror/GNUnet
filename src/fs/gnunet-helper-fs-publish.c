@@ -125,8 +125,8 @@ add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
     memcpy (zdata, data, data_len);
     zdata[data_len] = '\0';
     (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
-					      data_mime_type, zdata, data_len + 1);    
-  } 
+					      data_mime_type, zdata, data_len + 1);
+  }
   else
   {
     (void) GNUNET_CONTAINER_meta_data_insert (md, plugin_name, type, format,
@@ -141,7 +141,7 @@ add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
  *
  * @param tree tree to free
  */
-static void 
+static void
 free_tree (struct ScanTreeNode *tree)
 {
   struct ScanTreeNode *pos;
@@ -151,7 +151,7 @@ free_tree (struct ScanTreeNode *tree)
   if (NULL != tree->parent)
     GNUNET_CONTAINER_DLL_remove (tree->parent->children_head,
 				 tree->parent->children_tail,
-				 tree);				 
+				 tree);				
   GNUNET_free (tree->filename);
   GNUNET_free (tree);
 }
@@ -205,7 +205,7 @@ write_message (uint16_t message_type,
   struct GNUNET_MessageHeader hdr;
 
 #if 0
-  fprintf (stderr, 
+  fprintf (stderr,
 	   "Helper sends %u-byte message of type %u\n",
 	   (unsigned int) (sizeof (struct GNUNET_MessageHeader) + data_length),
 	   (unsigned int) message_type);
@@ -295,7 +295,7 @@ scan_callback (void *cls,
  *
  * @param filename file or directory to scan
  * @param dst where to store the resulting share tree item;
- *         NULL is stored in @a dst upon recoverable errors (#GNUNET_OK is returned) 
+ *         NULL is stored in @a dst upon recoverable errors (#GNUNET_OK is returned)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
@@ -323,7 +323,7 @@ preprocess_file (const char *filename,
 
   /* Report the progress */
   if (GNUNET_OK !=
-      write_message (S_ISDIR (sbuf.st_mode) 
+      write_message (S_ISDIR (sbuf.st_mode)
 		     ? GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY
 		     : GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_FILE,
 		     filename, strlen (filename) + 1))
@@ -338,9 +338,9 @@ preprocess_file (const char *filename,
 
     rc.parent = item;
     rc.stop = GNUNET_NO;
-    GNUNET_DISK_directory_scan (filename, 
-				&scan_callback, 
-				&rc);    
+    GNUNET_DISK_directory_scan (filename,
+				&scan_callback,
+				&rc);
     if ( (GNUNET_YES == rc.stop) ||
 	 (GNUNET_OK !=
 	  write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_DIRECTORY,
@@ -363,7 +363,7 @@ preprocess_file (const char *filename,
  */
 static int
 extract_files (struct ScanTreeNode *item)
-{  
+{
   struct GNUNET_CONTAINER_MetaData *meta;
   ssize_t size;
   size_t slen;
@@ -380,7 +380,7 @@ extract_files (struct ScanTreeNode *item)
 	return GNUNET_SYSERR;
     return GNUNET_OK;
   }
-  
+
   /* this is the expensive operation, *afterwards* we'll check for aborts */
   meta = GNUNET_CONTAINER_meta_data_create ();
   EXTRACTOR_extract (plugins, item->filename, NULL, 0, &add_to_md, meta);
@@ -393,7 +393,7 @@ extract_files (struct ScanTreeNode *item)
     if (GNUNET_OK !=
 	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA,
 		       item->filename, slen))
-      return GNUNET_SYSERR;    
+      return GNUNET_SYSERR;
     return GNUNET_OK;
   }
   else if (size > (UINT16_MAX - sizeof (struct GNUNET_MessageHeader) - slen))
@@ -404,7 +404,7 @@ extract_files (struct ScanTreeNode *item)
   {
     char buf[size + slen];
     char *dst = &buf[slen];
-    
+
     memcpy (buf, item->filename, slen);
     size = GNUNET_CONTAINER_meta_data_serialize (meta,
 						 &dst, size,
@@ -417,7 +417,7 @@ extract_files (struct ScanTreeNode *item)
     GNUNET_CONTAINER_meta_data_destroy (meta);
     if (GNUNET_OK !=
 	write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_META_DATA,
-		       buf, 
+		       buf,
 		       slen + size))
       return GNUNET_SYSERR;
   }
@@ -456,7 +456,7 @@ ignore_sigpipe ()
  * @param flags flags to use (O_RDONLY or O_WRONLY)
  */
 static void
-make_dev_zero (int fd, 
+make_dev_zero (int fd,
 	       int flags)
 {
   int z;
@@ -483,7 +483,7 @@ make_dev_zero (int fd,
  *                 otherwise custom plugins to load from LE
  * @return 0 on success
  */
-int 
+int
 main (int argc,
       char *const *argv)
 {
@@ -502,7 +502,7 @@ main (int argc,
   output_stream = 1; /* stdout */
 #else
   ignore_sigpipe ();
-  /* move stdout to some other FD for IPC, bind 
+  /* move stdout to some other FD for IPC, bind
      stdout/stderr to /dev/null */
   output_stream = dup (1);
   make_dev_zero (1, O_WRONLY);
@@ -512,7 +512,7 @@ main (int argc,
   /* parse command line */
   if ( (3 != argc) && (2 != argc) )
   {
-    FPRINTF (stderr, 
+    FPRINTF (stderr,
 	     "%s",
 	     "gnunet-helper-fs-publish needs exactly one or two arguments\n");
 #if WINDOWS
@@ -532,7 +532,7 @@ main (int argc,
   }
 
   /* scan tree to find out how much work there is to be done */
-  if (GNUNET_OK != preprocess_file (filename_expanded, 
+  if (GNUNET_OK != preprocess_file (filename_expanded,
 				    &root))
   {
     (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
@@ -542,7 +542,7 @@ main (int argc,
 #endif
     return 2;
   }
-  /* signal that we're done counting files, so that a percentage of 
+  /* signal that we're done counting files, so that a percentage of
      progress can now be calculated */
   if (GNUNET_OK !=
       write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE, NULL, 0))
@@ -551,7 +551,7 @@ main (int argc,
 #if WINDOWS
     GNUNET_free ((void*) argv);
 #endif
-    return 3;  
+    return 3;
   }
   if (NULL != root)
   {
@@ -572,7 +572,7 @@ main (int argc,
   (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED, NULL, 0);
   EXTRACTOR_plugin_remove_all (plugins);
 #if WINDOWS
-  GNUNET_free ((void*) argv);  
+  GNUNET_free ((void*) argv);
 #endif
   return 0;
 }

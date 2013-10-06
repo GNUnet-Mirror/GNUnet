@@ -55,7 +55,7 @@ GNUNET_TUN_initialize_ipv4_header (struct GNUNET_TUN_IPv4Header *ip,
   ip->header_length =  sizeof (struct GNUNET_TUN_IPv4Header) / 4;
   ip->version = 4;
   ip->total_length = htons (sizeof (struct GNUNET_TUN_IPv4Header) + payload_length);
-  ip->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 
+  ip->identification = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 							    65536);
   ip->ttl = FRESH_TTL;
   ip->protocol = protocol;
@@ -89,7 +89,7 @@ GNUNET_TUN_initialize_ipv6_header (struct GNUNET_TUN_IPv6Header *ip,
   ip->payload_length = htons ((uint16_t) payload_length);
   ip->hop_limit = FRESH_TTL;
   ip->destination_address = *dst;
-  ip->source_address = *src;  
+  ip->source_address = *src;
 }
 
 
@@ -116,7 +116,7 @@ GNUNET_TUN_calculate_tcp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
   GNUNET_assert (IPPROTO_TCP == ip->protocol);
 
   tcp->crc = 0;
-  sum = GNUNET_CRYPTO_crc16_step (0, 
+  sum = GNUNET_CRYPTO_crc16_step (0,
 				  &ip->source_address,
 				  sizeof (struct in_addr) * 2);
   tmp = htons (IPPROTO_TCP);
@@ -186,21 +186,21 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
   GNUNET_assert (IPPROTO_UDP == ip->protocol);
 
   udp->crc = 0; /* technically optional, but we calculate it anyway, just to be sure */
-  sum = GNUNET_CRYPTO_crc16_step (0, 
+  sum = GNUNET_CRYPTO_crc16_step (0,
 				  &ip->source_address,
 				  sizeof (struct in_addr) * 2);
   tmp = htons (IPPROTO_UDP);
-  sum = GNUNET_CRYPTO_crc16_step (sum, 
-				  &tmp, 
+  sum = GNUNET_CRYPTO_crc16_step (sum,
+				  &tmp,
 				  sizeof (uint16_t));
   tmp = htons (sizeof (struct GNUNET_TUN_UdpHeader) + payload_length);
-  sum = GNUNET_CRYPTO_crc16_step (sum, 
-				  &tmp, 
+  sum = GNUNET_CRYPTO_crc16_step (sum,
+				  &tmp,
 				  sizeof (uint16_t));
-  sum = GNUNET_CRYPTO_crc16_step (sum, 
-				  udp, 
+  sum = GNUNET_CRYPTO_crc16_step (sum,
+				  udp,
 				  sizeof (struct GNUNET_TUN_UdpHeader));
-  sum = GNUNET_CRYPTO_crc16_step (sum, 
+  sum = GNUNET_CRYPTO_crc16_step (sum,
 				  payload,
 				  payload_length);
   udp->crc = GNUNET_CRYPTO_crc16_finish (sum);

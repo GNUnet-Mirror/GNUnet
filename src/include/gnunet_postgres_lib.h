@@ -46,7 +46,7 @@ extern "C"
  * @param ret return value from database operation to check
  * @param expected_status desired status
  * @param command description of the command that was run
- * @param args arguments given to the command 
+ * @param args arguments given to the command
  * @param filename name of the source file where the command was run
  * @param line line number in the source file
  * @return GNUNET_OK if the result is acceptable
@@ -66,7 +66,7 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
  * @param ret return value from database operation to check
  * @param expected_status desired status
  * @param command description of the command that was run
- * @param args arguments given to the command 
+ * @param args arguments given to the command
  * @return GNUNET_OK if the result is acceptable
  */
 #define GNUNET_POSTGRES_check_result(dbh,ret,expected_status,command,args) GNUNET_POSTGRES_check_result_(dbh,ret,expected_status,command,args,__FILE__,__LINE__)
@@ -78,7 +78,7 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
  * @param dbh database handle
  * @param sql statement to run
  * @param filename filename for error reporting
- * @param line code line for error reporting 
+ * @param line code line for error reporting
  * @return GNUNET_OK on success
  */
 int

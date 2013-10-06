@@ -138,7 +138,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
   uint16_t reserved GNUNET_PACKED;
 
   /**
-   * The private key 
+   * The private key
    */
   struct GNUNET_CRYPTO_EccPrivateKey private_key;
 
@@ -149,7 +149,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
 
 /**
  * Client requests creation of an identity.  Service
- * will respond with a result code.  
+ * will respond with a result code.
  */
 struct GNUNET_IDENTITY_CreateRequestMessage
 {
@@ -169,7 +169,7 @@ struct GNUNET_IDENTITY_CreateRequestMessage
   uint16_t reserved GNUNET_PACKED;
 
   /**
-   * The private key 
+   * The private key
    */
   struct GNUNET_CRYPTO_EccPrivateKey private_key;
 

@@ -171,7 +171,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   friend_only = GNUNET_HELLO_is_friend_only (our_hello);
   GNUNET_free (our_hello);
   our_hello = GNUNET_HELLO_create (&GST_my_identity.public_key,
-				   &address_generator, 
+				   &address_generator,
 				   &gc, friend_only);
   GNUNET_assert (NULL != our_hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -215,7 +215,7 @@ GST_hello_start (int friend_only, GST_HelloCallback cb, void *cb_cls)
 {
   hello_cb = cb;
   hello_cb_cls = cb_cls;
-  our_hello = GNUNET_HELLO_create (&GST_my_identity.public_key, 
+  our_hello = GNUNET_HELLO_create (&GST_my_identity.public_key,
 				   NULL, NULL, friend_only);
   GNUNET_assert (NULL != our_hello);
   refresh_hello ();

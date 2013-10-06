@@ -147,7 +147,7 @@ struct ConsensusSession
    * Only valid once the current round is not CONSENSUS_ROUND_BEGIN.
    */
   struct GNUNET_TIME_Relative conclude_timeout;
-  
+
   /**
    * Timeout task identifier for the current round.
    */
@@ -286,7 +286,7 @@ have_exp_subround_finished (const struct ConsensusSession *session)
 {
   int not_finished;
   not_finished = 0;
-  if ( (NULL != session->partner_outgoing) && 
+  if ( (NULL != session->partner_outgoing) &&
        (GNUNET_NO == session->partner_outgoing->exp_subround_finished) )
     not_finished++;
   if ( (NULL != session->partner_incoming) &&
@@ -300,7 +300,7 @@ have_exp_subround_finished (const struct ConsensusSession *session)
 
 /**
  * Destroy a session, free all resources associated with it.
- * 
+ *
  * @param session the session to destroy
  */
 static void
@@ -404,7 +404,7 @@ send_to_client_iter (void *cls,
  * @param tc task context, for when this task is invoked by the scheduler,
  *           NULL if invoked for another reason
  */
-static void 
+static void
 round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConsensusSession *session;
@@ -459,7 +459,7 @@ shuffle (struct ConsensusSession *session)
   if (NULL == session->shuffle_inv)
     session->shuffle_inv = GNUNET_malloc (session->num_peers * sizeof (*session->shuffle_inv));
 
-  GNUNET_CRYPTO_kdf (randomness, sizeof (randomness), 
+  GNUNET_CRYPTO_kdf (randomness, sizeof (randomness),
 		     &session->exp_round, sizeof (uint32_t),
                      &session->global_id, sizeof (struct GNUNET_HashCode),
 		     NULL);
@@ -559,7 +559,7 @@ find_partners (struct ConsensusSession *session)
  * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
  * @param status see enum GNUNET_SET_Status
  */
-static void 
+static void
 set_result_cb (void *cls,
                const struct GNUNET_SET_Element *element,
                enum GNUNET_SET_Status status)
@@ -674,7 +674,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
     session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
   }
-  
+
   if (session->exp_round >= NUM_EXP_ROUNDS)
   {
     round_over (session, NULL);
@@ -700,7 +700,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     session->exp_subround = 0;
     shuffle (session);
   }
-  else 
+  else
   {
     session->exp_subround++;
   }
@@ -810,7 +810,7 @@ get_peer_idx (const struct GNUNET_PeerIdentity *peer, const struct ConsensusSess
  * @param session_id local id of the consensus session
  */
 static void
-compute_global_id (struct ConsensusSession *session, 
+compute_global_id (struct ConsensusSession *session,
 		   const struct GNUNET_HashCode *session_id)
 {
   int i;
@@ -865,7 +865,7 @@ initialize_session_peer_list (struct ConsensusSession *session,
 
   /* peers in the join message, may or may not include the local peer */
   listed_peers = ntohl (join_msg->num_peers);
-  
+
   session->num_peers = listed_peers;
 
   msg_peers = (struct GNUNET_PeerIdentity *) &join_msg[1];
@@ -1025,7 +1025,7 @@ initialize_session (struct ConsensusSession *session,
   other_session = sessions_head;
   while (NULL != other_session)
   {
-    if ((other_session != session) && 
+    if ((other_session != session) &&
         (0 == GNUNET_CRYPTO_hash_cmp (&session->global_id, &other_session->global_id)))
     {
       if (CONSENSUS_ROUND_FINISH != other_session->current_round)

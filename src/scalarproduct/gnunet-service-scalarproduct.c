@@ -66,7 +66,7 @@ enum PeerRole
 
 /**
  * A scalarproduct session which tracks:
- * 
+ *
  * a request form the client to our final response.
  * or
  * a request from a service to us(service).
@@ -93,7 +93,7 @@ struct ServiceSession
    */
   struct GNUNET_HashCode key;
 
-  /** 
+  /**
    * state of the session
    */
   enum SessionState state;
@@ -127,9 +127,9 @@ struct ServiceSession
    * already transferred elements (sent/received) for multipart messages, less or equal than used_element_count for
    */
   uint32_t transferred_element_count;
-  
+
   /**
-   * how many bytes the mask is long. 
+   * how many bytes the mask is long.
    * just for convenience so we don't have to re-re-re calculate it each time
    */
   uint32_t mask_length;
@@ -158,14 +158,14 @@ struct ServiceSession
    * Bob's permutation p of R
    */
   gcry_mpi_t * r;
-  
+
   /**
    * Bob's permutation q of R
    */
   gcry_mpi_t * r_prime;
-          
+
   /**
-   * The computed scalar 
+   * The computed scalar
    */
   gcry_mpi_t product;
 
@@ -245,27 +245,27 @@ static gcry_mpi_t my_lambda;
 static gcry_mpi_t my_offset;
 
 /**
- * Head of our double linked list for client-requests sent to us. 
+ * Head of our double linked list for client-requests sent to us.
  * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_client_head;
 /**
- * Tail of our double linked list for client-requests sent to us. 
+ * Tail of our double linked list for client-requests sent to us.
  * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_client_tail;
 
 /**
- * Head of our double linked list for service-requests sent to us. 
+ * Head of our double linked list for service-requests sent to us.
  * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
 static struct ServiceSession * from_service_head;
 
 /**
- * Tail of our double linked list for service-requests sent to us. 
+ * Tail of our double linked list for service-requests sent to us.
  * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
@@ -306,7 +306,7 @@ generate_keyset ()
   GNUNET_assert (0 == gcry_pk_genkey (&key, gen_params));
   gcry_sexp_release (gen_params);
 
-  // get n and d of our publickey as MPI  
+  // get n and d of our publickey as MPI
   tmp_sexp = gcry_sexp_find_token (key, "n", 0);
   GNUNET_assert (tmp_sexp);
   my_n = gcry_sexp_nth_mpi (tmp_sexp, 1, GCRYMPI_FMT_USG);
@@ -389,7 +389,7 @@ generate_keyset ()
   gcry_sexp_release (key);
 
   // offset has to be sufficiently small to allow computation of:
-  // m1+m2 mod n == (S + a) + (S + b) mod n, 
+  // m1+m2 mod n == (S + a) + (S + b) mod n,
   // if we have more complex operations, this factor needs to be lowered
   my_offset = gcry_mpi_new (KEYBITS / 3);
   gcry_mpi_set_bit (my_offset, KEYBITS / 3);
@@ -420,7 +420,7 @@ adjust (unsigned char *buf, size_t size, size_t target)
 
 /**
  * encrypts an element using the paillier crypto system
- * 
+ *
  * @param c ciphertext (output)
  * @param m plaintext
  * @param g the public base
@@ -450,7 +450,7 @@ encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mp
 
 /**
  * decrypts an element using the paillier crypto system
- * 
+ *
  * @param m plaintext (output)
  * @param c the ciphertext
  * @param mu the modifier to correct encryption
@@ -470,7 +470,7 @@ decrypt_element (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, g
 
 /**
  * computes the square sum over a vector of a given length.
- * 
+ *
  * @param vector the vector to encrypt
  * @param length the length of the vector
  * @return an MPI value containing the calculated sum, never NULL
@@ -501,7 +501,7 @@ compute_square_sum (gcry_mpi_t * vector, uint32_t length)
  * Primitive callback for copying over a message, as they
  * usually are too complex to be handled in the callback itself.
  * clears a session-callback, if a session was handed over and the transmit handle was stored
- * 
+ *
  * @param cls the message object
  * @param size the size of the buffer we got
  * @param buf the buffer to copy the message to
@@ -559,7 +559,7 @@ do_send_message (void *cls, size_t size, void *buf)
 
 /**
  * initializes a new vector with fresh MPI values (=0) of a given length
- * 
+ *
  * @param length of the vector to create
  * @return the initialized vector, never NULL
  */
@@ -577,7 +577,7 @@ initialize_mpi_vector (uint32_t length)
 
 /**
  * permutes an MPI vector according to the given permutation vector
- * 
+ *
  * @param vector the vector to permuted
  * @param perm the permutation to use
  * @param length the length of the vectors
@@ -596,7 +596,7 @@ permute_vector (gcry_mpi_t * vector,
   // backup old layout
   memcpy (tmp, vector, length * sizeof (gcry_mpi_t));
 
-  // permute vector according to given 
+  // permute vector according to given
   for (i = 0; i < length; i++)
     vector[i] = tmp[perm[i]];
 
@@ -605,8 +605,8 @@ permute_vector (gcry_mpi_t * vector,
 
 
 /**
- * Populate a vector with random integer values and convert them to 
- * 
+ * Populate a vector with random integer values and convert them to
+ *
  * @param length the length of the vector we must generate
  * @return an array of MPI values with random values
  */
@@ -636,12 +636,12 @@ generate_random_vector (uint32_t length)
 
 
 /**
- * Finds a not terminated client/service session in the 
+ * Finds a not terminated client/service session in the
  * given DLL based on session key, element count and state.
- * 
+ *
  * @param tail - the tail of the DLL
  * @param my - the session to compare it to
- * @return a pointer to a matching session, 
+ * @return a pointer to a matching session,
  *         else NULL
  */
 static struct ServiceSession *
@@ -702,9 +702,9 @@ free_session (struct ServiceSession * session)
 
 
 /**
- * A client disconnected. 
- * 
- * Remove the associated session(s), release datastructures 
+ * A client disconnected.
+ *
+ * Remove the associated session(s), release datastructures
  * and cancel pending outgoing transmissions to the client.
  * if the session has not yet completed, we also cancel Alice's request to Bob.
  *
@@ -755,10 +755,10 @@ handle_client_disconnect (void *cls,
 
 /**
  * Notify the client that the session has succeeded or failed completely.
- * This message gets sent to 
+ * This message gets sent to
  * * alice's client if bob disconnected or to
  * * bob's client if the operation completed or alice disconnected
- * 
+ *
  * @param client_session the associated client session
  * @return GNUNET_NO, if we could not notify the client
  *         GNUNET_YES if we notified it.
@@ -777,7 +777,7 @@ prepare_client_end_notification (void * cls,
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
   msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
-  // signal error if not signalized, positive result-range field but zero length. 
+  // signal error if not signalized, positive result-range field but zero length.
   msg->product_length = htonl (0);
   msg->range = (session->state == FINALIZED) ? 0 : -1;
 
@@ -807,13 +807,13 @@ prepare_client_end_notification (void * cls,
 
 /**
  * Bob executes:
- * generates the response message to be sent to alice after computing 
+ * generates the response message to be sent to alice after computing
  * the values (1), (2), S and S'
  *  (1)[]: $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
  *  (2)[]: $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
  *      S: $S := E_A(sum (r_i + b_i)^2)$
  *     S': $S' := E_A(sum r_i^2)$
- * 
+ *
  * @param r    (1)[]: $E_A(a_{pi(i)}) times E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
  * @param r_prime    (2)[]: $E_A(a_{pi'(i)}) times E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
  * @param s         S: $S := E_A(sum (r_i + b_i)^2)$
@@ -847,7 +847,7 @@ prepare_service_response (gcry_mpi_t s,
   else {
     request->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / (PAILLIER_ELEMENT_LENGTH * 2);
   }
-  
+
   msg = GNUNET_malloc (msg_length);
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
@@ -861,7 +861,7 @@ prepare_service_response (gcry_mpi_t s,
   element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
   // 4 times the same logics with slight variations.
   // doesn't really justify having 2 functions for that
-  // so i put it into blocks to enhance readability 
+  // so i put it into blocks to enhance readability
   // convert s
   memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
   GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
@@ -907,7 +907,7 @@ prepare_service_response (gcry_mpi_t s,
     memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
     current += PAILLIER_ELEMENT_LENGTH;
   }
-  
+
   GNUNET_free (element_exported);
   for (i = 0; i < request->transferred_element_count; i++)
   {
@@ -916,7 +916,7 @@ prepare_service_response (gcry_mpi_t s,
   }
   gcry_mpi_release (s);
   gcry_mpi_release (s_prime);
-  
+
   request->msg = (struct GNUNET_MessageHeader *) msg;
   request->service_transmit_handle =
           GNUNET_MESH_notify_transmit_ready (request->tunnel,
@@ -942,19 +942,19 @@ prepare_service_response (gcry_mpi_t s,
   else
     //singlepart
     request->state = FINALIZED;
-  
+
   return GNUNET_OK;
 }
 
 
 /**
- * executed by bob: 
- * compute the values 
+ * executed by bob:
+ * compute the values
  *  (1)[]: $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
  *  (2)[]: $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
  *      S: $S := E_A(\sum (r_i + b_i)^2)$
  *     S': $S' := E_A(\sum r_i^2)$
- * 
+ *
  * @param request the requesting session + bob's requesting peer
  * @param response the responding session + bob's client handle
  * @return GNUNET_SYSERR if the computation failed
@@ -1063,7 +1063,7 @@ compute_service_response (struct ServiceSession * request,
   r = initialize_mpi_vector (count);
   r_prime = initialize_mpi_vector (count);
 
-  // copy the REFERNCES of a, b and r into aq and bq. we will not change 
+  // copy the REFERNCES of a, b and r into aq and bq. we will not change
   // those values, thus we can work with the references
   memcpy (a_pi, request->a, sizeof (gcry_mpi_t) * count);
   memcpy (a_pi_prime, request->a, sizeof (gcry_mpi_t) * count);
@@ -1080,7 +1080,7 @@ compute_service_response (struct ServiceSession * request,
 
   // encrypt the element
   // for the sake of readability I decided to have dedicated permutation
-  // vectors, which get rid of all the lookups in p/q. 
+  // vectors, which get rid of all the lookups in p/q.
   // however, ap/aq are not absolutely necessary but are just abstraction
   // Calculate Kp = E(S + a_pi) (+) E(S - r_pi - b_pi)
   for (i = 0; i < count; i++)
@@ -1109,7 +1109,7 @@ compute_service_response (struct ServiceSession * request,
   }
   GNUNET_free (a_pi_prime);
   GNUNET_free (rand_pi_prime);
-  
+
   request->r = r;
   request->r_prime = r_prime;
 
@@ -1157,7 +1157,7 @@ except:
 
 /**
  * Executed by Alice, fills in a service-request message and sends it to the given peer
- * 
+ *
  * @param session the session associated with this request, then also holds the CORE-handle
  * @return #GNUNET_SYSERR if we could not send the message
  *         #GNUNET_NO if the message was too large
@@ -1226,7 +1226,7 @@ prepare_service_request (void *cls,
     {
       if (session->transferred_element_count <= j)
         break; //reached end of this message, can't include more
-      
+
       memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
       value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
 
@@ -1287,10 +1287,10 @@ prepare_service_request (void *cls,
 
 
 /**
- * Handler for a client request message. 
+ * Handler for a client request message.
  * Can either be type A or B
  *   A: request-initiation to compute a scalar product with a peer
- *   B: response role, keep the values + session and wait for a matching session or process a waiting request   
+ *   B: response role, keep the values + session and wait for a matching session or process a waiting request
  *
  * @param cls closure
  * @param client identification of the client
@@ -1454,7 +1454,7 @@ handle_client_request (void *cls,
     GNUNET_SERVER_client_set_user_context (client, session);
     GNUNET_CONTAINER_DLL_insert (from_client_head, from_client_tail, session);
 
-    //check if service queue contains a matching request 
+    //check if service queue contains a matching request
     requesting_session = find_matching_session (from_service_tail,
                                                 &session->key,
                                                 session->element_count,
@@ -1480,7 +1480,7 @@ handle_client_request (void *cls,
 
 
 /**
- * Function called for inbound tunnels. 
+ * Function called for inbound tunnels.
  *
  * @param cls closure
  * @param tunnel new handle to the tunnel
@@ -1507,8 +1507,8 @@ tunnel_incoming_handler (void *cls,
 
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
- * any associated state. 
- * 
+ * any associated state.
+ *
  * It must NOT call GNUNET_MESH_tunnel_destroy on the tunnel.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
@@ -1561,7 +1561,7 @@ tunnel_destruction_handler (void *cls,
                                             NULL, NULL);
     free_session (session);
 
-    // the client has to check if it was waiting for a result 
+    // the client has to check if it was waiting for a result
     // or if it was a responder, no point in adding more statefulness
     if (client_session && (!do_shutdown))
     {
@@ -1576,15 +1576,15 @@ tunnel_destruction_handler (void *cls,
 
 /**
  * Compute our scalar product, done by Alice
- * 
+ *
  * @param session - the session associated with this computation
- * @param kp - (1) from the protocol definition: 
+ * @param kp - (1) from the protocol definition:
  *             $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- * @param kq - (2) from the protocol definition: 
+ * @param kq - (2) from the protocol definition:
  *             $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- * @param s - S from the protocol definition: 
+ * @param s - S from the protocol definition:
  *            $S := E_A(\sum (r_i + b_i)^2)$
- * @param stick - S' from the protocol definition: 
+ * @param stick - S' from the protocol definition:
  *                $S' := E_A(\sum r_i^2)$
  * @return product as MPI, never NULL
  */
@@ -1667,8 +1667,8 @@ compute_scalar_product (struct ServiceSession * session,
 
 /**
  * prepare the response we will send to alice or bobs' clients.
- * in Bobs case the product will be NULL. 
- * 
+ * in Bobs case the product will be NULL.
+ *
  * @param session  the session associated with our client.
  */
 static void
@@ -1873,7 +1873,7 @@ handle_service_request (void *cls,
 
   current += pk_length;
 
-  //check if service queue contains a matching request 
+  //check if service queue contains a matching request
   needed_state = CLIENT_RESPONSE_RECEIVED;
   responder_session = find_matching_session (from_client_tail,
                                              &session->key,

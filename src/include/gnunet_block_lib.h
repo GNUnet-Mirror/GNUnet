@@ -88,7 +88,7 @@ enum GNUNET_BLOCK_Type
    * Block for testing.
    */
   GNUNET_BLOCK_TYPE_TEST = 8,
-  
+
   /**
    * Type of a block representing any type of search result
    * (universal).  Implemented in the context of #2564, replaces
@@ -132,7 +132,7 @@ enum GNUNET_BLOCK_EvaluationResult
    * Valid result, and there may be more.
    */
   GNUNET_BLOCK_EVALUATION_OK_MORE = 0,
-  
+
   /**
    * Last possible valid result.
    */

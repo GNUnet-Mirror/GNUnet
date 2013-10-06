@@ -62,12 +62,12 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Header from Linux TUN interface.
- */ 
+ */
 struct GNUNET_TUN_Layer2PacketHeader
 {
   /**
    * Some flags (unused).
-   */ 
+   */
   uint16_t flags GNUNET_PACKED;
 
   /**
@@ -97,7 +97,7 @@ struct GNUNET_TUN_IPv4Header
    * Length of the packet, including this header.
    */
   uint16_t total_length GNUNET_PACKED;
-  
+
   /**
    * Unique random ID for matching up fragments.
    */
@@ -124,12 +124,12 @@ struct GNUNET_TUN_IPv4Header
 
   /**
    * Origin of the packet.
-   */ 
+   */
   struct in_addr source_address GNUNET_PACKED;
 
   /**
    * Destination of the packet.
-   */ 
+   */
   struct in_addr destination_address GNUNET_PACKED;
 } GNUNET_GCC_STRUCT_LAYOUT;
 
@@ -168,12 +168,12 @@ struct GNUNET_TUN_IPv6Header
 
   /**
    * Origin of the packet.
-   */ 
+   */
   struct in6_addr source_address GNUNET_PACKED;
 
   /**
    * Destination of the packet.
-   */ 
+   */
   struct in6_addr destination_address GNUNET_PACKED;
 } GNUNET_GCC_STRUCT_LAYOUT;
 
@@ -222,7 +222,7 @@ struct GNUNET_TUN_TcpHeader
   unsigned int reserved : 4 GNUNET_PACKED;
 #else
   #error byteorder undefined
-#endif        
+#endif
 
   /**
    * Flags (SYN, FIN, ACK, etc.)
@@ -316,108 +316,108 @@ struct GNUNET_TUN_DnsFlags
   /**
    * Set to 1 if recursion is desired (client -> server)
    */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
-  
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;
+
   /**
    * Set to 1 if message is truncated
    */
-  unsigned int message_truncated    : 1 GNUNET_PACKED; 
-  
+  unsigned int message_truncated    : 1 GNUNET_PACKED;
+
   /**
    * Set to 1 if this is an authoritative answer
    */
   unsigned int authoritative_answer : 1 GNUNET_PACKED;
-  
+
   /**
    * See GNUNET_TUN_DNS_OPCODE_ defines.
    */
-  unsigned int opcode               : 4 GNUNET_PACKED;  
-  
+  unsigned int opcode               : 4 GNUNET_PACKED;
+
   /**
    * query:0, response:1
    */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;  
-  
+  unsigned int query_or_response    : 1 GNUNET_PACKED;
+
   /**
    * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
    */
-  unsigned int return_code          : 4 GNUNET_PACKED; 
-  
+  unsigned int return_code          : 4 GNUNET_PACKED;
+
   /**
    * See RFC 4035.
    */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
-  
+  unsigned int checking_disabled    : 1 GNUNET_PACKED;
+
   /**
    * Response has been cryptographically verified, RFC 4035.
    */
   unsigned int authenticated_data   : 1 GNUNET_PACKED;
-  
+
   /**
    * Always zero.
    */
   unsigned int zero                 : 1 GNUNET_PACKED;
-  
-  /**
-   * Set to 1 if recursion is available (server -> client)
-   */
-  unsigned int recursion_available  : 1 GNUNET_PACKED; 
-#elif __BYTE_ORDER == __BIG_ENDIAN
-  
-  /**
-   * query:0, response:1
-   */
-  unsigned int query_or_response    : 1 GNUNET_PACKED;  
-  
-  /**
-   * See GNUNET_TUN_DNS_OPCODE_ defines.
-   */
-  unsigned int opcode               : 4 GNUNET_PACKED;  
-  
-  /**
-   * Set to 1 if this is an authoritative answer
-   */
-  unsigned int authoritative_answer : 1 GNUNET_PACKED;
-  
-  /**
-   * Set to 1 if message is truncated
-   */
-  unsigned int message_truncated    : 1 GNUNET_PACKED; 
-  
-  /**
-   * Set to 1 if recursion is desired (client -> server)
-   */
-  unsigned int recursion_desired    : 1 GNUNET_PACKED;  
 
- 
   /**
    * Set to 1 if recursion is available (server -> client)
    */
   unsigned int recursion_available  : 1 GNUNET_PACKED;
-  
+#elif __BYTE_ORDER == __BIG_ENDIAN
+
+  /**
+   * query:0, response:1
+   */
+  unsigned int query_or_response    : 1 GNUNET_PACKED;
+
+  /**
+   * See GNUNET_TUN_DNS_OPCODE_ defines.
+   */
+  unsigned int opcode               : 4 GNUNET_PACKED;
+
+  /**
+   * Set to 1 if this is an authoritative answer
+   */
+  unsigned int authoritative_answer : 1 GNUNET_PACKED;
+
+  /**
+   * Set to 1 if message is truncated
+   */
+  unsigned int message_truncated    : 1 GNUNET_PACKED;
+
+  /**
+   * Set to 1 if recursion is desired (client -> server)
+   */
+  unsigned int recursion_desired    : 1 GNUNET_PACKED;
+
+
+  /**
+   * Set to 1 if recursion is available (server -> client)
+   */
+  unsigned int recursion_available  : 1 GNUNET_PACKED;
+
   /**
    * Always zero.
    */
   unsigned int zero                 : 1 GNUNET_PACKED;
-  
+
   /**
    * Response has been cryptographically verified, RFC 4035.
    */
   unsigned int authenticated_data   : 1 GNUNET_PACKED;
-  
+
   /**
    * See RFC 4035.
    */
-  unsigned int checking_disabled    : 1 GNUNET_PACKED; 
-  
+  unsigned int checking_disabled    : 1 GNUNET_PACKED;
+
   /**
    * See GNUNET_TUN_DNS_RETURN_CODE_ defines.
-   */  
-  unsigned int return_code          : 4 GNUNET_PACKED; 
+   */
+  unsigned int return_code          : 4 GNUNET_PACKED;
 #else
   #error byteorder undefined
 #endif
-  
+
 } GNUNET_GCC_STRUCT_LAYOUT;
 
 
@@ -468,18 +468,18 @@ struct GNUNET_TUN_DnsSoaRecord
    * The version number of the original copy of the zone.   (NBO)
    */
   uint32_t serial GNUNET_PACKED;
-  
+
   /**
    * Time interval before the zone should be refreshed. (NBO)
    */
   uint32_t refresh GNUNET_PACKED;
-  
+
   /**
    * Time interval that should elapse before a failed refresh should
    * be retried. (NBO)
    */
   uint32_t retry GNUNET_PACKED;
- 
+
   /**
    * Time value that specifies the upper limit on the time interval
    * that can elapse before the zone is no longer authoritative. (NBO)
@@ -654,12 +654,12 @@ struct GNUNET_TUN_DnsRecordLine
  */
 struct GNUNET_TUN_IcmpHeader {
   uint8_t type;		
-  uint8_t code;		 
+  uint8_t code;		
   uint16_t crc GNUNET_PACKED;
 
   union {
     /**
-     * ICMP Echo (request/reply) 
+     * ICMP Echo (request/reply)
      */
     struct {
       uint16_t	identifier GNUNET_PACKED;
@@ -667,7 +667,7 @@ struct GNUNET_TUN_IcmpHeader {
     } echo;
 
     /**
-     * ICMP Destination Unreachable (RFC 1191) 
+     * ICMP Destination Unreachable (RFC 1191)
      */
     struct ih_pmtu {
       uint16_t empty GNUNET_PACKED;
@@ -676,7 +676,7 @@ struct GNUNET_TUN_IcmpHeader {
     } destination_unreachable;
 
     /**
-     * ICMP Redirect 
+     * ICMP Redirect
      */	
     struct in_addr redirect_gateway_address GNUNET_PACKED;	
 

@@ -72,7 +72,7 @@ void
 GDS_CLIENTS_process_get (uint32_t options,
                          enum GNUNET_BLOCK_Type type,
                          uint32_t hop_count,
-                         uint32_t desired_replication_level, 
+                         uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          const struct GNUNET_HashCode * key);
@@ -121,7 +121,7 @@ void
 GDS_CLIENTS_process_put (uint32_t options,
                          enum GNUNET_BLOCK_Type type,
                          uint32_t hop_count,
-                         uint32_t desired_replication_level, 
+                         uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,

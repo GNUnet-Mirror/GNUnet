@@ -135,7 +135,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Announce a previously announced regex re-using cached data.
- * 
+ *
  * @param cls Closure (regex to announce if needed).
  * @param tc TaskContext.
  */
@@ -309,7 +309,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
                                            "REANNOUNCE_PERIOD_MAX",
                                            &reannounce_period_max))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "reannounce_period_max not given. Using 10 minutes.\n");
     reannounce_period_max =
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
