@@ -21,7 +21,7 @@ man_MANS = \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \
-  gnunet-rsa.1 \
+  gnunet-revocation.1 \
   gnunet-scalarproduct.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \
