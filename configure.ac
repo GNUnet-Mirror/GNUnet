@@ -1352,8 +1352,6 @@ src/include/Makefile
 src/include/gnunet_directories.h
 src/integration-tests/Makefile
 src/hostlist/Makefile
-src/lockmanager/Makefile
-src/lockmanager/lockmanager.conf
 src/mesh/Makefile
 src/mesh/mesh.conf
 src/multicast/Makefile
@@ -1410,7 +1408,6 @@ pkgconfig/gnunetfragmentation.pc
 pkgconfig/gnunetfs.pc
 pkgconfig/gnunetgns.pc
 pkgconfig/gnunethello.pc
-pkgconfig/gnunetlockmanager.pc
 pkgconfig/gnunetmesh.pc
 pkgconfig/gnunetmysql.pc
 pkgconfig/gnunetnamestore.pc
@@ -1420,7 +1417,6 @@ pkgconfig/gnunetpeerinfo.pc
 pkgconfig/gnunetpostgres.pc
 pkgconfig/gnunetregex.pc
 pkgconfig/gnunetstatistics.pc
-pkgconfig/gnunetstream.pc
 pkgconfig/gnunettestbed.pc
 pkgconfig/gnunettesting.pc
 pkgconfig/gnunettransport.pc

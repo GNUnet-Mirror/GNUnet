@@ -66,7 +66,6 @@ SUBDIRS = \
   topology \
   regex \
   mesh \
-  lockmanager \
   dns \
   identity \
   set \

@@ -31,7 +31,7 @@
  * peers that connect.
  *
  * TODO:
- * - handle p2p revocations
+ * - broadcast p2p revocations
  * - handle p2p connect (trigger SET union)
  */
 #include "platform.h"
