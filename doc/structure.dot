@@ -22,6 +22,7 @@ splines = true;
   exit [shape=box];
   exit -> mesh;
   exit -> tun;
+  exit -> dnsstub;
   vpn -> mesh;
   vpn -> regex;
   vpn -> tun;
@@ -29,18 +30,24 @@ splines = true;
   pt -> mesh;
   pt -> vpn;
   pt -> dns;
+  pt -> dnsparser;
   dv -> ats;
   dns -> tun;
+  dns -> dnsstub;
   gns [shape=house];
   gns -> namestore;
   gns -> dns;
   gns -> dht;
   gns -> block [style=dotted,color=blue];
-  gns -> identity;
   gns -> revocation;
+  gns -> vpn;
+  gns -> dnsparser;
+  gns -> dnsstub;
+  gns -> identity;
   revocation -> core;
   revocation -> set;
   namestore -> identity;
+  namestore -> dnsparser;
   dht -> core;
   dht -> nse;
   dht -> block;
@@ -57,6 +64,11 @@ splines = true;
   conversation [shape=house];
   conversation -> mesh;
   conversation -> gns;
+  conversation -> identity;
+  conversation -> speaker;
+  conversation -> microphone;
+  speaker [shape=diamond];
+  microphone [shape=diamond];
   regex -> dht;
   core -> transport;
   topology [shape=box];
@@ -87,7 +99,73 @@ splines = true;
   hello [shape=diamond];
   nat [shape=diamond];
   tun [shape=diamond];
+  dnsparser [shape=diamond];
+  dnsstub [shape=diamond];
 }
+
+
+// this is what we have, excluding libs
+digraph dependencies_no_libs {
+splines = true;
+
+  fs [shape=house];
+  fs -> dht;
+  fs -> core;
+  fs -> datastore;
+  fs -> mesh;
+  fs -> ats;
+  fs -> identity;
+  exit [shape=box];
+  exit -> mesh;
+  vpn -> mesh;
+  vpn -> regex;
+  pt [shape=house];
+  pt -> mesh;
+  pt -> vpn;
+  pt -> dns;
+  dv -> ats;
+  gns [shape=house];
+  gns -> namestore;
+  gns -> dns;
+  gns -> dht;
+  gns -> revocation;
+  gns -> vpn;
+  gns -> identity;
+  revocation -> core;
+  revocation -> set;
+  namestore -> identity;
+  dht -> core;
+  dht -> nse;
+  dht -> peerinfo;
+  nse -> core;
+  mesh -> core [weight=2];
+  mesh -> dht;
+  conversation [shape=house];
+  conversation -> mesh;
+  conversation -> gns;
+  conversation -> identity;
+  regex -> dht;
+  core -> transport;
+  topology [shape=box];
+  topology -> peerinfo;
+  topology -> transport;
+  topology -> core;
+  hostlist [shape=box];
+  hostlist -> core;
+  hostlist -> peerinfo;
+  transport -> ats;
+  transport -> peerinfo;
+  dv [shape=egg];
+  dv -> transport [color=blue,style=dotted];
+  dv -> core;
+  dv -> set;
+  consensus -> set;
+  consensus -> mesh;
+  scalarproduct -> set;
+  scalarproduct -> mesh;
+  set -> mesh;
+}
+
 
 // this is what might happen...
 digraph plan {
@@ -96,25 +174,33 @@ splines = true;
 // // secushare roadmap:
   secushare [shape=house,style=dashed];
   psyc [style=dashed];
-  secushare -> psyc [style=dashed];
+  social -> psyc [style=dashed];
+  psyc -> psycstore [style=dashed];
+  psycstore;
+  social [style=dashed];
+  secushare -> social [style=dashed];
   secushare -> voting [style=dashed,color=red];
   secushare -> gns [style=dashed];
   secushare -> fs [style=dashed,color=red];
   secushare -> reuters [style=dashed,color=red];
+  secushare -> identity [style=dashed,color=red];
   secushare -> messaging [style=dashed,color=red];
+  secushare -> conversation [style=dashed,color=red];
   psyc -> multicast [style=dashed];
 
 // // voting roadmap:
   voting [shape=house,style=dashed];
   voting -> consensus [style=dashed];
+  voting -> identity [style=dashed];
   voting -> mesh [style=dashed,color=red];
 
 // // reuters roadmap:
   reuters [shape=house,style=dashed];
-  dotproduct [style=dashed];
-  reuters -> dotproduct [style=dashed];
-  dotproduct -> set [style=dashed];
-  dotproduct -> mesh [style=dashed];
+  scalarproduct [style=dashed];
+  reuters -> scalarproduct [style=dashed];
+  reuters -> identity [style=dashed];
+  scalarproduct -> set [style=dashed];
+  scalarproduct -> mesh [style=dashed];
   messaging [style=dashed];  
   messaging -> regex [style=dashed];
   messaging -> mesh [style=dashed];
@@ -135,5 +221,6 @@ splines = true;
 
   fs [shape=house];
   gns [shape=house];
+  conversation [shape=house];
   exit [shape=box];
 }
