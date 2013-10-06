@@ -1,6 +1,5 @@
 [revocation]
-AUTOSTART = NO 
-# not yet...
+AUTOSTART = YES
 @JAVAPORT@PORT = 2112
 HOSTNAME = localhost
 HOME = $SERVICEHOME
@@ -16,3 +15,4 @@ UNIX_MATCH_GID = YES
 # DO NOT CHANGE THIS VALUE, doing so will break the protocol!
 WORKBITS = 25
 
+DATABASE = $SERVICEHOME/revocation.db

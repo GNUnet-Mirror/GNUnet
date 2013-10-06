@@ -195,7 +195,7 @@ handle_query_message (void *cls,
               GNUNET_h2s (&hc));
   qrm.header.size = htons (sizeof (struct QueryResponseMessage));
   qrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
-  qrm.is_valid = htons ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
+  qrm.is_valid = htonl ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
   GNUNET_SERVER_notification_context_add (nc,
                                           client);
   GNUNET_SERVER_notification_context_unicast (nc,
@@ -328,7 +328,7 @@ handle_revoke_message (void *cls,
   }
   rrm.header.size = htons (sizeof (struct RevocationResponseMessage));
   rrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
-  rrm.is_valid = htons ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
+  rrm.is_valid = htonl ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
   GNUNET_SERVER_notification_context_add (nc,
                                           client);
   GNUNET_SERVER_notification_context_unicast (nc,
