@@ -24,6 +24,7 @@ gnunet_revocation_SOURCES = \
  gnunet-revocation.c         
 gnunet_revocation_LDADD = \
   libgnunetrevocation.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
