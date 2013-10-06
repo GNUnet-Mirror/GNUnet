@@ -16,10 +16,10 @@ A client can issue one of two messages to its service:
 tab (@);
 l lx.
 1@T{
-A request to compute a vectorproduct with another peer (\fBAlice\fP) 
+A request to compute a vectorproduct with another peer (\fBAlice\fP)
 T}
 2@T{
-Elements to support a peer in computing a vectorproduct (\fBBob\fP) 
+Elements to support a peer in computing a vectorproduct (\fBBob\fP)
 T}
 .TE
 
@@ -27,9 +27,9 @@ Both requests must share the same SID, which can be an arbitrary string identify
 
 \fBAlice\fP\'s client must supply the ASCII encoded peer ID of bob\'s service, it will internally be checked by the client for validity. Invalid values here result in the client or the service failing the session.
 
-Elements are handed over as signed decimal integers, the element count supplied by \fBAlice\fP and \fBBob\fP must match. \fBAlice\fP can also supply a mask for these values to her service, which allows partial vector products to be computed across the vector. Elements can be masked by setting their the corresponding mask element to zero, any other value means the element will not be masked. \fBAlice\fP\'s client will also mask all 0-values to avoid information leakage to \fBBob\fP. 
+Elements are handed over as signed decimal integers, the element count supplied by \fBAlice\fP and \fBBob\fP must match. \fBAlice\fP can also supply a mask for these values to her service, which allows partial vector products to be computed across the vector. Elements can be masked by setting their the corresponding mask element to zero, any other value means the element will not be masked. \fBAlice\fP\'s client will also mask all 0-values to avoid information leakage to \fBBob\fP.
 
-The protocol by definition relies on \fBAlice\fP and \fBBob\fP being benign, thus \fBBob\fP can arbitrarily falsify his information. Both peers collaborate to achieve a correct result. 
+The protocol by definition relies on \fBAlice\fP and \fBBob\fP being benign, thus \fBBob\fP can arbitrarily falsify his information. Both peers collaborate to achieve a correct result.
 
 .SH OPTIONS
 .B

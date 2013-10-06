@@ -13,11 +13,11 @@ Search for content on GNUnet. The keywords are case\-sensitive.  gnunet\-search 
 .TP
 \fB\-a \fILEVEL\fR, \fB\-\-anonymity=\fILEVEL\fR
 
-The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.  So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.  Also, peers that cache content in the network always use anonymity level 1.  
+The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will try to download the file as fast as possible, including using non-anonymous methods.  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that your download performance is not only determined by your own anonymity level, but also by the anonymity level of the peers publishing the file.  So even if you download with anonymity level 0, the peers publishing the data might be sharing with a higher anonymity level, which in this case will determine performance.  Also, peers that cache content in the network always use anonymity level 1.
 
 This option can be used to limit requests further than that. In particular, you can require GNUnet to receive certain amounts of traffic from other peers before sending your queries. This way, you can gain very high levels of anonymity \- at the expense of much more traffic and much higher latency. So set it only if you really believe you need it.
 
-The definition of ANONYMITY\-RECEIVE is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries. 
+The definition of ANONYMITY\-RECEIVE is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of queries in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries.
 
 The default is 1 and this should be fine for most users.  Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
 
@@ -31,8 +31,8 @@ print help page
 
 .TP
 \fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
-Change the loglevel.  Possible values for LOGLEVEL are 
-ERROR, WARNING, INFO and DEBUG. 
+Change the loglevel.  Possible values for LOGLEVEL are
+ERROR, WARNING, INFO and DEBUG.
 
 .TP
 \fB\-o \fIFILENAME\fR, \fB\-\-output=\fIFILENAME\fR
@@ -59,9 +59,9 @@ print the version number
 print meta data from search results as well
 .SH NOTES
 
-You can run gnunet\-search with an URI instead of a keyword.  The URI can have the format for a namespace search or for a keyword search.  For a namespace search, the format is gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use gnunet://fs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.  
+You can run gnunet\-search with an URI instead of a keyword.  The URI can have the format for a namespace search or for a keyword search.  For a namespace search, the format is gnunet://fs/sks/NAMESPACE/IDENTIFIER.  For a keyword search, use gnunet://fs/ksk/KEYWORD[+KEYWORD]*.  If the format does not correspond to a GNUnet URI, GNUnet will automatically assume that keywords are supplied directly.
 
-If multiple keywords are passed, gnunet-search will look for content matching any of the keywords.  The prefix "+" makes a keyword mandatory.  
+If multiple keywords are passed, gnunet-search will look for content matching any of the keywords.  The prefix "+" makes a keyword mandatory.
 
 # gnunet\-search "Das Kapital"
 
@@ -90,4 +90,4 @@ GNUnet configuration file; specifies the default value for the timeout
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), 
+\fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-publish\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5),

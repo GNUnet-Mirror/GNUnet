@@ -18,7 +18,7 @@ With gnunet\-publish, it is easy to create new directories simultaneously when a
 .PP
 Since keywords can be spammed (any user can add any content under any keyword), GNUnet supports namespaces.  A namespace is a subset of the searchspace into which only the holder of a certain pseudonym can add content.  Any GNUnet user can create any number of pseudonyms using \fBgnunet\-pseudonym\fR. Pseudonyms are stored in the user's GNUnet directory. While pseudonyms are locally identified with an arbitrary string that the user selects when the pseudonym is created, the namespace is globally known only under the hash of the public key of the pseudonym. Since only the owner of the pseudonym can add content to the namespace, it is impossible for other users to pollute the namespace. gnunet\-publish automatically publishes the top\-directory (or the only file if only one file is specified) into the namespace if a pseudonym is specified.
 .PP
-It is possible to update content in GNUnet if that content was placed and obtained from a particular namespace.  Updates are only possible for content in namespaces since this is the only way to assure that a malicious party can not supply counterfeited updates.  Note that an update with GNUnet does not make the old content unavailable, GNUnet merely allows the publisher to point users to more recent versions. You can use the \-N option to specify the future identifier of an update.  When using this option, a GNUnet client that finds the current (\-t) identifier will automatically begin a search for the update (\-N) identifier.  If you later publish an update under the (\-N) identifier, both results will be given to the user. 
+It is possible to update content in GNUnet if that content was placed and obtained from a particular namespace.  Updates are only possible for content in namespaces since this is the only way to assure that a malicious party can not supply counterfeited updates.  Note that an update with GNUnet does not make the old content unavailable, GNUnet merely allows the publisher to point users to more recent versions. You can use the \-N option to specify the future identifier of an update.  When using this option, a GNUnet client that finds the current (\-t) identifier will automatically begin a search for the update (\-N) identifier.  If you later publish an update under the (\-N) identifier, both results will be given to the user.
 .PP
 You can use automatic meta\-data extraction (based on libextractor) or the command\-line option \-m to specify meta-data.  For the \-m option you need to use the form keyword\-type:value.  For example, use "\-m os:Linux" to specify that the operating system is Linux.  Common meta\-data types are "author", "title" , "mimetype", "filename", "language", "subject" and "keywords".  A full list can be obtained from the extract tool using the option \-\-list.  The meta\-data is used to help users in searching for files on the network.  The keywords are case\-sensitive.
 .PP
@@ -28,7 +28,7 @@ GNUnet supports two styles of publishing files on the network. Publishing a file
 Use alternate config file (if this option is not specified, the default is ~/.gnunet/gnunet.conf).
 
 .TP
-\fB\-D\fR, \fB\-\-disable\-extractor\fR 
+\fB\-D\fR, \fB\-\-disable\-extractor\fR
 Disable use of GNU libextractor for finding additional keywords and metadata.
 
 .TP
@@ -45,8 +45,8 @@ additional key to index the content with (to add multiple keys, specify multiple
 
 .TP
 \fB\-L \fILOGLEVEL\fR, \fB\-\-loglevel=\fILOGLEVEL\fR
-Change the loglevel.  Possible values for LOGLEVEL are 
-ERROR, WARNING, INFO and DEBUG. 
+Change the loglevel.  Possible values for LOGLEVEL are
+ERROR, WARNING, INFO and DEBUG.
 
 .TP
 \fB\-m \fITYPE:VALUE\fR, \fB\-\-meta=\fITYPE:VALUE\fR
@@ -99,9 +99,9 @@ Be verbose.  Using this option causes gnunet\-publish to print progress informat
 
 .SH SETTING ANONYMITY LEVEL
 
-The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.  This will allow other users to download the file as fast as possible, including using non-anonymous methods (DHT, direct transfer).  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.  
+The \fB\-a\fR option can be used to specify additional anonymity constraints. If set to 0, GNUnet will publish the file non-anonymously and in fact sign the advertisement for the file using your peer's private key.  This will allow other users to download the file as fast as possible, including using non-anonymous methods (DHT, direct transfer).  If you set it to 1 (default), you use the standard anonymous routing algorithm (which does not explicitly leak your identity).  However, a powerful adversary may still be able to perform traffic analysis (statistics) to over time infer data about your identity.  You can gain better privacy by specifying a higher level of anonymity, which increases the amount of cover traffic your own traffic will get, at the expense of performance.  Note that regardless of the anonymity level you choose, peers that cache content in the network always use anonymity level 1.
 
-The definition of the ANONYMITY LEVEL is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of data in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries. 
+The definition of the ANONYMITY LEVEL is the following.  0 means no anonymity is required.  Otherwise a value of 'v' means that 1 out of v bytes of "anonymous" traffic can be from the local user, leaving 'v-1' bytes of cover traffic per byte on the wire.  Thus, if GNUnet routes n bytes of messages from foreign peers (using anonymous routing), it may originate n/(v-1) bytes of data in the same time\-period. The time\-period is twice the average delay that GNUnet defers forwarded queries.
 
 The default is 1 and this should be fine for most users.  Also notice that if you choose very large values, you may end up having no throughput at all, especially if many of your fellow GNUnet\-peers all do the same.
 

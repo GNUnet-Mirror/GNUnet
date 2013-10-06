@@ -11,9 +11,9 @@ gnunet\-dns2gns \- run a DNS-to-GNS proxy
 .SH DESCRIPTION
 Most users will not want to run an DNS to GADS proxy/gateway and thus will not need this program.
 
-\fBgnunet\-dns2gns\fP runs a DNS resolver which delegates requests to the ".gads" and ".zkey" zones to GADS.  All other requests are forwarded to DNS.  This DNS proxy is useful for enabling non-personalized GADS\-resolution to an entire network or to offer GADS\-resolution to DNS users.  
+\fBgnunet\-dns2gns\fP runs a DNS resolver which delegates requests to the ".gads" and ".zkey" zones to GADS.  All other requests are forwarded to DNS.  This DNS proxy is useful for enabling non-personalized GADS\-resolution to an entire network or to offer GADS\-resolution to DNS users.
 
-A DNS\-to\-GNS proxy using gnunet\-dns2gns is available at ".zkey.eu" 
+A DNS\-to\-GNS proxy using gnunet\-dns2gns is available at ".zkey.eu"
 
 If you do not want to specify a public key and are the owner of the zone that gnunet\-dns2gns will use for GNS lookups, you need to first create a pseudonym (using "gnunet\-identity \-C NAME"), and then assign it to be used for the "dns2gns" service using "gnunet\-identity \-e NAME \-s dns2gns".  After that, you can start the dns2gns service (possibly using gnunet\-arm) without specifying a public key using "\-z".
 
@@ -41,7 +41,7 @@ Authoritative DNS suffix to use.  This is the name under which the GADS ".zkey" 
 Print GNUnet version number.
 .B
 .IP "\-z PUBLICKEY, \-\-zone=PUBLICKEY"
-Use PUBLICKEY for the zone to resolve GNS names in.  The PUBLICKEY must be encoded in the text format which can be obtained using gnunet\-ecc, seen in PKEY records and output by gnunet\-identity.  If this option is not specified, the default ego associated by gnunet\-identity for the "dns2gns" subsystem will be used.  
+Use PUBLICKEY for the zone to resolve GNS names in.  The PUBLICKEY must be encoded in the text format which can be obtained using gnunet\-ecc, seen in PKEY records and output by gnunet\-identity.  If this option is not specified, the default ego associated by gnunet\-identity for the "dns2gns" subsystem will be used.
 
 
 .SH BUGS
