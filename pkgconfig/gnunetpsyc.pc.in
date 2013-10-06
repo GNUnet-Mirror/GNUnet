@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: GNUnet PSYC
+Description: library for PSYC multicast channel management
+URL: https://gnunet.org
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgnunetpsyc
+Cflags: -I${includedir}

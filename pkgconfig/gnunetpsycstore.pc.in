@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: GNUnet PSYCSTORE
+Description: library to for persistent storage of PSYC messages
+URL: https://gnunet.org
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgnunetpsycstore
+Cflags: -I${includedir}
