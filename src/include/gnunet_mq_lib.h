@@ -474,11 +474,14 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq);
 
 /**
  * Get the message that should currently be sent.
+ * The returned message is only valid until #GNUNET_MQ_impl_send_continue
+ * is called.
  * Fails if there is no current message.
  * Only useful for implementing message queues,
  * results in undefined behavior if not used carefully.
  *
- * @param mq message queue with the current message
+ * @param mq message queue with the current message, only valid
+ *        until #GNUNET_MQ_impl_send_continue is called
  * @return message to send, never NULL
  */
 const struct GNUNET_MessageHeader *
