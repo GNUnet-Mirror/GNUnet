@@ -2,7 +2,7 @@
 
 THIS SVN VERSION OF GNUNET IS INCOMPATIBLE TO ALL PREVIOUS RELEASES.
 WE ARE WORKING ON CHANGING FUNDAMENTAL PARTS OF THE CRYPTOGRAPHIC
-PARTS OF THE SYSTEM.  
+PARTS OF THE SYSTEM.
 
 You need to install libgcrypt from git master (1.6.0beta93 at least)
 for the code to compile.
@@ -20,8 +20,8 @@ primary application for GNUnet is anonymous file-sharing.  GNUnet is
 currently developed by a worldwide group of independent free software
 developers.  GNUnet is a GNU package (http://www.gnu.org/).
 
-This is an ALPHA release.  There are known and significant bugs as 
-well as many missing features in this release.  
+This is an ALPHA release.  There are known and significant bugs as
+well as many missing features in this release.
 
 Additional documentation about GNUnet can be found at
 https://gnunet.org/.
@@ -48,16 +48,16 @@ These are the direct dependencies for running GNUnet:
 - libidn        >= 1.0
 - openssl       >= 1.0 (binary, used to generate X.509 certificate)
 - libltdl       >= 2.2 (part of GNU libtool)
-- sqlite        >= 3.0 (default database)
-- mysql         >= 5.1 (alternative to sqLite)
-- postgres      >= 8.3 (alternative to sqLite)
+- sqlite        >= 3.8 (default database, required)
+- mysql         >= 5.1 (alternative to sqlite)
+- postgres      >= 8.3 (alternative to sqlite)
 - libopus       >= 0.9.14 (optional for experimental conversation tool)
 - libpulse      >= 2.0 (optional for experimental conversation tool)
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59
 - automake >= 1.11.1
-- libtool  >= 2.2 
+- libtool  >= 2.2
 
 
 How to install?
@@ -105,7 +105,7 @@ securely and then compile and install GNUnet to $GNUNET_PREFIX/bin/,
 $GNUNET_PREFIX/lib/ and $GNUNET_PREFIX/share/ and start the system
 with the default configuration.  It is strongly recommended that you
 add a user "gnunet" to run "gnunet-arm".  You can then still run the
-end-user applications as another user.  
+end-user applications as another user.
 
 If you create a system user "gnunet", it is recommended that you edit
 the configuration file slightly so that data can be stored in the
@@ -122,7 +122,7 @@ with the "--with-sudo=yes" option and have extensive sudo rights
 (can run "chmod +s" and "chown" via 'sudo').  If you run 'make install'
 as a normal user without sudo rights (or the configure option),
 certain binaries that require additional priviledges will not be
-installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and 
+installed properly (and autonomous NAT traversal, WLAN, DNS/GNS and
 the VPN will then not work).
 
 If you run 'configure' and 'make install' as root or use the SUDO
@@ -224,7 +224,7 @@ together with a description.  To publish files on GNUnet, use the
 
 
 The GTK user interface is shipped separately.  After downloading and
-installing gnunet-gtk, you can invoke the setup tool and the 
+installing gnunet-gtk, you can invoke the setup tool and the
 file-sharing GUI with:
 
 $ gnunet-setup
@@ -257,9 +257,9 @@ $ export GNUNET_PREFIX=$SOMEWHERE
 $ make check
 
 Some of the testcases require python >= 2.6 and pexpect to be
-installed.  If any testcases fail to pass on your system, run 
-"contrib/report.sh" and report the output together with 
-information about the failing testcase to the Mantis bugtracking 
+installed.  If any testcases fail to pass on your system, run
+"contrib/report.sh" and report the output together with
+information about the failing testcase to the Mantis bugtracking
 system at https://gnunet.org/bugs/.
 
 
