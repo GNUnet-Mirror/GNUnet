@@ -13,7 +13,6 @@ pcfiles = \
        gnunetfs.pc \
        gnunetgns.pc \
        gnunethello.pc \
-       gnunetlockmanager.pc \
        gnunetmesh.pc \
        gnunetmysql.pc \
        gnunetnamestore.pc \
@@ -23,7 +22,6 @@ pcfiles = \
        gnunetpostgres.pc \
        gnunetregex.pc \
        gnunetstatistics.pc \
-       gnunetstream.pc \
        gnunettestbed.pc \
        gnunettesting.pc \
        gnunettransport.pc \
