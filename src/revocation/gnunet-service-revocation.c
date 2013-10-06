@@ -36,7 +36,6 @@
  * - handle p2p revocations
  * - handle p2p connect (trigger SET union)
  * - handle client revoke message
- * - handle client query message
  */
 #include "platform.h"
 #include <math.h>
@@ -82,6 +81,12 @@ struct PeerEntry
 static struct GNUNET_SET_Handle *revocation_set;
 
 /**
+ * Hash map with all revoked keys, maps the hash of the public key
+ * to the respective `struct RevokeMessage`.
+ */ 
+static struct GNUNET_CONTAINER_MultiHashMap *revocation_map;
+
+/**
  * Handle to our current configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -110,6 +115,11 @@ static struct GNUNET_PeerIdentity my_identity;
  * Handle to this serivce's server.
  */
 static struct GNUNET_SERVER_Handle *srv;
+
+/**
+ * Notification context for convenient sending of replies to the clients.
+ */
+static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
  * Amount of work required (W-bit collisions) for REVOCATION proofs, in collision-bits.
@@ -164,9 +174,29 @@ handle_query_message (void *cls,
 		      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
+  const struct QueryMessage *qm = (const struct QueryMessage *) message;
+  struct QueryResponseMessage qrm;
+  struct GNUNET_HashCode hc;
+  int res;
+
+  GNUNET_CRYPTO_hash (&qm->key,
+                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                      &hc);
+  res = GNUNET_CONTAINER_multihashmap_contains (revocation_map, &hc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
-	      "Received QUERY message from client\n");
-  GNUNET_break (0);
+              (GNUNET_NO == res) 
+	      ? "Received revocation check for valid key `%s' from client\n"
+              : "Received revocation check for revoked key `%s' from client\n",
+              GNUNET_h2s (&hc));
+  qrm.header.size = htons (sizeof (struct RevocationResponseMessage));
+  qrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
+  qrm.is_valid = htons ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
+  GNUNET_SERVER_notification_context_add (nc, 
+                                          client);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              client,
+                                              &qrm.header,
+                                              GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
 }
 
@@ -184,6 +214,7 @@ handle_revoke_message (void *cls,
                       const struct GNUNET_MessageHeader *message)
 {
   const struct RevokeMessage *rm;
+  struct RevocationResponseMessage rrm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received REVOKE message from client\n");
@@ -195,6 +226,16 @@ handle_revoke_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
   }
   GNUNET_break (0); // FIXME: TBD
+
+  rrm.header.size = htons (sizeof (struct RevocationResponseMessage));
+  rrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
+  rrm.is_valid = htons (GNUNET_NO);
+  GNUNET_SERVER_notification_context_add (nc, 
+                                          client);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              client,
+                                              &rrm.header,
+                                              GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -308,6 +349,24 @@ handle_core_disconnect (void *cls,
 
 
 /**
+ * Free all values in a hash map.
+ * 
+ * @param cls NULL
+ * @param key the key
+ * @param value value to free
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+free_entry (void *cls,
+            const struct GNUNET_HashCode *key,
+            void *value)
+{
+  GNUNET_free (value);
+  return GNUNET_OK;
+}
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -337,6 +396,15 @@ shutdown_task (void *cls,
     GNUNET_CONTAINER_multipeermap_destroy (peers);
     peers = NULL;
   }
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
+  }
+  GNUNET_CONTAINER_multihashmap_iterate (revocation_map,
+                                         &free_entry,
+                                         NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (revocation_map);
 }
 
 
@@ -388,6 +456,8 @@ run (void *cls,
 
   cfg = c;
   srv = server;  
+  revocation_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
+  nc = GNUNET_SERVER_notification_context_create (server, 1);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "REVOCATION", "WORKBITS",
 					     &revocation_work_required))

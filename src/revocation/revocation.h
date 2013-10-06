@@ -120,7 +120,7 @@ struct RevokeMessage
 struct RevocationResponseMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_REVOKE_RESPONSE
+   * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
