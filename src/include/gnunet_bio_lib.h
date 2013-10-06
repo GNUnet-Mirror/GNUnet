@@ -62,7 +62,7 @@ GNUNET_BIO_read_open (const char *fn);
  *
  * @param h file handle
  * @param emsg set to the error message
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_BIO_read_close (struct GNUNET_BIO_ReadHandle *h, char **emsg);
@@ -287,7 +287,7 @@ GNUNET_BIO_write_meta_data (struct GNUNET_BIO_WriteHandle *h,
  *
  * @param h hande to open file
  * @param i 32-bit integer to write
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_BIO_write_int32 (struct GNUNET_BIO_WriteHandle *h, int32_t i);
