@@ -294,8 +294,8 @@ send_revoke (void *cls,
     GNUNET_REVOCATION_revoke_cancel (h);
     return 0;
   }
-  rm.header.size = htons (sizeof (struct QueryMessage));
-  rm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY);
+  rm.header.size = htons (sizeof (struct RevokeMessage));
+  rm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE);
   rm.reserved = htonl (0);
   rm.proof_of_work = h->pow;
   rm.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);

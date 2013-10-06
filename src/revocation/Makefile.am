@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -17,11 +17,11 @@ pkgcfg_DATA = \
   revocation.conf
 
 bin_PROGRAMS = \
- gnunet-revocation 
+ gnunet-revocation
 
 
 gnunet_revocation_SOURCES = \
- gnunet-revocation.c         
+ gnunet-revocation.c
 gnunet_revocation_LDADD = \
   libgnunetrevocation.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -40,11 +40,11 @@ libgnunetrevocation_la_LDFLAGS = \
   -version-info 0:0:0
 
 libexec_PROGRAMS = \
- gnunet-service-revocation 
+ gnunet-service-revocation
 
 
 gnunet_service_revocation_SOURCES = \
- gnunet-service-revocation.c         
+ gnunet-service-revocation.c
 gnunet_service_revocation_LDADD = \
   $(top_builddir)/src/revocation/libgnunetrevocation.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -57,5 +57,5 @@ gnunet_service_revocation_DEPENDENCIES = \
   libgnunetrevocation.la
 
 
+EXTRA_DIST = test_revocation.conf
 
-#EXTRA_DIST = 

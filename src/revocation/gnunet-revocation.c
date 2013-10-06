@@ -153,14 +153,24 @@ print_revocation_result (void *cls,
   switch (is_valid)
   {
   case GNUNET_YES:
-    FPRINTF (stdout,
-             _("Key for ego `%s' is still valid, revocation failed (!)\n"),
-             test_ego);
+    if (NULL != revoke_ego)
+      FPRINTF (stdout,
+               _("Key for ego `%s' is still valid, revocation failed (!)\n"),
+               revoke_ego);
+    else
+      FPRINTF (stdout,
+               "%s",
+               _("Revocation failed (!)\n"));
     break;
   case GNUNET_NO:
-    FPRINTF (stdout,
-             _("Key for ego `%s' has been successfully revoked\n"),
-             test_ego);
+    if (NULL != revoke_ego)
+      FPRINTF (stdout,
+               _("Key for ego `%s' has been successfully revoked\n"),
+               revoke_ego);
+    else
+      FPRINTF (stdout,
+               "%s",
+               _("Revocation successful.\n"));
     break;
   case GNUNET_SYSERR:
     FPRINTF (stdout,
@@ -224,15 +234,10 @@ calculate_pow (void *cls,
 {
   struct RevocationData *rd = cls;
 
+  /* store temporary results */
   if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)) ||
        (0 == (rd->pow % 128) ) )
   {
-    if (0 == (rd->pow % 128 * 1024))
-    {
-      if (0 == (rd->pow % (1024 * 128 * 80)))
-        fprintf (stderr, "\n");
-      fprintf (stderr, ".");
-    }
     if ( (NULL != filename) &&
          (sizeof (struct RevocationData) ==
           GNUNET_DISK_fn_write (filename,
@@ -244,11 +249,21 @@ calculate_pow (void *cls,
                                 "write",
                                 filename);
   }
+  /* display progress estimate */
+  if ( (0 == ((1 << matching_bits) / 100 / 50)) ||
+       (0 == (rd->pow % ((1 << matching_bits) / 100 / 50))) )
+    FPRINTF (stderr, "%s", ".");
+  if ( (0 != rd->pow) &&
+       ( (0 == ((1 << matching_bits) / 100)) ||
+         (0 == (rd->pow % ((1 << matching_bits) / 100))) ) )
+    FPRINTF (stderr, " - @ %3u%% (estimate)\n",
+             (unsigned int) (rd->pow * 100) / (1 << matching_bits));
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (rd);
     return;
   }
+  /* actually do POW calculation */
   rd->pow++;
   if (GNUNET_OK ==
       GNUNET_REVOCATION_check_pow (&rd->key,
@@ -256,10 +271,10 @@ calculate_pow (void *cls,
                                    (unsigned int) matching_bits))
   {
     if ( (NULL != filename) &&
-         (sizeof (struct RevocationData) ==
+         (sizeof (struct RevocationData) !=
           GNUNET_DISK_fn_write (filename,
-                                &rd,
-                                sizeof (rd),
+                                rd,
+                                sizeof (struct RevocationData),
                                 GNUNET_DISK_PERM_USER_READ |
                                 GNUNET_DISK_PERM_USER_WRITE)) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
@@ -269,6 +284,7 @@ calculate_pow (void *cls,
       perform_revocation (rd);
     else
     {
+      FPRINTF (stderr, "%s", "\n");
       FPRINTF (stderr,
                _("Revocation certificate for `%s' stored in `%s'\n"),
                revoke_ego,
@@ -276,6 +292,7 @@ calculate_pow (void *cls,
       GNUNET_SCHEDULER_shutdown ();
     }
     GNUNET_free (rd);
+    return;
   }
   GNUNET_SCHEDULER_add_now (&calculate_pow,
                             rd);
@@ -312,8 +329,8 @@ ego_callback (void *cls,
         GNUNET_DISK_file_test (filename)) &&
        (sizeof (struct RevocationData) ==
         GNUNET_DISK_fn_read (filename,
-                             &rd,
-                             sizeof (rd))) )
+                             rd,
+                             sizeof (struct RevocationData))) )
   {
     if (0 != memcmp (&rd->key,
                      &key,
@@ -340,8 +357,11 @@ ego_callback (void *cls,
   {
     FPRINTF (stderr,
              "%s",
-             _("Revocation certificate ready, initiating revocation\n"));
-    perform_revocation (rd);
+             _("Revocation certificate ready\n"));
+    if (perform)
+      perform_revocation (rd);
+    else
+      GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (rd);
     return;
   }
@@ -432,10 +452,23 @@ run (void *cls,
                filename);
       return;
     }
-    perform_revocation (&rd);
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                   &do_shutdown,
                                   NULL);
+    if (GNUNET_YES !=
+        GNUNET_REVOCATION_check_pow (&rd.key,
+                                     rd.pow,
+                                     (unsigned int) matching_bits))
+    {
+      struct RevocationData *cp = GNUNET_new (struct RevocationData);
+
+      *cp = rd;
+      GNUNET_SCHEDULER_add_now (&calculate_pow,
+                                cp);
+      return;
+
+    }
+    perform_revocation (&rd);
     return;
   }
   FPRINTF (stderr,

@@ -148,9 +148,7 @@ verify_revoke_message (const struct RevokeMessage *rm)
 				   (unsigned int) revocation_work_required))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Proof of work invalid: %llu!\n",
-                (unsigned long long)
-                GNUNET_ntohll (rm->proof_of_work));
+		"Proof of work invalid!\n");
     GNUNET_break_op (0);
     return GNUNET_NO;
   }
