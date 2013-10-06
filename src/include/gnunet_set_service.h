@@ -242,8 +242,8 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Add an element to the given set.
  * After the element has been added (in the sense of being
- * transmitted to the set service), cont will be called.
- * Calls to add_element can be queued
+ * transmitted to the set service), @a cont will be called.
+ * Calls to #GNUNET_SET_add_element can be queued
  *
  * @param set set to add element to
  * @param element element to add to the set

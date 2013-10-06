@@ -31,10 +31,8 @@
  * peers that connect.
  *
  * TODO:
- * - store revocations to disk
  * - handle p2p revocations
  * - handle p2p connect (trigger SET union)
- * - handle client revoke message
  */
 #include "platform.h"
 #include <math.h>
@@ -192,7 +190,7 @@ handle_query_message (void *cls,
 	      ? "Received revocation check for valid key `%s' from client\n"
               : "Received revocation check for revoked key `%s' from client\n",
               GNUNET_h2s (&hc));
-  qrm.header.size = htons (sizeof (struct RevocationResponseMessage));
+  qrm.header.size = htons (sizeof (struct QueryResponseMessage));
   qrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE);
   qrm.is_valid = htons ((GNUNET_YES == res) ? GNUNET_NO : GNUNET_YES);
   GNUNET_SERVER_notification_context_add (nc, 
@@ -201,7 +199,102 @@ handle_query_message (void *cls,
                                               client,
                                               &qrm.header,
                                               GNUNET_NO);
-  GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Flood the given revocation message to all neighbours.
+ *
+ * @param cls the `struct RevokeMessage` to flood
+ * @param target a neighbour
+ * @param value our `struct PeerEntry` for the neighbour
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+do_flood (void *cls,
+          const struct GNUNET_PeerIdentity *target,
+          void *value)
+{
+  GNUNET_break (0); // FIXME: not implemented
+  return GNUNET_OK;
+}
+
+
+/**
+ * Publicize revocation message.   Stores the message locally in the
+ * database and passes it to all connected neighbours (and adds it to
+ * the set for future connections).
+ * 
+ * @param rm message to publicize
+ * @return #GNUNET_OK on success, #GNUNET_NO if we encountered an error,
+ *         #GNUNET_SYSERR if the message was malformed
+ */
+static int
+publicize_rm (const struct RevokeMessage *rm)
+{
+  struct RevokeMessage *cp;
+  struct GNUNET_HashCode hc;
+  struct GNUNET_SET_Element e;
+
+  GNUNET_CRYPTO_hash (&rm->public_key,
+                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                      &hc);
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap_contains (revocation_map,
+                                              &hc))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Duplicate revocation received from peer. Ignored.\n"));
+    return GNUNET_OK;
+  }
+  if (GNUNET_OK != 
+      verify_revoke_message (rm))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  } 
+  /* write to disk */
+  if (sizeof (struct RevokeMessage) !=
+      GNUNET_DISK_file_write (revocation_db,
+                              rm,
+                              sizeof (struct RevokeMessage)))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "write");
+    return GNUNET_NO;
+  }
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_sync (revocation_db))
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
+                         "sync");
+    return GNUNET_NO;
+  }
+  /* keep copy in memory */
+  cp = (struct RevokeMessage *) GNUNET_copy_message (&rm->header);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put (revocation_map,
+                                                   &hc,
+                                                   cp,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  /* add to set for future connections */
+  e.size = htons (rm->header.size);
+  e.type = 0;
+  e.data = rm;
+  if (GNUNET_OK !=
+      GNUNET_SET_add_element (revocation_set,
+                              &e,
+                              NULL, NULL))
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+  /* flood to neighbours */
+  GNUNET_CONTAINER_multipeermap_iterate (peers, 
+					 &do_flood,
+                                         cp);
+  return GNUNET_OK;
 }
 
 
@@ -214,26 +307,25 @@ handle_query_message (void *cls,
  */
 static void
 handle_revoke_message (void *cls, 
-		      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *message)
+                       struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message)
 {
   const struct RevokeMessage *rm;
   struct RevocationResponseMessage rrm;
+  int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received REVOKE message from client\n");
   rm = (const struct RevokeMessage *) message;
-  if (GNUNET_OK != 
-      verify_revoke_message (rm))
+  if (GNUNET_SYSERR == (ret = publicize_rm (rm)))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
-  GNUNET_break (0); // FIXME: TBD
-
   rrm.header.size = htons (sizeof (struct RevocationResponseMessage));
   rrm.header.type = htons (GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE);
-  rrm.is_valid = htons (GNUNET_NO);
+  rrm.is_valid = htons ((GNUNET_OK == ret) ? GNUNET_NO : GNUNET_YES);
   GNUNET_SERVER_notification_context_add (nc, 
                                           client);
   GNUNET_SERVER_notification_context_unicast (nc,
@@ -258,24 +350,10 @@ handle_p2p_revoke_message (void *cls,
 {
   const struct RevokeMessage *rm;
 
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received REVOKE message from peer\n");
   rm = (const struct RevokeMessage *) message;
-  if (GNUNET_OK != 
-      verify_revoke_message (rm))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_break (0); // FIXME: TBD
-
-#if 0
-  /* flood to rest */
-  GNUNET_CONTAINER_multipeermap_iterate (peers, 
-					 &do_flood,
-                                         &ctx);
-#endif
+  GNUNET_break_op (GNUNET_SYSERR != publicize_rm (rm));
   return GNUNET_OK;
 }
 
@@ -301,6 +379,7 @@ handle_core_connect (void *cls,
                  GNUNET_CONTAINER_multipeermap_put (peers, peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_break (0); // FIXME: implement revocation set union on connect!
 #if 0
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,

@@ -852,7 +852,7 @@ GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h);
 /**
  * Write file changes to disk
  * @param h handle to an open file
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h);
