@@ -104,12 +104,12 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param result the buffer to store a pointer to the (allocated) string to
  *        (note that *result could be set to NULL as well)
- * @param maxLen maximum allowed length for the string
+ * @param max_length maximum allowed length for the string
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
-                        char **result, size_t maxLen);
+                        char **result, size_t max_length);
 
 
 /**

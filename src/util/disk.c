@@ -1107,7 +1107,7 @@ GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
 /**
  * Scan a directory for files.
  *
- * @param dirName the name of the directory
+ * @param dir_name the name of the directory
  * @param callback the method to call for each file,
  *        can be NULL, in that case, we only count
  * @param callback_cls closure for callback
@@ -1115,7 +1115,7 @@ GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
  *         ieration aborted by callback returning GNUNET_SYSERR
  */
 int
-GNUNET_DISK_directory_scan (const char *dirName,
+GNUNET_DISK_directory_scan (const char *dir_name,
                             GNUNET_FileNameCallback callback,
                             void *callback_cls)
 {
@@ -1129,8 +1129,8 @@ GNUNET_DISK_directory_scan (const char *dirName,
   unsigned int name_len;
   unsigned int n_size;
 
-  GNUNET_assert (dirName != NULL);
-  dname = GNUNET_STRINGS_filename_expand (dirName);
+  GNUNET_assert (dir_name != NULL);
+  dname = GNUNET_STRINGS_filename_expand (dir_name);
   if (dname == NULL)
     return GNUNET_SYSERR;
   while ((strlen (dname) > 0) && (dname[strlen (dname) - 1] == DIR_SEPARATOR))
@@ -1144,7 +1144,7 @@ GNUNET_DISK_directory_scan (const char *dirName,
   if (!S_ISDIR (istat.st_mode))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, _("Expected `%s' to be a directory!\n"),
-         dirName);
+         dir_name);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
@@ -1310,7 +1310,7 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
  * may provide a simpler API.
  *
  * @param prio priority to use
- * @param dirName the name of the directory
+ * @param dir_name the name of the directory
  * @param callback the method to call for each file
  * @param callback_cls closure for callback
  * @return GNUNET_YES if directory is not empty and 'callback'
@@ -1318,7 +1318,7 @@ GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
  */
 int
 GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
-                                      const char *dirName,
+                                      const char *dir_name,
                                       GNUNET_DISK_DirectoryIteratorCallback
                                       callback, void *callback_cls)
 {
@@ -1327,14 +1327,14 @@ GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
   di = GNUNET_malloc (sizeof (struct GNUNET_DISK_DirectoryIterator));
   di->callback = callback;
   di->callback_cls = callback_cls;
-  di->directory = OPENDIR (dirName);
+  di->directory = OPENDIR (dir_name);
   if (di->directory == NULL)
   {
     GNUNET_free (di);
     callback (callback_cls, NULL, NULL, NULL);
     return GNUNET_SYSERR;
   }
-  di->dirname = GNUNET_strdup (dirName);
+  di->dirname = GNUNET_strdup (dir_name);
   di->priority = prio;
   return GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);
 }
@@ -1400,10 +1400,11 @@ GNUNET_DISK_directory_remove (const char *filename)
  *
  * @param src file to copy
  * @param dst destination file name
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_copy (const char *src, const char *dst)
+GNUNET_DISK_file_copy (const char *src, 
+                       const char *dst)
 {
   char *buf;
   uint64_t pos;
@@ -1514,14 +1515,14 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
 /**
  * Lock a part of a file
  * @param fh file handle
- * @param lockStart absolute position from where to lock
- * @param lockEnd absolute position until where to lock
+ * @param lock_start absolute position from where to lock
+ * @param lock_end absolute position until where to lock
  * @param excl GNUNET_YES for an exclusive lock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
-                       OFF_T lockEnd, int excl)
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lock_start,
+                       OFF_T lock_end, int excl)
 {
   if (fh == NULL)
   {
@@ -1535,20 +1536,20 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
   memset (&fl, 0, sizeof (struct flock));
   fl.l_type = excl ? F_WRLCK : F_RDLCK;
   fl.l_whence = SEEK_SET;
-  fl.l_start = lockStart;
-  fl.l_len = lockEnd;
+  fl.l_start = lock_start;
+  fl.l_len = lock_end;
 
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
-  OFF_T diff = lockEnd - lockStart;
+  OFF_T diff = lock_end - lock_start;
   DWORD diff_low, diff_high;
   diff_low = (DWORD) (diff & 0xFFFFFFFF);
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = (DWORD) (lockStart & 0xFFFFFFFF);;
-  o.OffsetHigh = (DWORD) (((lockStart & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
+  o.Offset = (DWORD) (lock_start & 0xFFFFFFFF);;
+  o.OffsetHigh = (DWORD) (((lock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   if (!LockFileEx
       (fh->h, (excl ? LOCKFILE_EXCLUSIVE_LOCK : 0) | LOCKFILE_FAIL_IMMEDIATELY,
@@ -1566,13 +1567,13 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lockStart,
 /**
  * Unlock a part of a file
  * @param fh file handle
- * @param unlockStart absolute position from where to unlock
- * @param unlockEnd absolute position until where to unlock
+ * @param unlock_start absolute position from where to unlock
+ * @param unlock_end absolute position until where to unlock
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
-                         OFF_T unlockEnd)
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlock_start,
+                         OFF_T unlock_end)
 {
   if (fh == NULL)
   {
@@ -1586,20 +1587,20 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
   memset (&fl, 0, sizeof (struct flock));
   fl.l_type = F_UNLCK;
   fl.l_whence = SEEK_SET;
-  fl.l_start = unlockStart;
-  fl.l_len = unlockEnd;
+  fl.l_start = unlock_start;
+  fl.l_len = unlock_end;
 
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
-  OFF_T diff = unlockEnd - unlockStart;
+  OFF_T diff = unlock_end - unlock_start;
   DWORD diff_low, diff_high;
   diff_low = (DWORD) (diff & 0xFFFFFFFF);
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   memset (&o, 0, sizeof (OVERLAPPED));
-  o.Offset = (DWORD) (unlockStart & 0xFFFFFFFF);;
-  o.OffsetHigh = (DWORD) (((unlockStart & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
+  o.Offset = (DWORD) (unlock_start & 0xFFFFFFFF);;
+  o.OffsetHigh = (DWORD) (((unlock_start & ~0xFFFFFFFF) >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
 
   if (!UnlockFileEx (fh->h, 0, diff_low, diff_high, &o))
   {
@@ -1620,12 +1621,13 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlockStart,
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
  * @param perm permissions for the newly created file, use
- *             GNUNET_DISK_PERM_USER_NONE if a file could not be created by this
+ *             #GNUNET_DISK_PERM_USER_NONE if a file could not be created by this
  *             call (because of flags)
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
+GNUNET_DISK_file_open (const char *fn,
+                       enum GNUNET_DISK_OpenFlags flags,
                        enum GNUNET_DISK_AccessPermissions perm)
 {
   char *expfn;
@@ -1925,7 +1927,7 @@ GNUNET_DISK_get_handle_from_native (FILE *fd)
  * DIR_SEPARATOR_STR as the last argument before NULL).
  *
  * @param cfg configuration to use (determines HOME)
- * @param serviceName name of the service
+ * @param service_name name of the service
  * @param ... is NULL-terminated list of
  *                path components to append to the
  *                private directory name.
@@ -1933,7 +1935,7 @@ GNUNET_DISK_get_handle_from_native (FILE *fd)
  */
 char *
 GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const char *serviceName, ...)
+                               const char *service_name, ...)
 {
   const char *c;
   char *pfx;
@@ -1942,19 +1944,19 @@ GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int needed;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, serviceName, "HOME", &pfx))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "HOME", &pfx))
     return NULL;
   if (pfx == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("No `%s' specified for service `%s' in configuration.\n"), "HOME",
-         serviceName);
+         service_name);
     return NULL;
   }
   needed = strlen (pfx) + 2;
   if ((pfx[strlen (pfx) - 1] != '/') && (pfx[strlen (pfx) - 1] != '\\'))
     needed++;
-  va_start (ap, serviceName);
+  va_start (ap, service_name);
   while (1)
   {
     c = va_arg (ap, const char *);
@@ -1969,7 +1971,7 @@ GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret = GNUNET_malloc (needed);
   strcpy (ret, pfx);
   GNUNET_free (pfx);
-  va_start (ap, serviceName);
+  va_start (ap, service_name);
   while (1)
   {
     c = va_arg (ap, const char *);

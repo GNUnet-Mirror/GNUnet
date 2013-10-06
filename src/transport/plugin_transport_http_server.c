@@ -2341,7 +2341,7 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
  * Get valid server addresses
  *
  * @param plugin the plugin handle
- * @param serviceName the servicename
+ * @param service_name the servicename
  * @param cfg configuration handle
  * @param addrs addresses
  * @param addr_lens address length
@@ -2349,7 +2349,7 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
  */
 static int
 server_get_addresses (struct HTTP_Server_Plugin *plugin,
-                      const char *serviceName,
+                      const char *service_name,
                       const struct GNUNET_CONFIGURATION_Handle *cfg,
                       struct sockaddr ***addrs, socklen_t ** addr_lens)
 {
@@ -2372,10 +2372,10 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
   disablev6 = !plugin->use_ipv6;
 
   port = 0;
-  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "PORT"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "PORT"))
   {
     GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONFIGURATION_get_value_number (cfg, serviceName,
+                  GNUNET_CONFIGURATION_get_value_number (cfg, service_name,
                                                          "PORT", &port));
     if (port > 65535)
     {
@@ -2393,10 +2393,10 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
   }
 
 
-  if (GNUNET_CONFIGURATION_have_value (cfg, serviceName, "BINDTO"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, service_name, "BINDTO"))
   {
     GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONFIGURATION_get_value_string (cfg, serviceName,
+                  GNUNET_CONFIGURATION_get_value_string (cfg, service_name,
                                                          "BINDTO", &hostname));
   }
   else
@@ -2406,7 +2406,7 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Resolving `%s' since that is where `%s' will bind to.\n",
-                     hostname, serviceName);
+                     hostname, service_name);
     memset (&hints, 0, sizeof (struct addrinfo));
     if (disablev6)
       hints.ai_family = AF_INET;

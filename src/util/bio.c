@@ -219,12 +219,14 @@ GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h,
  * @param what describes what is being read (for error message creation)
  * @param result the buffer to store a pointer to the (allocated) string to
  *        (note that *result could be set to NULL as well)
- * @param maxLen maximum allowed length for the string
+ * @param max_length maximum allowed length for the string
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
-                        char **result, size_t maxLen)
+GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h,
+                        const char *what,
+                        char **result, 
+                        size_t max_length)
 {
   char *buf;
   uint32_t big;
@@ -240,10 +242,10 @@ GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
     *result = NULL;
     return GNUNET_OK;
   }
-  if (big > maxLen)
+  if (big > max_length)
   {
     GNUNET_asprintf (&h->emsg, _("String `%s' longer than allowed (%u > %u)"),
-                     what, big, maxLen);
+                     what, big, max_length);
     return GNUNET_SYSERR;
   }
   buf = GNUNET_malloc (big);
@@ -270,7 +272,8 @@ GNUNET_BIO_read_string (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, const char *what,
+GNUNET_BIO_read_meta_data (struct GNUNET_BIO_ReadHandle *h, 
+                           const char *what,
                            struct GNUNET_CONTAINER_MetaData **result)
 {
   uint32_t size;
@@ -344,7 +347,8 @@ GNUNET_BIO_read_int32__ (struct GNUNET_BIO_ReadHandle *h, const char *file,
 int
 GNUNET_BIO_read_int64__ (struct GNUNET_BIO_ReadHandle *h, 
                          const char *file,
-                         int line, int64_t * i)
+                         int line, 
+                         int64_t *i)
 {
   int64_t big;
 
