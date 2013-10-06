@@ -12,7 +12,6 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
-  dv \
   multicast \
   env \
   psyc \
@@ -69,6 +68,7 @@ SUBDIRS = \
   dns \
   identity \
   set \
+  dv \
   revocation \
   namestore \
   vpn \

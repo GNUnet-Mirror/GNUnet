@@ -21,3 +21,16 @@ TEMPORARY_TABLE = NO
 
 [uri]
 gns = gnunet-namestore
+
+
+[fcfsd]
+# Name of the fcfs registration service binary (for ARM)
+BINARY = gnunet-namestore-fcfsd
+AUTOSTART = NO
+
+# On what port does the FCFS daemon listen for HTTP clients?
+HTTPPORT = 18080
+
+# Where is the zone key for the FCFS zone stored?
+ZONEKEY = $SERVICEHOME/fcfsd/zonekey.zkey
+

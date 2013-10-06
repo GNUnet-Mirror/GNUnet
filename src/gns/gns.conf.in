@@ -32,24 +32,6 @@ PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
 PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
 
 
-[fcfsd]
-# Name of the fcfs binary (for ARM)
-BINARY = gnunet-gns-fcfsd
-AUTOSTART = NO
-
-# On what port does the FCFS daemon listen for HTTP clients?
-HTTPPORT = 18080
-
-# Where is the zone key for the FCFS zone stored?
-ZONEKEY = $SERVICEHOME/fcfsd/zonekey.zkey
-
-# For ARM, not very useful.  FIXME: Dead option?
-HOSTNAME = localhost
-
-# FIXME: Dead option?
-HOME = $SERVICEHOME
-
-
 [dns2gns]
 BINARY = gnunet-dns2gns
 AUTOSTART = NO

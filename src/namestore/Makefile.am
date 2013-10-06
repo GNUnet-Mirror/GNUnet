@@ -92,7 +92,7 @@ bin_PROGRAMS = \
  gnunet-namestore 
 
 if HAVE_MHD
-bin_PROGRAMS += \
+libexec_PROGRAMS += \
  gnunet-namestore-fcfsd
 endif
 
@@ -205,7 +205,7 @@ test_namestore_api_lookup_public_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
-  
+
 test_namestore_api_put_SOURCES = \
  test_namestore_api_put.c
 test_namestore_api_put_LDADD = \
@@ -287,11 +287,11 @@ test_plugin_namestore_postgres_SOURCES = \
 test_plugin_namestore_postgres_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
- 
+
 check_SCRIPTS = \
 	test_namestore_put.sh \
- 	test_namestore_lookup.sh \
- 	test_namestore_delete.sh 
+	test_namestore_lookup.sh \
+	test_namestore_delete.sh 
 
 EXTRA_DIST = \
   test_namestore_api.conf \
@@ -304,4 +304,4 @@ EXTRA_DIST = \
   zonefiles/HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey \
   zonefiles/N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey \
   $(check_SCRIPTS)
-   
+
