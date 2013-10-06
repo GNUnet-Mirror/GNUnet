@@ -230,7 +230,7 @@ run (void *cls,
   struct GNUNET_SET_OperationHandle *my_oh;
 
   config = cfg;
-  GNUNET_CRYPTO_get_host_identity (cfg, &local_id);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &local_id);
   printf ("my id (from CRYPTO): %s\n", GNUNET_i2s (&local_id));
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
   printf ("my id (from TESTING): %s\n", GNUNET_i2s (&local_id));

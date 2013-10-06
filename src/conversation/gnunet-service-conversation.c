@@ -1231,7 +1231,7 @@ run (void *cls,
 
   cfg = c;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_get_host_identity (cfg,
+                 GNUNET_CRYPTO_get_peer_identity (cfg,
                                                   &my_identity));
   mesh = GNUNET_MESH_connect (cfg,
 			      NULL,

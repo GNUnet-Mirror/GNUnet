@@ -741,7 +741,7 @@ GNUNET_CRYPTO_ecc_setup_key (const char *cfg_name)
  *         could not be retrieved
  */
 int
-GNUNET_CRYPTO_get_host_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_PeerIdentity *dst)
 {
   struct GNUNET_CRYPTO_EccPrivateKey *priv;

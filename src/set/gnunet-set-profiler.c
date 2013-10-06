@@ -215,7 +215,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   config = cfg;
 
-  if (GNUNET_OK != GNUNET_CRYPTO_get_host_identity (cfg, &local_peer))
+  if (GNUNET_OK != GNUNET_CRYPTO_get_peer_identity (cfg, &local_peer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not retrieve host identity\n");
     ret = 0;

@@ -415,7 +415,7 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
     return NULL;
   phone = GNUNET_new (struct GNUNET_CONVERSATION_Phone);
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_get_host_identity (cfg,
+      GNUNET_CRYPTO_get_peer_identity (cfg,
                                        &phone->my_record.peer))
   {
     GNUNET_break (0);

@@ -1265,7 +1265,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   cfg = c;
   srv = server;
-  if (GNUNET_OK != GNUNET_CRYPTO_get_host_identity (cfg, &my_peer))
+  if (GNUNET_OK != GNUNET_CRYPTO_get_peer_identity (cfg, &my_peer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not retrieve host identity\n");
     GNUNET_break (0);

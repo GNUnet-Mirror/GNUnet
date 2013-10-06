@@ -2171,7 +2171,7 @@ run (void *cls,
                                    &handle_client_disconnect,
                                    NULL);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_get_host_identity (c,
+                GNUNET_CRYPTO_get_peer_identity (c,
                                                  &me));
   my_mesh = GNUNET_MESH_connect (c, NULL,
                                  &tunnel_incoming_handler,
