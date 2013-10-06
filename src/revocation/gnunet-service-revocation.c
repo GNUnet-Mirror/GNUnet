@@ -125,7 +125,7 @@ static unsigned long long revocation_work_required;
  *         #GNUNET_NO if the key/signature don't verify
  */
 static int
-verify_revoke_message (const struct GNUNET_REVOCATION_RevokeMessage *rm)
+verify_revoke_message (const struct RevokeMessage *rm)
 {
   if (GNUNET_YES !=
       GNUNET_REVOCATION_check_pow (&rm->public_key,
@@ -183,11 +183,11 @@ handle_revoke_message (void *cls,
 		      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_REVOCATION_RevokeMessage *rm;
+  const struct RevokeMessage *rm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received REVOKE message from client\n");
-  rm = (const struct GNUNET_REVOCATION_RevokeMessage *) message;
+  rm = (const struct RevokeMessage *) message;
   if (GNUNET_OK != 
       verify_revoke_message (rm))
   {
@@ -211,12 +211,12 @@ handle_p2p_revoke_message (void *cls,
 			   const struct GNUNET_PeerIdentity *peer,
 			   const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_REVOCATION_RevokeMessage *rm;
+  const struct RevokeMessage *rm;
 
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Received REVOKE message from peer\n");
-  rm = (const struct GNUNET_REVOCATION_RevokeMessage *) message;
+  rm = (const struct RevokeMessage *) message;
   if (GNUNET_OK != 
       verify_revoke_message (rm))
   {
@@ -375,14 +375,14 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_query_message, NULL, GNUNET_MESSAGE_TYPE_REVOCATION_QUERY,
-     sizeof (struct GNUNET_REVOCATION_QueryMessage)},
+     sizeof (struct QueryMessage)},
     {&handle_revoke_message, NULL, GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
-     sizeof (struct GNUNET_REVOCATION_RevokeMessage)},
+     sizeof (struct RevokeMessage)},
     {NULL, NULL, 0, 0}
   };
   static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&handle_p2p_revoke_message, GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE,
-     sizeof (struct GNUNET_REVOCATION_RevokeMessage)},
+     sizeof (struct RevokeMessage)},
     {NULL, 0, 0}
   };
 

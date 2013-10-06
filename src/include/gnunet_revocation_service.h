@@ -54,7 +54,8 @@ struct GNUNET_REVOCATION_Query;
  *
  * @param cls closure
  * @param is_valid #GNUNET_NO of the key is/was revoked, 
- *                 #GNUNET_YES if the key is still valid
+ *                 #GNUNET_YES if the key is still valid,
+ *                 #GNUNET_SYSERR if we had trouble querying the service
  *
  */
 typedef void (*GNUNET_REVOCATION_Callback) (void *cls,

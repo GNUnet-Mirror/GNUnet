@@ -33,7 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Query key revocation status.
  */
-struct GNUNET_REVOCATION_QueryMessage
+struct QueryMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY
@@ -56,7 +56,7 @@ struct GNUNET_REVOCATION_QueryMessage
 /**
  * Key revocation response.
  */
-struct GNUNET_REVOCATION_QueryResponseMessage
+struct QueryResponseMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_QUERY_RESPONSE
@@ -78,7 +78,7 @@ struct GNUNET_REVOCATION_QueryResponseMessage
  * #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE_RESPONSE (which is just
  * in a `struct GNUNET_MessageHeader`.
  */
-struct GNUNET_REVOCATION_RevokeMessage
+struct RevokeMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE
@@ -110,6 +110,24 @@ struct GNUNET_REVOCATION_RevokeMessage
    * Key to revoke.
    */
   struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+
+};
+
+
+/**
+ * Key revocation response.
+ */
+struct RevocationResponseMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_REVOKE_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * #GNUNET_NO if revoked, #GNUNET_YES if valid.
+   */
+  uint32_t is_valid GNUNET_PACKED;
 
 };
 
