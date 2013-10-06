@@ -16,6 +16,16 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   revocation.conf
 
+bin_PROGRAMS = \
+ gnunet-revocation 
+
+
+gnunet_revocation_SOURCES = \
+ gnunet-revocation.c         
+gnunet_revocation_LDADD = \
+  libgnunetrevocation.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
 
 lib_LTLIBRARIES = libgnunetrevocation.la
 

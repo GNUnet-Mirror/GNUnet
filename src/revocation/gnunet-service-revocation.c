@@ -33,6 +33,9 @@
  * TODO:
  * - broadcast p2p revocations
  * - handle p2p connect (trigger SET union)
+ * - optimization: avoid sending revocation back to peer that we got it from;
+ * - optimization: have randomized delay in sending revocations to other peers 
+ *                 to make it rare to traverse each link twice (NSE-style)
  */
 #include "platform.h"
 #include <math.h>
