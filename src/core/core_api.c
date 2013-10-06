@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_core_service.h"
 #include "core.h"
@@ -142,6 +143,13 @@ struct PeerRecord
    */
   uint16_t smr_id_gen;
 
+};
+
+struct CoreMQState
+{
+  struct GNUNET_PeerIdentity target;
+  struct GNUNET_CORE_Handle *core;
+  struct GNUNET_CORE_TransmitHandle *th;
 };
 
 
@@ -1386,5 +1394,126 @@ GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
   return GNUNET_CONTAINER_multipeermap_contains (h->peers, pid);
 }
 
+
+/**
+ * Function called to notify a client about the connection
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the connection was closed for
+ * writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+static size_t
+core_mq_ntr (void *cls, size_t size,
+             void *buf)
+{
+  struct GNUNET_MQ_Handle *mq = cls;
+  struct CoreMQState *mqs = GNUNET_MQ_impl_state (mq);
+  const struct GNUNET_MessageHeader *mh = GNUNET_MQ_impl_current (mq);
+  size_t msg_size = ntohs (mh->size);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "core-mq", "ntr called (size %u, type %u)\n",
+                   msg_size, ntohs (mh->type));
+  mqs->th = NULL;
+  if (NULL == buf)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "core-mq", "send error\n");
+    GNUNET_MQ_inject_error (mq, GNUNET_MQ_ERROR_WRITE);
+    return 0;
+  }
+  memcpy (buf, mh, msg_size);
+  GNUNET_MQ_impl_send_commit (mq);
+  GNUNET_MQ_impl_send_continue (mq);
+  return msg_size;
+}
+
+
+/**
+ * Signature of functions implementing the
+ * sending functionality of a message queue.
+ *
+ * @param mq the message queue
+ * @param msg the message to send
+ * @param impl_state state of the implementation
+ */
+static void
+core_mq_send (struct GNUNET_MQ_Handle *mq,
+              const struct GNUNET_MessageHeader *msg,
+              void *impl_state)
+{
+  struct CoreMQState *mqs = impl_state;
+  GNUNET_assert (NULL == mqs->th);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "core-mq", "Sending queued message (size %u)\n",
+             ntohs (msg->size));
+  mqs->th = GNUNET_CORE_notify_transmit_ready (mqs->core, GNUNET_YES, 0,
+                                               GNUNET_TIME_UNIT_FOREVER_REL, 
+                                               &mqs->target,
+                                               ntohs (msg->size), core_mq_ntr, mq);
+}
+
+
+/**
+ * Signature of functions implementing the
+ * destruction of a message queue.
+ * Implementations must not free @a mq, but should
+ * take care of @a impl_state.
+ * 
+ * @param mq the message queue to destroy
+ * @param impl_state state of the implementation
+ */
+static void
+core_mq_destroy (struct GNUNET_MQ_Handle *mq, void *impl_state)
+{
+  struct CoreMQState *mqs = impl_state;
+  if (NULL != mqs->th)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (mqs->th);
+    mqs->th = NULL;
+  }
+  GNUNET_free (mqs);
+}
+
+
+/**
+ * Implementation function that cancels the currently sent message.
+ * 
+ * @param mq message queue
+ * @param impl_state state specific to the implementation
+ */
+static void
+core_mq_cancel (struct GNUNET_MQ_Handle *mq, void *impl_state)
+{
+  struct CoreMQState *mqs = impl_state;
+  GNUNET_assert (NULL != mqs->th);
+  GNUNET_CORE_notify_transmit_ready_cancel (mqs->th);
+}
+
+
+/**
+ * Create a message queue for sending messages to a peer with CORE.
+ * Messages may only be queued with #GNUNET_MQ_send once the init callback has
+ * been called for the given handle.
+ * There must only be one queue per peer for each core handle.
+ * The message queue can only be used to transmit messages,
+ * not to receive them.
+ *
+ * @param h the core handle
+ * @param target the target peer for this queue, may not be NULL
+ * @return a message queue for sending messages over the core handle
+ *         to the target peer
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
+                       const struct GNUNET_PeerIdentity *target)
+{
+  struct CoreMQState *mqs = GNUNET_new (struct CoreMQState);
+  mqs->core = h;
+  mqs->target = *target;
+  return GNUNET_MQ_queue_for_callbacks (core_mq_send, core_mq_destroy,
+                                        core_mq_cancel, mqs,
+                                        NULL, NULL, NULL);
+}
 
 /* end of core_api.c */

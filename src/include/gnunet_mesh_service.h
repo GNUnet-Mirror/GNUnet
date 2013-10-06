@@ -438,8 +438,8 @@ GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h);
  * The message queue can only be used to transmit messages,
  * not to receive them.
  *
- * @param tunnel the tunnel to create the message qeue for
- * @return a message queue to messages over the tunnel
+ * @param tunnel the tunnel to create the message queue for
+ * @return a message queue for sending messages over the tunnel
  */
 struct GNUNET_MQ_Handle *
 GNUNET_MESH_mq_create (struct GNUNET_MESH_Tunnel *tunnel);

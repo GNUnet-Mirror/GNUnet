@@ -292,6 +292,24 @@ GNUNET_CORE_is_peer_connected_sync (const struct GNUNET_CORE_Handle *h,
                                     const struct GNUNET_PeerIdentity *pid);
 
 
+/**
+ * Create a message queue for sending messages to a peer with CORE.
+ * Messages may only be queued with #GNUNET_MQ_send once the init callback has
+ * been called for the given handle.
+ * There must only be one queue per peer for each core handle.
+ * The message queue can only be used to transmit messages,
+ * not to receive them.
+ *
+ * @param h the core handle
+ * @param target the target peer for this queue, may not be NULL
+ * @return a message queue for sending messages over the core handle
+ *         to the target peer
+ */
+struct GNUNET_MQ_Handle *
+GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
+                       const struct GNUNET_PeerIdentity *target);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

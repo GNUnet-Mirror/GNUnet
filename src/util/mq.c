@@ -278,7 +278,6 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
     return;
   }
 
-
   GNUNET_assert (NULL != mq->envelope_tail);
   GNUNET_assert (NULL != mq->envelope_head);
   mq->current_envelope = mq->envelope_head;
