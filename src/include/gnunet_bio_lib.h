@@ -22,6 +22,8 @@
  * @file include/gnunet_bio_lib.h
  * @brief buffered IO API
  * @author Christian Grothoff
+ * @defgroup bio Buffered binary disk IO (with endianess conversion)
+ * @{
  */
 
 #ifndef GNUNET_BIO_LIB_H
@@ -38,6 +40,7 @@ extern "C"
 #endif
 
 /**
+ * @ingroup bio
  * Handle for buffered reading.
  */
 struct GNUNET_BIO_ReadHandle;
@@ -90,7 +93,8 @@ GNUNET_BIO_read (struct GNUNET_BIO_ReadHandle *h, const char *what,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, const char *file, int line,
+GNUNET_BIO_read_fn (struct GNUNET_BIO_ReadHandle *h, 
+                    const char *file, int line,
                     void *result, size_t len);
 
 /**
@@ -306,6 +310,8 @@ GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, int64_t i);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */ /* end of group bio */
 
 /* ifndef GNUNET_BIO_LIB_H */
 #endif
