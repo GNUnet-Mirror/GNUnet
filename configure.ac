@@ -1414,6 +1414,7 @@ pkgconfig/gnunetgns.pc
 pkgconfig/gnunethello.pc
 pkgconfig/gnunetidentity.pc
 pkgconfig/gnunetmesh.pc
+pkgconfig/gnunetmicrophone.pc
 pkgconfig/gnunetmulticast.pc
 pkgconfig/gnunetmysql.pc
 pkgconfig/gnunetnamestore.pc
@@ -1427,6 +1428,7 @@ pkgconfig/gnunetregex.pc
 pkgconfig/gnunetrevocation.pc
 pkgconfig/gnunetscalarproduct.pc
 pkgconfig/gnunetset.pc
+pkgconfig/gnunetspeaker.pc
 pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettestbed.pc
 pkgconfig/gnunettesting.pc

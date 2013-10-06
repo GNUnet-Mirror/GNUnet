@@ -19,7 +19,8 @@ pcfiles = \
        gnunethello.pc \
        gnunetidentity.pc \
        gnunetmesh.pc \
-       gnunetmulticast.pc.in \
+       gnunetmicrophone.pc \
+       gnunetmulticast.pc \
        gnunetmysql.pc \
        gnunetnamestore.pc \
        gnunetnat.pc \
@@ -32,6 +33,7 @@ pcfiles = \
        gnunetrevocation.pc \
        gnunetscalarproduct.pc \
        gnunetset.pc \
+       gnunetspeaker.pc \
        gnunetstatistics.pc \
        gnunettestbed.pc \
        gnunettesting.pc \
@@ -73,6 +75,7 @@ EXTRA_DIST = \
        gnunethello.pc.in \
        gnunetidentity.pc.in \
        gnunetmesh.pc.in \
+       gnunetmicrophone.pc.in \
        gnunetmulticast.pc.in \
        gnunetmysql.pc.in \
        gnunetnamestore.pc.in \
@@ -86,6 +89,7 @@ EXTRA_DIST = \
        gnunetrevocation.pc.in \
        gnunetscalarproduct.pc.in \
        gnunetset.pc.in \
+       gnunetspeaker.pc.in \
        gnunetstatistics.pc.in \
        gnunettestbed.pc.in \
        gnunettesting.pc.in \
