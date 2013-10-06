@@ -116,7 +116,7 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
   char fn_conv[MAX_PATH];
 #endif
 
-  /* FIXME: should includeSymLinks be GNUNET_NO or GNUNET_YES here? */
+  /* FIXME: should include_symbolic_links be GNUNET_NO or GNUNET_YES here? */
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fsize, GNUNET_NO, GNUNET_YES))
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "stat", filename);

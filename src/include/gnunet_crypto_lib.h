@@ -189,7 +189,6 @@ struct GNUNET_CRYPTO_EccPublicSignKey
 };
 
 
-
 /**
  * The identity of the host (wraps the signing key of the peer).
  */
@@ -296,7 +295,7 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed);
  * @param sum current sum, initially 0
  * @param buf buffer to calculate CRC over (must be 16-bit aligned)
  * @param len number of bytes in @a buf, must be multiple of 2
- * @return updated crc sum (must be subjected to GNUNET_CRYPTO_crc16_finish to get actual crc16)
+ * @return updated crc sum (must be subjected to #GNUNET_CRYPTO_crc16_finish to get actual crc16)
  */
 uint32_t
 GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len);
@@ -426,7 +425,7 @@ GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
  * @param iv initialization vector
  * @param skey session key
  * @param salt salt for the derivation
- * @param salt_len size of the salt
+ * @param salt_len size of the @a salt
  * @param ... pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
@@ -441,7 +440,7 @@ GNUNET_CRYPTO_symmetric_derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationV
  * @param iv initialization vector
  * @param skey session key
  * @param salt salt for the derivation
- * @param salt_len size of the salt
+ * @param salt_len size of the @a salt
  * @param argp pairs of void * & size_t for context chunks, terminated by NULL
  */
 void
@@ -494,7 +493,7 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
  * @ingroup hash
  *
  * Compute the distance between 2 hashcodes.  The
- * computation must be fast, not involve a[0] or a[4] (they're used
+ * computation must be fast, not involve @a a[0] or @a a[4] (they're used
  * elsewhere), and be somewhat consistent. And of course, the result
  * should be a positive number.
  *
@@ -503,8 +502,8 @@ GNUNET_CRYPTO_hash_from_string2 (const char *enc, size_t enclen,
  * @return number between 0 and UINT32_MAX
  */
 uint32_t
-GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode * a,
-                                 const struct GNUNET_HashCode * b);
+GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode *a,
+                                 const struct GNUNET_HashCode *b);
 
 
 /**
@@ -542,8 +541,7 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
  * @param res resulting hash, NULL on error
  */
 typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
-                                                     const struct GNUNET_HashCode *
-                                                     res);
+                                                     const struct GNUNET_HashCode *res);
 
 
 /**
@@ -593,30 +591,30 @@ GNUNET_CRYPTO_hash_create_random (enum GNUNET_CRYPTO_Quality mode,
 
 /**
  * @ingroup hash
- * compute result(delta) = b - a
+ * compute @a result = @a b - @a a
  *
  * @param a some hash code
  * @param b some hash code
  * @param result set to @a b - @a a
  */
 void
-GNUNET_CRYPTO_hash_difference (const struct GNUNET_HashCode * a,
-                               const struct GNUNET_HashCode * b,
-                               struct GNUNET_HashCode * result);
+GNUNET_CRYPTO_hash_difference (const struct GNUNET_HashCode *a,
+                               const struct GNUNET_HashCode *b,
+                               struct GNUNET_HashCode *result);
 
 
 /**
  * @ingroup hash
- * compute result(b) = a + delta
+ * compute @a result = @a a + @a delta
  *
  * @param a some hash code
  * @param delta some hash code
  * @param result set to @a a + @a delta
  */
 void
-GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode * a,
-                        const struct GNUNET_HashCode * delta,
-                        struct GNUNET_HashCode * result);
+GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode *a,
+                        const struct GNUNET_HashCode *delta,
+                        struct GNUNET_HashCode *result);
 
 
 /**
@@ -643,8 +641,7 @@ GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_Ha
 void
 GNUNET_CRYPTO_hash_to_aes_key (const struct GNUNET_HashCode * hc,
                                struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
-                               struct GNUNET_CRYPTO_SymmetricInitializationVector
-                               *iv);
+                               struct GNUNET_CRYPTO_SymmetricInitializationVector *iv);
 
 
 /**
@@ -663,7 +660,7 @@ GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code,
 /**
  * @ingroup hash
  * Determine how many low order bits match in two
- * struct GNUNET_HashCodes.  i.e. - 010011 and 011111 share
+ * `struct GNUNET_HashCodes`.  i.e. - 010011 and 011111 share
  * the first two lowest order bits, and therefore the
  * return value is two (NOT XOR distance, nor how many
  * bits match absolutely!).
@@ -673,8 +670,8 @@ GNUNET_CRYPTO_hash_get_bit (const struct GNUNET_HashCode *code,
  * @return the number of bits that match
  */
 unsigned int
-GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode * first,
-                                  const struct GNUNET_HashCode * second);
+GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode *first,
+                                  const struct GNUNET_HashCode *second);
 
 
 /**
@@ -684,10 +681,11 @@ GNUNET_CRYPTO_hash_matching_bits (const struct GNUNET_HashCode * first,
  *
  * @param h1 some hash code
  * @param h2 some hash code
- * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
+ * @return 1 if @a h1 > @a h2, -1 if @a h1 < @a h2 and 0 if @a h1 == @a h2.
  */
 int
-GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode * h1, const struct GNUNET_HashCode * h2);
+GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode *h1,
+                        const struct GNUNET_HashCode *h2);
 
 
 /**
@@ -698,12 +696,12 @@ GNUNET_CRYPTO_hash_cmp (const struct GNUNET_HashCode * h1, const struct GNUNET_H
  * @param h1 some hash code
  * @param h2 some hash code
  * @param target some hash code
- * @return -1 if h1 is closer, 1 if h2 is closer and 0 if h1==h2.
+ * @return -1 if @a h1 is closer, 1 if @a h2 is closer and 0 if @a h1== @a h2.
  */
 int
-GNUNET_CRYPTO_hash_xorcmp (const struct GNUNET_HashCode * h1,
-                           const struct GNUNET_HashCode * h2,
-                           const struct GNUNET_HashCode * target);
+GNUNET_CRYPTO_hash_xorcmp (const struct GNUNET_HashCode *h1,
+                           const struct GNUNET_HashCode *h2,
+                           const struct GNUNET_HashCode *target);
 
 
 /**

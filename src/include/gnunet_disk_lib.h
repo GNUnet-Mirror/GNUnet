@@ -282,7 +282,7 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h);
  * (of a file that exists and that is not a directory).
  *
  * @param fil filename to check
- * @return GNUNET_YES if yes, GNUNET_NO if not a file, GNUNET_SYSERR if something
+ * @return #GNUNET_YES if yes, #GNUNET_NO if not a file, #GNUNET_SYSERR if something
  * else (will print an error message in that case, too).
  */
 int
@@ -320,15 +320,16 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, OFF_T offset,
  * @param size set to the size of the file (or,
  *             in the case of directories, the sum
  *             of all sizes of files in the directory)
- * @param includeSymLinks should symbolic links be
+ * @param include_symbolic_links should symbolic links be
  *        included?
- * @param singleFileMode GNUNET_YES to only get size of one file
- *        and return GNUNET_SYSERR for directories.
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param single_file_mode #GNUNET_YES to only get size of one file
+ *        and return #GNUNET_SYSERR for directories.
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_DISK_file_size (const char *filename, uint64_t * size,
-                       int includeSymLinks, int singleFileMode);
+GNUNET_DISK_file_size (const char *filename, uint64_t *size,
+                       int include_symbolic_links, 
+                       int single_file_mode);
 
 
 /**
@@ -347,8 +348,9 @@ GNUNET_DISK_file_size (const char *filename, uint64_t * size,
  * @return GNUNET_OK on success
  */
 int
-GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
-                                  uint64_t * ino);
+GNUNET_DISK_file_get_identifiers (const char *filename, 
+                                  uint64_t *dev,
+                                  uint64_t *ino);
 
 
 /**
@@ -392,7 +394,8 @@ GNUNET_DISK_mkdtemp (const char *t);
  * @return IO handle on success, NULL on error
  */
 struct GNUNET_DISK_FileHandle *
-GNUNET_DISK_file_open (const char *fn, enum GNUNET_DISK_OpenFlags flags,
+GNUNET_DISK_file_open (const char *fn, 
+                       enum GNUNET_DISK_OpenFlags flags,
                        enum GNUNET_DISK_AccessPermissions perm);
 
 
@@ -418,7 +421,10 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int inherit_write);
+GNUNET_DISK_pipe (int blocking_read, 
+                  int blocking_write, 
+                  int inherit_read, 
+                  int inherit_write);
 
 
 /**
@@ -432,7 +438,9 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
  * @return handle to the new pipe, NULL on error
  */
 struct GNUNET_DISK_PipeHandle *
-GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2]);
+GNUNET_DISK_pipe_from_fd (int blocking_read, 
+                          int blocking_write, 
+                          int fd[2]);
 
 
 /**
@@ -529,13 +537,15 @@ GNUNET_DISK_get_handle_from_native (FILE *fd);
 
 /**
  * Read the contents of a binary file into a buffer.
+ *
  * @param h handle to an open file
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
  * @return the number of bytes read on success, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, void *result,
+GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, 
+                       void *result,
                        size_t len);
 
 
@@ -579,18 +589,20 @@ GNUNET_DISK_fn_read (const char *fn,
  */
 ssize_t
 GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle *h,
-                        const void *buffer, size_t n);
+                        const void *buffer, 
+                        size_t n);
 
 
 /**
  * Write a buffer to a file, blocking, if necessary.
+ *
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
  * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
+GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle *h,
 				 const void *buffer, 
 				 size_t n);
 
@@ -606,7 +618,9 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
  * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
+GNUNET_DISK_fn_write (const char *fn,
+                      const void *buffer, 
+                      size_t n,
                       enum GNUNET_DISK_AccessPermissions mode);
 
 
@@ -766,7 +780,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlock_start,
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, 
+                         OFF_T unlock_start,
                          OFF_T unlock_end);
 
 

@@ -31,7 +31,6 @@
  * peers that connect.
  *
  * TODO:
- * - load revocations from disk
  * - store revocations to disk
  * - handle p2p revocations
  * - handle p2p connect (trigger SET union)
@@ -120,6 +119,11 @@ static struct GNUNET_SERVER_Handle *srv;
  * Notification context for convenient sending of replies to the clients.
  */
 static struct GNUNET_SERVER_NotificationContext *nc;
+
+/**
+ * File handle for the revocation database.
+ */
+static struct GNUNET_DISK_FileHandle *revocation_db;
 
 /**
  * Amount of work required (W-bit collisions) for REVOCATION proofs, in collision-bits.
@@ -401,6 +405,11 @@ shutdown_task (void *cls,
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
+  if (NULL != revocation_db)
+  {
+    GNUNET_DISK_file_close (revocation_db);
+    revocation_db = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_iterate (revocation_map,
                                          &free_entry,
                                          NULL);
@@ -453,7 +462,23 @@ run (void *cls,
      sizeof (struct RevokeMessage)},
     {NULL, 0, 0}
   };
+  char *fn;
+  uint64_t left;
+  struct RevokeMessage *rm;
+  struct GNUNET_HashCode hc;
 
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (c,
+                                               "REVOCATION",
+                                               "DATABASE",
+                                               &fn))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "REVOCATION",
+                               "DATABASE");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   cfg = c;
   srv = server;  
   revocation_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
@@ -466,6 +491,7 @@ run (void *cls,
 			       "REVOCATION",
 			       "WORKBITS");
     GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (fn);
     return;
   }
   if (revocation_work_required >= sizeof (struct GNUNET_HashCode) * 8)
@@ -475,10 +501,59 @@ run (void *cls,
 			       "WORKBITS",
 			       _("Value is too large.\n"));
     GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (fn);
     return;
   }
   revocation_set = GNUNET_SET_create (cfg,
 				      GNUNET_SET_OPERATION_UNION);
+  
+  revocation_db = GNUNET_DISK_file_open (fn,
+                                         GNUNET_DISK_OPEN_READWRITE |
+                                         GNUNET_DISK_OPEN_CREATE,
+                                         GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE |
+                                         GNUNET_DISK_PERM_GROUP_READ |
+                                         GNUNET_DISK_PERM_OTHER_READ);
+  if (NULL == revocation_db)
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+			       "REVOCATION",
+			       "DATABASE",
+                               _("Could not open revocation database file!"));
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (fn);
+    return;
+  }
+  if (GNUNET_OK !=
+      GNUNET_DISK_file_size (fn, &left, GNUNET_YES, GNUNET_YES))
+    left = 0;                         
+  while (left > sizeof (struct RevokeMessage))
+  {
+    rm = GNUNET_new (struct RevokeMessage);    
+    if (sizeof (struct RevokeMessage) !=
+        GNUNET_DISK_file_read (revocation_db,
+                               rm,
+                               sizeof (struct RevokeMessage)))
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "read",
+                                fn);
+      GNUNET_free (rm);
+      GNUNET_SCHEDULER_shutdown ();
+      GNUNET_free (fn);
+      return;
+    }
+    GNUNET_break (0 == ntohl (rm->reserved));
+    GNUNET_CRYPTO_hash (&rm->public_key,
+                        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                        &hc);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (revocation_map,
+                                                     &hc,
+                                                     rm,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));    
+  }
+  GNUNET_free (fn);
+  
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);

@@ -324,9 +324,10 @@ GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *section,
-                                       const char *option, char **value);
+GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle *cfg, 
+                                       const char *section,
+                                       const char *option, 
+                                       char **value);
 
 
 /**
@@ -341,10 +342,10 @@ GNUNET_CONFIGURATION_get_value_string (const struct GNUNET_CONFIGURATION_Handle
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_filename (const struct
-                                         GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_CONFIGURATION_get_value_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                          const char *section,
                                          const char *option, char **value);
+
 
 /**
  * Iterate over the set of filenames stored in a configuration value.

@@ -282,23 +282,23 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
  * @param size set to the size of the file (or,
  *             in the case of directories, the sum
  *             of all sizes of files in the directory)
- * @param includeSymLinks should symbolic links be
+ * @param include_symbolic_links should symbolic links be
  *        included?
- * @param singleFileMode GNUNET_YES to only get size of one file
+ * @param single_file_mode GNUNET_YES to only get size of one file
  *        and return GNUNET_SYSERR for directories.
  * @return GNUNET_SYSERR on error, GNUNET_OK on success
  */
 int
 GNUNET_DISK_file_size (const char *filename, uint64_t * size,
-                       int includeSymLinks, int singleFileMode)
+                       int include_symbolic_links, int single_file_mode)
 {
   struct GetFileSizeData gfsd;
   int ret;
 
   GNUNET_assert (size != NULL);
   gfsd.total = 0;
-  gfsd.include_sym_links = includeSymLinks;
-  gfsd.single_file_mode = singleFileMode;
+  gfsd.include_sym_links = include_symbolic_links;
+  gfsd.single_file_mode = single_file_mode;
   ret = getSizeRec (&gfsd, filename);
   *size = gfsd.total;
   return ret;
@@ -318,7 +318,7 @@ GNUNET_DISK_file_size (const char *filename, uint64_t * size,
  * @param filename name of the file
  * @param dev set to the device ID
  * @param ino set to the inode ID
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_DISK_file_get_identifiers (const char *filename, uint64_t * dev,
@@ -557,15 +557,15 @@ GNUNET_DISK_mktemp (const char *t)
 
 
 /**
- * Test if "fil" is a directory and listable. Optionally, also check if the
+ * Test if @a fil is a directory and listable. Optionally, also check if the
  * directory is readable.  Will not print an error message if the directory does
- * not exist.  Will log errors if GNUNET_SYSERR is returned (i.e., a file exists
+ * not exist.  Will log errors if #GNUNET_SYSERR is returned (i.e., a file exists
  * with the same name).
  *
  * @param fil filename to test
- * @param is_readable GNUNET_YES to additionally check if "fil" is readable;
- *          GNUNET_NO to disable this check
- * @return GNUNET_YES if yes, GNUNET_NO if not; GNUNET_SYSERR if it
+ * @param is_readable GNUNET_YES to additionally check if @a fil is readable;
+ *          #GNUNET_NO to disable this check
+ * @return #GNUNET_YES if yes, #GNUNET_NO if not; #GNUNET_SYSERR if it
  *           does not exist or stat'ed
  */
 int
@@ -605,7 +605,7 @@ GNUNET_DISK_directory_test (const char *fil, int is_readable)
  * (of a file that exists and that is not a directory).
  *
  * @param fil filename to check
- * @return GNUNET_YES if yes, GNUNET_NO if not a file, GNUNET_SYSERR if something
+ * @return #GNUNET_YES if yes, GNUNET_NO if not a file, #GNUNET_SYSERR if something
  * else (will print an error message in that case, too).
  */
 int
@@ -651,7 +651,7 @@ GNUNET_DISK_file_test (const char *fil)
  * Implementation of "mkdir -p"
  *
  * @param dir the directory to create
- * @returns GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_DISK_directory_create (const char *dir)
@@ -759,9 +759,9 @@ GNUNET_DISK_directory_create (const char *dir)
  * a file.
  *
  * @param filename name of a file in the directory
- * @returns GNUNET_OK on success,
- *          GNUNET_SYSERR on failure,
- *          GNUNET_NO if the directory
+ * @returns #GNUNET_OK on success,
+ *          #GNUNET_SYSERR on failure,
+ *          #GNUNET_NO if the directory
  *          exists but is not writeable for us
  */
 int
@@ -788,27 +788,29 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
 
 /**
  * Read the contents of a binary file into a buffer.
+ *
  * @param h handle to an open file
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ * @return the number of bytes read on success, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
+GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h, 
+                       void *result,
                        size_t len)
 {
-  if (h == NULL)
+  if (NULL == h)
   {
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
 
 #ifdef MINGW
-  DWORD bytesRead;
+  DWORD bytes_read;
 
   if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
-    if (!ReadFile (h->h, result, len, &bytesRead, NULL))
+    if (!ReadFile (h->h, result, len, &bytes_read, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -816,7 +818,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
   }
   else
   {
-    if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
+    if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
@@ -825,11 +827,11 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-      GetOverlappedResult (h->h, h->oOverlapRead, &bytesRead, TRUE);
+      GetOverlappedResult (h->h, h->oOverlapRead, &bytes_read, TRUE);
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from pipe\n", bytesRead);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from pipe\n", bytes_read);
   }
-  return bytesRead;
+  return bytes_read;
 #else
   return read (h->fd, result, len);
 #endif
@@ -844,25 +846,25 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle * h, void *result,
  * @param h handle to an open file
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return the number of bytes read on success, GNUNET_SYSERR on failure
+ * @return the number of bytes read on success, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
+GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
 				    void *result, 
 				    size_t len)
 {
-  if (h == NULL)
+  if (NULL == h)
   {
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
 
 #ifdef MINGW
-  DWORD bytesRead;
+  DWORD bytes_read;
 
   if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
-    if (!ReadFile (h->h, result, len, &bytesRead, NULL))
+    if (!ReadFile (h->h, result, len, &bytes_read, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -870,7 +872,7 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
   }
   else
   {
-    if (!ReadFile (h->h, result, len, &bytesRead, h->oOverlapRead))
+    if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
@@ -887,9 +889,9 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
         return GNUNET_SYSERR;
       }
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytesRead);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytes_read);
   }
-  return bytesRead;
+  return bytes_read;
 #else
   int flags;
   ssize_t ret;
@@ -916,10 +918,12 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle * h,
  * @param fn file name
  * @param result the buffer to write the result to
  * @param len the maximum number of bytes to read
- * @return number of bytes read, GNUNET_SYSERR on failure
+ * @return number of bytes read, #GNUNET_SYSERR on failure
  */
 ssize_t
-GNUNET_DISK_fn_read (const char *fn, void *result, size_t len)
+GNUNET_DISK_fn_read (const char *fn, 
+                     void *result, 
+                     size_t len)
 {
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
@@ -936,27 +940,28 @@ GNUNET_DISK_fn_read (const char *fn, void *result, size_t len)
 
 /**
  * Write a buffer to a file.
+ *
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
- * @return number of bytes written on success, GNUNET_SYSERR on error
+ * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
                         const void *buffer, size_t n)
 {
-  if (h == NULL)
+  if (NULL == h)
   {
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
 
 #ifdef MINGW
-  DWORD bytesWritten;
+  DWORD bytes_written;
 
   if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
-    if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+    if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       return GNUNET_SYSERR;
@@ -965,7 +970,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
-    if (!WriteFile (h->h, buffer, n, &bytesWritten, h->oOverlapWrite))
+    if (!WriteFile (h->h, buffer, n, &bytes_written, h->oOverlapWrite))
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
@@ -975,7 +980,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Will get overlapped result\n");
-      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &bytesWritten, TRUE))
+      if (!GetOverlappedResult (h->h, h->oOverlapWrite, &bytes_written, TRUE))
       {
         SetErrnoFromWinError (GetLastError ());
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -997,21 +1002,21 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Wrote %u bytes (ovr says %u), picking the greatest\n",
-            bytesWritten, ovr);
+            bytes_written, ovr);
       }
     }
-    if (bytesWritten == 0)
+    if (bytes_written == 0)
     {
       if (n > 0)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes, returning -1 with EAGAIN\n", bytesWritten);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes, returning -1 with EAGAIN\n", bytes_written);
         errno = EAGAIN;
         return GNUNET_SYSERR;
       }
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytes_written);
   }
-  return bytesWritten;
+  return bytes_written;
 #else
   return write (h->fd, buffer, n);
 #endif
@@ -1020,37 +1025,39 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
 
 /**
  * Write a buffer to a file, blocking, if necessary.
+ *
  * @param h handle to open file
  * @param buffer the data to write
  * @param n number of bytes to write
- * @return number of bytes written on success, GNUNET_SYSERR on error
+ * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
-    const void *buffer, size_t n)
+                                 const void *buffer, 
+                                 size_t n)
 {
-  if (h == NULL)
+  if (NULL == h)
   {
     errno = EINVAL;
     return GNUNET_SYSERR;
   }
 
 #ifdef MINGW
-  DWORD bytesWritten;
+  DWORD bytes_written;
   /* We do a non-overlapped write, which is as blocking as it gets */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Writing %u bytes\n", n);
-  if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+  if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
   {
     SetErrnoFromWinError (GetLastError ());
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
         GetLastError ());
     return GNUNET_SYSERR;
   }
-  if (bytesWritten == 0 && n > 0)
+  if (bytes_written == 0 && n > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for pipe to clean\n");
     WaitForSingleObject (h->h, INFINITE);
-    if (!WriteFile (h->h, buffer, n, &bytesWritten, NULL))
+    if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
     {
       SetErrnoFromWinError (GetLastError ());
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Error writing to pipe: %u\n",
@@ -1058,8 +1065,10 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
       return GNUNET_SYSERR;
     }
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytesWritten);
-  return bytesWritten;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Wrote %u bytes\n",
+       bytes_written);
+  return bytes_written;
 #else
   int flags;
   ssize_t ret;
@@ -1084,7 +1093,7 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
  * @param buffer the data to write
  * @param n number of bytes to write
  * @param mode file permissions
- * @return number of bytes written on success, GNUNET_SYSERR on error
+ * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
 GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
@@ -1110,9 +1119,9 @@ GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
  * @param dir_name the name of the directory
  * @param callback the method to call for each file,
  *        can be NULL, in that case, we only count
- * @param callback_cls closure for callback
- * @return the number of files found, GNUNET_SYSERR on error or
- *         ieration aborted by callback returning GNUNET_SYSERR
+ * @param callback_cls closure for @a callback
+ * @return the number of files found, #GNUNET_SYSERR on error or
+ *         ieration aborted by callback returning #GNUNET_SYSERR
  */
 int
 GNUNET_DISK_directory_scan (const char *dir_name,
@@ -1143,7 +1152,8 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   }
   if (!S_ISDIR (istat.st_mode))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, _("Expected `%s' to be a directory!\n"),
+    LOG (GNUNET_ERROR_TYPE_WARNING, 
+         _("Expected `%s' to be a directory!\n"),
          dir_name);
     GNUNET_free (dname);
     return GNUNET_SYSERR;
@@ -1324,7 +1334,7 @@ GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
 {
   struct GNUNET_DISK_DirectoryIterator *di;
 
-  di = GNUNET_malloc (sizeof (struct GNUNET_DISK_DirectoryIterator));
+  di = GNUNET_new (struct GNUNET_DISK_DirectoryIterator);
   di->callback = callback;
   di->callback_cls = callback_cls;
   di->directory = OPENDIR (dir_name);
@@ -1748,7 +1758,7 @@ GNUNET_DISK_file_open (const char *fn,
     }
 #endif
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  ret = GNUNET_new (struct GNUNET_DISK_FileHandle);
 #ifdef MINGW
   ret->h = h;
   ret->type = GNUNET_DISK_HANLDE_TYPE_FILE;
@@ -1843,7 +1853,7 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     return NULL;
   }
 
-  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  fh = GNUNET_new (struct GNUNET_DISK_FileHandle);
 
   fh->h = osfh;
   fh->type = ftype;
@@ -1883,7 +1893,7 @@ GNUNET_DISK_get_handle_from_int_fd (int fno)
     return NULL; /* invalid FD */
 
 #ifndef WINDOWS
-  fh = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  fh = GNUNET_new (struct GNUNET_DISK_FileHandle);
 
   fh->fd = fno;
 #else
@@ -2064,7 +2074,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
     return NULL;
   }
 
-  *m = GNUNET_malloc (sizeof (struct GNUNET_DISK_MapHandle));
+  *m = GNUNET_new (struct GNUNET_DISK_MapHandle);
   (*m)->h = CreateFileMapping (h->h, NULL, protect, 0, 0, NULL);
   if ((*m)->h == INVALID_HANDLE_VALUE)
   {
@@ -2090,7 +2100,7 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
     prot = PROT_READ;
   if (access & GNUNET_DISK_MAP_TYPE_WRITE)
     prot |= PROT_WRITE;
-  *m = GNUNET_malloc (sizeof (struct GNUNET_DISK_MapHandle));
+  *m = GNUNET_new (struct GNUNET_DISK_MapHandle);
   (*m)->addr = mmap (NULL, len, prot, MAP_SHARED, h->fd, 0);
   GNUNET_assert (NULL != (*m)->addr);
   if (MAP_FAILED == (*m)->addr)
@@ -2322,9 +2332,9 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
   HANDLE tmp_handle;
   int save_errno;
 
-  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle));
-  p->fd[0] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
-  p->fd[1] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+  p = GNUNET_new (struct GNUNET_DISK_PipeHandle);
+  p->fd[0] = GNUNET_new (struct GNUNET_DISK_FileHandle);
+  p->fd[1] = GNUNET_new (struct GNUNET_DISK_FileHandle);
 
   /* All pipes are overlapped. If you want them to block - just
    * call WriteFile() and ReadFile() with NULL overlapped pointer.
@@ -2417,7 +2427,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
 {
   struct GNUNET_DISK_PipeHandle *p;
 
-  p = GNUNET_malloc (sizeof (struct GNUNET_DISK_PipeHandle));
+  p = GNUNET_new (struct GNUNET_DISK_PipeHandle);
 
 #ifndef MINGW
   int ret;
@@ -2427,7 +2437,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   ret = 0;
   if (fd[0] >= 0)
   {
-    p->fd[0] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+    p->fd[0] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[0]->fd = fd[0];
     if (!blocking_read)
     {
@@ -2450,7 +2460,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
 
   if (fd[1] >= 0)
   {
-    p->fd[1] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+    p->fd[1] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[1]->fd = fd[1];
     if (!blocking_write)
     {
@@ -2487,7 +2497,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
 #else
   if (fd[0] >= 0)
   {
-    p->fd[0] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+    p->fd[0] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[0]->h = (HANDLE) _get_osfhandle (fd[0]);
     if (p->fd[0]->h != INVALID_HANDLE_VALUE)
     {
@@ -2505,7 +2515,7 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
   }
   if (fd[1] >= 0)
   {
-    p->fd[1] = GNUNET_malloc (sizeof (struct GNUNET_DISK_FileHandle));
+    p->fd[1] = GNUNET_new (struct GNUNET_DISK_FileHandle);
     p->fd[1]->h = (HANDLE) _get_osfhandle (fd[1]);
     if (p->fd[1]->h != INVALID_HANDLE_VALUE)
     {
