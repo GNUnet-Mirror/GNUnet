@@ -1982,14 +1982,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB 642
 
 /**
+ * Vector-Product Service request -> remote VP Service Multipart
+ */
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART 643
+
+/**
  * remote Vector-Product Service response -> requesting VP Service
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE 643
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE 644
+
+/**
+ * remote Vector-Product Service response -> requesting VP Service Multipart
+ */
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE_MULTIPART 645
 
 /**
  * Vector-Product Service response -> Client
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT 644
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT 646
 
 
 /*******************************************************************************
