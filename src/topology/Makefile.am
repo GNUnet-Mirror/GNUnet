@@ -12,12 +12,25 @@ dist_pkgcfg_DATA = \
   topology.conf
 
 
+lib_LTLIBRARIES = libgnunetfriends.la
+
+libgnunetfriends_la_SOURCES = \
+  friends.c
+libgnunetfriends_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+  $(GN_LIBINTL) $(XLIB)
+libgnunetfriends_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+
+
 libexec_PROGRAMS = \
  gnunet-daemon-topology
 
 gnunet_daemon_topology_SOURCES = \
- gnunet-daemon-topology.c 
+ gnunet-daemon-topology.c
 gnunet_daemon_topology_LDADD = \
+  libgnunetfriends.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -40,7 +53,7 @@ test_gnunet_daemon_topology_SOURCES = \
  test_gnunet_daemon_topology.c
 test_gnunet_daemon_topology_LDADD = \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
- test_gnunet_daemon_topology_data.conf 
+ test_gnunet_daemon_topology_data.conf

@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_friends_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
@@ -1002,118 +1003,63 @@ core_init (void *cls,
 
 
 /**
+ * Process friend found in FRIENDS file.
+ *
+ * @param cls pointer to an `unsigned int` to be incremented per friend found
+ * @param pid identity of the friend
+ */
+static void
+handle_friend (void *cls,
+               const struct GNUNET_PeerIdentity *pid)
+{
+  unsigned int *entries_found = cls;
+  struct Peer *fl;
+
+  if (0 == memcmp (pid, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Found myself `%s' in friend list (useless, ignored)\n"),
+                GNUNET_i2s (&pid));
+    return;
+  }
+  (*entries_found)++;
+  fl = make_peer (pid, NULL, GNUNET_YES);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Found friend `%s' in configuration\n"),
+              GNUNET_i2s (&fl->pid));
+}
+
+
+/**
  * Read the friends file.
  */
 static void
 read_friends_file (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *fn;
-  char *data;
-  size_t pos;
-  size_t start;
-  struct GNUNET_PeerIdentity pid;
-  uint64_t fsize;
   unsigned int entries_found;
-  struct Peer *fl;
 
+  entries_found = 0;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "TOPOLOGY", "FRIENDS", &fn))
-  {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "topology", "FRIENDS");
-    return;
-  }
-  if ( (GNUNET_OK != GNUNET_DISK_file_test (fn)) &&
-       (GNUNET_OK != GNUNET_DISK_fn_write (fn, NULL, 0,
-					   GNUNET_DISK_PERM_USER_READ |
-					   GNUNET_DISK_PERM_USER_WRITE)) )
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "write", fn);
-  if (GNUNET_OK != GNUNET_DISK_file_size (fn,
-      &fsize, GNUNET_NO, GNUNET_YES))
+      GNUNET_FRIENDS_parse (cfg,
+                            &handle_friend,
+                            &entries_found))
   {
     if ((friends_only) || (minimum_friend_count > 0))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Could not read friends list `%s'\n"), fn);
-    GNUNET_free (fn);
-    return;
-  }
-  if (0 == fsize)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Friends file `%s' is empty.\n"),
-                fn);
-    GNUNET_free (fn);
-    return;
-  }
-  data = GNUNET_malloc_large (fsize);
-  if (NULL == data)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to read friends list from `%s': out of memory\n"),
-                fn);
-    GNUNET_free (fn);
-    return;
-  }
-  if (fsize != GNUNET_DISK_fn_read (fn, data, fsize))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to read friends list from `%s'\n"), fn);
-    GNUNET_free (fn);
-    GNUNET_free (data);
-    return;
-  }
-  entries_found = 0;
-  start = 0;
-  pos = 0;
-  while (pos < fsize)
-  {
-    while ((pos < fsize) && isspace ((unsigned char) data[pos]))
-      pos++;
-    if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_public_sign_key_from_string (&data[start],
-						       pos - start,
-						       &pid.public_key))
-    {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Syntax error in topology specification at offset %llu, skipping bytes `%.*s'.\n"),
-                  (unsigned long long) pos,
-		  (int) (pos - start),
-		  &data[start]);
-      pos++;
-      start = pos;
-      continue;
-    }
-    pos++;
-    start = pos;
-    if (0 == memcmp (&pid, &my_identity, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Found myself `%s' in friend list (useless, ignored)\n"),
-		  GNUNET_i2s (&pid));
-      continue;
-    }
-    entries_found++;
-    fl = make_peer (&pid, NULL, GNUNET_YES);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Found friend `%s' in configuration\n"),
-		GNUNET_i2s (&fl->pid));
+                  _("Encountered errors parsing friends list!\n"));
   }
-  GNUNET_free (data);
-  GNUNET_free (fn);
   GNUNET_STATISTICS_update (stats, gettext_noop ("# friends in configuration"),
                             entries_found, GNUNET_NO);
   if ((minimum_friend_count > entries_found) && (friends_only == GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Fewer friends specified than required by minimum friend count. Will only connect to friends.\n"));
+                _("Fewer friends specified than required by minimum friend count. Will only connect to friends.\n"));
   }
   if ((minimum_friend_count > target_connection_count) &&
       (friends_only == GNUNET_NO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("More friendly connections required than target total number of connections.\n"));
+                _("More friendly connections required than target total number of connections.\n"));
   }
 }
 

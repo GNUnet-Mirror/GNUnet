@@ -3,7 +3,7 @@ SUBDIRS = .
 gnunetincludedir = $(includedir)/gnunet
 
 nodist_gnunetinclude_HEADERS = \
-  gnunet_directories.h 
+  gnunet_directories.h
 
 if MINGW
   WINPROC = winproc.h
@@ -44,6 +44,7 @@ gnunetinclude_HEADERS = \
   gnunet_dns_service.h \
   gnunet_dv_service.h \
   gnunet_fragmentation_lib.h \
+  gnunet_friends_lib.h \
   gnunet_fs_service.h \
   gnunet_getopt_lib.h \
   gnunet_gns_service.h \
@@ -87,4 +88,4 @@ gnunetinclude_HEADERS = \
   gnunet_transport_plugin.h \
   gnunet_tun_lib.h \
   gnunet_util_lib.h \
-  gnunet_vpn_service.h 
+  gnunet_vpn_service.h
