@@ -95,7 +95,7 @@ GNUNET_NETWORK_STRUCT_END
 /**
  * apis (our advertised API and the core api )
  */
-static GNUNET_CoreAPIForTransport *coreAPI;
+static GNUNET_CoreAPIForTransport *core_api;
 
 static struct GNUNET_GE_Context *ectx;
 
@@ -322,8 +322,8 @@ listenAndDistribute (void *unused)
     if ( (retl == NULL) || (smtp_shutdown == GNUNET_YES)) {\
       goto END; \
     }\
-    if (coreAPI->load_monitor != NULL) \
-     GNUNET_network_monitor_notify_transmission(coreAPI->load_monitor, GNUNET_ND_DOWNLOAD, strlen(retl)); \
+    if (core_api->load_monitor != NULL) \
+     GNUNET_network_monitor_notify_transmission(core_api->load_monitor, GNUNET_ND_DOWNLOAD, strlen(retl)); \
   } while (0)
 
 
@@ -390,7 +390,7 @@ listenAndDistribute (void *unused)
                      "SMTP message passed to the core.\n");
 #endif
 
-      coreAPI->receive (coreMP);
+      core_api->receive (coreMP);
     }
 END:
 #if DEBUG_SMTP
@@ -449,7 +449,7 @@ api_create_hello ()
   EmailAddress *haddr;
   int i;
 
-  GNUNET_GC_get_configuration_value_string (coreAPI->cfg, "SMTP", "FILTER",
+  GNUNET_GC_get_configuration_value_string (core_api->cfg, "SMTP", "FILTER",
                                             "X-mailer: GNUnet", &filter);
   if (NULL == strstr (filter, ": "))
   {
@@ -614,7 +614,7 @@ api_send (GNUNET_TSession * tsession, const void *msg, const unsigned int size,
   mp = (SMTPMessage *) &m[size];
   mp->header.size = htons (size + sizeof (SMTPMessage));
   mp->header.type = htons (0);
-  mp->sender = *coreAPI->my_identity;
+  mp->sender = *core_api->my_identity;
   gm_cls.ebody = NULL;
   gm_cls.pos = 0;
   gm_cls.esize = base64_encode (m, size + sizeof (SMTPMessage), &gm_cls.ebody);
@@ -665,8 +665,8 @@ api_send (GNUNET_TSession * tsession, const void *msg, const unsigned int size,
   }
   if (stats != NULL)
     stats->change (stat_bytesSent, size);
-  if (coreAPI->load_monitor != NULL)
-    GNUNET_network_monitor_notify_transmission (coreAPI->load_monitor,
+  if (core_api->load_monitor != NULL)
+    GNUNET_network_monitor_notify_transmission (core_api->load_monitor,
                                                 GNUNET_ND_UPLOAD, gm_cls.esize);
   smtp_message_reset_status (message);  /* this is needed to plug a 28-byte/message memory leak in libesmtp */
   smtp_destroy_session (session);
@@ -790,21 +790,21 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
   unsigned long long mtu;
   struct sigaction sa;
 
-  coreAPI = core;
+  core_api = core;
   ectx = core->ectx;
-  if (!GNUNET_GC_have_configuration_value (coreAPI->cfg, "SMTP", "EMAIL"))
+  if (!GNUNET_GC_have_configuration_value (core_api->cfg, "SMTP", "EMAIL"))
   {
     GNUNET_GE_LOG (ectx, GNUNET_GE_ERROR | GNUNET_GE_BULK | GNUNET_GE_USER,
                    _
                    ("No email-address specified, can not start SMTP transport.\n"));
     return NULL;
   }
-  GNUNET_GC_get_configuration_value_number (coreAPI->cfg, "SMTP", "MTU", 1200,
+  GNUNET_GC_get_configuration_value_number (core_api->cfg, "SMTP", "MTU", 1200,
                                             SMTP_MESSAGE_SIZE,
                                             SMTP_MESSAGE_SIZE, &mtu);
-  GNUNET_GC_get_configuration_value_number (coreAPI->cfg, "SMTP", "RATELIMIT",
+  GNUNET_GC_get_configuration_value_number (core_api->cfg, "SMTP", "RATELIMIT",
                                             0, 0, 1024 * 1024, &rate_limit);
-  stats = coreAPI->service_request ("stats");
+  stats = core_api->service_request ("stats");
   if (stats != NULL)
   {
     stat_bytesReceived =
@@ -813,7 +813,7 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
     stat_bytesDropped =
         stats->create (gettext_noop ("# bytes dropped by SMTP (outgoing)"));
   }
-  GNUNET_GC_get_configuration_value_filename (coreAPI->cfg, "SMTP", "PIPE", &pipename);
+  GNUNET_GC_get_configuration_value_filename (core_api->cfg, "SMTP", "PIPE", &pipename);
   UNLINK (pipename);
   if (0 != mkfifo (pipename, S_IWUSR | S_IRUSR | S_IWGRP | S_IWOTH))
   {
@@ -821,7 +821,7 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
                             GNUNET_GE_ADMIN | GNUNET_GE_BULK | GNUNET_GE_FATAL,
                             "mkfifo");
     GNUNET_free (pipename);
-    coreAPI->service_release (stats);
+    core_api->service_release (stats);
     stats = NULL;
     return NULL;
   }
@@ -831,10 +831,10 @@ inittransport_smtp (struct GNUNET_CoreAPIForTransport * core)
     GNUNET_GE_LOG_STRERROR (ectx,
                             GNUNET_GE_ADMIN | GNUNET_GE_BULK |
                             GNUNET_GE_WARNING, "chmod");
-  GNUNET_GC_get_configuration_value_string (coreAPI->cfg, "SMTP", "EMAIL", NULL,
+  GNUNET_GC_get_configuration_value_string (core_api->cfg, "SMTP", "EMAIL", NULL,
                                             &email);
   lock = GNUNET_mutex_create (GNUNET_NO);
-  GNUNET_GC_get_configuration_value_string (coreAPI->cfg, "SMTP", "SERVER",
+  GNUNET_GC_get_configuration_value_string (core_api->cfg, "SMTP", "SERVER",
                                             "localhost:25", &smtp_server_name);
   sa.sa_handler = SIG_IGN;
   sigemptyset (&sa.sa_mask);
@@ -864,7 +864,7 @@ donetransport_smtp ()
   GNUNET_free (smtp_server_name);
   if (stats != NULL)
   {
-    coreAPI->service_release (stats);
+    core_api->service_release (stats);
     stats = NULL;
   }
   GNUNET_mutex_destroy (lock);

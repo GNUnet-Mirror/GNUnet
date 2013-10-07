@@ -438,7 +438,7 @@ static struct GNUNET_HashCode my_identity_hash;
 /**
  * Handle to CORE.
  */
-static struct GNUNET_CORE_Handle *coreAPI;
+static struct GNUNET_CORE_Handle *core_api;
 
 /**
  * Handle to ATS.
@@ -801,7 +801,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   if (buf == NULL)
   {
     peer->th =
-        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
+        GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
                                            pending->importance,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id,
@@ -827,7 +827,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   if (peer->head != NULL)
   {
     peer->th =
-        GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
+        GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
                                            pending->importance,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id, msize,
@@ -857,7 +857,7 @@ process_peer_queue (struct PeerInfo *peer)
                             ("# Bytes of bandwidth requested from core"),
                             ntohs (pending->msg->size), GNUNET_NO);
   peer->th =
-      GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO,
+      GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
                                          pending->importance,
                                          GNUNET_TIME_absolute_get_remaining
                                          (pending->timeout), &peer->id,
@@ -2179,11 +2179,11 @@ GDS_NEIGHBOURS_init ()
   log_route_details_stderr =
     (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
   atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
-  coreAPI =
+  core_api =
       GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
                            &handle_core_disconnect, NULL, GNUNET_NO, NULL,
                            GNUNET_NO, core_handlers);
-  if (coreAPI == NULL)
+  if (core_api == NULL)
     return GNUNET_SYSERR;
   all_known_peers = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   return GNUNET_OK;
@@ -2196,10 +2196,10 @@ GDS_NEIGHBOURS_init ()
 void
 GDS_NEIGHBOURS_done ()
 {
-  if (NULL == coreAPI)
+  if (NULL == core_api)
     return;
-  GNUNET_CORE_disconnect (coreAPI);
-  coreAPI = NULL;
+  GNUNET_CORE_disconnect (core_api);
+  core_api = NULL;
   GNUNET_ATS_performance_done (atsAPI);
   atsAPI = NULL;
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (all_known_peers));

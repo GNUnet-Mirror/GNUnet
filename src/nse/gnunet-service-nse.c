@@ -216,7 +216,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Handle to the core service.
  */
-static struct GNUNET_CORE_Handle *coreAPI;
+static struct GNUNET_CORE_Handle *core_api;
 
 /**
  * Map of all connected peers.
@@ -660,7 +660,7 @@ transmit_task_cb (void *cls,
 
   GNUNET_assert (NULL == peer_entry->th);
   peer_entry->th =
-      GNUNET_CORE_notify_transmit_ready (coreAPI, GNUNET_NO, NSE_PRIORITY,
+      GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO, NSE_PRIORITY,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          &peer_entry->id,
                                          sizeof (struct
@@ -1324,10 +1324,10 @@ shutdown_task (void *cls,
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
-  if (NULL != coreAPI)
+  if (NULL != core_api)
   {
-    GNUNET_CORE_disconnect (coreAPI);
-    coreAPI = NULL;
+    GNUNET_CORE_disconnect (core_api);
+    core_api = NULL;
   }
   if (NULL != stats)
   {
@@ -1503,7 +1503,7 @@ run (void *cls,
   GNUNET_SERVER_add_handlers (srv, handlers);
   nc = GNUNET_SERVER_notification_context_create (srv, 1);
   /* Connect to core service and register core handlers */
-  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
+  core_api = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  NULL,       /* Closure passed to functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
@@ -1513,7 +1513,7 @@ run (void *cls,
                                  NULL,  /* Don't want notified about all outbound messages */
                                  GNUNET_NO,     /* For header only outbound notification */
                                  core_handlers);        /* Register these handlers */
-  if (NULL == coreAPI)
+  if (NULL == core_api)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
