@@ -89,7 +89,7 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pos = 0;
   while (pos < fsize)
   {
-    while ((pos < fsize) && isspace ((unsigned char) data[pos]))
+    while ((pos < fsize) && (! isspace ((int) data[pos])))
       pos++;
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecc_public_sign_key_from_string (&data[start],
@@ -97,7 +97,7 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
 						       &pid.public_key))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Syntax error in topology specification at offset %llu, skipping bytes `%.*s'.\n"),
+                  _("Syntax error in FRIENDS file at offset %llu, skipping bytes `%.*s'.\n"),
                   (unsigned long long) pos,
 		  (int) (pos - start),
 		  &data[start]);
