@@ -578,11 +578,6 @@ udp_address_to_string (void *cls, const void *addr, size_t addrlen)
     memcpy (&a4, &t4->ipv4_addr, sizeof (a4));
     sb = &a4;
   }
-  else if (addrlen == 0)
-  {
-    GNUNET_snprintf (rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
-    return rbuf;
-  }
   else
   {
     return NULL;
@@ -824,12 +819,6 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     options = ntohl (u4->options);
     sb = &a4;
     sbs = sizeof (a4);
-  }
-  else if (0 == addrlen)
-  {
-    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
-    asc (asc_cls, NULL);
-    return;
   }
   else
   {
@@ -2051,9 +2040,7 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   {
     s = udp_plugin_create_session (plugin, address, GNUNET_YES);
     plugin->env->session_start (NULL, &address->peer, PLUGIN_NAME,
-                  (GNUNET_YES == s->inbound) ? NULL : address->address,
-                  (GNUNET_YES == s->inbound) ? 0 : address->address_length,
-            s, NULL, 0);
+                  address->address, address->address_length, s, NULL, 0);
   }
   GNUNET_free (address);
 
@@ -3118,13 +3105,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
   GNUNET_BANDWIDTH_tracker_init (&p->tracker,
-                                 GNUNET_BANDWIDTH_value_init ((uint32_t)udp_max_bps), 30);
+      GNUNET_BANDWIDTH_value_init ((uint32_t) udp_max_bps), 30);
   plugin = p;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Setting up sockets\n");
   res = setup_sockets (p, (GNUNET_YES == have_bind6) ? &serverAddrv6 : NULL,
-		       	 	 	 	 	 	 	 	(GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL);
-  if ((res == 0) || ((p->sockv4 == NULL) && (p->sockv6 == NULL)))
+      (GNUNET_YES == have_bind4) ? &serverAddrv4 : NULL );
+  if ((res == 0) || ((p->sockv4 == NULL )&& (p->sockv6 == NULL)))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create network sockets, plugin failed\n"));

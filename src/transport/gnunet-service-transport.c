@@ -532,52 +532,37 @@ plugin_env_update_metrics (void *cls,
  */
 
 static void
-plugin_env_session_start (void *cls,
-	   const struct GNUNET_PeerIdentity *peer,
-	   const char *plugin,
-	   const void *address,
-	   uint16_t address_len,
-	   struct Session *session,
-	   const struct GNUNET_ATS_Information *ats,
-	   uint32_t ats_count)
+plugin_env_session_start (void *cls, const struct GNUNET_PeerIdentity *peer,
+    const char *plugin, const void *address, uint16_t address_len,
+    struct Session *session, const struct GNUNET_ATS_Information *ats,
+    uint32_t ats_count)
 {
-	struct GNUNET_HELLO_Address *addr;
-	if (NULL == peer)
-	{
-		GNUNET_break (0);
-		return;
-	}
-	if (NULL == plugin)
-	{
-		GNUNET_break (0);
-		return;
-	}
-	if ((address_len != 0) && (NULL == address))
-	{
-		GNUNET_break (0);
-		return;
-	}
-	if (NULL == session)
-	{
-		GNUNET_break (0);
-		return;
-	}
+  struct GNUNET_HELLO_Address *addr;
+  if (NULL == peer)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  if (NULL == plugin)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  if (NULL == session)
+  {
+    GNUNET_break(0);
+    return;
+  }
 
-	addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
-	if (0 != address_len)
-	{
-		GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-				"Inbound session from plugin `%s' about new session %p from peer `%s' address `%s' does not have address length 0 but %u\n",
-				plugin, session, GNUNET_i2s (peer), GST_plugins_a2s(addr), address_len);
-	}
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			"Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
-			plugin, session, GNUNET_i2s (peer), GST_plugins_a2s(addr));
-	GST_ats_add_address (addr, session);
+  addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
+      plugin, session, GNUNET_i2s (peer), GST_plugins_a2s (addr));
+  GST_ats_add_address (addr, session);
 
-	if (0 < ats_count)
-		GST_ats_update_metrics (peer, addr, session, ats, ats_count);
-	GNUNET_free (addr);
+  if (0 < ats_count)
+    GST_ats_update_metrics (peer, addr, session, ats, ats_count);
+  GNUNET_free(addr);
 }
 
 /**
