@@ -1173,7 +1173,7 @@ prepare_service_request_multipart (void *cls,
   struct ServiceSession * session = cls;
   unsigned char * current;
   unsigned char * element_exported;
-  struct GNUNET_SCALARPRODUCT_service_request * msg;
+  struct GNUNET_SCALARPRODUCT_multipart_message * msg;
   unsigned int i;
   unsigned int j;
   uint32_t msg_length;
@@ -1185,12 +1185,15 @@ prepare_service_request_multipart (void *cls,
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
   todo_count = session->used_element_count - session->transferred_element_count;
 
-  if (todo_count > MULTIPART_ELEMENT_CAPACITY){
-    // send the currently possible maximum chunk, else send all remaining
+  if (todo_count > MULTIPART_ELEMENT_CAPACITY)
+    // send the currently possible maximum chunk
     todo_count = MULTIPART_ELEMENT_CAPACITY;
-  }
+  
   msg_length += todo_count * PAILLIER_ELEMENT_LENGTH;
   msg = GNUNET_malloc (msg_length);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART);
+  msg->header.size = htons (msg_length);
+  msg->multipart_element_count = htonl (todo_count);
   
   element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
   a = gcry_mpi_new (KEYBITS * 2);
@@ -1235,7 +1238,33 @@ prepare_service_request_multipart (void *cls,
   }
   gcry_mpi_release (a);
   GNUNET_free(element_exported);
+  session->transferred_element_count+=todo_count;
   
+  session->msg = (struct GNUNET_MessageHeader *) msg;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
+
+  //transmit via mesh messaging
+  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
+                                                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                        msg_length,
+                                                                        &do_send_message,
+                                                                        session);
+  if (!session->service_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-request multipart message to tunnel!\n"));
+    GNUNET_free (msg);
+    session->msg = NULL;
+    session->client_notification_task =
+            GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                      session);
+    return;
+  }
+  if (session->transferred_element_count != session->used_element_count){
+    session->last_processed_element = i;
+  }
+  else
+    //final part
+    session->state = WAITING_FOR_SERVICE_RESPONSE;
 }
 /**
  * Executed by Alice, fills in a service-request message and sends it to the given peer
@@ -1352,7 +1381,7 @@ prepare_service_request (void *cls,
                                                                         session);
   if (!session->service_transmit_handle)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send mutlicast message to tunnel!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send message to tunnel!\n"));
     GNUNET_free (msg);
     session->msg = NULL;
     session->client_notification_task =
