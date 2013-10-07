@@ -195,7 +195,7 @@ enum GNUNET_OS_ProcessStatusType
 
 /**
  * Get the path to a specific GNUnet installation directory or, with
- * GNUNET_OS_IPK_SELF_PREFIX, the current running apps installation
+ * #GNUNET_OS_IPK_SELF_PREFIX, the current running apps installation
  * directory.
  *
  * @param dirkind what kind of directory is desired?
@@ -227,22 +227,22 @@ GNUNET_OS_get_libexec_binary_path (const char *progname);
  * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
  * @param netmask the network mask (can be NULL for unknown or unassigned))
  * @param addrlen length of the address
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls, const char *name,
+typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls,
+                                                    const char *name,
                                                     int isDefault,
-                                                    const struct sockaddr *
-                                                    addr,
-                                                    const struct sockaddr *
-                                                    broadcast_addr,
-                                                    const struct sockaddr *
-                                                    netmask, socklen_t addrlen);
+                                                    const struct sockaddr *addr,
+                                                    const struct sockaddr *broadcast_addr,
+                                                    const struct sockaddr *netmask,
+                                                    socklen_t addrlen);
 
 
 /**
  * @brief Enumerate all network interfaces
+ *
  * @param proc the callback function
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 void
 GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
@@ -428,7 +428,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
  * @param proc pointer to process structure
  * @param type status type
  * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
@@ -444,7 +444,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
  * or to terminate very soon.
  *
  * @param proc pointer to process structure of the process to wait for
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
@@ -478,9 +478,9 @@ GNUNET_OS_install_parent_control_handler (void *cls,
  *             binary with the -d flag. -d omits a programs main loop and only
  *             executes all privileged operations in an binary.
  * @param params parameters used for w32 privilege checking (can be NULL for != w32, or when not checking for suid/permissions )
- * @return GNUNET_YES if the file is SUID (*nix) or can be executed with current privileges (W32),
- *         GNUNET_NO if not SUID (but binary exists),
- *         GNUNET_SYSERR on error (no such binary or not executable)
+ * @return #GNUNET_YES if the file is SUID (*nix) or can be executed with current privileges (W32),
+ *         #GNUNET_NO if not SUID (but binary exists),
+ *         #GNUNET_SYSERR on error (no such binary or not executable)
  */
 int
 GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char * params);
