@@ -49,10 +49,6 @@
  * General description
  */
 
-/**
- * TODO! implement reward calculation 1 and 2 (i.e. meeting preferences and taking scores)
- */
-
 enum RIL_Action_Type
 {
   RIL_ACTION_NOTHING = 0,
@@ -662,6 +658,45 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 }
 
 /**
+ * For all networks a peer has an address in, this gets the maximum bandwidth which could
+ * theoretically be available in one of the networks. This is used for bandwidth normalization.
+ * @param solver the solver handle
+ * @param agent the agent handle
+ * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
+ */
+static long long unsigned
+ril_get_max_bw(struct RIL_Peer_Agent *agent, int direction_in)
+{
+  /*
+   * get the maximum bandwidth possible for a peer, e.g. among all addresses which addresses'
+   * network could provide the maximum bandwidth if all that bandwidth was used on that one peer.
+   */
+  int max = 0;
+  struct RIL_Address_Wrapped *cur;
+  struct RIL_Network *net;
+
+  for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
+  {
+    net = cur->address_naked->solver_information;
+    if (direction_in)
+    {
+      if (net->bw_in_available > max)
+      {
+        max = net->bw_in_available;
+      }
+    }
+    else
+    {
+      if (net->bw_out_available > max)
+      {
+        max = net->bw_out_available;
+      }
+    }
+  }
+  return max;
+}
+
+/**
  * Gets the reward of the last performed step
  * @param solver solver handle
  * @return the reward
@@ -669,10 +704,33 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 static double
 envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
-  //TODO! implement reward calculation
+  /*
+   * Match the preferences of the peer with the current assignment.
+   */
+  const double *preferences;
+  const double *properties;
+  double pref_match = 0;
+  double bw_norm;
+  struct RIL_Network *net;
 
-  return (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX)
-      / (double) UINT32_MAX;
+  preferences = solver->callbacks->get_preferences (solver->callbacks->get_preferences_cls, &agent->peer);
+  properties = solver->callbacks->get_properties (solver->callbacks->get_properties_cls,
+      agent->address_inuse);
+  pref_match += preferences[GNUNET_ATS_PREFERENCE_LATENCY] * properties[GNUNET_ATS_QUALITY_NET_DELAY];
+  bw_norm = GNUNET_MAX(2, (((
+      ((double) agent->bw_in / (double) ril_get_max_bw(agent, GNUNET_YES)) +
+      ((double) agent->bw_out / (double) ril_get_max_bw(agent, GNUNET_NO))
+      ) / 2
+      ) + 1));
+  pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm;
+
+  net = agent->address_inuse->solver_information;
+  if ((net->bw_in_assigned > net->bw_in_available) || net->bw_out_assigned > net->bw_out_available)
+  {
+    return -1;
+  }
+
+  return pref_match;
 }
 
 /**
@@ -1338,6 +1396,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
   struct RIL_Address_Wrapped *address_wrapped;
+  struct RIL_Network *net;
   unsigned int m_new;
   unsigned int m_old;
   unsigned int n_new;
@@ -1346,7 +1405,8 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   unsigned int zero;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
 
-  address->solver_information = ril_get_network (s, network);
+  net = ril_get_network (s, network);
+  address->solver_information = net;
 
   if (!ril_network_is_active (s, network))
   {
@@ -1393,6 +1453,8 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 
   if (NULL == agent->address_inuse)
   {
+    net->bw_in_assigned += min_bw;
+    net->bw_out_assigned += min_bw;
     envi_set_active_suggestion (s, agent, address, min_bw, min_bw, GNUNET_NO);
   }
 
@@ -1411,7 +1473,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 void
 GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_only)
 {
-  //TODO! delete session only
+  //TODO? use session as feature
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
   struct RIL_Address_Wrapped *address_wrapped;
@@ -1550,7 +1612,7 @@ GAS_ril_address_session_changed (void *solver,
     uint32_t cur_session,
     uint32_t new_session)
 {
-  //TODO? consider session changed in solver behaviour
+  //TODO? consider session change in solver behaviour
   /*
    * Potentially add session activity as a feature in state vector
    */
@@ -1569,10 +1631,7 @@ GAS_ril_address_session_changed (void *solver,
 void
 GAS_ril_address_inuse_changed (void *solver, struct ATS_Address *address, int in_use)
 {
-  //TODO! consider address_inuse_changed according to matthias' email
-  /**
-   * See matthias' email
-   */
+  /* Nothing to do here */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
       address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
@@ -1613,8 +1672,8 @@ GAS_ril_address_change_network (void *solver,
   agent = ril_get_agent (s, &address->peer, GNUNET_NO);
   if (NULL == agent)
   {
-    //no agent there yet, so add as if address is new
-    address->solver_information = ril_get_network (s, new_network);
+    GNUNET_assert(!ril_network_is_active (solver, current_network));
+
     GAS_ril_address_add (s, address, new_network);
     return;
   }
@@ -1647,7 +1706,7 @@ GAS_ril_address_preference_feedback (void *solver,
     enum GNUNET_ATS_PreferenceKind kind,
     double score)
 {
-  //TODO! collect reward until next reward calculation
+  //TODO! talk to Matthias about feedback
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
           "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
@@ -1662,14 +1721,10 @@ GAS_ril_address_preference_feedback (void *solver,
 void
 GAS_ril_bulk_start (void *solver)
 {
-  //TODO? consideration: keep bulk counter and stop agents during bulk
   /*
-   * bulk counter up, but not really relevant, because there is no complete calculation of the
-   * bandwidth assignment triggered anyway. Therefore, changes to addresses can come and go as
-   * they want. Consideration: Step-pause during bulk-start-stop period...
+   * Since new calculations of the assignment are not triggered by a change of preferences, as it
+   * happens in the proportional and the mlp solver, there is no need to block this solver.
    */
-
-  //LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start()\n");
 }
 
 /**
@@ -1678,12 +1733,10 @@ GAS_ril_bulk_start (void *solver)
 void
 GAS_ril_bulk_stop (void *solver)
 {
-  //TODO? consideration: keep bulk counter and stop agents during bulk
   /*
-   * bulk counter down, see bulk_start()
+   * Since new calculations of the assignment are not triggered by a change of preferences, as it
+   * happens in the proportional and the mlp solver, there is no need to block this solver.
    */
-
-  //LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop()\n");
 }
 
 /**
