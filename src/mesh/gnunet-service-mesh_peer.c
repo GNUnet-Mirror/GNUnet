@@ -354,7 +354,7 @@ peer_get_path_cost (const struct MeshPeer *peer,
       }
     }
   }
-    return (path->length + overlap) * (path->score * -1);
+  return (path->length + overlap) * (path->score * -1);
 }
 
 

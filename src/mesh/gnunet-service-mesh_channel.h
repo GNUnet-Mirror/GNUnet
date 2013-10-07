@@ -76,7 +76,7 @@ GMCH_send_data (struct MeshChannel *ch,
  * @param ch Channel that was created.
  */
 void
-GMCH_send_channel_create (struct MeshChannel *ch);
+GMCH_send_create (struct MeshChannel *ch);
 
 
 /**
@@ -86,7 +86,7 @@ GMCH_send_channel_create (struct MeshChannel *ch);
  * @param fwd Forward notification (owner->dest)?
  */
 void
-GMCH_send_channel_destroy (struct MeshChannel *ch, int fwd);
+GMCH_send_destroy (struct MeshChannel *ch, int fwd);
 
 
 /**
@@ -96,6 +96,74 @@ GMCH_send_channel_destroy (struct MeshChannel *ch, int fwd);
  */
 void
 GMCH_debug (struct MeshChannel *ch);
+
+
+/**
+ * Handler for mesh network payload traffic.
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Unencryted data message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ */
+void
+GMCH_handle_data (struct MeshTunnel2 *t,
+                  const struct GNUNET_MESH_Data *msg,
+                  int fwd);
+
+
+/**
+ * Handler for mesh network traffic end-to-end ACKs.
+ *
+ * @param t Tunnel on which we got this message.
+ * @param message Data message.
+ * @param fwd Is this a fwd ACK? (dest->orig)
+ */
+void
+GMCH_handle_data_ack (struct MeshTunnel2 *t,
+                      const struct GNUNET_MESH_DataACK *msg,
+                      int fwd);
+
+
+/**
+ * Handler for channel create messages.
+ *
+ * @param t Tunnel this channel is to be created in.
+ * @param msg Message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ */
+void
+GMCH_handle_create (struct MeshTunnel2 *t,
+                    struct GNUNET_MESH_ChannelCreate *msg,
+                    int fwd);
+
+
+/**
+ * Handler for channel ack messages.
+ *
+ * @param t Tunnel this channel is to be created in.
+ * @param msg Message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ */
+void
+GMCH_handle_ack (struct MeshTunnel2 *t,
+                 struct GNUNET_MESH_ChannelManage *msg,
+                 int fwd);
+
+
+/**
+ * Handler for channel destroy messages.
+ *
+ * @param t Tunnel this channel is to be destroyed of.
+ * @param msg Message.
+ * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ */
+void
+GMCH_handle_destroy (struct MeshTunnel2 *t,
+                     struct GNUNET_MESH_ChannelManage *msg,
+                     int fwd);
+
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
