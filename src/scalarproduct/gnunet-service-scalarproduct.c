@@ -127,6 +127,11 @@ struct ServiceSession
    * already transferred elements (sent/received) for multipart messages, less or equal than used_element_count for
    */
   uint32_t transferred_element_count;
+  
+  /**
+   * index of the last transferred element for multipart messages
+   */
+  uint32_t last_processed_element;
 
   /**
    * how many bytes the mask is long.
@@ -497,6 +502,13 @@ compute_square_sum (gcry_mpi_t * vector, uint32_t length)
 }
 
 
+static void
+prepare_service_request_multipart (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+prepare_service_response_multipart (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 /**
  * Primitive callback for copying over a message, as they
  * usually are too complex to be handled in the callback itself.
@@ -533,7 +545,7 @@ do_send_message (void *cls, size_t size, void *buf)
     session->service_transmit_handle = NULL;
     // reset flags for sending
     if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used_element_count != session->transferred_element_count))
-      prepare_service_request_multipart(session);
+      prepare_service_request_multipart(session, NULL);
     //TODO we have sent a message and now need to trigger trigger the next multipart message sending
     break;
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE:
@@ -541,7 +553,7 @@ do_send_message (void *cls, size_t size, void *buf)
     //else
     session->service_transmit_handle = NULL;
     if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used_element_count != session->transferred_element_count))
-      prepare_service_response_multipart(session);
+      prepare_service_response_multipart(session, NULL);
     break;
   default:
     session->service_transmit_handle = NULL;
@@ -1154,7 +1166,77 @@ except:
   return ret;
 }
 
+static void
+prepare_service_request_multipart (void *cls,
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ServiceSession * session = cls;
+  unsigned char * current;
+  unsigned char * element_exported;
+  struct GNUNET_SCALARPRODUCT_service_request * msg;
+  unsigned int i;
+  unsigned int j;
+  uint32_t msg_length;
+  uint32_t todo_count;
+  size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
+  gcry_mpi_t a;
+  uint32_t value;
+  
+  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
+  todo_count = session->used_element_count - session->transferred_element_count;
 
+  if (todo_count > MULTIPART_ELEMENT_CAPACITY){
+    // send the currently possible maximum chunk, else send all remaining
+    todo_count = MULTIPART_ELEMENT_CAPACITY;
+  }
+  msg_length += todo_count * PAILLIER_ELEMENT_LENGTH;
+  msg = GNUNET_malloc (msg_length);
+  
+  element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
+  a = gcry_mpi_new (KEYBITS * 2);
+  current = (unsigned char *) &msg[1];
+  // encrypt our vector and generate string representations
+  for (i = session->last_processed_element, j = 0; i < session->element_count; i++)
+  {
+    // is this a used element?
+    if (session->mask[i / 8] & 1 << (i % 8))
+    {
+      if (todo_count <= j)
+        break; //reached end of this message, can't include more
+
+      memset(element_exported, 0, PAILLIER_ELEMENT_LENGTH);
+      value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
+
+      a = gcry_mpi_set_ui (a, 0);
+      // long to gcry_mpi_t
+      if (session->vector[i] < 0)
+        gcry_mpi_sub_ui (a, a, value);
+      else
+        gcry_mpi_add_ui (a, a, value);
+
+      session->a[session->transferred_element_count + j++] = gcry_mpi_set (NULL, a);
+      gcry_mpi_add (a, a, my_offset);
+      encrypt_element (a, a, my_g, my_n, my_nsquare);
+
+      // get representation as string
+      // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
+      GNUNET_assert (!gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      element_exported, PAILLIER_ELEMENT_LENGTH,
+                                      &element_length,
+                                      a));
+
+      // move buffer content to the end of the buffer so it can easily be read by libgcrypt. also this now has fixed size
+      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
+
+      // copy over to the message
+      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
+      current += PAILLIER_ELEMENT_LENGTH;
+    }
+  }
+  gcry_mpi_release (a);
+  GNUNET_free(element_exported);
+  
+}
 /**
  * Executed by Alice, fills in a service-request message and sends it to the given peer
  *
@@ -1278,8 +1360,10 @@ prepare_service_request (void *cls,
                                       session);
     return;
   }
-  if (session->transferred_element_count != session->used_element_count)
+  if (session->transferred_element_count != session->used_element_count){
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
+    session->last_processed_element = i;
+  }
   else
     //singlepart message
     session->state = WAITING_FOR_SERVICE_RESPONSE;
