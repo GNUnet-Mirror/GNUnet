@@ -985,7 +985,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
     s->inbound = GNUNET_YES;
     /* Notify transport and ATS about new inbound session */
     plugin->env->session_start (NULL, sender,
-    		PLUGIN_NAME, NULL, 0, s, &plugin->ats_network, 1);
+    		PLUGIN_NAME, ua, ua_len, s, &plugin->ats_network, 1);
   }
   reschedule_session_timeout (s);
 
@@ -1288,40 +1288,37 @@ static const char *
 unix_address_to_string (void *cls, const void *addr, size_t addrlen)
 {
   static char rbuf[1024];
-	struct UnixAddress *ua = (struct UnixAddress *) addr;
-	char *addrstr;
-	size_t addr_str_len;
+  struct UnixAddress *ua = (struct UnixAddress *) addr;
+  char *addrstr;
+  size_t addr_str_len;
 
-	if (0 == addrlen)
-	{
-		GNUNET_snprintf(rbuf, sizeof (rbuf), "%s", TRANSPORT_SESSION_INBOUND_STRING);
-	}
   if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
-    GNUNET_break (0);
-    return NULL;
+    GNUNET_break(0);
+    return NULL ;
   }
-	addrstr = (char *) &ua[1];
-	addr_str_len = ntohl (ua->addrlen);
+  addrstr = (char *) &ua[1];
+  addr_str_len = ntohl (ua->addrlen);
 
-	if (addr_str_len != addrlen - sizeof (struct UnixAddress))
+  if (addr_str_len != addrlen - sizeof(struct UnixAddress))
   {
-    GNUNET_break (0);
-    return NULL;
+    GNUNET_break(0);
+    return NULL ;
   }
 
   if ('\0' != addrstr[addr_str_len - 1])
   {
-    GNUNET_break (0);
-    return NULL;
+    GNUNET_break(0);
+    return NULL ;
   }
   if (strlen (addrstr) + 1 != addr_str_len)
   {
-    GNUNET_break (0);
-    return NULL;
+    GNUNET_break(0);
+    return NULL ;
   }
 
-  GNUNET_snprintf(rbuf, sizeof (rbuf), "%s.%u.%s", PLUGIN_NAME, ntohl (ua->options), addrstr);
+  GNUNET_snprintf (rbuf, sizeof(rbuf), "%s.%u.%s", PLUGIN_NAME,
+      ntohl (ua->options), addrstr);
   return rbuf;
 }
 

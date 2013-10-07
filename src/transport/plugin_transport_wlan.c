@@ -1367,14 +1367,15 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       break;
     }
     xmas.endpoint = mas->endpoint;
-    if (NULL == (xmas.session =  lookup_session (mas->endpoint, &wlanheader->sender, GNUNET_YES)))
+    if (NULL == (xmas.session = lookup_session (mas->endpoint, &wlanheader->sender, GNUNET_YES)))
     {
-    	xmas.session = create_session (mas->endpoint, &wlanheader->sender, GNUNET_YES);
-    	plugin->env->session_start (NULL, &wlanheader->sender,
-    			PLUGIN_NAME, NULL, 0, xmas.session, NULL, 0);
+      xmas.session = create_session (mas->endpoint, &wlanheader->sender, GNUNET_YES);
+      plugin->env->session_start (NULL, &wlanheader->sender,
+          PLUGIN_NAME, &mas->endpoint->addr,
+          sizeof (struct WlanAddress), xmas.session, NULL, 0);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-      		"Notifying transport about peer `%s''s new inbound session %p \n",
-      		GNUNET_i2s (&wlanheader->sender), xmas.session);
+          "Notifying transport about peer `%s''s new inbound session %p \n",
+          GNUNET_i2s (&wlanheader->sender), xmas.session);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
     		"Processing %u bytes of WLAN DATA from peer `%s'\n",
