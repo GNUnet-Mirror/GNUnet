@@ -1071,6 +1071,21 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * We've sent the hang up message, now finish terminating the call.
+ *
+ * @param cls the `struct GNUNET_CONVERSATION_Call` to terminate
+ */
+static void
+finish_stop (void *cls)
+{
+  struct GNUNET_CONVERSATION_Call *call = cls;
+
+  GNUNET_assert (CS_SHUTDOWN == call->state);
+  GNUNET_CONVERSATION_call_stop (call, NULL);
+}
+
+
+/**
  * Terminate a call.  The call may be ringing or ready at this time.
  *
  * @param call call to terminate
@@ -1081,23 +1096,25 @@ void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
 			       const char *reason)
 {
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientPhoneHangupMessage *hang;
+  size_t slen;
+
+  if ( (NULL != call->speaker) &&
+       (CS_ACTIVE == call->state) )
+    call->speaker->disable_speaker (call->speaker->cls);
+  if ( (NULL != call->mic) &&
+       (CS_ACTIVE == call->state) )
+    call->mic->disable_microphone (call->mic->cls);
   if (NULL != reason)
   {
-    // FIXME: transmit reason to service... (not implemented!)
-    GNUNET_break (0);
-    // return;
-  }
-  if (NULL != call->speaker)
-  {
-    if (CS_ACTIVE == call->state)
-      call->speaker->disable_speaker (call->speaker->cls);
-    call->speaker = NULL;
-  }
-  if (NULL != call->mic)
-  {
-    if (CS_ACTIVE == call->state)
-      call->mic->disable_microphone (call->mic->cls);
-    call->mic =NULL;
+    slen = strlen (reason) + 1;
+    e = GNUNET_MQ_msg_extra (hang, slen, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+    memcpy (&hang[1], reason, slen);
+    GNUNET_MQ_notify_sent (e, &finish_stop, call);
+    GNUNET_MQ_send (call->mq, e);
+    call->state = CS_SHUTDOWN;
+    return;
   }
   if (NULL != call->mq)
   {
