@@ -117,6 +117,10 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 struct GNUNET_FRIENDS_Writer
 {
+  /**
+   * Handle to the file.
+   */
+  struct GNUNET_DISK_FileHandle *fh;
 };
 
 
@@ -130,7 +134,30 @@ struct GNUNET_FRIENDS_Writer
 struct GNUNET_FRIENDS_Writer *
 GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return NULL;
+  struct GNUNET_FRIENDS_Writer *w;
+  char *fn;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "TOPOLOGY", "FRIENDS", &fn))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+			       "topology", "FRIENDS");
+    return NULL;
+  }
+  if (GNUNET_OK == GNUNET_DISK_file_test (fn))
+    GNUNET_DISK_file_backup (fn);
+  w = GNUNET_new (struct GNUNET_FRIENDS_Writer);
+  w->fh = GNUNET_DISK_file_open  (fn,
+                                  GNUNET_DISK_OPEN_CREATE |
+                                  GNUNET_DISK_OPEN_WRITE |
+                                  GNUNET_DISK_OPEN_FAILIFEXISTS,
+                                  GNUNET_DISK_PERM_USER_READ);
+  if (NULL == w->fh)
+  {
+    GNUNET_free (w);
+    return NULL;
+  }
+  return w;
 }
 
 
@@ -143,7 +170,11 @@ GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
 int
 GNUNET_FRIENDS_write_stop (struct GNUNET_FRIENDS_Writer *w)
 {
-  return GNUNET_SYSERR;
+  int ret;
+
+  ret = GNUNET_DISK_file_close (w->fh);
+  GNUNET_free (w);
+  return ret;
 }
 
 
@@ -158,7 +189,26 @@ int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
                       const struct GNUNET_PeerIdentity *friend)
 {
-  return GNUNET_SYSERR;
+  char *buf;
+  char *ret;
+  size_t slen;
+
+  ret = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&friend->public_key);
+  GNUNET_asprintf (&buf,
+                   "%s\n",
+                   ret);
+  GNUNET_free (ret);
+  slen = strlen (buf);
+  if (slen !=
+      GNUNET_DISK_file_write (w->fh,
+                              buf,
+                              slen))
+  {
+    GNUNET_free (buf);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (buf);
+  return GNUNET_OK;
 }
 
 

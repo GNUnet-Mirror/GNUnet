@@ -1019,7 +1019,7 @@ handle_friend (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Found myself `%s' in friend list (useless, ignored)\n"),
-                GNUNET_i2s (&pid));
+                GNUNET_i2s (pid));
     return;
   }
   (*entries_found)++;
