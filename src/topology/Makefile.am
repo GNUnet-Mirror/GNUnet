@@ -17,7 +17,7 @@ lib_LTLIBRARIES = libgnunetfriends.la
 libgnunetfriends_la_SOURCES = \
   friends.c
 libgnunetfriends_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetfriends_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
