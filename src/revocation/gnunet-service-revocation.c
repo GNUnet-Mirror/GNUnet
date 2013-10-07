@@ -31,8 +31,7 @@
  * peers that connect.
  *
  * TODO:
- * - broadcast p2p revocations
- * - handle p2p connect (trigger SET union)
+ * - handle p2p connect (trigger SET union, #3057)
  * - optimization: avoid sending revocation back to peer that we got it from;
  * - optimization: have randomized delay in sending revocations to other peers
  *                 to make it rare to traverse each link twice (NSE-style)
@@ -58,19 +57,14 @@ struct PeerEntry
 {
 
   /**
-   * Core handle for sending messages to this peer.
+   * Queue for sending messages to this peer.
    */
-  struct GNUNET_CORE_TransmitHandle *th;
+  struct GNUNET_MQ_Handle *mq;
 
   /**
    * What is the identity of the peer?
    */
   struct GNUNET_PeerIdentity id;
-
-  /**
-   * Task scheduled to send message to this peer.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier transmit_task;
 
 };
 
@@ -99,7 +93,7 @@ static struct GNUNET_STATISTICS_Handle *stats;
 /**
  * Handle to the core service (for flooding)
  */
-static struct GNUNET_CORE_Handle *coreAPI;
+static struct GNUNET_CORE_Handle *core_api;
 
 /**
  * Map of all connected peers.
@@ -217,7 +211,14 @@ do_flood (void *cls,
           const struct GNUNET_PeerIdentity *target,
           void *value)
 {
-  GNUNET_break (0); // FIXME: not implemented
+  const struct RevokeMessage *rm = cls;
+  struct PeerEntry *pe = value;
+  struct GNUNET_MQ_Envelope *e;
+  struct RevokeMessage *cp;
+
+  e = GNUNET_MQ_msg (cp, GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE);
+  *cp = *rm;
+  GNUNET_MQ_send (pe->mq, e);
   return GNUNET_OK;
 }
 
@@ -376,11 +377,12 @@ handle_core_connect (void *cls,
               GNUNET_i2s (peer));
   peer_entry = GNUNET_new (struct PeerEntry);
   peer_entry->id = *peer;
+  peer_entry->mq = GNUNET_CORE_mq_create (core_api, peer);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (peers, peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_break (0); // FIXME: implement revocation set union on connect!
+  // GNUNET_break (0); // FIXME: implement revocation set union on connect!
 #if 0
   peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
@@ -415,16 +417,12 @@ handle_core_disconnect (void *cls,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
+  GNUNET_MQ_destroy (pos->mq);
 #if 0
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (NULL != pos->th)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (pos->th);
-    pos->th = NULL;
   }
 #endif
   GNUNET_free (pos);
@@ -465,10 +463,10 @@ shutdown_task (void *cls,
     GNUNET_SET_destroy (revocation_set);
     revocation_set = NULL;
   }
-  if (NULL != coreAPI)
+  if (NULL != core_api)
   {
-    GNUNET_CORE_disconnect (coreAPI);
-    coreAPI = NULL;
+    GNUNET_CORE_disconnect (core_api);
+    core_api = NULL;
   }
   if (NULL != stats)
   {
@@ -639,7 +637,7 @@ run (void *cls,
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   GNUNET_SERVER_add_handlers (srv, handlers);
    /* Connect to core service and register core handlers */
-  coreAPI = GNUNET_CORE_connect (cfg,   /* Main configuration */
+  core_api = GNUNET_CORE_connect (cfg,   /* Main configuration */
                                  NULL,       /* Closure passed to functions */
                                  &core_init,    /* Call core_init once connected */
                                  &handle_core_connect,  /* Handle connects */
@@ -649,7 +647,7 @@ run (void *cls,
                                  NULL,  /* Don't want notified about all outbound messages */
                                  GNUNET_NO,     /* For header only outbound notification */
                                  core_handlers);        /* Register these handlers */
-  if (NULL == coreAPI)
+  if (NULL == core_api)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
