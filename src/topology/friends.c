@@ -48,7 +48,10 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint64_t fsize;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "TOPOLOGY", "FRIENDS", &fn))
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "TOPOLOGY",
+                                               "FRIENDS",
+                                               &fn))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       "topology", "FRIENDS");
