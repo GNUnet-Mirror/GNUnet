@@ -734,13 +734,21 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
     enum GNUNET_ATS_PreferenceKind kind, float score_abs);
 
 /**
- * Change the preference for a peer
+ * Application feedback on how good preference requirements are fulfilled
+ * for a specific preference in the given time scope [now - scope .. now]
+ *
+ * An application notifies ATS if (and only if) it has feedback information
+ * for a specific property. This value is valid until the feedback score is
+ * updated by the application.
+ *
+ * If the application has no feedback for this preference kind the application
+ * will not explicitly call.
  *
  * @param handle the address handle
- * @param application the client sending this request
+ * @param application the application sending this request
  * @param peer the peer id
  * @param scope the time interval this valid for: [now - scope .. now]
- * @param kind the preference kind to change
+ * @param kind the preference kind this feedback is intended for
  * @param score_abs the new preference score
  */
 void
