@@ -487,6 +487,7 @@ GAS_handle_address_destroyed (void *cls, struct GNUNET_SERVER_Client *client,
 void
 GAS_scheduling_init (struct GNUNET_SERVER_Handle *server, struct GAS_Addresses_Handle *ah)
 {
+  GNUNET_assert (NULL != ah);
   address_handle = ah;
   nc = GNUNET_SERVER_notification_context_create (server, 128);
 }
