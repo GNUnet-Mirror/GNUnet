@@ -24,8 +24,11 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_statistics_service.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
+#include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet_statistics_service.h"
 #if HAVE_LIBGLPK
 #include "glpk.h"
 #endif
@@ -204,6 +207,8 @@ struct MLP_Variables
  */
 struct GAS_MLP_Handle
 {
+  struct GNUNET_ATS_PluginEnvironment *env;
+
   /**
    * Statistics handle
    */

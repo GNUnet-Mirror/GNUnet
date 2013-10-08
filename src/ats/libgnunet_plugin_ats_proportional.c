@@ -24,12 +24,10 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-#include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet-service-ats_addresses.h"
-#include "gnunet_statistics_service.h"
+#include "libgnunet_plugin_ats_proportional.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
+
 
 /**
  *
@@ -217,6 +215,8 @@
  */
 struct GAS_PROPORTIONAL_Handle
 {
+   struct GNUNET_ATS_PluginEnvironment *env;
+
   /**
    * Statistics handle
    */
@@ -290,7 +290,7 @@ struct GAS_PROPORTIONAL_Handle
   /**
    * Number of networks
    */
-  unsigned int networks;
+  unsigned int network_count;
 
 };
 
@@ -370,6 +370,129 @@ struct AddressWrapper
  *  Important solver functions
  *  ---------------------------
  */
+
+void *
+libgnunet_plugin_ats_proportional_init (void *cls)
+{
+  struct GNUNET_ATS_PluginEnvironment *env = cls;
+  struct GAS_PROPORTIONAL_Handle *s;
+  struct Network * cur;
+  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  int c;
+
+  GNUNET_assert (NULL != env);
+  GNUNET_assert(NULL != env->cfg);
+  GNUNET_assert(NULL != env->stats);
+  GNUNET_assert(NULL != env->bandwidth_changed_cb);
+  GNUNET_assert(NULL != env->get_preferences_cb);
+  GNUNET_assert(NULL != env->get_property_cb);
+
+  s = GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
+  s->env = env;
+  env->sf.s_add = &GAS_proportional_address_add;
+  env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
+  env->sf.s_address_update_session = &GAS_proportional_address_session_changed;
+  env->sf.s_address_update_inuse = &GAS_proportional_address_inuse_changed;
+  env->sf.s_address_update_network = &GAS_proportional_address_change_network;
+  env->sf.s_get = &GAS_proportional_get_preferred_address;
+  env->sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
+  env->sf.s_pref = &GAS_proportional_address_change_preference;
+  env->sf.s_feedback = &GAS_proportional_address_preference_feedback;
+  env->sf.s_del = &GAS_proportional_address_delete;
+  env->sf.s_bulk_start = &GAS_proportional_bulk_start;
+  env->sf.s_bulk_stop = &GAS_proportional_bulk_stop;
+
+  s->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
+  s->bw_changed = env->bandwidth_changed_cb;
+  s->bw_changed_cls = env->bw_changed_cb_cls;
+  s->get_preferences = env->get_preferences_cb;
+  s->get_preferences_cls = env->get_preference_cls;
+  s->get_properties = env->get_property_cb;
+  s->get_properties_cls = env->get_property_cls;
+  s->network_count = env->network_count;
+  s->network_entries = GNUNET_malloc (env->network_count * sizeof (struct Network));
+
+  /* Init */
+  s->active_addresses = 0;
+  s->total_addresses = 0;
+  s->bulk_lock = GNUNET_NO;
+  s->addresses = env->addresses;
+  s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+
+  for (c = 0; c < env->network_count; c++)
+  {
+    cur = &s->network_entries[c];
+    cur->total_addresses = 0;
+    cur->active_addresses = 0;
+    cur->type = env->networks[c];
+    cur->total_quota_in = env->in_quota[c];
+    cur->total_quota_out = env->out_quota[c];
+    cur->desc = net_str[c];
+    GNUNET_asprintf (&cur->stat_total,
+        "# ATS addresses %s total", cur->desc);
+    GNUNET_asprintf (&cur->stat_active,
+        "# ATS active addresses %s total", cur->desc);
+    LOG (GNUNET_ERROR_TYPE_INFO, "Added network %u `%s' %p\n", c, cur->desc, s);
+  }
+  return s;
+}
+
+void *
+libgnunet_plugin_ats_proportional_done (void *cls)
+{
+  struct GAS_PROPORTIONAL_Handle *s = cls;
+  struct AddressWrapper *cur;
+  struct AddressWrapper *next;
+  int c;
+  GNUNET_assert(s != NULL);
+  for (c = 0; c < s->network_count; c++)
+  {
+    if (s->network_entries[c].total_addresses > 0)
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Had %u addresses for network `%s' not deleted during shutdown\n",
+          s->network_entries[c].total_addresses, s->network_entries[c].desc);
+      GNUNET_break(0);
+    }
+
+    if (s->network_entries[c].active_addresses > 0)
+    {
+      LOG(GNUNET_ERROR_TYPE_ERROR,
+          "Had %u active addresses for network `%s' not deleted during shutdown\n",
+          s->network_entries[c].active_addresses, s->network_entries[c].desc);
+      GNUNET_break(0);
+    }
+
+    next = s->network_entries[c].head;
+    while (NULL != (cur = next))
+    {
+      next = cur->next;
+      GNUNET_CONTAINER_DLL_remove(s->network_entries[c].head,
+          s->network_entries[c].tail, cur);
+      GNUNET_free(cur);
+    }
+    GNUNET_free(s->network_entries[c].stat_total);
+    GNUNET_free(s->network_entries[c].stat_active);
+  }
+  if (s->total_addresses > 0)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR,
+        "Had %u addresses not deleted during shutdown\n", s->total_addresses);
+    GNUNET_break(0);
+  }
+  if (s->active_addresses > 0)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR,
+        "Had %u active addresses not deleted during shutdown\n",
+        s->active_addresses);
+    GNUNET_break (0);
+  }
+  GNUNET_free (s->network_entries);
+  GNUNET_CONTAINER_multipeermap_destroy (s->requests);
+  GNUNET_free (s);
+  return NULL;
+}
+
 
 /**
  * Test if bandwidth is available in this network to add an additional address
@@ -688,7 +811,7 @@ static void
 distribute_bandwidth_in_all_networks (struct GAS_PROPORTIONAL_Handle *s)
 {
   int i;
-  for (i = 0; i < s->networks; i++)
+  for (i = 0; i < s->network_count; i++)
     distribute_bandwidth_in_network (s, &s->network_entries[i], NULL );
 }
 
@@ -703,7 +826,7 @@ static struct Network *
 get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
 {
   int c;
-  for (c = 0; c < s->networks; c++)
+  for (c = 0; c < s->network_count; c++)
   {
     if (s->network_entries[c].type == type)
       return &s->network_entries[c];
@@ -1380,149 +1503,5 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
       net->total_addresses, net->active_addresses, net->desc);
 }
 
-/**
- * Init the proportional problem solver
- *
- * Quotas:
- * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
- * out_quota[i] contains outbound quota for network type i
- * in_quota[i] contains inbound quota for network type i
- *
- * Example
- * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
- * network[2]   == GNUNET_ATS_NET_LAN
- * out_quota[2] == 65353
- * in_quota[2]  == 65353
- *
- * @param cfg configuration handle
- * @param stats the GNUNET_STATISTICS handle
- * @param addresses hashmap containing all addresses
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param out_quota array of outbound quotas
- * @param in_quota array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @param get_preference callback to get relative preferences for a peer
- * @param get_preference_cls cls for callback to get relative preferences
- * @param get_properties for callback to get relative properties
- * @param get_properties_cls cls for callback to get relative properties
- * @return handle for the solver on success, NULL on fail
- */
-void *
-GAS_proportional_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-		       const struct GNUNET_STATISTICS_Handle *stats,
-		       const struct GNUNET_CONTAINER_MultiPeerMap *addresses, int *network,
-		       unsigned long long *out_quota, unsigned long long *in_quota,
-		       int dest_length, GAS_bandwidth_changed_cb bw_changed_cb,
-		       void *bw_changed_cb_cls, GAS_get_preferences get_preference,
-		       void *get_preference_cls, GAS_get_properties get_properties,
-		       void *get_properties_cls)
-{
-  int c;
-  struct GAS_PROPORTIONAL_Handle *s =
-      GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
-  struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-
-  GNUNET_assert(NULL != cfg);
-  GNUNET_assert(NULL != stats);
-  GNUNET_assert(NULL != network);
-  GNUNET_assert(NULL != bw_changed_cb);
-  GNUNET_assert(NULL != get_preference);
-  GNUNET_assert(NULL != get_properties);
-
-  s->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  s->bw_changed = bw_changed_cb;
-  s->bw_changed_cls = bw_changed_cb_cls;
-  s->get_preferences = get_preference;
-  s->get_preferences_cls = get_preference_cls;
-  s->get_properties = get_properties;
-  s->get_properties_cls = get_properties_cls;
-  s->networks = dest_length;
-  s->network_entries = GNUNET_malloc (dest_length * sizeof (struct Network));
-  s->active_addresses = 0;
-  s->total_addresses = 0;
-  s->bulk_lock = GNUNET_NO;
-  s->addresses = addresses;
-
-  s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-
-  for (c = 0; c < dest_length; c++)
-  {
-    cur = &s->network_entries[c];
-    cur->total_addresses = 0;
-    cur->active_addresses = 0;
-    cur->type = network[c];
-    cur->total_quota_in = in_quota[c];
-    cur->total_quota_out = out_quota[c];
-    cur->desc = net_str[c];
-    GNUNET_asprintf (&cur->stat_total, "# ATS addresses %s total", cur->desc);
-    GNUNET_asprintf (&cur->stat_active, "# ATS active addresses %s total",
-        cur->desc);
-  }
-  return s;
-}
-
-/**
- * Shutdown the proportional problem solver
- *
- * @param solver the respective handle to shutdown
- */
-void
-GAS_proportional_done (void *solver)
-{
-  struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct AddressWrapper *cur;
-  struct AddressWrapper *next;
-  int c;
-  GNUNET_assert(s != NULL);
-
-  for (c = 0; c < s->networks; c++)
-  {
-    if (s->network_entries[c].total_addresses > 0)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          "Had %u addresses for network `%s' not deleted during shutdown\n",
-          s->network_entries[c].total_addresses, s->network_entries[c].desc);
-      GNUNET_break(0);
-    }
-
-    if (s->network_entries[c].active_addresses > 0)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR,
-          "Had %u active addresses for network `%s' not deleted during shutdown\n",
-          s->network_entries[c].active_addresses, s->network_entries[c].desc);
-      GNUNET_break(0);
-    }
-
-    next = s->network_entries[c].head;
-    while (NULL != (cur = next))
-    {
-      next = cur->next;
-      GNUNET_CONTAINER_DLL_remove(s->network_entries[c].head,
-          s->network_entries[c].tail, cur);
-      GNUNET_free(cur);
-    }
-    GNUNET_free(s->network_entries[c].stat_total);
-    GNUNET_free(s->network_entries[c].stat_active);
-  }
-  if (s->total_addresses > 0)
-  {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Had %u addresses not deleted during shutdown\n", s->total_addresses);
-    GNUNET_break(0);
-  }
-  if (s->active_addresses > 0)
-  {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Had %u active addresses not deleted during shutdown\n",
-        s->active_addresses);
-    GNUNET_break (0);
-  }
-  GNUNET_free (s->network_entries);
-  GNUNET_CONTAINER_multipeermap_destroy (s->requests);
-  GNUNET_free (s);
-}
 
 /* end of gnunet-service-ats-solver_proportional.c */

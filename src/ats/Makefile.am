@@ -1,5 +1,7 @@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+plugindir = $(libdir)/gnunet
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
@@ -17,7 +19,7 @@ endif
 
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
-  GN_MLP_SRC = gnunet-service-ats-solver_mlp.c gnunet-service-ats-solver_mlp.h
+  GN_MLP_LIB = libgnunet_plugin_ats_mlp.la
   GN_MLP_TEST = test_ats_mlp
   GN_MLP_TEST_UPDATE = test_ats_mlp_update
   GN_MLP_TEST_AVG = test_ats_mlp_averaging
@@ -31,6 +33,10 @@ if HAVE_LIBGLPK
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_ats_proportional.la \
+  libgnunet_plugin_ats_mlp.la
 
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
@@ -48,13 +54,14 @@ libgnunetats_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-ats
 
+# gnunet-service-ats-solver_proportional.c gnunet-service-ats-solver_proportional.h
+# $(GN_MLP_SRC)
+# gnunet-service-ats-solver_ril.c gnunet-service-ats-solver_ril.h 
+
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
  gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
- gnunet-service-ats-solver_proportional.c gnunet-service-ats-solver_proportional.h \
- $(GN_MLP_SRC) \
- gnunet-service-ats-solver_ril.c gnunet-service-ats-solver_ril.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
@@ -62,7 +69,6 @@ gnunet_service_ats_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetats.la \
-  $(GN_LIBGLPK) \
   $(GN_LIBINTL)
 gnunet_service_ats_DEPENDENCIES = \
   libgnunetats.la
@@ -120,6 +126,25 @@ check_PROGRAMS = \
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
+
+libgnunet_plugin_ats_proportional_la_SOURCES = \
+  libgnunet_plugin_ats_proportional.c
+libgnunet_plugin_ats_proportional_la_LIBADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+
+if HAVE_LIBGLPK	
+endif 
+libgnunet_plugin_ats_mlp_la_SOURCES = \
+  libgnunet_plugin_ats_mlp.c
+libgnunet_plugin_ats_mlp_la_LIBADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBGLPK)
+libgnunet_plugin_ats_mlp_la_LDFLAGS = \
+ 	$(GN_LIBGLPK) 
+ 
 
 # scheduling API tests
 

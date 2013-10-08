@@ -24,11 +24,9 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-#include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet-service-ats-solver_mlp.h"
-#include "gnunet_statistics_service.h"
-#include "glpk.h"
+
+#include "libgnunet_plugin_ats_mlp.h"
+
 
 /**
  *
@@ -1798,10 +1796,10 @@ mlp_free_peers (void *cls,
  *
  * @param solver the solver handle
  */
-void
-GAS_mlp_done (void *solver)
+void *
+libgnunet_plugin_ats_mlp_done (void *cls)
 {
-  struct GAS_MLP_Handle *mlp = solver;
+  struct GAS_MLP_Handle *mlp = cls;
   GNUNET_assert (mlp != NULL);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down mlp solver\n");
@@ -1818,42 +1816,14 @@ GAS_mlp_done (void *solver)
   GNUNET_free (mlp);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutdown down of mlp solver complete\n");
+  return NULL;
 }
 
 
-/**
- * Init the MLP problem solving component
- *
- * @param cfg the GNUNET_CONFIGURATION_Handle handle
- * @param stats the GNUNET_STATISTICS handle
- * @param addresses the address hashmap
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param out_dest array of outbound quotas
- * @param in_dest array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @param get_preference callback to get relative preferences for a peer
- * @param get_preference_cls cls for callback to get relative preferences
- * @param get_properties callback to get relative properties
- * @param get_properties_cls cls for callback to get relative properties
- * @return struct GAS_MLP_Handle on success, NULL on fail
- */
 void *
-GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-              const struct GNUNET_STATISTICS_Handle *stats,
-              const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-              int *network,
-              unsigned long long *out_dest,
-              unsigned long long *in_dest,
-              int dest_length,
-              GAS_bandwidth_changed_cb bw_changed_cb,
-              void *bw_changed_cb_cls,
-              GAS_get_preferences get_preference,
-              void *get_preference_cls,
-              GAS_get_properties get_properties,
-              void *get_properties_cls)
+libgnunet_plugin_ats_mlp_init (void *cls)
 {
+  struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
 
   double D;
@@ -1869,12 +1839,12 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TIME_Relative max_duration;
   long long unsigned int max_iterations;
 
-  GNUNET_assert (NULL != cfg);
-  GNUNET_assert (NULL != stats);
-  GNUNET_assert (NULL != addresses);
-  GNUNET_assert (NULL != bw_changed_cb);
-  GNUNET_assert (NULL != get_preference);
-  GNUNET_assert (NULL != get_properties);
+  GNUNET_assert (NULL != env->cfg);
+  GNUNET_assert (NULL != env->stats);
+  GNUNET_assert (NULL != env->addresses);
+  GNUNET_assert (NULL != env->bandwidth_changed_cb);
+  GNUNET_assert (NULL != env->get_preferences_cb);
+  GNUNET_assert (NULL != env->get_property_cb);
 
   /* Init GLPK environment */
   int res = glp_init_env();
@@ -1903,11 +1873,11 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       break;
   }
 
-   mlp->write_mip_mps = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats",
+   mlp->write_mip_mps = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "ats",
           "DUMP_MLP");
    if (GNUNET_SYSERR == mlp->write_mip_mps)
      mlp->write_mip_mps = GNUNET_NO;
-   mlp->write_mip_sol = GNUNET_CONFIGURATION_get_value_yesno (cfg, "ats",
+   mlp->write_mip_sol = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "ats",
           "DUMP_SOLUTION");
    if (GNUNET_SYSERR == mlp->write_mip_sol)
      mlp->write_mip_sol = GNUNET_NO;
@@ -1915,19 +1885,19 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
   /* Get timeout for iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(cfg, "ats", "MLP_MAX_DURATION", &max_duration))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(env->cfg, "ats", "MLP_MAX_DURATION", &max_duration))
   {
     max_duration = MLP_MAX_EXEC_DURATION;
   }
 
   /* Get maximum number of iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(cfg, "ats", "MLP_MAX_ITERATIONS", &max_iterations))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(env->cfg, "ats", "MLP_MAX_ITERATIONS", &max_iterations))
   {
     max_iterations = MLP_MAX_ITERATIONS;
   }
 
   /* Get diversity coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_COEFFICIENT_D",
                                                       &tmp))
     D = (double) tmp / 100;
@@ -1935,7 +1905,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     D = DEFAULT_D;
 
   /* Get proportionality coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_COEFFICIENT_R",
                                                       &tmp))
     R = (double) tmp / 100;
@@ -1943,7 +1913,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     R = DEFAULT_R;
 
   /* Get utilization coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_COEFFICIENT_U",
                                                       &tmp))
     U = (double) tmp / 100;
@@ -1966,7 +1936,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       i_distance = c;
   }
 
-  if ((i_delay != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if ((i_delay != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_COEFFICIENT_QUALITY_DELAY",
                                                       &tmp)))
 
@@ -1974,7 +1944,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
     mlp->pv.co_Q[i_delay] = DEFAULT_QUALITY;
 
-  if ((i_distance != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if ((i_distance != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_COEFFICIENT_QUALITY_DISTANCE",
                                                       &tmp)))
     mlp->pv.co_Q[i_distance] = (double) tmp / 100;
@@ -1982,7 +1952,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     mlp->pv.co_Q[i_distance] = DEFAULT_QUALITY;
 
   /* Get minimum bandwidth per used address from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_MIN_BANDWIDTH",
                                                       &tmp))
     b_min = tmp;
@@ -1992,7 +1962,7 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   /* Get minimum number of connections from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats",
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
                                                       "MLP_MIN_CONNECTIONS",
                                                       &tmp))
     n_min = tmp;
@@ -2004,13 +1974,13 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
       found = GNUNET_NO;
-      for (c2 = 0; c2 < dest_length; c2++)
+      for (c2 = 0; c2 < env->network_count; c2++)
       {
-          if (quotas[c] == network[c2])
+          if (quotas[c] == env->networks[c2])
           {
-              mlp->pv.quota_index[c] = network[c2];
-              mlp->pv.quota_out[c] = out_dest[c2];
-              mlp->pv.quota_in[c] = in_dest[c2];
+              mlp->pv.quota_index[c] = env->networks[c2];
+              mlp->pv.quota_out[c] = env->out_quota[c2];
+              mlp->pv.quota_in[c] = env->in_quota[c2];
               found = GNUNET_YES;
               LOG (GNUNET_ERROR_TYPE_DEBUG, "Quota for network `%s' (in/out) %llu/%llu\n",
                           GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
@@ -2066,17 +2036,32 @@ GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
             mlp->pv.quota_out[c]);
       }
   }
+  mlp->env = env;
+  env->sf.s_add = &GAS_mlp_address_add;
+  env->sf.s_address_update_property = &GAS_mlp_address_property_changed;
+  env->sf.s_address_update_session = &GAS_mlp_address_session_changed;
+  env->sf.s_address_update_inuse = &GAS_mlp_address_inuse_changed;
+  env->sf.s_address_update_network = &GAS_mlp_address_change_network;
+  env->sf.s_get = &GAS_mlp_get_preferred_address;
+  env->sf.s_get_stop = &GAS_mlp_stop_get_preferred_address;
+  env->sf.s_pref = &GAS_mlp_address_change_preference;
+  env->sf.s_feedback = &GAS_mlp_address_preference_feedback;
+  env->sf.s_del = &GAS_mlp_address_delete;
+  env->sf.s_bulk_start = &GAS_mlp_bulk_start;
+  env->sf.s_bulk_stop = &GAS_mlp_bulk_stop;
+
 
   /* Assign options to handle */
-  mlp->stats = (struct GNUNET_STATISTICS_Handle *) stats;
-  mlp->addresses = addresses;
-  mlp->bw_changed_cb = bw_changed_cb;
-  mlp->bw_changed_cb_cls = bw_changed_cb_cls;
-  mlp->get_preferences = get_preference;
-  mlp->get_preferences_cls = get_preference_cls;
-  mlp->get_properties = get_properties;
-  mlp->get_properties_cls = get_properties_cls;
+  mlp->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
+  mlp->addresses = env->addresses;
+  mlp->bw_changed_cb = env->bandwidth_changed_cb;
+  mlp->bw_changed_cb_cls = env->bw_changed_cb_cls;
+  mlp->get_preferences =  env->get_preferences_cb;
+  mlp->get_preferences_cls = env->get_preference_cls;
+  mlp->get_properties = env->get_property_cb;
+  mlp->get_properties_cls = env->get_property_cls;
   /* Setting MLP Input variables */
+
   mlp->pv.co_D = D;
   mlp->pv.co_R = R;
   mlp->pv.co_U = U;

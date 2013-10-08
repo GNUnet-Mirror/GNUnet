@@ -26,17 +26,21 @@
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
+
+#if 0
 #if HAVE_LIBGLPK
 #include "gnunet-service-ats-solver_mlp.h"
 #endif
 #include "gnunet-service-ats-solver_proportional.h"
 #include "gnunet-service-ats-solver_ril.h"
+#endif
 
 /**
  * NOTE: Do not change this documentation. This documentation is based on
@@ -332,64 +336,9 @@ struct GAS_Addresses_Handle
   struct GAS_Addresses_Suggestion_Requests *r_tail;
 
   /* Solver functions */
+  struct GNUNET_ATS_PluginEnvironment env;
 
-  /**
-   * Initialize solver
-   */
-  GAS_solver_init s_init;
-
-  /**
-   * Add an address to the solver
-   */
-  GAS_solver_address_add s_add;
-
-  GAS_solver_address_property_changed s_address_update_property;
-
-  GAS_solver_address_session_changed s_address_update_session;
-
-  GAS_solver_address_inuse_changed s_address_update_inuse;
-
-  GAS_solver_address_network_changed s_address_update_network;
-
-  /**
-   * Get address from solver
-   */
-  GAS_solver_get_preferred_address s_get;
-
-  /**
-   * Get address from solver
-   */
-  GAS_solver_stop_get_preferred_address s_get_stop;
-
-  /**
-   * Delete address in solver
-   */
-  GAS_solver_address_delete s_del;
-
-  /**
-   * Change relative preference for quality in solver
-   */
-  GAS_solver_address_change_preference s_pref;
-
-  /**
-   * Give feedback about the current assignment
-   */
-  GAS_solver_address_feedback_preference s_feedback;
-
-  /**
-   * Start a bulk operation
-   */
-  GAS_solver_bulk_start s_bulk_start;
-
-  /**
-   * Bulk operation done
-   */
-  GAS_solver_bulk_stop s_bulk_stop;
-
-  /**
-   * Shutdown solver
-   */
-  GAS_solver_done s_done;
+  char *plugin;
 };
 
 /**
@@ -805,12 +754,12 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
         GNUNET_ATS_print_network_type (addr_net));
 
     /* Tell solver about new address */
-    handle->s_add (handle->solver, new_address, addr_net);
+    handle->env.sf.s_add (handle->solver, new_address, addr_net);
 
-    handle->s_bulk_start (handle->solver);
+    handle->env.sf.s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses, new_address, atsi,
         atsi_count);
-    handle->s_bulk_stop (handle->solver);
+    handle->env.sf.s_bulk_stop (handle->solver);
 
     /* Notify performance clients about new address */
     GAS_performance_notify_all_clients (&new_address->peer, new_address->plugin,
@@ -866,7 +815,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
             GNUNET_i2s (peer), existing_address,
             GNUNET_ATS_print_network_type (addr_net),
             GNUNET_ATS_print_network_type (ntohl (atsi_delta[c1].value)));
-        handle->s_address_update_network (handle->solver, existing_address,
+        handle->env.sf.s_address_update_network (handle->solver, existing_address,
             ntohl (atsi_delta[c1].value),
             get_performance_info (existing_address, GNUNET_ATS_NETWORK_TYPE));
         addr_net = get_performance_info (existing_address,
@@ -874,10 +823,10 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
       }
     }
     /* Notify solver about update with atsi information and session */
-    handle->s_bulk_start (handle->solver);
+    handle->env.sf.s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses, existing_address,
         atsi, atsi_count);
-    handle->s_bulk_stop (handle->solver);
+    handle->env.sf.s_bulk_stop (handle->solver);
   }
   GNUNET_free_non_null(atsi_delta);
 
@@ -887,7 +836,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   previous_session = existing_address->session_id;
   existing_address->session_id = session_id;
-  handle->s_address_update_session (handle->solver, existing_address,
+  handle->env.sf.s_address_update_session (handle->solver, existing_address,
       previous_session, session_id);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -956,7 +905,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
     /* Session changed */
     prev_session = aa->session_id;
     aa->session_id = session_id;
-    handle->s_address_update_session (handle->solver, aa, prev_session,
+    handle->env.sf.s_address_update_session (handle->solver, aa, prev_session,
         aa->session_id);
   }
 
@@ -972,7 +921,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
       if (GNUNET_ATS_NETWORK_TYPE == ntohl (atsi_delta[c1].type))
       {
         /* Network type changed */
-        handle->s_address_update_network (handle->solver, aa,
+        handle->env.sf.s_address_update_network (handle->solver, aa,
             ntohl (atsi_delta[c1].value),
             get_performance_info (aa, GNUNET_ATS_NETWORK_TYPE));
       }
@@ -983,10 +932,10 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
         aa->addr_len, aa->session_id, aa->atsi, aa->atsi_count,
         aa->assigned_bw_out, aa->assigned_bw_in);
 
-    handle->s_bulk_start (handle->solver);
+    handle->env.sf.s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses, aa, atsi,
         atsi_count);
-    handle->s_bulk_stop (handle->solver);
+    handle->env.sf.s_bulk_stop (handle->solver);
   }
   GNUNET_free_non_null(atsi_delta);
 }
@@ -1046,7 +995,7 @@ destroy_by_session_id (void *cls,
           GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
 							      &aa->peer,
 							      aa));
-      handle->s_del (handle->solver, aa, GNUNET_NO);
+      handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
       free_address (aa);
       dc->result = GNUNET_NO;
       return GNUNET_OK; /* Continue iteration */
@@ -1078,7 +1027,7 @@ destroy_by_session_id (void *cls,
       GNUNET_assert(
           GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
 							      &aa->peer, aa));
-      handle->s_del (handle->solver, aa, GNUNET_NO);
+      handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
       free_address (aa);
       dc->result = GNUNET_NO;
       return GNUNET_OK; /* Continue iteration */
@@ -1090,7 +1039,7 @@ destroy_by_session_id (void *cls,
           "Deleting session for peer `%s': `%s' %u\n", GNUNET_i2s (&aa->peer),
           aa->plugin, aa->session_id);
       /* Notify solver to delete session */
-      handle->s_del (handle->solver, aa, GNUNET_YES);
+      handle->env.sf.s_del (handle->solver, aa, GNUNET_YES);
       aa->session_id = 0;
       aa->active = GNUNET_NO;
       return GNUNET_OK;
@@ -1203,7 +1152,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 
   /* Tell solver about update */
   ea->used = in_use;
-  handle->s_address_update_inuse (handle->solver, ea, ea->used);
+  handle->env.sf.s_address_update_inuse (handle->solver, ea, ea->used);
   return GNUNET_OK;
 }
 
@@ -1236,7 +1185,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
         GNUNET_i2s (peer));
     return;
   }
-  handle->s_get_stop (handle->solver, peer);
+  handle->env.sf.s_get_stop (handle->solver, peer);
   GAS_addresses_handle_backoff_reset (handle, peer);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Removed request pending for peer `%s\n",
       GNUNET_i2s (peer));
@@ -1287,7 +1236,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
    */
 
   /* Get prefered address from solver */
-  aa = (struct ATS_Address *) handle->s_get (handle->solver, peer);
+  aa = (struct ATS_Address *) handle->env.sf.s_get (handle->solver, peer);
   if (NULL == aa)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Cannot suggest address for peer `%s'\n",
@@ -1378,7 +1327,7 @@ normalized_preference_changed_cb (void *cls,
   struct GAS_Addresses_Handle *handle = cls;
 
   /* Tell solver about update */
-  handle->s_pref (handle->solver, peer, kind, pref_rel);
+  handle->env.sf.s_pref (handle->solver, peer, kind, pref_rel);
 }
 
 /**
@@ -1401,7 +1350,7 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
       GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       prop_rel);
 
-  ah->s_address_update_property (ah->solver, address, type, 0, prop_rel);
+  ah->env.sf.s_address_update_property (ah->solver, address, type, 0, prop_rel);
 }
 
 /**
@@ -1463,10 +1412,10 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
     return;
   }
 
-  handle->s_bulk_start (handle->solver);
+  handle->env.sf.s_bulk_start (handle->solver);
   /* Tell normalization about change, normalization will call callback if preference changed */
   GAS_normalization_normalize_preference (client, peer, kind, score_abs);
-  handle->s_bulk_stop (handle->solver);
+  handle->env.sf.s_bulk_stop (handle->solver);
 }
 
 /**
@@ -1502,7 +1451,7 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
     return;
   }
 
-  handle->s_feedback (handle->solver, application, peer, scope, kind,
+  handle->env.sf.s_feedback (handle->solver, application, peer, scope, kind,
       score_abs);
 }
 
@@ -1704,11 +1653,10 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     const struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_Addresses_Handle *ah;
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
-  int quota_count;
   char *mode_str;
+  char *plugin_short;
   int c;
 
   ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
@@ -1734,20 +1682,24 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     if (0 == strcmp (mode_str, "PROPORTIONAL"))
     {
       ah->ats_mode = MODE_PROPORTIONAL;
+      plugin_short = "proportional";
     }
     else if (0 == strcmp (mode_str, "MLP"))
     {
       ah->ats_mode = MODE_MLP;
+      plugin_short = "mlp";
 #if !HAVE_LIBGLPK
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
           "Assignment method `%s' configured, but GLPK is not available, please install \n",
           mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
+      plugin_short = "proportional";
 #endif
     }
     else if (0 == strcmp (mode_str, "RIL"))
     {
       ah->ats_mode = MODE_RIL;
+      plugin_short = "ril";
     }
     else
     {
@@ -1755,100 +1707,56 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
           "Invalid resource assignment method `%s' configured, using proportional approach\n",
           mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
+      plugin_short = "proportional";
     }
     GNUNET_free(mode_str);
   }
-  /* Start configured solution method */
-  switch (ah->ats_mode)
+
+  load_quotas (cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
+  ah->env.bandwidth_changed_cb = &bandwidth_changed_cb;
+  ah->env.bw_changed_cb_cls = ah;
+  ah->env.get_preferences_cb = &get_preferences_cb;
+  ah->env.get_preference_cls = ah;
+  ah->env.get_property_cb = &get_property_cb;
+  ah->env.get_property_cls = ah;
+  ah->env.cfg = cfg;
+  ah->env.stats = stats;
+  ah->env.addresses = ah->addresses;
+
+  ah->env.network_count = GNUNET_ATS_NetworkTypeCount;
+  int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-  case MODE_MLP:
-    /* Init the MLP solver with default values */
-#if HAVE_LIBGLPK
-    ah->s_init = &GAS_mlp_init;
-    ah->s_add = &GAS_mlp_address_add;
-    ah->s_address_update_property = &GAS_mlp_address_property_changed;
-    ah->s_address_update_session = &GAS_mlp_address_session_changed;
-    ah->s_address_update_inuse = &GAS_mlp_address_inuse_changed;
-    ah->s_address_update_network = &GAS_mlp_address_change_network;
-    ah->s_get = &GAS_mlp_get_preferred_address;
-    ah->s_get_stop = &GAS_mlp_stop_get_preferred_address;
-    ah->s_pref = &GAS_mlp_address_change_preference;
-    ah->s_feedback = &GAS_mlp_address_preference_feedback;
-    ah->s_del = &GAS_mlp_address_delete;
-    ah->s_bulk_start = &GAS_mlp_bulk_start;
-    ah->s_bulk_stop = &GAS_mlp_bulk_stop;
-    ah->s_done = &GAS_mlp_done;
-#else
-    GNUNET_free(ah);
-    return NULL ;
-#endif
-    break;
-  case MODE_PROPORTIONAL:
-    /* Init the proportional solver with default values */
-    ah->s_init = &GAS_proportional_init;
-    ah->s_add = &GAS_proportional_address_add;
-    ah->s_address_update_property = &GAS_proportional_address_property_changed;
-    ah->s_address_update_session = &GAS_proportional_address_session_changed;
-    ah->s_address_update_inuse = &GAS_proportional_address_inuse_changed;
-    ah->s_address_update_network = &GAS_proportional_address_change_network;
-    ah->s_get = &GAS_proportional_get_preferred_address;
-    ah->s_get_stop = &GAS_proportional_stop_get_preferred_address;
-    ah->s_pref = &GAS_proportional_address_change_preference;
-    ah->s_feedback = &GAS_proportional_address_preference_feedback;
-    ah->s_del = &GAS_proportional_address_delete;
-    ah->s_bulk_start = &GAS_proportional_bulk_start;
-    ah->s_bulk_stop = &GAS_proportional_bulk_stop;
-    ah->s_done = &GAS_proportional_done;
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n",
-        "PROPORTIONAL");
-    break;
-  case MODE_RIL:
-    /* Init the ril solver with default values */
-    ah->s_init = &GAS_ril_init;
-    ah->s_add = &GAS_ril_address_add;
-    ah->s_address_update_property = &GAS_ril_address_property_changed;
-    ah->s_address_update_session = &GAS_ril_address_session_changed;
-    ah->s_address_update_inuse = &GAS_ril_address_inuse_changed;
-    ah->s_address_update_network = &GAS_ril_address_change_network;
-    ah->s_get = &GAS_ril_get_preferred_address;
-    ah->s_get_stop = &GAS_ril_stop_get_preferred_address;
-    ah->s_pref = &GAS_ril_address_change_preference;
-    ah->s_feedback = &GAS_ril_address_preference_feedback;
-    ah->s_del = &GAS_ril_address_delete;
-    ah->s_bulk_start = &GAS_ril_bulk_start;
-    ah->s_bulk_stop = &GAS_ril_bulk_stop;
-    ah->s_done = &GAS_ril_done;
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "ATS started in %s mode\n", "RIL");
-    break;
-  default:
-    return NULL ;
-    break;
+    ah->env.networks[c] = networks[c];
+    ah->env.out_quota[c] = quotas_out[c];
+    ah->env.in_quota[c] = quotas_in[c];
   }
 
-  GNUNET_assert (NULL != ah->s_init);
-  GNUNET_assert (NULL != ah->s_add);
-  GNUNET_assert (NULL != ah->s_address_update_inuse);
-  GNUNET_assert (NULL != ah->s_address_update_property);
-  GNUNET_assert (NULL != ah->s_address_update_session);
-  GNUNET_assert (NULL != ah->s_address_update_network);
-  GNUNET_assert (NULL != ah->s_get);
-  GNUNET_assert (NULL != ah->s_get_stop);
-  GNUNET_assert (NULL != ah->s_pref);
-  GNUNET_assert (NULL != ah->s_feedback);
-  GNUNET_assert (NULL != ah->s_del);
-  GNUNET_assert (NULL != ah->s_done);
-  GNUNET_assert (NULL != ah->s_bulk_start);
-  GNUNET_assert (NULL != ah->s_bulk_stop);
+  GNUNET_asprintf (&ah->plugin, "libgnunet_plugin_ats_%s", plugin_short);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s '`%s'\n"), plugin_short, ah->plugin);
+  if  (NULL == (ah->solver = GNUNET_PLUGIN_load (ah->plugin, &ah->env)))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver `%s'!\n"), ah->plugin);
+    return NULL;
+  }
+
+  GNUNET_assert (NULL != ah->env.sf.s_add);
+  GNUNET_assert (NULL != ah->env.sf.s_address_update_inuse);
+  GNUNET_assert (NULL != ah->env.sf.s_address_update_property);
+  GNUNET_assert (NULL != ah->env.sf.s_address_update_session);
+  GNUNET_assert (NULL != ah->env.sf.s_address_update_network);
+  GNUNET_assert (NULL != ah->env.sf.s_get);
+  GNUNET_assert (NULL != ah->env.sf.s_get_stop);
+  GNUNET_assert (NULL != ah->env.sf.s_pref);
+  GNUNET_assert (NULL != ah->env.sf.s_feedback);
+  GNUNET_assert (NULL != ah->env.sf.s_del);
+  GNUNET_assert (NULL != ah->env.sf.s_bulk_start);
+  GNUNET_assert (NULL != ah->env.sf.s_bulk_stop);
+
 
   GAS_normalization_start (&normalized_preference_changed_cb, ah,
       &normalized_property_changed_cb, ah);
-  quota_count = load_quotas (cfg, quotas_in, quotas_out,
-			     GNUNET_ATS_NetworkTypeCount);
 
-  ah->solver = ah->s_init (cfg, stats, ah->addresses, quotas, quotas_in,
-			   quotas_out, quota_count,
-			   &bandwidth_changed_cb, ah, &get_preferences_cb,
-			   NULL, &get_property_cb, NULL );
   if (NULL == ah->solver)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver!\n"));
@@ -1884,7 +1792,7 @@ destroy_all_address_it (void *cls,
   GNUNET_assert(GNUNET_YES ==
 		GNUNET_CONTAINER_multipeermap_remove (handle->addresses, key, value));
   /* Notify */
-  handle->s_del (handle->solver, aa, GNUNET_NO);
+  handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
   /* Destroy */
   free_address (aa);
 
@@ -1904,12 +1812,12 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle)
     return;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Destroying all addresses\n");
-  handle->s_bulk_start (handle->solver);
+  handle->env.sf.s_bulk_start (handle->solver);
   if (handle->addresses != NULL )
     GNUNET_CONTAINER_multipeermap_iterate (handle->addresses,
 					   &destroy_all_address_it,
 					   handle);
-  handle->s_bulk_start (handle->solver);
+  handle->env.sf.s_bulk_start (handle->solver);
 }
 
 
@@ -1934,7 +1842,9 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
     GNUNET_CONTAINER_DLL_remove(handle->r_head, handle->r_tail, cur);
     GNUNET_free(cur);
   }
-  handle->s_done (handle->solver);
+
+  GNUNET_PLUGIN_unload (handle->plugin, handle->solver);
+  GNUNET_free (handle->plugin);
   GNUNET_free(handle);
   /* Stop configured solution method */
   GAS_normalization_stop ();
