@@ -77,11 +77,12 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
 
 /**
  * Convert a given fancy human-readable time to our internal
- * representation.
+ * representation.  The human-readable time is expected to be
+ * in local time, whereas the returned value will be in UTC.
  *
  * @param fancy_time human readable string (i.e. %Y-%m-%d %H:%M:%S)
  * @param atime set to the absolute time
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
@@ -223,12 +224,13 @@ GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
 
 
 /**
- * "asctime", except for GNUnet time.
+ * "asctime", except for GNUnet time.  Converts a GNUnet internal
+ * absolute time (which is in UTC) to a string in local time.
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
  *
  * @param t the absolute time to convert
- * @return timestamp in human-readable form
+ * @return timestamp in human-readable form in local time
  */
 const char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
