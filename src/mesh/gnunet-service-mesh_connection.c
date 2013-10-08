@@ -27,28 +27,17 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#include "gnunet_core_service.h"
-
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
-#include "gnunet-service-mesh_local.h"
 #include "mesh_protocol_enc.h"
 #include "mesh_path.h"
 
 
-#define MESH_DEBUG_CONNECTION   GNUNET_NO
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
 #define MESH_RETRANSMIT_MARGIN  4
-
-
-#if MESH_DEBUG_CONNECTION
-#define DEBUG_CONN(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_CONN(...)
-#endif
 
 
 /**
@@ -281,10 +270,6 @@ static unsigned long long max_msgs_queue;
  */
 static struct GNUNET_TIME_Relative refresh_connection_time;
 
-/**
- * Handle to communicate with core.
- */
-static struct GNUNET_CORE_Handle *core_handle;
 
 #if 0 // avoid compiler warning for unused static function
 static void
@@ -375,98 +360,6 @@ connection_get (const struct GNUNET_HashCode *cid)
   return GNUNET_CONTAINER_multihashmap_get (connections, cid);
 }
 
-
-/**
- * Sends an already built message on a connection, properly registering
- * all used resources.
- *
- * @param message Message to send. Function makes a copy of it.
- *                If message is not hop-by-hop, decrements TTL of copy.
- * @param c Connection on which this message is transmitted.
- * @param ch Channel on which this message is transmitted, or NULL.
- * @param fwd Is this a fwd message?
- */
-static void
-send_prebuilt_message_connection (const struct GNUNET_MessageHeader *message,
-                                  struct MeshConnection *c,
-                                  struct MeshChannel *ch,
-                                  int fwd)
-{
-  void *data;
-  size_t size;
-  uint16_t type;
-
-  size = ntohs (message->size);
-  data = GNUNET_malloc (size);
-  memcpy (data, message, size);
-  type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
-
-  switch (type)
-  {
-    struct GNUNET_MESH_Encrypted *emsg;
-    struct GNUNET_MESH_ACK       *amsg;
-    struct GNUNET_MESH_Poll      *pmsg;
-    struct GNUNET_MESH_ConnectionDestroy *dmsg;
-    struct GNUNET_MESH_ConnectionBroken  *bmsg;
-    uint32_t ttl;
-
-    case GNUNET_MESSAGE_TYPE_MESH_FWD:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK:
-      emsg = (struct GNUNET_MESH_Encrypted *) data;
-      ttl = ntohl (emsg->ttl);
-      if (0 == ttl)
-      {
-        GNUNET_break_op (0);
-        return;
-      }
-      emsg->cid = c->id;
-      emsg->ttl = htonl (ttl - 1);
-      emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      amsg = (struct GNUNET_MESH_ACK *) data;
-      amsg->cid = c->id;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      pmsg = (struct GNUNET_MESH_Poll *) data;
-      pmsg->cid = c->id;
-      pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-      dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
-      dmsg->cid = c->id;
-      dmsg->reserved = 0;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-      bmsg = (struct GNUNET_MESH_ConnectionBroken *) data;
-      bmsg->cid = c->id;
-      bmsg->reserved = 0;
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      break;
-
-    default:
-      GNUNET_break (0);
-  }
-
-  queue_add (data,
-             type,
-             size,
-             c,
-             ch,
-             fwd);
-}
 
 /**
  * Send an ACK informing the predecessor about the available buffer space.
@@ -1092,128 +985,6 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
     f  = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
   }
-}
-
-
-
-
-
-/**
- * Method called whenever a given peer connects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-static void
-core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct MeshPeer *pi;
-  struct MeshPeerPath *path;
-
-  DEBUG_CONN ("Peer connected\n");
-  DEBUG_CONN ("     %s\n", GNUNET_i2s (&my_full_id));
-  pi = peer_get (peer);
-  if (myid == pi->id)
-  {
-    DEBUG_CONN ("     (self)\n");
-    path = path_new (1);
-  }
-  else
-  {
-    DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
-    path = path_new (2);
-    path->peers[1] = pi->id;
-    GNUNET_PEER_change_rc (pi->id, 1);
-    GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
-  }
-  path->peers[0] = myid;
-  GNUNET_PEER_change_rc (myid, 1);
-  peer_add_path (pi, path, GNUNET_YES);
-
-  pi->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
-  return;
-}
-
-
-/**
- * Method called whenever a peer disconnects.
- *
- * @param cls closure
- * @param peer peer identity this notification is about
- */
-static void
-core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct MeshPeer *pi;
-
-  DEBUG_CONN ("Peer disconnected\n");
-  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
-  if (NULL == pi)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  GNUNET_CONTAINER_multihashmap_iterate (pi->connections,
-                                         GMC_notify_broken,
-                                         pi);
-  GNUNET_CONTAINER_multihashmap_destroy (pi->connections);
-  pi->connections = NULL;
-  if (NULL != pi->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit);
-      pi->core_transmit = NULL;
-    }
-  if (myid == pi->id)
-  {
-    DEBUG_CONN ("     (self)\n");
-  }
-  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
-
-  return;
-}
-
-
-
-/**
- * To be called on core init/fail.
- *
- * @param cls Closure (config)
- * @param identity the public identity of this peer
- */
-static void
-core_init (void *cls,
-           const struct GNUNET_PeerIdentity *identity)
-{
-  const struct GNUNET_CONFIGURATION_Handle *c = cls;
-  static int i = 0;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
-  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " core id %s\n",
-                GNUNET_i2s (identity));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " my id %s\n",
-                GNUNET_i2s (&my_full_id));
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                       NULL,      /* Closure passed to MESH functions */
-                                       &core_init,        /* Call core_init once connected */
-                                       &core_connect,     /* Handle connects */
-                                       &core_disconnect,  /* remove peers on disconnects */
-                                       NULL,      /* Don't notify about all incoming messages */
-                                       GNUNET_NO, /* For header only in notification */
-                                       NULL,      /* Don't notify about all outbound messages */
-                                       GNUNET_NO, /* For header-only out notification */
-                                       core_handlers);    /* Register these handlers */
-    if (10 < i++)
-      GNUNET_abort();
-  }
-  GML_start ();
-  return;
 }
 
 
@@ -1998,6 +1769,61 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 }
 
 
+
+/**
+ * Initialize the connections subsystem
+ *
+ * @param c Configuration handle.
+ */
+void
+GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
+                                             &max_msgs_queue))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "MAX_MSGS_QUEUE", "MISSING");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
+                                             &max_connections))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "MAX_CONNECTIONS", "MISSING");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
+                                           &refresh_connection_time))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "MESH", "REFRESH_CONNECTION_TIME", "MISSING");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+}
+
+/**
+ * Shut down the connections subsystem.
+ */
+void
+GMC_shutdown (void)
+{
+  if (core_handle != NULL)
+  {
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = NULL;
+  }
+}
+
+
 struct MeshConnection *
 GMC_new (const struct GNUNET_HashCode *cid)
 {
@@ -2054,22 +1880,18 @@ GMC_destroy (struct MeshConnection *c)
 
 
 /**
- * Iterator to notify all connections of a broken link. Mark connections
+ * Notify other peers on a connection of a broken link. Mark connections
  * to destroy after all traffic has been sent.
  *
- * @param cls Closure (peer disconnected).
- * @param key Current key code (tid).
- * @param value Value in the hash map (connection).
- *
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @param c Connection on which there has been a disconnection.
+ * @param peer Peer that disconnected.
+ * @param my_full_id My ID (to send to other peers).
  */
-int
-GMC_notify_broken (void *cls,
-                   const struct GNUNET_HashCode *key,
-                   void *value)
+void
+GMC_notify_broken (struct MeshConnection *c,
+                   struct MeshPeer *peer,
+                   struct GNUNET_PeerIdentity *my_full_id)
 {
-  struct MeshPeer *peer = cls;
   struct MeshConnection *c = value;
   struct GNUNET_MESH_ConnectionBroken msg;
   int fwd;
@@ -2087,83 +1909,12 @@ GMC_notify_broken (void *cls,
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
   msg.cid = c->id;
-  msg.peer1 = my_full_id;
+  msg.peer1 = *my_full_id;
   msg.peer2 = *GNUNET_PEER_resolve2 (peer->id);
-  send_prebuilt_message_connection (&msg.header, c, NULL, fwd);
+  GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
   c->destroy = GNUNET_YES;
 
   return GNUNET_YES;
-}
-
-
-/**
- * Initialize the connections subsystem
- *
- * @param c Configuration handle.
- */
-void
-GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
-{
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
-                                             &max_msgs_queue))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "MESH", "MAX_MSGS_QUEUE", "MISSING");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
-                                             &max_connections))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "MESH", "MAX_CONNECTIONS", "MISSING");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
-                                           &refresh_connection_time))
-  {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "MESH", "REFRESH_CONNECTION_TIME", "MISSING");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
-
-  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to MESH functions */
-                                     &core_init,        /* Call core_init once connected */
-                                     &core_connect,     /* Handle connects */
-                                     &core_disconnect,  /* remove peers on disconnects */
-                                     NULL,      /* Don't notify about all incoming messages */
-                                     GNUNET_NO, /* For header only in notification */
-                                     NULL,      /* Don't notify about all outbound messages */
-                                     GNUNET_NO, /* For header-only out notification */
-                                     core_handlers);    /* Register these handlers */
-  if (NULL == core_handle)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-}
-
-/**
- * Shut down the connections subsystem.
- */
-void
-GMC_shutdown (void)
-{
-  if (core_handle != NULL)
-  {
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = NULL;
-  }
 }
 
 
@@ -2214,4 +1965,97 @@ GMC_count (const struct MeshConnection *head)
   for (count = 0, iter = head; NULL != iter; iter = iter->next, count++);
 
   return count;
+}
+
+
+/**
+ * Sends an already built message on a connection, properly registering
+ * all used resources.
+ *
+ * @param message Message to send. Function makes a copy of it.
+ *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param c Connection on which this message is transmitted.
+ * @param ch Channel on which this message is transmitted, or NULL.
+ * @param fwd Is this a fwd message?
+ */
+void
+GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           struct MeshConnection *c,
+                           struct MeshChannel *ch,
+                           int fwd)
+{
+  void *data;
+  size_t size;
+  uint16_t type;
+
+  size = ntohs (message->size);
+  data = GNUNET_malloc (size);
+  memcpy (data, message, size);
+  type = ntohs (message->type);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
+              GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
+
+  switch (type)
+  {
+    struct GNUNET_MESH_Encrypted *emsg;
+    struct GNUNET_MESH_ACK       *amsg;
+    struct GNUNET_MESH_Poll      *pmsg;
+    struct GNUNET_MESH_ConnectionDestroy *dmsg;
+    struct GNUNET_MESH_ConnectionBroken  *bmsg;
+    uint32_t ttl;
+
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      emsg = (struct GNUNET_MESH_Encrypted *) data;
+      ttl = ntohl (emsg->ttl);
+      if (0 == ttl)
+      {
+        GNUNET_break_op (0);
+        return;
+      }
+      emsg->cid = c->id;
+      emsg->ttl = htonl (ttl - 1);
+      emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      amsg = (struct GNUNET_MESH_ACK *) data;
+      amsg->cid = c->id;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      pmsg = (struct GNUNET_MESH_Poll *) data;
+      pmsg->cid = c->id;
+      pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+      dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
+      dmsg->cid = c->id;
+      dmsg->reserved = 0;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+      bmsg = (struct GNUNET_MESH_ConnectionBroken *) data;
+      bmsg->cid = c->id;
+      bmsg->reserved = 0;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+      break;
+
+    default:
+      GNUNET_break (0);
+  }
+
+  GMP_queue_add (data,
+                 type,
+                 size,
+                 c,
+                 ch,
+                 fwd);
 }

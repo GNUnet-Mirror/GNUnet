@@ -22,7 +22,9 @@
 #include "platform.h"
 #include "mesh_enc.h"
 #include "mesh_protocol_enc.h" // GNUNET_MESH_Data is shared
+
 #include "gnunet-service-mesh_local.h"
+#include "gnunet-service-mesh_tunnel.h"
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -394,7 +396,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
     msgcc.port = msg->port;
     msgcc.opt = msg->opt;
 
-    tunnel_queue_data (t, ch, &msgcc.header, GNUNET_YES);
+    GMT_queue_data (t, ch, &msgcc.header, GNUNET_YES);
   }
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

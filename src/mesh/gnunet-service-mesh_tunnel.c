@@ -21,6 +21,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "mesh_protocol_enc.h"
+
 #include "gnunet-service-mesh_tunnel.h"
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_channel.h"
@@ -370,11 +372,11 @@ tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
  * @param msg Message itself (copy will be made).
  * @param fwd Is this fwd?
  */
-static void
-tunnel_queue_data (struct MeshTunnel2 *t,
-                   struct MeshChannel *ch,
-                   struct GNUNET_MessageHeader *msg,
-                   int fwd)
+void
+GMT_queue_data (struct MeshTunnel2 *t,
+                struct MeshChannel *ch,
+                struct GNUNET_MessageHeader *msg,
+                int fwd)
 {
   struct MeshTunnelQueue *tq;
   uint16_t size = ntohs (msg->size);
@@ -476,8 +478,8 @@ GMT_new (void)
  * @param t Tunnel whose state to change.
  * @param state New state.
  */
-static void
-tunnel_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
+void
+GMT_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
 {
   if (NULL == t)
     return;
@@ -657,7 +659,7 @@ GMT_handle_decrypted (struct MeshTunnel2 *t,
  * @return Short ID of the peer disconnected (either p1 or p2).
  *         0 if the tunnel remained unaffected.
  */
-static GNUNET_PEER_Id
+GNUNET_PEER_Id
 GMT_notify_connection_broken (struct MeshTunnel2* t,
                               GNUNET_PEER_Id p1, GNUNET_PEER_Id p2)
 {
@@ -850,5 +852,5 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
   }
   msg->reserved = 0;
 
-  send_prebuilt_message_connection (&msg->header, c, ch, fwd);
+  GMC_send_prebuilt_message (&msg->header, c, ch, fwd);
 }

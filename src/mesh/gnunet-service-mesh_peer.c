@@ -22,9 +22,12 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet_core_service.h"
+
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_connection.h"
+#include "gnunet-service-mesh_local.h"
 #include "mesh_path.h"
 
 /******************************************************************************/
@@ -112,10 +115,160 @@ static unsigned long long max_peers;
  */
 static unsigned long long drop_percent;
 
+/**
+ * Handle to communicate with core.
+ */
+static struct GNUNET_CORE_Handle *core_handle;
+
+/**
+ * Local peer own ID (full value).
+ */
+const static struct GNUNET_PeerIdentity *my_full_id;
+
 /******************************************************************************/
 /***************************** CORE CALLBACKS *********************************/
 /******************************************************************************/
 
+
+/**
+ * Iterator to notify all connections of a broken link. Mark connections
+ * to destroy after all traffic has been sent.
+ *
+ * @param cls Closure (peer disconnected).
+ * @param key Current key code (peer id).
+ * @param value Value in the hash map (connection).
+ *
+ * @return GNUNET_YES if we should continue to iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+notify_broken (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
+{
+  struct MeshPeer *peer = cls;
+  struct MeshConnection *c = value;
+
+  GMC_notify_broken (c, peer, my_full_id);
+
+  return GNUNET_YES;
+}
+
+/**
+ * Method called whenever a given peer connects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ */
+static void
+core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct MeshPeer *pi;
+  struct MeshPeerPath *path;
+
+  LOG ("Peer connected\n");
+  LOG ("     %s\n", GNUNET_i2s (&my_full_id));
+  pi = peer_get (peer);
+  if (myid == pi->id)
+  {
+    DEBUG_CONN ("     (self)\n");
+    path = path_new (1);
+  }
+  else
+  {
+    DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
+    path = path_new (2);
+    path->peers[1] = pi->id;
+    GNUNET_PEER_change_rc (pi->id, 1);
+    GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
+  }
+  path->peers[0] = myid;
+  GNUNET_PEER_change_rc (myid, 1);
+  peer_add_path (pi, path, GNUNET_YES);
+
+  pi->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+  return;
+}
+
+
+/**
+ * Method called whenever a peer disconnects.
+ *
+ * @param cls closure
+ * @param peer peer identity this notification is about
+ */
+static void
+core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct MeshPeer *pi;
+
+  DEBUG_CONN ("Peer disconnected\n");
+  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
+  if (NULL == pi)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_CONTAINER_multihashmap_iterate (pi->connections, &notify_broken, pi);
+  GNUNET_CONTAINER_multihashmap_destroy (pi->connections);
+  pi->connections = NULL;
+  if (NULL != pi->core_transmit)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit);
+      pi->core_transmit = NULL;
+    }
+  if (myid == pi->id)
+  {
+    DEBUG_CONN ("     (self)\n");
+  }
+  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
+
+  return;
+}
+
+
+
+/**
+ * To be called on core init/fail.
+ *
+ * @param cls Closure (config)
+ * @param identity the public identity of this peer
+ */
+static void
+core_init (void *cls,
+           const struct GNUNET_PeerIdentity *identity)
+{
+  const struct GNUNET_CONFIGURATION_Handle *c = cls;
+  static int i = 0;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
+  if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " core id %s\n",
+                GNUNET_i2s (identity));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                " my id %s\n",
+                GNUNET_i2s (&my_full_id));
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = GNUNET_CORE_connect (c, /* Main configuration */
+                                       NULL,      /* Closure passed to MESH functions */
+                                       &core_init,        /* Call core_init once connected */
+                                       &core_connect,     /* Handle connects */
+                                       &core_disconnect,  /* remove peers on disconnects */
+                                       NULL,      /* Don't notify about all incoming messages */
+                                       GNUNET_NO, /* For header only in notification */
+                                       NULL,      /* Don't notify about all outbound messages */
+                                       GNUNET_NO, /* For header-only out notification */
+                                       core_handlers);    /* Register these handlers */
+    if (10 < i++)
+      GNUNET_abort();
+  }
+  GML_start ();
+  return;
+}
 
 /**
   * Core callback to write a pre-constructed data packet to core buffer
@@ -1145,10 +1298,13 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
  * Initialize the peer subsystem.
  *
  * @param c Configuration.
+ * @param id Peer identity
  */
 void
-GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
+GMP_init (const struct GNUNET_CONFIGURATION_Handle *c,
+          const struct GNUNET_PeerIdentity *id)
 {
+  my_full_id = id;
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
@@ -1173,6 +1329,23 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                 "This is NOT a good idea!\n"
                 "Remove the DROP_PERCENT option from your configuration.\n"
                 "***************************************\n");
+  }
+
+  core_handle = GNUNET_CORE_connect (c, /* Main configuration */
+                                     NULL,      /* Closure passed to MESH functions */
+                                     &core_init,        /* Call core_init once connected */
+                                     &core_connect,     /* Handle connects */
+                                     &core_disconnect,  /* remove peers on disconnects */
+                                     NULL,      /* Don't notify about all incoming messages */
+                                     GNUNET_NO, /* For header only in notification */
+                                     NULL,      /* Don't notify about all outbound messages */
+                                     GNUNET_NO, /* For header-only out notification */
+                                     core_handlers);    /* Register these handlers */
+  if (NULL == core_handle)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
   }
 }
 

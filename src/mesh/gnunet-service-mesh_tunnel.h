@@ -68,6 +68,29 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GMT_shutdown (void);
 
+/**
+ * Change the tunnel state.
+ *
+ * @param t Tunnel whose state to change.
+ * @param state New state.
+ */
+void
+GMT_change_state (struct MeshTunnel2* t, enum MeshTunnelState state);
+
+
+/**
+ * Cache a message to be sent once tunnel is online.
+ *
+ * @param t Tunnel to hold the message.
+ * @param ch Channel the message is about.
+ * @param msg Message itself (copy will be made).
+ * @param fwd Is this fwd?
+ */
+void
+GMT_queue_data (struct MeshTunnel2 *t,
+                struct MeshChannel *ch,
+                struct GNUNET_MessageHeader *msg,
+                int fwd);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

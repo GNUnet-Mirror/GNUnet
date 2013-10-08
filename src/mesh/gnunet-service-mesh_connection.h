@@ -109,20 +109,17 @@ void
 GMC_change_state (struct MeshConnection* c, enum MeshConnectionState state);
 
 /**
- * Iterator to notify all connections of a broken link. Mark connections
+ * Notify other peers on a connection of a broken link. Mark connections
  * to destroy after all traffic has been sent.
  *
- * @param cls Closure (peer disconnected).
- * @param key Current key code (tid).
- * @param value Value in the hash map (connection).
- *
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @param c Connection on which there has been a disconnection.
+ * @param peer Peer that disconnected.
+ * @param my_full_id My ID (to send to other peers).
  */
-int
-GMC_notify_broken (void *cls,
-                   const struct GNUNET_HashCode *key,
-                   void *value);
+void
+GMC_notify_broken (struct MeshConnection *c,
+                   struct MeshPeer *peer,
+                   struct GNUNET_PeerIdentity *my_full_id);
 
 /**
  * @brief Queue and pass message to core when possible.
@@ -192,6 +189,21 @@ GMC_is_origin (struct MeshConnection *c, int fwd);
 int
 GMC_is_terminal (struct MeshConnection *c, int fwd);
 
+/**
+ * Sends an already built message on a connection, properly registering
+ * all used resources.
+ *
+ * @param message Message to send. Function makes a copy of it.
+ *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param c Connection on which this message is transmitted.
+ * @param ch Channel on which this message is transmitted, or NULL.
+ * @param fwd Is this a fwd message?
+ */
+void
+GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           struct MeshConnection *c,
+                           struct MeshChannel *ch,
+                           int fwd);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
