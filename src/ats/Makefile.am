@@ -35,7 +35,8 @@ lib_LTLIBRARIES = libgnunetats.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_ats_proportional.la \
-  $(GN_MLP_LIB)
+  $(GN_MLP_LIB) \
+  libgnunet_plugin_ats_ril.la
 
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
@@ -96,12 +97,12 @@ TESTING_TESTS = \
  $(GN_MLP_ADD_REQUEST_ADDRESS) \
  $(GN_MLP_REQUEST_ADD_ADDRESS) \
  $(GN_MLP_REQUEST_DELETE_ADDRESS) \
- $(GN_MLP_ALTERNATIVE_DELETE_ADDRESS)
-# test_ats_solver_add_address_ril
-# test_ats_solver_add_address_and_request_ril
-# test_ats_solver_request_and_add_address_ril 
-# test_ats_solver_request_and_delete_address_ril 
-# test_ats_solver_alternative_after_delete_address_ril
+ $(GN_MLP_ALTERNATIVE_DELETE_ADDRESS) \
+ test_ats_solver_add_address_ril \
+ test_ats_solver_add_address_and_request_ril \
+ test_ats_solver_request_and_add_address_ril \
+ test_ats_solver_request_and_delete_address_ril \
+ test_ats_solver_alternative_after_delete_address_ril
   
 # test_ats_api_scheduling_min_bw
 # test_ats_api_scheduling_check_min_bw_alt

@@ -19,16 +19,12 @@
  */
 
 /**
- * @file ats/gnunet-service-ats-solver_ril.c
+ * @file ats/libgnunet_plugin_ats_ril.c
  * @brief ATS reinforcement learning solver
  * @author Fabian Oehlmann
  * @author Matthias Wachs
  */
-#include "platform.h"
-#include "float.h"
-#include "gnunet_util_lib.h"
-#include "gnunet-service-ats_addresses.h"
-#include "gnunet_statistics_service.h"
+#include "libgnunet_plugin_ats_ril.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
@@ -285,6 +281,11 @@ struct RIL_Callbacks
 struct GAS_RIL_Handle
 {
   /**
+   *
+   */
+  struct GNUNET_ATS_PluginEnvironment *plugin_envi;
+
+  /**
    * Statistics handle
    */
   struct GNUNET_STATISTICS_Handle *stats;
@@ -298,16 +299,6 @@ struct GAS_RIL_Handle
    * Callbacks for the solver
    */
   struct RIL_Callbacks *callbacks;
-
-  /**
-   * Bulk lock
-   */
-  int bulk_lock;
-
-  /**
-   * Number of changes while solver was locked
-   */
-  int bulk_requests;
 
   /**
    * Number of performed time-steps
@@ -1253,71 +1244,32 @@ GAS_ril_address_change_preference (void *s,
    */
 }
 
-/**
- * Init the reinforcement learning problem solver
- *
- * Quotas:
- * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
- * out_quota[i] contains outbound quota for network type i
- * in_quota[i] contains inbound quota for network type i
- *
- * Example
- * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
- * network[2]   == GNUNET_ATS_NET_LAN
- * out_quota[2] == 65353
- * in_quota[2]  == 65353
- *
- * @param cfg configuration handle
- * @param stats the GNUNET_STATISTICS handle
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param addresses hashmap containing all addresses
- * @param out_quota array of outbound quotas
- * @param in_quota array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @param get_preference callback to get relative preferences for a peer
- * @param get_preference_cls cls for callback to get relative preferences
- * @param get_properties_cls for callback to get relative properties
- * @param get_properties_cls cls for callback to get relative properties
- * @return handle for the solver on success, NULL on fail
- */
+//TODO doxygen
 void *
-GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-    int *network,
-    unsigned long long *out_quota,
-    unsigned long long *in_quota,
-    int dest_length,
-    GAS_bandwidth_changed_cb bw_changed_cb,
-    void *bw_changed_cb_cls,
-    GAS_get_preferences get_preference,
-    void *get_preference_cls,
-    GAS_get_properties get_properties,
-    void *get_properties_cls)
+libgnunet_plugin_ats_ril_init (void *cls)
 {
+  struct GNUNET_ATS_PluginEnvironment *env = cls;
+  struct GAS_RIL_Handle *solver = GNUNET_new (struct GAS_RIL_Handle);;
+  struct RIL_Network * cur;
   int c;
   unsigned long long tmp;
   char *string;
-  struct RIL_Network * cur;
-  struct GAS_RIL_Handle *solver = GNUNET_new (struct GAS_RIL_Handle);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_init() Initializing RIL solver\n");
 
-  GNUNET_assert(NULL != cfg);
-  GNUNET_assert(NULL != stats);
-  GNUNET_assert(NULL != network);
-  GNUNET_assert(NULL != bw_changed_cb);
-  GNUNET_assert(NULL != get_preference);
-  GNUNET_assert(NULL != get_properties);
+  GNUNET_assert(NULL != env);
+  GNUNET_assert(NULL != env->cfg);
+  GNUNET_assert(NULL != env->stats);
+  GNUNET_assert(NULL != env->bandwidth_changed_cb);
+  GNUNET_assert(NULL != env->get_preferences_cb);
+  GNUNET_assert(NULL != env->get_property_cb);
 
   if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_time (cfg, "ats", "RIL_STEP_TIME", &solver->step_time))
+      != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME", &solver->step_time))
   {
     solver->step_time = RIL_DEFAULT_STEP_TIME;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "RIL_ALGORITHM", &string)
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_ALGORITHM", &string)
       && NULL != string && 0 == strcmp (string, "SARSA"))
   {
     solver->parameters.algorithm = RIL_ALGO_SARSA;
@@ -1326,7 +1278,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     solver->parameters.algorithm = RIL_DEFAULT_ALGORITHM;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", "RIL_DISCOUNT_FACTOR", &tmp))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_DISCOUNT_FACTOR", &tmp))
   {
     solver->parameters.gamma = (double) tmp / 100;
   }
@@ -1334,7 +1286,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     solver->parameters.gamma = RIL_DEFAULT_DISCOUNT_FACTOR;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &tmp))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &tmp))
   {
     solver->parameters.alpha = (double) tmp / 100;
   }
@@ -1342,7 +1294,7 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (cfg, "ats", "RIL_TRACE_DECAY", &tmp))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_TRACE_DECAY", &tmp))
   {
     solver->parameters.lambda = (double) tmp / 100;
   }
@@ -1351,27 +1303,40 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
   }
 
-  solver->stats = (struct GNUNET_STATISTICS_Handle *) stats;
+  env->sf.s_add = &GAS_ril_address_add;
+  env->sf.s_address_update_property = &GAS_ril_address_property_changed;
+  env->sf.s_address_update_session = &GAS_ril_address_session_changed;
+  env->sf.s_address_update_inuse = &GAS_ril_address_inuse_changed;
+  env->sf.s_address_update_network = &GAS_ril_address_change_network;
+  env->sf.s_get = &GAS_ril_get_preferred_address;
+  env->sf.s_get_stop = &GAS_ril_stop_get_preferred_address;
+  env->sf.s_pref = &GAS_ril_address_change_preference;
+  env->sf.s_feedback = &GAS_ril_address_preference_feedback;
+  env->sf.s_del = &GAS_ril_address_delete;
+  env->sf.s_bulk_start = &GAS_ril_bulk_start;
+  env->sf.s_bulk_stop = &GAS_ril_bulk_stop;
+
+  solver->plugin_envi = env;
+  solver->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
   solver->callbacks = GNUNET_malloc (sizeof (struct RIL_Callbacks));
-  solver->callbacks->bw_changed = bw_changed_cb;
-  solver->callbacks->bw_changed_cls = bw_changed_cb_cls;
-  solver->callbacks->get_preferences = get_preference;
-  solver->callbacks->get_preferences_cls = get_preference_cls;
-  solver->callbacks->get_properties = get_properties;
-  solver->callbacks->get_properties_cls = get_properties_cls;
-  solver->networks_count = dest_length;
-  solver->network_entries = GNUNET_malloc (dest_length * sizeof (struct RIL_Network));
-  solver->bulk_lock = GNUNET_NO;
-  solver->addresses = addresses;
+  solver->callbacks->bw_changed = env->bandwidth_changed_cb;
+  solver->callbacks->bw_changed_cls = env->bw_changed_cb_cls;
+  solver->callbacks->get_preferences = env->get_preferences_cb;
+  solver->callbacks->get_preferences_cls = env->get_preference_cls;
+  solver->callbacks->get_properties = env->get_property_cb;
+  solver->callbacks->get_properties_cls = env->get_property_cls;
+  solver->networks_count = env->network_count;
+  solver->network_entries = GNUNET_malloc (env->network_count * sizeof (struct RIL_Network));
+  solver->addresses = env->addresses;
   solver->step_count = 0;
 
-  for (c = 0; c < dest_length; c++)
+  for (c = 0; c < env->network_count; c++)
   {
     cur = &solver->network_entries[c];
-    cur->type = network[c];
-    cur->bw_in_available = in_quota[c];
+    cur->type = env->networks[c];
+    cur->bw_in_available = env->in_quota[c];
     cur->bw_in_assigned = 0;
-    cur->bw_out_available = out_quota[c];
+    cur->bw_out_available = env->out_quota[c];
     cur->bw_out_assigned = 0;
   }
 
@@ -1382,15 +1347,11 @@ GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return solver;
 }
 
-/**
- * Shutdown the reinforcement learning problem solver
- *
- * @param solver the respective handle to shutdown
- */
-void
-GAS_ril_done (void * solver)
+//TODO doxygen
+void *
+libgnunet_plugin_ats_ril_done (void *cls)
 {
-  struct GAS_RIL_Handle *s = solver;
+  struct GAS_RIL_Handle *s = cls;
   struct RIL_Peer_Agent *cur_agent;
   struct RIL_Peer_Agent *next_agent;
 
@@ -1409,6 +1370,8 @@ GAS_ril_done (void * solver)
   GNUNET_free(s->callbacks);
   GNUNET_free(s->network_entries);
   GNUNET_free(s);
+
+  return NULL;
 }
 
 /**
@@ -1834,4 +1797,4 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
       GNUNET_i2s (peer), agent->address_inuse->plugin);
 }
 
-/* end of gnunet-service-ats-solver_ril.c */
+/* end of libgnunet_plugin_ats_ril.c */

@@ -19,13 +19,14 @@
  */
 
 /**
- * @file ats/gnunet-service-ats-solver_ril.h
+ * @file ats/libgnunet_plugin_ats_ril.h
  * @brief ATS reinforcement learning solver
  * @author Fabian Oehlmann
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "gnunet_statistics_service.h"
+#include "float.h"
+#include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 
 /**
@@ -47,58 +48,6 @@ GAS_ril_address_change_preference (void *solver,
     const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_ATS_PreferenceKind kind,
     double pref_rel);
-
-/**
- * Init the reinforcement learning problem solver
- *
- * Quotas:
- * network[i] contains the network type as type GNUNET_ATS_NetworkType[i]
- * out_quota[i] contains outbound quota for network type i
- * in_quota[i] contains inbound quota for network type i
- *
- * Example
- * network = {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN}
- * network[2]   == GNUNET_ATS_NET_LAN
- * out_quota[2] == 65353
- * in_quota[2]  == 65353
- *
- * @param cfg configuration handle
- * @param stats the GNUNET_STATISTICS handle
- * @param network array of GNUNET_ATS_NetworkType with length dest_length
- * @param addresses hashmap containing all addresses
- * @param out_quota array of outbound quotas
- * @param in_quota array of outbound quota
- * @param dest_length array length for quota arrays
- * @param bw_changed_cb callback for changed bandwidth amounts
- * @param bw_changed_cb_cls cls for callback
- * @param get_preference callback to get relative preferences for a peer
- * @param get_preference_cls cls for callback to get relative preferences
- * @param get_properties_cls for callback to get relative properties
- * @param get_properties_cls cls for callback to get relative properties
- * @return handle for the solver on success, NULL on fail
- */
-void *
-GAS_ril_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-    int *network,
-    unsigned long long *out_quota,
-    unsigned long long *in_quota,
-    int dest_length,
-    GAS_bandwidth_changed_cb bw_changed_cb,
-    void *bw_changed_cb_cls,
-    GAS_get_preferences get_preference,
-    void *get_preference_cls,
-    GAS_get_properties get_properties,
-    void *get_properties_cls);
-
-/**
- * Shutdown the reinforcement learning problem solver
- *
- * @param solver the respective handle to shutdown
- */
-void
-GAS_ril_done (void * solver);
 
 /**
  * Add a single address within a network to the solver
@@ -238,4 +187,4 @@ const struct ATS_Address *
 GAS_ril_get_preferred_address (void *solver,
     const struct GNUNET_PeerIdentity *peer);
 
-/* end of gnunet-service-ats-solver_ril.h */
+/* end of libgnunet_plugin_ats_ril.h */
