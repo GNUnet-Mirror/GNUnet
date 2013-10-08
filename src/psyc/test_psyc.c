@@ -26,6 +26,7 @@
  */
 
 #include "platform.h"
+#include "gnunet_crypto_lib.h"
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
@@ -64,10 +65,10 @@ static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
 static void
 cleanup ()
 {
-  if (master != NULL)
+  if (mst != NULL)
   {
-    GNUNET_PSYC_master_stop (master);
-    master = NULL;
+    GNUNET_PSYC_master_stop (mst);
+    mst = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
