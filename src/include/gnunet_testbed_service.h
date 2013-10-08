@@ -804,13 +804,11 @@ GNUNET_TESTBED_peer_get_information (struct GNUNET_TESTBED_Peer *peer,
 
 
 /**
- * Change peer configuration.  Must only be called while the
- * peer is stopped.  Ports and paths cannot be changed this
+ * Change @a peer configuration.  Ports and paths cannot be changed this
  * way.
  *
  * @param peer peer to change configuration for
- * @param cfg new configuration (differences to existing
- *            configuration only)
+ * @param cfg new configuration
  * @return handle to the operation
  */
 struct GNUNET_TESTBED_Operation *

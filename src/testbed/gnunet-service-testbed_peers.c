@@ -780,6 +780,32 @@ GST_free_prcq ()
 
 
 /**
+ * Update peer configuration
+ *
+ * @param peer the peer to update
+ * @param cfg the new configuration
+ * @return error message (freshly allocated); NULL upon success
+ */
+static char *
+update_peer_config (struct Peer *peer,
+                    struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *emsg;
+
+  GNUNET_TESTING_peer_destroy (peer->details.local.peer);
+  GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
+  peer->details.local.cfg = cfg;
+  emsg = NULL;  
+  peer->details.local.peer
+      = GNUNET_TESTING_peer_configure (GST_context->system,
+                                       peer->details.local.cfg, peer->id,
+                                       NULL /* Peer id */ ,
+                                       &emsg);
+  return emsg;
+}
+
+
+/**
  * Callback to inform whether the peer is running or stopped.
  *
  * @param cls the closure given to GNUNET_TESTING_peer_stop_async()
@@ -797,25 +823,16 @@ prc_stop_cb (void *cls, struct GNUNET_TESTING_Peer *p, int success)
   GNUNET_assert (VALID_PEER_ID (prc->peer_id));
   peer = GST_peer_list [prc->peer_id];
   GNUNET_assert (GNUNET_NO == peer->is_remote);
-  GNUNET_TESTING_peer_destroy (peer->details.local.peer);
-  GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
-  peer->details.local.cfg = prc->cfg;
+  emsg = update_peer_config (peer, prc->cfg);
   prc->cfg = NULL;
   prc->stopped = 1;
-  emsg = NULL;
-  peer->details.local.peer
-      = GNUNET_TESTING_peer_configure (GST_context->system,
-                                       peer->details.local.cfg, peer->id,
-                                       NULL /* Peer id */ ,
-                                       &emsg);
-  if (NULL == peer->details.local.peer)
+  if (NULL != emsg)
   {
     GST_send_operation_fail_msg (prc->client, prc->op_id, emsg);
     goto cleanup;
   }
   if (GNUNET_OK != start_peer (peer))
   {
-
     GST_send_operation_fail_msg (prc->client, prc->op_id,
                                  "Failed to start reconfigured peer");
     goto cleanup;
@@ -846,6 +863,7 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct ForwardedOperationContext *fopc;
   struct PeerReconfigureContext *prc;
+  char *emsg;
   uint64_t op_id;
   uint32_t peer_id;
   uint16_t msize;
@@ -912,14 +930,35 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  if (GNUNET_NO == peer->details.local.is_running)
+  {
+    emsg = update_peer_config (peer, cfg);
+    if (NULL != emsg)
+      GST_send_operation_fail_msg (client, op_id, emsg);
+    GST_send_operation_success_msg (client, op_id);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   prc = GNUNET_malloc (sizeof (struct PeerReconfigureContext));
+  if (GNUNET_OK != 
+      GNUNET_TESTING_peer_stop_async (peer->details.local.peer, &prc_stop_cb,
+                                      prc))
+  {
+    GNUNET_assert (0 < GNUNET_asprintf (&emsg,
+                                        "Error trying to stop peer %u asynchronously\n", 
+                                        peer_id));
+    LOG (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
+    GST_send_operation_fail_msg (client, op_id, emsg);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_free (prc);
+    return;
+  }
   prc->cfg = cfg;
   prc->peer_id = peer_id;
   prc->op_id = op_id;
   prc->client = client;
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert_tail (prc_head, prc_tail, prc);
-  GNUNET_TESTING_peer_stop_async (peer->details.local.peer, prc_stop_cb, prc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
