@@ -45,6 +45,10 @@
 #include "platform.h"
 #include "tap-windows.h"
 /**
+ * Need 'struct GNUNET_HashCode' and 'struct GNUNET_PeerIdentity'.
+ */
+#include "gnunet_crypto_lib.h"
+/**
  * Need 'struct GNUNET_MessageHeader'.
  */
 #include "gnunet_common.h"

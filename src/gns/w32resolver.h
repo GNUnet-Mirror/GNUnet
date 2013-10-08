@@ -25,6 +25,8 @@
 #ifndef W32RESOLVER_H
 #define W32RESOLVER_H
 
+#include "platform.h"
+#include "gnunet_crypto_lib.h"
 #include "gnunet_common.h"
 
 /**

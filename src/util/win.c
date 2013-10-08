@@ -29,6 +29,7 @@
 
 #include "winproc.h"
 #include "platform.h"
+#include "gnunet_crypto_lib.h"
 #include "gnunet_common.h"
 #include "gnunet_connection_lib.h"
 
