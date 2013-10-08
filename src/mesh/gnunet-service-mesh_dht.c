@@ -39,17 +39,6 @@
 #define LOG (level, ...) GNUNET_log_from ("mesh-dht", level, __VA_ARGS__)
 
 
-
-/**
- * Callback called on each path found over the DHT.
- *
- * @param cls Closure.
- * @param path An unchecked, unoptimized path to the target node.
- *             After callback will no longer be valid!
- */
-typedef void (*GMD_search_callback) (void *cls,
-                                     const struct MeshPeerPath *path);
-
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/

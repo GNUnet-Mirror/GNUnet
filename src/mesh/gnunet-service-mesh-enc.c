@@ -110,81 +110,15 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 
 
 
-/**
- * Send an ACK on the appropriate connection/channel, depending on
- * the direction and the position of the peer.
- *
- * @param c Which connection to send the hop-by-hop ACK.
- * @param ch Channel, if any.
- * @param fwd Is this a fwd ACK? (will go dest->root)
- */
-static void
-send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
-{
-  unsigned int buffer;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "send ack %s on %p %p\n",
-              fwd ? "FWD" : "BCK", c, ch);
-  if (NULL == c || GMC_is_terminal (c, fwd))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
-    buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
-    buffer = connection_get_buffer (c, fwd);
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
-
-  if ( (NULL != ch && channel_is_origin (ch, fwd)) ||
-       (NULL != c && connection_is_origin (c, fwd)) )
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-    if (0 < buffer)
-    {
-      GNUNET_assert (NULL != ch);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
-      send_local_ack (ch, fwd);
-    }
-  }
-  else if (NULL == c)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
-    GNUNET_assert (NULL != ch);
-    channel_send_connections_ack (ch, buffer, fwd);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
-    connection_send_ack (c, buffer, fwd);
-  }
-}
-
-
-
-
-
-
-
-
-
-
 /******************************************************************************/
 /****************      MESH NETWORK HANDLER HELPERS     ***********************/
 /******************************************************************************/
 
 
 
-
-
-
 /******************************************************************************/
 /********************      MESH NETWORK HANDLERS     **************************/
 /******************************************************************************/
-
-
 
 
 /******************************************************************************/
@@ -248,7 +182,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GMC_init (c);         /* Connections */
   GMP_init (c);         /* Peers */
   GMD_init (c, &my_full_id);         /* DHT */
-  GMT_init (c, &my_full_id, &my_private_key);
+  GMT_init (c, &my_full_id, my_private_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }

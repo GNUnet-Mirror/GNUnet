@@ -60,7 +60,7 @@ struct MeshTunnel2;
 void
 GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_PeerIdentity *id,
-          const GNUNET_CRYPTO_EccPrivateKey *key);
+          const struct GNUNET_CRYPTO_EccPrivateKey *key);
 
 /**
  * Shut down the tunnel subsystem.

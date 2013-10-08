@@ -42,6 +42,17 @@ extern "C"
 
 struct GMD_search_handle;
 
+
+/**
+ * Callback called on each path found over the DHT.
+ *
+ * @param cls Closure.
+ * @param path An unchecked, unoptimized path to the target node.
+ *             After callback will no longer be valid!
+ */
+typedef void (*GMD_search_callback) (void *cls,
+                                     const struct MeshPeerPath *path);
+
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
@@ -62,9 +73,11 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GMD_shutdown (void);
 
+
 struct GMD_search_handle *
 GMD_search (const struct GNUNET_PeerIdentity *peer_id,
             GMD_search_callback callback, void *cls);
+
 
 void
 GMD_search_stop (struct GMD_search_handle *h);
