@@ -509,7 +509,7 @@ handle_block_cache (void *cls,
  * @param rd array of records
  */
 static void
-send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,			
+send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 		      struct GNUNET_SERVER_Client *client,
 		      uint32_t request_id,
 		      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
@@ -701,7 +701,7 @@ handle_record_store (void *cls,
     {
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
-					 conv_name,				
+					 conv_name,
 					 rd_count, rd);
       if (GNUNET_OK == res)
       {
@@ -863,6 +863,8 @@ handle_zone_to_name (void *cls,
   if (GNUNET_NO == ztn_ctx.success)
   {
     /* no result found, send empty response */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Found no result for zone-to-name lookup.\n");
     memset (&ztnr_msg, 0, sizeof (ztnr_msg));
     ztnr_msg.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME_RESPONSE);
     ztnr_msg.gns_header.header.size = htons (sizeof (ztnr_msg));

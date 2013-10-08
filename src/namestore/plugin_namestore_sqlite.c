@@ -158,7 +158,7 @@ create_indices (sqlite3 * dbh)
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_block_expiration ON ns096blocks (expiration_time)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns096records (zone_private_key,pkey_hash)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns096records (zone_private_key,pkey)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns096records (zone_private_key,rvalue)",
@@ -284,7 +284,7 @@ database_setup (struct Plugin *plugin)
        (plugin->dbh,
         "CREATE TABLE ns096records ("
         " zone_private_key BLOB NOT NULL DEFAULT '',"
-        " pkey_hash BLOB,"
+        " pkey BLOB,"
 	" rvalue INT8 NOT NULL DEFAULT '',"
 	" record_count INT NOT NULL DEFAULT 0,"
         " record_data BLOB NOT NULL DEFAULT '',"
@@ -318,7 +318,7 @@ database_setup (struct Plugin *plugin)
         &plugin->lookup_block) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "INSERT INTO ns096records (zone_private_key, pkey_hash, rvalue, record_count, record_data, label)"
+        "INSERT INTO ns096records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
 	" VALUES (?, ?, ?, ?, ?, ?)",
         &plugin->store_records) != SQLITE_OK) ||
       (sq_prepare
@@ -328,7 +328,7 @@ database_setup (struct Plugin *plugin)
       (sq_prepare
        (plugin->dbh,
         "SELECT record_count,record_data,label"
-	" FROM ns096records WHERE zone_private_key=? AND pkey_hash=?",
+	" FROM ns096records WHERE zone_private_key=? AND pkey=?",
         &plugin->zone_to_name) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
@@ -663,19 +663,19 @@ namestore_sqlite_store_records (void *cls,
 {
   struct Plugin *plugin = cls;
   int n;
-  struct GNUNET_HashCode pkey_hash;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   uint64_t rvalue;
   size_t data_size;
   unsigned int i;
 
-  memset (&pkey_hash, 0, sizeof (pkey_hash));
+  memset (&pkey, 0, sizeof (pkey));
   for (i=0;i<rd_count;i++)
     if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) == rd[i].data_size);
-      GNUNET_CRYPTO_hash (rd[i].data,
-			  rd[i].data_size,
-			  &pkey_hash);
+      memcpy (&pkey,
+              rd[i].data,
+              rd[i].data_size);
       break;
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
@@ -720,7 +720,7 @@ namestore_sqlite_store_records (void *cls,
       if ((SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 1,
 					   zone_key, sizeof (struct GNUNET_CRYPTO_EccPrivateKey), SQLITE_STATIC)) ||
 	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 2,
-					   &pkey_hash, sizeof (struct GNUNET_HashCode), SQLITE_STATIC)) ||
+					   &pkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), SQLITE_STATIC)) ||
 	  (SQLITE_OK != sqlite3_bind_int64 (plugin->store_records, 3, rvalue)) ||
 	  (SQLITE_OK != sqlite3_bind_int (plugin->store_records, 4, rd_count)) ||
 	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 5, data, data_size, SQLITE_STATIC)) ||
@@ -733,7 +733,7 @@ namestore_sqlite_store_records (void *cls,
 	  LOG_SQLITE (plugin,
 		      GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		      "sqlite3_reset");
-	return GNUNET_SYSERR;	
+	return GNUNET_SYSERR;
       }
       n = sqlite3_step (plugin->store_records);
       if (SQLITE_OK != sqlite3_reset (plugin->store_records))
@@ -775,7 +775,7 @@ namestore_sqlite_store_records (void *cls,
  */
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
-			      sqlite3_stmt *stmt,			
+			      sqlite3_stmt *stmt,
 			      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
@@ -932,6 +932,10 @@ namestore_sqlite_zone_to_name (void *cls,
 		  "sqlite3_reset");
     return GNUNET_SYSERR;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Performing reverse lookup for `%s'\n",
+       GNUNET_NAMESTORE_z2s (value_zone));
+
   return get_record_and_call_iterator (plugin, stmt, zone, iter, iter_cls);
 }
 
