@@ -721,8 +721,8 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
  * Note that the returned value will be overwritten if this function
  * is called again.
  *
- * @param t time to convert
- * @return absolute time in human-readable format
+ * @param t the absolute time to convert
+ * @return timestamp in human-readable form in local time
  */
 const char *
 GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
