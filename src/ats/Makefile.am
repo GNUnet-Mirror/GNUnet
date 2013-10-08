@@ -29,18 +29,17 @@ if HAVE_LIBGLPK
   GN_MLP_REQUEST_ADD_ADDRESS = test_ats_solver_request_and_add_address_mlp
   GN_MLP_REQUEST_DELETE_ADDRESS = test_ats_solver_request_and_delete_address_mlp
   GN_MLP_ALTERNATIVE_DELETE_ADDRESS = test_ats_solver_alternative_after_delete_address_mlp
-
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_ats_proportional.la \
-  libgnunet_plugin_ats_mlp.la
+  $(GN_MLP_LIB)
 
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
-  ats_api_performance.c 
+  ats_api_performance.c  
 
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -135,7 +134,6 @@ libgnunet_plugin_ats_proportional_la_LIBADD = \
   $(LTLIBINTL)
 
 if HAVE_LIBGLPK	
-endif 
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   libgnunet_plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
@@ -144,7 +142,7 @@ libgnunet_plugin_ats_mlp_la_LIBADD = \
   $(GN_LIBGLPK)
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
  	$(GN_LIBGLPK) 
- 
+endif 
 
 # scheduling API tests
 
