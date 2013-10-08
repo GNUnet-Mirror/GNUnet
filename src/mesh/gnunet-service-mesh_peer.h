@@ -64,6 +64,33 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c);
 void
 GMP_shutdown (void);
 
+/**
+ * @brief Queue and pass message to core when possible.
+ *
+ * @param cls Closure (@c type dependant). It will be used by queue_send to
+ *            build the message to be sent if not already prebuilt.
+ * @param type Type of the message, 0 for a raw message.
+ * @param size Size of the message.
+ * @param c Connection this message belongs to (cannot be NULL).
+ * @param ch Channel this message belongs to, if applicable (otherwise NULL).
+ * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
+ */
+void
+GMP_queue_add (void *cls, uint16_t type, size_t size, 
+               struct MeshConnection *c,
+               struct MeshChannel *ch,
+               int fwd);
+
+/**
+ * Free a transmission that was already queued with all resources
+ * associated to the request.
+ *
+ * @param queue Queue handler to cancel.
+ * @param clear_cls Is it necessary to free associated cls?
+ */
+void
+GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

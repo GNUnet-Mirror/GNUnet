@@ -1018,6 +1018,81 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
 }
 
 
+
+/**
+ * Confirm we got a channel create.
+ *
+ * @param ch The channel to confirm.
+ * @param fwd Should we send the ACK fwd?
+ */
+static void
+channel_send_ack (struct MeshChannel *ch, int fwd)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending channel %s ack for channel %s:%X\n",
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer),
+              ch->gid);
+
+  msg.chid = htonl (ch->gid);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
+}
+
+
+/**
+ * Send a message to all clients (local and remote) of this channel
+ * notifying that the channel is no longer valid.
+ *
+ * If some peer or client should not receive the message,
+ * should be zero'ed out before calling this function.
+ *
+ * @param ch The channel whose clients to notify.
+ */
+static void
+channel_send_destroy (struct MeshChannel *ch)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending channel destroy for channel %s:%X\n",
+              peer2s (ch->t->peer),
+              ch->gid);
+
+  if (channel_is_terminal (ch, GNUNET_NO))
+  {
+    if (NULL != ch->root && GNUNET_NO == ch->root->shutting_down)
+    {
+      msg.chid = htonl (ch->lid_root);
+      send_local_channel_destroy (ch, GNUNET_NO);
+    }
+  }
+  else
+  {
+    msg.chid = htonl (ch->gid);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
+  }
+
+  if (channel_is_terminal (ch, GNUNET_YES))
+  {
+    if (NULL != ch->dest && GNUNET_NO == ch->dest->shutting_down)
+    {
+      msg.chid = htonl (ch->lid_dest);
+      send_local_channel_destroy (ch, GNUNET_YES);
+    }
+  }
+  else
+  {
+    msg.chid = htonl (ch->gid);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES);
+  }
+}
+
+
 /**
  * Iterator for deleting each channel whose client endpoint disconnected.
  *

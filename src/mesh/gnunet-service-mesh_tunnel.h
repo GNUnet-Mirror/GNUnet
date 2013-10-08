@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_dht.h
- * @brief mesh service; dealing with DHT requests and results
+ * @file mesh/gnunet-service-mesh_tunnel.h
+ * @brief mesh service; dealing with tunnels and crypto
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMD (Gnunet Mesh Dht)
+ * All functions in this file should use the prefix GMT (Gnunet Mesh Tunnel)
  */
 
-#ifndef GNUNET_SERVICE_MESH_DHT_H
-#define GNUNET_SERVICE_MESH_DHT_H
+#ifndef GNUNET_SERVICE_MESH_TUNNEL_H
+#define GNUNET_SERVICE_MESH_TUNNEL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -40,34 +40,34 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-struct GMD_search_handle;
+/**
+ * Struct containing all information regarding a given peer
+ */
+struct MeshTunnel2;
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
 
 /**
- * Initialize the DHT subsystem.
+ * Initialize tunnel subsystem.
  *
- * @param c Configuration.
- * @param peer_id Local peer ID (must remain valid during all execution time).
+ * @param c Configuration handle.
+ * @param id Peer identity.
+ * @param key ECC private key, to derive all other keys and do crypto.
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          struct GNUNET_PeerIdentity *peer_id);
+GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
+          const struct GNUNET_PeerIdentity *id,
+          const GNUNET_CRYPTO_EccPrivateKey *key);
 
 /**
- * Shut down the DHT subsystem.
+ * Shut down the tunnel subsystem.
  */
 void
-GMD_shutdown (void);
+GMT_shutdown (void);
 
-struct GMD_search_handle *
-GMD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GMD_search_callback callback, void *cls);
-
-void
-GMD_search_stop (struct GMD_search_handle *h);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -76,6 +76,6 @@ GMD_search_stop (struct GMD_search_handle *h);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_LOCAL_H */
+/* ifndef GNUNET_MESH_SERVICE_TUNNEL_H */
 #endif
-/* end of gnunet-mesh-service_LOCAL.h */
+/* end of gnunet-mesh-service_tunnel.h */
