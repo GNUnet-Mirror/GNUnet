@@ -22,17 +22,15 @@ endif
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
 if HAVE_TESTING
-SQLITE_TESTS = test_plugin_namestore_sqlite 
+SQLITE_TESTS = test_plugin_namestore_sqlite
 endif
 endif
 
 if HAVE_POSTGRES
 # postgres doesn't even build yet; thus: experimental!
-if HAVE_EXPERIMENTAL
 POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 if HAVE_TESTING
 POSTGRES_TESTS = test_plugin_namestore_postgres
-endif
 endif
 endif
 
@@ -50,7 +48,7 @@ TESTING_TESTS = \
  test_namestore_api_zone_iteration_stop \
  test_namestore_api_monitoring \
  test_namestore_api_monitoring_existing
-#test_namestore_api_zone_to_name  
+#test_namestore_api_zone_to_name
 endif
 
 if HAVE_SQLITE
@@ -65,7 +63,7 @@ endif
 if ENABLE_TEST_RUN
 TESTS = \
   $(check_PROGRAMS) \
-  $(check_SCRIPTS)  
+  $(check_SCRIPTS)
 endif
 
 lib_LTLIBRARIES = \
@@ -80,16 +78,16 @@ libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) 
+  $(GN_LIBINTL)
 libgnunetnamestore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:1:0
 
 libexec_PROGRAMS = \
- gnunet-service-namestore 
+ gnunet-service-namestore
 
 bin_PROGRAMS = \
- gnunet-namestore 
+ gnunet-namestore
 
 if HAVE_MHD
 libexec_PROGRAMS += \
@@ -97,7 +95,7 @@ libexec_PROGRAMS += \
 endif
 
 gnunet_namestore_SOURCES = \
- gnunet-namestore.c 
+ gnunet-namestore.c
 gnunet_namestore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -110,7 +108,7 @@ gnunet_namestore_DEPENDENCIES = \
 
 
 gnunet_namestore_fcfsd_SOURCES = \
- gnunet-namestore-fcfsd.c 
+ gnunet-namestore-fcfsd.c
 gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -141,7 +139,7 @@ plugin_LTLIBRARIES = \
   $(POSTGRES_PLUGIN)
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
-  plugin_namestore_sqlite.c 
+  plugin_namestore_sqlite.c
 libgnunet_plugin_namestore_sqlite_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -156,7 +154,7 @@ libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
 
 
 libgnunet_plugin_namestore_postgres_la_SOURCES = \
-  plugin_namestore_postgres.c 
+  plugin_namestore_postgres.c
 libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(top_builddir)/src/namestore/libgnunetnamestore.la  \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
@@ -239,48 +237,48 @@ test_namestore_api_monitoring_SOURCES = \
 test_namestore_api_monitoring_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_namestore_api_monitoring_existing_SOURCES = \
  test_namestore_api_monitoring_existing.c
 test_namestore_api_monitoring_existing_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_namestore_api_zone_iteration_SOURCES = \
  test_namestore_api_zone_iteration.c
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_specific_zone_SOURCES = \
  test_namestore_api_zone_iteration_specific_zone.c
 test_namestore_api_zone_iteration_specific_zone_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_stop_SOURCES = \
  test_namestore_api_zone_iteration_stop.c
 test_namestore_api_zone_iteration_stop_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la    
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_record_serialization_SOURCES = \
  test_namestore_record_serialization.c
 test_namestore_record_serialization_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_plugin_namestore_sqlite_SOURCES = \
  test_plugin_namestore.c
 test_plugin_namestore_sqlite_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_plugin_namestore_postgres_SOURCES = \
  test_plugin_namestore.c
@@ -291,7 +289,7 @@ test_plugin_namestore_postgres_LDADD = \
 check_SCRIPTS = \
 	test_namestore_put.sh \
 	test_namestore_lookup.sh \
-	test_namestore_delete.sh 
+	test_namestore_delete.sh
 
 EXTRA_DIST = \
   test_namestore_api.conf \

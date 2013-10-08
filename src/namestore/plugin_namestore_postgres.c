@@ -23,7 +23,6 @@
  * @brief postgres-based namestore backend
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_namestore_plugin.h"
 #include "gnunet_namestore_service.h"
@@ -80,17 +79,20 @@ create_indices (PGconn * dbh)
 {
   /* create indices */
   if ( (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)")) ||
+	GNUNET_POSTGRES_exec (dbh,
+                              "CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX is_block_expiration ON ns096blocks (expiration_time)")) ||
+	GNUNET_POSTGRES_exec (dbh,
+                              "CREATE INDEX ir_block_expiration ON ns096blocks (expiration_time)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX is_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
+	GNUNET_POSTGRES_exec (dbh,
+                              "CREATE INDEX ir_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone ON ns091records (zone_hash)")) ||
+	GNUNET_POSTGRES_exec (dbh,
+                              "CREATE INDEX ir_pkey_iter ON ns097records (zone_private_key,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_name_rv ON ns091records (record_name_hash,rvalue)")) ||
-       (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_rv ON ns091records (rvalue)")) )
+	GNUNET_POSTGRES_exec (dbh,
+                              "CREATE INDEX it_iter ON ns097records (rvalue)")) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create indices\n"));
 }
@@ -120,42 +122,77 @@ database_setup (struct Plugin *plugin)
   {
     res =
       PQexec (plugin->dbh,
-              "CREATE TEMPORARY TABLE ns091records ("
-	      " zone_key BYTEA NOT NULL DEFAULT '',"
-	      " zone_delegation BYTEA NOT NULL DEFAULT '',"
-	      " zone_hash BYTEA NOT NULL DEFAULT '',"
+              "CREATE TEMPORARY TABLE ns097records ("
+	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
+	      " pkey BYTEA DEFAULT '',"
+	      " rvalue BYTEA NOT NULL DEFAULT '',"
 	      " record_count INTEGER NOT NULL DEFAULT 0,"
 	      " record_data BYTEA NOT NULL DEFAULT '',"
-	      " block_expiration_time BIGINT NOT NULL DEFAULT 0,"
-	      " signature BYTEA NOT NULL DEFAULT '',"
-	      " record_name TEXT NOT NULL DEFAULT '',"
-	      " record_name_hash BYTEA NOT NULL DEFAULT '',"
-	      " rvalue BIGINT NOT NULL DEFAULT 0"
+	      " label TEXT NOT NULL DEFAULT ''"
 	      ")" "WITH OIDS");
   }
   else
+  {
     res =
       PQexec (plugin->dbh,
-              "CREATE TABLE ns091records ("
-	      " zone_key BYTEA NOT NULL DEFAULT '',"
-	      " zone_delegation BYTEA NOT NULL DEFAULT '',"
-	      " zone_hash BYTEA NOT NULL DEFAULT '',"
+              "CREATE TABLE ns097records ("
+	      " zone_private_key BYTEA NOT NULL DEFAULT '',"
+	      " pkey BYTEA DEFAULT '',"
+	      " rvalue BYTEA NOT NULL DEFAULT '',"
 	      " record_count INTEGER NOT NULL DEFAULT 0,"
 	      " record_data BYTEA NOT NULL DEFAULT '',"
-	      " block_expiration_time BIGINT NOT NULL DEFAULT 0,"
-	      " signature BYTEA NOT NULL DEFAULT '',"
-	      " record_name TEXT NOT NULL DEFAULT '',"
-	      " record_name_hash BYTEA NOT NULL DEFAULT '',"
-	      " rvalue BIGINT NOT NULL DEFAULT 0"
+	      " label TEXT NOT NULL DEFAULT ''"
 	      ")" "WITH OIDS");
-
-  if ((NULL == res) || ((PQresultStatus (res) != PGRES_COMMAND_OK) && (0 != strcmp ("42P07",    /* duplicate table */
-                                                                                    PQresultErrorField
-                                                                                    (res,
-                                                                                     PG_DIAG_SQLSTATE)))))
+  }
+  if ( (NULL == res) ||
+       ((PQresultStatus (res) != PGRES_COMMAND_OK) &&
+        (0 != strcmp ("42P07",    /* duplicate table */
+                      PQresultErrorField
+                      (res,
+                       PG_DIAG_SQLSTATE)))))
   {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_COMMAND_OK, "CREATE TABLE",
-					 "ns091records");
+    (void) GNUNET_POSTGRES_check_result (plugin->dbh, res,
+                                         PGRES_COMMAND_OK, "CREATE TABLE",
+					 "ns097records");
+    PQfinish (plugin->dbh);
+    plugin->dbh = NULL;
+    return GNUNET_SYSERR;
+  }
+
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (plugin->cfg,
+					    "namestore-postgres",
+					    "TEMPORARY_TABLE"))
+  {
+    res =
+      PQexec (plugin->dbh,
+              "CREATE TEMPORARY TABLE ns096blocks ("
+	      " query BYTEA NOT NULL DEFAULT '',"
+	      " block BYTEA NOT NULL DEFAULT '',"
+	      " expiration_time BIGINT NOT NULL DEFAULT 0"
+	      ")" "WITH OIDS");
+  }
+  else
+  {
+    res =
+      PQexec (plugin->dbh,
+              "CREATE TABLE ns096blocks ("
+	      " query BYTEA NOT NULL DEFAULT '',"
+	      " block BYTEA NOT NULL DEFAULT '',"
+	      " expiration_time BIGINT NOT NULL DEFAULT 0"
+	      ")" "WITH OIDS");
+  }
+  if ( (NULL == res) ||
+       ((PQresultStatus (res) != PGRES_COMMAND_OK) &&
+        (0 != strcmp ("42P07",    /* duplicate table */
+                      PQresultErrorField
+                      (res,
+                       PG_DIAG_SQLSTATE)))))
+  {
+    (void) GNUNET_POSTGRES_check_result (plugin->dbh, res,
+                                         PGRES_COMMAND_OK, "CREATE TABLE",
+					 "ns096blocks");
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
@@ -166,43 +203,46 @@ database_setup (struct Plugin *plugin)
 
   if ((GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"put_records",
-				"INSERT INTO ns091records (zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				", zone_delegation, zone_hash, record_name_hash, rvalue) VALUES "
- 				"($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)", 10)) ||
+				"cache_block",
+				"INSERT INTO ns096blocks (query, block, expiration_time) VALUES "
+ 				"($1, $2, $3)", 3)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"remove_records",
-				"DELETE FROM ns091records WHERE zone_hash=$1 AND record_name_hash=$2", 2)) ||
+				"expire_blocks",
+				"DELETE FROM ns096blocks WHERE expiration_time<$1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_records",
-				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				" FROM ns091records WHERE zone_hash=$1 AND record_name_hash=$2 ORDER BY rvalue LIMIT 1 OFFSET $3", 3)) ||
+				"delete_block",
+				"DELETE FROM ns096blocks WHERE query=$1 AND expiration_time<=$2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_by_zone",
-				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				" FROM ns091records WHERE zone_hash=$1 ORDER BY rvalue  LIMIT 1 OFFSET $2", 2)) ||
+				"lookup_block",
+				"SELECT block FROM ns096blocks WHERE query=$1"
+				" ORDER BY expiration_time DESC LIMIT 1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_by_name",
-				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				" FROM ns091records WHERE record_name_hash=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2)) ||
+				"store_records",
+				"INSERT INTO ns097records (zone_private_key, pkey, value, record_count, record_data, label) VALUES "
+                                "($1, $2, $3, $4, $5, $6)", 6)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"iterate_all",
-				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				" FROM ns091records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)) ||
+				"delete_records",
+				"DELETE FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"zone_to_name",
-				"SELECT zone_key, record_name, record_count, record_data, block_expiration_time, signature"
-				" FROM ns091records WHERE zone_hash=$1 AND zone_delegation=$2", 2)) ||
+				"SELECT record_count,record_data,label FROM ns097records"
+                                " WHERE zone_private_key=$1 AND pkey=$2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-				"delete_zone",
-				"DELETE FROM ns091records WHERE zone_hash=$1", 1)))
+				"iterate_zone",
+				"SELECT record_count, record_data, label FROM ns097records"
+                                " WHERE zone_private_key=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2)) ||
+      (GNUNET_OK !=
+       GNUNET_POSTGRES_prepare (plugin->dbh,
+				"iterate_all_zones",
+				"SELECT record_count,record_data,label,zone_private_key"
+				" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -211,49 +251,201 @@ database_setup (struct Plugin *plugin)
   return GNUNET_OK;
 }
 
-#if 0
-
-TODO: removed
 
 /**
- * Removes any existing record in the given zone with the same name.
+ * Removes any expired block.
  *
- * @param cls closure (internal context for the plugin)
- * @param zone hash of the public key of the zone
- * @param name name to remove (at most 255 characters long)
- * @return GNUNET_OK on success
+ * @param plugin the plugin
  */
-static int
-namestore_postgres_remove_records (void *cls,
-				 const struct GNUNET_CRYPTO_ShortHashCode *zone,
-				 const char *name)
+static void
+namestore_postgres_expire_blocks (struct Plugin *plugin)
 {
-  struct Plugin *plugin = cls;
-  PGresult *ret;
-  struct GNUNET_CRYPTO_ShortHashCode nh;
+  struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
+  struct GNUNET_TIME_AbsoluteNBO now_be = GNUNET_TIME_absolute_hton (now);
   const char *paramValues[] = {
-    (const char *) zone,
-    (const char *) &nh
+    (const char *) &now_be
   };
   int paramLengths[] = {
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode)
+    sizeof (now_be)
+  };
+  const int paramFormats[] = { 1 };
+  PGresult *res;
+
+  res =
+    PQexecPrepared (plugin->dbh, "expire_blocks", 1,
+		    paramValues, paramLengths, paramFormats, 1);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_COMMAND_OK,
+                                    "PQexecPrepared",
+                                    "expire_blocks"))
+    return;
+  PQclear (res);
+}
+
+
+/**
+ * Delete older block in the datastore.
+ *
+ * @param the plugin
+ * @param query query for the block
+ * @param expiration time how old does the block have to be for deletion
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static void
+delete_old_block (struct Plugin *plugin,
+                  const struct GNUNET_HashCode *query,
+                  struct GNUNET_TIME_AbsoluteNBO expiration_time)
+{
+  const char *paramValues[] = {
+    (const char *) query,
+    (const char *) &expiration_time
+  };
+  int paramLengths[] = {
+    sizeof (*query),
+    sizeof (expiration_time)
   };
   const int paramFormats[] = { 1, 1 };
-  size_t name_len;
+  PGresult *res;
 
-  name_len = strlen (name);
-  GNUNET_CRYPTO_short_hash (name, name_len, &nh);
-  ret =
-      PQexecPrepared (plugin->dbh, "remove_records", 2, paramValues, paramLengths,
-                      paramFormats, 1);
+  res =
+    PQexecPrepared (plugin->dbh, "delete_block", 2,
+		    paramValues, paramLengths, paramFormats, 1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "remove_records"))
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_COMMAND_OK,
+                                    "PQexecPrepared",
+                                    "delete_block"))
+    return;
+  PQclear (res);
+}
+
+
+/**
+ * Cache a block in the datastore.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param block block to cache
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+namestore_postgres_cache_block (void *cls,
+                                const struct GNUNET_NAMESTORE_Block *block)
+{
+  struct Plugin *plugin = cls;
+  struct GNUNET_HashCode query;
+  size_t block_size = ntohl (block->purpose.size) +
+    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+    sizeof (struct GNUNET_CRYPTO_EccSignature);
+  const char *paramValues[] = {
+    (const char *) &query,
+    (const char *) block,
+    (const char *) &block->expiration_time
+  };
+  int paramLengths[] = {
+    sizeof (query),
+    (int) block_size,
+    sizeof (block->expiration_time)
+  };
+  const int paramFormats[] = { 1, 1, 1 };
+  PGresult *res;
+
+  namestore_postgres_expire_blocks (plugin);
+  GNUNET_CRYPTO_hash (&block->derived_key,
+		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		      &query);
+  if (block_size > 64 * 65536)
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
-  PQclear (ret);
+  }
+  delete_old_block (plugin, &query, block->expiration_time);
+
+  res =
+    PQexecPrepared (plugin->dbh, "cache_block", 3,
+		    paramValues, paramLengths, paramFormats, 1);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_COMMAND_OK,
+                                    "PQexecPrepared",
+                                    "cache_block"))
+    return GNUNET_SYSERR;
+  PQclear (res);
   return GNUNET_OK;
 }
 
+
+/**
+ * Get the block for a particular zone and label in the
+ * datastore.  Will return at most one result to the iterator.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param query hash of public key derived from the zone and the label
+ * @param iter function to call with the result
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+ */
+static int
+namestore_postgres_lookup_block (void *cls,
+                                 const struct GNUNET_HashCode *query,
+                                 GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  const char *paramValues[] = {
+    (const char *) query
+  };
+  int paramLengths[] = {
+    sizeof (*query)
+  };
+  const int paramFormats[] = { 1 };
+  PGresult *res;
+  unsigned int cnt;
+  size_t bsize;
+  const struct GNUNET_NAMESTORE_Block *block;
+
+  res = PQexecPrepared (plugin->dbh,
+                        "lookup_block", 1,
+                        paramValues, paramLengths, paramFormats,
+                        1);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
+                                    "PQexecPrepared",
+				    "lookup_block"))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Failing lookup (postgres error)\n");
+    return GNUNET_SYSERR;
+  }
+  if (0 == (cnt = PQntuples (res)))
+  {
+    /* no result */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Ending iteration (no more results)\n");
+    PQclear (res);
+    return GNUNET_NO;
+  }
+  GNUNET_assert (1 == cnt);
+  GNUNET_assert (1 != PQnfields (res));
+  bsize = PQgetlength (res, 0, 0);
+  block = (const struct GNUNET_NAMESTORE_Block *) PQgetvalue (res, 0, 0);
+  if ( (bsize < sizeof (*block)) ||
+       (bsize != ntohl (block->purpose.size) +
+        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+        sizeof (struct GNUNET_CRYPTO_EccSignature)) )
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Failing lookup (corrupt block)\n");
+    PQclear (res);
+    return GNUNET_SYSERR;
+  }
+  iter (iter_cls, block);
+  PQclear (res);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -261,49 +453,34 @@ namestore_postgres_remove_records (void *cls,
  * same zone with the same name.
  *
  * @param cls closure (internal context for the plugin)
- * @param zone_key public key of the zone
- * @param expire when does the corresponding block in the DHT expire (until
- *               when should we never do a DHT lookup for the same name again)?
- * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
+ * @param zone_key private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
- * @param signature signature of the record block, NULL if signature is unavailable (i.e.
- *        because the user queried for a particular record type only)
- * @return GNUNET_OK on success, else GNUNET_SYSERR
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-namestore_postgres_put_records (void *cls,
-				const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
-				struct GNUNET_TIME_Absolute expire,
-				const char *name,
-				unsigned int rd_count,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
-				const struct GNUNET_CRYPTO_EccSignature *signature)
+namestore_postgres_store_records (void *cls,
+                                  const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+                                  const char *label,
+                                  unsigned int rd_count,
+                                  const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Plugin *plugin = cls;
-  PGresult *ret;
-  struct GNUNET_CRYPTO_ShortHashCode zone;
-  struct GNUNET_CRYPTO_ShortHashCode zone_delegation;
-  struct GNUNET_CRYPTO_ShortHashCode nh;
-  size_t name_len;
+  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
   uint64_t rvalue;
+  uint32_t rd_count_nbo = htonl ((uint32_t) rd_count);
   size_t data_size;
   unsigned int i;
 
-  GNUNET_CRYPTO_short_hash (zone_key,
-			    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-			    &zone);
-  (void) namestore_postgres_remove_records (plugin, &zone, name);
-  name_len = strlen (name);
-  GNUNET_CRYPTO_short_hash (name, name_len, &nh);
-  memset (&zone_delegation, 0, sizeof (zone_delegation));
+  memset (&pkey, 0, sizeof (pkey));
   for (i=0;i<rd_count;i++)
-    if (rd[i].record_type == GNUNET_NAMESTORE_TYPE_PKEY)
+    if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
     {
-      GNUNET_assert (sizeof (struct GNUNET_CRYPTO_ShortHashCode) == rd[i].data_size);
-      memcpy (&zone_delegation,
-	      rd[i].data,
-	      sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) == rd[i].data_size);
+      memcpy (&pkey,
+              rd[i].data,
+              rd[i].data_size);
       break;
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
@@ -315,34 +492,24 @@ namestore_postgres_put_records (void *cls,
   }
   {
     char data[data_size];
-    uint64_t expire_be = GNUNET_htonll (expire.abs_value_us);
-    uint64_t rvalue_be = GNUNET_htonll (rvalue);
-    uint32_t rd_count_be = htonl ((uint32_t) rd_count);
     const char *paramValues[] = {
       (const char *) zone_key,
-      (const char *) name,
-      (const char *) &rd_count_be,
+      (const char *) &pkey,
+      (const char *) &rvalue,
+      (const char *) &rd_count_nbo,
       (const char *) data,
-      (const char *) &expire_be,
-      (const char *) signature,
-      (const char *) &zone_delegation,
-      (const char *) &zone,
-      (const char *) &nh,
-      (const char *) &rvalue_be
+      label
     };
     int paramLengths[] = {
-      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
-      name_len,
-      sizeof (uint32_t),
+      sizeof (*zone_key),
+      sizeof (pkey),
+      sizeof (rvalue),
+      sizeof (rd_count_nbo),
       data_size,
-      sizeof (uint64_t),
-      sizeof (struct GNUNET_CRYPTO_EccSignature),
-      sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-      sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-      sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-      sizeof (uint64_t)
+      strlen (label)
     };
-    const int paramFormats[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+    const int paramFormats[] = { 1, 1, 1, 1, 1, 1 };
+    PGresult *res;
 
     if (data_size != GNUNET_NAMESTORE_records_serialize (rd_count, rd,
 							 data_size, data))
@@ -350,89 +517,89 @@ namestore_postgres_put_records (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
-    ret =
-      PQexecPrepared (plugin->dbh, "put_records", 10, paramValues, paramLengths,
-                      paramFormats, 1);
-    if (GNUNET_OK !=
-	GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put_records"))
-      return GNUNET_SYSERR;
-    PQclear (ret);
-  }
-  return GNUNET_OK;
-}
-#endif
 
-#if 0
+    res =
+      PQexecPrepared (plugin->dbh, "store_records", 6,
+                      paramValues, paramLengths, paramFormats, 1);
+    if (GNUNET_OK !=
+        GNUNET_POSTGRES_check_result (plugin->dbh,
+                                      res,
+                                      PGRES_COMMAND_OK,
+                                      "PQexecPrepared",
+                                      "store_records"))
+      return GNUNET_SYSERR;
+    PQclear (res);
+    return GNUNET_OK;
+  }
+}
+
+
 /**
- * The given 'postgres' result was obtained from the database.
- * Parse the record and give it to the iterator.
+ * A statement has been run.  We should evaluate the result, and if possible
+ * call the given @a iter with the result.
  *
  * @param plugin plugin context
- * @param stmt_name name of the prepared statement that was executed
- * @param res result from postgres to interpret (and then clean up)
+ * @param res result from the statement that was run (to be cleaned up)
+ * @param zone_key private key of the zone, could be NULL, in which case we should
+ *        get the zone from @a res
  * @param iter iterator to call with the result
- * @param iter_cls closure for 'iter'
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
- *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
-			      const char *stmt_name,
-			      PGresult *res,
+                              PGresult *res,
+			      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
 			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
-  unsigned int record_count;
-  size_t data_size;
-  /* const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key; */
-  const struct GNUNET_CRYPTO_EccPrivateKey *zone_key;
-  /* const struct GNUNET_CRYPTO_EccSignature *sig; */
-  /* struct GNUNET_TIME_Absolute expiration; */
   const char *data;
-  const char *name;
+  size_t data_size;
+  uint32_t record_count;
+  const char *label;
+  size_t label_len;
   unsigned int cnt;
-  size_t name_len;
 
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK, "PQexecPrepared",
-				    stmt_name))
+      GNUNET_POSTGRES_check_result (plugin->dbh, res, PGRES_TUPLES_OK,
+                                    "PQexecPrepared",
+				    "iteration"))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Ending iteration (postgres error)\n");
+	 "Failing lookup (postgres error)\n");
     return GNUNET_SYSERR;
   }
-
   if (0 == (cnt = PQntuples (res)))
   {
     /* no result */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Ending iteration (no more results)\n");
     PQclear (res);
-
-    iter (iter_cls, NULL, NULL, 0, NULL);
     return GNUNET_NO;
   }
   GNUNET_assert (1 == cnt);
-  if ((6 != PQnfields (res)) ||
-      (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) != PQgetlength (res, 0, 0)) ||
-      (sizeof (uint32_t) != PQfsize (res, 2)) ||
-      (sizeof (uint64_t) != PQfsize (res, 4)) ||
-      (sizeof (struct GNUNET_CRYPTO_EccSignature) != PQgetlength (res, 0, 5)))
+  GNUNET_assert (3 + ((NULL == zone_key) ? 1 : 0) == PQnfields (res));
+  if (NULL == zone_key)
+  {
+    if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) != PQgetlength (res, 0, 3))
+    {
+      GNUNET_break (0);
+      PQclear (res);
+      return GNUNET_SYSERR;
+    }
+    zone_key = (const struct GNUNET_CRYPTO_EccPrivateKey *) PQgetvalue (res, 0, 3);
+  }
+  if (sizeof (uint32_t) != PQfsize (res, 0))
   {
     GNUNET_break (0);
     PQclear (res);
     return GNUNET_SYSERR;
   }
-  zone_key = (const struct GNUNET_CRYPTO_EccPrivateKey *) PQgetvalue (res, 0, 0);
-  /* zone_key = (const struct GNUNET_CRYPTO_EccPublicSignKey *) PQgetvalue (res, 0, 0); */
-  name = PQgetvalue (res, 0, 1);
-  name_len = PQgetlength (res, 0, 1);
-  record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 2));
-  data_size = PQgetlength (res, 0, 3);
-  data = PQgetvalue (res, 0, 3);
-  /*
-  expiration.abs_value_us =
-    GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 4));
-  sig = (const struct GNUNET_CRYPTO_EccSignature*) PQgetvalue (res, 0, 5); */
+
+  record_count = ntohl (*(uint32_t *) PQgetvalue (res, 0, 0));
+  data = PQgetvalue (res, 0, 1);
+  data_size = PQgetlength (res, 0, 1);
+  label = PQgetvalue (res, 0, 2);
+  label_len = PQgetlength (res, 0, 1);
   if (record_count > 64 * 1024)
   {
     /* sanity check, don't stack allocate far too much just
@@ -443,10 +610,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
   }
   {
     struct GNUNET_NAMESTORE_RecordData rd[record_count];
-    char buf[name_len + 1];
+    char buf[label_len + 1];
 
-    memcpy (buf, name, name_len);
-    buf[name_len] = '\0';
+    memcpy (buf, label, label_len);
+    buf[label_len] = '\0';
     if (GNUNET_OK !=
 	GNUNET_NAMESTORE_records_deserialize (data_size, data,
 					      record_count, rd))
@@ -460,7 +627,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
   PQclear (res);
   return GNUNET_OK;
 }
-#endif
+
 
 /**
  * Iterate over the results for a particular key and zone in the
@@ -470,81 +637,60 @@ get_record_and_call_iterator (struct Plugin *plugin,
  * @param zone hash of public key of the zone, NULL to iterate over all zones
  * @param offset offset in the list of all matching records
  * @param iter function to call with the result
- * @param iter_cls closure for iter
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
- *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 namestore_postgres_iterate_records (void *cls,
-					const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-				  uint64_t offset,
-				  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+                                    const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                                    uint64_t offset,
+                                    GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
-#if 0
   struct Plugin *plugin = cls;
-  const char *stmt_name;
-  struct GNUNET_CRYPTO_ShortHashCode name_hase;
   uint64_t offset_be = GNUNET_htonll (offset);
-  const char *paramValues[] = {
-    (const char *) zone,
-    (const char *) &name_hase,
-    (const char *) &offset_be,
-    (const char *) zone,
-    (const char *) &offset_be,
-  };
-  int paramLengths[] = {
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-    sizeof (uint64_t),
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-    sizeof (uint64_t)
-  };
-  const int paramFormats[] = { 1, 1, 1, 1, 1 };
-  unsigned int num_params;
-  unsigned int first_param;
-  PGresult *res;
 
   if (NULL == zone)
-    if (NULL == name)
-    {
-      stmt_name = "iterate_all";
-      num_params = 1;
-      first_param = 2;
-    }
-    else
-    {
-    	/* TODO Adapt to new API
-    	 * GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
-    	 */
-      stmt_name = "iterate_by_name";
-      num_params = 2;
-      first_param = 1;
-    }
+  {
+    const char *paramValues[] = {
+      (const char *) &offset_be
+    };
+    int paramLengths[] = {
+      sizeof (offset_be)
+    };
+    const int paramFormats[] = { 1 };
+    PGresult *res;
+
+    res = PQexecPrepared (plugin->dbh,
+                          "iterate_all_zones", 1,
+                          paramValues, paramLengths, paramFormats,
+                          1);
+    return get_record_and_call_iterator (plugin,
+                                         res,
+                                         NULL,
+                                         iter, iter_cls);
+  }
   else
-    if (NULL == name)
-    {
-      stmt_name = "iterate_by_zone";
-      num_params = 2;
-      first_param = 3;
-    }
-    else
-    {
-    	/* TODO Adapt to new API
-    	 * GNUNET_CRYPTO_short_hash (name, strlen(name), &name_hase);
-    	 */
-      stmt_name = "iterate_records";
-      num_params = 3;
-      first_param = 0;
-    }
-  res =
-      PQexecPrepared (plugin->dbh, stmt_name, num_params,
-		      &paramValues[first_param],
-		      &paramLengths[first_param],
-                      &paramFormats[first_param], 1);
-  return get_record_and_call_iterator (plugin, stmt_name, res, iter, iter_cls);
-#endif
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
+  {
+    const char *paramValues[] = {
+      (const char *) zone,
+      (const char *) &offset_be
+    };
+    int paramLengths[] = {
+      sizeof (*zone),
+      sizeof (offset_be)
+    };
+    const int paramFormats[] = { 1, 1 };
+    PGresult *res;
+
+    res = PQexecPrepared (plugin->dbh,
+                          "iterate_zone", 2,
+                          paramValues, paramLengths, paramFormats,
+                          1);
+    return get_record_and_call_iterator (plugin,
+                                         res,
+                                         zone,
+                                         iter, iter_cls);
+  }
 }
 
 
@@ -553,137 +699,38 @@ namestore_postgres_iterate_records (void *cls,
  * Returns at most one result to the iterator.
  *
  * @param cls closure (internal context for the plugin)
- * @param zone hash of public key of the zone to look up in, never NULL
- * @param value_zone hash of the public key of the target zone (value), never NULL
+ * @param zone private key of the zone to look up in, never NULL
+ * @param value_zone public key of the target zone (value), never NULL
  * @param iter function to call with the result
- * @param iter_cls closure for iter
- * @return GNUNET_OK on success, GNUNET_NO if there were no results, GNUNET_SYSERR on error
- *       'iter' will have been called unless the return value is 'GNUNET_SYSERR'
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
  */
 static int
 namestore_postgres_zone_to_name (void *cls,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
-			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+                                 const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                                 const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+                                 GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
-#if  0
   struct Plugin *plugin = cls;
   const char *paramValues[] = {
     (const char *) zone,
     (const char *) value_zone
   };
   int paramLengths[] = {
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode),
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode)
+    sizeof (*zone),
+    sizeof (*value_zone)
   };
   const int paramFormats[] = { 1, 1 };
   PGresult *res;
 
-  res =
-    PQexecPrepared (plugin->dbh, "zone_to_name", 2,
-		    paramValues, paramLengths, paramFormats, 1);
-  return get_record_and_call_iterator (plugin, "zone_to_name", res, iter, iter_cls);
-#endif
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
-}
-
-#if 0
-/**
- * Delete an entire zone (all records).  Not used in normal operation.
- *
- * @param cls closure (internal context for the plugin)
- * @param zone zone to delete
- */
-static void
-namestore_postgres_delete_zone (void *cls,
-			      const struct GNUNET_CRYPTO_ShortHashCode *zone)
-{
-  struct Plugin *plugin = cls;
-  PGresult *ret;
-  const char *paramValues[] = {
-    (const char *) zone,
-  };
-
-  int paramLengths[] = {
-    sizeof (struct GNUNET_CRYPTO_ShortHashCode)
-  };
-  const int paramFormats[] = { 1 };
-
-  ret =
-      PQexecPrepared (plugin->dbh, "delete_zone", 1, paramValues, paramLengths,
-                      paramFormats, 1);
-  if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "delete_zone"))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Deleting zone failed!\n");
-    return;
-  }
-  PQclear (ret);
-}
-#endif
-
-/**
- * Cache a block in the datastore.
- *
- * @param cls closure (internal context for the plugin)
- * @param block block to cache
- * @return GNUNET_OK on success, else GNUNET_SYSERR
- */
-static int
-namestore_postgres_cache_block (void *cls,
-			      const struct GNUNET_NAMESTORE_Block *block)
-{
-  // struct Plugin *plugin = cls;
-  GNUNET_break (0);
-  /* To be implemented */
-  return GNUNET_OK;
-}
-
-/**
- * Get the block for a particular zone and label in the
- * datastore.  Will return at most one result to the iterator.
- *
- * @param cls closure (internal context for the plugin)
- * @param query hash of public key derived from the zone and the label
- * @param iter function to call with the result
- * @param iter_cls closure for iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
- */
-static int
-namestore_postgres_lookup_block (void *cls,
-			       const struct GNUNET_HashCode *query,
-			       GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls)
-{
-  // struct Plugin *plugin = cls;
-  GNUNET_break (0);
-  /* To be implemented */
-  return GNUNET_OK;
-}
-
-/**
- * Store a record in the datastore.  Removes any existing record in the
- * same zone with the same name.
- *
- * @param cls closure (internal context for the plugin)
- * @param zone_key private key of the zone
- * @param label name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
- */
-static int
-namestore_postgres_store_records (void *cls,
-				const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
-				const char *label,
-				unsigned int rd_count,
-				const struct GNUNET_NAMESTORE_RecordData *rd)
-{
-  //  struct Plugin *plugin = cls;
-  GNUNET_break (0);
-  /* To be implemented */
-  return GNUNET_OK;
+  res = PQexecPrepared (plugin->dbh,
+                        "zone_to_name", 2,
+                        paramValues, paramLengths, paramFormats,
+                        1);
+  return get_record_and_call_iterator (plugin,
+                                       res,
+                                       zone,
+                                       iter, iter_cls);
 }
 
 
@@ -723,16 +770,13 @@ libgnunet_plugin_namestore_postgres_init (void *cls)
     database_shutdown (&plugin);
     return NULL;
   }
-  api = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_NAMESTORE_PluginFunctions);
   api->cls = &plugin;
-  /* api->put_records = &namestore_postgres_put_records; */
-  /* api->remove_records = &namestore_postgres_remove_records; */
   api->cache_block = &namestore_postgres_cache_block;
   api->lookup_block = &namestore_postgres_lookup_block;
   api->store_records = &namestore_postgres_store_records;
   api->iterate_records = &namestore_postgres_iterate_records;
   api->zone_to_name = &namestore_postgres_zone_to_name;
-  /* api->delete_zone = &namestore_postgres_delete_zone; */
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Postgres database running\n"));
   return api;
