@@ -1894,17 +1894,13 @@ handle_service_request_multipart (void *cls,
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
-  uint32_t mask_length;
-  uint32_t pk_length;
   uint32_t used_elements;
   uint32_t contained_elements;
-  uint32_t element_count;
   uint32_t msg_length;
   unsigned char * current;
   struct ServiceSession * responder_session;
   int32_t i = -1;
-  enum SessionState needed_state;
-  
+ 
   // are we in the correct state?
   session = (struct ServiceSession *) * tunnel_ctx;
   if (BOB != session->role) {
