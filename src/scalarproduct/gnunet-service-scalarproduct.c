@@ -168,6 +168,16 @@ struct ServiceSession
   * Bob's permutation q of R
   */
  gcry_mpi_t * r_prime;
+ 
+ /**
+  * Bob's s
+  */
+ gcry_mpi_t s;
+ 
+ /**
+  * Bob's s'
+  */
+ gcry_mpi_t s_prime;
 
  /**
   * Bobs matching response session from the client
@@ -1709,8 +1719,7 @@ tunnel_destruction_handler (void *cls,
  * @return product as MPI, never NULL
  */
 static gcry_mpi_t
-compute_scalar_product (struct ServiceSession * session,
-                        gcry_mpi_t * r, gcry_mpi_t * r_prime, gcry_mpi_t s, gcry_mpi_t s_prime)
+compute_scalar_product (struct ServiceSession * session)
 {
   uint32_t count;
   gcry_mpi_t t;
@@ -1727,12 +1736,12 @@ compute_scalar_product (struct ServiceSession * session,
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
   for (i = 0; i < count; i++) {
-    decrypt_element (r[i], r[i], my_mu, my_lambda, my_n, my_nsquare);
-    gcry_mpi_sub (r[i], r[i], my_offset);
-    gcry_mpi_sub (r[i], r[i], my_offset);
-    decrypt_element (r_prime[i], r_prime[i], my_mu, my_lambda, my_n, my_nsquare);
-    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
-    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
+    decrypt_element (session->r[i], session->r[i], my_mu, my_lambda, my_n, my_nsquare);
+    gcry_mpi_sub (session->r[i], session->r[i], my_offset);
+    gcry_mpi_sub (session->r[i], session->r[i], my_offset);
+    decrypt_element (session->r_prime[i], session->r_prime[i], my_mu, my_lambda, my_n, my_nsquare);
+    gcry_mpi_sub (session->r_prime[i], session->r_prime[i], my_offset);
+    gcry_mpi_sub (session->r_prime[i], session->r_prime[i], my_offset);
   }
 
   // calculate t = sum(ai)
@@ -1740,28 +1749,28 @@ compute_scalar_product (struct ServiceSession * session,
 
   // calculate U
   u = gcry_mpi_new (0);
-  tmp = compute_square_sum (r, count);
+  tmp = compute_square_sum (session->r, count);
   gcry_mpi_sub (u, u, tmp);
   gcry_mpi_release (tmp);
 
   //calculate U'
   utick = gcry_mpi_new (0);
-  tmp = compute_square_sum (r_prime, count);
+  tmp = compute_square_sum (session->r_prime, count);
   gcry_mpi_sub (utick, utick, tmp);
 
   GNUNET_assert (p = gcry_mpi_new (0));
   GNUNET_assert (ptick = gcry_mpi_new (0));
 
   // compute P
-  decrypt_element (s, s, my_mu, my_lambda, my_n, my_nsquare);
-  decrypt_element (s_prime, s_prime, my_mu, my_lambda, my_n, my_nsquare);
+  decrypt_element (session->s, session->s, my_mu, my_lambda, my_n, my_nsquare);
+  decrypt_element (session->s_prime, session->s_prime, my_mu, my_lambda, my_n, my_nsquare);
 
   // compute P
-  gcry_mpi_add (p, s, t);
+  gcry_mpi_add (p, session->s, t);
   gcry_mpi_add (p, p, u);
 
   // compute P'
-  gcry_mpi_add (ptick, s_prime, t);
+  gcry_mpi_add (ptick, session->s_prime, t);
   gcry_mpi_add (ptick, ptick, utick);
 
   gcry_mpi_release (t);
@@ -2166,6 +2175,82 @@ handle_service_response_multipart (void *cls,
                                    void **tunnel_ctx,
                                    const struct GNUNET_MessageHeader * message)
 {
+  struct ServiceSession * session;
+  const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
+  unsigned char * current;
+  size_t read;
+  size_t i;
+  uint32_t contained_element_count;
+  size_t msg_size;
+  int rc;
+
+  GNUNET_assert (NULL != message);
+  // are we in the correct state?
+  session = (struct ServiceSession *) * tunnel_ctx;
+  if (ALICE != session->role) {
+    goto except;
+  }
+  if (WAITING_FOR_MULTIPART_TRANSMISSION != session->state) {
+    goto except;
+  }
+  // shorter than minimum?
+  if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
+    goto except;
+  }
+  contained_element_count = ntohl (msg->multipart_element_count);
+  msg_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
+          + 2 * contained_element_count * PAILLIER_ELEMENT_LENGTH;
+  //sanity check: is the message as long as the message_count fields suggests?
+  if ((ntohs (msg->header.size) != msg_size) || (session->used_element_count < contained_element_count)) {
+    goto except;
+  }
+  //convert s
+  current = (unsigned char *) &msg[1];
+  // Convert each k[][perm] to its MPI_value
+  for (i = 0; i < contained_element_count; i++) {
+    if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
+                                  PAILLIER_ELEMENT_LENGTH, &read))) {
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
+      goto except;
+    }
+    current += PAILLIER_ELEMENT_LENGTH;
+    if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
+                                  PAILLIER_ELEMENT_LENGTH, &read))) {
+      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+      GNUNET_break_op (0);
+      goto except;
+    }
+    current += PAILLIER_ELEMENT_LENGTH;
+  }
+  session->transferred_element_count += contained_element_count;
+  if (session->transferred_element_count == session->used_element_count){
+    session->state = SERVICE_RESPONSE_RECEIVED;
+    session->product = compute_scalar_product (session);
+    return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
+  }
+  return GNUNET_OK;
+except:
+  GNUNET_break_op (0);
+  if (session->s)
+    gcry_mpi_release (session->s);
+  if (session->s_prime)
+    gcry_mpi_release (session->s_prime);
+  for (i = 0; session->r && i < session->transferred_element_count; i++)
+    if (session->r[i]) gcry_mpi_release (session->r[i]);
+  for (i = 0; session->r_prime && i < session->transferred_element_count; i++)
+    if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
+  GNUNET_free_non_null (session->r);
+  GNUNET_free_non_null (session->r_prime);
+
+  session->tunnel = NULL;
+  // send message with product to client
+  session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                    session);
+  // the tunnel has done its job, terminate our connection and the tunnel
+  // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
+  // just close the connection, as recommended by Christian
   return GNUNET_SYSERR;
 }
 
@@ -2190,14 +2275,10 @@ handle_service_response (void *cls,
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_response * msg = (const struct GNUNET_SCALARPRODUCT_service_response *) message;
   unsigned char * current;
-  gcry_mpi_t s = NULL;
-  gcry_mpi_t s_prime = NULL;
   size_t read;
   size_t i;
   uint32_t contained_element_count;
   size_t msg_size;
-  gcry_mpi_t * r = NULL;
-  gcry_mpi_t * r_prime = NULL;
   int rc;
 
   GNUNET_assert (NULL != message);
@@ -2207,7 +2288,6 @@ handle_service_response (void *cls,
     return GNUNET_SYSERR;
   }
 
-  session->product = NULL;
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
 
   //we need at least a peer and one message id to compare
@@ -2227,7 +2307,7 @@ handle_service_response (void *cls,
   session->transferred_element_count = contained_element_count;
   //convert s
   current = (unsigned char *) &msg[1];
-  if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current,
+  if (0 != (rc = gcry_mpi_scan (&session->s, GCRYMPI_FMT_USG, current,
                                 PAILLIER_ELEMENT_LENGTH, &read))) {
     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
     GNUNET_break_op (0);
@@ -2235,25 +2315,25 @@ handle_service_response (void *cls,
   }
   current += PAILLIER_ELEMENT_LENGTH;
   //convert stick
-  if (0 != (rc = gcry_mpi_scan (&s_prime, GCRYMPI_FMT_USG, current,
+  if (0 != (rc = gcry_mpi_scan (&session->s_prime, GCRYMPI_FMT_USG, current,
                                 PAILLIER_ELEMENT_LENGTH, &read))) {
     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
     GNUNET_break_op (0);
     goto invalid_msg;
   }
   current += PAILLIER_ELEMENT_LENGTH;
-  r = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
+  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
+  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   // Convert each k[][perm] to its MPI_value
   for (i = 0; i < contained_element_count; i++) {
-    if (0 != (rc = gcry_mpi_scan (&r[i], GCRYMPI_FMT_USG, current,
+    if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
       GNUNET_break_op (0);
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
-    if (0 != (rc = gcry_mpi_scan (&r_prime[i], GCRYMPI_FMT_USG, current,
+    if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
       GNUNET_break_op (0);
@@ -2263,21 +2343,21 @@ handle_service_response (void *cls,
   }
   if (session->transferred_element_count == session->used_element_count){
     session->state = SERVICE_RESPONSE_RECEIVED;
-    session->product = compute_scalar_product (session, r, r_prime, s, s_prime);
-    return GNUNET_SYSERR;
+    session->product = compute_scalar_product (session);
+    return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
   }
   return GNUNET_OK;
 invalid_msg:
-  if (s)
-    gcry_mpi_release (s);
-  if (s_prime)
-    gcry_mpi_release (s_prime);
-  for (i = 0; r && i < contained_element_count; i++)
-    if (r[i]) gcry_mpi_release (r[i]);
-  for (i = 0; r_prime && i < contained_element_count; i++)
-    if (r_prime[i]) gcry_mpi_release (r_prime[i]);
-  GNUNET_free_non_null (r);
-  GNUNET_free_non_null (r_prime);
+  if (session->s)
+    gcry_mpi_release (session->s);
+  if (session->s_prime)
+    gcry_mpi_release (session->s_prime);
+  for (i = 0; session->r && i < contained_element_count; i++)
+    if (session->r[i]) gcry_mpi_release (session->r[i]);
+  for (i = 0; session->r_prime && i < contained_element_count; i++)
+    if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
+  GNUNET_free_non_null (session->r);
+  GNUNET_free_non_null (session->r_prime);
 
   session->tunnel = NULL;
   // send message with product to client
