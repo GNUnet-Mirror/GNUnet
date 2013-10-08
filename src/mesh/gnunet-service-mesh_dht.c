@@ -28,14 +28,6 @@
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"
 
-#define MESH_DEBUG_DHT          GNUNET_NO
-
-#if MESH_DEBUG_DHT
-#define DEBUG_DHT(...) GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
-#else
-#define DEBUG_DHT(...)
-#endif
-
 #define LOG (level, ...) GNUNET_log_from ("mesh-dht", level, __VA_ARGS__)
 
 
@@ -124,18 +116,18 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   p->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   i = get_path_length;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", i);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", i);
   for (i--; i >= 0; i--)
   {
     id = GNUNET_PEER_intern (&get_path[i]);
     if (p->length > 0 && id == p->peers[p->length - 1])
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
       GNUNET_PEER_change_rc (id, -1);
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from GET: %s.\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Adding from GET: %s.\n",
                   GNUNET_i2s (&get_path[i]));
       p->length++;
       p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
@@ -143,7 +135,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
   }
   i = put_path_length;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   PUT has %d hops.\n", i);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   PUT has %d hops.\n", i);
   for (i--; i >= 0; i--)
   {
     id = GNUNET_PEER_intern (&put_path[i]);
@@ -157,12 +149,12 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
     }
     if (p->length > 0 && id == p->peers[p->length - 1])
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
       GNUNET_PEER_change_rc (id, -1);
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   Adding from PUT: %s.\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Adding from PUT: %s.\n",
                   GNUNET_i2s (&put_path[i]));
       p->length++;
       p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
@@ -171,19 +163,19 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
   }
 #if MESH_DEBUG
   if (get_path_length > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
                 GNUNET_i2s (&get_path[0]));
   if (put_path_length > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (first of PUT: %s)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (first of PUT: %s)\n",
                 GNUNET_i2s (&put_path[0]));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   In total: %d hops\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   In total: %d hops\n",
               p->length);
   for (i = 0; i < p->length; i++)
   {
     struct GNUNET_PeerIdentity peer_id;
 
     GNUNET_PEER_resolve (p->peers[i], &peer_id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "       %u: %s\n", p->peers[i],
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "       %u: %s\n", p->peers[i],
                 GNUNET_i2s (&peer_id));
   }
 #endif
@@ -245,12 +237,11 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
+
   /* TODO
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  DEBUG_DHT ("DHT_put for ID %s started.\n", GNUNET_i2s (id));
-
   block.id = *full_id;
   GNUNET_CRYPTO_hash (full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
@@ -288,7 +279,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_WARNING,
                                "MESH", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
     dht_replication_level = 3;
   }
@@ -297,7 +288,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "ID_ANNOUNCE_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;

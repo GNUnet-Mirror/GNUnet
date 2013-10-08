@@ -26,6 +26,8 @@
 #include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_tunnel.h"
 
+#define LOG (level, ...) GNUNET_log_from ("mesh-loc", level, __VA_ARGS__)
+
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
@@ -139,7 +141,7 @@ client_release_ports (void *cls,
   if (GNUNET_YES != res)
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 "Port %u by client %p was not registered.\n",
                 key, value);
   }
@@ -187,17 +189,17 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
   if (client == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   (SERVER DOWN)\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (SERVER DOWN)\n");
     return;
   }
 
   c = client_get (client);
   if (NULL != c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u, %p)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u, %p)\n",
                 c->id, c);
     GNUNET_SERVER_client_drop (c->handle);
     c->shutting_down = GNUNET_YES;
@@ -223,14 +225,14 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
     GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
     GNUNET_free (c);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " context NULL!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, " context NULL!\n");
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "done!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "done!\n");
   return;
 }
 
@@ -252,7 +254,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
 
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
@@ -267,8 +269,8 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize new client structure */
   c = GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   if (size > 0)
   {
     uint32_t u32;
@@ -278,7 +280,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     for (i = 0; i < size; i++)
     {
       u32 = ntohl (p[i]);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
 
       /* store in client's hashmap */
       GNUNET_CONTAINER_multihashmap32_put (c->ports, u32, c,
@@ -297,7 +299,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new client processed\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client processed\n");
 }
 
 
@@ -319,7 +321,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
   MESH_ChannelNumber chid;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -328,7 +330,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message size sanity check */
   if (sizeof (struct GNUNET_MESH_ChannelMessage) != ntohs (message->size))
@@ -339,7 +341,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   msg = (struct GNUNET_MESH_ChannelMessage *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
               GNUNET_i2s (&msg->peer), ntohl (msg->port));
   chid = ntohl (msg->channel_id);
 
@@ -383,7 +385,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   ch->root_rel->ch = ch;
   ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
               peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
 
   /* Send create channel */
@@ -421,7 +423,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshTunnel2 *t;
   MESH_ChannelNumber chid;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Got a DESTROY CHANNEL from client!\n");
 
   /* Sanity check for client registration */
@@ -431,7 +433,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message sanity check */
   if (sizeof (struct GNUNET_MESH_ChannelMessage) != ntohs (message->size))
@@ -448,7 +450,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   ch = channel_get_by_local_id (c, chid);
   if (NULL == ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  channel %X not found\n", chid);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "  channel %X not found\n", chid);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -466,7 +468,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_ERROR,
                 "  channel %X client %p (%p, %p)\n",
                 chid, c, ch->root, ch->dest);
     GNUNET_break (0);
@@ -500,7 +502,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
   int fwd;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Got data from a client!\n");
 
   /* Sanity check for client registration */
@@ -510,7 +512,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   msg = (struct GNUNET_MESH_LocalData *) message;
 
@@ -564,7 +566,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     payload->header.size = htons (p2p_size);
     payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
     payload->chid = htonl (ch->gid);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
     send_prebuilt_message_channel (&payload->header, ch, fwd);
 
     if (GNUNET_YES == ch->reliable)
@@ -572,7 +574,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (tunnel_get_buffer (ch->t, fwd) > 0)
     send_local_ack (ch, fwd);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   return;
@@ -597,7 +599,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_ChannelNumber chid;
   int fwd;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = client_get (client)))
@@ -606,20 +608,20 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   msg = (struct GNUNET_MESH_LocalAck *) message;
 
   /* Channel exists? */
   chid = ntohl (msg->channel_id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
   ch = channel_get_by_local_id (c, chid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   -- ch %p\n", ch);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   -- ch %p\n", ch);
   if (NULL == ch)
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Channel %X unknown.\n", chid);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Channel %X unknown.\n", chid);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  for client %u.\n", c->id);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -662,7 +664,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 //   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
 //   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
 //
-//   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+//   LOG (GNUNET_ERROR_TYPE_INFO,
 //               "*  sending info about tunnel %s\n",
 //               GNUNET_i2s (&msg->owner));
 //
@@ -693,13 +695,13 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_INFO,
               "Received get tunnels request from client %u\n",
               c->id);
 //   GNUNET_CONTAINER_multihashmap_iterate (tunnels,
 //                                          monitor_all_tunnels_iterator,
 //                                          client);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_INFO,
               "Get tunnels request from client %u completed\n",
               c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -731,7 +733,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   msg = (struct GNUNET_MESH_LocalMonitor *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_INFO,
               "Received tunnel info request from client %u for tunnel %s[%X]\n",
               c->id,
               &msg->owner,
@@ -759,7 +761,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
                                               &resp->header, GNUNET_NO);
   GNUNET_free (resp);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_INFO,
               "Monitor tunnel request from client %u completed\n",
               c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -868,14 +870,14 @@ GML_client_delete_channel (struct MeshClient *c, struct MeshChannel *ch)
     res = GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
                                                   ch->lid_root, ch);
     if (GNUNET_YES != res)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel owner KO\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel owner KO\n");
   }
   if (c == ch->dest)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
                                                   ch->lid_dest, ch);
     if (GNUNET_YES != res)
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel client KO\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel client KO\n");
   }
 }
 
@@ -903,7 +905,7 @@ GML_send_ack (struct MeshChannel *ch, int fwd)
 
   rel->client_ready = GNUNET_YES;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "send local %s ack on %s:%X towards %p\n",
               fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid, c);
 

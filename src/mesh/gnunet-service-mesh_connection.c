@@ -39,6 +39,7 @@
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
 #define MESH_RETRANSMIT_MARGIN  4
 
+#define LOG (level, ...) GNUNET_log_from ("mesh-con", level, __VA_ARGS__)
 
 /**
  * All the states a connection can be in.
@@ -275,11 +276,11 @@ static struct GNUNET_TIME_Relative refresh_connection_time;
 static void
 fc_debug (struct MeshFlowControl *fc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    IN: %u/%u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    IN: %u/%u\n",
               fc->last_pid_recv, fc->last_ack_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    OUT: %u/%u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    OUT: %u/%u\n",
               fc->last_pid_sent, fc->last_ack_recv);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    QUEUE: %u/%u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    QUEUE: %u/%u\n",
               fc->queue_n, fc->queue_max);
 }
 
@@ -288,16 +289,16 @@ connection_debug (struct MeshConnection *c)
 {
   if (NULL == c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CONNECTION ***\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CONNECTION ***\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connection %s:%X\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s:%X\n",
               peer2s (c->t->peer), GNUNET_h2s (&c->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  state: %u, pending msgs: %u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  state: %u, pending msgs: %u\n",
               c->state, c->pending_messages);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
   fc_debug (&c->fwd_fc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
   fc_debug (&c->bck_fc);
 }
 #endif
@@ -383,15 +384,15 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   next_fc = fwd ? &c->fwd_fc : &c->bck_fc;
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "connection send %s ack on %s\n",
               fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
 
   /* Check if we need to transmit the ACK */
   if (prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer > 3\n");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer > 3\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  last pid recv: %u, last ack sent: %u\n",
                 prev_fc->last_pid_recv, prev_fc->last_ack_sent);
     return;
@@ -400,14 +401,14 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   /* Ok, ACK might be necessary, what PID to ACK? */
   delta = next_fc->queue_max - next_fc->queue_n;
   ack = prev_fc->last_pid_recv + delta;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               " last pid %u, last ack %u, qmax %u, q %u\n",
               prev_fc->last_pid_recv, prev_fc->last_ack_sent,
               next_fc->queue_max, next_fc->queue_n);
   if (ack == prev_fc->last_ack_sent)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
     return;
   }
 
@@ -436,7 +437,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
   struct MeshTunnel2 *t;
 
   t = connection->t;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
   queue_add (NULL,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
              sizeof (struct GNUNET_MESH_ConnectionACK),
@@ -462,7 +463,7 @@ send_connection_create (struct MeshConnection *connection)
   struct MeshTunnel2 *t;
 
   t = connection->t;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
   queue_add (NULL,
              GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
              sizeof (struct GNUNET_MESH_ConnectionCreate) +
@@ -483,10 +484,10 @@ static void
 connection_change_state (struct MeshConnection* c,
                          enum MeshConnectionState state)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state was %s\n",
               GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (c->state));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state is now %s\n",
               GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (state));
   c->state = state;
@@ -511,7 +512,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE :
                GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "sending %s keepalive for connection %s[%d]\n",
               fwd ? "FWD" : "BCK",
               peer2s (c->t->peer),
@@ -535,7 +536,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
 static void
 connection_recreate (struct MeshConnection *c, int fwd)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending connection recreate\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sending connection recreate\n");
   if (fwd)
     send_connection_create (c);
   else
@@ -624,7 +625,7 @@ connection_send_destroy (struct MeshConnection *c)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
   msg.cid = c->id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s[%X]\n",
               peer2s (c->t->peer),
               c->id);
@@ -701,13 +702,13 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
   struct MeshPeerQueue *q;
   size_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "connection_unlock_queue %s on %s\n",
               fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
 
   if (GMC_is_terminal (c, fwd))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " is terminal!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " is terminal!\n");
     return;
   }
 
@@ -715,14 +716,14 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 
   if (NULL != peer->core_transmit)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
     return; /* Already unlocked */
   }
 
   q = connection_get_first_message (c, fwd);
   if (NULL == q)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
     return; /* Nothing to transmit */
   }
 
@@ -766,7 +767,7 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
     next = q->next;
     if (q->c == c)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "connection_cancel_queue %s\n",
                   GNUNET_MESH_DEBUG_M2S (q->type));
       queue_destroy (q, GNUNET_YES);
@@ -811,15 +812,15 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   c = fc->c;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%X]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%X]\n",
               GNUNET_h2s (&c->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n",
               fc == &c->fwd_fc ? "FWD" : "BCK");
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
   send_prebuilt_message_connection (&msg.header, c, NULL, fc == &c->fwd_fc);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -906,7 +907,7 @@ connection_fwd_timeout (void *cls,
   c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
               peer2s (c->t->peer),
               c->id);
@@ -935,7 +936,7 @@ connection_bck_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
               peer2s (c->t->peer),
               c->id);
@@ -988,9 +989,6 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
 }
 
 
-
-
-
 /**
  * Core handler for connection creation.
  *
@@ -1016,8 +1014,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint16_t size;
   uint16_t i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
 
   /* Check size */
   size = ntohs (message->size);
@@ -1040,13 +1038,13 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    path has %u hops.\n", size);
 
   /* Get parameters */
   msg = (struct GNUNET_MESH_ConnectionCreate *) message;
   cid = &msg->cid;
   id = (struct GNUNET_PeerIdentity *) &msg[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "    connection %s (%s).\n",
               GNUNET_h2s (cid), GNUNET_i2s (id));
 
@@ -1054,19 +1052,19 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   c = connection_get (cid);
   if (NULL == c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = connection_new (cid);
     if (NULL == c)
       return GNUNET_OK;
     connection_reset_timeout (c, GNUNET_YES);
 
     /* Create path */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
     path = path_new (size);
     own_pos = 0;
     for (i = 0; i < size; i++)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
                   GNUNET_i2s (&id[i]));
       path->peers[i] = GNUNET_PEER_intern (&id[i]);
       if (path->peers[i] == myid)
@@ -1080,7 +1078,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       connection_destroy (c);
       return GNUNET_OK;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     path_add_to_peers (path, GNUNET_NO);
     c->path = path_duplicate (path);
     c->own_pos = own_pos;
@@ -1099,7 +1097,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Is it a connection to us? */
   if (c->own_pos == size - 1)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
     if (NULL == orig_peer->tunnel)
@@ -1121,7 +1119,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   else
   {
     /* It's for somebody else! Retransmit. */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     peer_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     peer_add_path_to_origin (orig_peer, path, GNUNET_NO);
     send_prebuilt_message_connection (message, c, NULL, GNUNET_YES);
@@ -1150,34 +1148,34 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshPeer *pi;
   int fwd;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
   msg = (struct GNUNET_MESH_ConnectionACK *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
               GNUNET_h2s (&msg->cid));
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# control on unknown connection",
                               1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
     return GNUNET_OK;
   }
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
               GNUNET_i2s (peer));
   pi = peer_get (peer);
   if (connection_get_next_hop (c) == pi)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
     fwd = GNUNET_NO;
     if (MESH_CONNECTION_SENT == c->state)
       connection_change_state (c, MESH_CONNECTION_ACK);
   }
   else if (connection_get_prev_hop (c) == pi)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
     fwd = GNUNET_YES;
     connection_change_state (c, MESH_CONNECTION_READY);
   }
@@ -1202,7 +1200,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us as creator? */
   if (connection_is_origin (c, GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     connection_change_state (c, MESH_CONNECTION_READY);
     if (MESH_TUNNEL_READY != c->t->state)
       tunnel_change_state (c->t, MESH_TUNNEL_READY);
@@ -1219,7 +1217,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us as destination? */
   if (GMC_is_terminal (c, GNUNET_YES))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
     if (MESH_TUNNEL_READY != c->t->state)
       tunnel_change_state (c->t, MESH_TUNNEL_READY);
     connection_change_state (c, MESH_CONNECTION_READY);
@@ -1227,7 +1225,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   send_prebuilt_message_connection (message, c, NULL, fwd);
   return GNUNET_OK;
 }
@@ -1250,12 +1248,12 @@ GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshConnection *c;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ConnectionBroken *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer2));
   c = connection_get (&msg->cid);
   if (NULL == c)
@@ -1290,10 +1288,10 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   int fwd;
 
   msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Got a CONNECTION DESTROY message from %s\n",
               GNUNET_i2s (peer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  for connection %s\n",
               GNUNET_h2s (&msg->cid));
   c = connection_get (&msg->cid);
@@ -1357,8 +1355,8 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   type = ntohs (msg->header.type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
               GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
 
   /* Check connection */
@@ -1366,7 +1364,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
     return GNUNET_OK;
   }
   t = c->t;
@@ -1385,7 +1383,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "WARNING Received PID %u, (prev %u), ACK %u\n",
                 pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
@@ -1393,7 +1391,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == GMC_is_pid_bigger (pid, fc->last_pid_recv))
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 " Pid %u not expected (%u+), dropping!\n",
                 pid, fc->last_pid_recv + 1);
     return GNUNET_OK;
@@ -1412,7 +1410,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     unsigned int off;
 
     /* TODO signature verification */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
     GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
 
     fc->last_pid_recv = pid;
@@ -1429,13 +1427,13 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Message not for us: forward to next hop */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   ttl = ntohl (msg->ttl);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
   if (ttl == 0)
   {
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
     send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
@@ -1507,8 +1505,8 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t ack;
   int fwd;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
               GNUNET_i2s (peer));
   msg = (struct GNUNET_MESH_ACK *) message;
 
@@ -1525,13 +1523,13 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   id = GNUNET_PEER_search (peer);
   if (connection_get_next_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
     fwd = GNUNET_YES;
   }
   else if (connection_get_prev_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
     fwd = GNUNET_NO;
   }
@@ -1542,7 +1540,7 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   ack = ntohl (msg->ack);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
               ack, fc->last_ack_recv);
   if (GMC_is_pid_bigger (ack, fc->last_ack_recv))
     fc->last_ack_recv = ack;
@@ -1551,7 +1549,7 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
       GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
     fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
@@ -1584,8 +1582,8 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t pid;
   int fwd;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
               GNUNET_i2s (peer));
 
   msg = (struct GNUNET_MESH_Poll *) message;
@@ -1608,12 +1606,12 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   id = GNUNET_PEER_search (peer);
   if (connection_get_next_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
   }
   else if (connection_get_prev_hop (c)->id == id)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
   }
   else
@@ -1623,7 +1621,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   pid = ntohl (msg->pid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n",
               pid, fc->last_pid_recv);
   fc->last_pid_recv = pid;
   fwd = fc == &c->fwd_fc;
@@ -1654,7 +1652,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   int fwd;
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
               GNUNET_i2s (peer));
 
   c = connection_get (&msg->cid);
@@ -1702,41 +1700,41 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 {
   unsigned int buffer;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "send ack %s on %p %p\n",
               fwd ? "FWD" : "BCK", c, ch);
   if (NULL == c || GMC_is_terminal (c, fwd))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
     buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
     buffer = connection_get_buffer (c, fwd);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
   if ( (NULL != ch && channel_is_origin (ch, fwd)) ||
        (NULL != c && connection_is_origin (c, fwd)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
     if (0 < buffer)
     {
       GNUNET_assert (NULL != ch);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
       send_local_ack (ch, fwd);
     }
   }
   else if (NULL == c)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
     GNUNET_assert (NULL != ch);
     channel_send_connections_ack (ch, buffer, fwd);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
     connection_send_ack (c, buffer, fwd);
   }
 }
@@ -1755,7 +1753,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
                                              &max_msgs_queue))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "MAX_MSGS_QUEUE", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1765,7 +1763,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
                                              &max_connections))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "MAX_CONNECTIONS", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1775,7 +1773,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
                                            &refresh_connection_time))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "REFRESH_CONNECTION_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1823,7 +1821,7 @@ GMC_destroy (struct MeshConnection *c)
   if (NULL == c)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s[%X]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s[%X]\n",
               peer2s (c->t->peer),
               c->id);
 
@@ -1965,7 +1963,7 @@ GMC_send_prebuilt_message (    const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
               GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
 
   switch (type)
@@ -1989,20 +1987,20 @@ GMC_send_prebuilt_message (    const struct GNUNET_MessageHeader *message,
       emsg->cid = c->id;
       emsg->ttl = htonl (ttl - 1);
       emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " pid %u\n", ntohl (emsg->pid));
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
       amsg = (struct GNUNET_MESH_ACK *) data;
       amsg->cid = c->id;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       pmsg = (struct GNUNET_MESH_Poll *) data;
       pmsg->cid = c->id;
       pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:

@@ -25,7 +25,7 @@
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"
 
-
+#define LOG (level, ...) GNUNET_log_from ("mesh-chn", level, __VA_ARGS__)
 
 /**
  * All the states a connection can be in.
@@ -264,7 +264,7 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
   size = ntohs (msg->header.size);
   mid = ntohl (msg->mid);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %u\n", mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %u\n", mid);
 
   copy = GNUNET_malloc (sizeof (*copy) + size);
   copy->mid = mid;
@@ -277,18 +277,18 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
   // FIXME start from the end (most messages are the latest ones)
   for (prev = rel->head_recv; NULL != prev; prev = prev->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " prev %u\n", prev->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " prev %u\n", prev->mid);
     if (GMC_is_pid_bigger (prev->mid, mid))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
       GNUNET_CONTAINER_DLL_insert_before (rel->head_recv, rel->tail_recv,
                                           prev, copy);
       return;
     }
   }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
     GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
 }
 
 
@@ -335,11 +335,11 @@ send_client_data (struct MeshChannel *ch,
 static struct MeshChannel *
 channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   -- get CHID %X\n", chid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   -- get CHID %X\n", chid);
   if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
     return NULL;
   }
   if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
@@ -536,45 +536,45 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
 
   bitfield = msg->futures;
   mid = ntohl (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "free_sent_reliable %u %llX\n",
               mid, bitfield);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               " rel %p, head %p\n",
               rel, rel->head_sent);
   for (i = 0, copy = rel->head_sent;
        i < 64 && NULL != copy && 0 != bitfield;
        i++)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 " trying bit %u (mid %u)\n",
                 i, mid + i + 1);
     mask = 0x1LL << i;
     if (0 == (bitfield & mask))
      continue;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " set!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " set!\n");
     /* Bit was set, clear the bit from the bitfield */
     bitfield &= ~mask;
 
     /* The i-th bit was set. Do we have that copy? */
     /* Skip copies with mid < target */
     target = mid + i + 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " target %u\n", target);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " target %u\n", target);
     while (NULL != copy && GMC_is_pid_bigger (target, copy->mid))
      copy = copy->next;
 
     /* Did we run out of copies? (previously freed, it's ok) */
     if (NULL == copy)
     {
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
+     LOG (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
      return;
     }
 
     /* Did we overshoot the target? (previously freed, it's ok) */
     if (GMC_is_pid_bigger (copy->mid, target))
     {
-     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
+     LOG (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
      continue;
     }
 
@@ -583,7 +583,7 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
     rel_message_free (copy);
     copy = next;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable END\n");
 }
 
 
@@ -646,14 +646,14 @@ channel_retransmit_message (void *cls,
   /* Message not found in the queue that we are going to use. */
   if (NULL == q)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
     send_prebuilt_message_channel (&payload->header, ch, fwd);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
   }
 
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
@@ -684,7 +684,7 @@ channel_send_connections_ack (struct MeshChannel *ch,
   uint32_t allow_per_connection;
   unsigned int cs;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Channel send connection %s ack on %s:%X\n",
               fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
 
@@ -724,7 +724,7 @@ channel_send_connections_ack (struct MeshChannel *ch,
     connection_send_ack (c, allow_per_connection, fwd);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel send connection %s ack on %s:%X\n",
                 fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
   GNUNET_break (to_allow == 0);
@@ -750,11 +750,11 @@ rel_message_free (struct MeshReliableMessage *copy)
   rel->expected_delay.rel_value_us += time.rel_value_us;
   rel->expected_delay.rel_value_us /= 8;
   rel->n_sent--;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
               GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
               GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                       GNUNET_NO));
   rel->retry_timer = rel->expected_delay;
@@ -777,7 +777,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  channel confirm %s %s:%X\n",
               fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
   ch->state = MESH_CHANNEL_READY;
@@ -824,7 +824,7 @@ channel_save_copy (struct MeshChannel *ch,
   type = ntohs (msg->type);
   size = ntohs (msg->size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u\n", mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u\n", mid);
   copy = GNUNET_malloc (sizeof (struct MeshReliableMessage) + size);
   copy->mid = mid;
   copy->timestamp = GNUNET_TIME_absolute_get ();
@@ -832,7 +832,7 @@ channel_save_copy (struct MeshChannel *ch,
   copy->type = type;
   memcpy (&copy[1], msg, size);
   rel->n_sent++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
   if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
   {
@@ -865,11 +865,11 @@ send_client_buffered_data (struct MeshChannel *ch,
   struct MeshReliableMessage *copy;
   struct MeshChannelReliability *rel;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
   rel = fwd ? ch->dest_rel : ch->root_rel;
   if (GNUNET_NO == rel->client_ready)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client not ready\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "client not ready\n");
     return;
   }
 
@@ -881,7 +881,7 @@ send_client_buffered_data (struct MeshChannel *ch,
     {
       struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   " have %u! now expecting %u\n",
                   copy->mid, rel->mid_recv + 1);
       send_client_data (ch, msg, fwd);
@@ -892,14 +892,14 @@ send_client_buffered_data (struct MeshChannel *ch,
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   " reliable && don't have %u, next is %u\n",
                   rel->mid_recv,
                   copy->mid);
       return;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
 }
 
 
@@ -918,7 +918,7 @@ channel_destroy (struct MeshChannel *ch)
   if (NULL == ch)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
               peer2s (ch->t->peer), ch->gid);
   GMCH_debug (ch);
 
@@ -979,7 +979,7 @@ channel_new (struct MeshTunnel2 *t,
   {
     while (NULL != channel_get (t, t->next_chid))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists (%p)...\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists (%p)...\n",
                   t->next_chid, channel_get (t, t->next_chid));
       t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
     }
@@ -1032,7 +1032,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending channel %s ack for channel %s:%X\n",
               fwd ? "FWD" : "BCK", peer2s (ch->t->peer),
               ch->gid);
@@ -1058,7 +1058,7 @@ channel_send_destroy (struct MeshChannel *ch)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending channel destroy for channel %s:%X\n",
               peer2s (ch->t->peer),
               ch->gid);
@@ -1111,18 +1111,18 @@ channel_destroy_iterator (void *cls,
   struct MeshClient *c = cls;
   struct MeshTunnel2 *t;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               " Channel %X (%X / %X) destroy, due to client %u shutdown.\n",
               ch->gid, ch->lid_root, ch->lid_dest, c->id);
   channel_debug (ch);
 
   if (c == ch->dest)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %u is destination.\n", c->id);
   }
   if (c == ch->root)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %u is owner.\n", c->id);
   }
 
   t = ch->t;
@@ -1153,9 +1153,9 @@ send (const struct GNUNET_MessageHeader *message,
   uint16_t type;
   uint64_t iv;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X %s\n",
               peer2s (ch->t->peer), ch->gid, fwd ? "FWD" : "BCK");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
 
   if (channel_is_terminal (ch, fwd) || ch->t->peer->id == myid)
@@ -1263,7 +1263,7 @@ GMCH_send_ack (struct MeshChannel *ch, int fwd)
     return;
   }
   rel = fwd ? ch->dest_rel : ch->root_rel;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "send_data_ack for %u\n",
               rel->mid_recv - 1);
 
@@ -1282,14 +1282,14 @@ GMCH_send_ack (struct MeshChannel *ch, int fwd)
       break;
     mask = 0x1LL << delta;
     msg.futures |= mask;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 " setting bit for %u (delta %u) (%llX) -> %llX\n",
                 copy->mid, delta, mask, msg.futures);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " final futures %llX\n", msg.futures);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " final futures %llX\n", msg.futures);
 
   send_prebuilt_message_channel (&msg.header, ch, fwd);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
 }
 
 
@@ -1303,28 +1303,28 @@ GMCH_debug (struct MeshChannel *ch)
 {
   if (NULL == ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X (%p)\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X (%p)\n",
               peer2s (ch->t->peer), ch->gid, ch);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
               ch->root, ch->root_rel);
   if (NULL != ch->root)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->root->id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->root->id);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
                 ch->root_rel->client_ready ? "YES" : "NO");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  dest %p/%p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  dest %p/%p\n",
               ch->dest, ch->dest_rel);
   if (NULL != ch->dest)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->dest->id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cli %u\n", ch->dest->id);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
                 ch->dest_rel->client_ready ? "YES" : "NO");
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
   }
 }
 
@@ -1358,9 +1358,9 @@ GMCH_handle_data (struct MeshTunnel2 *t,
     return;
   }
   type = ntohs (msg->header.type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got a %s message\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message\n",
               GNUNET_MESH_DEBUG_M2S (type));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
 
   /* Check channel */
@@ -1368,7 +1368,7 @@ GMCH_handle_data (struct MeshTunnel2 *t,
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel", 1, GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
                 ntohl (msg->chid));
     return;
   }
@@ -1388,25 +1388,25 @@ GMCH_handle_data (struct MeshTunnel2 *t,
   GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
 
   mid = ntohl (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " mid %u\n", mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " mid %u\n", mid);
 
   if (GNUNET_NO == ch->reliable ||
       ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
         GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
     if (GNUNET_YES == ch->reliable)
     {
       /* Is this the exact next expected messasge? */
       if (mid == rel->mid_recv)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
         rel->mid_recv++;
         send_client_data (ch, msg, fwd);
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "save for later\n");
         add_buffered_data (msg, rel);
       }
     }
@@ -1421,7 +1421,7 @@ GMCH_handle_data (struct MeshTunnel2 *t,
   else
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 " MID %u not expected (%u - %u), dropping!\n",
                 mid, rel->mid_recv, rel->mid_recv + 64);
   }
@@ -1451,7 +1451,7 @@ GMCH_handle_data_ack (struct MeshTunnel2 *t,
   int work;
 
   type = ntohs (msg->header.type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got a %s message!\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a %s message!\n",
               GNUNET_MESH_DEBUG_M2S (type));
   ch = channel_get (t, ntohl (msg->chid));
   if (NULL == ch)
@@ -1460,7 +1460,7 @@ GMCH_handle_data_ack (struct MeshTunnel2 *t,
     return;
   }
   ack = ntohl (msg->mid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
               (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
 
   if (GNUNET_YES == fwd)
@@ -1481,12 +1481,12 @@ GMCH_handle_data_ack (struct MeshTunnel2 *t,
   {
     if (GMC_is_pid_bigger (copy->mid, ack))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
       channel_rel_free_sent (rel, msg);
       break;
     }
     work = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
     next = copy->next;
     rel_message_free (copy);
   }
@@ -1542,7 +1542,7 @@ GMCH_handle_create (struct MeshTunnel2 *t,
   struct MeshClient *c;
   uint32_t port;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Channel Create\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received Channel Create\n");
   /* Check message size */
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelCreate))
   {
@@ -1552,15 +1552,15 @@ GMCH_handle_create (struct MeshTunnel2 *t,
 
   /* Check if channel exists */
   chid = ntohl (msg->chid);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   chid %u\n", chid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   chid %u\n", chid);
   ch = channel_get (t, chid);
   if (NULL != ch)
   {
     /* Probably a retransmission, safe to ignore */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
     if (NULL != ch->dest)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   duplicate CC!!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "   duplicate CC!!\n");
       GMCH_send_ack (ch, !fwd);
       return;
     }
@@ -1575,19 +1575,19 @@ GMCH_handle_create (struct MeshTunnel2 *t,
 
   /* Find a destination client */
   port = ntohl (msg->port);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", port);
   c = GNUNET_CONTAINER_multihashmap32_get (ports, port);
   if (NULL == c)
   {
     /* TODO send reject */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
     /* TODO free ch */
     return;
   }
 
   channel_add_client (ch, c);
   if (GNUNET_YES == ch->reliable)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
   GMCH_send_create (ch);
   GMCH_send_ack (ch, fwd);
@@ -1610,7 +1610,7 @@ GMCH_handle_ack (struct MeshTunnel2 *t,
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Channel ACK\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received Channel ACK\n");
   /* Check message size */
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_ChannelManage))
   {
@@ -1624,7 +1624,7 @@ GMCH_handle_ack (struct MeshTunnel2 *t,
   if (NULL == ch)
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   channel %u unknown!!\n", chid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   channel %u unknown!!\n", chid);
     return;
   }
 

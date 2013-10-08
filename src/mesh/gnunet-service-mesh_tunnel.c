@@ -28,6 +28,7 @@
 #include "gnunet-service-mesh_channel.h"
 #include "mesh_path.h"
 
+#define LOG (level, ...) GNUNET_log_from ("mesh-tun", level, __VA_ARGS__)
 
 /**
  * All the states a tunnel can be in.
@@ -251,13 +252,13 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
   struct MeshFlowControl *fc;
   unsigned int lowest_q;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n",
               peer2s (t->peer));
   best = NULL;
   lowest_q = UINT_MAX;
   for (c = t->connection_head; NULL != c; c = c->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
                 GNUNET_h2s (&c->id), c->state);
     if (MESH_CONNECTION_READY == c->state)
     {
@@ -267,7 +268,7 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
         GNUNET_break (0);
         continue;
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "    q_n %u, \n", fc->queue_n);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "    q_n %u, \n", fc->queue_n);
       if (fc->queue_n < lowest_q)
       {
         best = c;
@@ -346,11 +347,11 @@ tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
   struct MeshTunnelQueue *next;
   unsigned int room;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "tunnel_send_queued_data on tunnel %s\n",
               peer2s (t->peer));
   room = tunnel_get_buffer (t, fwd);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
     next = tq->next;
@@ -413,7 +414,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DEFAULT_TTL",
                                              &default_ttl))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_WARNING,
                                "MESH", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
@@ -483,11 +484,11 @@ GMT_change_state (struct MeshTunnel2* t, enum MeshTunnelState state)
 {
   if (NULL == t)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s state was %s\n",
               peer2s (t->peer),
               GNUNET_MESH_DEBUG_TS2S (t->state));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s state is now %s\n",
               peer2s (t->peer),
               GNUNET_MESH_DEBUG_TS2S (state));
@@ -576,7 +577,7 @@ GMT_destroy (struct MeshTunnel2 *t)
   if (NULL == t)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n",
               peer2s (t->peer));
 
 //   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
@@ -637,7 +638,7 @@ GMT_handle_decrypted (struct MeshTunnel2 *t,
       break;
 
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "end-to-end message not known (%u)\n",
                   ntohs (msgh->type));
   }
@@ -827,7 +828,7 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
   struct MeshConnection *c;
   uint16_t type;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n",
               peer2s (t->peer));
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
@@ -846,7 +847,7 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
       msg->ttl = htonl (default_ttl);
       break;
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
                   GNUNET_MESH_DEBUG_M2S (type));
       GNUNET_break (0);
   }
