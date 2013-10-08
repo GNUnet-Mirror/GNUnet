@@ -181,7 +181,7 @@ static void
 incrementBit (char *bitArray, unsigned int bitIdx,
               const struct GNUNET_DISK_FileHandle *fh)
 {
-  OFF_T fileSlot;
+  off_t fileSlot;
   unsigned char value;
   unsigned int high;
   unsigned int low;
@@ -229,7 +229,7 @@ static void
 decrementBit (char *bitArray, unsigned int bitIdx,
               const struct GNUNET_DISK_FileHandle *fh)
 {
-  OFF_T fileslot;
+  off_t fileslot;
   unsigned char value;
   unsigned int high;
   unsigned int low;
@@ -462,10 +462,10 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;
   char *rbuff;
-  OFF_T pos;
+  off_t pos;
   int i;
   size_t ui;
-  OFF_T fsize;
+  off_t fsize;
   int must_read;
 
   GNUNET_assert (NULL != filename);

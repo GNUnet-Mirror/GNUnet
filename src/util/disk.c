@@ -208,7 +208,7 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
  */
 int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
-			      OFF_T *size)
+			      off_t *size)
 {
 #if WINDOWS
   BOOL b;
@@ -219,7 +219,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
   }
-  *size = (OFF_T) li.QuadPart;
+  *size = (off_t) li.QuadPart;
 #else
   struct stat sbuf;
 
@@ -239,8 +239,8 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-OFF_T
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
+off_t
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
                        enum GNUNET_DISK_Seek whence)
 {
   if (h == NULL)
@@ -263,7 +263,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, OFF_T offset,
     SetErrnoFromWinError (GetLastError ());
     return GNUNET_SYSERR;
   }
-  return (OFF_T) new_pos.QuadPart;
+  return (off_t) new_pos.QuadPart;
 #else
   static int t[] = { SEEK_SET, SEEK_CUR, SEEK_END };
 
@@ -1529,8 +1529,8 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user)
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lock_start,
-                       OFF_T lock_end, int excl)
+GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lock_start,
+                       off_t lock_end, int excl)
 {
   if (fh == NULL)
   {
@@ -1550,7 +1550,7 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lock_start,
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
-  OFF_T diff = lock_end - lock_start;
+  off_t diff = lock_end - lock_start;
   DWORD diff_low, diff_high;
   diff_low = (DWORD) (diff & 0xFFFFFFFF);
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);
@@ -1580,8 +1580,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, OFF_T lock_start,
  * @return GNUNET_OK on success, GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlock_start,
-                         OFF_T unlock_end)
+GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlock_start,
+                         off_t unlock_end)
 {
   if (fh == NULL)
   {
@@ -1601,7 +1601,7 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, OFF_T unlock_start,
   return fcntl (fh->fd, F_SETLK, &fl) != 0 ? GNUNET_SYSERR : GNUNET_OK;
 #else
   OVERLAPPED o;
-  OFF_T diff = unlock_end - unlock_start;
+  off_t diff = unlock_end - unlock_start;
   DWORD diff_low, diff_high;
   diff_low = (DWORD) (diff & 0xFFFFFFFF);
   diff_high = (DWORD) ((diff >> (sizeof (DWORD) * 8)) & 0xFFFFFFFF);

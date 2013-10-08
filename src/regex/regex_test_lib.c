@@ -346,7 +346,7 @@ REGEX_TEST_read_from_file (const char *filename)
   struct GNUNET_DISK_FileHandle *f;
   unsigned int nr;
   unsigned int offset;
-  OFF_T size;
+  off_t size;
   size_t len;
   char *buffer;
   char *regex;

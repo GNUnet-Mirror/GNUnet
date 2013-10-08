@@ -25,12 +25,6 @@
 #ifndef GNUNET_DISK_LIB_H
 #define GNUNET_DISK_LIB_H
 
-#if WINDOWS
-#define OFF_T uint64_t
-#else
-#define OFF_T off_t
-#endif
-
 /**
  * Handle used to manage a pipe.
  */
@@ -307,8 +301,8 @@ GNUNET_DISK_file_backup (const char *fil);
  * @param whence specification to which position the offset parameter relates to
  * @return the new position on success, GNUNET_SYSERR otherwise
  */
-OFF_T
-GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, OFF_T offset,
+off_t
+GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle *h, off_t offset,
                        enum GNUNET_DISK_Seek whence);
 
 
@@ -408,7 +402,7 @@ GNUNET_DISK_file_open (const char *fn,
  */
 int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
-			      OFF_T *size);
+			      off_t *size);
 
 
 /**
@@ -767,8 +761,8 @@ GNUNET_DISK_directory_create (const char *dir);
  */
 int
 GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
-                       OFF_T lock_start,
-                       OFF_T lock_end, int excl);
+                       off_t lock_start,
+                       off_t lock_end, int excl);
 
 
 /**
@@ -781,8 +775,8 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh,
  */
 int
 GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh,
-                         OFF_T unlock_start,
-                         OFF_T unlock_end);
+                         off_t unlock_start,
+                         off_t unlock_end);
 
 
 /**
