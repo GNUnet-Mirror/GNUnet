@@ -222,7 +222,7 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"store_records",
-				"INSERT INTO ns097records (zone_private_key, pkey, value, record_count, record_data, label) VALUES "
+				"INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label) VALUES "
                                 "($1, $2, $3, $4, $5, $6)", 6)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
