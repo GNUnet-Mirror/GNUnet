@@ -289,7 +289,7 @@ test_gnunet_helper_testbed_SOURCES = \
 test_gnunet_helper_testbed_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la \
- $(Z_LIBZ)
+ $(Z_LIBS)
 
 test_testbed_api_testbed_run_topologyrandom_SOURCES = \
  test_testbed_api_testbed_run.c
