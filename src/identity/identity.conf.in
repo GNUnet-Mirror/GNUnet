@@ -1,6 +1,6 @@
 [identity]
 AUTOSTART = YES
-@UNIXONLY@PORT = 2108
+@JAVAPORT@PORT = 2108
 HOSTNAME = localhost
 HOME = $SERVICEHOME
 BINARY = gnunet-service-identity
