@@ -49,6 +49,12 @@
  * General description
  */
 
+/**
+ * The actions, how an agent can manipulate the current assignment. I.e. how the bandwidth can be
+ * changed for the currently chosen address. Not depicted in the enum are the actions of switching
+ * to a particular address. The action of switching to address with index i is depicted by the
+ * number (RIL_ACTION_TYPE_NUM + i).
+ */
 enum RIL_Action_Type
 {
   RIL_ACTION_NOTHING = 0,
@@ -149,7 +155,7 @@ struct RIL_Peer_Agent
   /**
    * Whether the agent is active or not
    */
-  int active; //TODO? rename into "requested", since it rather depicts whether there is a request pending for it
+  int active; //TODO? rename into something better. It reflects the state whether get_preferred_address() has been called for the according peer or not
 
   /**
    * Number of performed time-steps
@@ -309,12 +315,12 @@ struct GAS_RIL_Handle
   unsigned long long step_count;
 
   /**
-   * Interval time between steps in milliseconds //TODO? put in agent
+   * Interval time between steps in milliseconds //TODO? Future Work: Heterogeneous stepping among agents
    */
   struct GNUNET_TIME_Relative step_time;
 
   /**
-   * Task identifier of the next time-step to be executed //TODO? put in agent
+   * Task identifier of the next time-step to be executed
    */
   GNUNET_SCHEDULER_TaskIdentifier next_step;
 
@@ -375,10 +381,14 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
 static int
 agent_decide_exploration (struct RIL_Peer_Agent *agent)
 {
+  //TODO? Future Work: Improve exploration/exploitation trade-off by different mechanisms than e-greedy
+  /*
+   * An e-greedy replacement could be based on the accuracy of the prediction of the Q-value
+   */
   double r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
       UINT32_MAX) / (double) UINT32_MAX;
 
-if  (r < RIL_EXPLORE_RATIO)
+  if  (r < RIL_EXPLORE_RATIO)
   {
     return GNUNET_YES;
   }
@@ -471,6 +481,7 @@ agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
 static int
 agent_get_action_explore (struct RIL_Peer_Agent *agent, double *state)
 {
+  // TODO?: Future Work: Choose the action for exploration, which has been explored the least in this state
   return GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, agent->n);
 }
 
@@ -697,6 +708,22 @@ ril_get_max_bw(struct RIL_Peer_Agent *agent, int direction_in)
 }
 
 /**
+ * Get the index of the quality-property in question
+ * @param type the quality property type
+ * @return the index
+ */
+static int
+ril_find_property_index (uint32_t type)
+{
+  int existing_types[] = GNUNET_ATS_QualityProperties;
+  int c;
+  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+    if (existing_types[c] == type)
+      return c;
+  return GNUNET_SYSERR;
+}
+
+/**
  * Gets the reward of the last performed step
  * @param solver solver handle
  * @return the reward
@@ -712,11 +739,13 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   double pref_match = 0;
   double bw_norm;
   struct RIL_Network *net;
+  int prop_index;
 
   preferences = solver->callbacks->get_preferences (solver->callbacks->get_preferences_cls, &agent->peer);
   properties = solver->callbacks->get_properties (solver->callbacks->get_properties_cls,
       agent->address_inuse);
-  pref_match += preferences[GNUNET_ATS_PREFERENCE_LATENCY] * properties[GNUNET_ATS_QUALITY_NET_DELAY];
+  prop_index = ril_find_property_index(GNUNET_ATS_QUALITY_NET_DELAY);
+  pref_match += preferences[GNUNET_ATS_PREFERENCE_LATENCY] * properties[prop_index];
   bw_norm = GNUNET_MAX(2, (((
       ((double) agent->bw_in / (double) ril_get_max_bw(agent, GNUNET_YES)) +
       ((double) agent->bw_out / (double) ril_get_max_bw(agent, GNUNET_NO))
@@ -1171,7 +1200,6 @@ ril_cut_from_vector (void **old,
   unsigned int bytes_hole;
   unsigned int bytes_after;
 
-
   GNUNET_assert(old_length > hole_length);
   GNUNET_assert(old_length >= (hole_start + hole_length));
 
@@ -1446,7 +1474,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 
   //increase size of old state vector
   agent->m = m_old;
-  GNUNET_array_grow(agent->s_old, agent->m, m_new); //TODO initialize new state features?
+  GNUNET_array_grow(agent->s_old, agent->m, m_new); //TODO random instead of zero-initialization of state features
 
   agent->m = m_old;
   GNUNET_array_grow(agent->e, agent->m, m_new);
@@ -1473,7 +1501,6 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 void
 GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_only)
 {
-  //TODO? use session as feature
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
   struct RIL_Address_Wrapped *address_wrapped;
@@ -1612,9 +1639,8 @@ GAS_ril_address_session_changed (void *solver,
     uint32_t cur_session,
     uint32_t new_session)
 {
-  //TODO? consider session change in solver behaviour
   /*
-   * Potentially add session activity as a feature in state vector
+   * TODO? Future Work: Potentially add session activity as a feature in state vector
    */
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_session_changed()\n");
 }
@@ -1706,7 +1732,7 @@ GAS_ril_address_preference_feedback (void *solver,
     enum GNUNET_ATS_PreferenceKind kind,
     double score)
 {
-  //TODO! talk to Matthias about feedback
+  //TODO! collect feedback
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
           "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
