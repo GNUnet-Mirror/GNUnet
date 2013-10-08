@@ -80,11 +80,11 @@ create_indices (PGconn * dbh)
 {
   /* create indices */
   if ( (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_name_rv ON ns091records (zone_hash,record_name_hash,rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_query_hash ON ns096blocks (query,expiration_time)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_delegation ON ns091records (zone_hash,zone_delegation)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX is_block_expiration ON ns096blocks (expiration_time)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone_rv ON ns091records (zone_hash,rvalue)")) ||
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX is_pkey_reverse ON ns097records (zone_private_key,pkey)")) ||
        (GNUNET_OK !=
 	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_zone ON ns091records (zone_hash)")) ||
        (GNUNET_OK !=
@@ -617,7 +617,7 @@ namestore_postgres_delete_zone (void *cls,
       GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "delete_zone"))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Deleting zone failed!\n");		
+		"Deleting zone failed!\n");
     return;
   }
   PQclear (ret);

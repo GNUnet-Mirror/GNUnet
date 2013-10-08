@@ -158,13 +158,13 @@ create_indices (sqlite3 * dbh)
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_block_expiration ON ns096blocks (expiration_time)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns096records (zone_private_key,pkey)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns096records (zone_private_key,rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_iter ON ns097records (zone_private_key,rvalue)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns096records (rvalue)",
+	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS it_iter ON ns097records (rvalue)",
 		      NULL, NULL, NULL)) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Failed to create indices: %s\n", sqlite3_errmsg (dbh));
@@ -277,12 +277,12 @@ database_setup (struct Plugin *plugin)
 
   CHECK (SQLITE_OK ==
          sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns096records'",
+                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns097records'",
                      &stmt));
   if ((sqlite3_step (stmt) == SQLITE_DONE) &&
       (sqlite3_exec
        (plugin->dbh,
-        "CREATE TABLE ns096records ("
+        "CREATE TABLE ns097records ("
         " zone_private_key BLOB NOT NULL DEFAULT '',"
         " pkey BLOB,"
 	" rvalue INT8 NOT NULL DEFAULT '',"
@@ -318,27 +318,27 @@ database_setup (struct Plugin *plugin)
         &plugin->lookup_block) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "INSERT INTO ns096records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
+        "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
 	" VALUES (?, ?, ?, ?, ?, ?)",
         &plugin->store_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
-        "DELETE FROM ns096records WHERE zone_private_key=? AND label=?",
+        "DELETE FROM ns097records WHERE zone_private_key=? AND label=?",
         &plugin->delete_records) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
         "SELECT record_count,record_data,label"
-	" FROM ns096records WHERE zone_private_key=? AND pkey=?",
+	" FROM ns097records WHERE zone_private_key=? AND pkey=?",
         &plugin->zone_to_name) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
 	"SELECT record_count,record_data,label"
-	" FROM ns096records WHERE zone_private_key=? ORDER BY rvalue LIMIT 1 OFFSET ?",
+	" FROM ns097records WHERE zone_private_key=? ORDER BY rvalue LIMIT 1 OFFSET ?",
 	&plugin->iterate_zone) != SQLITE_OK) ||
       (sq_prepare
        (plugin->dbh,
 	"SELECT record_count,record_data,label,zone_private_key"
-	" FROM ns096records ORDER BY rvalue LIMIT 1 OFFSET ?",
+	" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET ?",
 	&plugin->iterate_all_zones) != SQLITE_OK)
       )
   {
