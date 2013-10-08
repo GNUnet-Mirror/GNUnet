@@ -291,7 +291,7 @@ GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
  *
  * @param fancy_time human readable string (i.e. 1 minute)
  * @param rtime set to the relative time
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
@@ -332,11 +332,12 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
 
 /**
  * Convert a given fancy human-readable time to our internal
- * representation.
+ * representation. The human-readable time is expected to be
+ * in local time, whereas the returned value will be in UTC.
  *
  * @param fancy_time human readable string (i.e. %Y-%m-%d %H:%M:%S)
  * @param atime set to the absolute time
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
@@ -375,6 +376,11 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
  * Convert the len characters long character sequence
  * given in input that is in the given input charset
  * to a string in given output charset.
+ *
+ * @param input input string
+ * @param len number of bytes in @a input
+ * @param input_charset character set used for @a input
+ * @param ouptut_charset desired character set for the return value
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
@@ -438,12 +444,18 @@ GNUNET_STRINGS_conv (const char *input,
  * Convert the len characters long character sequence
  * given in input that is in the given charset
  * to UTF-8.
+ *
+ * @param input the input string (not necessarily 0-terminated)
+ * @param len the number of bytes in the @a input
+ * @param charset character set to convert from
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
+GNUNET_STRINGS_to_utf8 (const char *input,
+                        size_t len,
+                        const char *charset)
 {
   return GNUNET_STRINGS_conv (input, len, charset, "UTF-8");
 }
@@ -453,12 +465,17 @@ GNUNET_STRINGS_to_utf8 (const char *input, size_t len, const char *charset)
  * Convert the len bytes-long UTF-8 string
  * given in input to the given charset.
  *
+ * @param input the input string (not necessarily 0-terminated)
+ * @param len the number of bytes in the @a input
+ * @param charset character set to convert to
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
  */
 char *
-GNUNET_STRINGS_from_utf8 (const char *input, size_t len, const char *charset)
+GNUNET_STRINGS_from_utf8 (const char *input,
+                          size_t len,
+                          const char *charset)
 {
   return GNUNET_STRINGS_conv (input, len, "UTF-8", charset);
 }
@@ -689,9 +706,10 @@ GNUNET_STRINGS_relative_time_to_string (struct GNUNET_TIME_Relative delta,
 
 
 /**
- * "asctime", except for GNUnet time.
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
+ * "asctime", except for GNUnet time.  Converts a GNUnet internal
+ * absolute time (which is in UTC) to a string in local time.
+ * Note that the returned value will be overwritten if this function
+ * is called again.
  *
  * @param t time to convert
  * @return absolute time in human-readable format

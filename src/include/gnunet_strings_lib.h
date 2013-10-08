@@ -76,6 +76,7 @@ GNUNET_STRINGS_fancy_time_to_relative (const char *fancy_time,
 
 
 /**
+ * @ingroup time
  * Convert a given fancy human-readable time to our internal
  * representation.  The human-readable time is expected to be
  * in local time, whereas the returned value will be in UTC.
@@ -103,6 +104,11 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  * Convert the len characters long character sequence
  * given in input that is in the given input charset
  * to a string in given output charset.
+ *
+ * @param input input string
+ * @param len number of bytes in @a input
+ * @param input_charset character set used for @a input
+ * @param ouptut_charset desired character set for the return value
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
@@ -119,7 +125,7 @@ GNUNET_STRINGS_conv (const char *input, size_t len,
  * to UTF-8.
  *
  * @param input the input string (not necessarily 0-terminated)
- * @param len the number of bytes in the input
+ * @param len the number of bytes in the @a input
  * @param charset character set to convert from
  * @return the converted string (0-terminated)
  */
@@ -132,7 +138,10 @@ GNUNET_STRINGS_to_utf8 (const char *input,
 /**
  * Convert the len bytes-long UTF-8 string
  * given in input to the given charset.
-
+ *
+ * @param input the input string (not necessarily 0-terminated)
+ * @param len the number of bytes in the @a input
+ * @param charset character set to convert to
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.
@@ -211,23 +220,25 @@ GNUNET_STRINGS_buffer_fill (char *buffer,
  * to the locations of the respective strings in the buffer.
  *
  * @param buffer the buffer to parse
- * @param size size of the buffer
+ * @param size size of the @a buffer
  * @param count number of strings to locate
  * @param ... pointers to where to store the strings
  * @return offset of the character after the last 0-termination
  *         in the buffer, or 0 on error.
  */
 unsigned int
-GNUNET_STRINGS_buffer_tokenize (const char *buffer, size_t size,
+GNUNET_STRINGS_buffer_tokenize (const char *buffer,
+                                size_t size,
                                 unsigned int count, ...);
 
 
 
 /**
- * "asctime", except for GNUnet time.  Converts a GNUnet internal
+ * @ingroup time
+ * Like `asctime`, except for GNUnet time.  Converts a GNUnet internal
  * absolute time (which is in UTC) to a string in local time.
- * This is one of the very few calls in the entire API that is
- * NOT reentrant!
+ * Note that the returned value will be overwritten if this function
+ * is called again.
  *
  * @param t the absolute time to convert
  * @return timestamp in human-readable form in local time
@@ -237,6 +248,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t);
 
 
 /**
+ * @ingroup time
  * Give relative time in human-readable fancy format.
  * This is one of the very few calls in the entire API that is
  * NOT reentrant!
@@ -294,8 +306,8 @@ GNUNET_STRINGS_data_to_string (const void *data,
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
  * @param out location where to store the decoded data
- * @param out_size size of the output buffer
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @param out_size size of the output buffer @a out
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_STRINGS_string_to_data (const char *enc,
@@ -316,7 +328,7 @@ GNUNET_STRINGS_string_to_data (const char *enc,
  *        part of the URI will be stored. Can be NULL. Points to the same block
  *        of memory as 'path', and thus must not be freed. Might point to '\0',
  *        if path part is zero-length.
- * @return GNUNET_YES if it's an URI, GNUNET_NO otherwise. If 'path' is not
+ * @return #GNUNET_YES if it's an URI, #GNUNET_NO otherwise. If 'path' is not
  *         an URI, '* scheme_part' and '*path_part' will remain unchanged
  *         (if they weren't NULL).
  */
@@ -330,15 +342,15 @@ GNUNET_STRINGS_parse_uri (const char *path,
  * Check whether filename is absolute or not, and if it's an URI
  *
  * @param filename filename to check
- * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
+ * @param can_be_uri #GNUNET_YES to check for being URI, #GNUNET_NO - to
  *        assume it's not URI
- * @param r_is_uri a pointer to an int that is set to GNUNET_YES if 'filename'
+ * @param r_is_uri a pointer to an int that is set to #GNUNET_YES if 'filename'
  *        is URI and to GNUNET_NO otherwise. Can be NULL. If 'can_be_uri' is
- *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
+ *        not #GNUNET_YES, *r_is_uri is set to #GNUNET_NO.
  * @param r_uri_scheme a pointer to a char * that is set to a pointer to URI scheme.
  *        The string is allocated by the function, and should be freed with
  *        GNUNET_free (). Can be NULL.
- * @return GNUNET_YES if 'filename' is absolute, GNUNET_NO otherwise.
+ * @return #GNUNET_YES if 'filename' is absolute, #GNUNET_NO otherwise.
  */
 int
 GNUNET_STRINGS_path_is_absolute (const char *filename,
@@ -375,7 +387,7 @@ enum GNUNET_STRINGS_FilenameCheck
 
 
 /**
- * Perform checks on 'filename'.  FIXME: some duplication with
+ * Perform checks on @a filename.  FIXME: some duplication with
  * "GNUNET_DISK_"-APIs.  We should unify those.
  *
  * @param filename file to check
@@ -389,14 +401,14 @@ GNUNET_STRINGS_check_filename (const char *filename,
 
 
 /**
- * Tries to convert 'zt_addr' string to an IPv6 address.
+ * Tries to convert @a zt_addr string to an IPv6 address.
  * The string is expected to have the format "[ABCD::01]:80".
  *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill. Initially gets filled with zeroes,
  *        then its sin6_port, sin6_family and sin6_addr are set appropriately.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ * @return #GNUNET_OK if conversion succeded. #GNUNET_SYSERR otherwise, in which
  *         case the contents of r_buf are undefined.
  */
 int
@@ -406,13 +418,13 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
 
 
 /**
- * Tries to convert 'zt_addr' string to an IPv4 address.
+ * Tries to convert @a zt_addr string to an IPv4 address.
  * The string is expected to have the format "1.2.3.4:80".
  *
  * @param zt_addr 0-terminated string. May be mangled by the function.
  * @param addrlen length of zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which case
+ * @return #GNUNET_OK if conversion succeded. #GNUNET_SYSERR otherwise, in which case
  *         the contents of r_buf are undefined.
  */
 int
@@ -422,14 +434,14 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr,
 
 
 /**
- * Tries to convert 'addr' string to an IP (v4 or v6) address.
+ * Tries to convert @a addr string to an IP (v4 or v6) address.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
  *
  * @param addr a string, may not be 0-terminated.
- * @param addrlen number of bytes in addr (if addr is 0-terminated,
+ * @param addrlen number of bytes in @a addr (if addr is 0-terminated,
  *        0-terminator should not be counted towards addrlen).
  * @param r_buf a buffer to fill.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ * @return #GNUNET_OK if conversion succeded. #GNUNET_SYSERR otherwise, in which
  *         case the contents of r_buf are undefined.
  */
 int
@@ -439,18 +451,16 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 
 
 /**
- * Returns utf-8 encoded arguments.
- * Does nothing (returns a copy of argc and argv) on any platform
- * other than W32.
- * Returned argv has u8argv[u8argc] == NULL.
- * Returned argv is a single memory block, and can be freed with a single
- *   GNUNET_free () call.
+ * Returns utf-8 encoded arguments.  Does nothing (returns a copy of
+ * @a argc and @a argv) on any platform other than W32.  Returned @a
+ * argv has `u8argv[u8argc] == NULL`.  Returned @a argv is a single
+ * memory block, and can be freed with a single GNUNET_free() call.
  *
  * @param argc argc (as given by main())
  * @param argv argv (as given by main())
  * @param u8argc a location to store new argc in (though it's th same as argc)
  * @param u8argv a location to store new argv in
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_STRINGS_get_utf8_args (int argc,
