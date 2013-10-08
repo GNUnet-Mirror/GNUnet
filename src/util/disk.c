@@ -149,19 +149,17 @@ getSizeRec (void *cls, const char *fn)
 {
   struct GetFileSizeData *gfsd = cls;
 
-#ifdef HAVE_STAT64
-  struct stat64 buf;
-#else
-  struct stat buf;
-#endif
+#if defined (HAVE_STAT64) && !(defined (_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS == 64)
+  STRUCT_STAT64 buf;
 
-#ifdef HAVE_STAT64
   if (0 != STAT64 (fn, &buf))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat64", fn);
     return GNUNET_SYSERR;
   }
 #else
+  struct stat buf;
+
   if (0 != STAT (fn, &buf))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_DEBUG, "stat", fn);
