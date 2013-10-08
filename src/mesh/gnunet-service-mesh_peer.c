@@ -24,6 +24,8 @@
 
 #include "gnunet_core_service.h"
 
+#include "mesh_protocol_enc.h"
+
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_connection.h"
@@ -154,6 +156,7 @@ notify_broken (void *cls,
   return GNUNET_YES;
 }
 
+
 /**
  * Method called whenever a given peer connects.
  *
@@ -171,12 +174,12 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   pi = peer_get (peer);
   if (myid == pi->id)
   {
-    DEBUG_CONN ("     (self)\n");
+    LOG ("     (self)\n");
     path = path_new (1);
   }
   else
   {
-    DEBUG_CONN ("     %s\n", GNUNET_i2s (peer));
+    LOG ("     %s\n", GNUNET_i2s (peer));
     path = path_new (2);
     path->peers[1] = pi->id;
     GNUNET_PEER_change_rc (pi->id, 1);
@@ -202,7 +205,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeer *pi;
 
-  DEBUG_CONN ("Peer disconnected\n");
+  LOG ("Peer disconnected\n");
   pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pi)
   {
@@ -220,13 +223,38 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     }
   if (myid == pi->id)
   {
-    DEBUG_CONN ("     (self)\n");
+    LOG ("     (self)\n");
   }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 
   return;
 }
 
+
+/**
+ * Functions to handle messages from core
+ */
+static struct GNUNET_CORE_MessageHandler core_handlers[] = {
+  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+    0},
+  {&GMC_handle_confirm, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
+    sizeof (struct GNUNET_MESH_ConnectionACK)},
+  {&GMC_handle_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
+    sizeof (struct GNUNET_MESH_ConnectionBroken)},
+  {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
+    sizeof (struct GNUNET_MESH_ConnectionDestroy)},
+  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE,
+    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
+  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE,
+    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
+  {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
+    sizeof (struct GNUNET_MESH_ACK)},
+  {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
+    sizeof (struct GNUNET_MESH_Poll)},
+  {&GMC_handle_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
+  {&GMC_handle_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
+  {NULL, 0, 0}
+};
 
 
 /**
@@ -242,16 +270,12 @@ core_init (void *cls,
   const struct GNUNET_CONFIGURATION_Handle *c = cls;
   static int i = 0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Core init\n");
   if (0 != memcmp (identity, &my_full_id, sizeof (my_full_id)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " core id %s\n",
-                GNUNET_i2s (identity));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                " my id %s\n",
-                GNUNET_i2s (&my_full_id));
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Wrong CORE service\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR, " core id %s\n", GNUNET_i2s (identity));
+    LOG (GNUNET_ERROR_TYPE_ERROR, " my id %s\n", GNUNET_i2s (&my_full_id));
     GNUNET_CORE_disconnect (core_handle);
     core_handle = GNUNET_CORE_connect (c, /* Main configuration */
                                        NULL,      /* Closure passed to MESH functions */
@@ -316,7 +340,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
   size_t size_needed;
   int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
   size_needed =
       sizeof (struct GNUNET_MESH_ConnectionCreate) +
       p->length * sizeof (struct GNUNET_PeerIdentity);
@@ -337,7 +361,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "CONNECTION CREATE (%u bytes long) sent!\n", size_needed);
   return size_needed;
 }
@@ -358,7 +382,7 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
   struct GNUNET_MESH_ConnectionACK *msg = buf;
   struct MeshTunnel2 *t = c->t;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
   GNUNET_assert (NULL != t);
   if (sizeof (struct GNUNET_MESH_ConnectionACK) > size)
   {
@@ -372,7 +396,7 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
 
   /* TODO add signature */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
   return sizeof (struct GNUNET_MESH_ConnectionACK);
 }
 
@@ -426,7 +450,7 @@ peer_destroy (struct MeshPeer *peer)
     GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 "removing peer %s, not in peermap\n", GNUNET_i2s (&id));
   }
     if (NULL != peer->search_h)
@@ -703,7 +727,7 @@ peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
         {
           if (path->peers[l] == myid)
           {
-            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shortening path by %u\n", l);
+            LOG (GNUNET_ERROR_TYPE_DEBUG, "shortening path by %u\n", l);
             for (l2 = 0; l2 < path->length - l; l2++)
             {
               path->peers[l2] = path->peers[l + l2];
@@ -715,7 +739,7 @@ peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
           }
         }
 
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
                       path->length, peer2s (peer_info));
 
           l = path_get_length (path);
@@ -823,7 +847,7 @@ search_handler (void *cls, struct MeshPeerPath *path)
 
   if (peer->tunnel->state == MESH_TUNNEL_SEARCHING)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GMP_connect (peer);
   }
   return;
@@ -856,11 +880,11 @@ queue_send (void *cls, size_t size, void *buf)
   int fwd;
 
   peer->core_transmit = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Queue send (max %u)\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "* Queue send (max %u)\n", size);
 
   if (NULL == buf || 0 == size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
     return 0;
   }
 
@@ -876,11 +900,11 @@ queue_send (void *cls, size_t size, void *buf)
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   not enough room, reissue\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   not enough room, reissue\n");
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
                                              GNUNET_NO,
@@ -892,7 +916,7 @@ queue_send (void *cls, size_t size, void *buf)
                                              peer);
       return 0;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   size %u ok\n", queue->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   size %u ok\n", queue->size);
 
   t = (NULL != c) ? c->t : NULL;
   type = 0;
@@ -907,7 +931,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "*   raw: %s\n",
                   GNUNET_MESH_DEBUG_M2S (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
@@ -915,14 +939,14 @@ queue_send (void *cls, size_t size, void *buf)
       type = ntohs (msg->type);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path create\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   path create\n");
       if (GMC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_create (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
       if (GMC_is_origin (c, GNUNET_NO) ||
           GMC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_ack (queue->c, size, buf);
@@ -938,7 +962,7 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     default:
       GNUNET_break (0);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n",
+      LOG (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n",
                   queue->type);
       data_size = 0;
   }
@@ -946,7 +970,7 @@ queue_send (void *cls, size_t size, void *buf)
   if (0 < drop_percent &&
       GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 "Dropping message of type %s\n",
                 GNUNET_MESH_DEBUG_M2S (queue->type));
     data_size = 0;
@@ -962,7 +986,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
       pid = ntohl ( ((struct GNUNET_MESH_Encrypted *) buf)->pid );
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   accounting pid %u\n", pid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   accounting pid %u\n", pid);
       fc->last_pid_sent = pid;
       send_ack (c, ch, fwd);
       break;
@@ -974,7 +998,7 @@ queue_send (void *cls, size_t size, void *buf)
   queue = peer_get_first_message (peer);
   if (NULL != queue)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
     if (NULL == peer->core_transmit) {
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready(core_handle,
@@ -988,12 +1012,12 @@ queue_send (void *cls, size_t size, void *buf)
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "*   tmt rdy called somewhere else\n");
     }
     if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*   starting poll timeout\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   starting poll timeout\n");
       fc->poll_task =
           GNUNET_SCHEDULER_add_delayed (fc->poll_time, &connection_poll, fc);
     }
@@ -1011,7 +1035,7 @@ queue_send (void *cls, size_t size, void *buf)
     c->pending_messages--;
     if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
       GMC_destroy (c);
     }
   }
@@ -1021,11 +1045,11 @@ queue_send (void *cls, size_t size, void *buf)
     t->pending_messages--;
     if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
     {
-//       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
+//       LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
       tunnel_destroy (t);
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
   return data_size;
 }
 
@@ -1101,13 +1125,13 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 
   if (GNUNET_YES == clear_cls)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   queue destroy type %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   queue destroy type %s\n",
                 GNUNET_MESH_DEBUG_M2S (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
+        LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         GNUNET_break (GNUNET_YES == queue->c->destroy);
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -1117,13 +1141,13 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
         GNUNET_free_non_null (queue->cls);
         break;
 
       default:
         GNUNET_break (0);
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "   type %s unknown!\n",
+        LOG (GNUNET_ERROR_TYPE_ERROR, "   type %s unknown!\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
     }
 
@@ -1133,7 +1157,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
       queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N- %p %u\n", fc, fc->queue_n);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N- %p %u\n", fc, fc->queue_n);
     fc->queue_n--;
     peer->queue_n--;
   }
@@ -1173,7 +1197,7 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
   int priority;
   int call_core;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "queue add %s %s (%u) on c %p, ch %p\n",
               fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
   GNUNET_assert (NULL != c);
@@ -1202,28 +1226,28 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
     priority = 100;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "fc %p\n", fc);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "fc %p\n", fc);
   if (fc->queue_n >= fc->queue_max && 0 == priority)
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
     GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "queue full: %u/%u\n",
                 fc->queue_n, fc->queue_max);
     return; /* Drop this message */
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
   if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
   {
     call_core = GNUNET_NO;
     if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task &&
         GNUNET_MESSAGE_TYPE_MESH_POLL != type)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "no buffer space (%u > %u): starting poll\n",
                   fc->last_pid_sent + 1, fc->last_ack_recv);
       fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -1260,14 +1284,14 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
   else
   {
     GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
     fc->queue_n++;
     peer->queue_n++;
   }
 
   if (NULL == peer->core_transmit && GNUNET_YES == call_core)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "calling core tmt rdy towards %s for %u bytes\n",
                 peer2s (peer), size);
     peer->core_transmit =
@@ -1282,7 +1306,7 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "core tmt rdy towards %s already called\n",
                 peer2s (peer));
 
@@ -1310,7 +1334,7 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
                                              &max_peers))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    LOG_config_invalid (GNUNET_ERROR_TYPE_WARNING,
                                "MESH", "MAX_PEERS", "USING DEFAULT");
     max_peers = 1000;
   }
@@ -1323,7 +1347,7 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 "\n***************************************\n"
                 "Mesh is running with drop mode enabled.\n"
                 "This is NOT a good idea!\n"
@@ -1374,7 +1398,7 @@ GMP_connect (struct MeshPeer *peer)
   struct MeshConnection *c;
   int rerun_search;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
               "peer_connect towards %s\n",
               peer2s (peer));
   t = peer->tunnel;
@@ -1383,11 +1407,11 @@ GMP_connect (struct MeshPeer *peer)
 
   if (NULL != peer->path_head)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
     p = peer_get_best_path (peer);
     if (NULL != p)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
       c = tunnel_use_path (t, p);
       if (NULL == c)
       {
@@ -1418,7 +1442,7 @@ GMP_connect (struct MeshPeer *peer)
   {
     GMD_search_stop (peer->search_h);
     peer->search_h = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Stopping DHT GET for peer %s\n", peer2s (peer));
   }
 
@@ -1427,7 +1451,7 @@ GMP_connect (struct MeshPeer *peer)
     const struct GNUNET_PeerIdentity *id;
 
     id = GNUNET_PEER_resolve2 (peer->id);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", peer2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
     if (MESH_TUNNEL_NEW == t->state)

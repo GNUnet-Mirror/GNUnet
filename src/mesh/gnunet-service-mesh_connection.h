@@ -44,6 +44,137 @@ extern "C"
  */
 struct MeshConnection;
 
+
+
+
+/**
+ * Core handler for connection creation.
+ *
+ * @param cls Closure (unused).
+ * @param peer Sender (neighbor).
+ * @param message Message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
+                   const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for path confirmations.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for notifications of broken paths
+ *
+ * @param cls Closure (unused).
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
+                   const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for tunnel destruction
+ *
+ * @param cls Closure (unused).
+ * @param peer Peer identity of sending neighbor.
+ * @param message Message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for mesh network traffic going orig->dest.
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Core handler for mesh network traffic going dest->orig.
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for mesh network traffic point-to-point acks.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for mesh network traffic point-to-point ack polls.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for mesh keepalives.
+ *
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ *
+ * TODO: Check who we got this from, to validate route.
+ */
+int
+GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                      const struct GNUNET_MessageHeader *message);
+
 /**
  * Initialize the connections subsystem
  *

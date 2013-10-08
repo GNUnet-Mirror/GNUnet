@@ -1001,9 +1001,9 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
+                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *id;
@@ -1140,9 +1140,9 @@ handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionACK *msg;
   struct MeshConnection *c;
@@ -1243,9 +1243,9 @@ handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
+                   const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshConnection *c;
@@ -1280,9 +1280,9 @@ handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionDestroy *msg;
   struct MeshConnection *c;
@@ -1457,9 +1457,9 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
-            const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message)
 {
   return handle_mesh_encrypted (peer,
                                 (struct GNUNET_MESH_Encrypted *)message,
@@ -1476,9 +1476,9 @@ handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
-            const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message)
 {
   return handle_mesh_encrypted (peer,
                                 (struct GNUNET_MESH_Encrypted *)message,
@@ -1496,9 +1496,9 @@ handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
-            const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ACK *msg;
   struct MeshConnection *c;
@@ -1573,9 +1573,9 @@ handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
-static int
-handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
-             const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_Poll *msg;
   struct MeshConnection *c;
@@ -1644,9 +1644,9 @@ handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * TODO: Check who we got this from, to validate route.
  */
-static int
-handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
+int
+GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   struct MeshConnection *c;
@@ -1687,33 +1687,6 @@ handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   return GNUNET_OK;
 }
-
-
-/**
- * Functions to handle messages from core
- */
-static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&handle_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-    0},
-  {&handle_confirm, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
-    sizeof (struct GNUNET_MESH_ConnectionACK)},
-  {&handle_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
-    sizeof (struct GNUNET_MESH_ConnectionBroken)},
-  {&handle_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
-    sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
-  {&handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
-  {&handle_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
-    sizeof (struct GNUNET_MESH_ACK)},
-  {&handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
-    sizeof (struct GNUNET_MESH_Poll)},
-  {&handle_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
-  {&handle_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
-  {NULL, 0, 0}
-};
-
 
 
 /**
@@ -1979,7 +1952,7 @@ GMC_count (const struct MeshConnection *head)
  * @param fwd Is this a fwd message?
  */
 void
-GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+GMC_send_prebuilt_message (    const struct GNUNET_MessageHeader *message,
                            struct MeshConnection *c,
                            struct MeshChannel *ch,
                            int fwd)
