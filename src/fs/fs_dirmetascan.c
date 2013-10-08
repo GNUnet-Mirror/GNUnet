@@ -90,7 +90,6 @@ struct GNUNET_FS_DirScanner
 };
 
 
-
 /**
  * Abort the scan.  Must not be called from within the progress_callback
  * function.
@@ -197,7 +196,7 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
   struct GNUNET_FS_ShareTreeItem *chld;
   size_t slen;
 
-  chld = GNUNET_malloc (sizeof (struct GNUNET_FS_ShareTreeItem));
+  chld = GNUNET_new (struct GNUNET_FS_ShareTreeItem);
   chld->parent = parent;
   chld->filename = GNUNET_strdup (filename);
   GNUNET_asprintf (&chld->short_filename,

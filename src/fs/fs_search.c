@@ -718,7 +718,7 @@ decrypt_block_with_keyword (const struct GNUNET_FS_SearchContext *sc,
  *
  * @param sc our search context
  * @param ub the ublock with the keyword search result
- * @param size size of nb
+ * @param size size of @a ub
  */
 static void
 process_kblock (struct GNUNET_FS_SearchContext *sc,
@@ -834,7 +834,7 @@ process_sblock (struct GNUNET_FS_SearchContext *sc,
  * @param type type of the result
  * @param expiration when it will expire
  * @param data the (encrypted) response
- * @param size size of data
+ * @param size size of @a data
  */
 static void
 process_result (struct GNUNET_FS_SearchContext *sc,

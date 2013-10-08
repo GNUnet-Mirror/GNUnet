@@ -1433,19 +1433,22 @@ static void
 insert_non_mandatory_keyword (const char *s, char **array, int index)
 {
   char *nkword;
-  GNUNET_asprintf (&nkword, " %s", /* space to mark as 'non mandatory' */ s);
+
+  GNUNET_asprintf (&nkword,
+                   " %s", /* space to mark as 'non mandatory' */
+                   s);
   array[index] = nkword;
 }
 
 
 /**
- * Test if the given keyword 's' is already present in the
+ * Test if the given keyword @a s is already present in the
  * given array, ignoring the '+'-mandatory prefix in the array.
  *
  * @param s keyword to test
  * @param array keywords to test against, with ' ' or '+' prefix to ignore
- * @param array_length length of the array
- * @return GNUNET_YES if the keyword exists, GNUNET_NO if not
+ * @param array_length length of the @a array
+ * @return #GNUNET_YES if the keyword exists, #GNUNET_NO if not
  */
 static int
 find_duplicate (const char *s, const char **array, int array_length)
@@ -1463,8 +1466,9 @@ find_duplicate (const char *s, const char **array, int array_length)
  * FIXME: comment
  */
 static char *
-normalize_metadata (enum EXTRACTOR_MetaFormat format, const char *data,
-    size_t data_len)
+normalize_metadata (enum EXTRACTOR_MetaFormat format,
+                    const char *data,
+                    size_t data_len)
 {
   uint8_t *free_str = NULL;
   uint8_t *str_to_normalize = (uint8_t *) data;
@@ -1682,6 +1686,7 @@ get_keywords_from_tokens (const char *s, char **array, int index)
 }
 #undef TOKENS
 
+
 /**
  * Function called on each value in the meta data.
  * Adds it to the URI.
@@ -1696,16 +1701,20 @@ get_keywords_from_tokens (const char *s, char **array, int index)
  * @param data_mime_type mime-type of data (not of the original file);
  *        can be NULL (if mime-type is not known)
  * @param data actual meta-data found
- * @param data_len number of bytes in data
+ * @param data_len number of bytes in @a data
  * @return 0 (always)
  */
 static int
 gather_uri_data (void *cls, const char *plugin_name,
-                 enum EXTRACTOR_MetaType type, enum EXTRACTOR_MetaFormat format,
-                 const char *data_mime_type, const char *data, size_t data_len)
+                 enum EXTRACTOR_MetaType type,
+                 enum EXTRACTOR_MetaFormat format,
+                 const char *data_mime_type,
+                 const char *data,
+                 size_t data_len)
 {
   struct GNUNET_FS_Uri *uri = cls;
   char *normalized_data;
+  const char *sep;
 
   if ((format != EXTRACTOR_METAFORMAT_UTF8) &&
       (format != EXTRACTOR_METAFORMAT_C_STRING))
@@ -1716,19 +1725,43 @@ gather_uri_data (void *cls, const char *plugin_name,
    * If it does - fix the extractor, not this check!
    */
   if (u8_strcount ((const uint8_t *) data) <= 2)
-  {
     return 0;
+  if ( (EXTRACTOR_METATYPE_MIMETYPE == type) &&
+       (NULL != (sep = memchr (data, '/', data_len))) &&
+       (sep != data) )
+  {
+    char *xtra;
+
+    GNUNET_asprintf (&xtra,
+                     "mimetype:%.*s",
+                     (int) (sep - data),
+                     data);
+    if (! find_duplicate (xtra,
+                          (const char **) uri->data.ksk.keywords,
+                          uri->data.ksk.keywordCount))
+    {
+      insert_non_mandatory_keyword (xtra,
+                                    uri->data.ksk.keywords,
+                                    uri->data.ksk.keywordCount);
+      uri->data.ksk.keywordCount++;
+    }
+    GNUNET_free (xtra);
   }
+
   normalized_data = normalize_metadata (format, data, data_len);
-  if (!find_duplicate (data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
+  if (! find_duplicate (data,
+                        (const char **) uri->data.ksk.keywords,
+                        uri->data.ksk.keywordCount))
   {
     insert_non_mandatory_keyword (data,
 				  uri->data.ksk.keywords, uri->data.ksk.keywordCount);
     uri->data.ksk.keywordCount++;
   }
-  if (normalized_data != NULL)
-  {
-    if (!find_duplicate (normalized_data, (const char **) uri->data.ksk.keywords, uri->data.ksk.keywordCount))
+  if (NULL != normalized_data)
+    {
+    if (! find_duplicate (normalized_data,
+                          (const char **) uri->data.ksk.keywords,
+                          uri->data.ksk.keywordCount))
     {
       insert_non_mandatory_keyword (normalized_data,
 				    uri->data.ksk.keywords, uri->data.ksk.keywordCount);
@@ -1749,8 +1782,7 @@ gather_uri_data (void *cls, const char *plugin_name,
  * @return NULL on error, otherwise a KSK URI
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
-                                         *md)
+GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData *md)
 {
   struct GNUNET_FS_Uri *ret;
   char *filename;
@@ -1760,7 +1792,7 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
   int tok_keywords = 0;
   int paren_keywords = 0;
 
-  if (md == NULL)
+  if (NULL == md)
     return NULL;
   ret = GNUNET_new (struct GNUNET_FS_Uri);
   ret->type = GNUNET_FS_URI_KSK;
@@ -1777,19 +1809,20 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
       tok_keywords = get_keywords_from_tokens (filename, NULL, 0);
       paren_keywords = get_keywords_from_parens (filename, NULL, 0);
     }
-    /* x2 because there might be a normalized variant of every keyword */
-    ret->data.ksk.keywords = GNUNET_malloc (sizeof (char *) * (ent
-        + tok_keywords + paren_keywords) * 2);
+    /* x3 because there might be a normalized variant of every keyword,
+       plus theoretically one more for mime... */
+    ret->data.ksk.keywords = GNUNET_malloc
+      (sizeof (char *) * (ent + tok_keywords + paren_keywords) * 3);
     GNUNET_CONTAINER_meta_data_iterate (md, &gather_uri_data, ret);
   }
   if (tok_keywords > 0)
     ret->data.ksk.keywordCount += get_keywords_from_tokens (filename,
-        ret->data.ksk.keywords,
-        ret->data.ksk.keywordCount);
+                                                            ret->data.ksk.keywords,
+                                                            ret->data.ksk.keywordCount);
   if (paren_keywords > 0)
     ret->data.ksk.keywordCount += get_keywords_from_parens (filename,
-        ret->data.ksk.keywords,
-        ret->data.ksk.keywordCount);
+                                                            ret->data.ksk.keywords,
+                                                            ret->data.ksk.keywordCount);
   if (ent > 0)
     GNUNET_free_non_null (full_name);
   return ret;
