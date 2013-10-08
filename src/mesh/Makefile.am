@@ -103,6 +103,12 @@ endif
 
 gnunet_service_mesh_enc_SOURCES = \
  gnunet-service-mesh-enc.c \
+ gnunet-service-mesh_tunnel.c \
+ gnunet-service-mesh_channel.c \
+ gnunet-service-mesh_connection.c \
+ gnunet-service-mesh_peer.c \
+ gnunet-service-mesh_dht.c \
+ gnunet-service-mesh_local.c \
  mesh_path.c \
  mesh_common.c
 gnunet_service_mesh_enc_CFLAGS = $(AM_CFLAGS)
