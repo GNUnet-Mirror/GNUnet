@@ -39,6 +39,8 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 
+#include "gnunet-service-mesh_channel.h"
+
 /**
  * Struct containing all information regarding a connection to a peer.
  */
@@ -192,10 +194,16 @@ GMC_shutdown (void);
 /**
  * Create a connection.
  *
- * @param cid Connection ID.
+ * @param cid Connection ID (either created locally or imposed remotely).
+ * @param t Tunnel this connection belongs to (or NULL);
+ * @param p Path this connection has to use.
+ * @param own_pos Own position in the @c p path.
  */
 struct MeshConnection *
-GMC_new (const struct GNUNET_HashCode *cid);
+GMC_new (const struct GNUNET_HashCode *cid,
+         struct MeshTunnel2 *t,
+         struct MeshPeerPath *p,
+         unsigned int own_pos);
 
 /**
  * Connection is no longer needed: destroy it and remove from tunnel.
@@ -204,6 +212,16 @@ GMC_new (const struct GNUNET_HashCode *cid);
  */
 void
 GMC_destroy (struct MeshConnection *c);
+
+/**
+ * Get the connection ID.
+ *
+ * @param c Connection to get the ID from.
+ *
+ * @return ID of the connection.
+ */
+const struct GNUNET_HashCode *
+GMC_get_id (const struct MeshConnection *c);
 
 /**
  * Count connections in a DLL.

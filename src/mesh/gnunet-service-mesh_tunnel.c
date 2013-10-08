@@ -26,6 +26,7 @@
 #include "gnunet-service-mesh_tunnel.h"
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-mesh_peer.h"
 #include "mesh_path.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
@@ -259,7 +260,7 @@ tunnel_get_connection (struct MeshTunnel2 *t, int fwd)
   for (c = t->connection_head; NULL != c; c = c->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
-                GNUNET_h2s (&c->id), c->state);
+                GNUNET_h2s (GMC_get_id (c)), c->state);
     if (MESH_CONNECTION_READY == c->state)
     {
       fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -702,7 +703,6 @@ GMT_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
 {
   struct MeshConnection *c;
   struct GNUNET_HashCode cid;
-  struct MeshPeer *peer;
   unsigned int own_pos;
 
   if (NULL == t || NULL == p)
@@ -711,48 +711,20 @@ GMT_use_path (struct MeshTunnel2 *t, struct MeshPeerPath *p)
     return NULL;
   }
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
-
-  c = GMC_new (&cid);
-  c->t = t;
-  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, c);
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
-    if (p->peers[own_pos] == myid)
+    if (p->peers[own_pos] == my_short_id)
       break;
   }
   if (own_pos > p->length - 1)
   {
     GNUNET_break (0);
-    connection_destroy (c);
     return NULL;
-  }
-  c->own_pos = own_pos;
-  c->path = p;
-
-  if (0 == own_pos)
-  {
-    c->fwd_maintenance_task =
-        GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
-                                      &connection_fwd_keepalive, c);
   }
 
-  peer = connection_get_next_hop (c);
-  if (NULL == peer->connections)
-  {
-    connection_destroy (c);
-    return NULL;
-  }
-  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  peer = connection_get_prev_hop (c);
-  if (NULL == peer->connections)
-  {
-    connection_destroy (c);
-    return NULL;
-  }
-  GNUNET_CONTAINER_multihashmap_put (peer->connections, &c->id, c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
+  c = GMC_new (&cid, t, p, own_pos);
+  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, c);
   return c;
 }
 
@@ -843,7 +815,7 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
     case GNUNET_MESSAGE_TYPE_MESH_BCK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-      msg->cid = c->id;
+      msg->cid = *GMC_get_id (c);
       msg->ttl = htonl (default_ttl);
       break;
     default:

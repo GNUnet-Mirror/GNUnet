@@ -990,6 +990,31 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
 
 
 /**
+ * 
+ */
+static void
+register_neighbors (struct MeshConnection *c)
+{
+  struct MeshPeer *peer;
+
+  peer = connection_get_next_hop (c);
+  if (GNUNET_NO == GMP_is_neighbor (peer))
+  {
+    GMC_destroy (c);
+    return NULL;
+  }
+  GMP_add_connection (peer, c);
+  peer = connection_get_prev_hop (c);
+  if (GNUNET_NO == GMP_is_neighbor (peer))
+  {
+    GMC_destroy (c);
+    return NULL;
+  }
+  GMP_add_connection (peer, c);
+}
+
+
+/**
  * Core handler for connection creation.
  *
  * @param cls Closure (unused).
@@ -1787,19 +1812,18 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GMC_shutdown (void)
 {
-  if (core_handle != NULL)
-  {
-    GNUNET_CORE_disconnect (core_handle);
-    core_handle = NULL;
-  }
 }
 
 
 struct MeshConnection *
-GMC_new (const struct GNUNET_HashCode *cid)
+GMC_new (const struct GNUNET_HashCode *cid,
+         struct MeshTunnel2 *t,
+         struct MeshPeerPath *p,
+         unsigned int own_pos)
 {
   struct MeshConnection *c;
-  
+  unsigned int own_pos;
+
   c = GNUNET_new (struct MeshConnection);
   c->id = *cid;
   GNUNET_CONTAINER_multihashmap_put (connections, &c->id, c,
@@ -1808,7 +1832,24 @@ GMC_new (const struct GNUNET_HashCode *cid)
   fc_init (&c->bck_fc);
   c->fwd_fc.c = c;
   c->bck_fc.c = c;
-  
+
+  c->t = t;
+  if (own_pos > p->length - 1)
+  {
+    GNUNET_break (0);
+    GMC_destroy (c);
+    return NULL;
+  }
+  c->own_pos = own_pos;
+  c->path = p;
+
+  if (0 == own_pos)
+  {
+    c->fwd_maintenance_task =
+            GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+                                          &connection_fwd_keepalive, c);
+  }
+  register_neighbors (c);
   return c;
 }
 
@@ -1849,6 +1890,19 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_free (c);
 }
 
+
+/**
+ * Get the connection ID.
+ *
+ * @param c Connection to get the ID from.
+ *
+ * @return ID of the connection.
+ */
+const struct GNUNET_HashCode *
+GMC_get_id (const struct MeshConnection *c)
+{
+  return &c->id;
+}
 
 /**
  * Notify other peers on a connection of a broken link. Mark connections

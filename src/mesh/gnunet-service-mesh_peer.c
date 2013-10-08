@@ -30,6 +30,7 @@
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_local.h"
+#include "gnunet-service-mesh_tunnel.h"
 #include "mesh_path.h"
 
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-p2p",__VA_ARGS__)
@@ -1382,6 +1383,12 @@ void
 GMP_shutdown (void)
 {
   GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
+
+  if (core_handle != NULL)
+  {
+    GNUNET_CORE_disconnect (core_handle);
+    core_handle = NULL;
+  }
 }
 
 
@@ -1457,8 +1464,62 @@ GMP_connect (struct MeshPeer *peer)
                 "  Starting DHT GET for peer %s\n", peer2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
     if (MESH_TUNNEL_NEW == t->state)
-      tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
+      GMT_change_state (t, MESH_TUNNEL_SEARCHING);
   }
+}
+
+
+/**
+ * Chech whether there is a direct (core level)  connection to peer.
+ *
+ * @param peer Peer to check.
+ *
+ * @return GNUNET_YES if there is a direct connection.
+ */
+int
+GMP_is_neighbor (const struct MeshPeer *peer)
+{
+  struct MeshPeerPath *path;
+
+  if (NULL == peer->connections)
+    return GNUNET_NO;
+
+  for (path = peer->path_head; NULL != path; path = path->next)
+  {
+    if (3 > path->length)
+      return GNUNET_YES;
+  }
+
+  GNUNET_break (0); /* Is not a neighbor but connections is not NULL */
+  return GNUNET_NO;
+}
+
+
+/**
+ * Add a connection to a neighboring peer.
+ *
+ * Store that the peer is the first hop of the connection in one
+ * direction and that on peer disconnect the connection must be
+ * notified and destroyed, for it will no longer be valid.
+ *
+ * @param peer Peer to add connection to.
+ * @param c Connection to add.
+ *
+ * @return GNUNET_OK on success.
+ */
+int
+GMP_add_connection (struct MeshPeer *peer,
+                    const struct MeshConnection *c)
+{
+  if (NULL == peer->connections)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_CONTAINER_multihashmap_put (peer->connections,
+                                            GMC_get_id (c),
+                                            c,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 }
 
 /**

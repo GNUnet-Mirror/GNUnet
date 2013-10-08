@@ -91,6 +91,30 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
 void
 GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
 
+/**
+ * Chech whether there is a direct (core level)  connection to peer.
+ *
+ * @param peer Peer to check.
+ *
+ * @return GNUNET_YES if there is a direct connection.
+ */
+int
+GMP_is_neighbor (const struct MeshPeer *peer);
+
+/**
+ * Add a connection to a neighboring peer.
+ *
+ * Store that the peer is the first hop of the connection in one
+ * direction and that on peer disconnect the connection must be
+ * notified and destroyed, for it will no longer be valid.
+ *
+ * @param peer Peer to add connection to.
+ * @param c Connection to add.
+ *
+ * @return GNUNET_OK on success.
+ */
+int
+GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
 
 /**
  * Get the static string for a peer ID.
