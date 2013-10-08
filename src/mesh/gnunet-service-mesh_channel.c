@@ -25,7 +25,7 @@
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-chn", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
 
 /**
  * All the states a connection can be in.

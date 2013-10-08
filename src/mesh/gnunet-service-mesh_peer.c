@@ -32,7 +32,7 @@
 #include "gnunet-service-mesh_local.h"
 #include "mesh_path.h"
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-p2p", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level,"mesh-p2p",__VA_ARGS__)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/

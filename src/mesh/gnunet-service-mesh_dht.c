@@ -28,7 +28,7 @@
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-dht", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level,"mesh-dht",__VA_ARGS__)
 
 
 /******************************************************************************/

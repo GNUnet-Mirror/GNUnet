@@ -39,7 +39,7 @@
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
 #define MESH_RETRANSMIT_MARGIN  4
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-con", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
 
 /**
  * All the states a connection can be in.

@@ -26,7 +26,7 @@
 #include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_tunnel.h"
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-loc", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"mesh-loc",__VA_ARGS__)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/

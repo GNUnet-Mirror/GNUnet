@@ -28,7 +28,7 @@
 #include "gnunet-service-mesh_channel.h"
 #include "mesh_path.h"
 
-#define LOG (level, ...) GNUNET_log_from ("mesh-tun", level, __VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
 
 /**
  * All the states a tunnel can be in.
@@ -848,7 +848,7 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-                  GNUNET_MESH_DEBUG_M2S (type));
+           GNUNET_MESH_DEBUG_M2S (type));
       GNUNET_break (0);
   }
   msg->reserved = 0;
