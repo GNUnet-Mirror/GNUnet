@@ -109,22 +109,6 @@ static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 /******************************************************************************/
 
 
-/**
- * Get the static string for a peer ID.
- *
- * @param peer Peer.
- *
- * @return Static string for it's ID.
- */
-static const char *
-peer2s (const struct MeshPeer *peer)
-{
-  if (NULL == peer)
-    return "(NULL)";
-  return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
-}
-
-
 
 /**
  * Send an ACK on the appropriate connection/channel, depending on

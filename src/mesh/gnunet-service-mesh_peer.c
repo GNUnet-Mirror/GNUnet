@@ -1261,3 +1261,18 @@ GMP_connect (struct MeshPeer *peer)
       tunnel_change_state (t, MESH_TUNNEL_SEARCHING);
   }
 }
+
+/**
+ * Get the static string for a peer ID.
+ *
+ * @param peer Peer.
+ *
+ * @return Static string for it's ID.
+ */
+const char *
+GMP_2s (const struct MeshPeer *peer)
+{
+  if (NULL == peer)
+    return "(NULL)";
+  return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
+}

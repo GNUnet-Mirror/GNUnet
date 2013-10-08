@@ -92,6 +92,17 @@ void
 GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
 
 
+/**
+ * Get the static string for a peer ID.
+ *
+ * @param peer Peer.
+ *
+ * @return Static string for it's ID.
+ */
+const char *
+GMP_2s (const struct MeshPeer *peer);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
