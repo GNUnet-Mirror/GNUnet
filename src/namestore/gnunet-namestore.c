@@ -25,7 +25,6 @@
  *
  * TODO:
  * - test
- * - add options to list/lookup individual records
  */
 #include "platform.h"
 #include <gnunet_util_lib.h>
@@ -52,7 +51,7 @@ static struct GNUNET_IDENTITY_EgoLookup *el;
 /**
  * Name of the ego controlling the zone.
  */
-static char *ego_name;	
+static char *ego_name;
 
 /**
  * Desired action is to add a record.
@@ -78,6 +77,11 @@ static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
  * Queue entry for the 'list' operation (in combination with a name).
  */
 static struct GNUNET_NAMESTORE_QueueEntry *list_qe;
+
+/**
+ * Queue entry for the 'reverse lookup' operation (in combination with a name).
+ */
+static struct GNUNET_NAMESTORE_QueueEntry *reverse_qe;
 
 /**
  * Desired action is to list records.
@@ -123,6 +127,11 @@ static char *value;
  * URI to import.
  */
 static char *uri;
+
+/**
+ * Reverse lookup to perform.
+ */
+static char *reverse_pkey;
 
 /**
  * Type of the record to add/remove, NULL to remove all.
@@ -245,6 +254,22 @@ do_shutdown (void *cls,
 
 
 /**
+ * Check if we are finished, and if so, perform shutdown.
+ */
+static void
+test_finished ()
+{
+  if ( (NULL == add_qe) &&
+       (NULL == list_qe) &&
+       (NULL == add_qe_uri) &&
+       (NULL == del_qe) &&
+       (NULL == reverse_qe) &&
+       (NULL == list_it) )
+    GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
  * Continuation called to notify client about result of the
  * operation.
  *
@@ -270,12 +295,7 @@ add_continuation (void *cls,
     if (GNUNET_NO != success)
       ret = 1;
   }
-  if ( (NULL == add_qe) &&
-       (NULL == list_qe) &&
-       (NULL == add_qe_uri) &&
-       (NULL == del_qe) &&
-       (NULL == list_it) )
-    GNUNET_SCHEDULER_shutdown ();
+  test_finished ();
 }
 
 
@@ -299,11 +319,7 @@ del_continuation (void *cls,
     fprintf (stderr,
 	     _("Deleting record failed: %s\n"),
 	     emsg);
-  if ( (NULL == add_qe) &&
-       (NULL == list_qe) &&
-       (NULL == add_qe_uri) &&
-       (NULL == list_it) )
-    GNUNET_SCHEDULER_shutdown ();
+  test_finished ();
 }
 
 
@@ -333,11 +349,7 @@ display_record (void *cls,
   if (NULL == name)
   {
     list_it = NULL;
-    if ( (NULL == del_qe) &&
-	 (NULL == list_qe) &&
-	 (NULL == add_qe_uri) &&
-	 (NULL == add_qe) )
-      GNUNET_SCHEDULER_shutdown ();
+    test_finished ();
     return;
   }
   FPRINTF (stdout,
@@ -532,11 +544,37 @@ handle_block (void *cls,
     fprintf (stderr,
 	     "Failed to decrypt block!\n");
   }
-  if ( (NULL == del_qe) &&
-       (NULL == list_it) &&
-       (NULL == add_qe_uri) &&
-       (NULL == add_qe) )
-    GNUNET_SCHEDULER_shutdown ();
+  test_finished ();
+}
+
+
+/**
+ * Function called with the result of our attempt to obtain a name for a given
+ * public key.
+ *
+ * @param cls NULL
+ * @param zone private key of the zone; NULL on disconnect
+ * @param label label of the records; NULL on disconnect
+ * @param rd_count number of entries in @a rd array, 0 if label was deleted
+ * @param rd array of records with data to store
+ */
+static void
+handle_reverse_lookup (void *cls,
+                       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                       const char *label,
+                       unsigned int rd_count,
+                       const struct GNUNET_NAMESTORE_RecordData *rd)
+{
+  reverse_qe = NULL;
+  if (NULL == label)
+    FPRINTF (stdout,
+             "%s.zkey\n",
+             reverse_pkey);
+  else
+    FPRINTF (stdout,
+             "%s.gnu\n",
+             label);
+  test_finished ();
 }
 
 
@@ -562,7 +600,7 @@ testservice_task (void *cls,
 	     "namestore");
     return;
   }
-  if (! (add|del|list|(NULL != uri)))
+  if (! (add|del|list|(NULL != uri)|(NULL != reverse_pkey)) )
   {
     /* nothing more to be done */
     fprintf (stderr,
@@ -709,9 +747,29 @@ testservice_task (void *cls,
 					      &query);
       list_qe = GNUNET_NAMESTORE_lookup_block (ns,
 					       &query,
-					       handle_block,
+					       &handle_block,
 					       NULL);
     }
+  }
+  if (NULL != reverse_pkey)
+  {
+    struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecc_public_sign_key_from_string (reverse_pkey,
+                                                       strlen (reverse_pkey),
+                                                       &pubkey))
+    {
+      fprintf (stderr,
+               _("Invalid public key for reverse lookup `%s'\n"),
+               reverse_pkey);
+      GNUNET_SCHEDULER_shutdown ();
+    }
+    reverse_qe = GNUNET_NAMESTORE_zone_to_name (ns,
+                                                &zone_pkey,
+                                                &pubkey,
+                                                &handle_reverse_lookup,
+                                                NULL);
   }
   if (NULL != uri)
   {
@@ -859,6 +917,9 @@ main (int argc, char *const *argv)
     {'n', "name", "NAME",
      gettext_noop ("name of the record to add/delete/display"), 1,
      &GNUNET_GETOPT_set_string, &name},
+    {'r', "reverse", "PKEY",
+     gettext_noop ("determine our name for the given PKEY"), 1,
+     &GNUNET_GETOPT_set_string, &reverse_pkey},
     {'t', "type", "TYPE",
      gettext_noop ("type of the record to add/delete/display"), 1,
      &GNUNET_GETOPT_set_string, &typestring},
