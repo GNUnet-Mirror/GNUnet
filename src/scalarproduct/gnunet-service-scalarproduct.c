@@ -1907,7 +1907,6 @@ handle_service_request_multipart (void *cls,
   uint32_t contained_elements;
   uint32_t msg_length;
   unsigned char * current;
-  struct ServiceSession * responder_session;
   int32_t i = -1;
  
   // are we in the correct state?
@@ -1954,9 +1953,9 @@ handle_service_request_multipart (void *cls,
     if (session->transferred_element_count == used_elements) {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
-      if (responder_session) {
+      if (session->response) {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
-        if (GNUNET_OK != compute_service_response (session, responder_session)) {
+        if (GNUNET_OK != compute_service_response (session, session->response)) {
           //something went wrong, remove it again...
           GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
           goto except;
@@ -2322,8 +2321,8 @@ handle_service_response (void *cls,
     goto invalid_msg;
   }
   current += PAILLIER_ELEMENT_LENGTH;
-  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
+  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
+  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
   // Convert each k[][perm] to its MPI_value
   for (i = 0; i < contained_element_count; i++) {
     if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
