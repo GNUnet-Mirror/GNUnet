@@ -92,6 +92,15 @@ void
 GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
 
 /**
+ * Set tunnel.
+ *
+ * @param peer Peer.
+ * @param t Tunnel.
+ */
+void
+GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel2 *t);
+
+/**
  * Chech whether there is a direct (core level)  connection to peer.
  *
  * @param peer Peer to check.
