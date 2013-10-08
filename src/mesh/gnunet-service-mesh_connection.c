@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet_statistics_service.h"
+
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 #include "mesh_protocol_enc.h"
@@ -68,6 +70,9 @@ enum MeshConnectionState
 };
 
 
+/******************************************************************************/
+/********************************   STRUCTS  **********************************/
+/******************************************************************************/
 
 /**
  * Struct containing info about a queued transmission to this peer
@@ -248,6 +253,14 @@ struct MeshConnection
   int destroy;
 };
 
+/******************************************************************************/
+/*******************************   GLOBALS  ***********************************/
+/******************************************************************************/
+
+/**
+ * Global handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Connections known, indexed by cid (MeshConnection).
@@ -271,6 +284,10 @@ static unsigned long long max_msgs_queue;
  */
 static struct GNUNET_TIME_Relative refresh_connection_time;
 
+
+/******************************************************************************/
+/********************************   STATIC  ***********************************/
+/******************************************************************************/
 
 #if 0 // avoid compiler warning for unused static function
 static void
@@ -1013,6 +1030,10 @@ register_neighbors (struct MeshConnection *c)
   GMP_add_connection (peer, c);
 }
 
+
+/******************************************************************************/
+/********************************    API    ***********************************/
+/******************************************************************************/
 
 /**
  * Core handler for connection creation.

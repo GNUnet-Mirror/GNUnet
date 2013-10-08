@@ -72,16 +72,14 @@
 /***********************      GLOBAL VARIABLES     ****************************/
 /******************************************************************************/
 
-/************************** Configuration parameters **************************/
-
-
-
-/*************************** Static global variables **************************/
+/****************************** Global variables ******************************/
 
 /**
  * Handle to the statistics service.
  */
-static struct GNUNET_STATISTICS_Handle *stats;
+struct GNUNET_STATISTICS_Handle *stats;
+
+/*************************** Static global variables **************************/
 
 /**
  * Local peer own ID (memory efficient handle).

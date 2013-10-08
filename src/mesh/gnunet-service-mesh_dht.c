@@ -23,6 +23,7 @@
 #include "gnunet_util_lib.h"
 
 #include "gnunet_dht_service.h"
+#include "gnunet_statistics_service.h"
 
 #include "mesh_path.h"
 #include "gnunet-service-mesh_dht.h"
@@ -54,6 +55,11 @@ struct GMD_search_handle
 /******************************************************************************/
 /*******************************   GLOBALS  ***********************************/
 /******************************************************************************/
+
+/**
+ * Global handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Handle to use DHT.

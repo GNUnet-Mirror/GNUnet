@@ -20,6 +20,10 @@
 
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
+
+#include "gnunet_statistics_service.h"
+
 #include "mesh_enc.h"
 #include "mesh_protocol_enc.h" // GNUNET_MESH_Data is shared
 
@@ -85,6 +89,11 @@ struct MeshClient
 /******************************************************************************/
 /*******************************   GLOBALS  ***********************************/
 /******************************************************************************/
+
+/**
+ * Global handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Handle to server lib.

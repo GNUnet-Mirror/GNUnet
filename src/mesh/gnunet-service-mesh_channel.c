@@ -20,8 +20,13 @@
 
 
 #include "platform.h"
+#include "gnunet_util_lib.h"
+
+#include "gnunet_statistics_service.h"
+
 #include "mesh_enc.h"
 #include "mesh_protocol_enc.h"
+
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_tunnel.h"
@@ -244,6 +249,20 @@ struct MeshChannel
 
 };
 
+
+/******************************************************************************/
+/*******************************   GLOBALS  ***********************************/
+/******************************************************************************/
+
+/**
+ * Global handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
+
+
+/******************************************************************************/
+/********************************   STATIC  ***********************************/
+/******************************************************************************/
 
 /**
  * We have received a message out of order, or the client is not ready.
@@ -1176,6 +1195,10 @@ send (const struct GNUNET_MessageHeader *message,
   GMT_send_prebuilt_message (msg, ch->t, ch, fwd);
 }
 
+
+/******************************************************************************/
+/********************************    API    ***********************************/
+/******************************************************************************/
 
 /**
  * Count channels in a DLL.

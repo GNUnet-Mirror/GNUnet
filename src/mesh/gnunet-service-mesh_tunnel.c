@@ -21,6 +21,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet_statistics_service.h"
+
 #include "mesh_protocol_enc.h"
 
 #include "gnunet-service-mesh_tunnel.h"
@@ -180,6 +182,11 @@ struct MeshTunnelQueue
 /******************************************************************************/
 
 /**
+ * Global handle to the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *stats;
+
+/**
  * Default TTL for payload packets.
  */
 static unsigned long long default_ttl;
@@ -203,7 +210,6 @@ const static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
 /******************************************************************************/
-
 
 /**
  * Get string description for tunnel state.
@@ -366,6 +372,10 @@ tunnel_send_queued_data (struct MeshTunnel2 *t, int fwd)
 }
 
 
+/******************************************************************************/
+/********************************    API    ***********************************/
+/******************************************************************************/
+
 /**
  * Cache a message to be sent once tunnel is online.
  *
@@ -393,11 +403,6 @@ GMT_queue_data (struct MeshTunnel2 *t,
     tunnel_send_queued_data (t, fwd);
 }
 
-
-
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
 
 /**
  * Initialize the tunnel subsystem.
