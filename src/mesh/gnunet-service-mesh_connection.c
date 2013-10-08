@@ -1980,6 +1980,8 @@ GMC_is_terminal (struct MeshConnection *c, int fwd)
 
 /**
  * Count connections in a DLL.
+ * 
+ * @param head Head of the DLL.
  */
 unsigned int
 GMC_count (const struct MeshConnection *head)

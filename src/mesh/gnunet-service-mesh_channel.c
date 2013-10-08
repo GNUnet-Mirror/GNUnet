@@ -24,6 +24,7 @@
 #include "mesh_protocol_enc.h"
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"
+#include "gnunet-service-mesh_tunnel.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
 
@@ -1171,10 +1172,26 @@ send (const struct GNUNET_MessageHeader *message,
   msg->header.type = htons (type);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
   msg->iv = GNUNET_htonll (iv);
-  tunnel_encrypt (ch->t, &msg[1], message, size, iv, fwd);
-  send_prebuilt_message_tunnel (msg, ch->t, ch, fwd);
+  GMT_encrypt (ch->t, &msg[1], message, size, iv, fwd);
+  GMT_send_prebuilt_message (msg, ch->t, ch, fwd);
 }
 
+
+/**
+ * Count channels in a DLL.
+ * 
+ * @param head Head of the DLL.
+ */
+unsigned int
+GMCH_count (const struct MeshChannel *head)
+{
+  unsigned int count;
+  struct MeshChannel *iter;
+  
+  for (count = 0, iter = head; NULL != iter; iter = iter->next, count++);
+  
+  return count;
+}
 
 
 /**
@@ -1383,7 +1400,7 @@ GMCH_handle_data (struct MeshTunnel2 *t,
     return;
   }
 
-  tunnel_change_state (t, MESH_TUNNEL_READY);
+  GMT_change_state (t, MESH_TUNNEL_READY);
 
   GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
 

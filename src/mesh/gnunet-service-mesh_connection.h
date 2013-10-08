@@ -39,7 +39,9 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 
+#include "mesh_path.h"
 #include "gnunet-service-mesh_channel.h"
+
 
 /**
  * Struct containing all information regarding a connection to a peer.

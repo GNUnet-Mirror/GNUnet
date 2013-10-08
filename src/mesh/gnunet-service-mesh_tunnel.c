@@ -550,7 +550,7 @@ GMT_destroy_empty (struct MeshTunnel2 *t)
 void
 GMT_destroy_if_empty (struct MeshTunnel2 *t)
 {
-  if (1 <= GMCH_count (t->channel_head))
+  if (1 < GMCH_count (t->channel_head))
     return;
 
   GMT_destroy_empty (t);
@@ -613,35 +613,36 @@ GMT_handle_decrypted (struct MeshTunnel2 *t,
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
       /* Don't send hop ACK, wait for client to ACK */
-      handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
+      GMCH_handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
+      GMCH_handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-      handle_channel_create (t,
-                             (struct GNUNET_MESH_ChannelCreate *) msgh,
-                             fwd);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-      handle_channel_ack (t,
-                          (struct GNUNET_MESH_ChannelManage *) msgh,
+      GMCH_handle_create (t,
+                          (struct GNUNET_MESH_ChannelCreate *) msgh,
                           fwd);
       break;
 
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+      GMCH_handle_ack (t,
+                       (struct GNUNET_MESH_ChannelManage *) msgh,
+                       fwd);
+      break;
+
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-      handle_channel_destroy (t,
-                              (struct GNUNET_MESH_ChannelManage *) msgh,
-                              fwd);
+      GMCH_handle_destroy (t,
+                           (struct GNUNET_MESH_ChannelManage *) msgh,
+                           fwd);
       break;
 
     default:
+      GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "end-to-end message not known (%u)\n",
-                  ntohs (msgh->type));
+           "end-to-end message not known (%u)\n",
+           ntohs (msgh->type));
   }
 }
 

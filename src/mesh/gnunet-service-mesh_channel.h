@@ -46,6 +46,14 @@ extern "C"
 struct MeshChannel;
 
 /**
+ * Count channels in a DLL.
+ * 
+ * @param head Head of the DLL.
+ */
+unsigned int
+GMCH_count (const struct MeshChannel *head);
+
+/**
  * Send an end-to-end ACK message for the most recent in-sequence payload.
  *
  * If channel is not reliable, do nothing.
