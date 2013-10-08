@@ -1209,6 +1209,11 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
+  if (GNUNET_NO == peer->details.local.is_running)
+  {
+    emsg = GNUNET_strdup ("Peer not running\n");
+    goto err_ret;
+  }
   if ((0 != peer->reference_cnt)
       && ( (0 == strcasecmp ("core", service))
            || (0 == strcasecmp ("transport", service)) )  )
