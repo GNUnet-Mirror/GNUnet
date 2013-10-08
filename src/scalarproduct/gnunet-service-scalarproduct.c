@@ -2190,7 +2190,6 @@ handle_service_response (void *cls,
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_response * msg = (const struct GNUNET_SCALARPRODUCT_service_response *) message;
   unsigned char * current;
-  uint32_t count;
   gcry_mpi_t s = NULL;
   gcry_mpi_t s_prime = NULL;
   size_t read;
@@ -2208,9 +2207,8 @@ handle_service_response (void *cls,
     return GNUNET_SYSERR;
   }
 
-  count = session->used_element_count;
   session->product = NULL;
-  session->state = SERVICE_RESPONSE_RECEIVED;
+  session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
 
   //we need at least a peer and one message id to compare
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size)) {
@@ -2222,11 +2220,11 @@ handle_service_response (void *cls,
           + 2 * contained_element_count * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_size) || (count != contained_element_count)) {
+  if ((ntohs (msg->header.size) != msg_size) || (session->used_element_count < contained_element_count)) {
     GNUNET_break_op (0);
     goto invalid_msg;
   }
-
+  session->transferred_element_count = contained_element_count;
   //convert s
   current = (unsigned char *) &msg[1];
   if (0 != (rc = gcry_mpi_scan (&s, GCRYMPI_FMT_USG, current,
@@ -2244,10 +2242,10 @@ handle_service_response (void *cls,
     goto invalid_msg;
   }
   current += PAILLIER_ELEMENT_LENGTH;
-
   r = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  // Convert each kp[] to its MPI_value
-  for (i = 0; i < count; i++) {
+  r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
+  // Convert each k[][perm] to its MPI_value
+  for (i = 0; i < contained_element_count; i++) {
     if (0 != (rc = gcry_mpi_scan (&r[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
@@ -2255,12 +2253,6 @@ handle_service_response (void *cls,
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
-  }
-
-
-  r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  // Convert each kq[] to its MPI_value
-  for (i = 0; i < count; i++) {
     if (0 != (rc = gcry_mpi_scan (&r_prime[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
@@ -2269,16 +2261,20 @@ handle_service_response (void *cls,
     }
     current += PAILLIER_ELEMENT_LENGTH;
   }
-  session->product = compute_scalar_product (session, r, r_prime, s, s_prime);
-
+  if (session->transferred_element_count == session->used_element_count){
+    session->state = SERVICE_RESPONSE_RECEIVED;
+    session->product = compute_scalar_product (session, r, r_prime, s, s_prime);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
 invalid_msg:
   if (s)
     gcry_mpi_release (s);
   if (s_prime)
     gcry_mpi_release (s_prime);
-  for (i = 0; r && i < count; i++)
+  for (i = 0; r && i < contained_element_count; i++)
     if (r[i]) gcry_mpi_release (r[i]);
-  for (i = 0; r_prime && i < count; i++)
+  for (i = 0; r_prime && i < contained_element_count; i++)
     if (r_prime[i]) gcry_mpi_release (r_prime[i]);
   GNUNET_free_non_null (r);
   GNUNET_free_non_null (r_prime);
