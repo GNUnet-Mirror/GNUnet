@@ -1975,7 +1975,6 @@ handle_service_request (void *cls,
   }
 
   memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
-  session->state = SERVICE_REQUEST_RECEIVED;
   session->element_count = ntohl (msg->element_count);
   session->used_element_count = used_elements;
   session->transferred_element_count = contained_elements;
@@ -2008,12 +2007,11 @@ handle_service_request (void *cls,
                                              &needed_state, NULL);
 
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
-
+  session->state = WAITING_FOR_MULTIPART_TRANSMISSION; 
   if (contained_elements != 0) {
     gcry_error_t ret = 0;
-    session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
     // Convert each vector element to MPI_value
-    for (i = 0; i < used_elements; i++) {
+    for (i = 0; i < contained_elements; i++) {
       size_t read = 0;
 
       ret = gcry_mpi_scan (&session->a[i],
@@ -2031,6 +2029,7 @@ handle_service_request (void *cls,
     
     if (contained_elements == used_elements) {
       // single part finished
+      session->state = SERVICE_REQUEST_RECEIVED;
       if (responder_session) {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
         if (GNUNET_OK != compute_service_response (session, responder_session)) {
@@ -2044,18 +2043,16 @@ handle_service_request (void *cls,
     }
     else{
       // multipart message
-      
     }
-
-    return GNUNET_OK;
   }
+  return GNUNET_OK;
 except:
-  for (i = 0; i < used_elements; i++)
+  for (i = 0; i < contained_elements; i++)
     if (session->a[i])
       gcry_mpi_release (session->a[i]);
   gcry_sexp_release (session->remote_pubkey);
   session->remote_pubkey = NULL;
-  GNUNET_free_non_null (session->a);
+  GNUNET_free (session->a);
   session->a = NULL;
   free_session (session);
   // and notify our client-session that we could not complete the session
