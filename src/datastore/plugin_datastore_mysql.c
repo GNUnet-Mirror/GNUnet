@@ -47,7 +47,7 @@
  *
  * MANUAL SETUP INSTRUCTIONS
  *
- * 1) in /etc/gnunet.conf, set
+ * 1) in gnunet.conf, set
  * @verbatim
        [datastore]
        DATABASE = "mysql"
