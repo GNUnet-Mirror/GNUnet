@@ -355,7 +355,9 @@ cfg_copy_iterator (void *cls, const char *section,
  *
  * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
- *          location depending on the underlying OS
+ *          location depending on the underlying OS.  This variable will be
+ *          overridden with the value of the environmental variable
+ *          GNUNET_TESTING_PREFIX, if it exists.
  * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
  *          service configurations generated to allow control connections from
  *          this ip. This can either be a single ip address or a network address
@@ -385,7 +387,10 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 
   GNUNET_assert (NULL != testdir);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
-  system->tmppath = GNUNET_DISK_mkdtemp (testdir);
+  if (NULL != (system->tmppath = getenv ("GNUNET_TESTING_PREFIX")))
+    system->tmppath = GNUNET_DISK_mkdtemp (testdir);
+  else
+    system->tmppath = GNUNET_strdup (system->tmppath);
   system->lowport = lowport;
   system->highport = highport;
   if (NULL == system->tmppath)
