@@ -627,8 +627,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
           continue;
         bind_status = GNUNET_NETWORK_socket_bind (socket,
                                                   ai->ai_addr,
-                                                  ai->ai_addrlen,
-                                                  0);
+                                                  ai->ai_addrlen);
         GNUNET_NETWORK_socket_close (socket);
         if (GNUNET_OK != bind_status)
           break;
@@ -637,8 +636,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
           continue;
         bind_status = GNUNET_NETWORK_socket_bind (socket,
                                                   ai->ai_addr,
-                                                  ai->ai_addrlen,
-                                                  0);
+                                                  ai->ai_addrlen);
         GNUNET_NETWORK_socket_close (socket);
         if (GNUNET_OK != bind_status)
           break;

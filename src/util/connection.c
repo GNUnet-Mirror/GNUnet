@@ -826,22 +826,13 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
 #ifdef AF_UNIX
   struct GNUNET_CONNECTION_Handle *connection;
   struct sockaddr_un *un;
-  size_t slen;
 
   GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
-  slen = strlen (unixpath);
-  if (slen >= sizeof (un->sun_path))
-    slen = sizeof (un->sun_path) - 1;
-  memcpy (un->sun_path, unixpath, slen);
-  un->sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
+  strncpy(un->sun_path, unixpath, sizeof(un->sun_path) - 1);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un->sun_len = (u_char) slen;
-#endif
-#if LINUX
-  un->sun_path[0] = '\0';
+  un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   connection = GNUNET_new (struct GNUNET_CONNECTION_Handle);
   connection->cfg = cfg;
@@ -850,7 +841,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
   connection->port = 0;
   connection->hostname = NULL;
   connection->addr = (struct sockaddr *) un;
-  connection->addrlen = slen;
+  connection->addrlen = sizeof (struct sockaddr_un);
   connection->sock = GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_STREAM, 0);
   if (NULL == connection->sock)
   {

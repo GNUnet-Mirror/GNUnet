@@ -834,24 +834,15 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
 {
 #ifdef AF_UNIX
   struct sockaddr_un *un;
-  size_t slen;
 
   un = GNUNET_malloc (sizeof (struct sockaddr_un));
   un->sun_family = AF_UNIX;
-  slen = strlen (unixpath) + 1;
-  if (slen >= sizeof (un->sun_path))
-    slen = sizeof (un->sun_path) - 1;
-  memcpy (un->sun_path, unixpath, slen);
-  un->sun_path[slen] = '\0';
-  slen = sizeof (struct sockaddr_un);
-#if LINUX
-  un->sun_path[0] = '\0';
-#endif
+  strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
 #if HAVE_SOCKADDR_IN_SIN_LEN
-  un->sun_len = (u_char) slen;
+  un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
   *saddrs = (struct sockaddr *) un;
-  *saddrlens = slen;
+  *saddrlens = sizeof (struct sockaddr_un);
 #else
   /* this function should never be called
    * unless AF_UNIX is defined! */
@@ -989,6 +980,11 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       LOG (GNUNET_ERROR_TYPE_INFO,
 	   _("Using `%s' instead\n"), unixpath);
     }
+    if (GNUNET_OK !=
+	GNUNET_DISK_directory_create_for_file (unixpath))
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+				"mkdir",
+				unixpath);
   }
   if (NULL != unixpath)
   {

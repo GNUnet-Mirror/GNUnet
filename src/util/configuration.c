@@ -88,8 +88,8 @@ struct GNUNET_CONFIGURATION_Handle
 
   /**
    * Modification indication since last save
-   * GNUNET_NO if clean, GNUNET_YES if dirty,
-   * GNUNET_SYSERR on error (i.e. last save failed)
+   * #GNUNET_NO if clean, #GNUNET_YES if dirty,
+   * #GNUNET_SYSERR on error (i.e. last save failed)
    */
   int dirty;
 
@@ -142,10 +142,10 @@ GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cfg configuration to update
  * @param mem the memory block of serialized configuration
  * @param size the size of the memory block
- * @param allow_inline set to GNUNET_YES if we recursively load configuration
- *          from inlined configurations; GNUNET_NO if not and raise warnings
+ * @param allow_inline set to #GNUNET_YES if we recursively load configuration
+ *          from inlined configurations; #GNUNET_NO if not and raise warnings
  *          when we come across them
- * @return GNUNET_OK on success, GNUNET_ERROR on error
+ * @return #GNUNET_OK on success, #GNUNET_ERROR on error
  */
 int
 GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
