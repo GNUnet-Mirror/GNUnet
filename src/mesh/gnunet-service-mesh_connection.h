@@ -243,9 +243,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
 void
 GMC_destroy (struct MeshConnection *c);
 
-struct MeshConnection *
-GMC_next (struct MeshConnection *c);
-
 /**
  * Get the connection ID.
  *

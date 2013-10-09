@@ -471,10 +471,10 @@ connection_change_state (struct MeshConnection* c,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state was %s\n",
-              GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (c->state));
+              GNUNET_h2s (&c->id), GMC_state2s (c->state));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state is now %s\n",
-              GNUNET_h2s (&c->id), GNUNET_MESH_DEBUG_CS2S (state));
+              GNUNET_h2s (&c->id), GMC_state2s (state));
   c->state = state;
 }
 
@@ -1830,13 +1830,6 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_CONTAINER_DLL_remove (c->t->connection_head, c->t->connection_tail, c);
   GNUNET_free (c);
 }
-
-struct MeshConnection *
-GMC_next (struct MeshConnection *c)
-{
-  return c->next;
-}
-
 
 /**
  * Get the connection ID.
