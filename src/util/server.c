@@ -495,15 +495,10 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
              (AF_INET == server_addr->sa_family) ? "IPv4" : "IPv6");
       else if (AF_UNIX == server_addr->sa_family)
       {
-	const struct sockaddr_un *un = (const struct sockaddr_un *) server_addr;
-	unsigned int off = 0;
-
-	if ('\0' == un->sun_path[0])
-	  off = 1; /* some UNIXPATHs start with 0 */
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             _("`%s' failed for `%.*s': address already in use\n"), "bind",
-	     (int) ((sizeof (un->sun_path) - off)),
-	     (&un->sun_path[off]));
+             _("`%s' failed for `%s': address already in use\n"),
+             "bind",
+             GNUNET_a2s (server_addr, socklen));
       }
     }
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
@@ -531,7 +526,7 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
  * @param access_cls closure for access
  * @param lsocks NULL-terminated array of listen sockets
  * @param idle_timeout after how long should we timeout idle connections?
- * @param require_found if YES, connections sending messages of unknown type
+ * @param require_found if #GNUNET_YES, connections sending messages of unknown type
  *        will be closed
  * @return handle for the new server, NULL on error
  *         (typically, "port" already in use)

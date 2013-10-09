@@ -393,23 +393,6 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
                             socklen_t address_len)
 {
   int ret;
-  socklen_t bind_address_len = address_len;
-
-#ifdef LINUX
-  if (AF_UNIX == address->sa_family)
-  {
-    const struct sockaddr_un *address_un = (const struct sockaddr_un *)address;
-    if (address_un->sun_path[0] == '\0')
-    {
-      bind_address_len = \
-          sizeof (struct sockaddr_un) \
-        - sizeof (address_un->sun_path) \
-        + strnlen (address_un->sun_path + 1, sizeof (address_un->sun_path) - 1) \
-        + 1;
-      GNUNET_break (0);
-    }
-  }
-#endif
 
 #ifdef IPV6_V6ONLY
 #ifdef IPPROTO_IPV6
@@ -444,7 +427,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
       old_mask = umask (S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
 #endif
 
-    ret = bind (desc->fd, address, bind_address_len);
+    ret = bind (desc->fd, address, address_len);
 #ifndef WINDOWS
     if (AF_UNIX == address->sa_family)
       (void) umask (old_mask);
@@ -564,21 +547,6 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
 {
   int ret;
 
-#ifdef LINUX
-  if (address->sa_family == AF_UNIX)
-  {
-    const struct sockaddr_un *address_un = (const struct sockaddr_un *)address;
-    if (address_un->sun_path[0] == '\0')
-    {
-      address_len =                   \
-          sizeof (struct sockaddr_un) \
-        - sizeof (address_un->sun_path) \
-        + strnlen (address_un->sun_path + 1, sizeof (address_un->sun_path) - 1) \
-        + 1;
-      GNUNET_break (0);
-    }
-  }
-#endif
   ret = connect (desc->fd, address, address_len);
 
 #ifdef MINGW
@@ -802,18 +770,6 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
 #endif
 #ifdef MSG_NOSIGNAL
   flags |= MSG_NOSIGNAL;
-#endif
-#ifdef LINUX
-  if (dest_addr->sa_family == AF_UNIX)
-  {
-    const struct sockaddr_un *dest_addr_un = (const struct sockaddr_un *)dest_addr;
-    if (dest_addr_un->sun_path[0] == '\0')
-      dest_len = \
-          sizeof (struct sockaddr_un) \
-        - sizeof (dest_addr_un->sun_path) \
-        + strnlen (dest_addr_un->sun_path + 1, sizeof (dest_addr_un->sun_path) - 1) \
-        + 1;
-  }
 #endif
   ret = sendto (desc->fd, message, length, flags, dest_addr, dest_len);
 #ifdef MINGW

@@ -1132,9 +1132,9 @@ GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
  * in the entire API that is NOT reentrant!
  *
  * @param addr the address
- * @param addrlen the length of the address
+ * @param addrlen the length of the address in @a addr
  * @return nicely formatted string for the address
- *  will be overwritten by next call to GNUNET_a2s.
+ *  will be overwritten by next call to #GNUNET_a2s.
  */
 const char *
 GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
@@ -1178,7 +1178,7 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
       return "<unbound UNIX client>";
     un = (const struct sockaddr_un *) addr;
     off = 0;
-    if (un->sun_path[0] == '\0')
+    if ('\0' == un->sun_path[0])
       off++;
     memset (buf, 0, sizeof (buf));
     snprintf (buf, sizeof (buf) - 1, "%s%.*s", (off == 1) ? "@" : "",
