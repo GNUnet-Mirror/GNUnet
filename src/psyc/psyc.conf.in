@@ -1,6 +1,6 @@
 [psyc]
 AUTOSTART = YES
 BINARY = gnunet-service-psyc
-UNIXPATH = /tmp/gnunet-service-psyc.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-psyc.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES

@@ -1,6 +1,6 @@
 [vectorproduct]
 BINARY = gnunet-service-vectorproduct
-UNIXPATH = /tmp/gnunet-service-vectorproduct.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-vectorproduct.sock
 # PORT = 2106
 @UNIXONLY@ PORT = 2087
 

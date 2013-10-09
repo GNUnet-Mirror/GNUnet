@@ -2,7 +2,7 @@
 AUTOSTART = YES
 HOSTNAME = localhost
 BINARY = gnunet-service-gns
-UNIXPATH = /tmp/gnunet-service-gns.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
 
 # Do we require users that want to access GNS to run this process
@@ -26,7 +26,7 @@ AUTOSTART = NO
 
 # Where is the certificate for the GNS proxy stored?
 PROXY_CACERT = $GNUNET_DATA_HOME/gns/gns_ca_cert.pem
-PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
+PROXY_UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-gns-proxy.sock
 
 
 [dns2gns]

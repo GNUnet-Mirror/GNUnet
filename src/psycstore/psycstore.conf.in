@@ -1,7 +1,7 @@
 [psycstore]
 AUTOSTART = YES
 BINARY = gnunet-service-psycstore
-UNIXPATH = /tmp/gnunet-service-psycstore.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-psycstore.sock
 @UNIXONLY@PORT = 2111
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES

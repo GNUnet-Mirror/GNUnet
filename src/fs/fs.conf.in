@@ -20,7 +20,7 @@ CONTENT_CACHING = YES
 # (may improve anonymity, probably not a good idea if content_caching is NO)
 CONTENT_PUSHING = YES
 
-UNIXPATH = /tmp/gnunet-service-fs.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-fs.sock
 
 # Do we require users that want to access file-sharing to run this process
 # (usually not a good idea)
