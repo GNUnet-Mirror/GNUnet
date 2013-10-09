@@ -848,6 +848,27 @@ GML_shutdown (void)
   }
 }
 
+/**
+ * Get a chennel from a client
+ *
+ * @param c the client to check
+ * @param chid Channel ID, must be local (> 0x800...)
+ *
+ * @return non-NULL if channel exists in the clients lists
+ */
+struct MeshChannel *
+GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
+{
+  if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
+  {
+    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
+    return NULL;
+  }
+  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+    return GNUNET_CONTAINER_multihashmap32_get (c->incoming_channels, chid);
+  return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
+}
 
 /**
  * Check if client has registered with the service and has not disconnected

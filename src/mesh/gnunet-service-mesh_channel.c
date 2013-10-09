@@ -339,30 +339,6 @@ send_client_data (struct MeshChannel *ch,
 
 
 /**
- * Search for a channel among the channels for a client
- *
- * @param c the client whose channels to search in
- * @param chid the local id of the channel
- *
- * @return channel handler, NULL if doesn't exist
- */
-static struct MeshChannel *
-channel_get_by_local_id (struct MeshClient *c, MESH_ChannelNumber chid)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   -- get CHID %X\n", chid);
-  if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
-  {
-    GNUNET_break_op (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
-    return NULL;
-  }
-  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-    return GNUNET_CONTAINER_multihashmap32_get (c->incoming_channels, chid);
-  return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
-}
-
-
-/**
  * Add a client to a channel, initializing all needed data structures.
  *
  * @param ch Channel to which add the client.
@@ -380,7 +356,7 @@ channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
   }
 
   /* Assign local id as destination */
-  while (NULL != channel_get_by_local_id (c, t->next_local_chid))
+  while (NULL != GML_channel_get (c, t->next_local_chid))
     t->next_local_chid = (t->next_local_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   ch->lid_dest = t->next_local_chid++;
   t->next_local_chid = t->next_local_chid | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
@@ -985,7 +961,7 @@ channel_send_destroy (struct MeshChannel *ch)
               peer2s (ch->t->peer),
               ch->gid);
 
-  if (channel_is_terminal (ch, GNUNET_NO))
+  if (GMCH_is_terminal (ch, GNUNET_NO))
   {
     if (NULL != ch->root && GNUNET_NO == ch->root->shutting_down)
     {
@@ -999,7 +975,7 @@ channel_send_destroy (struct MeshChannel *ch)
     GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
   }
 
-  if (channel_is_terminal (ch, GNUNET_YES))
+  if (GMCH_is_terminal (ch, GNUNET_YES))
   {
     if (NULL != ch->dest && GNUNET_NO == ch->dest->shutting_down)
     {
@@ -1574,7 +1550,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
        GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
   
-  if (channel_is_terminal (ch, fwd) || ch->t->peer->id == myid)
+  if (GMCH_is_terminal (ch, fwd) || ch->t->peer->id == myid)
   {
     GMT_handle_decrypted (ch->t, message, fwd);
     return;
