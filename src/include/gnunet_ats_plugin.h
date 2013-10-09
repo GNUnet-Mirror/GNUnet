@@ -291,9 +291,9 @@ typedef const double *
 
 
 /**
- * The transport service will pass a pointer to a struct
+ * The ATS service will pass a pointer to a struct
  * of this type as the first and only argument to the
- * entry point of each transport plugin.
+ * entry point of each ATS solver.
  */
 struct GNUNET_ATS_PluginEnvironment
 {
@@ -302,26 +302,89 @@ struct GNUNET_ATS_PluginEnvironment
    */
   void *cls;
 
-  GAS_bandwidth_changed_cb bandwidth_changed_cb;
-  void *bw_changed_cb_cls;
 
-  GAS_get_preferences get_preferences_cb;
-  void *get_preference_cls;
+  /**
+   * Configuration handle to be used by the solver
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GAS_get_properties get_property_cb;
-  void *get_property_cls;
 
-  struct GNUNET_ATS_SolverFunctions sf;
+  /**
+   * Statistics handle to be used by the solver
+   */
+  const struct GNUNET_STATISTICS_Handle *stats;
 
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Hashmap containing all addresses available
+   */
   struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
-  /* Available networks */
+
+  /**
+   * ATS addresses callback to be notified about bandwidth assignment changes
+   */
+  GAS_bandwidth_changed_cb bandwidth_changed_cb;
+
+
+  /**
+   * ATS addresses closure to be notified about bandwidth assignment changes
+   */
+  void *bw_changed_cb_cls;
+
+
+  /**
+   * ATS addresses function to obtain preference values
+   */
+  GAS_get_preferences get_preferences;
+
+
+  /**
+   * ATS addresses function closure to obtain preference values
+   */
+  void *get_preference_cls;
+
+  /**
+   * ATS addresses function to obtain property values
+   */
+  GAS_get_properties get_property_cb;
+
+
+  /**
+   * ATS addresses function closure to obtain property values
+   */
+  void *get_property_cls;
+
+
+  /**
+   * The ATS solver plugin functions to call
+   */
+  struct GNUNET_ATS_SolverFunctions sf;
+
+
+  /**
+   *  Available networks
+   */
   int networks[GNUNET_ATS_NetworkTypeCount];
+
+
+  /**
+   * Number of networks available
+   */
   int network_count;
 
+
+  /**
+   * Array of configured outbound quotas
+   * Order according to networks in network array
+   */
   unsigned long long out_quota[GNUNET_ATS_NetworkTypeCount];
+
+
+  /**
+   * Array of configured inbound quotas
+   * Order according to networks in network array
+   */
   unsigned long long in_quota[GNUNET_ATS_NetworkTypeCount];
 };
 
