@@ -2,11 +2,11 @@
 .SH NAME
 gnunet.conf \- GNUnet configuration file
 .SH SYNOPSIS
-~/.gnunet/gnunet.conf
+~/.config/gnunet.conf
 .SH DESCRIPTION
 .PP
 
-A GNUnet setup typically consists of a a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The default location for the configuration file for the services is "~gnunet/.gnunet/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in "/etc/gnunet.conf".  gnunet\-setup (part of the GTK package) can be used to edit this configuration.  The parts of GNUnet that is ran as a normal user may have config options too and they read from "$HOME/.gnunet/gnunet.conf". The latter config file can skip any options for the services.
+A GNUnet setup typically consists of a a set of service processes run by a user "gnunet" and a set of user-interface processes run by a standard account.  The default location for the configuration file for the services is "~gnunet/.config/gnunet.conf"; however, as normal users also may need read-access to this configuration, you might want to instead put the service process configuration in "/etc/gnunet.conf".  gnunet\-setup (part of the GTK package) can be used to edit this configuration.  The parts of GNUnet that is ran as a normal user may have config options too and they read from "$HOME/.config/gnunet.conf". The latter config file can skip any options for the services.
 
 .TP
 The basic structure of the configuration file is the following.  The file is split into sections.  Every section begins with "[SECTIONNAME]" and contains a number of options of the form "OPTION=VALUE".  Empty lines and lines beginning with a "#" are treated as comments.  Almost all options are optional and the tools resort to reasonable defaults if they are not present.
@@ -15,15 +15,13 @@ Default values for all of the options can be found in the files in the "$GNUNET_
 
 .SH General OPTIONS
 .PP
-Many options will be common between sections. They can be repeated under each section with different values.  The "[PATHS]" section is special. Here, it is possible to specify values for variables like "SERVICEHOME".  Then, in all filenames that begin with "$SERVICEHOME" the "$SERVICEHOME" will be replaced with the respective value at runtime.  The main use of this is to redefine "$SERVICEHOME", which by default points to "$HOME/.gnunet/".  By setting this variable, you can change the location where GNUnet stores its internal data.
+Many options will be common between sections. They can be repeated under each section with different values.  The "[PATHS]" section is special. Here, it is possible to specify values for variables like "GNUNET_HOME".  Then, in all filenames that begin with "$GNUNET_HOME" the "$GNUNET_HOME" will be replaced with the respective value at runtime.  The main use of this is to redefine "$GNUNET_HOME", which by default points to "$HOME/.config/".  By setting this variable, you can change the location where GNUnet stores its internal data.
 .PP
 
 The following options are generic and shared by all services:
 
 .IP HOSTNAME
     The hostname specifies the machine on which the service is running.  This is usually "localhost".
-.IP HOME
-    Which home directory should be used for the service.  Usually "$SERVICEHOME".
 .IP BINARY
     The filename that implements the service. For example "gnunet-service-ats".
 .IP AUTOSTART
@@ -88,7 +86,7 @@ This example is a simple way to get started, using a server that has a known lis
 
 .SH FILES
 .TP
-~/.gnunet/gnunet.conf
+~/.config/gnunet.conf
 GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <bug-gnunet@gnu.org>

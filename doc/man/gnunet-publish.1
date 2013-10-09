@@ -25,7 +25,7 @@ You can use automatic meta\-data extraction (based on libextractor) or the comma
 GNUnet supports two styles of publishing files on the network. Publishing a file means that a copy of the file is made in the local (!) database of the node.  Indexing a file means that an index is added to the local (!)  database with symbolic links to the file itself.  The links will use the SHA-512 hash of the entire file as the filename.  Indexing is generally significantly more efficient and the default choice.  However, indexing only works if the indexed file can be read (using the same absolute path) by gnunet-service-fs.  If this is not the case, indexing will fail (and gnunet\-publish will automatically revert to publishing instead).  Regardless of which method is used to publish the file, the file will be slowly (depending on how often it is requested and on how much bandwidth is available) dispersed into the network.  If you publish or index a file and then leave the network, it will almost always NOT be available anymore.
 
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
-Use alternate config file (if this option is not specified, the default is ~/.gnunet/gnunet.conf).
+Use alternate config file (if this option is not specified, the default is ~/.config/gnunet.conf).
 
 .TP
 \fB\-D\fR, \fB\-\-disable\-extractor\fR
@@ -164,7 +164,7 @@ Update the previous entry, do not allow any future updates:
 
 .SH FILES
 .TP
-~/.gnunet/gnunet.conf
+~/.config/gnunet.conf
 GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
