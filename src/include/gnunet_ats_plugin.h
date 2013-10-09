@@ -195,65 +195,103 @@ typedef void
 
 
 /**
- * Each plugin is required to return a pointer to a struct of this
- * type as the return value from its entry point.
+ * Solver functions
+ *
+ * Each solver is required to set up this struct contained in the plugin
+ * environment struct in during startup
  */
 struct GNUNET_ATS_SolverFunctions
 {
 
   /**
-   * Closure for all of the callbacks.
-   */
-  void *cls;
-
-  /**
-   * Add an address to the solver
+   * Add a new address for a peer to the solver
+   *
+   * The address is already contained in the addresses hashmap!
    */
   GAS_solver_address_add s_add;
 
+
+  /**
+   * Update the properties of an address in the solver
+   */
   GAS_solver_address_property_changed s_address_update_property;
 
+
+  /**
+   * Update the session of an address in the solver
+   */
   GAS_solver_address_session_changed s_address_update_session;
 
+
+  /**
+   * Notify the solver that in address is (not) actively used by transport
+   * to communicate with a remote peer
+   */
   GAS_solver_address_inuse_changed s_address_update_inuse;
 
+
+  /**
+   * Notify solver that the network an address is located in has changed
+   */
   GAS_solver_address_network_changed s_address_update_network;
 
   /**
-   * Get address from solver
+   * Tell solver to notify ATS if the address to use changes for a specific
+   * peer using the bandwidth changed callback
+   *
+   * The solver must only notify about changes for peers with pending address
+   * requests!
    */
   GAS_solver_get_preferred_address s_get;
 
   /**
-   * Get address from solver
-   */
+  * Tell solver stop notifying ATS about changes for this peers
+  *
+  * The solver must only notify about changes for peers with pending address
+  * requests!
+  */
   GAS_solver_stop_get_preferred_address s_get_stop;
 
+
   /**
-   * Delete address in solver
+   * Delete an address in the solver
+   *
+   * The address is not contained in the address hashmap anymore!
    */
   GAS_solver_address_delete s_del;
+
 
   /**
    * Change relative preference for quality in solver
    */
   GAS_solver_address_change_preference s_pref;
 
+
   /**
    * Give feedback about the current assignment
    */
   GAS_solver_address_feedback_preference s_feedback;
 
+
   /**
    * Start a bulk operation
+   *
+   * Used if many values have to be updated at the same time.
+   * When a bulk operation is pending the solver does not have to resolve
+   * the problem since more updates will follow anyway
+   *
+   * For each call to bulk_start, a call to bulk_stop is required!
    */
   GAS_solver_bulk_start s_bulk_start;
 
+
   /**
    * Bulk operation done
+   *
+   * If no more bulk operations are pending, the solver can solve the problem
+   * with the updated values
    */
   GAS_solver_bulk_stop s_bulk_stop;
-
 };
 
 
@@ -298,12 +336,6 @@ typedef const double *
 struct GNUNET_ATS_PluginEnvironment
 {
   /**
-   * Closure for the various callbacks.
-   */
-  void *cls;
-
-
-  /**
    * Configuration handle to be used by the solver
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -344,10 +376,11 @@ struct GNUNET_ATS_PluginEnvironment
    */
   void *get_preference_cls;
 
+
   /**
    * ATS addresses function to obtain property values
    */
-  GAS_get_properties get_property_cb;
+  GAS_get_properties get_property;
 
 
   /**
