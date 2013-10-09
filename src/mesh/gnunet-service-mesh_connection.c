@@ -37,67 +37,17 @@
 #include "mesh_path.h"
 
 
+#define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
+
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
-#define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
+#define AVG_MSGS                32
 
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
-
-/**
- * Struct containing info about a queued transmission to this peer
- */
-struct MeshPeerQueue
-{
-    /**
-      * DLL next
-      */
-  struct MeshPeerQueue *next;
-
-    /**
-      * DLL previous
-      */
-  struct MeshPeerQueue *prev;
-
-    /**
-     * Peer this transmission is directed to.
-     */
-  struct MeshPeer *peer;
-
-    /**
-     * Connection this message belongs to.
-     */
-  struct MeshConnection *c;
-
-    /**
-     * Is FWD in c?
-     */
-  int fwd;
-
-    /**
-     * Channel this message belongs to, if known.
-     */
-  struct MeshChannel *ch;
-
-    /**
-     * Pointer to info stucture used as cls.
-     */
-  void *cls;
-
-    /**
-     * Type of message
-     */
-  uint16_t type;
-
-    /**
-     * Size of the message
-     */
-  size_t size;
-};
-
 
 /**
  * Struct to encapsulate all the Flow Control information to a peer to which
@@ -156,6 +106,13 @@ struct MeshFlowControl
   struct GNUNET_TIME_Relative poll_time;
 };
 
+struct MeshConnectionPerformance
+{
+  double secsperbyte[AVG_MSGS];
+
+  unsigned int idx;
+};
+
 
 /**
  * Struct containing all information regarding a connection to a peer.
@@ -176,6 +133,11 @@ struct MeshConnection
    * Flow control information for traffic bck.
    */
   struct MeshFlowControl bck_fc;
+
+  /**
+   * Measure connection performance on the endpoint.
+   */
+  struct MeshConnectionPerformance *perf;
 
   /**
    * ID of the connection.

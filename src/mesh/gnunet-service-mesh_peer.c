@@ -41,6 +41,72 @@
 /******************************************************************************/
 
 /**
+ * Struct containing info about a queued transmission to this peer
+ */
+struct MeshPeerQueue
+{
+    /**
+      * DLL next
+      */
+  struct MeshPeerQueue *next;
+
+    /**
+      * DLL previous
+      */
+  struct MeshPeerQueue *prev;
+
+    /**
+     * Peer this transmission is directed to.
+     */
+  struct MeshPeer *peer;
+
+    /**
+     * Connection this message belongs to.
+     */
+  struct MeshConnection *c;
+
+    /**
+     * Is FWD in c?
+     */
+  int fwd;
+
+    /**
+     * Channel this message belongs to, if known.
+     */
+  struct MeshChannel *ch;
+
+    /**
+     * Pointer to info stucture used as cls.
+     */
+  void *cls;
+
+    /**
+     * Type of message
+     */
+  uint16_t type;
+
+    /**
+     * Size of the message
+     */
+  size_t size;
+
+    /**
+     * Set when this message starts waiting for CORE.
+     */
+  struct GNUNET_TIME_Absolute start_waiting;
+
+    /**
+     * Function to call on sending.
+     */
+  GMP_sent callback;
+
+    /**
+     * Closure for callback.
+     */
+  void *callback_cls;
+};
+
+/**
  * Struct containing all information regarding a given peer
  */
 struct MeshPeer
@@ -822,7 +888,7 @@ path_add_to_peers (struct MeshPeerPath *p, int confirmed)
   {
     struct MeshPeer *aux;
     struct MeshPeerPath *copy;
-    
+
     aux = peer_get_short (p->peers[i]);
     copy = path_duplicate (p);
     copy->length = i + 1;
@@ -977,7 +1043,7 @@ queue_send (void *cls, size_t size, void *buf)
   }
 
   if (0 < drop_percent &&
-      GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
                 "Dropping message of type %s\n",
@@ -985,9 +1051,17 @@ queue_send (void *cls, size_t size, void *buf)
     data_size = 0;
   }
 
+  if (NULL != queue->callback)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   Calling callback\n");
+    queue->callback (queue->callback_cls,
+                    queue->c,
+                    GNUNET_TIME_absolute_get_duration (queue->start_waiting));
+  }
+
   /* Free queue, but cls was freed by send_core_* */
   ch = queue->ch;
-  queue_destroy (queue, GNUNET_NO);
+  GMP_queue_destroy (queue, GNUNET_NO);
 
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
@@ -1018,6 +1092,7 @@ queue_send (void *cls, size_t size, void *buf)
                                             queue->size,
                                             &queue_send,
                                             peer);
+      queue->start_waiting = GNUNET_TIME_absolute_get ();
     }
     else
     {
@@ -1193,12 +1268,15 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
  * @param c Connection this message belongs to (cannot be NULL).
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
+ * @param callback Function to be called once CORE has taken the message.
+ * @param callback_cls Closure for @c callback.
  */
 void
-GMP_queue_add (void *cls, uint16_t type, size_t size, 
+GMP_queue_add (void *cls, uint16_t type, size_t size,
                struct MeshConnection *c,
                struct MeshChannel *ch,
-               int fwd)
+               int fwd,
+               GMP_sent callback, void *callback_cls)
 {
   struct MeshPeerQueue *queue;
   struct MeshFlowControl *fc;
@@ -1274,6 +1352,8 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
   queue->c = c;
   queue->ch = ch;
   queue->fwd = fwd;
+  queue->callback = callback;
+  queue->callback_cls = callback_cls;
   if (100 <= priority)
   {
     struct MeshPeerQueue *copy;
@@ -1285,7 +1365,7 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
       if (copy->type == type && copy->c == c && copy->fwd == fwd)
       {
         /* Example: also a FWD ACK for connection XYZ */
-        queue_destroy (copy, GNUNET_YES);
+        GMP_queue_destroy (copy, GNUNET_YES);
       }
     }
     GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
@@ -1312,6 +1392,7 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
                                            size,
                                            &queue_send,
                                            peer);
+    queue->start_waiting = GNUNET_TIME_absolute_get ();
   }
   else
   {
@@ -1457,8 +1538,9 @@ GMP_connect (struct MeshPeer *peer)
   {
     GMD_search_stop (peer->search_h);
     peer->search_h = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "  Stopping DHT GET for peer %s\n", peer2s (peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+         "  Stopping DHT GET for peer %s\n",
+         GMP_2s (peer));
   }
 
   if (NULL == peer->search_h)

@@ -45,6 +45,17 @@ extern "C"
  */
 struct MeshPeer;
 
+/**
+ * Callback called when a queued message is sent.
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param wait Time spent waiting for core (only the time for THIS message)
+ */
+typedef void (*GMP_sent) (void *cls,
+                          struct MeshConnection *c,
+                          struct GNUNET_TIME_Relative wait);
+
 #include "gnunet-service-mesh_connection.h"
 
 
@@ -76,12 +87,15 @@ GMP_shutdown (void);
  * @param c Connection this message belongs to (cannot be NULL).
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
+ * @param callback Function to be called once CORE has taken the message.
+ * @param callback_cls Closure for @c callback.
  */
 void
 GMP_queue_add (void *cls, uint16_t type, size_t size,
                struct MeshConnection *c,
                struct MeshChannel *ch,
-               int fwd);
+               int fwd,
+               GMP_sent callback, void *callback_cls);
 
 /**
  * Set tunnel.
