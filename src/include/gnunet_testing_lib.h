@@ -95,6 +95,7 @@ struct GNUNET_TESTING_SharedService
  *          service homes; the directory will be created in a temporary location
  *          depending on the underlying OS.  This variable will be
  *          overridden with the value of the environmental variable
+ *          GNUNET_TESTING_PREFIX, if it exists.
  * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
  *          service configurations generated to allow control connections from
  *          this ip. This can either be a single ip address or a network address
@@ -124,6 +125,7 @@ GNUNET_TESTING_system_create (const char *testdir,
  *          all service homes; the directory will be created in a temporary
  *          location depending on the underlying OS.  This variable will be
  *          overridden with the value of the environmental variable
+ *          GNUNET_TESTING_PREFIX, if it exists.
  * @param trusted_ip the ip address which will be set as TRUSTED HOST in all
  *          service configurations generated to allow control connections from
  *          this ip. This can either be a single ip address or a network address
