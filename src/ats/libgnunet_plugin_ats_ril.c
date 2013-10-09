@@ -301,6 +301,7 @@ struct GAS_RIL_Handle
 
 /**
  * Estimate the current action-value for state s and action a
+ *
  * @param agent agent performing the estimation
  * @param state s
  * @param action a
@@ -323,6 +324,7 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
 /**
  * Decide whether to do exploration (i.e. taking a new action) or exploitation (i.e. taking the
  * currently estimated best action) in the current step
+ *
  * @param agent agent performing the step
  * @return yes, if exploring
  */
@@ -345,6 +347,7 @@ if  (r < RIL_EXPLORE_RATIO)
 
   /**
    * Get the index of the address in the agent's list.
+   *
    * @param agent agent handle
    * @param address address handle
    * @return the index, starting with zero
@@ -370,6 +373,7 @@ agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *addre
 
 /**
  * Gets the wrapped address from the agent's list
+ *
  * @param agent agent handle
  * @param address address handle
  * @return wrapped address
@@ -393,6 +397,7 @@ agent_address_get (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 /**
  * Gets the action, with the maximal estimated Q-value (i.e. the one currently estimated to bring the
  * most reward in the future)
+ *
  * @param agent agent performing the calculation
  * @param state the state from which to take the action
  * @return the action promising most future reward
@@ -422,6 +427,7 @@ agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
 
 /**
  * Gets any action, to explore the action space from that state
+ *
  * @param agent agent performing the calculation
  * @param state the state from which to take the action
  * @return any action
@@ -435,6 +441,7 @@ agent_get_action_explore (struct RIL_Peer_Agent *agent, double *state)
 
 /**
  * Updates the weights (i.e. coefficients) of the weight vector in matrix W for action a
+ *
  * @param agent the agent performing the update
  * @param reward the reward received for the last action
  * @param s_next the new state, the last step got the agent into
@@ -461,8 +468,9 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
  * RIL_E_REPLACE - resets each component to 1 as in replacing traces
  * RIL_E_SET - multiplies e with gamma and lambda as in the update rule
  * RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
- * @param agent
- * @param mod
+ *
+ * @param agent the agent handle
+ * @param mod the kind of modification
  */
 static void
 agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification mod)
@@ -494,7 +502,8 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
 
 /**
  * Changes the active assignment suggestion of the handler and invokes the bw_changed callback to
- * notify ATS of its new decision.
+ * notify ATS of its new decision
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param new_address the address which is to be used
@@ -579,6 +588,7 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
 
 /**
  * Allocates a state vector and fills it with the features present
+ *
  * @param solver the solver handle
  * @return pointer to the state vector
  */
@@ -622,6 +632,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 /**
  * For all networks a peer has an address in, this gets the maximum bandwidth which could
  * theoretically be available in one of the networks. This is used for bandwidth normalization.
+ *
  * @param solver the solver handle
  * @param agent the agent handle
  * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
@@ -660,6 +671,7 @@ ril_get_max_bw (struct RIL_Peer_Agent *agent, int direction_in)
 
 /**
  * Get the index of the quality-property in question
+ *
  * @param type the quality property type
  * @return the index
  */
@@ -675,7 +687,8 @@ ril_find_property_index (uint32_t type)
 }
 
 /**
- * Gets the reward of the last performed step
+ * Gets the reward for the last performed step
+ *
  * @param solver solver handle
  * @return the reward
  */
@@ -716,6 +729,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
 /**
  * Doubles the bandwidth for the active address
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise the outbound bandwidth
@@ -740,6 +754,7 @@ envi_action_bw_double (struct GAS_RIL_Handle *solver,
 /**
  * Cuts the bandwidth for the active address in half. The least amount of bandwidth suggested, is
  * the minimum bandwidth for a peer, in order to not invoke a disconnect.
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
@@ -773,6 +788,7 @@ envi_action_bw_halven (struct GAS_RIL_Handle *solver,
 
 /**
  * Increases the bandwidth by 5 times the minimum bandwidth for the active address.
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
@@ -798,6 +814,7 @@ envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
 /**
  * Decreases the bandwidth by 5 times the minimum bandwidth for the active address. The least amount
  * of bandwidth suggested, is the minimum bandwidth for a peer, in order to not invoke a disconnect.
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param direction_in if GNUNET_YES, change inbound bandwidth, otherwise change the outbound
@@ -829,6 +846,7 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
 
 /**
  * Switches to the address given by its index
+ *
  * @param solver solver handle
  * @param agent agent handle
  * @param address_index index of the address as it is saved in the agent's list, starting with zero
@@ -859,6 +877,7 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
 
 /**
  * Puts the action into effect by calling the according function
+ *
  * @param solver solver handle
  * @param action action to perform by the solver
  */
@@ -917,6 +936,7 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
  * after having done the last action a_old. It observes the new state s_next and the reward
  * received. Then the coefficient update is done according to the SARSA or Q-learning method. The
  * next action is put into effect.
+ *
  * @param agent the agent performing the step
  */
 static void
@@ -986,6 +1006,7 @@ agent_step (struct RIL_Peer_Agent *agent)
 
 /**
  * Cycles through all agents and lets the active ones do a step. Schedules the next step.
+ *
  * @param solver the solver handle
  * @param tc task context for the scheduler
  */
@@ -1011,6 +1032,7 @@ ril_periodic_step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Initialize an agent without addresses and its knowledge base
+ *
  * @param s ril solver
  * @param peer the one in question
  * @return handle to the new agent
@@ -1045,6 +1067,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
 
 /**
  * Deallocate agent
+ *
  * @param s solver handle
  * @param agent the agent to retire
  */
@@ -1065,6 +1088,7 @@ agent_die (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
 /**
  * Returns the agent for a peer
+ *
  * @param s solver handle
  * @param peer identity of the peer
  * @param create whether to create an agent if none is allocated yet
@@ -1115,9 +1139,10 @@ ril_get_network (struct GAS_RIL_Handle *s, uint32_t type)
 /**
  * Determine whether at least the minimum bandwidth is set for the network. Otherwise the network is
  * considered inactive and not used. Addresses in an inactive network are ignored.
+ *
  * @param solver solver handle
  * @param network the network type
- * @return
+ * @return whether or not the network is considered active
  */
 static int
 ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type network)
@@ -1135,6 +1160,7 @@ ril_network_is_active (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Ty
  * Cuts a slice out of a vector of elements. This is used to decrease the size of the matrix storing
  * the reward function approximation. It copies the memory, which is not cut, to the new vector,
  * frees the memory of the old vector, and redirects the pointer to the new one.
+ *
  * @param old pointer to the pointer to the first element of the vector
  * @param element_size byte size of the vector elements
  * @param hole_start the first element to cut out
@@ -1187,7 +1213,7 @@ ril_cut_from_vector (void **old,
  */
 
 /**
- * Changes the preferences for a peer in the problem
+ * Change relative preference for quality in solver
  *
  * @param solver the solver handle
  * @param peer the peer to change the preference for
@@ -1208,7 +1234,11 @@ GAS_ril_address_change_preference (void *s,
    */
 }
 
-//TODO doxygen
+/**
+ * Entry point for the plugin
+ *
+ * @param cls pointer to the 'struct GNUNET_ATS_PluginEnvironment'
+ */
 void *
 libgnunet_plugin_ats_ril_init (void *cls)
 {
@@ -1304,7 +1334,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   return solver;
 }
 
-//TODO doxygen
+/**
+ * Exit point for the plugin
+ *
+ * @param cls the solver handle
+ */
 void *
 libgnunet_plugin_ats_ril_done (void *cls)
 {
@@ -1331,7 +1365,9 @@ libgnunet_plugin_ats_ril_done (void *cls)
 }
 
 /**
- * Add a single address within a network to the solver
+ * Add a new address for a peer to the solver
+ *
+ * The address is already contained in the addresses hashmap!
  *
  * @param solver the solver Handle
  * @param address the address to add
@@ -1411,7 +1447,9 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 }
 
 /**
- * Remove an address from the solver
+ * Delete an address in the solver
+ *
+ * The address is not contained in the address hashmap anymore!
  *
  * @param solver the solver handle
  * @param address the address to remove
@@ -1523,7 +1561,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
 }
 
 /**
- * Transport properties for this address have changed
+ * Update the properties of an address in the solver
  *
  * @param solver solver handle
  * @param address the address
@@ -1548,7 +1586,7 @@ GAS_ril_address_property_changed (void *solver,
 }
 
 /**
- * Transport session for this address has changed
+ * Update the session of an address in the solver
  *
  * NOTE: values in addresses are already updated
  *
@@ -1570,7 +1608,8 @@ GAS_ril_address_session_changed (void *solver,
 }
 
 /**
- * Usage for this address has changed
+ * Notify the solver that an address is (not) actively used by transport
+ * to communicate with a remote peer
  *
  * NOTE: values in addresses are already updated
  *
@@ -1581,14 +1620,16 @@ GAS_ril_address_session_changed (void *solver,
 void
 GAS_ril_address_inuse_changed (void *solver, struct ATS_Address *address, int in_use)
 {
-  /* Nothing to do here */
+  /* Nothing to do here.
+   * Possible TODO? Future Work: Use usage as state vector
+   */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
       address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
 }
 
 /**
- * Network scope for this address has changed
+ * Notify solver that the network an address is located in has changed
  *
  * NOTE: values in addresses are already updated
  *
@@ -1639,7 +1680,7 @@ GAS_ril_address_change_network (void *solver,
 }
 
 /**
- * Get application feedback for a peer
+ * Give feedback about the current assignment
  *
  * @param solver the solver handle
  * @param application the application
@@ -1666,31 +1707,37 @@ GAS_ril_address_preference_feedback (void *solver,
 /**
  * Start a bulk operation
  *
+ * Since new calculations of the assignment are not triggered by a change of preferences, as it
+ * happens in the proportional and the mlp solver, there is no need to block this solver.
+ *
  * @param solver the solver
  */
 void
 GAS_ril_bulk_start (void *solver)
 {
-  /*
-   * Since new calculations of the assignment are not triggered by a change of preferences, as it
-   * happens in the proportional and the mlp solver, there is no need to block this solver.
-   */
+  /* nop */
 }
 
 /**
  * Bulk operation done
+ *
+ * Since new calculations of the assignment are not triggered by a change of preferences, as it
+ * happens in the proportional and the mlp solver, there is no need to block this solver.
+ *
+ * @param solver the solver handle
  */
 void
 GAS_ril_bulk_stop (void *solver)
 {
-  /*
-   * Since new calculations of the assignment are not triggered by a change of preferences, as it
-   * happens in the proportional and the mlp solver, there is no need to block this solver.
-   */
+  /* nop */
 }
 
 /**
- * Get the preferred address for a specific peer
+ * Tell solver to notify ATS if the address to use changes for a specific
+ * peer using the bandwidth changed callback
+ *
+ * The solver must only notify about changes for peers with pending address
+ * requests!
  *
  * @param solver the solver handle
  * @param peer the identity of the peer
@@ -1728,7 +1775,10 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
 }
 
 /**
- * Stop notifying about address and bandwidth changes for this peer
+ * Tell solver stop notifying ATS about changes for this peers
+ *
+ * The solver must only notify about changes for peers with pending address
+ * requests!
  *
  * @param solver the solver handle
  * @param peer the peer
