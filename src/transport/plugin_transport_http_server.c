@@ -1960,10 +1960,10 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
 
   if ((plugin->key == NULL) || (plugin->cert == NULL))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     _
-                     ("No usable TLS certificate found and creating one failed!\n"),
-                     "transport-https");
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
+                     plugin->name,
+                     _("No usable TLS certificate found and creating one at `%s/%s' failed!\n"),
+                     key_file, cert_file);
     GNUNET_free (key_file);
     GNUNET_free (cert_file);
 
