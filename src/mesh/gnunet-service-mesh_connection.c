@@ -41,7 +41,6 @@
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
 #define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
-#define MESH_RETRANSMIT_MARGIN  4
 
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
 

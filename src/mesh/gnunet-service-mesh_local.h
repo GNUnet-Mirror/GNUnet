@@ -83,6 +83,30 @@ struct MeshChannel *
 GML_channel_get (struct MeshClient *client, uint32_t chid);
 
 /**
+ * Add a channel to a client
+ *
+ * @param client Client.
+ * @param chid Channel ID.
+ * @param ch Channel.
+ */
+void
+GML_channel_add (struct MeshClient *client,
+                 uint32_t chid,
+                 struct MeshChannel *ch);
+
+/**
+ * Remove a channel from a client
+ *
+ * @param client Client.
+ * @param chid Channel ID.
+ * @param ch Channel.
+ */
+void
+GML_channel_remove (struct MeshClient *client,
+                    uint32_t chid,
+                    struct MeshChannel *ch);
+
+/**
  * Check if client has registered with the service and has not disconnected
  *
  * @param client the client to check
@@ -154,6 +178,16 @@ void
 GML_send_data (struct MeshChannel *ch,
                const struct GNUNET_MESH_Data *msg,
                struct MeshClient *c, MESH_ChannelNumber id);
+
+/**
+ * Get the static string to represent a client.
+ *
+ * @param c Client.
+ *
+ * @return Static string for the client.
+ */
+const char *
+GML_2s (const struct MeshClient *c);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

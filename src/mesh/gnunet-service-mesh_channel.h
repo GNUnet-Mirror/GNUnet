@@ -141,10 +141,9 @@ GMCH_send_create (struct MeshChannel *ch);
  * Notify a client that the channel is no longer valid.
  *
  * @param ch Channel that is destroyed.
- * @param fwd Forward notification (owner->dest)?
  */
 void
-GMCH_send_destroy (struct MeshChannel *ch, int fwd);
+GMCH_send_destroy (struct MeshChannel *ch);
 
 
 /**

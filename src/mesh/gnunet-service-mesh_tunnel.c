@@ -224,33 +224,6 @@ GMT_state2s (enum MeshTunnelState s)
   }
 }
 
-
-/**
- * Search for a channel by global ID using full PeerIdentities.
- *
- * @param t Tunnel containing the channel.
- * @param chid Public channel number.
- *
- * @return channel handler, NULL if doesn't exist
- */
-static struct MeshChannel *
-get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
-{
-  struct MeshTChannel *iter;
-
-  if (NULL == t)
-    return NULL;
-
-  for (iter = t->channel_head; NULL != iter; iter = iter->next)
-  {
-    if (GMCH_get_id (iter->ch) == chid)
-      break;
-  }
-
-  return NULL == iter ? NULL : iter->ch;
-}
-
-
 /**
  * Pick a connection on which send the next data message.
  *
@@ -314,7 +287,7 @@ handle_data (struct MeshTunnel3 *t,
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
 
   /* Check channel */
-  ch = get_channel (t, ntohl (msg->chid));
+  ch = GMT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel",
@@ -345,7 +318,7 @@ handle_data_ack (struct MeshTunnel3 *t,
   }
 
   /* Check channel */
-  ch = get_channel (t, ntohl (msg->chid));
+  ch = GMT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data ack on unknown channel",
@@ -376,7 +349,7 @@ handle_ch_create (struct MeshTunnel3 *t,
   }
 
   /* Check channel */
-  ch = get_channel (t, ntohl (msg->chid));
+  ch = GMT_get_channel (t, ntohl (msg->chid));
   if (NULL != ch)
   {
     /* Probably a retransmission, safe to ignore */
@@ -409,7 +382,7 @@ handle_ch_ack (struct MeshTunnel3 *t,
   }
 
   /* Check channel */
-  ch = get_channel (t, ntohl (msg->chid));
+  ch = GMT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# channel ack on unknown channel",
@@ -439,7 +412,7 @@ handle_ch_destroy (struct MeshTunnel3 *t,
   }
 
   /* Check channel */
-  ch = get_channel (t, ntohl (msg->chid));
+  ch = GMT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     /* Probably a retransmission, safe to ignore */
@@ -711,6 +684,74 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 
 
 /**
+ * Add a channel to a tunnel.
+ *
+ * @param t Tunnel.
+ * @param ch Channel.
+ */
+void
+GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
+{
+  struct MeshTChannel *aux;
+
+  for (aux = t->channel_head; aux != NULL; aux = aux->next)
+    if (aux->ch == ch)
+      return;
+
+  aux = GNUNET_new (struct MeshTChannel);
+  aux->ch = ch;
+  GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
+}
+
+
+/**
+ * Remove a channel from a tunnel.
+ *
+ * @param t Tunnel.
+ * @param ch Channel.
+ */
+void
+GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
+{
+  struct MeshTChannel *aux;
+
+  for (aux = t->channel_head; aux != NULL; aux = aux->next)
+    if (aux->ch == ch)
+    {
+      GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
+      GNUNET_free (aux);
+      return;
+    }
+}
+
+
+/**
+ * Search for a channel by global ID.
+ *
+ * @param t Tunnel containing the channel.
+ * @param chid Public channel number.
+ *
+ * @return channel handler, NULL if doesn't exist
+ */
+struct MeshChannel *
+GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
+{
+  struct MeshTChannel *iter;
+
+  if (NULL == t)
+    return NULL;
+
+  for (iter = t->channel_head; NULL != iter; iter = iter->next)
+  {
+    if (GMCH_get_id (iter->ch) == chid)
+      break;
+  }
+
+  return NULL == iter ? NULL : iter->ch;
+}
+
+
+/**
  * Tunnel is empty: destroy it.
  *
  * Notifies all connections about the destruction.
@@ -874,6 +915,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 /**
  * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Encrypt data with the tunnel key.
+ * Make static?
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the encrypted data.
@@ -894,6 +936,7 @@ GMT_encrypt (struct MeshTunnel3 *t,
 /**
  * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Decrypt data with the tunnel key.
+ * Make static?
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
@@ -1016,8 +1059,49 @@ GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
   return buffer;
 }
 
+
 /**
- * Sends an already built message on a tunnel, choosing the best connection.
+ * Get the tunnel's destination.
+ *
+ * @param t Tunnel.
+ *
+ * @return ID of the destination peer.
+ */
+const struct GNUNET_PeerIdentity *
+GMT_get_destination (struct MeshTunnel3 *t)
+{
+  return GMP_get_id (t->peer);
+}
+
+
+
+/**
+ * Get the tunnel's next free Channel ID.
+ *
+ * @param t Tunnel.
+ *
+ * @return ID of a channel free to use.
+ */
+MESH_ChannelNumber
+GMT_get_next_chid (struct MeshTunnel3 *t)
+{
+  MESH_ChannelNumber chid;
+
+  while (NULL != GMT_get_channel (t, t->next_chid))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", t->next_chid);
+    t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+  }
+  chid = t->next_chid;
+  t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+
+  return chid;
+}
+
+
+/**
+ * Sends an already built message on a tunnel, encrypting it and
+ * choosing the best connection.
  *
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
@@ -1025,22 +1109,33 @@ GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
  * @param fwd Is this a fwd message?
  */
 void
-GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
+GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshTunnel3 *t,
                            struct MeshChannel *ch,
                            int fwd)
 {
   struct MeshConnection *c;
+  struct GNUNET_MESH_Encrypted *msg;
+  size_t size = ntohs (message->size);
+  char *cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
+  uint64_t iv;
   uint16_t type;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n", GMP_2s (t->peer));
+
+  iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
+  msg = (struct GNUNET_MESH_Encrypted *) cbuf;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
+  msg->iv = GNUNET_htonll (iv);
+  GMT_encrypt (t, &msg[1], message, size, iv, fwd);
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
   {
     GNUNET_break (GNUNET_YES == t->destroy);
     return;
   }
-  type = ntohs (msg->header.type);
+  type = ntohs (message->type);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -1058,4 +1153,31 @@ GMT_send_prebuilt_message (struct GNUNET_MESH_Encrypted *msg,
   msg->reserved = 0;
 
   GMC_send_prebuilt_message (&msg->header, c, ch, fwd);
+}
+
+/**
+ * Is the tunnel directed towards the local peer?
+ *
+ * @param t Tunnel.
+ *
+ * @return GNUNET_YES if it is loopback.
+ */
+int
+GMT_is_loopback (const struct MeshTunnel3 *t)
+{
+  return (my_short_id == GMP_get_short_id(t->peer));
+}
+
+
+/**
+ * Get the static string for the peer this tunnel is directed.
+ *
+ * @param t Tunnel.
+ *
+ * @return Static string the destination peer's ID.
+ */
+const char *
+GMT_2s (const struct MeshTunnel3 *t)
+{
+  return GMP_2s (t->peer);
 }

@@ -848,6 +848,7 @@ GML_shutdown (void)
   }
 }
 
+
 /**
  * Get a chennel from a client
  *
@@ -868,6 +869,49 @@ GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
   if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
     return GNUNET_CONTAINER_multihashmap32_get (c->incoming_channels, chid);
   return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
+}
+
+
+/**
+ * Add a channel to a client
+ *
+ * @param client Client.
+ * @param chid Channel ID.
+ * @param ch Channel.
+ */
+void
+GML_channel_add (struct MeshClient *client,
+                 uint32_t chid,
+                 struct MeshChannel *ch)
+{
+  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+    GNUNET_CONTAINER_multihashmap32_put (client->incoming_channels, chid, ch,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+    GNUNET_CONTAINER_multihashmap32_put (client->own_channels, chid, ch,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  else
+    GNUNET_break (0);
+}
+
+/**
+ * Remove a channel from a client
+ *
+ * @param client Client.
+ * @param chid Channel ID.
+ * @param ch Channel.
+ */
+void
+GML_channel_remove (struct MeshClient *client,
+                    uint32_t chid,
+                    struct MeshChannel *ch)
+{
+  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+    GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels, chid, ch);
+  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+    GNUNET_CONTAINER_multihashmap32_remove (c->own_channels, chid, ch);
+  else
+    GNUNET_break (0);
 }
 
 /**
@@ -1056,4 +1100,18 @@ GML_send_data (struct MeshClient *c,
 }
 
 
+/**
+ * Get the static string to represent a client.
+ *
+ * @param c Client.
+ *
+ * @return Static string for the client.
+ */
+const char *
+GML_2s (const struct MeshClient *c)
+{
+  static char buf[32];
 
+  sprintf (buf, "%u", c->id);
+  return buf;
+}

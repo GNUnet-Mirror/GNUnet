@@ -153,7 +153,6 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnelState state);
 void
 GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
 
-
 /**
  * Remove a connection from a tunnel.
  *
@@ -162,6 +161,36 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
  */
 void
 GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
+
+/**
+ * Add a channel to a tunnel.
+ *
+ * @param t Tunnel.
+ * @param ch Channel.
+ */
+void
+GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
+
+/**
+ * Remove a channel from a tunnel.
+ *
+ * @param t Tunnel.
+ * @param ch Channel.
+ */
+void
+GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
+
+/**
+ * Search for a channel by global ID.
+ *
+ * @param t Tunnel containing the channel.
+ * @param chid Public channel number.
+ *
+ * @return channel handler, NULL if doesn't exist
+ */
+struct MeshChannel *
+GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
+
 
 /**
  * Cache a message to be sent once tunnel is online.
@@ -226,6 +255,61 @@ GMT_get_state (struct MeshTunnel3 *t);
  */
 unsigned int
 GMT_get_buffer (struct MeshTunnel3 *t, int fwd);
+
+/**
+ * Get the tunnel's destination.
+ *
+ * @param t Tunnel.
+ *
+ * @return ID of the destination peer.
+ */
+const struct GNUNET_PeerIdentity *
+GMT_get_destination (struct MeshTunnel3 *t);
+
+/**
+ * Get the tunnel's next free Channel ID.
+ *
+ * @param t Tunnel.
+ *
+ * @return ID of a channel free to use.
+ */
+MESH_ChannelNumber
+GMT_get_next_chid (struct MeshTunnel3 *t);
+
+/**
+ * Sends an already built message on a tunnel, encrypting it and
+ * choosing the best connection.
+ *
+ * @param message Message to send. Function modifies it.
+ * @param t Tunnel on which this message is transmitted.
+ * @param ch Channel on which this message is transmitted.
+ * @param fwd Is this a fwd message?
+ */
+void
+GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           struct MeshTunnel3 *t,
+                           struct MeshChannel *ch,
+                           int fwd);
+
+/**
+ * Is the tunnel directed towards the local peer?
+ *
+ * @param t Tunnel.
+ *
+ * @return GNUNET_YES if it is loopback.
+ */
+int
+GMT_is_loopback (const struct MeshTunnel3 *t);
+
+/**
+ * Get the static string for the peer this tunnel is directed.
+ *
+ * @param t Tunnel.
+ *
+ * @return Static string the destination peer's ID.
+ */
+const char *
+GMT_2s (const struct MeshTunnel3 *t);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
