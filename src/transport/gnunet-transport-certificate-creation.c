@@ -26,6 +26,29 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#ifndef WINDOWS
+/**
+ * Turn the given file descriptor in to '/dev/null'.
+ *
+ * @param fd fd to bind to /dev/null
+ * @param flags flags to use (O_RDONLY or O_WRONLY)
+ */
+static void
+make_dev_zero (int fd,
+	       int flags)
+{
+  int z;
+
+  GNUNET_assert (0 == close (fd));
+  z = open ("/dev/null", flags);
+  GNUNET_assert (-1 != z);
+  if (z == fd)
+    return;
+  dup2 (z, fd);
+  GNUNET_assert (0 == close (z));
+}
+#endif
+
 
 static void
 removecerts (const char *file1,
@@ -62,7 +85,12 @@ main (int argc, char **argv)
   removecerts (argv[1], argv[2]);
   (void) GNUNET_DISK_directory_create_for_file (argv[1]);
   (void) GNUNET_DISK_directory_create_for_file (argv[2]);
-  (void) close (2);                    /* eliminate stderr */
+  /* eliminate stderr */
+#if WINDOWS
+  (void) close (2);
+#else
+  make_dev_zero (2, O_WRONLY);
+#endif
   /* Create RSA Private Key */
   /* openssl genrsa -out $1 1024 2> /dev/null */
   openssl =
