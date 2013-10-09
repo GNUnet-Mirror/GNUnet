@@ -60,8 +60,8 @@ main (int argc, char **argv)
     return 1;
   }
   removecerts (argv[1], argv[2]);
-  GNUNET_DISK_directory_create_for_file (argv[1]);
-  GNUNET_DISK_directory_create_for_file (argv[2]);
+  (void) GNUNET_DISK_directory_create_for_file (argv[1]);
+  (void) GNUNET_DISK_directory_create_for_file (argv[2]);
   (void) close (2);                    /* eliminate stderr */
   /* Create RSA Private Key */
   /* openssl genrsa -out $1 1024 2> /dev/null */
