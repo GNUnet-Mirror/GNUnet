@@ -299,7 +299,7 @@ void
 udp_broadcast_receive ();
 
 void
-setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct sockaddr_in *serverAddrv4);
+setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *server_addrv6, struct sockaddr_in *server_addrv4);
 
 void
 stop_broadcast (struct Plugin *plugin);

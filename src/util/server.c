@@ -433,24 +433,24 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Create and initialize a listen socket for the server.
  *
- * @param serverAddr address to listen on
+ * @param server_addr address to listen on
  * @param socklen length of address
  * @return NULL on error, otherwise the listen socket
  */
 static struct GNUNET_NETWORK_Handle *
-open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
+open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
 {
   struct GNUNET_NETWORK_Handle *sock;
   uint16_t port;
   int eno;
 
-  switch (serverAddr->sa_family)
+  switch (server_addr->sa_family)
   {
   case AF_INET:
-    port = ntohs (((const struct sockaddr_in *) serverAddr)->sin_port);
+    port = ntohs (((const struct sockaddr_in *) server_addr)->sin_port);
     break;
   case AF_INET6:
-    port = ntohs (((const struct sockaddr_in6 *) serverAddr)->sin6_port);
+    port = ntohs (((const struct sockaddr_in6 *) server_addr)->sin6_port);
     break;
   case AF_UNIX:
     port = 0;
@@ -460,7 +460,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     port = 0;
     break;
   }
-  sock = GNUNET_NETWORK_socket_create (serverAddr->sa_family, SOCK_STREAM, 0);
+  sock = GNUNET_NETWORK_socket_create (server_addr->sa_family, SOCK_STREAM, 0);
   if (NULL == sock)
   {
     LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "socket");
@@ -468,7 +468,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
     return NULL;
   }
   /* bind the socket */
-  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (sock, serverAddr, socklen))
+  if (GNUNET_OK != GNUNET_NETWORK_socket_bind (sock, server_addr, socklen))
   {
     eno = errno;
     if (EADDRINUSE != errno)
@@ -481,7 +481,7 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
       if (0 != port)
         LOG (GNUNET_ERROR_TYPE_ERROR, _("`%s' failed for port %d (%s).\n"),
              "bind", port,
-             (AF_INET == serverAddr->sa_family) ? "IPv4" : "IPv6");
+             (AF_INET == server_addr->sa_family) ? "IPv4" : "IPv6");
       eno = 0;
     }
     else
@@ -490,10 +490,10 @@ open_listen_socket (const struct sockaddr *serverAddr, socklen_t socklen)
         LOG (GNUNET_ERROR_TYPE_WARNING,
              _("`%s' failed for port %d (%s): address already in use\n"),
              "bind", port,
-             (AF_INET == serverAddr->sa_family) ? "IPv4" : "IPv6");
-      else if (AF_UNIX == serverAddr->sa_family)
+             (AF_INET == server_addr->sa_family) ? "IPv4" : "IPv6");
+      else if (AF_UNIX == server_addr->sa_family)
       {
-	const struct sockaddr_un *un = (const struct sockaddr_un *) serverAddr;
+	const struct sockaddr_un *un = (const struct sockaddr_un *) server_addr;
 	unsigned int off = 0;
 
 	if ('\0' == un->sun_path[0])
@@ -560,8 +560,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  *
  * @param access function for access control
  * @param access_cls closure for access
- * @param serverAddr address to listen on (including port), NULL terminated array
- * @param socklen length of serverAddr
+ * @param server_addr address to listen on (including port), NULL terminated array
+ * @param socklen length of server_addr
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if YES, connections sending messages of unknown type
  *        will be closed
@@ -570,7 +570,7 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
-                      struct sockaddr *const *serverAddr,
+                      struct sockaddr *const *server_addr,
                       const socklen_t * socklen,
                       struct GNUNET_TIME_Relative idle_timeout,
                       int require_found)
@@ -582,19 +582,19 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
   int seen;
 
   i = 0;
-  while (NULL != serverAddr[i])
+  while (NULL != server_addr[i])
     i++;
   if (i > 0)
   {
     lsocks = GNUNET_malloc (sizeof (struct GNUNET_NETWORK_Handle *) * (i + 1));
     i = 0;
     j = 0;
-    while (NULL != serverAddr[i])
+    while (NULL != server_addr[i])
     {
       seen = 0;
       for (k=0;k<i;k++)
 	if ( (socklen[k] == socklen[i]) &&
-	     (0 == memcmp (serverAddr[k], serverAddr[i], socklen[i])) )
+	     (0 == memcmp (server_addr[k], server_addr[i], socklen[i])) )
 	{
 	  seen = 1;
 	  break;
@@ -605,7 +605,7 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 	i++;
 	continue;
       }
-      lsocks[j] = open_listen_socket (serverAddr[i], socklen[i]);
+      lsocks[j] = open_listen_socket (server_addr[i], socklen[i]);
       if (NULL != lsocks[j])
         j++;
       i++;

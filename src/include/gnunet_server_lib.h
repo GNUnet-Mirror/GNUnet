@@ -140,8 +140,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  *
  * @param access function for access control
  * @param access_cls closure for @a access
- * @param serverAddr address toes listen on (including port), NULL terminated array
- * @param socklen lengths of respective @a serverAddr
+ * @param server_addr address toes listen on (including port), NULL terminated array
+ * @param socklen lengths of respective @a server_addr
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if #GNUNET_YES, connections sending messages of unknown type
  *        will be closed
@@ -150,7 +150,7 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  */
 struct GNUNET_SERVER_Handle *
 GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
-                      struct sockaddr *const *serverAddr,
+                      struct sockaddr *const *server_addr,
                       const socklen_t * socklen,
                       struct GNUNET_TIME_Relative idle_timeout,
                       int require_found);

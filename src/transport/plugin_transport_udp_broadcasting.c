@@ -391,7 +391,7 @@ iface_proc (void *cls, const char *name, int isDefault,
 
 
 void
-setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struct sockaddr_in *serverAddrv4)
+setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *server_addrv6, struct sockaddr_in *server_addrv4)
 {
   const struct GNUNET_MessageHeader *hello;
   hello = plugin->env->get_our_hello ();
@@ -417,7 +417,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *serverAddrv6, struc
       LOG (GNUNET_ERROR_TYPE_WARNING,
            _
            ("Failed to set IPv4 broadcast option for broadcast socket on port %d\n"),
-           ntohs (serverAddrv4->sin_port));
+           ntohs (server_addrv4->sin_port));
     }
     else
     {
