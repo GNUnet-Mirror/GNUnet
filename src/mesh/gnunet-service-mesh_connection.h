@@ -39,10 +39,6 @@ extern "C"
 
 #include "gnunet_util_lib.h"
 
-#include "mesh_path.h"
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_peer.h"
-
 
 /**
  * All the states a connection can be in.
@@ -75,6 +71,10 @@ enum MeshConnectionState
  * Struct containing all information regarding a connection to a peer.
  */
 struct MeshConnection;
+
+#include "mesh_path.h"
+#include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-mesh_peer.h"
 
 
 

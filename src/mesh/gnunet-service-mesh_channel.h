@@ -40,12 +40,14 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#include "gnunet-service-mesh_tunnel.h"
-
 /**
  * Struct containing all information regarding a channel to a remote client.
  */
 struct MeshChannel;
+
+
+#include "gnunet-service-mesh_tunnel.h"
+
 
 /**
  * Get channel ID.

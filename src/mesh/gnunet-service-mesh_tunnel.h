@@ -40,9 +40,6 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_connection.h"
-
 /**
  * All the states a tunnel can be in.
  */
@@ -78,6 +75,11 @@ enum MeshTunnelState
  * Struct containing all information regarding a given peer
  */
 struct MeshTunnel3;
+
+
+#include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-mesh_connection.h"
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/

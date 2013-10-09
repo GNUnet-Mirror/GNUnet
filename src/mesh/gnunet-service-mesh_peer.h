@@ -40,12 +40,12 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#include "gnunet-service-mesh_connection.h"
-
 /**
  * Struct containing all information regarding a given peer
  */
 struct MeshPeer;
+
+#include "gnunet-service-mesh_connection.h"
 
 
 /******************************************************************************/
@@ -78,7 +78,7 @@ GMP_shutdown (void);
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  */
 void
-GMP_queue_add (void *cls, uint16_t type, size_t size, 
+GMP_queue_add (void *cls, uint16_t type, size_t size,
                struct MeshConnection *c,
                struct MeshChannel *ch,
                int fwd);
