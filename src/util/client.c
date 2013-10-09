@@ -251,7 +251,7 @@ try_unixpath (const char *service_name,
   struct sockaddr_un s_un;
 
   unixpath = NULL;
-  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) &&
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "UNIXPATH", &unixpath)) &&
       (0 < strlen (unixpath)))
   {
     /* We have a non-NULL unixpath, need to validate it */
@@ -299,7 +299,7 @@ test_service_configuration (const char *service_name,
 #if AF_UNIX
   char *unixpath = NULL;
 
-  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH", &unixpath)) &&
+  if ((GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "UNIXPATH", &unixpath)) &&
       (0 < strlen (unixpath)))
     ret = GNUNET_OK;
   GNUNET_free_non_null (unixpath);
@@ -726,7 +726,7 @@ service_test_report (struct GNUNET_CLIENT_TestHandle *th,
 {
   th->result = result;
   th->task = GNUNET_SCHEDULER_add_now (&report_result,
-				       th);				
+				       th);
 }
 
 

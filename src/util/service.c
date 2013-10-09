@@ -973,7 +973,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg, service_name, "UNIXPATH")) &&
       (GNUNET_OK ==
-       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "UNIXPATH",
+       GNUNET_CONFIGURATION_get_value_filename (cfg, service_name, "UNIXPATH",
                                               &unixpath)) &&
       (0 < strlen (unixpath)))
   {
