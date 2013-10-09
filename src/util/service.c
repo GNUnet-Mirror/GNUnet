@@ -1468,12 +1468,14 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     sctx->ret = GNUNET_SYSERR;
     return;
   }
+#ifndef WINDOWS
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
       if (AF_UNIX == sctx->addrs[i]->sa_family)
         GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
                                      sctx->match_uid,
                                      sctx->match_gid);
+#endif
 
 
   if (0 == (sctx->options & GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN))
@@ -1875,12 +1877,14 @@ GNUNET_SERVICE_start (const char *service_name,
     GNUNET_SERVICE_stop (sctx);
     return NULL;
   }
+#ifndef WINDOWS
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
       if (AF_UNIX == sctx->addrs[i]->sa_family)
         GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
                                      sctx->match_uid,
                                      sctx->match_gid);
+#endif
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
