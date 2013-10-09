@@ -1541,6 +1541,34 @@ GMP_add_connection (struct MeshPeer *peer,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 }
 
+
+int
+GMP_remove_connection (struct MeshPeer *peer,
+                       const struct MeshConnection *c)
+{
+  if (NULL == peer || NULL == peer->connections)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
+                                               GMC_get_id (c),
+                                               c);
+}
+
+/**
+ * Get the Full ID of a peer.
+ *
+ * @param peer Peer to get from.
+ *
+ * @return Full ID of peer.
+ */
+struct GNUNET_PeerIdentity *
+GMP_get_id (const struct MeshPeer *peer)
+{
+  return GNUNET_PEER_resolve2 (peer->id);
+}
+
 /**
  * Get the static string for a peer ID.
  *

@@ -40,6 +40,8 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet-service-mesh_connection.h"
+
 /**
  * Struct containing all information regarding a given peer
  */
@@ -114,6 +116,19 @@ GMP_is_neighbor (const struct MeshPeer *peer);
  */
 int
 GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
+
+int
+GMP_remove_connection (struct MeshPeer *peer, struct MeshConnection *c);
+
+/**
+ * Get the Full ID of a peer.
+ *
+ * @param peer Peer to get from.
+ *
+ * @return Full ID of peer.
+ */
+struct GNUNET_PeerIdentity *
+GMP_get_id (const struct MeshPeer *peer);
 
 /**
  * Get the static string for a peer ID.

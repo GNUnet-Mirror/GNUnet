@@ -31,6 +31,7 @@
 
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-mesh_tunnel.h"
 #include "mesh_protocol_enc.h"
 #include "mesh_path.h"
 
@@ -312,7 +313,6 @@ GMC_state2s (enum MeshConnectionState s)
       return "MESH_CONNECTION_STATE_ERROR";
   }
 }
-
 
 
 /**
@@ -726,8 +726,6 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
 }
 
 
-
-
 /**
  * Function called if a connection has been stalled for a while,
  * possibly due to a missed ACK. Poll the neighbor about its ACK status.
@@ -948,6 +946,23 @@ register_neighbors (struct MeshConnection *c)
     return NULL;
   }
   GMP_add_connection (peer, c);
+}
+
+
+/**
+ * 
+ */
+static void
+unregister_neighbors (struct MeshConnection *c)
+{
+  struct MeshPeer *peer;
+
+  peer = connection_get_next_hop (c);
+  GMP_remove_connection (peer, c);
+
+  peer = connection_get_prev_hop (c);
+  GMP_remove_connection (peer, c);
+
 }
 
 
@@ -1647,7 +1662,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
 
   GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  send_prebuilt_message_connection (message, c, NULL, fwd);
+  GMC_send_prebuilt_message (message, c, NULL, fwd);
 
   return GNUNET_OK;
 }
@@ -1672,17 +1687,17 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   if (NULL == c || GMC_is_terminal (c, fwd))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
-    buffer = tunnel_get_buffer (NULL == c ? ch->t : c->t, fwd);
+    buffer = GMT_get_buffer (NULL == c ? ch->t : c->t, fwd);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from one connection\n");
-    buffer = connection_get_buffer (c, fwd);
+    buffer = GMC_get_buffer (c, fwd);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
-  if ( (NULL != ch && channel_is_origin (ch, fwd)) ||
-       (NULL != c && connection_is_origin (c, fwd)) )
+  if ( (NULL != ch && GMCH_is_origin (ch, fwd)) ||
+       (NULL != c && GMC_is_origin (c, fwd)) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
     if (0 < buffer)
@@ -1763,7 +1778,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
          unsigned int own_pos)
 {
   struct MeshConnection *c;
-  unsigned int own_pos;
 
   c = GNUNET_new (struct MeshConnection);
   c->id = *cid;
@@ -1795,7 +1809,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
 }
 
 
-static void
+void
 GMC_destroy (struct MeshConnection *c)
 {
   struct MeshPeer *peer;
@@ -1803,9 +1817,8 @@ GMC_destroy (struct MeshConnection *c)
   if (NULL == c)
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s[%X]\n",
-              peer2s (c->t->peer),
-              c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s\n",
+       GNUNET_h2s (&c->id));
 
   /* Cancel all traffic */
   connection_cancel_queues (c, GNUNET_YES);
@@ -1817,17 +1830,12 @@ GMC_destroy (struct MeshConnection *c)
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
 
-  /* Deregister from neighbors */
-  peer = connection_get_next_hop (c);
-  if (NULL != peer && NULL != peer->connections)
-    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
-  peer = connection_get_prev_hop (c);
-  if (NULL != peer && NULL != peer->connections)
-    GNUNET_CONTAINER_multihashmap_remove (peer->connections, &c->id, c);
+  /* Unregister from neighbors */
+  unregister_neighbors (c);
 
   /* Delete */
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
-  GNUNET_CONTAINER_DLL_remove (c->t->connection_head, c->t->connection_tail, c);
+  GMT_remove_connection (c->t, c);
   GNUNET_free (c);
 }
 
@@ -1909,7 +1917,6 @@ GMC_notify_broken (struct MeshConnection *c,
                    struct MeshPeer *peer,
                    struct GNUNET_PeerIdentity *my_full_id)
 {
-  struct MeshConnection *c = value;
   struct GNUNET_MESH_ConnectionBroken msg;
   int fwd;
 
@@ -1920,18 +1927,18 @@ GMC_notify_broken (struct MeshConnection *c,
   {
     /* Local shutdown, no one to notify about this. */
     GMC_destroy (c);
-    return GNUNET_YES;
+    return;
   }
 
   msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
   msg.cid = c->id;
   msg.peer1 = *my_full_id;
-  msg.peer2 = *GNUNET_PEER_resolve2 (peer->id);
+  msg.peer2 = *GMP_get_id (peer);
   GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
   c->destroy = GNUNET_YES;
 
-  return GNUNET_YES;
+  return;
 }
 
 
@@ -2084,9 +2091,8 @@ GMC_send_destroy (struct MeshConnection *c)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
   msg.cid = c->id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending connection destroy for connection %s[%X]\n",
-              peer2s (c->t->peer),
-              c->id);
+              "  sending connection destroy for connection %s\n",
+              GNUNET_h2s (&c->id));
 
   if (GNUNET_NO == GMC_is_terminal (c, GNUNET_YES))
     GMC_send_prebuilt_message (&msg.header, c, NULL, GNUNET_YES);

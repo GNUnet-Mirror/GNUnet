@@ -41,7 +41,7 @@ extern "C"
 #include "gnunet_util_lib.h"
 
 #include "gnunet-service-mesh_channel.h"
-
+#include "gnunet-service-mesh_connection.h"
 
 /**
  * All the states a tunnel can be in.
@@ -142,6 +142,24 @@ GMT_destroy (struct MeshTunnel3 *t);
 void
 GMT_change_state (struct MeshTunnel3* t, enum MeshTunnelState state);
 
+/**
+ * Add a connection to a tunnel.
+ *
+ * @param t Tunnel.
+ * @param c Connection.
+ */
+void
+GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
+
+
+/**
+ * Remove a connection from a tunnel.
+ *
+ * @param t Tunnel.
+ * @param c Connection.
+ */
+void
+GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
 
 /**
  * Cache a message to be sent once tunnel is online.
@@ -176,6 +194,17 @@ GMT_count_connections (struct MeshTunnel3 *t);
  */
 unsigned int
 GMT_count_channels (struct MeshTunnel3 *t);
+
+/**
+ * Get the total buffer space for a tunnel.
+ *
+ * @param t Tunnel.
+ * @param fwd Is this for FWD traffic?
+ *
+ * @return Buffer space offered by all connections in the tunnel.
+ */
+unsigned int
+GMT_get_buffer (struct MeshTunnel3 *t, int fwd);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

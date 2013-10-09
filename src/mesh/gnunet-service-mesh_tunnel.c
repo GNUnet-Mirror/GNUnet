@@ -290,58 +290,6 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 
 
 /**
- * Get the total buffer space for a tunnel.
- *
- * @param t Tunnel.
- * @param fwd Is this for FWD traffic?
- *
- * @return Buffer space offered by all connections in the tunnel.
- */
-static unsigned int
-tunnel_get_buffer (struct MeshTunnel3 *t, int fwd)
-{
-  struct MeshTConnection *iter;
-  unsigned int buffer;
-
-  iter = t->connection_head;
-  buffer = 0;
-
-  /* If terminal, return biggest channel buffer */
-  if (NULL == iter || GMC_is_terminal (iter->c, fwd))
-  {
-    struct MeshTChannel *iter_ch;
-    unsigned int ch_buf;
-
-    if (NULL == t->channel_head)
-      return 64;
-
-    for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = iter_ch->next)
-    {
-      ch_buf = GMCH_get_buffer (iter_ch->ch, fwd);
-      if (ch_buf > buffer)
-        buffer = ch_buf;
-    }
-    return buffer;
-  }
-
-  /* If not terminal, return sum of connection buffers */
-  while (NULL != iter)
-  {
-    if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
-    {
-      iter = iter->next;
-      continue;
-    }
-
-    buffer += GMC_get_buffer (iter->c, fwd);
-    iter = iter->next;
-  }
-
-  return buffer;
-}
-
-
-/**
  * Send all cached messages that we can, tunnel is online.
  *
  * @param t Tunnel that holds the messages.
@@ -357,7 +305,7 @@ tunnel_send_queued_data (struct MeshTunnel3 *t, int fwd)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "tunnel_send_queued_data on tunnel %s\n",
               GMP_2s (t->peer));
-  room = tunnel_get_buffer (t, fwd);
+  room = GMT_get_buffer (t, fwd);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
@@ -741,6 +689,27 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 
 
 /**
+ * Remove a connection from a tunnel.
+ *
+ * @param t Tunnel.
+ * @param c Connection.
+ */
+void
+GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
+{
+  struct MeshTConnection *aux;
+
+  for (aux = t->connection_head; aux != NULL; aux = aux->next)
+    if (aux->c == c)
+    {
+      GNUNET_CONTAINER_DLL_remove (t->connection_head, t->connection_tail, aux);
+      GNUNET_free (aux);
+      return;
+    }
+}
+
+
+/**
  * Tunnel is empty: destroy it.
  *
  * Notifies all connections about the destruction.
@@ -981,6 +950,57 @@ GMT_count_channels (struct MeshTunnel3 *t)
   return count;
 }
 
+
+/**
+ * Get the total buffer space for a tunnel.
+ *
+ * @param t Tunnel.
+ * @param fwd Is this for FWD traffic?
+ *
+ * @return Buffer space offered by all connections in the tunnel.
+ */
+unsigned int
+GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
+{
+  struct MeshTConnection *iter;
+  unsigned int buffer;
+
+  iter = t->connection_head;
+  buffer = 0;
+
+  /* If terminal, return biggest channel buffer */
+  if (NULL == iter || GMC_is_terminal (iter->c, fwd))
+  {
+    struct MeshTChannel *iter_ch;
+    unsigned int ch_buf;
+
+    if (NULL == t->channel_head)
+      return 64;
+
+    for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = iter_ch->next)
+    {
+      ch_buf = GMCH_get_buffer (iter_ch->ch, fwd);
+      if (ch_buf > buffer)
+        buffer = ch_buf;
+    }
+    return buffer;
+  }
+
+  /* If not terminal, return sum of connection buffers */
+  while (NULL != iter)
+  {
+    if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
+    {
+      iter = iter->next;
+      continue;
+    }
+
+    buffer += GMC_get_buffer (iter->c, fwd);
+    iter = iter->next;
+  }
+
+  return buffer;
+}
 
 /**
  * Sends an already built message on a tunnel, choosing the best connection.
