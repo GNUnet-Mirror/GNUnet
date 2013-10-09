@@ -176,6 +176,15 @@ GMT_queue_data (struct MeshTunnel3 *t,
                 int fwd);
 
 /**
+ * Send all cached messages that we can, tunnel is online.
+ *
+ * @param t Tunnel that holds the messages.
+ * @param fwd Is this fwd?
+ */
+void
+GMT_send_queued_data (struct MeshTunnel3 *t, int fwd);
+
+/**
  * Count established (ready) connections of a tunnel.
  *
  * @param t Tunnel on which to count.
@@ -194,6 +203,16 @@ GMT_count_connections (struct MeshTunnel3 *t);
  */
 unsigned int
 GMT_count_channels (struct MeshTunnel3 *t);
+
+/**
+ * Get the state of a tunnel.
+ *
+ * @param t Tunnel.
+ *
+ * @return Tunnel's state.
+ */
+enum MeshTunnelState
+GMT_get_state (struct MeshTunnel3 *t);
 
 /**
  * Get the total buffer space for a tunnel.

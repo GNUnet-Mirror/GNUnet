@@ -58,6 +58,16 @@ MESH_ChannelNumber
 GMCH_get_id (const struct MeshChannel *ch);
 
 /**
+ * Get the channel tunnel.
+ *
+ * @param ch Channel to get the tunnel from.
+ *
+ * @return tunnel of the channel.
+ */
+struct MeshTunnel3 *
+GMCH_get_tunnel (const struct MeshChannel *ch);
+
+/**
  * Get free buffer space towards the client on a specific channel.
  *
  * @param ch Channel.
@@ -67,6 +77,28 @@ GMCH_get_id (const struct MeshChannel *ch);
  */
 unsigned int
 GMCH_get_buffer (struct MeshChannel *ch, int fwd);
+
+/**
+ * Is the root client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+int
+GMCH_is_origin (struct MeshChannel *ch, int fwd);
+
+/**
+ * Is the destination client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+int
+GMCH_is_terminal (struct MeshChannel *ch, int fwd);
 
 /**
  * Send an end-to-end ACK message for the most recent in-sequence payload.

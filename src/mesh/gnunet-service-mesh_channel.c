@@ -404,43 +404,6 @@ channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
 }
 
 
-
-/**
- * Is the root client for this channel on this peer?
- *
- * @param ch Channel.
- * @param fwd Is this for fwd traffic?
- *
- * @return GNUNET_YES in case it is.
- */
-static int
-channel_is_origin (struct MeshChannel *ch, int fwd)
-{
-  struct MeshClient *c;
-
-  c = fwd ? ch->root : ch->dest;
-  return NULL != c;
-}
-
-
-/**
- * Is the destination client for this channel on this peer?
- *
- * @param ch Channel.
- * @param fwd Is this for fwd traffic?
- *
- * @return GNUNET_YES in case it is.
- */
-static int
-channel_is_terminal (struct MeshChannel *ch, int fwd)
-{
-  struct MeshClient *c;
-
-  c = fwd ? ch->dest : ch->root;
-  return NULL != c;
-}
-
-
 /**
  * Destroy all reliable messages queued for a channel,
  * during a channel destruction.
@@ -1113,6 +1076,20 @@ GMCH_get_id (const struct MeshChannel *ch)
 
 
 /**
+ * Get the channel tunnel.
+ *
+ * @param ch Channel to get the tunnel from.
+ *
+ * @return tunnel of the channel.
+ */
+struct MeshTunnel3 *
+GMCH_get_tunnel (const struct MeshChannel *ch)
+{
+  return ch->t;
+}
+
+
+/**
  * Get free buffer space towards the client on a specific channel.
  *
  * @param ch Channel.
@@ -1124,17 +1101,53 @@ unsigned int
 GMCH_get_buffer (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel;
-  
+
   rel = fwd ? ch->dest_rel : ch->root_rel;
-  
+
   /* If rel is NULL it means that the end is not yet created,
    * most probably is a loopback channel at the point of sending
    * the ChannelCreate to itself.
    */
   if (NULL == rel)
     return 64;
-  
+
   return (64 - rel->n_recv);
+}
+
+
+/**
+ * Is the root client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+int
+GMCH_is_origin (struct MeshChannel *ch, int fwd)
+{
+  struct MeshClient *c;
+
+  c = fwd ? ch->root : ch->dest;
+  return NULL != c;
+}
+
+
+/**
+ * Is the destination client for this channel on this peer?
+ *
+ * @param ch Channel.
+ * @param fwd Is this for fwd traffic?
+ *
+ * @return GNUNET_YES in case it is.
+ */
+int
+GMCH_is_terminal (struct MeshChannel *ch, int fwd)
+{
+  struct MeshClient *c;
+
+  c = fwd ? ch->dest : ch->root;
+  return NULL != c;
 }
 
 

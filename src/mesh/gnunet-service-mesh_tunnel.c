@@ -289,36 +289,6 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 }
 
 
-/**
- * Send all cached messages that we can, tunnel is online.
- *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
- */
-static void
-tunnel_send_queued_data (struct MeshTunnel3 *t, int fwd)
-{
-  struct MeshTunnelQueue *tq;
-  struct MeshTunnelQueue *next;
-  unsigned int room;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "tunnel_send_queued_data on tunnel %s\n",
-              GMP_2s (t->peer));
-  room = GMT_get_buffer (t, fwd);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
-  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
-  {
-    next = tq->next;
-    room--;
-    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
-    GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
-                                tq->ch, fwd);
-
-    GNUNET_free (tq);
-  }
-}
-
 void
 handle_data (struct MeshTunnel3 *t,
              const struct GNUNET_MESH_Data *msg,
@@ -565,7 +535,38 @@ GMT_queue_data (struct MeshTunnel3 *t,
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
 
   if (MESH_TUNNEL_READY == t->state)
-    tunnel_send_queued_data (t, fwd);
+    GMT_send_queued_data (t, fwd);
+}
+
+
+/**
+ * Send all cached messages that we can, tunnel is online.
+ *
+ * @param t Tunnel that holds the messages.
+ * @param fwd Is this fwd?
+ */
+void
+GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
+{
+  struct MeshTunnelQueue *tq;
+  struct MeshTunnelQueue *next;
+  unsigned int room;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "GMT_send_queued_data on tunnel %s\n",
+              GMP_2s (t->peer));
+  room = GMT_get_buffer (t, fwd);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
+  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
+  {
+    next = tq->next;
+    room--;
+    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
+    GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
+                                tq->ch, fwd);
+
+    GNUNET_free (tq);
+  }
 }
 
 
@@ -950,6 +951,19 @@ GMT_count_channels (struct MeshTunnel3 *t)
   return count;
 }
 
+
+/**
+ * Get the state of a tunnel.
+ *
+ * @param t Tunnel.
+ *
+ * @return Tunnel's state.
+ */
+enum MeshTunnelState
+GMT_get_state (struct MeshTunnel3 *t)
+{
+  return t->state;
+}
 
 /**
  * Get the total buffer space for a tunnel.

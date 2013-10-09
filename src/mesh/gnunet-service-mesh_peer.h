@@ -93,7 +93,7 @@ void
 GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
 
 /**
- * Chech whether there is a direct (core level)  connection to peer.
+ * Check whether there is a direct (core level)  connection to peer.
  *
  * @param peer Peer to check.
  *
@@ -101,6 +101,7 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
  */
 int
 GMP_is_neighbor (const struct MeshPeer *peer);
+
 
 /**
  * Add a connection to a neighboring peer.
@@ -129,6 +130,16 @@ GMP_remove_connection (struct MeshPeer *peer, struct MeshConnection *c);
  */
 struct GNUNET_PeerIdentity *
 GMP_get_id (const struct MeshPeer *peer);
+
+/**
+ * Get the Short ID of a peer.
+ *
+ * @param peer Peer to get from.
+ *
+ * @return Short ID of peer.
+ */
+GNUNET_PEER_Id
+GMP_get_short_id (const struct MeshPeer *peer);
 
 /**
  * Get the static string for a peer ID.

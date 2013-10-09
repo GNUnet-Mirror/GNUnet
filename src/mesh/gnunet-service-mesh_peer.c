@@ -1569,6 +1569,21 @@ GMP_get_id (const struct MeshPeer *peer)
   return GNUNET_PEER_resolve2 (peer->id);
 }
 
+
+/**
+ * Get the Short ID of a peer.
+ *
+ * @param peer Peer to get from.
+ *
+ * @return Short ID of peer.
+ */
+GNUNET_PEER_Id
+GMP_get_short_id (const struct MeshPeer *peer)
+{
+  return peer->id;
+}
+
+
 /**
  * Get the static string for a peer ID.
  *

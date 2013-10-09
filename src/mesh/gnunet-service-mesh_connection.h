@@ -208,6 +208,17 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message);
 
 /**
+ * Send an ACK on the appropriate connection/channel, depending on
+ * the direction and the position of the peer.
+ *
+ * @param c Which connection to send the hop-by-hop ACK.
+ * @param ch Channel, if any.
+ * @param fwd Is this a fwd ACK? (will go dest->root)
+ */
+void
+GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd);
+
+/**
  * Initialize the connections subsystem
  *
  * @param c Configuration handle.
@@ -262,6 +273,16 @@ GMC_get_id (const struct MeshConnection *c);
  */
 enum MeshConnectionState
 GMC_get_state (const struct MeshConnection *c);
+
+/**
+ * Get the connection tunnel.
+ *
+ * @param c Connection to get the tunnel from.
+ *
+ * @return tunnel of the connection.
+ */
+struct MeshTunnel3 *
+GMC_get_tunnel (const struct MeshConnection *c);
 
 /**
  * Get free buffer space in a connection.

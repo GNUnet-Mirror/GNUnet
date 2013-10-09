@@ -32,6 +32,7 @@
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_tunnel.h"
+#include "gnunet-service-mesh_channel.h"
 #include "mesh_protocol_enc.h"
 #include "mesh_path.h"
 
@@ -1048,7 +1049,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
                   GNUNET_i2s (&id[i]));
       path->peers[i] = GNUNET_PEER_intern (&id[i]);
-      if (path->peers[i] == myid)
+      if (path->peers[i] == my_short_id)
         own_pos = i;
     }
     if (own_pos == 0 && path->peers[own_pos] != myid)
@@ -1056,7 +1057,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       /* create path: self not found in path through self */
       GNUNET_break_op (0);
       path_destroy (path);
-      connection_destroy (c);
+      GMC_destroy (c);
       return GNUNET_OK;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
@@ -1086,9 +1087,9 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       orig_peer->tunnel = tunnel_new ();
       orig_peer->tunnel->peer = orig_peer;
     }
-    tunnel_add_connection (orig_peer->tunnel, c);
-    if (MESH_TUNNEL_NEW == c->t->state)
-      tunnel_change_state (c->t,  MESH_TUNNEL_WAITING);
+    GMT_add_connection (orig_peer->tunnel, c);
+    if (MESH_TUNNEL_NEW == GMT_get_state (c->t))
+      GMT_change_state (c->t,  MESH_TUNNEL_WAITING);
 
     send_connection_ack (c, GNUNET_NO);
     if (MESH_CONNECTION_SENT == c->state)
@@ -1199,15 +1200,14 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GMC_is_terminal (c, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
-    if (MESH_TUNNEL_READY != c->t->state)
-      tunnel_change_state (c->t, MESH_TUNNEL_READY);
-    connection_change_state (c, MESH_CONNECTION_READY);
-    tunnel_send_queued_data (c->t, GNUNET_NO);
+    GMC_change_state (c, MESH_CONNECTION_READY);
+    GMT_change_state (c->t, MESH_TUNNEL_READY);
+    GMT_send_queued_data (c->t, GNUNET_NO);
     return GNUNET_OK;
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  send_prebuilt_message_connection (message, c, NULL, fwd);
+  GMC_send_prebuilt_message (message, c, NULL, fwd);
   return GNUNET_OK;
 }
 
@@ -1287,16 +1287,16 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   id = GNUNET_PEER_search (peer);
-  if (id == connection_get_prev_hop (c)->id)
+  if (id == GMP_get_short_id (connection_get_prev_hop (c)))
     fwd = GNUNET_YES;
-  else if (id == connection_get_next_hop (c)->id)
+  else if (id == GMP_get_short_id (connection_get_next_hop (c)))
     fwd = GNUNET_NO;
   else
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  send_prebuilt_message_connection (message, c, NULL, fwd);
+  GMC_send_prebuilt_message (message, c, NULL, fwd);
   c->destroy = GNUNET_YES;
 
   return GNUNET_OK;
@@ -1353,7 +1353,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
 
   /* Check if origin is as expected */
   neighbor = connection_get_hop (c, !fwd);
-  if (peer_get (peer)->id != neighbor->id)
+  if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1502,13 +1502,13 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
-  if (connection_get_next_hop (c)->id == id)
+  if (GMP_get_short_id (connection_get_next_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
     fwd = GNUNET_YES;
   }
-  else if (connection_get_prev_hop (c)->id == id)
+  else if (GMP_get_short_id (connection_get_prev_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
@@ -1585,12 +1585,12 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
    * this way of discerining FWD/BCK should not be a problem.
    */
   id = GNUNET_PEER_search (peer);
-  if (connection_get_next_hop (c)->id == id)
+  if (GMP_get_short_id (connection_get_next_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
   }
-  else if (connection_get_prev_hop (c)->id == id)
+  else if (GMP_get_short_id (connection_get_prev_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
@@ -1625,7 +1625,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 int
 GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                    const struct GNUNET_MessageHeader *message)
+                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   struct MeshConnection *c;
@@ -1649,7 +1649,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Check if origin is as expected */
   neighbor = connection_get_hop (c, fwd);
-  if (peer_get (peer)->id != neighbor->id)
+  if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1676,8 +1676,8 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param ch Channel, if any.
  * @param fwd Is this a fwd ACK? (will go dest->root)
  */
-static void
-send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
+void
+GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 {
   unsigned int buffer;
 
@@ -1686,8 +1686,10 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
               fwd ? "FWD" : "BCK", c, ch);
   if (NULL == c || GMC_is_terminal (c, fwd))
   {
+    struct MeshTunnel3 *t;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all connections\n");
-    buffer = GMT_get_buffer (NULL == c ? ch->t : c->t, fwd);
+    t = (NULL == c) ? GMCH_get_tunnel (ch) : GMC_get_tunnel (c);
+    buffer = GMT_get_buffer (t, fwd);
   }
   else
   {
@@ -1719,7 +1721,6 @@ send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
     connection_send_ack (c, buffer, fwd);
   }
 }
-
 
 
 /**
@@ -1864,6 +1865,19 @@ enum MeshConnectionState
 GMC_get_state (const struct MeshConnection *c)
 {
   return c->state;
+}
+
+/**
+ * Get the connection tunnel.
+ *
+ * @param c Connection to get the tunnel from.
+ *
+ * @return tunnel of the connection.
+ */
+struct MeshTunnel3 *
+GMC_get_tunnel (const struct MeshConnection *c)
+{
+  return c->t;
 }
 
 
