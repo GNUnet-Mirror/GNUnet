@@ -116,22 +116,22 @@ struct ServiceSession
  /**
   * how many elements we were supplied with from the client
   */
- uint32_t element_count;
+ uint32_t total;
 
  /**
   * how many elements actually are used after applying the mask
   */
- uint32_t used_element_count;
+ uint32_t used;
 
  /**
   * already transferred elements (sent/received) for multipart messages, less or equal than used_element_count for
   */
- uint32_t transferred_element_count;
+ uint32_t transferred;
 
  /**
   * index of the last transferred element for multipart messages
   */
- uint32_t last_processed_element;
+ uint32_t last_processed;
 
  /**
   * how many bytes the mask is long.
@@ -204,8 +204,14 @@ struct ServiceSession
   */
  struct GNUNET_MESH_Tunnel * tunnel;
 
+ /**
+  * Handle to a task that sends a msg to the our client
+  */
  GNUNET_SCHEDULER_TaskIdentifier client_notification_task;
 
+ /**
+  * Handle to a task that sends a msg to the our peer
+  */
  GNUNET_SCHEDULER_TaskIdentifier service_request_task;
 };
 
@@ -514,6 +520,7 @@ static void
 prepare_service_response_multipart (void *cls,
                                     const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 /**
  * Primitive callback for copying over a message, as they
  * usually are too complex to be handled in the callback itself.
@@ -528,16 +535,25 @@ static size_t
 do_send_message (void *cls, size_t size, void *buf)
 {
   struct ServiceSession * session = cls;
-  size_t written = 0;
+  uint16_t type;
 
   GNUNET_assert (buf);
 
-  if (ntohs (session->msg->size) == size) {
-    memcpy (buf, session->msg, size);
-    written = size;
+  if (ntohs (session->msg->size) != size)
+  {
+    GNUNET_break (0);
+    return 0;
   }
+  
+  type = ntohs (session->msg->type);
+  memcpy (buf, session->msg, size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sent a message of type %hu.\n",
+              type);
+  GNUNET_free (session->msg);
+  session->msg = NULL;
 
-  switch (ntohs (session->msg->type))
+  switch (type)
   {
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT:
     session->state = FINALIZED;
@@ -548,7 +564,7 @@ do_send_message (void *cls, size_t size, void *buf)
     //else
     session->service_transmit_handle = NULL;
     // reset flags for sending
-    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used_element_count != session->transferred_element_count))
+    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used != session->transferred))
       prepare_service_request_multipart (session, NULL);
     //TODO we have sent a message and now need to trigger trigger the next multipart message sending
     break;
@@ -556,20 +572,14 @@ do_send_message (void *cls, size_t size, void *buf)
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE_MULTIPART:
     //else
     session->service_transmit_handle = NULL;
-    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used_element_count != session->transferred_element_count))
+    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used != session->transferred))
       prepare_service_response_multipart (session, NULL);
     break;
   default:
     session->service_transmit_handle = NULL;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sent a message of type %hu.\n",
-              ntohs (session->msg->type));
-  GNUNET_free (session->msg);
-  session->msg = NULL;
-
-  return written;
+  return size;
 }
 
 /**
@@ -667,7 +677,7 @@ find_matching_session (struct ServiceSession * tail,
   for (curr = tail; NULL != curr; curr = curr->prev) {
     // if the key matches, and the element_count is same
     if ((!memcmp (&curr->key, key, sizeof (struct GNUNET_HashCode)))
-        && (curr->element_count == element_count)) {
+        && (curr->total == element_count)) {
       // if incoming state is NULL OR is same as state of the queued request
       if ((NULL == state) || (curr->state == *state)) {
         // if peerid is NULL OR same as the peer Id in the queued request
@@ -688,7 +698,7 @@ free_session (struct ServiceSession * session)
   unsigned int i;
 
   if (session->a) {
-    for (i = 0; i < session->used_element_count; i++)
+    for (i = 0; i < session->used; i++)
       gcry_mpi_release (session->a[i]);
 
     GNUNET_free (session->a);
@@ -817,7 +827,7 @@ prepare_service_response_multipart (void *cls,
   size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
-  todo_count = session->used_element_count - session->transferred_element_count;
+  todo_count = session->used - session->transferred;
 
   if (todo_count > MULTIPART_ELEMENT_CAPACITY / 2)
     // send the currently possible maximum chunk, we always transfer both permutations
@@ -832,7 +842,7 @@ prepare_service_response_multipart (void *cls,
   element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
   current = (unsigned char *) &msg[1];
   // convert k[][]
-  for (i = session->transferred_element_count; i < session->transferred_element_count + todo_count; i++) {
+  for (i = session->transferred; i < session->transferred + todo_count; i++) {
     //k[i][p]
     memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
     GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
@@ -853,11 +863,11 @@ prepare_service_response_multipart (void *cls,
     current += PAILLIER_ELEMENT_LENGTH;
   }
   GNUNET_free (element_exported);
-  for (i = session->transferred_element_count; i < session->transferred_element_count; i++) {
+  for (i = session->transferred; i < session->transferred; i++) {
     gcry_mpi_release (session->r_prime[i]);
     gcry_mpi_release (session->r[i]);
   }
-  session->transferred_element_count += todo_count;
+  session->transferred += todo_count;
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
           GNUNET_MESH_notify_transmit_ready (session->tunnel,
@@ -876,7 +886,7 @@ prepare_service_response_multipart (void *cls,
                                       session->response);
     return;
   }
-  if (session->transferred_element_count != session->used_element_count)
+  if (session->transferred != session->used)
     // multipart
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
   else
@@ -914,21 +924,21 @@ prepare_service_response (gcry_mpi_t s,
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * PAILLIER_ELEMENT_LENGTH; // s, stick
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + 2 * session->used_element_count * PAILLIER_ELEMENT_LENGTH) { //kp, kq
-    msg_length += +2 * session->used_element_count * PAILLIER_ELEMENT_LENGTH;
-    session->transferred_element_count = session->used_element_count;
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + 2 * session->used * PAILLIER_ELEMENT_LENGTH) { //kp, kq
+    msg_length += +2 * session->used * PAILLIER_ELEMENT_LENGTH;
+    session->transferred = session->used;
   }
   else {
-    session->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / (PAILLIER_ELEMENT_LENGTH * 2);
+    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / (PAILLIER_ELEMENT_LENGTH * 2);
   }
 
   msg = GNUNET_malloc (msg_length);
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
   msg->header.size = htons (msg_length);
-  msg->total_element_count = htonl (session->element_count);
-  msg->contained_element_count = htonl (session->used_element_count);
-  msg->contained_element_count = htonl (session->transferred_element_count);
+  msg->total_element_count = htonl (session->total);
+  msg->contained_element_count = htonl (session->used);
+  msg->contained_element_count = htonl (session->transferred);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   current = (unsigned char *) &msg[1];
 
@@ -957,7 +967,7 @@ prepare_service_response (gcry_mpi_t s,
   current += PAILLIER_ELEMENT_LENGTH;
 
   // convert k[][]
-  for (i = 0; i < session->transferred_element_count; i++) {
+  for (i = 0; i < session->transferred; i++) {
     //k[i][p]
     memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
     GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
@@ -979,7 +989,7 @@ prepare_service_response (gcry_mpi_t s,
   }
 
   GNUNET_free (element_exported);
-  for (i = 0; i < session->transferred_element_count; i++) {
+  for (i = 0; i < session->transferred; i++) {
     gcry_mpi_release (session->r_prime[i]);
     gcry_mpi_release (session->r[i]);
   }
@@ -1004,7 +1014,7 @@ prepare_service_response (gcry_mpi_t s,
                                       session->response);
     return GNUNET_NO;
   }
-  if (session->transferred_element_count != session->used_element_count)
+  if (session->transferred != session->used)
     // multipart
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
   else
@@ -1054,7 +1064,7 @@ compute_service_response (struct ServiceSession * request,
   gcry_sexp_t tmp_exp;
   uint32_t value;
 
-  count = request->used_element_count;
+  count = request->used;
 
   b = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   a_pi = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
@@ -1064,7 +1074,7 @@ compute_service_response (struct ServiceSession * request,
   rand_pi_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
 
   // convert responder session to from long to mpi
-  for (i = 0, j = 0; i < response->element_count && j < count; i++) {
+  for (i = 0, j = 0; i < response->total && j < count; i++) {
     if (request->mask[i / 8] & (1 << (i % 8))) {
       value = response->vector[i] >= 0 ? response->vector[i] : -response->vector[i];
       // long to gcry_mpi_t
@@ -1227,7 +1237,7 @@ prepare_service_request_multipart (void *cls,
   uint32_t value;
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
-  todo_count = session->used_element_count - session->transferred_element_count;
+  todo_count = session->used - session->transferred;
 
   if (todo_count > MULTIPART_ELEMENT_CAPACITY)
     // send the currently possible maximum chunk
@@ -1243,7 +1253,7 @@ prepare_service_request_multipart (void *cls,
   a = gcry_mpi_new (KEYBITS * 2);
   current = (unsigned char *) &msg[1];
   // encrypt our vector and generate string representations
-  for (i = session->last_processed_element, j = 0; i < session->element_count; i++) {
+  for (i = session->last_processed, j = 0; i < session->total; i++) {
     // is this a used element?
     if (session->mask[i / 8] & 1 << (i % 8)) {
       if (todo_count <= j)
@@ -1259,7 +1269,7 @@ prepare_service_request_multipart (void *cls,
       else
         gcry_mpi_add_ui (a, a, value);
 
-      session->a[session->transferred_element_count + j++] = gcry_mpi_set (NULL, a);
+      session->a[session->transferred + j++] = gcry_mpi_set (NULL, a);
       gcry_mpi_add (a, a, my_offset);
       encrypt_element (a, a, my_g, my_n, my_nsquare);
 
@@ -1280,7 +1290,7 @@ prepare_service_request_multipart (void *cls,
   }
   gcry_mpi_release (a);
   GNUNET_free (element_exported);
-  session->transferred_element_count += todo_count;
+  session->transferred += todo_count;
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
@@ -1300,8 +1310,8 @@ prepare_service_request_multipart (void *cls,
                                       session);
     return;
   }
-  if (session->transferred_element_count != session->used_element_count) {
-    session->last_processed_element = i;
+  if (session->transferred != session->used) {
+    session->last_processed = i;
   }
   else
     //final part
@@ -1339,23 +1349,23 @@ prepare_service_request (void *cls,
           +session->mask_length
           + my_pubkey_external_length;
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + session->used_element_count * PAILLIER_ELEMENT_LENGTH) {
-    msg_length += session->used_element_count * PAILLIER_ELEMENT_LENGTH;
-    session->transferred_element_count = session->used_element_count;
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + session->used * PAILLIER_ELEMENT_LENGTH) {
+    msg_length += session->used * PAILLIER_ELEMENT_LENGTH;
+    session->transferred = session->used;
   }
   else {
     //create a multipart msg, first we calculate a new msg size for the head msg
-    session->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / PAILLIER_ELEMENT_LENGTH;
+    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / PAILLIER_ELEMENT_LENGTH;
   }
 
   msg = GNUNET_malloc (msg_length);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB);
-  msg->total_element_count = htonl (session->used_element_count);
-  msg->contained_element_count = htonl (session->transferred_element_count);
+  msg->total_element_count = htonl (session->used);
+  msg->contained_element_count = htonl (session->transferred);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   msg->mask_length = htonl (session->mask_length);
   msg->pk_length = htonl (my_pubkey_external_length);
-  msg->element_count = htonl (session->element_count);
+  msg->element_count = htonl (session->total);
   msg->header.size = htons (msg_length);
 
   // fill in the payload
@@ -1369,13 +1379,13 @@ prepare_service_request (void *cls,
 
   // now copy over the element vector
   element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-  session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
+  session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
   a = gcry_mpi_new (KEYBITS * 2);
   // encrypt our vector and generate string representations
-  for (i = 0, j = 0; i < session->element_count; i++) {
+  for (i = 0, j = 0; i < session->total; i++) {
     // if this is a used element...
     if (session->mask[i / 8] & 1 << (i % 8)) {
-      if (session->transferred_element_count <= j)
+      if (session->transferred <= j)
         break; //reached end of this message, can't include more
 
       memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
@@ -1428,9 +1438,9 @@ prepare_service_request (void *cls,
                                       session);
     return;
   }
-  if (session->transferred_element_count != session->used_element_count) {
+  if (session->transferred != session->used) {
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-    session->last_processed_element = i;
+    session->last_processed = i;
   }
   else
     //singlepart message
@@ -1509,7 +1519,7 @@ handle_client_request (void *cls,
   session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
   session->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
   session->client = client;
-  session->element_count = element_count;
+  session->total = element_count;
   session->mask_length = mask_length;
   // get our transaction key
   memcpy (&session->key, &msg->key, sizeof (struct GNUNET_HashCode));
@@ -1528,16 +1538,16 @@ handle_client_request (void *cls,
     memcpy (session->mask, &vector[element_count], mask_length);
 
     // copy over the elements
-    session->used_element_count = 0;
+    session->used = 0;
     for (i = 0; i < element_count; i++) {
       session->vector[i] = ntohl (vector[i]);
       if (session->vector[i] == 0)
         session->mask[i / 8] &= ~(1 << (i % 8));
       if (session->mask[i / 8] & (1 << (i % 8)))
-        session->used_element_count++;
+        session->used++;
     }
 
-    if (0 == session->used_element_count) {
+    if (0 == session->used) {
       GNUNET_break_op (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1586,7 +1596,7 @@ handle_client_request (void *cls,
     session->role = BOB;
     session->mask = NULL;
     // copy over the elements
-    session->used_element_count = element_count;
+    session->used = element_count;
     for (i = 0; i < element_count; i++)
       session->vector[i] = ntohl (vector[i]);
     session->state = CLIENT_RESPONSE_RECEIVED;
@@ -1597,7 +1607,7 @@ handle_client_request (void *cls,
     //check if service queue contains a matching request
     requesting_session = find_matching_session (from_service_tail,
                                                 &session->key,
-                                                session->element_count,
+                                                session->total,
                                                 &needed_state, NULL);
     if (NULL != requesting_session) {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"), GNUNET_h2s (&session->key));
@@ -1689,7 +1699,7 @@ tunnel_destruction_handler (void *cls,
     // i assume the tupel of key and element count is unique. if it was not the rest of the code would not work either.
     client_session = find_matching_session (from_client_tail,
                                             &session->key,
-                                            session->element_count,
+                                            session->total,
                                             NULL, NULL);
     free_session (session);
 
@@ -1730,7 +1740,7 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_t tmp;
   unsigned int i;
 
-  count = session->used_element_count;
+  count = session->used;
   tmp = gcry_mpi_new (KEYBITS);
   // due to the introduced static offset S, we now also have to remove this
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
@@ -1912,27 +1922,26 @@ handle_service_request_multipart (void *cls,
   // are we in the correct state?
   session = (struct ServiceSession *) * tunnel_ctx;
   if ((BOB != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
+    goto except;
   }
   // shorter than minimum?
   if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
     goto except;
   }
-  used_elements = session->used_element_count;
+  used_elements = session->used;
   contained_elements = ntohl (msg->multipart_element_count);
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
           + contained_elements * PAILLIER_ELEMENT_LENGTH;
   //sanity check
   if (( ntohs (msg->header.size) != msg_length) 
-       || (used_elements < contained_elements + session->transferred_element_count)) {
+       || (used_elements < contained_elements + session->transferred)) {
     goto except;
   }
   current = (unsigned char *) &msg[1];
   if (contained_elements != 0) {
     gcry_error_t ret = 0;
     // Convert each vector element to MPI_value
-    for (i = session->transferred_element_count; i < session->transferred_element_count+contained_elements; i++) {
+    for (i = session->transferred; i < session->transferred+contained_elements; i++) {
       size_t read = 0;
 
       ret = gcry_mpi_scan (&session->a[i],
@@ -1946,9 +1955,9 @@ handle_service_request_multipart (void *cls,
         goto except;
       }
     }
-    session->transferred_element_count+=contained_elements;
+    session->transferred+=contained_elements;
     
-    if (session->transferred_element_count == used_elements) {
+    if (session->transferred == used_elements) {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
       if (session->response) {
@@ -1969,7 +1978,7 @@ handle_service_request_multipart (void *cls,
   
   return GNUNET_OK;
 except:
-  for (i = 0; i < session->transferred_element_count + contained_elements; i++)
+  for (i = 0; i < session->used; i++)
     if (session->a[i])
       gcry_mpi_release (session->a[i]);
   gcry_sexp_release (session->remote_pubkey);
@@ -2009,7 +2018,7 @@ handle_service_request (void *cls,
   uint32_t mask_length;
   uint32_t pk_length;
   uint32_t used_elements;
-  uint32_t contained_elements;
+  uint32_t contained_elements = 0;
   uint32_t element_count;
   uint32_t msg_length;
   unsigned char * current;
@@ -2019,7 +2028,7 @@ handle_service_request (void *cls,
   session = (struct ServiceSession *) * tunnel_ctx;
   if (WAITING_FOR_SERVICE_REQUEST != session->state) {
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    goto except;
   }
   // Check if message was sent by me, which would be bad!
   if (!memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity))) {
@@ -2060,9 +2069,9 @@ handle_service_request (void *cls,
   }
 
   memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
-  session->element_count = element_count;
-  session->used_element_count = used_elements;
-  session->transferred_element_count = contained_elements;
+  session->total = element_count;
+  session->used = used_elements;
+  session->transferred = contained_elements;
   session->tunnel = tunnel;
 
   // session key
@@ -2088,7 +2097,7 @@ handle_service_request (void *cls,
   needed_state = CLIENT_RESPONSE_RECEIVED;
   session->response = find_matching_session (from_client_tail,
                                              &session->key,
-                                             session->element_count,
+                                             session->total,
                                              &needed_state, NULL);
 
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
@@ -2132,7 +2141,7 @@ handle_service_request (void *cls,
   }
   return GNUNET_OK;
 except:
-  for (i = 0; i < contained_elements; i++)
+  for (i = 0; i < session->used; i++)
     if (session->a[i])
       gcry_mpi_release (session->a[i]);
   gcry_sexp_release (session->remote_pubkey);
@@ -2172,7 +2181,7 @@ handle_service_response_multipart (void *cls,
   unsigned char * current;
   size_t read;
   size_t i;
-  uint32_t contained_element_count=0;
+  uint32_t contained=0;
   size_t msg_size;
   int rc;
 
@@ -2185,52 +2194,54 @@ handle_service_response_multipart (void *cls,
   }
   // shorter than minimum?
   if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
-    goto except;
+    goto invalid_msg;
   }
-  contained_element_count = ntohl (msg->multipart_element_count);
+  contained = ntohl (msg->multipart_element_count);
   msg_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
-          + 2 * contained_element_count * PAILLIER_ELEMENT_LENGTH;
+          + 2 * contained * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_size) || (session->used_element_count < contained_element_count)) {
-    goto except;
+  if ((ntohs (msg->header.size) != msg_size) || (session->used < contained)) {
+    goto invalid_msg;
   }
   current = (unsigned char *) &msg[1];
   // Convert each k[][perm] to its MPI_value
-  for (i = 0; i < contained_element_count; i++) {
+  for (i = 0; i < contained; i++) {
     if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
       GNUNET_break_op (0);
-      goto except;
+      goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
     if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
       GNUNET_break_op (0);
-      goto except;
+      goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
   }
-  session->transferred_element_count += contained_element_count;
-  if (session->transferred_element_count != session->used_element_count)
+  session->transferred += contained;
+  if (session->transferred != session->used)
     return GNUNET_OK;
   session->state = SERVICE_RESPONSE_RECEIVED;
   session->product = compute_scalar_product (session);
   return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
-except:
+  
+invalid_msg:
   GNUNET_break_op (0);
-  if (session->s)
-    gcry_mpi_release (session->s);
-  if (session->s_prime)
-    gcry_mpi_release (session->s_prime);
-  for (i = 0; session->r && i < session->transferred_element_count; i++)
+  gcry_mpi_release (session->s);
+  gcry_mpi_release (session->s_prime);
+  for (i = 0; session->r && i < session->used; i++){
     if (session->r[i]) gcry_mpi_release (session->r[i]);
-  for (i = 0; session->r_prime && i < session->transferred_element_count; i++)
     if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
+  }
   GNUNET_free_non_null (session->r);
   GNUNET_free_non_null (session->r_prime);
-
+  session->s = NULL;
+  session->s_prime = NULL;
+  session->r = NULL;
+  session->r_prime = NULL;
   session->tunnel = NULL;
   // send message with product to client
   session->client_notification_task =
@@ -2265,38 +2276,35 @@ handle_service_response (void *cls,
   unsigned char * current;
   size_t read;
   size_t i;
-  uint32_t contained_element_count=0;
+  uint32_t contained=0;
   size_t msg_size;
   int rc;
 
   GNUNET_assert (NULL != message);
   session = (struct ServiceSession *) * tunnel_ctx;
+  // are we in the correct state?
   if (session->state != WAITING_FOR_SERVICE_REQUEST) {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-  //we need at least a full message
-  if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size)) {
-    GNUNET_break_op (0);
     goto invalid_msg;
   }
-  contained_element_count = ntohl (msg->contained_element_count);
+  //we need at least a full message without elements attached
+  if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH > ntohs (msg->header.size)) {
+    goto invalid_msg;
+  }
+  contained = ntohl (msg->contained_element_count);
   msg_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
-          + 2 * contained_element_count * PAILLIER_ELEMENT_LENGTH
+          + 2 * contained * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_size) || (session->used_element_count < contained_element_count)) {
-    GNUNET_break_op (0);
+  if ((ntohs (msg->header.size) != msg_size) || (session->used < contained)) {
     goto invalid_msg;
   }
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-  session->transferred_element_count = contained_element_count;
+  session->transferred = contained;
   //convert s
   current = (unsigned char *) &msg[1];
   if (0 != (rc = gcry_mpi_scan (&session->s, GCRYMPI_FMT_USG, current,
                                 PAILLIER_ELEMENT_LENGTH, &read))) {
     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-    GNUNET_break_op (0);
     goto invalid_msg;
   }
   current += PAILLIER_ELEMENT_LENGTH;
@@ -2304,30 +2312,27 @@ handle_service_response (void *cls,
   if (0 != (rc = gcry_mpi_scan (&session->s_prime, GCRYMPI_FMT_USG, current,
                                 PAILLIER_ELEMENT_LENGTH, &read))) {
     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-    GNUNET_break_op (0);
     goto invalid_msg;
   }
   current += PAILLIER_ELEMENT_LENGTH;
-  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
-  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used_element_count);
+  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
+  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
   // Convert each k[][perm] to its MPI_value
-  for (i = 0; i < contained_element_count; i++) {
+  for (i = 0; i < contained; i++) {
     if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
     if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
   }
-  if (session->transferred_element_count != session->used_element_count)
+  if (session->transferred != session->used)
     return GNUNET_OK; //wait for the other multipart chunks
   
   session->state = SERVICE_RESPONSE_RECEIVED;
@@ -2335,17 +2340,21 @@ handle_service_response (void *cls,
   return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
 
 invalid_msg:
+  GNUNET_break_op (0);
   if (session->s)
     gcry_mpi_release (session->s);
   if (session->s_prime)
     gcry_mpi_release (session->s_prime);
-  for (i = 0; session->r && i < contained_element_count; i++)
+  for (i = 0; session->r && i < session->used; i++){
     if (session->r[i]) gcry_mpi_release (session->r[i]);
-  for (i = 0; session->r_prime && i < contained_element_count; i++)
     if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
+  }
   GNUNET_free_non_null (session->r);
   GNUNET_free_non_null (session->r_prime);
-
+  session->s = NULL;
+  session->s_prime = NULL;
+  session->r = NULL;
+  session->r_prime = NULL;
   session->tunnel = NULL;
   // send message with product to client
   session->client_notification_task =
