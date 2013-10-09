@@ -87,8 +87,8 @@ GNUNET_NETWORK_test_pf (int pf)
   {
     if (EAFNOSUPPORT == errno)
       return GNUNET_NO;
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, 
-		"Failed to create test socket: %s\n", 
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Failed to create test socket: %s\n",
 		STRERROR (errno));
     return GNUNET_SYSERR;
   }
@@ -400,11 +400,14 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   {
     const struct sockaddr_un *address_un = (const struct sockaddr_un *)address;
     if (address_un->sun_path[0] == '\0')
+    {
       bind_address_len = \
           sizeof (struct sockaddr_un) \
         - sizeof (address_un->sun_path) \
         + strnlen (address_un->sun_path + 1, sizeof (address_un->sun_path) - 1) \
         + 1;
+      GNUNET_break (0);
+    }
   }
 #endif
 
@@ -413,7 +416,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   {
     const int on = 1;
 
-    if (desc->af == AF_INET6)
+    if (AF_INET6 == desc->af)
       if (setsockopt (desc->fd, IPPROTO_IPV6, IPV6_V6ONLY,
 		      (const void *) &on,
 		      sizeof (on)))
@@ -431,7 +434,22 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG, "setsockopt");
   }
 #endif
-  ret = bind (desc->fd, address, bind_address_len);
+#ifndef WINDOWS
+  {
+    /* set permissions of newly created UNIX domain socket to "user-only"; applications
+       can choose to relax this later */
+    mode_t old_mask;
+
+    if (AF_UNIX == address->sa_family)
+      old_mask = umask (S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
+#endif
+
+    ret = bind (desc->fd, address, bind_address_len);
+#ifndef WINDOWS
+    if (AF_UNIX == address->sa_family)
+      (void) umask (old_mask);
+  }
+#endif
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
@@ -477,8 +495,8 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
     const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
 
     if (0 != unlink (un->sun_path))
-      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, 
-			 "unlink", 
+      LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
+			 "unlink",
 			 un->sun_path);
   }
 #endif
@@ -550,12 +568,15 @@ GNUNET_NETWORK_socket_connect (const struct GNUNET_NETWORK_Handle *desc,
   if (address->sa_family == AF_UNIX)
   {
     const struct sockaddr_un *address_un = (const struct sockaddr_un *)address;
-    if(address_un->sun_path[0] == '\0')
-      address_len = \
+    if (address_un->sun_path[0] == '\0')
+    {
+      address_len =                   \
           sizeof (struct sockaddr_un) \
         - sizeof (address_un->sun_path) \
         + strnlen (address_un->sun_path + 1, sizeof (address_un->sun_path) - 1) \
         + 1;
+      GNUNET_break (0);
+    }
   }
 #endif
   ret = connect (desc->fd, address, address_len);

@@ -419,7 +419,8 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
       (GNUNET_YES != (aret = access (access_cls, gcp, uaddr, addrlen))))
   {
     if (GNUNET_NO == aret)
-      LOG (GNUNET_ERROR_TYPE_INFO, _("Access denied to `%s'\n"),
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Access denied to `%s'\n"),
            GNUNET_a2s (uaddr, addrlen));
     GNUNET_break (GNUNET_OK ==
                   GNUNET_NETWORK_socket_shutdown (sock, SHUT_RDWR));

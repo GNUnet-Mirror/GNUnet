@@ -582,34 +582,36 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
   static int on = 1;
   struct GNUNET_NETWORK_Handle *sock;
   struct ServiceListeningInfo *sli;
+  int match_uid;
+  int match_gid;
 
   switch (sa->sa_family)
-    {
-    case AF_INET:
-      sock = GNUNET_NETWORK_socket_create (PF_INET, SOCK_STREAM, 0);
-      break;
-    case AF_INET6:
-      sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
-      break;
-    case AF_UNIX:
-      if (strcmp (GNUNET_a2s (sa, addr_len), "@") == 0)	/* Do not bind to blank UNIX path! */
-	return;
-      sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
-      break;
-    default:
-      GNUNET_break (0);
-      sock = NULL;
-      errno = EAFNOSUPPORT;
-      break;
-    }
-  if (NULL == sock)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("Unable to create socket for service `%s': %s\n"),
-		  sl->name, STRERROR (errno));
-      GNUNET_free (sa);
+  {
+  case AF_INET:
+    sock = GNUNET_NETWORK_socket_create (PF_INET, SOCK_STREAM, 0);
+    break;
+  case AF_INET6:
+    sock = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
+    break;
+  case AF_UNIX:
+    if (strcmp (GNUNET_a2s (sa, addr_len), "@") == 0)	/* Do not bind to blank UNIX path! */
       return;
-    }
+    sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
+    break;
+  default:
+    GNUNET_break (0);
+    sock = NULL;
+    errno = EAFNOSUPPORT;
+    break;
+  }
+  if (NULL == sock)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Unable to create socket for service `%s': %s\n"),
+                sl->name, STRERROR (errno));
+    GNUNET_free (sa);
+    return;
+  }
   if (GNUNET_NETWORK_socket_setsockopt
       (sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on)) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -624,22 +626,37 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
 
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) sa, addr_len))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _
-		  ("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
-		  sl->name, GNUNET_a2s (sa, addr_len), STRERROR (errno));
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
-      GNUNET_free (sa);
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _
+                ("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
+                sl->name, GNUNET_a2s (sa, addr_len), STRERROR (errno));
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    GNUNET_free (sa);
+    return;
+  }
+#ifndef WINDOWS
+  if (AF_UNIX == sa->sa_family)
+  {
+    match_uid =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name,
+                                            "UNIX_MATCH_UID");
+    match_gid =
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name,
+                                            "UNIX_MATCH_GID");
+    GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sa)->sun_path,
+                                 match_uid,
+                                 match_gid);
+
+  }
+#endif
   if (GNUNET_NETWORK_socket_listen (sock, 5) != GNUNET_OK)
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
-      GNUNET_free (sa);
-      return;
-    }
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
+    GNUNET_free (sa);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("ARM now monitors connections to service `%s' at `%s'\n"),
 	      sl->name, GNUNET_a2s (sa, addr_len));

@@ -463,6 +463,35 @@ mkdtemp (char *fn)
   strcpy (fn, tfn);
   return fn;
 }
+#else
+
+/**
+ * Update POSIX permissions mask of a file on disk.  If both argumets
+ * are #GNUNET_NO, the file is made world-read-write-executable (777).
+ *
+ * @param fn name of the file to update
+ * @param require_uid_match #GNUNET_YES means 700
+ * @param require_gid_match #GNUNET_YES means 770 unless @a require_uid_match is set
+ */
+void
+GNUNET_DISK_fix_permissions (const char *fn,
+                             int require_uid_match,
+                             int require_gid_match)
+{
+  mode_t mode;
+
+  if (GNUNET_YES == require_uid_match)
+    mode = S_IRUSR | S_IWUSR | S_IXUSR;
+  else if (GNUNET_YES == require_gid_match)
+    mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP;
+  else
+    mode = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH;
+  if (0 != chmod (fn, mode))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "chmod",
+                              fn);
+}
+
 #endif
 
 /**

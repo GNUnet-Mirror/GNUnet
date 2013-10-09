@@ -392,7 +392,8 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
  * @param tc reason why we are running right now
  */
 static void
-process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_listen_socket (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Handle *server = cls;
   struct GNUNET_CONNECTION_Handle *sock;
@@ -417,7 +418,8 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                 server->listen_sockets[i]);
       if (NULL != sock)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Server accepted incoming connection.\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Server accepted incoming connection.\n");
         client = GNUNET_SERVER_connect_socket (server, sock);
         /* decrement reference count, we don't keep "client" alive */
         GNUNET_SERVER_client_drop (client);
@@ -434,7 +436,7 @@ process_listen_socket (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Create and initialize a listen socket for the server.
  *
  * @param server_addr address to listen on
- * @param socklen length of address
+ * @param socklen length of @a server_addr
  * @return NULL on error, otherwise the listen socket
  */
 static struct GNUNET_NETWORK_Handle *
@@ -543,7 +545,7 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
 {
   struct GNUNET_SERVER_Handle *server;
 
-  server = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Handle));
+  server = GNUNET_new (struct GNUNET_SERVER_Handle);
   server->idle_timeout = idle_timeout;
   server->listen_sockets = lsocks;
   server->access = access;
@@ -843,7 +845,7 @@ GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
 {
   struct HandlerList *p;
 
-  p = GNUNET_malloc (sizeof (struct HandlerList));
+  p = GNUNET_new (struct HandlerList);
   p->handlers = handlers;
   p->next = server->handlers;
   server->handlers = p;
@@ -977,7 +979,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
 	       (GNUNET_SCHEDULER_NO_TASK == sender->warn_task) )
           {
 	    GNUNET_break (0 != type); /* type should never be 0 here, as we don't use 0 */
-            sender->warn_start = GNUNET_TIME_absolute_get ();	
+            sender->warn_start = GNUNET_TIME_absolute_get ();
             sender->warn_task =
                 GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                               &warn_no_receive_done, sender);
@@ -1235,7 +1237,7 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
   struct GNUNET_SERVER_Client *client;
   struct NotifyList *n;
 
-  client = GNUNET_malloc (sizeof (struct GNUNET_SERVER_Client));
+  client = GNUNET_new (struct GNUNET_SERVER_Client);
   client->connection = connection;
   client->reference_count = 1;
   client->server = server;

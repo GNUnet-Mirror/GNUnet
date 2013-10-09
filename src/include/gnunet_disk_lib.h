@@ -265,7 +265,7 @@ enum GNUNET_DISK_PipeEnd
  * Checks whether a handle is invalid
  *
  * @param h handle to check
- * @return GNUNET_YES if invalid, GNUNET_NO if valid
+ * @return #GNUNET_YES if invalid, #GNUNET_NO if valid
  */
 int
 GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h);
@@ -506,6 +506,21 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  */
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh);
+#else
+
+/**
+ * Update POSIX permissions mask of a file on disk.  If both argumets
+ * are #GNUNET_NO, the file is made world-read-write-executable (777).
+ *
+ * @param fn name of the file to update
+ * @param require_uid_match #GNUNET_YES means 700
+ * @param require_gid_match #GNUNET_YES means 770 unless @a require_uid_match is set
+ */
+void
+GNUNET_DISK_fix_permissions (const char *fn,
+                             int require_uid_match,
+                             int require_gid_match);
+
 #endif
 
 

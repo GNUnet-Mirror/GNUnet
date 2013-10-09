@@ -532,17 +532,17 @@ struct GNUNET_SERVICE_Context
 
   /**
    * Do we require a matching UID for UNIX domain socket connections?
-   * GNUNET_NO means that the UID does not have to match (however,
-   * "match_gid" may still impose other access control checks).
+   * #GNUNET_NO means that the UID does not have to match (however,
+   * @e match_gid may still impose other access control checks).
    */
   int match_uid;
 
   /**
    * Do we require a matching GID for UNIX domain socket connections?
-   * Ignored if "match_uid" is GNUNET_YES.  Note that this is about
+   * Ignored if @e match_uid is #GNUNET_YES.  Note that this is about
    * checking that the client's UID is in our group OR that the
-   * client's GID is our GID.  If both "match_gid" and "match_uid" are
-   * "GNUNET_NO", all users on the local system have access.
+   * client's GID is our GID.  If both "match_gid" and @e match_uid are
+   * #GNUNET_NO, all users on the local system have access.
    */
   int match_gid;
 
@@ -626,7 +626,7 @@ static const struct GNUNET_SERVER_MessageHandler defhandlers[] = {
  * @param uc credentials, if available, otherwise NULL
  * @param addr address
  * @param addrlen length of address
- * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
+ * @return #GNUNET_YES to allow, #GNUNET_NO to deny, #GNUNET_SYSERR
  *   for unknown address family (will be denied).
  */
 static int
@@ -658,56 +658,7 @@ check_access (void *cls, const struct GNUNET_CONNECTION_Credentials *uc,
     break;
 #ifndef WINDOWS
   case AF_UNIX:
-    ret = GNUNET_OK;            /* always OK for now */
-    if (GNUNET_YES == sctx->match_uid)
-    {
-      /* UID match required */
-      ret = (NULL != uc) && ( (0 == uc->uid) || (uc->uid == geteuid ()) );
-    }
-    else if ( (GNUNET_YES == sctx->match_gid) &&
-	      ( (NULL == uc) ||
-		( (0 != uc->uid) &&
-		  (uc->uid != geteuid ()) ) ) )
-    {
-      /* group match required and UID does not match */
-      if (NULL == uc)
-      {
-	/* no credentials, group match not possible */
-	ret = GNUNET_NO;
-      }
-      else
-      {
-	struct group *grp;
-	unsigned int i;
-
-	if (uc->gid != getegid())
-	{
-	  /* default group did not match, but maybe the user is in our group, let's check */
-	  grp = getgrgid (getegid ());
-	  if (NULL == grp)
-	  {
-	    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "getgrgid");
-	    return GNUNET_NO;
-	  }
-	  ret = GNUNET_NO;
-	  for (i=0; NULL != grp->gr_mem[i]; i++)
-	  {
-	    struct passwd *nam = getpwnam (grp->gr_mem[i]);
-	    if (NULL == nam)
-	      continue; /* name in group that is not in user DB !? */
-	    if (nam->pw_uid == uc->uid)
-	    {
-	      /* yes, uid is in our group, allow! */
-	      ret = GNUNET_YES;
-	      break;
-	    }
-	  }
-	}
-      }
-    }
-    if (GNUNET_NO == ret)
-      LOG (GNUNET_ERROR_TYPE_WARNING, _("Access denied to UID %d / GID %d\n"),
-           (NULL == uc) ? -1 : uc->uid, (NULL == uc) ? -1 : uc->gid);
+    ret = GNUNET_OK;            /* controlled using file-system ACL now */
     break;
 #endif
   default:
@@ -752,7 +703,7 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
  * @param ret location where to write the ACL (set)
  * @param sctx service context to use to get the configuration
  * @param option name of the ACL option to parse
- * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including
+ * @return #GNUNET_SYSERR on parse error, #GNUNET_OK on success (including
  *         no ACL configured)
  */
 static int
@@ -789,7 +740,7 @@ process_acl4 (struct IPv4NetworkSet **ret, struct GNUNET_SERVICE_Context *sctx,
  * @param ret location where to write the ACL (set)
  * @param sctx service context to use to get the configuration
  * @param option name of the ACL option to parse
- * @return GNUNET_SYSERR on parse error, GNUNET_OK on success (including
+ * @return #GNUNET_SYSERR on parse error, #GNUNET_OK on success (including
  *         no ACL configured)
  */
 static int
@@ -835,7 +786,7 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
 #ifdef AF_UNIX
   struct sockaddr_un *un;
 
-  un = GNUNET_malloc (sizeof (struct sockaddr_un));
+  un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -864,11 +815,11 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
  *              of the respective 'struct sockaddr' struct in the 'addrs'
  *              array (on success)
  * @return number of addresses found on success,
- *              GNUNET_SYSERR if the configuration
+ *              #GNUNET_SYSERR if the configuration
  *              did not specify reasonable finding information or
  *              if it specified a hostname that could not be resolved;
- *              GNUNET_NO if the number of addresses configured is
- *              zero (in this case, '*addrs' and '*addr_lens' will be
+ *              #GNUNET_NO if the number of addresses configured is
+ *              zero (in this case, `*addrs` and `*addr_lens` will be
  *              set to NULL).
  */
 int
@@ -1000,8 +951,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_INFO,
-           _
-           ("Disabling UNIX domain socket support for service `%s', failed to create UNIX domain socket: %s\n"),
+           _("Disabling UNIX domain socket support for service `%s', failed to create UNIX domain socket: %s\n"),
            service_name, STRERROR (errno));
       GNUNET_free (unixpath);
       unixpath = NULL;
@@ -1017,8 +967,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   if ((0 == port) && (NULL == unixpath))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _
-         ("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
+         _("Have neither PORT nor UNIXPATH for service `%s', but one is required\n"),
          service_name);
     GNUNET_free_non_null (hostname);
     return GNUNET_SYSERR;
@@ -1185,8 +1134,8 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
  * Read listen sockets from the parent process (ARM).
  *
  * @param sctx service context to initialize
- * @return GNUNET_YES if ok, GNUNET_NO if not ok (must bind yourself),
- * and GNUNET_SYSERR on error.
+ * @return #GNUNET_YES if ok, #GNUNET_NO if not ok (must bind yourself),
+ * and #GNUNET_SYSERR on error.
  */
 static int
 receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
@@ -1280,7 +1229,7 @@ receive_sockets_from_parent (struct GNUNET_SERVICE_Context *sctx)
  * - REJECT_FROM6 (disallow allow connections from specified IPv6 subnets)
  *
  * @param sctx service context to initialize
- * @return GNUNET_OK if configuration succeeded
+ * @return #GNUNET_OK if configuration succeeded
  */
 static int
 setup_service (struct GNUNET_SERVICE_Context *sctx)
@@ -1404,12 +1353,13 @@ get_user_name (struct GNUNET_SERVICE_Context *sctx)
   return un;
 }
 
+
 /**
  * Write PID file.
  *
  * @param sctx service context
  * @param pid PID to write (should be equal to 'getpid()'
- * @return  GNUNET_OK on success (including no work to be done)
+ * @return  #GNUNET_OK on success (including no work to be done)
  */
 static int
 write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
@@ -1467,7 +1417,7 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
 /**
  * Task run during shutdown.  Stops the server/service.
  *
- * @param cls the 'struct GNUNET_SERVICE_Context'
+ * @param cls the `struct GNUNET_SERVICE_Context`
  * @param tc unused
  */
 static void
@@ -1501,33 +1451,37 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   (void) GNUNET_SPEEDUP_start_ (sctx->cfg);
   GNUNET_RESOLVER_connect (sctx->cfg);
   if (NULL != sctx->lsocks)
-    sctx->server =
-        GNUNET_SERVER_create_with_sockets (&check_access, sctx, sctx->lsocks,
+    sctx->server
+      = GNUNET_SERVER_create_with_sockets (&check_access, sctx, sctx->lsocks,
                                            sctx->timeout, sctx->require_found);
   else
-    sctx->server =
-        GNUNET_SERVER_create (&check_access, sctx, sctx->addrs, sctx->addrlens,
+    sctx->server
+      = GNUNET_SERVER_create (&check_access, sctx, sctx->addrs, sctx->addrlens,
                               sctx->timeout, sctx->require_found);
   if (NULL == sctx->server)
   {
     if (NULL != sctx->addrs)
-    {
-      i = 0;
-      while (NULL != sctx->addrs[i])
-      {
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Failed to start `%s' at `%s'\n"),
+      for (i = 0; NULL != sctx->addrs[i]; i++)
+        LOG (GNUNET_ERROR_TYPE_INFO,
+             _("Failed to start `%s' at `%s'\n"),
              sctx->service_name, GNUNET_a2s (sctx->addrs[i], sctx->addrlens[i]));
-        i++;
-      }
-    }
     sctx->ret = GNUNET_SYSERR;
     return;
   }
+  if (NULL != sctx->addrs)
+    for (i = 0; NULL != sctx->addrs[i]; i++)
+      if (AF_UNIX == sctx->addrs[i]->sa_family)
+        GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
+                                     sctx->match_uid,
+                                     sctx->match_gid);
+
+
   if (0 == (sctx->options & GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN))
   {
     /* install a task that will kill the server
      * process if the scheduler ever gets a shutdown signal */
-    sctx->shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+    sctx->shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                        &shutdown_task,
 							sctx);
   }
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
@@ -1642,7 +1596,7 @@ detach_terminal (struct GNUNET_SERVICE_Context *sctx)
  * Set user ID.
  *
  * @param sctx service context
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 set_user_id (struct GNUNET_SERVICE_Context *sctx)
@@ -1717,8 +1671,10 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  *         if we shutdown nicely
  */
 int
-GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
-                    enum GNUNET_SERVICE_Options options, GNUNET_SERVICE_Main task,
+GNUNET_SERVICE_run (int argc, char *const *argv,
+                    const char *service_name,
+                    enum GNUNET_SERVICE_Options options,
+                    GNUNET_SERVICE_Main task,
                     void *task_cls)
 {
 #define HANDLE_ERROR do { GNUNET_break (0); goto shutdown; } while (0)
@@ -1891,7 +1847,7 @@ GNUNET_SERVICE_start (const char *service_name,
   int i;
   struct GNUNET_SERVICE_Context *sctx;
 
-  sctx = GNUNET_malloc (sizeof (struct GNUNET_SERVICE_Context));
+  sctx = GNUNET_new (struct GNUNET_SERVICE_Context);
   sctx->ready_confirm_fd = -1;  /* no daemonizing */
   sctx->ret = GNUNET_OK;
   sctx->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1919,6 +1875,12 @@ GNUNET_SERVICE_start (const char *service_name,
     GNUNET_SERVICE_stop (sctx);
     return NULL;
   }
+  if (NULL != sctx->addrs)
+    for (i = 0; NULL != sctx->addrs[i]; i++)
+      if (AF_UNIX == sctx->addrs[i]->sa_family)
+        GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
+                                     sctx->match_uid,
+                                     sctx->match_gid);
   sctx->my_handlers = GNUNET_malloc (sizeof (defhandlers));
   memcpy (sctx->my_handlers, defhandlers, sizeof (defhandlers));
   i = 0;
