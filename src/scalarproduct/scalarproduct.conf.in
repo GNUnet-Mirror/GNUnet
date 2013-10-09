@@ -1,7 +1,6 @@
 [vectorproduct]
 BINARY = gnunet-service-vectorproduct
 UNIXPATH = /tmp/gnunet-service-vectorproduct.sock
-HOME = $SERVICEHOME
 # PORT = 2106
 @UNIXONLY@ PORT = 2087
 

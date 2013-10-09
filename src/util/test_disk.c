@@ -169,27 +169,6 @@ testDirIter ()
 
 
 static int
-testGetHome ()
-{
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-  char *fn;
-  int ret;
-
-  cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (cfg != NULL);
-  GNUNET_CONFIGURATION_set_value_string (cfg, "service", "HOME",
-                                         "/tmp/test-gnunet-disk-a/b/c");
-  fn = GNUNET_DISK_get_home_filename (cfg, "service", "d", "e", NULL);
-  GNUNET_assert (fn != NULL);
-  GNUNET_CONFIGURATION_destroy (cfg);
-  ret = strcmp ("/tmp/test-gnunet-disk-a/b/c/d/e", fn);
-  GNUNET_free (fn);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_DISK_directory_remove ("/tmp/test-gnunet-disk-a"));
-  return ret;
-}
-
-static int
 testCanonicalize ()
 {
   char *fn = GNUNET_strdup ("ab?><|cd*ef:/g\"");
@@ -246,7 +225,6 @@ main (int argc, char *argv[])
   failureCount += testOpenClose ();
   failureCount += testDirScan ();
   failureCount += testDirIter ();
-  failureCount += testGetHome ();
   failureCount += testCanonicalize ();
   failureCount += testChangeOwner ();
   failureCount += testDirMani ();

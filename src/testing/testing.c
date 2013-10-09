@@ -103,7 +103,8 @@ struct GNUNET_TESTING_System
 {
   /**
    * Prefix (i.e. "/tmp/gnunet-testing/") we prepend to each
-   * SERVICEHOME.    */
+   * GNUNET_HOME.
+   */
   char *tmppath;
 
   /**
@@ -747,7 +748,7 @@ struct UpdateContext
   /**
    * The customized service home path for this peer
    */
-  char *service_home;
+  char *gnunet_home;
 
   /**
    * Array of ports currently allocated to this peer.  These ports will be
@@ -839,7 +840,7 @@ update_config (void *cls, const char *section, const char *option,
                                               single_variable))
     {
       GNUNET_snprintf (uval, sizeof (uval), "%s/%s.sock",
-                       uc->service_home, section);
+                       uc->gnunet_home, section);
       value = uval;
     }
     else if ((GNUNET_YES ==
@@ -970,7 +971,7 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
 {
   struct SharedServiceInstance *i;
   struct GNUNET_CONFIGURATION_Handle *temp;
-  char *service_home;
+  char *gnunet_home;
   uint32_t port;
 
   ss->n_peers++;
@@ -979,25 +980,25 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
        ( (0 != ss->share)
          && (ss->n_instances < ((ss->n_peers + ss->share - 1) / ss->share)) ) )
   {
-    i = GNUNET_malloc (sizeof (struct SharedServiceInstance));
+    i = GNUNET_new (struct SharedServiceInstance);
     i->ss = ss;
-    (void) GNUNET_asprintf (&service_home, "%s/shared/%s/%u",
+    (void) GNUNET_asprintf (&gnunet_home, "%s/shared/%s/%u",
                             system->tmppath, ss->sname, ss->n_instances);
-    (void) GNUNET_asprintf (&i->unix_sock, "%s/sock", service_home);
+    (void) GNUNET_asprintf (&i->unix_sock, "%s/sock", gnunet_home);
     port = GNUNET_TESTING_reserve_port (system);
     if (0 == port)
     {
-      GNUNET_free (service_home);
+      GNUNET_free (gnunet_home);
       cleanup_shared_service_instance (i);
       return NULL;
     }
     GNUNET_array_append (ss->instances, ss->n_instances, i);
     temp = GNUNET_CONFIGURATION_dup (ss->cfg);
     (void) GNUNET_asprintf (&i->port_str, "%u", port);
-    (void) GNUNET_asprintf (&i->cfg_fn, "%s/config", service_home);
-    GNUNET_CONFIGURATION_set_value_string (temp, "PATHS", "SERVICEHOME",
-                                           service_home);
-    GNUNET_free (service_home);
+    (void) GNUNET_asprintf (&i->cfg_fn, "%s/config", gnunet_home);
+    GNUNET_CONFIGURATION_set_value_string (temp, "PATHS", "GNUNET_HOME",
+                                           gnunet_home);
+    GNUNET_free (gnunet_home);
     GNUNET_CONFIGURATION_set_value_string (temp, ss->sname, "UNIXPATH",
                                            i->unix_sock);
     GNUNET_CONFIGURATION_set_value_string (temp, ss->sname, "PORT",
@@ -1029,9 +1030,9 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
  * Create a new configuration using the given configuration as a template;
  * ports and paths will be modified to select available ports on the local
  * system. The default configuration will be available in PATHS section under
- * the option DEFAULTCONFIG after the call. SERVICE_HOME is also set in PATHS
+ * the option DEFAULTCONFIG after the call. GNUNET_HOME is also set in PATHS
  * section to the temporary directory specific to this configuration. If we run
- * out of "*port" numbers, return SYSERR.
+ * out of "*port" numbers, return #GNUNET_SYSERR.
  *
  * This is primarily a helper function used internally
  * by 'GNUNET_TESTING_peer_configure'.
@@ -1041,7 +1042,7 @@ associate_shared_service (struct GNUNET_TESTING_System *system,
  * @param ports array with port numbers used in the created configuration.
  *          Will be updated upon successful return.  Can be NULL
  * @param nports the size of the `ports' array.  Will be updated.
- * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error - the configuration will
  *           be incomplete and should not be used there upon
  */
 static int
@@ -1058,16 +1059,16 @@ GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
   uc.status = GNUNET_OK;
   uc.ports = NULL;
   uc.nports = 0;
-  GNUNET_asprintf (&uc.service_home, "%s/%u", system->tmppath,
+  GNUNET_asprintf (&uc.gnunet_home, "%s/%u", system->tmppath,
                    system->path_counter++);
-  GNUNET_asprintf (&default_config, "%s/config", uc.service_home);
+  GNUNET_asprintf (&default_config, "%s/config", uc.gnunet_home);
   GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG",
                                          default_config);
   GNUNET_CONFIGURATION_set_value_string (cfg, "arm", "CONFIG",
                                          default_config);
   GNUNET_free (default_config);
-  GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "SERVICEHOME",
-                                         uc.service_home);
+  GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "GNUNET_HOME",
+                                         uc.gnunet_home);
   /* make PORTs and UNIXPATHs unique */
   GNUNET_CONFIGURATION_iterate (cfg, &update_config, &uc);
   /* allow connections to services from system trusted_ip host */
@@ -1076,7 +1077,7 @@ GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
   GNUNET_CONFIGURATION_set_value_string (cfg,
 					 "nat",
 					 "USE_LOCALADDR", "YES");
-  GNUNET_free (uc.service_home);
+  GNUNET_free (uc.gnunet_home);
   if ((NULL != ports) && (NULL != nports))
   {
     *ports = uc.ports;
@@ -1092,7 +1093,7 @@ GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
  * Create a new configuration using the given configuration as a template;
  * ports and paths will be modified to select available ports on the local
  * system. The default configuration will be available in PATHS section under
- * the option DEFAULTCONFIG after the call. SERVICE_HOME is also set in PATHS
+ * the option DEFAULTCONFIG after the call. GNUNET_HOME is also set in PATHS
  * section to the temporary directory specific to this configuration. If we run
  * out of "*port" numbers, return SYSERR.
  *

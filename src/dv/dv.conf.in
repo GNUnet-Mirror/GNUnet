@@ -3,7 +3,6 @@ AUTOSTART = YES
 ACCEPT_FROM6 = ::1;
 ACCEPT_FROM = 127.0.0.1;
 BINARY = gnunet-service-dv
-HOME = $SERVICEHOME
 HOSTNAME = localhost
 @UNIXONLY@ PORT = 2571
 UNIXPATH = /tmp/gnunet-service-dv.sock

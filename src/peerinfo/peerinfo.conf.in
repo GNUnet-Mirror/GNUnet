@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @JAVAPORT@PORT = 2090
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-peerinfo
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -10,15 +9,15 @@ UNIXPATH = /tmp/gnunet-service-peerinfo.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO
-# USERNAME = 
+# USERNAME =
 # MAXBUF =
 # TIMEOUT =
 # DISABLEV6 =
-# BINDTO = 
+# BINDTO =
 # REJECT_FROM =
 # REJECT_FROM6 =
 # PREFIX =
-HOSTS = $SERVICEHOME/peerinfo/
+HOSTS = $GNUNET_DATA_HOME/peerinfo/hosts/
 
 # Option to disable all disk IO; only useful for testbed runs
 # (large-scale experiments); disables persistence of HELLOs!

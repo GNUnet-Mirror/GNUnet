@@ -43,6 +43,7 @@
 
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
+
 #if LINUX
 /**
  * Try to determine path by reading /proc/PID/exe
@@ -115,12 +116,13 @@ get_path_from_proc_exe ()
 }
 #endif
 
-#if WINDOWS
 
+#if WINDOWS
 static HINSTANCE dll_instance;
 
 
-/* GNUNET_util_cl_init() in common_logging.c is preferred.
+/**
+ * GNUNET_util_cl_init() in common_logging.c is preferred.
  * This function is only for thread-local storage (not used in GNUnet)
  * and hInstance saving.
  */
@@ -225,6 +227,7 @@ get_path_from_module_filename ()
   return upath;
 }
 #endif
+
 
 #if DARWIN
 /**
@@ -415,8 +418,7 @@ os_get_gnunet_path ()
     return ret;
   /* other attempts here */
   LOG (GNUNET_ERROR_TYPE_ERROR,
-       _
-       ("Could not determine installation path for %s.  Set `%s' environment variable.\n"),
+       _("Could not determine installation path for %s.  Set `%s' environment variable.\n"),
        "GNUnet", "GNUNET_PREFIX");
   return NULL;
 }
@@ -452,7 +454,7 @@ os_get_exec_path ()
 
 /**
  * @brief get the path to a specific GNUnet installation directory or,
- * with GNUNET_IPK_SELF_PREFIX, the current running apps installation directory
+ * with #GNUNET_IPK_SELF_PREFIX, the current running apps installation directory
  * @author Milan
  * @return a pointer to the dir path (to be freed by the caller)
  */
@@ -657,9 +659,9 @@ GNUNET_OS_get_libexec_binary_path (const char *progname)
  *             binary with the -d flag. -d omits a programs main loop and only
  *             executes all privileged operations in an binary.
  * @param params parameters used for w32 privilege checking (can be NULL for != w32 )
- * @return GNUNET_YES if the file is SUID (*nix) or can be executed with current privileges (W32),
- *         GNUNET_NO if not SUID (but binary exists),
- *         GNUNET_SYSERR on error (no such binary or not executable)
+ * @return #GNUNET_YES if the file is SUID (*nix) or can be executed with current privileges (W32),
+ *         #GNUNET_NO if not SUID (but binary exists),
+ *         #GNUNET_SYSERR on error (no such binary or not executable)
  */
 int
 GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *params)
@@ -704,7 +706,8 @@ GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *p
 #endif
   if (NULL == p)
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, _("Could not find binary `%s' in PATH!\n"),
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Could not find binary `%s' in PATH!\n"),
          binary);
     return GNUNET_SYSERR;
   }

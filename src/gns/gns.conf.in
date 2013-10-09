@@ -1,14 +1,11 @@
 [gns]
 AUTOSTART = YES
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-gns
 UNIXPATH = /tmp/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
 
-ZONE_DIR = $SERVICEHOME/gns/
-
-# Do we require users that want to access GNS to run this process 
+# Do we require users that want to access GNS to run this process
 # (usually not a good idea)
 UNIX_MATCH_UID = NO
 
@@ -28,7 +25,7 @@ BINARY = gnunet-gns-proxy
 AUTOSTART = NO
 
 # Where is the certificate for the GNS proxy stored?
-PROXY_CACERT = $SERVICEHOME/gns/gnsCAcert.pem
+PROXY_CACERT = $GNUNET_DATA_HOME/gns/gns_ca_cert.pem
 PROXY_UNIXPATH = /tmp/gnunet-gns-proxy.sock
 
 

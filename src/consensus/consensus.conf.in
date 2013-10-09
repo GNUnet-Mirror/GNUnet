@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @UNIXONLY@ PORT = 2103
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-consensus
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;

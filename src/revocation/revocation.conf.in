@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @JAVAPORT@PORT = 2112
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-revocation
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -15,4 +14,4 @@ UNIX_MATCH_GID = YES
 # DO NOT CHANGE THIS VALUE, doing so will break the protocol!
 WORKBITS = 25
 
-DATABASE = $SERVICEHOME/revocation.db
+DATABASE = $GNUNET_DATA_HOME/revocation.dat

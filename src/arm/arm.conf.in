@@ -2,7 +2,6 @@
 [arm]
 @UNIXONLY@ PORT = 2087
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-arm
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -16,7 +15,7 @@ UNIX_MATCH_GID = YES
 # service.  Thus the following option would introduce per-service
 # logging with a new log file each day.  Note that only the last 3
 # log files are preserved.
-# GLOBAL_POSTFIX = -l $SERVICEHOME/{}-%Y-%m-%d.log
+# GLOBAL_POSTFIX = -l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
 GLOBAL_PREFIX = @MONKEYPREFIX@
 # USERNAME =
 # MAXBUF =

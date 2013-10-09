@@ -147,7 +147,7 @@ static unsigned int no_stderr;
 
 
 /**
- * Attempts to delete configuration file and SERVICEHOME
+ * Attempts to delete configuration file and GNUNET_HOME
  * on ARM shutdown provided the end and delete options
  * were specified when gnunet-arm was run.
  */
@@ -158,15 +158,17 @@ delete_files ()
 	      "Will attempt to remove configuration file %s and service directory %s\n",
 	      config_file, dir);
 
-  if (UNLINK (config_file) != 0)
+  if (0 != UNLINK (config_file))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to remove configuration file %s\n"), config_file);
+		_("Failed to remove configuration file %s\n"),
+                config_file);
   }
-  if (GNUNET_DISK_directory_remove (dir) != GNUNET_OK)
+  if (GNUNET_OK != GNUNET_DISK_directory_remove (dir))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		_("Failed to remove servicehome directory %s\n"), dir);
+		_("Failed to remove servicehome directory %s\n"),
+                dir);
 
   }
 }
@@ -192,8 +194,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ARM_monitor_disconnect_and_free (m);
     m = NULL;
   }
-  if ((end == GNUNET_YES) && (delete == GNUNET_YES))
-    delete_files ();	
+  if ((GNUNET_YES == end) && (GNUNET_YES == delete))
+    delete_files ();
   GNUNET_CONFIGURATION_destroy (cfg);
   cfg = NULL;
 }
@@ -588,7 +590,7 @@ action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       if (list)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		    "Going to list all running services controlled by ARM.\n");	
+		    "Going to list all running services controlled by ARM.\n");
         GNUNET_ARM_request_service_list (h,
 					 (0 == timeout.rel_value_us) ? LIST_TIMEOUT : timeout,
 					 &list_callback, &list);
@@ -673,10 +675,10 @@ run (void *cls,
   cfg = GNUNET_CONFIGURATION_dup (c);
   config_file = cfgfile;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "SERVICEHOME", &dir))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS", "GNUNET_HOME", &dir))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-			       "PATHS", "SERVICEHOME");
+			       "PATHS", "GNUNET_HOME");
     return;
   }
   if (NULL != cfgfile)

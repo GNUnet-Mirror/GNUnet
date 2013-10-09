@@ -963,7 +963,7 @@ GNUNET_CRYPTO_ecc_key_get_anonymous (void);
  * configuration file (!).  This function is used so that
  * at a later point code can be certain that reading a
  * hostkey is fast (for example in time-dependent testcases).
- *
+*
  * @param cfg_name name of the configuration file to use
  */
 void

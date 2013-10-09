@@ -1,13 +1,11 @@
 [fs]
 AUTOSTART = YES
-INDEXDB = $SERVICEHOME/fs/idxinfo.lst
-RESPECT = $SERVICEHOME/fs/credit/
-IDENTITY_DIR = $SERVICEHOME/fs/identities/
-STATE_DIR = $SERVICEHOME/fs/persistence/
-UPDATE_DIR = $SERVICEHOME/fs/updates/
+INDEXDB = $GNUNET_DATA_HOME/fs/idxinfo.lst
+RESPECT = $GNUNET_DATA_HOME/fs/credit/
+STATE_DIR = $GNUNET_DATA_HOME/fs/persistence/
+UPDATE_DIR = $GNUNET_DATA_HOME/fs/updates/
 @UNIXONLY@ PORT = 2094
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-fs
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -24,7 +22,7 @@ CONTENT_PUSHING = YES
 
 UNIXPATH = /tmp/gnunet-service-fs.sock
 
-# Do we require users that want to access file-sharing to run this process 
+# Do we require users that want to access file-sharing to run this process
 # (usually not a good idea)
 UNIX_MATCH_UID = NO
 
@@ -40,7 +38,7 @@ MAX_PENDING_REQUESTS = 65536
 DATASTORE_QUEUE_SIZE = 1024
 
 # Maximum frequency we're allowed to poll the datastore
-# for content for migration (can be used to reduce 
+# for content for migration (can be used to reduce
 # GNUnet's disk-IO rate)
 MIN_MIGRATION_DELAY = 100 ms
 
@@ -65,4 +63,4 @@ BINARY = gnunet-auto-share
 
 # Note: MUST specify path to auto-share directory and CAN specify other options
 # to gnunet-auto-share here!
-OPTIONS = $SERVICEHOME/fs/share/
+OPTIONS = $GNUNET_DATA_HOME/fs/share/

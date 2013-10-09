@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @JAVAPORT@PORT = 2089
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-resolver
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;

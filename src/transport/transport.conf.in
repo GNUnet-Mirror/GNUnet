@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @UNIXONLY@ PORT = 2091
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-transport
 #PREFIX = valgrind
 NEIGHBOUR_LIMIT = 50
@@ -10,11 +9,11 @@ ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 PLUGINS = tcp udp
 UNIXPATH = /tmp/gnunet-service-transport.sock
-BLACKLIST_FILE = $SERVICEHOME/blacklist
+BLACKLIST_FILE = $GNUNET_CONFIG_HOME/transport/blacklist
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 # DISABLE_SOCKET_FORWARDING = NO
-# USERNAME = 
+# USERNAME =
 # MAXBUF =
 # TIMEOUT =
 # DISABLEV6 =
@@ -26,11 +25,11 @@ UNIX_MATCH_GID = YES
 # Configuration settings related to traffic manipulation for testing purposes
 # Distance
 # MANIPULATE_DISTANCE_IN = 1
-# MANIPULATE_DISTANCE_OUT = 1 
+# MANIPULATE_DISTANCE_OUT = 1
 # Delay; WARNING: to large values may lead to peers not connecting!
 # MANIPULATE_DELAY_IN = 1 ms
 # MANIPULATE_DELAY_OUT = 1 ms
-  
+
 
 [transport-unix]
 PORT = 22086
@@ -79,16 +78,16 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 [transport-https_server]
 # EXTERNAL_HOSTNAME = <your hostname/path>
 # EXTERNAL_HOSTNAME_ONLY = YES
-# If you have a valid SSL certificate for your external hostname tell, 
-# clients to verify it  
+# If you have a valid SSL certificate for your external hostname tell,
+# clients to verify it
 # VERIFY_EXTERNAL_HOSTNAME = YES
 # Does the external hostname use the same port?
 # EXTERNAL_HOSTNAME_USE_PORT = YES
 PORT = 4433
 ADVERTISED_PORT = 4433
 CRYPTO_INIT = NORMAL
-KEY_FILE = $SERVICEHOME/https.key
-CERT_FILE = $SERVICEHOME/https.cert
+KEY_FILE = $GNUNET_DATA_HOME/transport/https.key
+CERT_FILE = $GNUNET_DATA_HOME/transport/https.cert
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 

@@ -5,17 +5,16 @@ UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 @UNIXONLY@ PORT = 2093
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-datastore
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 QUOTA = 5 GB
-BLOOMFILTER = $SERVICEHOME/datastore/bloomfilter
+BLOOMFILTER = $GNUNET_DATA_HOME/datastore/bloomfilter
 DATABASE = sqlite
 # DISABLE_SOCKET_FORWARDING = NO
 
 [datastore-sqlite]
-FILENAME = $SERVICEHOME/datastore/sqlite.db
+FILENAME = $GNUNET_DATA_HOME/datastore/sqlite.db
 
 [datastore-postgres]
 CONFIG = connect_timeout=10; dbname=gnunet
@@ -24,7 +23,7 @@ CONFIG = connect_timeout=10; dbname=gnunet
 DATABASE = gnunet
 CONFIG = ~/.my.cnf
 # USER = gnunet
-# PASSWORD = 
+# PASSWORD =
 # HOST = localhost
 # PORT = 3306
 

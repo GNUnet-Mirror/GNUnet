@@ -1868,61 +1868,47 @@ server_load_file (const char *file)
  * Load ssl certificate
  *
  * @param plugin the plugin
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 server_load_certificate (struct HTTP_Server_Plugin *plugin)
 {
   int res = GNUNET_OK;
-
-  char *sh;
   char *key_file;
   char *cert_file;
 
-  /* Get crypto init string from config
-   * If not present just use default values */
-
-  if (GNUNET_OK !=
-                 GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                        "PATHS",
-                                                        "SERVICEHOME",
-                                                        &sh))
-  {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Failed to get servicehome!\n");
-      return GNUNET_SYSERR;
-  }
-
-
-  if (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-                                                        plugin->name,
-                                                        "CRYPTO_INIT",
-                                                        &plugin->crypto_init))
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Using crypto init string `%s'\n",
-                       plugin->crypto_init);
-  else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using default crypto init string \n");
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "KEY_FILE", &key_file))
   {
-    GNUNET_break (0);
-    GNUNET_asprintf (&key_file, "%s/%s", sh, "https_key.key");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               plugin->name, "CERT_FILE");
+    return GNUNET_SYSERR;
   }
-
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (plugin->env->cfg, plugin->name,
                                                "CERT_FILE", &cert_file))
   {
-      GNUNET_break (0);
-    GNUNET_asprintf (&cert_file, "%s/%s", sh, "https_cert.crt");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               plugin->name, "CERT_FILE");
+    GNUNET_free (key_file);
+    return GNUNET_SYSERR;
   }
-  GNUNET_free (sh);
+  /* Get crypto init string from config. If not present, use
+   * default values */
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+                                             plugin->name,
+                                             "CRYPTO_INIT",
+                                             &plugin->crypto_init))
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Using crypto init string `%s'\n",
+                     plugin->crypto_init);
+  else
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Using default crypto init string \n");
+
   /* read key & certificates from file */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Trying to loading TLS certificate from key-file `%s' cert-file`%s'\n",

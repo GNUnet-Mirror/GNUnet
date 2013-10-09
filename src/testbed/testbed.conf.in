@@ -2,7 +2,6 @@
 AUTOSTART = NO
 @JAVAPORT@ PORT = 2101
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-testbed
 
 # How long should operations wait?

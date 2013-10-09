@@ -1,6 +1,5 @@
 [psycstore]
 AUTOSTART = YES
-HOME = $SERVICEHOME
 BINARY = gnunet-service-psycstore
 UNIXPATH = /tmp/gnunet-service-psycstore.sock
 @UNIXONLY@PORT = 2111
@@ -9,4 +8,4 @@ UNIX_MATCH_GID = YES
 DATABASE = sqlite
 
 [psycstore-sqlite]
-FILENAME = $SERVICEHOME/psycstore/sqlite.db
+FILENAME = $GNUNET_DATA_HOME/psycstore/sqlite.db

@@ -2,6 +2,5 @@
 AUTOSTART = YES
 BINARY = gnunet-service-conversation
 UNIXPATH = /tmp/gnunet-service-conversation.sock
-HOME = $SERVICEHOME
 @UNIXONLY@ PORT = 2106
 

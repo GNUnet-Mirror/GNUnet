@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2006, 2007, 2008, 2009, 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -414,7 +414,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	}
 	/* For each key = value pair we need to add 4 characters (2
 	   spaces and 1 equal-to character and 1 new line) */
-	m_size += strlen (ent->key) + strlen (ent->val) + 4;	
+	m_size += strlen (ent->key) + strlen (ent->val) + 4;
       }
     }
     /* A new line after section end */
@@ -449,7 +449,7 @@ GNUNET_CONFIGURATION_serialize (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	GNUNET_free (val);
 	memcpy (mem + c_size, cbuf, len);
 	c_size += len;
-	GNUNET_free (cbuf);	
+	GNUNET_free (cbuf);
       }
     }
     memcpy (mem + c_size, "\n", 1);
@@ -993,7 +993,7 @@ GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle
  * @param cfg configuration to inspect
  * @param section section of interest
  * @param option option of interest
- * @return GNUNET_YES if so, GNUNET_NO if not.
+ * @return #GNUNET_YES if so, #GNUNET_NO if not.
  */
 int
 GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -1009,67 +1009,179 @@ GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
- * where either in the "PATHS" section or the environtment
- * "FOO" is set to "DIRECTORY".
+ * where either in the "PATHS" section or the environtment "FOO" is
+ * set to "DIRECTORY".  We also support default expansion,
+ * i.e. ${VARIABLE:-default} will expand to $VARIABLE if VARIABLE is
+ * set in PATHS or the environment, and otherwise to "default".  Note
+ * that "default" itself can also be a $-expression, thus
+ * "${VAR1:-{$VAR2}}" will expand to VAR1 and if that is not defined
+ * to VAR2.
+ *
+ * @param cfg configuration to use for path expansion
+ * @param orig string to $-expand (will be freed!)
+ * @param depth recursion depth, used to detect recursive expansions
+ * @return $-expanded string
+ */
+static char *
+expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
+               char *orig,
+               unsigned int depth)
+{
+  int i;
+  char *prefix;
+  char *result;
+  char *start;
+  const char *post;
+  const char *env;
+  char *def;
+  char *end;
+  unsigned int lopen;
+
+  if (depth > 128)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Recursive expansion suspected, aborting $-expansion for term `%s'\n"),
+         orig);
+    return orig;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to $-expand %s\n", orig);
+  if ('$' != orig[0])
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Doesn't start with $ - not expanding\n");
+    return orig;
+  }
+  if ('{' == orig[1])
+  {
+    start = &orig[2];
+    lopen = 1;
+    end = &orig[1];
+    while (lopen > 0)
+    {
+      end++;
+      switch (*end)
+      {
+      case '}':
+        lopen--;
+        break;
+      case '{':
+        lopen++;
+        break;
+      case '\0':
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             _("Missing closing `%s' in option `%s'\n"),
+             "}",
+             orig);
+        return orig;
+      default:
+        break;
+      }
+    }
+    *end = '\0';
+    post = end + 1;
+    def = strchr (orig, ':');
+    if (NULL != def)
+    {
+      *def = '\0';
+      def++;
+      if ( ('-' == *def) ||
+           ('=' == *def) )
+        def++;
+      def = GNUNET_strdup (def);
+    }
+  }
+  else
+  {
+    start = &orig[1];
+    def = NULL;
+    i = 0;
+    while ( (orig[i] != '/') &&
+            (orig[i] != '\\') &&
+            (orig[i] != '\0') )
+      i++;
+    if (orig[i] == '\0')
+    {
+      post = "";
+    }
+    else
+    {
+      orig[i] = '\0';
+      post = &orig[i + 1];
+    }
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Split into `%s' and `%s' with default %s\n",
+       start,
+       post,
+       def);
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "PATHS",
+                                               start,
+                                               &prefix))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Filename for `%s' is not in PATHS config section\n",
+         start);
+    if (NULL == (env = getenv (start)))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "`%s' is not an environment variable\n",
+           start);
+      /* try default */
+      def = expand_dollar (cfg, def, depth + 1);
+      env = def;
+    }
+    if (NULL == env)
+    {
+      orig[strlen (orig)] = DIR_SEPARATOR;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Expanded to `%s' (returning orig)\n",
+           orig);
+      return orig;
+    }
+    prefix = GNUNET_strdup (env);
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Prefix is `%s'\n",
+       prefix);
+  result = GNUNET_malloc (strlen (prefix) + strlen (post) + 2);
+  strcpy (result, prefix);
+  if ( (0 == strlen (prefix)) ||
+       ( (prefix[strlen (prefix) - 1] != DIR_SEPARATOR) &&
+         (strlen (post) > 0) ) )
+    strcat (result, DIR_SEPARATOR_STR);
+  strcat (result, post);
+  GNUNET_free_non_null (def);
+  GNUNET_free (prefix);
+  GNUNET_free (orig);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Expanded to `%s'\n",
+       result);
+  return result;
+}
+
+
+/**
+ * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
+ * where either in the "PATHS" section or the environtment "FOO" is
+ * set to "DIRECTORY".  We also support default expansion,
+ * i.e. ${VARIABLE:-default} will expand to $VARIABLE if VARIABLE is
+ * set in PATHS or the environment, and otherwise to "default".  Note
+ * that "default" itself can also be a $-expression, thus
+ * "${VAR1:-{$VAR2}}" will expand to VAR1 and if that is not defined
+ * to VAR2.
  *
  * @param cfg configuration to use for path expansion
  * @param orig string to $-expand (will be freed!)
  * @return $-expanded string
  */
 char *
-GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle
-                                    *cfg, char *orig)
+GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                    char *orig)
 {
-  int i;
-  char *prefix;
-  char *result;
-  const char *post;
-  const char *env;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Asked to $-expand %s\n", orig);
-
-  if (orig[0] != '$')
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Doesn't start with $ - not expanding\n");
-    return orig;
-  }
-  i = 0;
-  while ((orig[i] != '/') && (orig[i] != '\\') && (orig[i] != '\0'))
-    i++;
-  if (orig[i] == '\0')
-  {
-    post = "";
-  }
-  else
-  {
-    orig[i] = '\0';
-    post = &orig[i + 1];
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Split into `%s' and `%s'\n", orig, post);
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", &orig[1], &prefix))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Filename for `%s' is not in PATHS config section\n", &orig[1]);
-    if (NULL == (env = getenv (&orig[1])))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' is not an environment variable\n", &orig[1]);
-      orig[i] = DIR_SEPARATOR;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Expanded to `%s' (returning orig)\n", orig);
-      return orig;
-    }
-    prefix = GNUNET_strdup (env);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Prefix is `%s'\n", prefix);
-  result = GNUNET_malloc (strlen (prefix) + strlen (post) + 2);
-  strcpy (result, prefix);
-  if ((strlen (prefix) == 0) ||
-      ((prefix[strlen (prefix) - 1] != DIR_SEPARATOR) && (strlen (post) > 0)))
-    strcat (result, DIR_SEPARATOR_STR);
-  strcat (result, post);
-  GNUNET_free (prefix);
-  GNUNET_free (orig);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Expanded to `%s'\n", result);
-  return result;
+  return expand_dollar (cfg, orig, 0);
 }
 
 

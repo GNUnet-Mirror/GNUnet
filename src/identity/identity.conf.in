@@ -2,7 +2,6 @@
 AUTOSTART = YES
 @JAVAPORT@PORT = 2108
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-service-identity
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
@@ -11,7 +10,7 @@ UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 
 # Directory where we store information about our egos
-EGODIR = $SERVICEHOME/egos/
+EGODIR = $GNUNET_DATA_HOME/identity/egos/
 
 # File where we store default identities for subsystems
-SUBSYSTEM_CFG = $SERVICEHOME/subsystem_defaults.conf
+SUBSYSTEM_CFG = $GNUNET_CONFIG_HOME/identity/subsystem_defaults.conf

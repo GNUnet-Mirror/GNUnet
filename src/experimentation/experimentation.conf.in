@@ -2,7 +2,6 @@
 AUTOSTART = NO
 # PORT = 2106
 HOSTNAME = localhost
-HOME = $SERVICEHOME
 BINARY = gnunet-daemon-experimentation
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;

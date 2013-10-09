@@ -52,9 +52,6 @@ USE_EPHEMERAL_KEYS = NO
 TIMEOUT = 300 s
 PORT = 12368
 
-[gnunetd]
-HOSTKEY = $SERVICEHOME/.hostkey
-
 [PATHS]
 SERVICEHOME = /tmp/test-testbed/
 

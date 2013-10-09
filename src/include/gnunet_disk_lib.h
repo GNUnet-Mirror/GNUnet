@@ -798,25 +798,6 @@ GNUNET_DISK_file_change_owner (const char *filename, const char *user);
 
 
 /**
- * Construct full path to a file inside of the private
- * directory used by GNUnet.  Also creates the corresponding
- * directory.  If the resulting name is supposed to be
- * a directory, end the last argument in '/' (or pass
- * DIR_SEPARATOR_STR as the last argument before NULL).
- *
- * @param cfg configuration to use
- * @param service_name name of the service asking
- * @param ... is NULL-terminated list of
- *                path components to append to the
- *                private directory name.
- * @return the constructed filename
- */
-char *
-GNUNET_DISK_get_home_filename (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const char *service_name, ...);
-
-
-/**
  * Opaque handle for a memory-mapping operation.
  */
 struct GNUNET_DISK_MapHandle;
