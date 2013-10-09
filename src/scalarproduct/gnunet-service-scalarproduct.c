@@ -1904,18 +1904,16 @@ handle_service_request_multipart (void *cls,
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
   uint32_t used_elements;
-  uint32_t contained_elements;
+  uint32_t contained_elements=0;
   uint32_t msg_length;
   unsigned char * current;
   int32_t i = -1;
  
   // are we in the correct state?
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (BOB != session->role) {
-    goto except;
-  }
-  if (WAITING_FOR_MULTIPART_TRANSMISSION != session->state) {
-    goto except;
+  if ((BOB != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
   }
   // shorter than minimum?
   if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
@@ -1971,7 +1969,7 @@ handle_service_request_multipart (void *cls,
   
   return GNUNET_OK;
 except:
-  for (i = 0; i < session->transferred_element_count; i++)
+  for (i = 0; i < session->transferred_element_count + contained_elements; i++)
     if (session->a[i])
       gcry_mpi_release (session->a[i]);
   gcry_sexp_release (session->remote_pubkey);
@@ -2019,14 +2017,9 @@ handle_service_request (void *cls,
   enum SessionState needed_state;
 
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (BOB != session->role) {
+  if (WAITING_FOR_SERVICE_REQUEST != session->state) {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  // is this tunnel already in use?
-  if ((session->next) || (from_service_head == session)) {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    return GNUNET_OK;
   }
   // Check if message was sent by me, which would be bad!
   if (!memcmp (&session->peer, &me, sizeof (struct GNUNET_PeerIdentity))) {
@@ -2179,18 +2172,16 @@ handle_service_response_multipart (void *cls,
   unsigned char * current;
   size_t read;
   size_t i;
-  uint32_t contained_element_count;
+  uint32_t contained_element_count=0;
   size_t msg_size;
   int rc;
 
   GNUNET_assert (NULL != message);
   // are we in the correct state?
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (ALICE != session->role) {
-    goto except;
-  }
-  if (WAITING_FOR_MULTIPART_TRANSMISSION != session->state) {
-    goto except;
+  if ((ALICE != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
   }
   // shorter than minimum?
   if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
@@ -2203,7 +2194,6 @@ handle_service_response_multipart (void *cls,
   if ((ntohs (msg->header.size) != msg_size) || (session->used_element_count < contained_element_count)) {
     goto except;
   }
-  //convert s
   current = (unsigned char *) &msg[1];
   // Convert each k[][perm] to its MPI_value
   for (i = 0; i < contained_element_count; i++) {
@@ -2223,12 +2213,11 @@ handle_service_response_multipart (void *cls,
     current += PAILLIER_ELEMENT_LENGTH;
   }
   session->transferred_element_count += contained_element_count;
-  if (session->transferred_element_count == session->used_element_count){
-    session->state = SERVICE_RESPONSE_RECEIVED;
-    session->product = compute_scalar_product (session);
-    return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
-  }
-  return GNUNET_OK;
+  if (session->transferred_element_count != session->used_element_count)
+    return GNUNET_OK;
+  session->state = SERVICE_RESPONSE_RECEIVED;
+  session->product = compute_scalar_product (session);
+  return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
 except:
   GNUNET_break_op (0);
   if (session->s)
@@ -2276,20 +2265,17 @@ handle_service_response (void *cls,
   unsigned char * current;
   size_t read;
   size_t i;
-  uint32_t contained_element_count;
+  uint32_t contained_element_count=0;
   size_t msg_size;
   int rc;
 
   GNUNET_assert (NULL != message);
   session = (struct ServiceSession *) * tunnel_ctx;
-  if (ALICE != session->role) {
+  if (session->state != WAITING_FOR_SERVICE_REQUEST) {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    return GNUNET_OK;
   }
-
-  session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-
-  //we need at least a peer and one message id to compare
+  //we need at least a full message
   if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) > ntohs (msg->header.size)) {
     GNUNET_break_op (0);
     goto invalid_msg;
@@ -2303,6 +2289,7 @@ handle_service_response (void *cls,
     GNUNET_break_op (0);
     goto invalid_msg;
   }
+  session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
   session->transferred_element_count = contained_element_count;
   //convert s
   current = (unsigned char *) &msg[1];
@@ -2340,12 +2327,13 @@ handle_service_response (void *cls,
     }
     current += PAILLIER_ELEMENT_LENGTH;
   }
-  if (session->transferred_element_count == session->used_element_count){
-    session->state = SERVICE_RESPONSE_RECEIVED;
-    session->product = compute_scalar_product (session);
-    return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
-  }
-  return GNUNET_OK;
+  if (session->transferred_element_count != session->used_element_count)
+    return GNUNET_OK; //wait for the other multipart chunks
+  
+  session->state = SERVICE_RESPONSE_RECEIVED;
+  session->product = compute_scalar_product (session);
+  return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
+
 invalid_msg:
   if (session->s)
     gcry_mpi_release (session->s);
