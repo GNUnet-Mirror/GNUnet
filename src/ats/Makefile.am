@@ -90,10 +90,6 @@ libgnunet_plugin_ats_ril_la_DEPENDENCIES = \
 libexec_PROGRAMS = \
  gnunet-service-ats
 
-# gnunet-service-ats-solver_proportional.c gnunet-service-ats-solver_proportional.h
-# $(GN_MLP_SRC)
-# gnunet-service-ats-solver_ril.c gnunet-service-ats-solver_ril.h 
-
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \

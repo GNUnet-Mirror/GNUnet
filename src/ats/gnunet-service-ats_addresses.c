@@ -1715,9 +1715,9 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   load_quotas (cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
   ah->env.bandwidth_changed_cb = &bandwidth_changed_cb;
   ah->env.bw_changed_cb_cls = ah;
-  ah->env.get_preferences_cb = &get_preferences_cb;
+  ah->env.get_preferences = &get_preferences_cb;
   ah->env.get_preference_cls = ah;
-  ah->env.get_property_cb = &get_property_cb;
+  ah->env.get_property = &get_property_cb;
   ah->env.get_property_cls = ah;
   ah->env.cfg = cfg;
   ah->env.stats = stats;

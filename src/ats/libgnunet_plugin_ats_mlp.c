@@ -1843,8 +1843,8 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   GNUNET_assert (NULL != env->stats);
   GNUNET_assert (NULL != env->addresses);
   GNUNET_assert (NULL != env->bandwidth_changed_cb);
-  GNUNET_assert (NULL != env->get_preferences_cb);
-  GNUNET_assert (NULL != env->get_property_cb);
+  GNUNET_assert (NULL != env->get_preferences);
+  GNUNET_assert (NULL != env->get_property);
 
   /* Init GLPK environment */
   int res = glp_init_env();
@@ -2056,9 +2056,9 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   mlp->addresses = env->addresses;
   mlp->bw_changed_cb = env->bandwidth_changed_cb;
   mlp->bw_changed_cb_cls = env->bw_changed_cb_cls;
-  mlp->get_preferences =  env->get_preferences_cb;
+  mlp->get_preferences =  env->get_preferences;
   mlp->get_preferences_cls = env->get_preference_cls;
-  mlp->get_properties = env->get_property_cb;
+  mlp->get_properties = env->get_property;
   mlp->get_properties_cls = env->get_property_cls;
   /* Setting MLP Input variables */
 

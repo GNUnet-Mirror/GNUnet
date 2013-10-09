@@ -1261,8 +1261,8 @@ libgnunet_plugin_ats_ril_init (void *cls)
   GNUNET_assert(NULL != env->cfg);
   GNUNET_assert(NULL != env->stats);
   GNUNET_assert(NULL != env->bandwidth_changed_cb);
-  GNUNET_assert(NULL != env->get_preferences_cb);
-  GNUNET_assert(NULL != env->get_property_cb);
+  GNUNET_assert(NULL != env->get_preferences);
+  GNUNET_assert(NULL != env->get_property);
 
   if (GNUNET_OK
       != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME", &solver->step_time))
@@ -1321,9 +1321,9 @@ libgnunet_plugin_ats_ril_init (void *cls)
   solver->callbacks = GNUNET_malloc (sizeof (struct RIL_Callbacks));
   solver->callbacks->bw_changed = env->bandwidth_changed_cb;
   solver->callbacks->bw_changed_cls = env->bw_changed_cb_cls;
-  solver->callbacks->get_preferences = env->get_preferences_cb;
+  solver->callbacks->get_preferences = env->get_preferences;
   solver->callbacks->get_preferences_cls = env->get_preference_cls;
-  solver->callbacks->get_properties = env->get_property_cb;
+  solver->callbacks->get_properties = env->get_property;
   solver->callbacks->get_properties_cls = env->get_property_cls;
   solver->networks_count = env->network_count;
   solver->network_entries = GNUNET_malloc (env->network_count * sizeof (struct RIL_Network));

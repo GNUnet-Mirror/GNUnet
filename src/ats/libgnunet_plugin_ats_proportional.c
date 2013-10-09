@@ -384,8 +384,8 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   GNUNET_assert(NULL != env->cfg);
   GNUNET_assert(NULL != env->stats);
   GNUNET_assert(NULL != env->bandwidth_changed_cb);
-  GNUNET_assert(NULL != env->get_preferences_cb);
-  GNUNET_assert(NULL != env->get_property_cb);
+  GNUNET_assert(NULL != env->get_preferences);
+  GNUNET_assert(NULL != env->get_property);
 
   s = GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
   s->env = env;
@@ -405,9 +405,9 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
   s->bw_changed = env->bandwidth_changed_cb;
   s->bw_changed_cls = env->bw_changed_cb_cls;
-  s->get_preferences = env->get_preferences_cb;
+  s->get_preferences = env->get_preferences;
   s->get_preferences_cls = env->get_preference_cls;
-  s->get_properties = env->get_property_cb;
+  s->get_properties = env->get_property;
   s->get_properties_cls = env->get_property_cls;
   s->network_count = env->network_count;
   s->network_entries = GNUNET_malloc (env->network_count * sizeof (struct Network));
