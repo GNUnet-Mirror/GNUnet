@@ -43,32 +43,6 @@
 
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
 
-/**
- * All the states a connection can be in.
- */
-enum MeshConnectionState
-{
-  /**
-   * Uninitialized status, should never appear in operation.
-   */
-  MESH_CONNECTION_NEW,
-
-  /**
-   * Connection create message sent, waiting for ACK.
-   */
-  MESH_CONNECTION_SENT,
-
-  /**
-   * Connection ACK sent, waiting for ACK.
-   */
-  MESH_CONNECTION_ACK,
-
-  /**
-   * Connection confirmed, ready to carry traffic.
-   */
-  MESH_CONNECTION_READY,
-};
-
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -190,15 +164,9 @@ struct MeshFlowControl
 struct MeshConnection
 {
   /**
-   * DLL
-   */
-  struct MeshConnection *next;
-  struct MeshConnection *prev;
-
-  /**
    * Tunnel this connection is part of.
    */
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
 
   /**
    * Flow control information for traffic fwd.
@@ -328,7 +296,7 @@ connection_debug (struct MeshConnection *c)
  * @return String representation.
  */
 static const char *
-GMC_DEBUG_state2s (enum MeshTunnelState s)
+GMC_state2s (enum MeshConnectionState s)
 {
   switch (s)
   {
@@ -451,7 +419,7 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
 static void
 send_connection_ack (struct MeshConnection *connection, int fwd)
 {
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
@@ -477,7 +445,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 static void
 send_connection_create (struct MeshConnection *connection)
 {
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
@@ -624,54 +592,6 @@ connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
                                                           c);
 }
 
-
-/**
- * Send a message to all peers in this connection that the connection
- * is no longer valid.
- *
- * If some peer should not receive the message, it should be zero'ed out
- * before calling this function.
- *
- * @param c The connection whose peers to notify.
- */
-static void
-connection_send_destroy (struct MeshConnection *c)
-{
-  struct GNUNET_MESH_ConnectionDestroy msg;
-
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
-  msg.cid = c->id;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending connection destroy for connection %s[%X]\n",
-              peer2s (c->t->peer),
-              c->id);
-
-  if (GNUNET_NO == GMC_is_terminal (c, GNUNET_YES))
-    send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_YES);
-  if (GNUNET_NO == GMC_is_terminal (c, GNUNET_NO))
-    send_prebuilt_message_connection (&msg.header, c, NULL, GNUNET_NO);
-  c->destroy = GNUNET_YES;
-}
-
-
-/**
- * Get free buffer space in a connection.
- *
- * @param c Connection.
- * @param fwd Is query about FWD traffic?
- *
- * @return Free buffer space [0 - max_msgs_queue/max_connections]
- */
-static unsigned int
-connection_get_buffer (struct MeshConnection *c, int fwd)
-{
-  struct MeshFlowControl *fc;
-
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-
-  return (fc->queue_max - fc->queue_n);
-}
 
 
 /**
@@ -1383,7 +1303,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                        int fwd)
 {
   struct MeshConnection *c;
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
   struct MeshPeer *neighbor;
   struct MeshFlowControl *fc;
   uint32_t pid;
@@ -1838,7 +1758,7 @@ GMC_shutdown (void)
 
 struct MeshConnection *
 GMC_new (const struct GNUNET_HashCode *cid,
-         struct MeshTunnel2 *t,
+         struct MeshTunnel3 *t,
          struct MeshPeerPath *p,
          unsigned int own_pos)
 {
@@ -1911,6 +1831,12 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_free (c);
 }
 
+struct MeshConnection *
+GMC_next (struct MeshConnection *c)
+{
+  return c->next;
+}
+
 
 /**
  * Get the connection ID.
@@ -1924,6 +1850,58 @@ GMC_get_id (const struct MeshConnection *c)
 {
   return &c->id;
 }
+
+
+/**
+ * Get the connection state.
+ *
+ * @param c Connection to get the state from.
+ *
+ * @return state of the connection.
+ */
+enum MeshConnectionState
+GMC_get_state (const struct MeshConnection *c)
+{
+  return c->state;
+}
+
+
+/**
+ * Get free buffer space in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Free buffer space [0 - max_msgs_queue/max_connections]
+ */
+unsigned int
+GMC_get_buffer (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+
+  return (fc->queue_max - fc->queue_n);
+}
+
+/**
+ * Get messages queued in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Number of messages queued.
+ */
+unsigned int
+GMC_get_qn (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+
+  return fc->queue_n;
+}
+
 
 /**
  * Notify other peers on a connection of a broken link. Mark connections
@@ -2000,23 +1978,6 @@ GMC_is_terminal (struct MeshConnection *c, int fwd)
 
 
 /**
- * Count connections in a DLL.
- * 
- * @param head Head of the DLL.
- */
-unsigned int
-GMC_count (const struct MeshConnection *head)
-{
-  unsigned int count;
-  struct MeshConnection *iter;
-
-  for (count = 0, iter = head; NULL != iter; iter = iter->next, count++);
-
-  return count;
-}
-
-
-/**
  * Sends an already built message on a connection, properly registering
  * all used resources.
  *
@@ -2027,7 +1988,7 @@ GMC_count (const struct MeshConnection *head)
  * @param fwd Is this a fwd message?
  */
 void
-GMC_send_prebuilt_message (    const struct GNUNET_MessageHeader *message,
+GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshConnection *c,
                            struct MeshChannel *ch,
                            int fwd)
@@ -2106,4 +2067,37 @@ GMC_send_prebuilt_message (    const struct GNUNET_MessageHeader *message,
                  c,
                  ch,
                  fwd);
+}
+
+
+/**
+ * Send a message to all peers in this connection that the connection
+ * is no longer valid.
+ *
+ * If some peer should not receive the message, it should be zero'ed out
+ * before calling this function.
+ *
+ * @param c The connection whose peers to notify.
+ */
+void
+GMC_send_destroy (struct MeshConnection *c)
+{
+  struct GNUNET_MESH_ConnectionDestroy msg;
+
+  if (GNUNET_YES == c->destroy)
+    return;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
+  msg.cid = c->id;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending connection destroy for connection %s[%X]\n",
+              peer2s (c->t->peer),
+              c->id);
+
+  if (GNUNET_NO == GMC_is_terminal (c, GNUNET_YES))
+    GMC_send_prebuilt_message (&msg.header, c, NULL, GNUNET_YES);
+  if (GNUNET_NO == GMC_is_terminal (c, GNUNET_NO))
+    GMC_send_prebuilt_message (&msg.header, c, NULL, GNUNET_NO);
+  c->destroy = GNUNET_YES;
 }

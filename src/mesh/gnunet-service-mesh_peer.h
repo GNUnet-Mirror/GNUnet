@@ -82,23 +82,13 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
                int fwd);
 
 /**
- * Free a transmission that was already queued with all resources
- * associated to the request.
- *
- * @param queue Queue handler to cancel.
- * @param clear_cls Is it necessary to free associated cls?
- */
-void
-GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
-
-/**
  * Set tunnel.
  *
  * @param peer Peer.
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel2 *t);
+GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
 
 /**
  * Chech whether there is a direct (core level)  connection to peer.

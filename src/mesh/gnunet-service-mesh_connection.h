@@ -41,6 +41,34 @@ extern "C"
 
 #include "mesh_path.h"
 #include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-mesh_peer.h"
+
+
+/**
+ * All the states a connection can be in.
+ */
+enum MeshConnectionState
+{
+  /**
+   * Uninitialized status, should never appear in operation.
+   */
+  MESH_CONNECTION_NEW,
+
+  /**
+   * Connection create message sent, waiting for ACK.
+   */
+  MESH_CONNECTION_SENT,
+
+  /**
+   * Connection ACK sent, waiting for ACK.
+   */
+  MESH_CONNECTION_ACK,
+
+  /**
+   * Connection confirmed, ready to carry traffic.
+   */
+  MESH_CONNECTION_READY,
+};
 
 
 /**
@@ -203,7 +231,7 @@ GMC_shutdown (void);
  */
 struct MeshConnection *
 GMC_new (const struct GNUNET_HashCode *cid,
-         struct MeshTunnel2 *t,
+         struct MeshTunnel3 *t,
          struct MeshPeerPath *p,
          unsigned int own_pos);
 
@@ -214,6 +242,9 @@ GMC_new (const struct GNUNET_HashCode *cid,
  */
 void
 GMC_destroy (struct MeshConnection *c);
+
+struct MeshConnection *
+GMC_next (struct MeshConnection *c);
 
 /**
  * Get the connection ID.
@@ -226,10 +257,36 @@ const struct GNUNET_HashCode *
 GMC_get_id (const struct MeshConnection *c);
 
 /**
- * Count connections in a DLL.
+ * Get the connection state.
+ *
+ * @param c Connection to get the state from.
+ *
+ * @return state of the connection.
+ */
+enum MeshConnectionState
+GMC_get_state (const struct MeshConnection *c);
+
+/**
+ * Get free buffer space in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Free buffer space [0 - max_msgs_queue/max_connections]
  */
 unsigned int
-GMC_count (const struct MeshConnection *head);
+GMC_get_buffer (struct MeshConnection *c, int fwd);
+
+/**
+ * Get messages queued in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Number of messages queued.
+ */
+unsigned int
+GMC_get_qn (struct MeshConnection *c, int fwd);
 
 /**
  * Send FWD keepalive packets for a connection.
@@ -273,51 +330,6 @@ GMC_notify_broken (struct MeshConnection *c,
                    struct GNUNET_PeerIdentity *my_full_id);
 
 /**
- * @brief Queue and pass message to core when possible.
- *
- * @param cls Closure (@c type dependant). It will be used by queue_send to
- *            build the message to be sent if not already prebuilt.
- * @param type Type of the message, 0 for a raw message.
- * @param size Size of the message.
- * @param c Connection this message belongs to (cannot be NULL).
- * @param ch Channel this message belongs to, if applicable (otherwise NULL).
- * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- */
-void
-GMC_queue_add (void* cls,
-               uint16_t type,
-               size_t size,
-               struct MeshConnection* c,
-               struct MeshChannel* ch,
-               int fwd);
-
-
-/**
- * Free a transmission that was already queued with all resources
- * associated to the request.
- *
- * @param queue Queue handler to cancel.
- * @param clear_cls Is it necessary to free associated cls?
- */
-void
-GMC_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
-
-
-/**
- * Core callback to write a queued packet to core buffer
- *
- * @param cls Closure (peer info).
- * @param size Number of bytes available in buf.
- * @param buf Where the to write the message.
- *
- * @return number of bytes written to buf
- */
-size_t
-GMC_queue_send (void *cls, size_t size, void *buf);
-
-
-
-/**
  * Is this peer the first one on the connection?
  *
  * @param c Connection.
@@ -356,6 +368,17 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshChannel *ch,
                            int fwd);
 
+/**
+ * Send a message to all peers in this connection that the connection
+ * is no longer valid.
+ *
+ * If some peer should not receive the message, it should be zero'ed out
+ * before calling this function.
+ *
+ * @param c The connection whose peers to notify.
+ */
+void
+GMC_send_destroy (struct MeshConnection *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

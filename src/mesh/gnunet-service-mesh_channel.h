@@ -40,18 +40,33 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet-service-mesh_tunnel.h"
+
 /**
  * Struct containing all information regarding a channel to a remote client.
  */
 struct MeshChannel;
 
 /**
- * Count channels in a DLL.
- * 
- * @param head Head of the DLL.
+ * Get channel ID.
+ *
+ * @param ch Channel.
+ *
+ * @return ID
+ */
+MESH_ChannelNumber
+GMCH_get_id (const struct MeshChannel *ch);
+
+/**
+ * Get free buffer space towards the client on a specific channel.
+ *
+ * @param ch Channel.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Free buffer space [0 - 64]
  */
 unsigned int
-GMCH_count (const struct MeshChannel *head);
+GMCH_get_buffer (struct MeshChannel *ch, int fwd);
 
 /**
  * Send an end-to-end ACK message for the most recent in-sequence payload.
@@ -110,12 +125,12 @@ GMCH_debug (struct MeshChannel *ch);
 /**
  * Handler for mesh network payload traffic.
  *
- * @param t Tunnel on which we got this message.
+ * @param ch Channel for the message.
  * @param message Unencryted data message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 void
-GMCH_handle_data (struct MeshTunnel2 *t,
+GMCH_handle_data (struct MeshChannel *ch,
                   const struct GNUNET_MESH_Data *msg,
                   int fwd);
 
@@ -128,7 +143,7 @@ GMCH_handle_data (struct MeshTunnel2 *t,
  * @param fwd Is this a fwd ACK? (dest->orig)
  */
 void
-GMCH_handle_data_ack (struct MeshTunnel2 *t,
+GMCH_handle_data_ack (struct MeshChannel *ch,
                       const struct GNUNET_MESH_DataACK *msg,
                       int fwd);
 
@@ -140,9 +155,8 @@ GMCH_handle_data_ack (struct MeshTunnel2 *t,
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
-void
-GMCH_handle_create (struct MeshTunnel2 *t,
-                    struct GNUNET_MESH_ChannelCreate *msg,
+struct MeshChannel *
+GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
                     int fwd);
 
 
@@ -154,8 +168,8 @@ GMCH_handle_create (struct MeshTunnel2 *t,
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 void
-GMCH_handle_ack (struct MeshTunnel2 *t,
-                 struct GNUNET_MESH_ChannelManage *msg,
+GMCH_handle_ack (struct MeshChannel *ch,
+                 const struct GNUNET_MESH_ChannelManage *msg,
                  int fwd);
 
 
@@ -167,11 +181,23 @@ GMCH_handle_ack (struct MeshTunnel2 *t,
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 void
-GMCH_handle_destroy (struct MeshTunnel2 *t,
-                     struct GNUNET_MESH_ChannelManage *msg,
+GMCH_handle_destroy (struct MeshChannel *ch,
+                     const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd);
 
 
+
+/**
+ * Sends an already built message on a channel, properly registering
+ * all used resources and encrypting the message with the tunnel's key.
+ *
+ * @param message Message to send. Function makes a copy of it.
+ * @param ch Channel on which this message is transmitted.
+ * @param fwd Is this a fwd message?
+ */
+void
+GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                            struct MeshChannel *ch, int fwd);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

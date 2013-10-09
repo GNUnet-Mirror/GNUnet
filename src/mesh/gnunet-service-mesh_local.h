@@ -82,6 +82,16 @@ struct MeshClient *
 GML_client_get (struct GNUNET_SERVER_Client *client);
 
 /**
+ * Find a client that has opened a port
+ *
+ * @param port Port to check.
+ *
+ * @return non-NULL if a client has the port.
+ */
+struct MeshClient *
+GML_client_get_by_port (uint32_t port);
+
+/**
  * Deletes a tunnel from a client (either owner or destination).
  *
  * @param c Client whose tunnel to delete.
