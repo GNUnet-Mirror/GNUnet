@@ -35,6 +35,11 @@
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
 /**
+ * Initial statistics get request handle
+ */
+struct GNUNET_STATISTICS_GetHandle *initial_get;
+
+/**
  * Statistics handle
  */
 struct GNUNET_STATISTICS_Handle *stats;
@@ -67,6 +72,14 @@ stat_cb(void *cls, const char *subsystem,
   return GNUNET_OK;
 }
 
+static int
+dummy_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+            int is_persistent)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got dummy stat %s%s:%s = %llu\n",
+              is_persistent ? "!" : " ", subsystem, name, value);
+  return GNUNET_OK;
+}
 
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -115,6 +128,23 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   return;
 }
 
+static void
+got_initial_value (void *cls, int success)
+{
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got initial value\n");
+
+  /* Connect to ATS scheduling */
+  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
+  GNUNET_CONFIGURATION_destroy (cfg);
+  if (sched_ats == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    return;
+  }
+}
 
 static void
 run (void *cls,
@@ -125,14 +155,9 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("ats", cfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
 
-  /* Connect to ATS scheduling */
-  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
-  if (sched_ats == NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
-    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
+  initial_get = GNUNET_STATISTICS_get (stats, "ats", "# addresses", TIMEOUT,
+                                       &got_initial_value, &dummy_stat,
+                                       GNUNET_CONFIGURATION_dup (cfg));
 }
 
 
