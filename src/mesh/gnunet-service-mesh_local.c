@@ -58,10 +58,15 @@ struct MeshClient
      */
   struct GNUNET_CONTAINER_MultiHashMap32 *own_channels;
 
-   /**
+    /**
      * Tunnels this client has accepted, indexed by incoming local id
      */
   struct GNUNET_CONTAINER_MultiHashMap32 *incoming_channels;
+
+    /**
+     * Channel ID for the next incoming channel.
+     */
+  MESH_ChannelNumber next_chid;
 
     /**
      * Handle to communicate with the client
@@ -177,9 +182,10 @@ handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 
   if (NULL == client)
     return;
-  c = GNUNET_malloc (sizeof (struct MeshClient));
+  c = GNUNET_new (struct MeshClient);
   c->handle = client;
   c->id = next_client_id++; /* overflow not important: just for debug */
+  c->next_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   GNUNET_SERVER_client_keep (client);
   GNUNET_SERVER_client_set_user_context (client, c);
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
@@ -894,6 +900,7 @@ GML_channel_add (struct MeshClient *client,
     GNUNET_break (0);
 }
 
+
 /**
  * Remove a channel from a client
  *
@@ -913,6 +920,31 @@ GML_channel_remove (struct MeshClient *client,
   else
     GNUNET_break (0);
 }
+
+
+/**
+ * Get the tunnel's next free local channel ID.
+ *
+ * @param c Client.
+ *
+ * @return LID of a channel free to use.
+ */
+MESH_ChannelNumber
+GML_get_next_chid (struct MeshClient *c)
+{
+  MESH_ChannelNumber chid;
+
+  while (NULL != GML_channel_get (c, c->next_chid))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", c->next_chid);
+    c->next_chid = (c->next_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  }
+  chid = c->next_chid;
+  c->next_chid = (c->next_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+
+  return chid;
+}
+
 
 /**
  * Check if client has registered with the service and has not disconnected

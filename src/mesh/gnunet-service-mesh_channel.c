@@ -33,7 +33,9 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
 
+#define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
 #define MESH_RETRANSMIT_MARGIN  4
+
 
 /**
  * All the states a connection can be in.
@@ -356,8 +358,8 @@ send_client_data (struct MeshChannel *ch,
  * @param ch Channel to which add the client.
  * @param c Client which to add to the channel.
  */
-static void
-channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
+void
+GMCH_add_client (struct MeshChannel *ch, struct MeshClient *c)
 {
   struct MeshTunnel3 *t = ch->t;
 
@@ -368,20 +370,10 @@ channel_add_client (struct MeshChannel *ch, struct MeshClient *c)
   }
 
   /* Assign local id as destination */
-  while (NULL != GML_channel_get (c, t->next_local_chid))
-    t->next_local_chid = (t->next_local_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
-  ch->lid_dest = t->next_local_chid++;
-  t->next_local_chid = t->next_local_chid | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  ch->lid_dest = GML_get_next_chid (c);
 
   /* Store in client's hashmap */
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multihashmap32_put (c->incoming_channels,
-                                           ch->lid_dest, ch,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-  {
-    GNUNET_break (0);
-    return;
-  }
+  GML_channel_add (c, ch->lid_dest, ch);
 
   GNUNET_break (NULL == ch->dest_rel);
   ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
@@ -540,7 +532,7 @@ channel_retransmit_message (void *cls,
    */
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   fwd = (rel == ch->root_rel);
-  c = tunnel_get_connection (ch->t, fwd);
+  c = GMT_get_connection (ch->t, fwd);
   hop = connection_get_hop (c, fwd);
   for (q = hop->queue_head; NULL != q; q = q->next)
   {
@@ -558,7 +550,7 @@ channel_retransmit_message (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
-    send_prebuilt_message_channel (&payload->header, ch, fwd);
+    GMCH_send_prebuilt_message (&payload->header, ch, fwd);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
   }
   else
@@ -588,7 +580,6 @@ channel_send_connections_ack (struct MeshChannel *ch,
 {
   struct MeshTunnel3 *t = ch->t;
   struct MeshConnection *c;
-  struct MeshFlowControl *fc;
   uint32_t allowed;
   uint32_t to_allow;
   uint32_t allow_per_connection;
@@ -599,10 +590,11 @@ channel_send_connections_ack (struct MeshChannel *ch,
               fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
 
   /* Count connections, how many messages are already allowed */
+  cs = GMT_count_connections (t);
   for (cs = 0, allowed = 0, c = t->connection_head; NULL != c; c = c->next)
   {
     fc = fwd ? &c->fwd_fc : &c->bck_fc;
-    if (GMC_is_pid_bigger(fc->last_pid_recv, fc->last_ack_sent))
+    if (GMC_is_pid_bigger (fc->last_pid_recv, fc->last_ack_sent))
     {
       GNUNET_break (0);
       continue;
@@ -631,7 +623,7 @@ channel_send_connections_ack (struct MeshChannel *ch,
     {
       continue;
     }
-    connection_send_ack (c, allow_per_connection, fwd);
+    GMC_send_ack (c, allow_per_connection, fwd);
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -40,8 +40,6 @@
 #define MESH_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
                                   10)
-#define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
-
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
 
 

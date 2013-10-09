@@ -115,11 +115,6 @@ struct MeshTunnel3
   MESH_ChannelNumber next_chid;
 
   /**
-   * Channel ID for the next incoming channel.
-   */
-  MESH_ChannelNumber next_local_chid;
-
-  /**
    * Pending message count.
    */
   int pending_messages;
@@ -589,7 +584,6 @@ GMT_new (void)
 
   t = GNUNET_new (struct MeshTunnel3);
   t->next_chid = 0;
-  t->next_local_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
 //   if (GNUNET_OK !=
 //       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
 //                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
@@ -1074,13 +1068,12 @@ GMT_get_destination (struct MeshTunnel3 *t)
 }
 
 
-
 /**
- * Get the tunnel's next free Channel ID.
+ * Get the tunnel's next free global channel ID.
  *
  * @param t Tunnel.
  *
- * @return ID of a channel free to use.
+ * @return GID of a channel free to use.
  */
 MESH_ChannelNumber
 GMT_get_next_chid (struct MeshTunnel3 *t)

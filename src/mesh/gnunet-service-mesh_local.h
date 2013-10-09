@@ -107,6 +107,16 @@ GML_channel_remove (struct MeshClient *client,
                     struct MeshChannel *ch);
 
 /**
+ * Get the tunnel's next free local channel ID.
+ *
+ * @param c Client.
+ *
+ * @return LID of a channel free to use.
+ */
+MESH_ChannelNumber
+GML_get_next_chid (struct MeshClient *c);
+
+/**
  * Check if client has registered with the service and has not disconnected
  *
  * @param client the client to check
