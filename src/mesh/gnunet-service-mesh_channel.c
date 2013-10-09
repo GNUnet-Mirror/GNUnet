@@ -530,33 +530,34 @@ channel_retransmit_message (void *cls,
    * - not sending the new one could cause terrible delays the old connection
    *   is stalled.
    */
-  payload = (struct GNUNET_MESH_Data *) &copy[1];
-  fwd = (rel == ch->root_rel);
-  c = GMT_get_connection (ch->t, fwd);
-  hop = connection_get_hop (c, fwd);
-  for (q = hop->queue_head; NULL != q; q = q->next)
-  {
-    if (ntohs (payload->header.type) == q->type && ch == q->ch)
-    {
-      struct GNUNET_MESH_Data *queued_data = q->cls;
-
-      if (queued_data->mid == payload->mid)
-        break;
-    }
-  }
+//   FIXME access to queue elements is limited
+//   payload = (struct GNUNET_MESH_Data *) &copy[1];
+//   fwd = (rel == ch->root_rel);
+//   c = GMT_get_connection (ch->t, fwd);
+//   hop = connection_get_hop (c, fwd);
+//   for (q = hop->queue_head; NULL != q; q = q->next)
+//   {
+//     if (ntohs (payload->header.type) == q->type && ch == q->ch)
+//     {
+//       struct GNUNET_MESH_Data *queued_data = q->cls;
+// 
+//       if (queued_data->mid == payload->mid)
+//         break;
+//     }
+//   }
 
   /* Message not found in the queue that we are going to use. */
-  if (NULL == q)
-  {
+//   if (NULL == q)
+//   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
     GMCH_send_prebuilt_message (&payload->header, ch, fwd);
     GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
-  }
+//   }
+//   else
+//   {
+//     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
+//   }
 
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
   rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
