@@ -1716,8 +1716,8 @@ pid_file_delete (struct GNUNET_SERVICE_Context *sctx)
  * @param service_name our service name
  * @param options service options
  * @param task main task of the service
- * @param task_cls closure for task
- * @return GNUNET_SYSERR on error, GNUNET_OK
+ * @param task_cls closure for @a task
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK
  *         if we shutdown nicely
  */
 int
@@ -1730,6 +1730,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   int err;
   int ret;
   char *cfg_fn;
+  char *opt_cfg_fn;
   char *loglev;
   char *logfile;
   int do_daemonize;
@@ -1739,9 +1740,10 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   long long clock_offset;
   struct GNUNET_SERVICE_Context sctx;
   struct GNUNET_CONFIGURATION_Handle *cfg;
+  const char *xdg;
 
   struct GNUNET_GETOPT_CommandLineOption service_options[] = {
-    GNUNET_GETOPT_OPTION_CFG_FILE (&cfg_fn),
+    GNUNET_GETOPT_OPTION_CFG_FILE (&opt_cfg_fn),
     {'d', "daemonize", NULL,
      gettext_noop ("do daemonize (detach from terminal)"), 0,
      GNUNET_GETOPT_set_one, &do_daemonize},
@@ -1755,7 +1757,16 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   do_daemonize = 0;
   logfile = NULL;
   loglev = NULL;
-  cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
+  opt_cfg_fn = NULL;
+  xdg = getenv ("XDG_CONFIG_HOME");
+  if (NULL != xdg)
+    GNUNET_asprintf (&cfg_fn,
+                     "%s%s%s",
+                     xdg,
+                     DIR_SEPARATOR_STR,
+                     "gnunet.config");
+  else
+    cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
   sctx.options = options;
   sctx.ready_confirm_fd = -1;
@@ -1777,16 +1788,18 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   }
   if (GNUNET_OK != GNUNET_log_setup (service_name, loglev, logfile))
     HANDLE_ERROR;
+  if (NULL == opt_cfg_fn)
+    opt_cfg_fn = GNUNET_strdup (cfg_fn);
   if (GNUNET_YES ==
-      GNUNET_DISK_file_test (cfg_fn))
-    (void) GNUNET_CONFIGURATION_load (cfg, cfg_fn);
+      GNUNET_DISK_file_test (opt_cfg_fn))
+    (void) GNUNET_CONFIGURATION_load (cfg, opt_cfg_fn);
   else
   {
     (void) GNUNET_CONFIGURATION_load (cfg, NULL);
-    if (0 != strcmp (cfg_fn, GNUNET_DEFAULT_USER_CONFIG_FILE))
+    if (0 != strcmp (opt_cfg_fn, cfg_fn))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
-		  cfg_fn);
+		  opt_cfg_fn);
   }
   if (GNUNET_OK != setup_service (&sctx))
     goto shutdown;
@@ -1795,7 +1808,9 @@ GNUNET_SERVICE_run (int argc, char *const *argv, const char *service_name,
   if (GNUNET_OK != set_user_id (&sctx))
     goto shutdown;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Service `%s' runs with configuration from `%s'\n", service_name, cfg_fn);
+       "Service `%s' runs with configuration from `%s'\n",
+       service_name,
+       opt_cfg_fn);
   if ((GNUNET_OK ==
        GNUNET_CONFIGURATION_get_value_number (sctx.cfg, "TESTING",
                                               "SKEW_OFFSET", &skew_offset)) &&
@@ -1853,6 +1868,7 @@ shutdown:
   GNUNET_free_non_null (logfile);
   GNUNET_free_non_null (loglev);
   GNUNET_free (cfg_fn);
+  GNUNET_free (opt_cfg_fn);
   GNUNET_free_non_null (sctx.v4_denied);
   GNUNET_free_non_null (sctx.v6_denied);
   GNUNET_free_non_null (sctx.v4_allowed);

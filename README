@@ -115,8 +115,9 @@ the $HOME-directory of your "gnunet" user is, you might need to set
 the SERVICEHOME option in section "[PATHS]" to "/var/lib/gnunet" to
 do this.  Depending on your personal preferences, you may also want to
 use "/etc/gnunet.conf" for the location of the configuration file in
-this case (instead of ~gnunet/.gnunet/gnunet.conf").  In this case,
-you need to start GNUnet using "gnunet-arm -s -c /etc/gnunet.conf".
+this case (instead of ~gnunet/.config/gnunet.conf").  In this case,
+you need to start GNUnet using "gnunet-arm -s -c /etc/gnunet.conf" or
+set "XDG_CONFIG_HOME=/etc/".
 
 You can avoid running 'make install' as root if you run configure
 with the "--with-sudo=yes" option and have extensive sudo rights
@@ -172,7 +173,7 @@ GNUnet uses two types of configuration files, one that specifies the
 system-wide defaults (typically located in
 $GNUNET_PREFIX/share/gnunet/config.d/) and a second one that overrides
 default values with user-specific preferences.  The user-specific
-configuration file should be located in "~/.gnunet/gnunet.conf" or its
+configuration file should be located in "~/.config/gnunet.conf" or its
 location can be specified by giving the "-c" option to the respective
 GNUnet application.
 

@@ -145,6 +145,8 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
 #endif
   char *loglev;
   char *logfile;
+  char *cfg_fn;
+  const char *xdg;
   int ret;
   unsigned int cnt;
   unsigned long long skew_offset;
@@ -195,7 +197,6 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   cc.task = task;
   cc.task_cls = task_cls;
   cc.cfg = cfg = GNUNET_CONFIGURATION_create ();
-
   /* prepare */
 #if ENABLE_NLS
   setlocale (LC_ALL, "");
@@ -223,7 +224,15 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   qsort (allopts, cnt, sizeof (struct GNUNET_GETOPT_CommandLineOption),
          &cmd_sorter);
   loglev = NULL;
-  cc.cfgfile = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
+  xdg = getenv ("XDG_CONFIG_HOME");
+  if (NULL != xdg)
+    GNUNET_asprintf (&cfg_fn,
+                     "%s%s%s",
+                     xdg,
+                     DIR_SEPARATOR_STR,
+                     "gnunet.config");
+  else
+    cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
     *spc = '\0';
@@ -239,13 +248,15 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     GNUNET_free (lpfx);
     return (ret == GNUNET_SYSERR) ? GNUNET_SYSERR : GNUNET_OK;
   }
+  if (NULL == cc.cfgfile)
+    cc.cfgfile = GNUNET_strdup (cfg_fn);
   if (GNUNET_YES ==
       GNUNET_DISK_file_test (cc.cfgfile))
     (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
   else
   {
     (void) GNUNET_CONFIGURATION_load (cfg, NULL);
-    if (0 != strcmp (cc.cfgfile, GNUNET_DEFAULT_USER_CONFIG_FILE))
+    if (0 != strcmp (cc.cfgfile, cfg_fn))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
 		  cc.cfgfile);
@@ -276,7 +287,8 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
   /* clean up */
   GNUNET_SPEEDUP_stop_ ();
   GNUNET_CONFIGURATION_destroy (cfg);
-  GNUNET_free_non_null (cc.cfgfile);
+  GNUNET_free (cc.cfgfile);
+  GNUNET_free (cfg_fn);
   GNUNET_free_non_null (loglev);
   GNUNET_free_non_null (logfile);
   return GNUNET_OK;
@@ -292,8 +304,8 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
  * @param binaryHelp help text for the program
  * @param options command line options
  * @param task main function to run
- * @param task_cls closure for task
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param task_cls closure for @a task
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_PROGRAM_run (int argc, char *const *argv, const char *binaryName,

@@ -53,7 +53,7 @@ TIMEOUT = 300 s
 PORT = 12368
 
 [PATHS]
-SERVICEHOME = /tmp/test-testbed/
+GNUNET_TEST_HOME = /tmp/test-testbed/
 
 [dns]
 AUTOSTART = NO
