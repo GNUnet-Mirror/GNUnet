@@ -421,7 +421,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   {
     /* set permissions of newly created UNIX domain socket to "user-only"; applications
        can choose to relax this later */
-    mode_t old_mask;
+    mode_t old_mask = 0; /* assigned to make compiler happy */
 
     if (AF_UNIX == address->sa_family)
       old_mask = umask (S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
