@@ -29,12 +29,14 @@
 
 #include "gnunet_statistics_service.h"
 
+#include "mesh_path.h"
+#include "mesh_protocol_enc.h"
+#include "mesh_enc.h"
+
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_tunnel.h"
 #include "gnunet-service-mesh_channel.h"
-#include "mesh_protocol_enc.h"
-#include "mesh_path.h"
 
 
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-con",__VA_ARGS__)
