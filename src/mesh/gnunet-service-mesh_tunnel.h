@@ -43,7 +43,7 @@ extern "C"
 /**
  * All the states a tunnel can be in.
  */
-enum MeshTunnelState
+enum MeshTunnel3State
 {
     /**
      * Uninitialized status, should never appear in operation.
@@ -142,7 +142,7 @@ GMT_destroy (struct MeshTunnel3 *t);
  * @param state New state.
  */
 void
-GMT_change_state (struct MeshTunnel3* t, enum MeshTunnelState state);
+GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state);
 
 /**
  * Add a connection to a tunnel.
@@ -242,7 +242,7 @@ GMT_count_channels (struct MeshTunnel3 *t);
  *
  * @return Tunnel's state.
  */
-enum MeshTunnelState
+enum MeshTunnel3State
 GMT_get_state (struct MeshTunnel3 *t);
 
 /**

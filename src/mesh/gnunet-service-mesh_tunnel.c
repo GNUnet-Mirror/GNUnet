@@ -65,7 +65,7 @@ struct MeshTunnel3
     /**
      * State of the tunnel.
      */
-  enum MeshTunnelState state;
+  enum MeshTunnel3State state;
 
   /**
    * Local peer ephemeral private key
@@ -196,7 +196,7 @@ const static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
  * @return String representation.
  */
 static const char *
-GMT_state2s (enum MeshTunnelState s)
+GMT_state2s (enum MeshTunnel3State s)
 {
   static char buf[128];
 
@@ -619,7 +619,7 @@ GMT_new (void)
  * @param state New state.
  */
 void
-GMT_change_state (struct MeshTunnel3* t, enum MeshTunnelState state)
+GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
 {
   if (NULL == t)
     return;
@@ -632,6 +632,10 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnelState state)
               GMP_2s (t->peer),
               GMT_state2s (state));
   t->state = state;
+  if (MESH_TUNNEL_READY == state && 3 <= GMT_count_connections (t))
+  {
+    GMP_stop_search (t->peer);
+  }
 }
 
 
@@ -996,7 +1000,7 @@ GMT_count_channels (struct MeshTunnel3 *t)
  *
  * @return Tunnel's state.
  */
-enum MeshTunnelState
+enum MeshTunnel3State
 GMT_get_state (struct MeshTunnel3 *t)
 {
   return t->state;

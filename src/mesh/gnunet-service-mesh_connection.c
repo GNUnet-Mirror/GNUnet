@@ -384,13 +384,13 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   msg.ack = htonl (ack);
   msg.cid = c->id;
 
-  send_prebuilt_message_connection (&msg.header, c, NULL, !fwd);
+  GMC_send_prebuilt_message (&msg.header, c, NULL, !fwd);
 }
 
 
 /**
  * Sends a CONNECTION ACK message in reponse to a received CONNECTION_CREATE
- * directed to us.
+ * or a first CONNECTION_ACK directed to us.
  *
  * @param connection Connection to confirm.
  * @param fwd Is this a fwd ACK? (First is bck (SYNACK), second is fwd (ACK))
@@ -573,6 +573,65 @@ connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 
 
 /**
+ * Get the previous hop in a connection
+ *
+ * @param c Connection.
+ *
+ * @return Previous peer in the connection.
+ */
+static struct MeshPeer *
+connection_get_prev_hop (struct MeshConnection *c)
+{
+  GNUNET_PEER_Id id;
+
+  if (0 == c->own_pos || c->path->length < 2)
+    id = c->path->peers[0];
+  else
+    id = c->path->peers[c->own_pos - 1];
+
+  return peer_get_short (id);
+}
+
+
+/**
+ * Get the next hop in a connection
+ *
+ * @param c Connection.
+ *
+ * @return Next peer in the connection.
+ */
+static struct MeshPeer *
+connection_get_next_hop (struct MeshConnection *c)
+{
+  GNUNET_PEER_Id id;
+
+  if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
+    id = c->path->peers[c->path->length - 1];
+  else
+    id = c->path->peers[c->own_pos + 1];
+
+  return peer_get_short (id);
+}
+
+
+/**
+ * Get the hop in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Next hop?
+ *
+ * @return Next peer in the connection.
+ */
+static struct MeshPeer *
+connection_get_hop (struct MeshConnection *c, int fwd)
+{
+  if (fwd)
+    return connection_get_next_hop (c);
+  return connection_get_prev_hop (c);
+}
+
+
+/**
  * Get the first transmittable message for a connection.
  *
  * @param c Connection.
@@ -741,69 +800,6 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-
-/**
- * Get the previous hop in a connection
- *
- * @param c Connection.
- *
- * @return Previous peer in the connection.
- */
-static struct MeshPeer *
-connection_get_prev_hop (struct MeshConnection *c)
-{
-  GNUNET_PEER_Id id;
-
-  if (0 == c->own_pos || c->path->length < 2)
-    id = c->path->peers[0];
-  else
-    id = c->path->peers[c->own_pos - 1];
-
-  return peer_get_short (id);
-}
-
-
-/**
- * Get the next hop in a connection
- *
- * @param c Connection.
- *
- * @return Next peer in the connection.
- */
-static struct MeshPeer *
-connection_get_next_hop (struct MeshConnection *c)
-{
-  GNUNET_PEER_Id id;
-
-  if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
-    id = c->path->peers[c->path->length - 1];
-  else
-    id = c->path->peers[c->own_pos + 1];
-
-  return peer_get_short (id);
-}
-
-
-/**
- * Get the hop in a connection.
- *
- * @param c Connection.
- * @param fwd Next hop?
- *
- * @return Next peer in the connection.
- */
-static struct MeshPeer *
-connection_get_hop (struct MeshConnection *c, int fwd)
-{
-  if (fwd)
-    return connection_get_next_hop (c);
-  return connection_get_prev_hop (c);
-}
-
-
-
-
 /**
  * Timeout function due to lack of keepalive/traffic from the owner.
  * Destroys connection if called.
@@ -822,7 +818,7 @@ connection_fwd_timeout (void *cls,
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
-              peer2s (c->t->peer),
+              GMT_2s (c->t),
               c->id);
 
   if (GMC_is_origin (c, GNUNET_YES)) /* If local, leave. */
@@ -851,8 +847,7 @@ connection_bck_timeout (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s[%X] FWD timed out. Destroying.\n",
-              peer2s (c->t->peer),
-              c->id);
+              GMT_2s (c->t), c->id);
 
   if (GMC_is_origin (c, GNUNET_NO)) /* If local, leave. */
     return;
@@ -1058,12 +1053,6 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   c = connection_get (cid);
   if (NULL == c)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
-    c = connection_new (cid);
-    if (NULL == c)
-      return GNUNET_OK;
-    connection_reset_timeout (c, GNUNET_YES);
-
     /* Create path */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
     path = path_new (size);
@@ -1086,8 +1075,11 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     path_add_to_peers (path, GNUNET_NO);
-    c->path = path_duplicate (path);
-    c->own_pos = own_pos;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
+    c = GMC_new (cid, NULL, path_duplicate (path), own_pos);
+    if (NULL == c)
+      return GNUNET_OK;
+    connection_reset_timeout (c, GNUNET_YES);
   }
   else
   {
@@ -1128,7 +1120,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     peer_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     peer_add_path_to_origin (orig_peer, path, GNUNET_NO);
-    send_prebuilt_message_connection (message, c, NULL, GNUNET_YES);
+    GMC_send_prebuilt_message (message, c, NULL, GNUNET_YES);
   }
   return GNUNET_OK;
 }
@@ -1204,18 +1196,13 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Message for us as creator? */
-  if (connection_is_origin (c, GNUNET_YES))
+  if (GMC_is_origin (c, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     connection_change_state (c, MESH_CONNECTION_READY);
-    if (MESH_TUNNEL_READY != c->t->state)
-      tunnel_change_state (c->t, MESH_TUNNEL_READY);
+    GMT_change_state (c->t, MESH_TUNNEL_READY);
     send_connection_ack (c, GNUNET_YES);
-    tunnel_send_queued_data (c->t, GNUNET_YES);
-    if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
-    {
-      GMP_stop_search (c->t->peer);
-    }
+    GMT_send_queued_data (c->t, GNUNET_YES);
     return GNUNET_OK;
   }
 

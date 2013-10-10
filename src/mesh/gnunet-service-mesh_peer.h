@@ -139,7 +139,7 @@ void
 GMP_start_search (struct MeshPeer *peer);
 
 void
-GMP_start_search (struct MeshPeer *peer);
+GMP_stop_search (struct MeshPeer *peer);
 
 /**
  * Get the Full ID of a peer.
