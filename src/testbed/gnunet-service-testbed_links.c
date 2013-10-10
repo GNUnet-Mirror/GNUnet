@@ -723,7 +723,8 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     lcfq = lcfq_head;
     GNUNET_assert (lcfq->lcf == lcf);
     GNUNET_SERVER_client_drop (lcf->client);
-    GNUNET_TESTBED_operation_done (lcf->op);
+    if (NULL != lcf->op)
+      GNUNET_TESTBED_operation_done (lcf->op);
     GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);
     GNUNET_free (lcfq);
@@ -745,8 +746,7 @@ slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
 {
   struct LCFContext *lcf;
 
-  /* We currently only get here when working on RegisteredHostContexts and
-     LCFContexts */
+  /* We currently only get here when working on LCFContexts */
   GNUNET_assert (GNUNET_TESTBED_ET_OPERATION_FINISHED == event->type);
   lcf = event->op_cls;
   GNUNET_assert (lcf->op == event->op);
