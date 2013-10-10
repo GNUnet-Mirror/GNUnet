@@ -135,6 +135,12 @@ GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
 int
 GMP_remove_connection (struct MeshPeer *peer, struct MeshConnection *c);
 
+void
+GMP_start_search (struct MeshPeer *peer);
+
+void
+GMP_start_search (struct MeshPeer *peer);
+
 /**
  * Get the Full ID of a peer.
  *

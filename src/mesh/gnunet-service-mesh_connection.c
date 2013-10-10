@@ -106,11 +106,30 @@ struct MeshFlowControl
   struct GNUNET_TIME_Relative poll_time;
 };
 
+/**
+ * Keep a record of the last messages sent on this connection.
+ */
 struct MeshConnectionPerformance
 {
-  double secsperbyte[AVG_MSGS];
+  /**
+   * Circular buffer for storing measurements.
+   */
+  double usecsperbyte[AVG_MSGS];
 
-  unsigned int idx;
+  /**
+   * Running average of @c usecsperbyte.
+   */
+  double avg;
+
+  /**
+   * How many values of @c usecsperbyte are valid.
+   */
+  uint16_t size;
+
+  /**
+   * Index of the next "free" position in @c usecsperbyte.
+   */
+  uint16_t idx;
 };
 
 
@@ -383,16 +402,15 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
-  queue_add (NULL,
-             GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
-             sizeof (struct GNUNET_MESH_ConnectionACK),
-             connection,
-             NULL,
-             fwd);
+  GMP_queue_add (NULL,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
+                 sizeof (struct GNUNET_MESH_ConnectionACK),
+                 connection, NULL, fwd,
+                 &message_sent, sizeof (struct GNUNET_MESH_ConnectionACK));
   if (MESH_TUNNEL_NEW == t->state)
-    tunnel_change_state (t, MESH_TUNNEL_WAITING);
+    GMT_change_state (t, MESH_TUNNEL_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
-    connection_change_state (connection, MESH_CONNECTION_SENT);
+    GMC_change_state (connection, MESH_CONNECTION_SENT);
 }
 
 
@@ -885,7 +903,9 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
 
 
 /**
- * 
+ * Add the connection to the list of both neighbors.
+ *
+ * @param c Connection.
  */
 static void
 register_neighbors (struct MeshConnection *c)
@@ -910,7 +930,9 @@ register_neighbors (struct MeshConnection *c)
 
 
 /**
- * 
+ * Remove the connection from the list of both neighbors.
+ *
+ * @param c Connection.
  */
 static void
 unregister_neighbors (struct MeshConnection *c)
@@ -923,6 +945,49 @@ unregister_neighbors (struct MeshConnection *c)
   peer = connection_get_prev_hop (c);
   GMP_remove_connection (peer, c);
 
+}
+
+
+/**
+ * Callback called when a queued message is sent.
+ *
+ * Calculates the average time 
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param wait Time spent waiting for core (only the time for THIS message)
+ */
+static void 
+message_sent (void *cls,
+              struct MeshConnection *c,
+              struct GNUNET_TIME_Relative wait)
+{
+  struct MeshConnectionPerformance *p;
+  size_t size = (size_t) cls;
+  double usecsperbyte;
+
+  if (NULL == c->perf)
+    return; /* Only endpoints are interested in this. */
+
+  p = c->perf;
+  usecsperbyte = ((double) wait.rel_value_us) / size;
+  if (p->size == AVG_MSGS)
+  {
+    /* Array is full. Substract oldest value, add new one and store. */
+    p->avg -= (p->usecsperbyte[p->idx] / AVG_MSGS);
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg += (p->usecsperbyte[p->idx] / AVG_MSGS);
+  }
+  else
+  {
+    /* Array not yet full. Add current value to avg and store. */
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg *= p->size;
+    p->avg += p->usecsperbyte[p->idx];
+    p->size++;
+    p->avg /= p->size;
+  }
+  p->idx = (p->idx + 1) % AVG_MSGS;
 }
 
 
@@ -1149,8 +1214,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     tunnel_send_queued_data (c->t, GNUNET_YES);
     if (3 <= tunnel_count_connections (c->t) && NULL != c->t->peer->dhtget)
     {
-      GNUNET_DHT_get_stop (c->t->peer->dhtget);
-      c->t->peer->dhtget = NULL;
+      GMP_stop_search (c->t->peer);
     }
     return GNUNET_OK;
   }
@@ -2034,12 +2098,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0);
   }
 
-  GMP_queue_add (data,
-                 type,
-                 size,
-                 c,
-                 ch,
-                 fwd);
+  GMP_queue_add (data, type, size, c, ch, fwd, &message_sent, (void *) size);
 }
 
 
