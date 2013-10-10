@@ -91,11 +91,6 @@ static unsigned long long dht_replication_level;
  */
 static GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
-/**
- * Own private key.
- */
-static struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
-
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/

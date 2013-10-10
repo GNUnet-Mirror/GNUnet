@@ -250,17 +250,17 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct MeshPeer *pi;
   struct MeshPeerPath *path;
 
-  LOG ("Peer connected\n");
-  LOG ("     %s\n", GNUNET_i2s (&my_full_id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer connected\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (&my_full_id));
   pi = GMP_get (peer);
   if (myid == pi->id)
   {
-    LOG ("     (self)\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
     path = path_new (1);
   }
   else
   {
-    LOG ("     %s\n", GNUNET_i2s (peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (peer));
     path = path_new (2);
     path->peers[1] = pi->id;
     GNUNET_PEER_change_rc (pi->id, 1);
@@ -286,7 +286,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeer *pi;
 
-  LOG ("Peer disconnected\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer disconnected\n");
   pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == pi)
   {
@@ -304,7 +304,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     }
   if (myid == pi->id)
   {
-    LOG ("     (self)\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
   }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 
@@ -417,7 +417,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
 {
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
-  struct MeshPeerPath *p = c->path;
+  const struct MeshPeerPath *p = GMC_get_path (c);
   size_t size_needed;
   int i;
 
@@ -434,7 +434,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
   msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
-  msg->cid = c->id;
+  msg->cid = *GMC_get_id (c);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -442,8 +442,9 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "CONNECTION CREATE (%u bytes long) sent!\n", size_needed);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "CONNECTION CREATE (%u bytes long) sent!\n",
+       size_needed);
   return size_needed;
 }
 
@@ -461,10 +462,8 @@ static size_t
 send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
 {
   struct GNUNET_MESH_ConnectionACK *msg = buf;
-  struct MeshTunnel3 *t = c->t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
-  GNUNET_assert (NULL != t);
   if (sizeof (struct GNUNET_MESH_ConnectionACK) > size)
   {
     GNUNET_break (0);
@@ -472,7 +471,7 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
   }
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
-  msg->cid = c->id;
+  msg->cid = *GMC_get_id (c);
   msg->reserved = 0;
 
   /* TODO add signature */
@@ -534,21 +533,21 @@ peer_destroy (struct MeshPeer *peer)
     LOG (GNUNET_ERROR_TYPE_WARNING,
                 "removing peer %s, not in peermap\n", GNUNET_i2s (&id));
   }
-    if (NULL != peer->search_h)
-    {
-      GMD_search_stop (peer->search_h);
-    }
-      p = peer->path_head;
-      while (NULL != p)
-      {
-        nextp = p->next;
-        GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
-        path_destroy (p);
-        p = nextp;
-      }
-        tunnel_destroy_empty (peer->tunnel);
-        GNUNET_free (peer);
-        return GNUNET_OK;
+  if (NULL != peer->search_h)
+  {
+    GMD_search_stop (peer->search_h);
+  }
+  p = peer->path_head;
+  while (NULL != p)
+  {
+    nextp = p->next;
+    GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
+    path_destroy (p);
+    p = nextp;
+  }
+  GMT_destroy_empty (peer->tunnel);
+  GNUNET_free (peer);
+  return GNUNET_OK;
 }
 
 
@@ -647,47 +646,6 @@ peer_delete_oldest (void)
 
 
 /**
- * Get a cost of a path for a peer considering existing tunnel connections.
- *
- * @param peer Peer towards which the path is considered.
- * @param path Candidate path.
- *
- * @return Cost of the path (path length + number of overlapping nodes)
- */
-static unsigned int
-peer_get_path_cost (const struct MeshPeer *peer,
-                    const struct MeshPeerPath *path)
-{
-  struct MeshConnection *c;
-  unsigned int overlap;
-  unsigned int i;
-  unsigned int j;
-
-  if (NULL == path)
-    return 0;
-
-  overlap = 0;
-  GNUNET_assert (NULL != peer->tunnel);
-
-  for (i = 0; i < path->length; i++)
-  {
-    for (c = peer->tunnel->connection_head; NULL != c; c = c->next)
-    {
-      for (j = 0; j < c->path->length; j++)
-      {
-        if (path->peers[i] == c->path->peers[j])
-        {
-          overlap++;
-          break;
-        }
-      }
-    }
-  }
-  return (path->length + overlap) * (path->score * -1);
-}
-
-
-/**
  * Choose the best path towards a peer considering the tunnel properties.
  *
  * @param peer The destination peer.
@@ -709,7 +667,7 @@ peer_get_best_path (const struct MeshPeer *peer)
     if (GNUNET_YES == GMT_is_path_used (peer->tunnel, p))
       continue; /* If path is already in use, skip it. */
 
-    if ((cost = peer_get_path_cost (peer, p)) < best_cost)
+    if ((cost = GMT_get_path_cost (peer->tunnel, p)) < best_cost)
     {
       best_cost = cost;
       best_p = p;

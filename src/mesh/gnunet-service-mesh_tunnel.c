@@ -1191,6 +1191,47 @@ GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)
 
 
 /**
+ * Get a cost of a path for a tunnel considering existing connections.
+ *
+ * @param t Tunnel.
+ * @param path Candidate path.
+ *
+ * @return Cost of the path (path length + number of overlapping nodes)
+ */
+unsigned int
+GMT_get_path_cost (const struct MeshTunnel3 *t,
+                   const struct MeshPeerPath *path)
+{
+  struct MeshTConnection *iter;
+  unsigned int overlap;
+  unsigned int i;
+  unsigned int j;
+
+  if (NULL == path)
+    return 0;
+
+  overlap = 0;
+  GNUNET_assert (NULL != t);
+
+  for (i = 0; i < path->length; i++)
+  {
+    for (iter = t->connection_head; NULL != iter; iter = iter->next)
+    {
+      for (j = 0; j < GMC_get_path (iter->c)->length; j++)
+      {
+        if (path->peers[i] == GMC_get_path (iter->c)->peers[j])
+        {
+          overlap++;
+          break;
+        }
+      }
+    }
+  }
+  return (path->length + overlap) * (path->score * -1);
+}
+
+
+/**
  * Get the static string for the peer this tunnel is directed.
  *
  * @param t Tunnel.
