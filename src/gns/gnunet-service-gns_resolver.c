@@ -1571,6 +1571,8 @@ handle_gns_resolution_result (void *cls,
 	  GNUNET_break_op (0); /* record not well-formed */
 	  rh->proc (rh->proc_cls, 0, NULL);
 	  GNS_resolver_lookup_cancel (rh);
+	  GNUNET_free_non_null (ns);
+	  GNUNET_free (ac);
 	  return;
 	}
 	strcpy (ac->authority_info.dns_authority.name,
