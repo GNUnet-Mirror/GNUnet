@@ -212,6 +212,11 @@ struct MeshConnection
 extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Local peer own ID (memory efficient handle).
+ */
+extern GNUNET_PEER_Id myid;
+
+/**
  * Connections known, indexed by cid (MeshConnection).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *connections;
@@ -1046,7 +1051,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       if (path->peers[i] == my_short_id)
         own_pos = i;
     }
-    if (own_pos == 0 && path->peers[own_pos] != myid)
+    if (own_pos == 0 && path->peers[own_pos] != my_short_id)
     {
       /* create path: self not found in path through self */
       GNUNET_break_op (0);
@@ -1055,7 +1060,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-    path_add_to_peers (path, GNUNET_NO);
+    GMP_add_path_to_all (path, GNUNET_NO);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = GMC_new (cid, NULL, path_duplicate (path), own_pos);
     if (NULL == c)

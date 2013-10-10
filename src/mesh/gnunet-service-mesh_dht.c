@@ -62,6 +62,16 @@ struct GMD_search_handle
 extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Own ID (short value).
+ */
+extern GNUNET_PEER_Id myid;
+
+/**
+ * Own ID (full value).
+ */
+extern struct GNUNET_PeerIdentity my_full_id;
+
+/**
  * Handle to use DHT.
  */
 static struct GNUNET_DHT_Handle *dht_handle;
@@ -80,16 +90,6 @@ static unsigned long long dht_replication_level;
  * Task to periodically announce itself in the network.
  */
 static GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
-
-/**
- * Own ID (short value).
- */
-static GNUNET_PEER_Id short_id;
-
-/**
- * Own ID (full value).
- */
-static struct GNUNET_PeerIdentity *full_id;
 
 /**
  * Own private key.
@@ -248,8 +248,8 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  block.id = *full_id;
-  GNUNET_CRYPTO_hash (full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
+  block.id = my_full_id;
+  GNUNET_CRYPTO_hash (&my_full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
@@ -277,15 +277,14 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param peer_id Local peer ID (must remain valid during all execution time).
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          struct GNUNET_PeerIdentity *peer_id)
+GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  full_id = peer_id;
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
                                "MESH", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
     dht_replication_level = 3;
   }
@@ -294,7 +293,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "ID_ANNOUNCE_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;

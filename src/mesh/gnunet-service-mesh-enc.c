@@ -79,17 +79,17 @@
  */
 struct GNUNET_STATISTICS_Handle *stats;
 
-/*************************** Static global variables **************************/
-
 /**
  * Local peer own ID (memory efficient handle).
  */
-static GNUNET_PEER_Id myid;
+GNUNET_PEER_Id myid;
 
 /**
  * Local peer own ID (full value).
  */
-static struct GNUNET_PeerIdentity my_full_id;
+struct GNUNET_PeerIdentity my_full_id;
+
+/*************************** Static global variables **************************/
 
 /**
  * Own private key.

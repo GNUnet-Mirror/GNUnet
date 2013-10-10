@@ -178,6 +178,16 @@ struct MeshPeer
 extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
+ * Local peer own ID (full value).
+ */
+extern struct GNUNET_PeerIdentity my_full_id;
+
+/**
+ * Local peer own ID (short)
+ */
+extern GNUNET_PEER_Id myid;
+
+/**
  * Peers known, indexed by PeerIdentity (MeshPeer).
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *peers;
@@ -197,15 +207,6 @@ static unsigned long long drop_percent;
  */
 static struct GNUNET_CORE_Handle *core_handle;
 
-/**
- * Local peer own ID (full value).
- */
-const static struct GNUNET_PeerIdentity *my_full_id;
-
-/**
- * Local peer own ID (short)
- */
-static GNUNET_PEER_Id my_short_id;
 
 /******************************************************************************/
 /***************************** CORE CALLBACKS *********************************/
@@ -231,7 +232,7 @@ notify_broken (void *cls,
   struct MeshPeer *peer = cls;
   struct MeshConnection *c = value;
 
-  GMC_notify_broken (c, peer, my_full_id);
+  GMC_notify_broken (c, peer, &my_full_id);
 
   return GNUNET_YES;
 }
@@ -1319,18 +1320,14 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
  * @param id Peer identity
  */
 void
-GMP_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          const struct GNUNET_PeerIdentity *id)
+GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  my_full_id = id;
-  my_short_id = GNUNET_PEER_intern (id);
-
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
                                              &max_peers))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
                                "MESH", "MAX_PEERS", "USING DEFAULT");
     max_peers = 1000;
   }
@@ -1382,7 +1379,7 @@ GMP_shutdown (void)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
-  GNUNET_PEER_change_rc (my_short_id, -1);
+  GNUNET_PEER_change_rc (myid, -1);
 }
 
 
@@ -1652,7 +1649,7 @@ GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed)
   unsigned int i;
 
   /* TODO: invert and add */
-  for (i = 0; i < p->length && p->peers[i] != my_short_id; i++) /* skip'em */ ;
+  for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)
   {
     struct MeshPeer *aux;
