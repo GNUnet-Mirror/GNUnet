@@ -76,15 +76,15 @@ path_invert (struct MeshPeerPath *path)
  * @param path The path to duplicate.
  */
 struct MeshPeerPath *
-path_duplicate (struct MeshPeerPath *path)
+path_duplicate (const struct MeshPeerPath *path)
 {
   struct MeshPeerPath *aux;
   unsigned int i;
 
   aux = path_new (path->length);
   memcpy (aux->peers, path->peers, path->length * sizeof (GNUNET_PEER_Id));
-  for (i = 0; i < path->length; i++)
-    GNUNET_PEER_change_rc (path->peers[i], 1);
+  for (i = 0; i < aux->length; i++)
+    GNUNET_PEER_change_rc (aux->peers[i], 1);
   return aux;
 }
 

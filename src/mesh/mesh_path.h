@@ -98,7 +98,7 @@ path_invert (struct MeshPeerPath *path);
  * @param path The path to duplicate.
  */
 struct MeshPeerPath *
-path_duplicate (struct MeshPeerPath *path);
+path_duplicate (const struct MeshPeerPath *path);
 
 
 /**
