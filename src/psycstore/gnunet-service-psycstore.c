@@ -346,7 +346,7 @@ handle_counters_get (void *cls,
                                       &res.max_group_generation);
   switch (ret)
   {
-  case GNUNET_YES:
+  case GNUNET_OK:
     ret = db->counters_state_get (db->cls, &req->channel_key,
                                   &res.max_state_message_id);
   case GNUNET_NO:

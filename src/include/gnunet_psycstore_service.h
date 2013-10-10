@@ -285,6 +285,10 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
  * @see GNUNET_PSYCSTORE_counters_get()
  *
  * @param cls Closure.
+ * @param result_code Status code for the operation:
+ *        #GNUNET_OK: success, counter values are returned.
+ *        #GNUNET_NO: no message has been sent to the channel yet.
+ *        #GNUNET_SYSERR: an error occurred.
  * @param max_fragment_id Latest message fragment ID, used by multicast.
  * @param max_message_id Latest message ID, used by PSYC.
  * @param max_group_generation Latest group generation, used by PSYC.
@@ -293,6 +297,7 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
  */
 typedef void
 (*GNUNET_PSYCSTORE_CountersCallback) (void *cls,
+                                      int result_code,
                                       uint64_t max_fragment_id,
                                       uint64_t max_message_id,
                                       uint64_t max_group_generation,

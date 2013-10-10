@@ -348,7 +348,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->data_cb)
         ((GNUNET_PSYCSTORE_CountersCallback)
-         op->data_cb) (op->cls,
+         op->data_cb) (op->cls, ntohl (cres->result_code),
                        GNUNET_ntohll (cres->max_fragment_id),
                        GNUNET_ntohll (cres->max_message_id),
                        GNUNET_ntohll (cres->max_group_generation),

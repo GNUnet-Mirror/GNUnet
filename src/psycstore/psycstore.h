@@ -74,11 +74,6 @@ struct CountersResult
    */
   uint32_t op_id GNUNET_PACKED;
 
-  /**
-   * Status code for the operation.
-   */
-  int64_t result_code GNUNET_PACKED;
-
   uint64_t max_fragment_id GNUNET_PACKED;
 
   uint64_t max_message_id GNUNET_PACKED;
@@ -86,6 +81,14 @@ struct CountersResult
   uint64_t max_group_generation GNUNET_PACKED;
 
   uint64_t max_state_message_id GNUNET_PACKED;
+
+  /**
+   * Status code for the operation:
+   * #GNUNET_OK: success, counter values are returned.
+   * #GNUNET_NO: no message has been sent to the channel yet.
+   * #GNUNET_SYSERR: an error occurred.
+   */
+  int32_t result_code GNUNET_PACKED;
 };
 
 

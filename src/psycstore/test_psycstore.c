@@ -231,14 +231,16 @@ state_get_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-counters_result (void *cls, uint64_t max_fragment_id, uint64_t max_message_id,
-                 uint64_t max_group_generation, uint64_t max_state_message_id)
+counters_result (void *cls, int status, uint64_t max_fragment_id,
+                 uint64_t max_message_id, uint64_t max_group_generation,
+                 uint64_t max_state_message_id)
 {
   struct FragmentClosure *fcls = cls;
   int result = 0;
   op = NULL;
 
-  if (max_fragment_id == GNUNET_ntohll (fcls->msg[2]->fragment_id)
+  if (GNUNET_OK == status
+      && max_fragment_id == GNUNET_ntohll (fcls->msg[2]->fragment_id)
       && max_message_id == GNUNET_ntohll (fcls->msg[2]->message_id)
       && max_group_generation == GNUNET_ntohll (fcls->msg[2]->group_generation)
       && max_state_message_id == GNUNET_ntohll (fcls->msg[0]->message_id))
