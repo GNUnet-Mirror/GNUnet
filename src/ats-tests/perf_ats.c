@@ -1149,7 +1149,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
     sps[c_s].no = c_s + num_masters;
     sps[c_s].master = GNUNET_NO;
     sps[c_s].partners =
-        GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
+        GNUNET_malloc (num_masters * sizeof (struct BenchmarkPartner));
     sps[c_s].num_partners = num_masters;
     /* Initialize partners */
     for (c_m = 0; c_m < num_masters; c_m++)
