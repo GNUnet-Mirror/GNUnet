@@ -226,7 +226,7 @@ print_ego (void *cls,
 	   void **ctx,
 	   const char *identifier)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pk;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   char *s;
 
   if ( (NULL != set_ego) &&
@@ -267,7 +267,7 @@ print_ego (void *cls,
   if (NULL == ego)
     return;
   GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
-  s = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pk);
+  s = GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
   if ( (monitor) || (NULL != identifier) )
     fprintf (stdout, "%s - %s\n", identifier, s);
   GNUNET_free (s);

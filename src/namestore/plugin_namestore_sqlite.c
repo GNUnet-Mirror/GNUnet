@@ -467,15 +467,15 @@ namestore_sqlite_cache_block (void *cls,
 
   namestore_sqlite_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		      &query);
   expiration = GNUNET_TIME_absolute_ntoh (block->expiration_time);
   dval = (int64_t) expiration.abs_value_us;
   if (dval < 0)
     dval = INT64_MAX;
   block_size = ntohl (block->purpose.size) +
-    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-    sizeof (struct GNUNET_CRYPTO_EccSignature);
+    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+    sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   if (block_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -606,8 +606,8 @@ namestore_sqlite_lookup_block (void *cls,
     block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
     if ( (block_size < sizeof (struct GNUNET_NAMESTORE_Block)) ||
 	 (ntohl (block->purpose.size) +
-	  sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-	  sizeof (struct GNUNET_CRYPTO_EccSignature) != block_size) )
+	  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+	  sizeof (struct GNUNET_CRYPTO_EcdsaSignature) != block_size) )
     {
       GNUNET_break (0);
       ret = GNUNET_SYSERR;
@@ -656,14 +656,14 @@ namestore_sqlite_lookup_block (void *cls,
  */
 static int
 namestore_sqlite_store_records (void *cls,
-				const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+				const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 				const char *label,
 				unsigned int rd_count,
 				const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Plugin *plugin = cls;
   int n;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   uint64_t rvalue;
   size_t data_size;
   unsigned int i;
@@ -672,7 +672,7 @@ namestore_sqlite_store_records (void *cls,
   for (i=0;i<rd_count;i++)
     if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
     {
-      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) == rd[i].data_size);
+      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
       memcpy (&pkey,
               rd[i].data,
               rd[i].data_size);
@@ -697,7 +697,7 @@ namestore_sqlite_store_records (void *cls,
 
     /* First delete 'old' records */
     if ((SQLITE_OK != sqlite3_bind_blob (plugin->delete_records, 1,
-					 zone_key, sizeof (struct GNUNET_CRYPTO_EccPrivateKey), SQLITE_STATIC)) ||
+					 zone_key, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), SQLITE_STATIC)) ||
 	(SQLITE_OK != sqlite3_bind_text (plugin->delete_records, 2, label, -1, SQLITE_STATIC)))
     {
       LOG_SQLITE (plugin,
@@ -718,9 +718,9 @@ namestore_sqlite_store_records (void *cls,
     if (0 != rd_count)
     {
       if ((SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 1,
-					   zone_key, sizeof (struct GNUNET_CRYPTO_EccPrivateKey), SQLITE_STATIC)) ||
+					   zone_key, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey), SQLITE_STATIC)) ||
 	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 2,
-					   &pkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), SQLITE_STATIC)) ||
+					   &pkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey), SQLITE_STATIC)) ||
 	  (SQLITE_OK != sqlite3_bind_int64 (plugin->store_records, 3, rvalue)) ||
 	  (SQLITE_OK != sqlite3_bind_int (plugin->store_records, 4, rd_count)) ||
 	  (SQLITE_OK != sqlite3_bind_blob (plugin->store_records, 5, data, data_size, SQLITE_STATIC)) ||
@@ -776,7 +776,7 @@ namestore_sqlite_store_records (void *cls,
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
 			      sqlite3_stmt *stmt,
-			      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+			      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   unsigned int record_count;
@@ -796,7 +796,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
     if (NULL == zone_key)
     {
       /* must be "iterate_all_zones", got one extra return value */
-      if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) !=
+      if (sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey) !=
 	  sqlite3_column_bytes (stmt, 3))
       {
 	GNUNET_break (0);
@@ -859,7 +859,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
  */
 static int
 namestore_sqlite_iterate_records (void *cls,
-				  const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 				  uint64_t offset,
 				  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
@@ -877,7 +877,7 @@ namestore_sqlite_iterate_records (void *cls,
   {
     stmt = plugin->iterate_zone;
     err = ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1,
-					     zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
+					     zone, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
 					     SQLITE_STATIC)) ||
 	    (SQLITE_OK != sqlite3_bind_int64 (stmt, 2,
 					      offset)) );
@@ -909,8 +909,8 @@ namestore_sqlite_iterate_records (void *cls,
  */
 static int
 namestore_sqlite_zone_to_name (void *cls,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
 			       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -918,10 +918,10 @@ namestore_sqlite_zone_to_name (void *cls,
 
   stmt = plugin->zone_to_name;
   if ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1,
-					zone, sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
+					zone, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
 					SQLITE_STATIC)) ||
        (SQLITE_OK != sqlite3_bind_blob (stmt, 2,
-					value_zone, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+					value_zone, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 					SQLITE_STATIC)) )
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,

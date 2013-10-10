@@ -56,11 +56,11 @@ static struct GNUNET_PSYCSTORE_OperationHandle *op;
  */
 static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 
-static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
-static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key;
 
-static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
-static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey slave_pub_key;
 
 static struct FragmentClosure
 {
@@ -436,7 +436,7 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (234);
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose,
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (slave_key, &msg->purpose,
                                                       &msg->signature));
 
   op = GNUNET_PSYCSTORE_fragment_store (h, &channel_pub_key, msg, fcls.flags[0],
@@ -498,8 +498,8 @@ run (void *cls,
   channel_key = GNUNET_CRYPTO_ecc_key_create ();
   slave_key = GNUNET_CRYPTO_ecc_key_create ();
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (channel_key, &channel_pub_key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (slave_key, &slave_pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
 
   op = GNUNET_PSYCSTORE_membership_store (h, &channel_pub_key, &slave_pub_key,
                                           GNUNET_YES, 4, 2, 1,

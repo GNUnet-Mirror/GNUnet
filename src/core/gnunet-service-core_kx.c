@@ -90,7 +90,7 @@ struct EphemeralKeyMessage
    * An ECC signature of the 'origin' asserting the validity of
    * the given ephemeral key.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
    * Information about what is being signed.
@@ -111,7 +111,7 @@ struct EphemeralKeyMessage
    * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
    * for network transmission as created using 'gcry_sexp_sprint'.
    */
-  struct GNUNET_CRYPTO_EccPublicEncryptKey ephemeral_key;
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
   /**
    * Public key of the signing peer (persistent version, not the ephemeral public key).
@@ -377,12 +377,12 @@ struct GSC_KeyExchangeInfo
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
  * Our ephemeral private key.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_ephemeral_key;
+static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
 
 /**
  * Current message we send for a key exchange.
@@ -675,7 +675,7 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 			       kx);
   GNUNET_CRYPTO_hash (pid, sizeof (struct GNUNET_PeerIdentity), &h1);
   GNUNET_CRYPTO_hash (&GSC_my_identity, sizeof (struct GNUNET_PeerIdentity), &h2);
-		
+
   if (0 < GNUNET_CRYPTO_hash_cmp (&h1,
 				  &h2))
   {
@@ -785,10 +785,10 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey)) ||
+       sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
+       sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)) ||
       (GNUNET_OK !=
-       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
+       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
 				 &m->purpose,
                                  &m->signature, &m->origin_identity.public_key)))
   {
@@ -810,7 +810,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
-			      &m->ephemeral_key,			
+			      &m->ephemeral_key,
 			      &key_material))
   {
     GNUNET_break (0);
@@ -1478,8 +1478,8 @@ sign_ephemeral_key ()
   current_ekm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-				    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-				    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+				    sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
+				    sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   current_ekm.creation_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
@@ -1493,11 +1493,11 @@ sign_ephemeral_key ()
   {
     current_ekm.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (my_ephemeral_key,
-						   &current_ekm.ephemeral_key);
+  GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key,
+                                      &current_ekm.ephemeral_key);
   current_ekm.origin_identity = GSC_my_identity;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_ecc_sign (my_private_key,
+		 GNUNET_CRYPTO_eddsa_sign (my_private_key,
 					 &current_ekm.purpose,
 					 &current_ekm.signature));
 }
@@ -1520,7 +1520,7 @@ do_rekey (void *cls,
 					     NULL);
   if (NULL != my_ephemeral_key)
     GNUNET_free (my_ephemeral_key);
-  my_ephemeral_key = GNUNET_CRYPTO_ecc_key_create ();
+  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
   GNUNET_assert (NULL != my_ephemeral_key);
   sign_ephemeral_key ();
   for (pos = kx_head; NULL != pos; pos = pos->next)
@@ -1535,38 +1535,27 @@ do_rekey (void *cls,
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk)
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 {
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
 						  &GSC_my_identity.public_key);
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
-					    "core",
-					    "USE_EPHEMERAL_KEYS"))
+  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
+  if (NULL == my_ephemeral_key)
   {
-    my_ephemeral_key = GNUNET_CRYPTO_ecc_key_create ();
-    if (NULL == my_ephemeral_key)
-    {
-      GNUNET_break (0);
-      GNUNET_free (my_private_key);
-      my_private_key = NULL;
-      return GNUNET_SYSERR;
-    }
-    sign_ephemeral_key ();
-    rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
-					       &do_rekey,
-					       NULL);
+    GNUNET_break (0);
+    GNUNET_free (my_private_key);
+    my_private_key = NULL;
+    return GNUNET_SYSERR;
   }
-  else
-  {
-    my_ephemeral_key = my_private_key;
-    sign_ephemeral_key ();
-  }
+  sign_ephemeral_key ();
+  rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_FREQUENCY,
+                                             &do_rekey,
+                                             NULL);
   mst = GNUNET_SERVER_mst_create (&deliver_message, NULL);
   return GNUNET_OK;
 }
@@ -1583,8 +1572,7 @@ GSC_KX_done ()
     GNUNET_SCHEDULER_cancel (rekey_task);
     rekey_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if ( (NULL != my_ephemeral_key) &&
-       (my_ephemeral_key != my_private_key) )
+  if (NULL != my_ephemeral_key)
   {
     GNUNET_free (my_ephemeral_key);
     my_ephemeral_key = NULL;

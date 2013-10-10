@@ -128,10 +128,10 @@ struct Location
   struct GNUNET_TIME_Absolute expirationTime;
 
   /**
-   * RSA signature over the GNUNET_EC_FileIdentifier,
-   * GNUNET_hash of the peer and expiration time.
+   * Signature over the GNUNET_EC_FileIdentifier,
+   * peer identity and expiration time.
    */
-  struct GNUNET_CRYPTO_EccSignature contentSignature;
+  struct GNUNET_CRYPTO_EddsaSignature contentSignature;
 
 };
 
@@ -140,24 +140,24 @@ struct Location
  */
 enum GNUNET_FS_UriType
 {
-    /**
-     * Content-hash-key (simple file).
-     */
+  /**
+   * Content-hash-key (simple file).
+   */
   GNUNET_FS_URI_CHK,
 
-    /**
-     * Signed key space (file in namespace).
-     */
+  /**
+   * Signed key space (file in namespace).
+   */
   GNUNET_FS_URI_SKS,
 
-    /**
-     * Keyword search key (query with keywords).
-     */
+  /**
+   * Keyword search key (query with keywords).
+   */
   GNUNET_FS_URI_KSK,
 
-    /**
-     * Location (chk with identity of hosting peer).
-     */
+  /**
+   * Location (chk with identity of hosting peer).
+   */
   GNUNET_FS_URI_LOC
 };
 
@@ -198,7 +198,7 @@ struct GNUNET_FS_Uri
       /**
        * Identifier of the namespace.
        */
-      struct GNUNET_CRYPTO_EccPublicSignKey ns;
+      struct GNUNET_CRYPTO_EcdsaPublicKey ns;
 
       /**
        * Human-readable identifier chosen for this entry in the
@@ -1171,7 +1171,7 @@ struct GNUNET_FS_PublishContext
   /**
    * Namespace that we are publishing in, NULL if we have no namespace.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey *ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *ns;
 
   /**
    * ID of the content in the namespace, NULL if we have no namespace.
@@ -1461,7 +1461,7 @@ struct SearchRequestEntry
   /**
    * Derived public key, hashes to 'uquery'.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey dpub;
 
   /**
    * The original keyword, used to derive the

@@ -364,7 +364,7 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   enum MHD_FLAG flags;
-  struct GNUNET_CRYPTO_EccPrivateKey *host_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *host_key;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *zone_keyfile;
 
@@ -421,7 +421,7 @@ run (void *cls,
     return;
   }
 
-  host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
+  host_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_DNSPARSER_TYPE_A,
                                                                "127.0.0.1",

@@ -93,8 +93,8 @@ main (int argc, char *argv[])
   struct GNUNET_HELLO_Message *msg1;
   struct GNUNET_HELLO_Message *msg2;
   struct GNUNET_HELLO_Message *msg3;
-  struct GNUNET_CRYPTO_EccPublicSignKey publicKey;
-  struct GNUNET_CRYPTO_EccPublicSignKey pk;
+  struct GNUNET_CRYPTO_EddsaPublicKey publicKey;
+  struct GNUNET_CRYPTO_EddsaPublicKey pk;
   struct GNUNET_TIME_Absolute startup_time;
   unsigned int i;
 

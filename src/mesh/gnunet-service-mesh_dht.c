@@ -94,7 +94,7 @@ static struct GNUNET_PeerIdentity *full_id;
 /**
  * Own private key.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
 
 
 /******************************************************************************/

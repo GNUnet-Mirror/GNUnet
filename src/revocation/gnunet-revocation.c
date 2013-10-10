@@ -193,12 +193,12 @@ struct RevocationData
   /**
    * Public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
 
   /**
    * Revocation signature data.
    */
-  struct GNUNET_CRYPTO_EccSignature sig;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
 
   /**
    * Proof of work (in NBO).
@@ -310,7 +310,7 @@ ego_callback (void *cls,
               const struct GNUNET_IDENTITY_Ego *ego)
 {
   struct RevocationData *rd;
-  struct GNUNET_CRYPTO_EccPublicSignKey key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
 
   el = NULL;
   if (NULL == ego)
@@ -334,7 +334,7 @@ ego_callback (void *cls,
   {
     if (0 != memcmp (&rd->key,
                      &key,
-                     sizeof (struct GNUNET_CRYPTO_EccPublicSignKey)))
+                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
     {
       fprintf (stderr,
                _("Error: revocation certificate in `%s' is not for `%s'\n"),
@@ -387,14 +387,14 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pk;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pk;
   struct RevocationData rd;
 
   cfg = c;
   if (NULL != test_ego)
   {
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_public_sign_key_from_string (test_ego,
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (test_ego,
                                                        strlen (test_ego),
                                                        &pk))
     {

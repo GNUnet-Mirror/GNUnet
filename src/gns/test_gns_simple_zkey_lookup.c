@@ -199,11 +199,11 @@ do_check (void *cls,
           const struct GNUNET_CONFIGURATION_Handle *ccfg,
           struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey alice_pkey;
-  struct GNUNET_CRYPTO_EccPublicSignKey bob_pkey;
-  struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
-  struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
-  struct GNUNET_CRYPTO_EccSignature *sig;
+  struct GNUNET_CRYPTO_EcdsaPublicKey alice_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey bob_pkey;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *bob_key;
+  struct GNUNET_CRYPTO_EcdsaSignature *sig;
   char* alice_keyfile;
 
   cfg = ccfg;
@@ -227,11 +227,11 @@ do_check (void *cls,
     return;
   }
 
-  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (alice_keyfile);
-  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (alice_keyfile);
+  bob_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (KEYFILE_BOB);
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (bob_key, &bob_pkey);
 
   struct GNUNET_NAMESTORE_RecordData rd;
   char* ip = TEST_IP;

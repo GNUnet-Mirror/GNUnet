@@ -147,7 +147,7 @@ verify_revoke_message (const struct RevokeMessage *rm)
     return GNUNET_NO;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_REVOCATION,
 				&rm->purpose,
 				&rm->signature,
 				&rm->public_key))
@@ -177,7 +177,7 @@ handle_query_message (void *cls,
   int res;
 
   GNUNET_CRYPTO_hash (&qm->key,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &hc);
   res = GNUNET_CONTAINER_multihashmap_contains (revocation_map, &hc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -240,7 +240,7 @@ publicize_rm (const struct RevokeMessage *rm)
   struct GNUNET_SET_Element e;
 
   GNUNET_CRYPTO_hash (&rm->public_key,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                       &hc);
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multihashmap_contains (revocation_map,
@@ -622,7 +622,7 @@ run (void *cls,
     }
     GNUNET_break (0 == ntohl (rm->reserved));
     GNUNET_CRYPTO_hash (&rm->public_key,
-                        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                         &hc);
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multihashmap_put (revocation_map,

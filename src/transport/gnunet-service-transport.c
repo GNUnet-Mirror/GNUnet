@@ -70,7 +70,7 @@ static struct GNUNET_SERVER_Handle *GST_server;
 /**
  * Our private key.
  */
-struct GNUNET_CRYPTO_EccPrivateKey *GST_my_private_key;
+struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
 
 /**
  * ATS handle.
@@ -738,7 +738,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   long long unsigned int max_fd_cfg;
   int max_fd_rlimit;
   int max_fd;
@@ -763,14 +763,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     hello_expiration = GNUNET_CONSTANTS_HELLO_ADDRESS_EXPIRATION;
   }
   GST_server = server;
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   GST_my_private_key = pk;
 
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (GST_my_private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (GST_my_private_key,
 						  &GST_my_identity.public_key);
   GNUNET_assert (NULL != GST_my_private_key);
 

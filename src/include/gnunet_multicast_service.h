@@ -112,7 +112,7 @@ struct GNUNET_MULTICAST_MessageHeader
    *
    * Signature must match the public key of the multicast group.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
    * Purpose for the signature and size of the signed data.
@@ -214,7 +214,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  */
 typedef void
 (*GNUNET_MULTICAST_JoinCallback) (void *cls,
-                                  const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                                  const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                                   const struct GNUNET_MessageHeader *join_req,
                                   struct GNUNET_MULTICAST_JoinHandle *jh);
 
@@ -253,7 +253,7 @@ GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestH
  */
 typedef void
 (*GNUNET_MULTICAST_MembershipTestCallback) (void *cls,
-                                            const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                                            const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                                             uint64_t message_id,
                                             uint64_t group_generation,
                                             struct GNUNET_MULTICAST_MembershipTestHandle *mth);
@@ -277,7 +277,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_RequestCallback) (void *cls,
-                                     const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                                     const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                                      const struct GNUNET_MessageHeader *req,
                                      enum GNUNET_MULTICAST_MessageFlags flags);
 
@@ -341,7 +341,7 @@ struct GNUNET_MULTICAST_ReplayHandle;
  */
 typedef void
 (*GNUNET_MULTICAST_ReplayFragmentCallback) (void *cls,
-                                            const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                                            const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                                             uint64_t fragment_id,
                                             uint64_t flags,
                                             struct GNUNET_MULTICAST_ReplayHandle *rh);
@@ -364,7 +364,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_ReplayMessageCallback) (void *cls,
-                                           const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                                           const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                                            uint64_t message_id,
                                            uint64_t fragment_offset,
                                            uint64_t flags,
@@ -491,7 +491,7 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  */
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+                               const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t next_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
                                GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
@@ -623,8 +623,8 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_CRYPTO_EccPublicSignKey *group_key,
-                              const struct GNUNET_CRYPTO_EccPrivateKey *member_key,
+                              const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
+                              const struct GNUNET_CRYPTO_EddsaPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               uint32_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,

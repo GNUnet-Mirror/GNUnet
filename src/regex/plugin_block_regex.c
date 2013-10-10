@@ -186,7 +186,7 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
     return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT,
 				&rba->purpose,
 				&rba->signature,
 				&rba->peer.public_key))

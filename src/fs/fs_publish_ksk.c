@@ -170,7 +170,7 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 				       pkc->dsh,
 				       keyword + 1 /* skip '+' */,
 				       NULL,
-				       GNUNET_CRYPTO_ecc_key_get_anonymous (),
+				       GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
 				       pkc->meta,
 				       pkc->uri,
 				       &pkc->bo,

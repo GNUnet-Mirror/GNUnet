@@ -809,7 +809,7 @@ testservice_task (void *cls,
   }
 
   if ( (NULL != cpid) &&
-       (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (cpid,
+       (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (cpid,
 								    strlen (cpid),
 								    &pid.public_key)))
   {

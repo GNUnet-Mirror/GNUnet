@@ -81,7 +81,7 @@ struct GNUNET_IDENTITY_UpdateMessage
   /**
    * The private key
    */
-  struct GNUNET_CRYPTO_EccPrivateKey private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated identity name */
 
@@ -140,7 +140,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
   /**
    * The private key
    */
-  struct GNUNET_CRYPTO_EccPrivateKey private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated service name */
 
@@ -171,7 +171,7 @@ struct GNUNET_IDENTITY_CreateRequestMessage
   /**
    * The private key
    */
-  struct GNUNET_CRYPTO_EccPrivateKey private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by 0-terminated identity name */
 

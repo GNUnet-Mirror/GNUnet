@@ -134,7 +134,7 @@ struct GNUNET_NAMESTORE_ZoneIterator
   /**
    * Private key of the zone.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
    * The operation id this zone iteration operation has
@@ -592,7 +592,7 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
                                 const struct RecordResultMessage *msg,
                                 size_t size)
 {
-  static struct GNUNET_CRYPTO_EccPrivateKey priv_dummy;
+  static struct GNUNET_CRYPTO_EcdsaPrivateKey priv_dummy;
   size_t msg_len;
   size_t exp_msg_len;
   size_t name_len;
@@ -1082,7 +1082,7 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
+				const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
 				const char *label,
 				unsigned int rd_count,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -1212,8 +1212,8 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
 			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
@@ -1268,7 +1268,7 @@ GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
-				       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 				       GNUNET_NAMESTORE_RecordMonitor proc,
 				       void *proc_cls)
 {

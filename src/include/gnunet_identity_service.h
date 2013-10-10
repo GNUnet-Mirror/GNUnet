@@ -76,7 +76,7 @@ struct GNUNET_IDENTITY_Operation;
  * @param ego the ego
  * @return associated ECC key, valid as long as the ego is valid
  */
-const struct GNUNET_CRYPTO_EccPrivateKey *
+const struct GNUNET_CRYPTO_EcdsaPrivateKey *
 GNUNET_IDENTITY_ego_get_private_key (const struct GNUNET_IDENTITY_Ego *ego);
 
 
@@ -97,7 +97,7 @@ GNUNET_IDENTITY_ego_get_anonymous (void);
  */
 void
 GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
-				    struct GNUNET_CRYPTO_EccPublicSignKey *pk);
+				    struct GNUNET_CRYPTO_EcdsaPublicKey *pk);
 
 
 /**

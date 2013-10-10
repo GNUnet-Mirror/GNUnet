@@ -38,9 +38,9 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_CRYPTO_EccPrivateKey *privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
-static struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
 static int res;
 
@@ -149,7 +149,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
   struct GNUNET_HashCode derived_hash;
-  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
   GNUNET_assert (NULL != cls);
 
@@ -159,7 +159,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
   GNUNET_NAMESTORE_query_from_public_key (&pubkey, name, &derived_hash);
 
   nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
@@ -183,10 +183,10 @@ run (void *cls,
 		   DIR_SEPARATOR_STR,
 		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file (hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
 
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;

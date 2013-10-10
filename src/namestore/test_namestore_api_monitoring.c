@@ -34,9 +34,9 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneMonitor *zm;
 
@@ -145,7 +145,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_proc (void *cls,
-	   const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 	   const char *name,
 	   unsigned int rd_count,
 	   const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -156,7 +156,7 @@ zone_proc (void *cls,
 	      "Comparing results name %s\n",
 	      name);
 
-  if (0 != memcmp (zone_key, privkey, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+  if (0 != memcmp (zone_key, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   	      "Monitoring returned wrong zone key\n");
@@ -268,7 +268,7 @@ run (void *cls,
 		  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
 
@@ -301,7 +301,7 @@ run (void *cls,
 		  DIR_SEPARATOR_STR,
 		  "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
 

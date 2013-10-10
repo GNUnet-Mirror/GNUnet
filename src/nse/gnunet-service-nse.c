@@ -199,7 +199,7 @@ struct GNUNET_NSE_FloodMessage
   /**
    * Signature (over range specified in purpose).
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 };
 GNUNET_NETWORK_STRUCT_END
 
@@ -288,7 +288,7 @@ static struct GNUNET_TIME_Absolute current_timestamp;
 /**
  * The private key of this peer.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
  * The peer identity of this peer.
@@ -710,14 +710,14 @@ setup_flood_message (unsigned int slot,
   fm->purpose.size =
       htonl (sizeof (struct GNUNET_NSE_FloodMessage) -
              sizeof (struct GNUNET_MessageHeader) - sizeof (uint32_t) -
-             sizeof (struct GNUNET_CRYPTO_EccSignature));
+             sizeof (struct GNUNET_CRYPTO_EddsaSignature));
   fm->matching_bits = htonl (matching_bits);
   fm->timestamp = GNUNET_TIME_absolute_hton (ts);
   fm->origin = my_identity;
   fm->proof_of_work = my_proof;
   if (nse_work_required > 0)
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecc_sign (my_private_key, &fm->purpose,
+                   GNUNET_CRYPTO_eddsa_sign (my_private_key, &fm->purpose,
                                            &fm->signature));
   else
     memset (&fm->signature, 0, sizeof (fm->signature));
@@ -849,16 +849,16 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
  * @return #GNUNET_YES if valid, #GNUNET_NO if not
  */
 static int
-check_proof_of_work (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
+check_proof_of_work (const struct GNUNET_CRYPTO_EddsaPublicKey *pkey,
                      uint64_t val)
 {
-  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
            sizeof (val)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
   memcpy (buf, &val, sizeof (val));
   memcpy (&buf[sizeof (val)], pkey,
-          sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+          sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           nse_work_required) ? GNUNET_YES : GNUNET_NO;
@@ -898,7 +898,7 @@ find_proof (void *cls,
 {
 #define ROUND_SIZE 10
   uint64_t counter;
-  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
            sizeof (uint64_t)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
   unsigned int i;
@@ -967,7 +967,7 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
   }
   if ((nse_work_required > 0) &&
       (GNUNET_OK !=
-       GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
+       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_NSE_SEND,
                                  &incoming_flood->purpose,
                                  &incoming_flood->signature,
                                  &incoming_flood->origin.public_key)))
@@ -1421,7 +1421,7 @@ run (void *cls,
     {NULL, 0, 0}
   };
   char *proof;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   cfg = c;
   srv = server;
@@ -1474,10 +1474,10 @@ run (void *cls,
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  pk = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
 						  &my_identity.public_key);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))

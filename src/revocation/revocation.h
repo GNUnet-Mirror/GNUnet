@@ -48,7 +48,7 @@ struct QueryMessage
   /**
    * Key to check.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
 
 };
 
@@ -98,7 +98,7 @@ struct RevokeMessage
   /**
    * Signature confirming revocation.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Must have purpose #GNUNET_SIGNATURE_PURPOSE_REVOCATION,
@@ -109,7 +109,7 @@ struct RevokeMessage
   /**
    * Key to revoke.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey public_key;
 
 };
 

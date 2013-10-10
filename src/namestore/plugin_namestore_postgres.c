@@ -337,8 +337,8 @@ namestore_postgres_cache_block (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
   size_t block_size = ntohl (block->purpose.size) +
-    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-    sizeof (struct GNUNET_CRYPTO_EccSignature);
+    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+    sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
   const char *paramValues[] = {
     (const char *) &query,
     (const char *) block,
@@ -354,7 +354,7 @@ namestore_postgres_cache_block (void *cls,
 
   namestore_postgres_expire_blocks (plugin);
   GNUNET_CRYPTO_hash (&block->derived_key,
-		      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		      &query);
   if (block_size > 64 * 65536)
   {
@@ -433,8 +433,8 @@ namestore_postgres_lookup_block (void *cls,
   block = (const struct GNUNET_NAMESTORE_Block *) PQgetvalue (res, 0, 0);
   if ( (bsize < sizeof (*block)) ||
        (bsize != ntohl (block->purpose.size) +
-        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-        sizeof (struct GNUNET_CRYPTO_EccSignature)) )
+        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+        sizeof (struct GNUNET_CRYPTO_EcdsaSignature)) )
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -461,13 +461,13 @@ namestore_postgres_lookup_block (void *cls,
  */
 static int
 namestore_postgres_store_records (void *cls,
-                                  const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+                                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                                   const char *label,
                                   unsigned int rd_count,
                                   const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Plugin *plugin = cls;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   uint64_t rvalue;
   uint32_t rd_count_nbo = htonl ((uint32_t) rd_count);
   size_t data_size;
@@ -477,7 +477,7 @@ namestore_postgres_store_records (void *cls,
   for (i=0;i<rd_count;i++)
     if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
     {
-      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) == rd[i].data_size);
+      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
       memcpy (&pkey,
               rd[i].data,
               rd[i].data_size);
@@ -549,7 +549,7 @@ namestore_postgres_store_records (void *cls,
 static int
 get_record_and_call_iterator (struct Plugin *plugin,
                               PGresult *res,
-			      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+			      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			      GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   const char *data;
@@ -580,13 +580,13 @@ get_record_and_call_iterator (struct Plugin *plugin,
   GNUNET_assert (3 + ((NULL == zone_key) ? 1 : 0) == PQnfields (res));
   if (NULL == zone_key)
   {
-    if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) != PQgetlength (res, 0, 3))
+    if (sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey) != PQgetlength (res, 0, 3))
     {
       GNUNET_break (0);
       PQclear (res);
       return GNUNET_SYSERR;
     }
-    zone_key = (const struct GNUNET_CRYPTO_EccPrivateKey *) PQgetvalue (res, 0, 3);
+    zone_key = (const struct GNUNET_CRYPTO_EcdsaPrivateKey *) PQgetvalue (res, 0, 3);
   }
   if (sizeof (uint32_t) != PQfsize (res, 0))
   {
@@ -642,7 +642,7 @@ get_record_and_call_iterator (struct Plugin *plugin,
  */
 static int
 namestore_postgres_iterate_records (void *cls,
-                                    const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                                     uint64_t offset,
                                     GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
@@ -707,8 +707,8 @@ namestore_postgres_iterate_records (void *cls,
  */
 static int
 namestore_postgres_zone_to_name (void *cls,
-                                 const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-                                 const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                 const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
                                  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;

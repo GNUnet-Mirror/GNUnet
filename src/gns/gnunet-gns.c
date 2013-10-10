@@ -191,8 +191,8 @@ process_lookup_result (void *cls, uint32_t rd_count,
  * @param shorten_key private key used for shortening, can be NULL
  */
 static void
-lookup_with_keys (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey,
-		  const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key)
+lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
+		  const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key)
 {
   if (NULL != lookup_type)
     rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
@@ -238,7 +238,7 @@ identity_shorten_cb (void *cls,
 		     void **ctx,
 		     const char *name)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey *pkeym = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey *pkeym = cls;
 
   id_op = NULL;
   if (NULL == ego)
@@ -257,12 +257,12 @@ identity_shorten_cb (void *cls,
  * @param pkey public key to use for the zone
  */
 static void
-lookup_with_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
+lookup_with_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey *pkeym;
+  struct GNUNET_CRYPTO_EcdsaPublicKey *pkeym;
 
   GNUNET_assert (NULL != pkey);
-  pkeym = GNUNET_new (struct GNUNET_CRYPTO_EccPublicSignKey);
+  pkeym = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
   *pkeym = *pkey;
   id_op = GNUNET_IDENTITY_get (identity,
 			       "gns-short",
@@ -287,7 +287,7 @@ static void
 identity_zone_cb (void *cls,
 		  const struct GNUNET_IDENTITY_Ego *ego)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   el = NULL;
   if (NULL == ego)
@@ -325,7 +325,7 @@ identity_master_cb (void *cls,
 		    void **ctx,
 		    const char *name)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   id_op = NULL;
   if (NULL == ego)
@@ -352,7 +352,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   cfg = c;
   gns = GNUNET_GNS_connect (cfg);
@@ -368,7 +368,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL != public_key)
   {
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_sign_key_from_string (public_key,
+	GNUNET_CRYPTO_ecdsa_public_key_from_string (public_key,
 						  strlen (public_key),
 						  &pkey))
     {
@@ -395,7 +395,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 		     &lookup_name[strlen (lookup_name) - 4])) )
   {
     /* no zone required, use 'anonymous' zone */
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (GNUNET_CRYPTO_ecc_key_get_anonymous (),
+    GNUNET_CRYPTO_ecdsa_key_get_public (GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
 				      &pkey);
     lookup_with_public_key (&pkey);
   }

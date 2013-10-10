@@ -329,14 +329,14 @@ struct SessionDisconnectMessage
   /**
    * Public key of the sender.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
   /**
    * Signature of the peer that sends us the disconnect.  Only
    * valid if the timestamp is AFTER the timestamp from the
    * corresponding 'CONNECT' message.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
 };
 
@@ -1195,7 +1195,7 @@ send_disconnect (struct NeighbourMapEntry *n)
   disconnect_msg.reserved = htonl (0);
   disconnect_msg.purpose.size =
       htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-             sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+             sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
              sizeof (struct GNUNET_TIME_AbsoluteNBO));
   disconnect_msg.purpose.purpose =
       htonl (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
@@ -1203,7 +1203,7 @@ send_disconnect (struct NeighbourMapEntry *n)
       GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   disconnect_msg.public_key = GST_my_identity.public_key;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecc_sign (GST_my_private_key,
+                 GNUNET_CRYPTO_eddsa_sign (GST_my_private_key,
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
@@ -3157,7 +3157,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
     return;
   }
   GNUNET_CRYPTO_hash (&sdm->public_key,
-                      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                      sizeof (struct GNUNET_CRYPTO_EddsaPublicKey),
                       &hc);
   if (0 != memcmp (peer, &hc, sizeof (struct GNUNET_PeerIdentity)))
   {
@@ -3166,7 +3166,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
   }
   if (ntohl (sdm->purpose.size) !=
       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+      sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
       sizeof (struct GNUNET_TIME_AbsoluteNBO))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -3177,7 +3177,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_verify
+      GNUNET_CRYPTO_eddsa_verify
       (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT, &sdm->purpose,
        &sdm->signature, &sdm->public_key))
   {

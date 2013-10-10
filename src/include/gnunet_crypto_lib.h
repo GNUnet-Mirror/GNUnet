@@ -148,9 +148,30 @@ struct GNUNET_CRYPTO_EccSignaturePurpose
 
 
 /**
- * @brief an ECC signature
+ * @brief an ECC signature using EdDSA.
+ * See https://gnunet.org/ed25519
  */
-struct GNUNET_CRYPTO_EccSignature
+struct GNUNET_CRYPTO_EddsaSignature
+{
+
+  /**
+   * R value.
+   */
+  unsigned char r[256 / 8];
+
+  /**
+   * S value.
+   */
+  unsigned char s[256 / 8];
+
+};
+
+
+
+/**
+ * @brief an ECC signature using ECDSA
+ */
+struct GNUNET_CRYPTO_EcdsaSignature
 {
 
   /**
@@ -167,10 +188,33 @@ struct GNUNET_CRYPTO_EccSignature
 
 
 /**
- * Public ECC key (always for NIST P-521) encoded in a format suitable
- * for network transmission and signatures (ECDSA/EdDSA).
+ * Public ECC key (always for Curve25519) encoded in a format suitable
+ * for network transmission and EdDSA signatures.
  */
-struct GNUNET_CRYPTO_EccPublicSignKey
+struct GNUNET_CRYPTO_EddsaPublicKey
+{
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
+   *
+   * FIXME: this coordinate will be removed in the future (compressed point!).
+   */
+  unsigned char q_x[256 / 8];
+
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits),
+   * given here in affine coordinates.
+   */
+  unsigned char q_y[256 / 8];
+
+};
+
+
+/**
+ * Public ECC key (always for Curve25519) encoded in a format suitable
+ * for network transmission and ECDSA signatures.
+ */
+struct GNUNET_CRYPTO_EcdsaPublicKey
 {
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
@@ -194,15 +238,16 @@ struct GNUNET_CRYPTO_EccPublicSignKey
  */
 struct GNUNET_PeerIdentity
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 };
 
 
 /**
- * Public ECC key (always for NIST P-521) encoded in a format suitable
- * for network transmission and encryption (ECDH).
+ * Public ECC key (always for Curve25519) encoded in a format suitable
+ * for network transmission and encryption (ECDH),
+ * See http://cr.yp.to/ecdh.html
  */
-struct GNUNET_CRYPTO_EccPublicEncryptKey
+struct GNUNET_CRYPTO_EcdhePublicKey
 {
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits),
@@ -222,9 +267,36 @@ struct GNUNET_CRYPTO_EccPublicEncryptKey
 
 
 /**
- * Private ECC key encoded for transmission.
+ * Private ECC key encoded for transmission.  To be used only for ECDH
+ * key exchange (ECDHE to be precise).
  */
-struct GNUNET_CRYPTO_EccPrivateKey
+struct GNUNET_CRYPTO_EcdhePrivateKey
+{
+  /**
+   * d is a value mod n, where n has at most 256 bits.
+   */
+  unsigned char d[256 / 8];
+
+};
+
+/**
+ * Private ECC key encoded for transmission.  To be used only for ECDSA
+ * signatures.
+ */
+struct GNUNET_CRYPTO_EcdsaPrivateKey
+{
+  /**
+   * d is a value mod n, where n has at most 256 bits.
+   */
+  unsigned char d[256 / 8];
+
+};
+
+/**
+ * Private ECC key encoded for transmission.  To be used only for EdDSA
+ * signatures.
+ */
+struct GNUNET_CRYPTO_EddsaPrivateKey
 {
   /**
    * d is a value mod n, where n has at most 256 bits.
@@ -743,11 +815,11 @@ GNUNET_CRYPTO_hmac_derive_key (struct GNUNET_CRYPTO_AuthKey *key,
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
  * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
  * @param xts salt
- * @param xts_len length of xts
+ * @param xts_len length of @a xts
  * @param skm source key material
- * @param skm_len length of skm
+ * @param skm_len length of @a skm
  * @param ... pair of void * & size_t for context chunks, terminated by NULL
- * @return GNUNET_YES on success
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,
@@ -763,11 +835,11 @@ GNUNET_CRYPTO_hkdf (void *result, size_t out_len, int xtr_algo, int prf_algo,
  * @param xtr_algo hash algorithm for the extraction phase, GCRY_MD_...
  * @param prf_algo hash algorithm for the expansion phase, GCRY_MD_...
  * @param xts salt
- * @param xts_len length of xts
+ * @param xts_len length of @a xts
  * @param skm source key material
- * @param skm_len length of skm
+ * @param skm_len length of @a skm
  * @param argp va_list of void * & size_t pairs for context chunks
- * @return GNUNET_YES on success
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
@@ -780,11 +852,11 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
  * @param xts salt
- * @param xts_len length of xts
+ * @param xts_len length of @a xts
  * @param skm source key material
- * @param skm_len length of skm
+ * @param skm_len length of @a skm
  * @param argp va_list of void * & size_t pairs for context chunks
- * @return GNUNET_YES on success
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
@@ -798,9 +870,9 @@ GNUNET_CRYPTO_kdf_v (void *result, size_t out_len, const void *xts,
  * @param result buffer for the derived key, allocated by caller
  * @param out_len desired length of the derived key
  * @param xts salt
- * @param xts_len length of xts
+ * @param xts_len length of @a xts
  * @param skm source key material
- * @param skm_len length of skm
+ * @param skm_len length of @a skm
  * @param ... void * & size_t pairs for context chunks
  * @return #GNUNET_YES on success
  */
@@ -810,15 +882,26 @@ GNUNET_CRYPTO_kdf (void *result, size_t out_len, const void *xts,
 
 
 /**
- * Function called upon completion of 'GNUNET_CRYPTO_ecc_key_create_async'.
+ * @ingroup crypto
+ * Extract the public key for the given private key.
  *
- * @param cls closure
- * @param pk NULL on error, otherwise the private key (which must be free'd by the callee)
- * @param emsg NULL on success, otherwise an error message
+ * @param priv the private key
+ * @param pub where to write the public key
  */
-typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
-					     struct GNUNET_CRYPTO_EccPrivateKey *pk,
-					     const char *emsg);
+void
+GNUNET_CRYPTO_ecdsa_key_get_public (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                                    struct GNUNET_CRYPTO_EcdsaPublicKey *pub);
+
+/**
+ * @ingroup crypto
+ * Extract the public key for the given private key.
+ *
+ * @param priv the private key
+ * @param pub where to write the public key
+ */
+void
+GNUNET_CRYPTO_eddsa_key_get_public (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                                    struct GNUNET_CRYPTO_EddsaPublicKey *pub);
 
 
 /**
@@ -829,21 +912,8 @@ typedef void (*GNUNET_CRYPTO_EccKeyCallback)(void *cls,
  * @param pub where to write the public key
  */
 void
-GNUNET_CRYPTO_ecc_key_get_public_for_signature (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-						struct GNUNET_CRYPTO_EccPublicSignKey *pub);
-
-
-
-/**
- * @ingroup crypto
- * Extract the public key for the given private key.
- *
- * @param priv the private key
- * @param pub where to write the public key
- */
-void
-GNUNET_CRYPTO_ecc_key_get_public_for_encryption (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-						 struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
+GNUNET_CRYPTO_ecdhe_key_get_public (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                                    struct GNUNET_CRYPTO_EcdhePublicKey *pub);
 
 
 /**
@@ -853,7 +923,17 @@ GNUNET_CRYPTO_ecc_key_get_public_for_encryption (const struct GNUNET_CRYPTO_EccP
  * @return string representing @a pub
  */
 char *
-GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPublicSignKey *pub);
+GNUNET_CRYPTO_ecdsa_public_key_to_string (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub);
+
+
+/**
+ * Convert a public key to a string.
+ *
+ * @param pub key to convert
+ * @return string representing @a pub
+ */
+char *
+GNUNET_CRYPTO_eddsa_public_key_to_string (const struct GNUNET_CRYPTO_EddsaPublicKey *pub);
 
 
 /**
@@ -865,20 +945,9 @@ GNUNET_CRYPTO_ecc_public_sign_key_to_string (const struct GNUNET_CRYPTO_EccPubli
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_sign_key_from_string (const char *enc,
-					       size_t enclen,
-					       struct GNUNET_CRYPTO_EccPublicSignKey *pub);
-
-
-
-/**
- * Convert a public key to a string.
- *
- * @param pub key to convert
- * @return string representing @a pub
- */
-char *
-GNUNET_CRYPTO_ecc_public_encrypt_key_to_string (const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
+GNUNET_CRYPTO_ecdsa_public_key_from_string (const char *enc,
+                                            size_t enclen,
+                                            struct GNUNET_CRYPTO_EcdsaPublicKey *pub);
 
 
 /**
@@ -890,9 +959,9 @@ GNUNET_CRYPTO_ecc_public_encrypt_key_to_string (const struct GNUNET_CRYPTO_EccPu
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_public_encrypt_key_from_string (const char *enc,
-						  size_t enclen,
-						  struct GNUNET_CRYPTO_EccPublicEncryptKey *pub);
+GNUNET_CRYPTO_eddsa_public_key_from_string (const char *enc,
+                                            size_t enclen,
+                                            struct GNUNET_CRYPTO_EddsaPublicKey *pub);
 
 
 /**
@@ -910,8 +979,27 @@ GNUNET_CRYPTO_ecc_public_encrypt_key_from_string (const char *enc,
  * @return new private key, NULL on error (for example,
  *   permission denied); free using #GNUNET_free
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
+struct GNUNET_CRYPTO_EcdsaPrivateKey *
+GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename);
+
+
+/**
+ * @ingroup crypto
+ * Create a new private key by reading it from a file.  If the
+ * files does not exist, create a new key and write it to the
+ * file.  Caller must free return value.  Note that this function
+ * can not guarantee that another process might not be trying
+ * the same operation on the same file at the same time.
+ * If the contents of the file
+ * are invalid the old file is deleted and a fresh key is
+ * created.
+ *
+ * @param filename name of file to use to store the key
+ * @return new private key, NULL on error (for example,
+ *   permission denied); free using #GNUNET_free
+ */
+struct GNUNET_CRYPTO_EddsaPrivateKey *
+GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename);
 
 
 /**
@@ -923,8 +1011,8 @@ GNUNET_CRYPTO_ecc_key_create_from_file (const char *filename);
  * @return new private key, NULL on error (for example,
  *   permission denied); free using #GNUNET_free
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg);
+struct GNUNET_CRYPTO_EddsaPrivateKey *
+GNUNET_CRYPTO_eddsa_key_create_from_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
@@ -933,8 +1021,28 @@ GNUNET_CRYPTO_ecc_key_create_from_configuration (const struct GNUNET_CONFIGURATI
  *
  * @return fresh private key; free using #GNUNET_free
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_create (void);
+struct GNUNET_CRYPTO_EcdsaPrivateKey *
+GNUNET_CRYPTO_ecdsa_key_create (void);
+
+
+/**
+ * @ingroup crypto
+ * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key; free using #GNUNET_free
+ */
+struct GNUNET_CRYPTO_EddsaPrivateKey *
+GNUNET_CRYPTO_eddsa_key_create (void);
+
+
+/**
+ * @ingroup crypto
+ * Create a new private key. Caller must free return value.
+ *
+ * @return fresh private key; free using #GNUNET_free
+ */
+struct GNUNET_CRYPTO_EcdhePrivateKey *
+GNUNET_CRYPTO_ecdhe_key_create (void);
 
 
 /**
@@ -944,7 +1052,26 @@ GNUNET_CRYPTO_ecc_key_create (void);
  * @param pk location of the key
  */
 void
-GNUNET_CRYPTO_ecc_key_clear (struct GNUNET_CRYPTO_EccPrivateKey *pk);
+GNUNET_CRYPTO_eddsa_key_clear (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
+
+
+/**
+ * @ingroup crypto
+ * Clear memory that was used to store a private key.
+ *
+ * @param pk location of the key
+ */
+void
+GNUNET_CRYPTO_ecdsa_key_clear (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk);
+
+/**
+ * @ingroup crypto
+ * Clear memory that was used to store a private key.
+ *
+ * @param pk location of the key
+ */
+void
+GNUNET_CRYPTO_ecdhe_key_clear (struct GNUNET_CRYPTO_EcdhePrivateKey *pk);
 
 
 /**
@@ -953,8 +1080,8 @@ GNUNET_CRYPTO_ecc_key_clear (struct GNUNET_CRYPTO_EccPrivateKey *pk);
  *
  * @return "anonymous" private key; do not free
  */
-const struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_get_anonymous (void);
+const struct GNUNET_CRYPTO_EcdsaPrivateKey *
+GNUNET_CRYPTO_ecdsa_key_get_anonymous (void);
 
 
 /**
@@ -967,7 +1094,7 @@ GNUNET_CRYPTO_ecc_key_get_anonymous (void);
  * @param cfg_name name of the configuration file to use
  */
 void
-GNUNET_CRYPTO_ecc_setup_hostkey (const char *cfg_name);
+GNUNET_CRYPTO_eddsa_setup_hostkey (const char *cfg_name);
 
 
 /**
@@ -989,19 +1116,19 @@ GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Derive key material from a public and a private ECC key.
  *
  * @param priv private key to use for the ECDH (x)
- * @param pub public key to use for the ECDY (yG)
+ * @param pub public key to use for the ECDH (yG)
  * @param key_material where to write the key material (xyG)
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-                        const struct GNUNET_CRYPTO_EccPublicEncryptKey *pub,
+GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                        const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                         struct GNUNET_HashCode *key_material);
 
 
 /**
  * @ingroup crypto
- * Sign a given block.
+ * EdDSA sign a given block.
  *
  * @param priv private key to use for the signing
  * @param purpose what to sign (size, purpose)
@@ -1009,14 +1136,28 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-                        const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
-                        struct GNUNET_CRYPTO_EccSignature *sig);
+GNUNET_CRYPTO_eddsa_sign (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
+                          struct GNUNET_CRYPTO_EddsaSignature *sig);
 
 
 /**
  * @ingroup crypto
- * Verify signature.
+ * ECDSA Sign a given block.
+ *
+ * @param priv private key to use for the signing
+ * @param purpose what to sign (size, purpose)
+ * @param sig where to write the signature
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdsa_sign (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
+                          struct GNUNET_CRYPTO_EcdsaSignature *sig);
+
+/**
+ * @ingroup crypto
+ * Verify EdDSA signature.
  *
  * @param purpose what is the purpose that the signature should have?
  * @param validate block to validate (size, purpose, data)
@@ -1025,10 +1166,28 @@ GNUNET_CRYPTO_ecc_sign (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
-GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
-                          const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
-                          const struct GNUNET_CRYPTO_EccSignature *sig,
-                          const struct GNUNET_CRYPTO_EccPublicSignKey *pub);
+GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
+                            const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
+                            const struct GNUNET_CRYPTO_EddsaSignature *sig,
+                            const struct GNUNET_CRYPTO_EddsaPublicKey *pub);
+
+
+
+/**
+ * @ingroup crypto
+ * Verify ECDSA signature.
+ *
+ * @param purpose what is the purpose that the signature should have?
+ * @param validate block to validate (size, purpose, data)
+ * @param sig signature that is being validated
+ * @param pub public key of the signer
+ * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
+ */
+int
+GNUNET_CRYPTO_ecdsa_verify (uint32_t purpose,
+                            const struct GNUNET_CRYPTO_EccSignaturePurpose *validate,
+                            const struct GNUNET_CRYPTO_EcdsaSignature *sig,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *pub);
 
 
 /**
@@ -1044,10 +1203,10 @@ GNUNET_CRYPTO_ecc_verify (uint32_t purpose,
  *        typically the name of the subsystem/application
  * @return derived private key
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
-GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
-			      const char *label,
-			      const char *context);
+struct GNUNET_CRYPTO_EcdsaPrivateKey *
+GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                                        const char *label,
+                                        const char *context);
 
 
 /**
@@ -1062,10 +1221,10 @@ GNUNET_CRYPTO_ecc_key_derive (const struct GNUNET_CRYPTO_EccPrivateKey *priv,
  * @param result where to write the derived public key
  */
 void
-GNUNET_CRYPTO_ecc_public_key_derive (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
-				     const char *label,
-				     const char *context,
-				     struct GNUNET_CRYPTO_EccPublicSignKey *result);
+GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+                                       const char *label,
+                                       const char *context,
+                                       struct GNUNET_CRYPTO_EcdsaPublicKey *result);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

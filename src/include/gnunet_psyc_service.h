@@ -210,7 +210,7 @@ struct GNUNET_PSYC_MessageMethod
    * Sending slave's public key. NULL if the message is from the master, or when
    * transmitting a message.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 
   /* Followed by NUL-terminated method name. */
 };
@@ -305,7 +305,7 @@ struct GNUNET_PSYC_JoinHandle;
  */
 typedef int
 (*GNUNET_PSYC_Method) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                        uint64_t message_id,
                        const char *method_name,
                        size_t modifier_count,
@@ -331,7 +331,7 @@ typedef int
  */
 typedef int
 (*GNUNET_PSYC_JoinCallback) (void *cls,
-                             const struct GNUNET_CRYPTO_EccPublicSignKey
+                             const struct GNUNET_CRYPTO_EddsaPublicKey
                              *slave_key,
                              const char *method_name,
                              size_t variable_count,
@@ -421,7 +421,7 @@ typedef void
  */
 struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_CRYPTO_EccPrivateKey *channel_key,
+                          const struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key,
                           enum GNUNET_PSYC_Policy policy,
                           GNUNET_PSYC_Method method,
                           GNUNET_PSYC_JoinCallback join_cb,
@@ -579,8 +579,8 @@ typedef void
  */
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                        const struct GNUNET_CRYPTO_EccPrivateKey *slave_key,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                        const struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key,
                         const struct GNUNET_PeerIdentity *origin,
                         size_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
@@ -732,7 +732,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
-                               const struct GNUNET_CRYPTO_EccPublicSignKey
+                               const struct GNUNET_CRYPTO_EddsaPublicKey
                                *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since);
@@ -761,7 +761,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
-                                  const struct GNUNET_CRYPTO_EccPublicSignKey
+                                  const struct GNUNET_CRYPTO_EddsaPublicKey
                                   *slave_key,
                                   uint64_t announced_at);
 

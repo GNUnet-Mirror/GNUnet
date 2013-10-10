@@ -226,7 +226,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (udp)
       protocol = IPPROTO_UDP;
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_sign_key_from_string (peer_id,
+	GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
 						       strlen (peer_id),
 						       &peer.public_key))
     {

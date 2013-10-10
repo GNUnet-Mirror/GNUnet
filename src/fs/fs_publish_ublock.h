@@ -46,7 +46,7 @@
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,
-			   const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
+			   const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
 			   const char *label,
 			   void *output);
 
@@ -89,7 +89,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 			   struct GNUNET_DATASTORE_Handle *dsh,
 			   const char *label,
 			   const char *ulabel,
-			   const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+			   const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
 			   const struct GNUNET_CONTAINER_MetaData *meta,
 			   const struct GNUNET_FS_Uri *uri,
 			   const struct GNUNET_FS_BlockOptions *bo,

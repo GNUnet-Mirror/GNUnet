@@ -76,7 +76,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
 
     if (ntohl (ad->purpose.size) !=
         sizeof (struct GNUNET_DNS_Advertisement) -
-        sizeof (struct GNUNET_CRYPTO_EccSignature))
+        sizeof (struct GNUNET_CRYPTO_EddsaSignature))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -90,7 +90,7 @@ block_plugin_dns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
+        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD,
 				  &ad->purpose,
 				  &ad->signature,
 				  &ad->peer.public_key))

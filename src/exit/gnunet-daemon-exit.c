@@ -438,7 +438,7 @@ static struct GNUNET_HashCode dht_put_key;
 /**
  * Private key for this peer.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *peer_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *peer_key;
 
 /**
  * Are we an IPv4-exit?
@@ -3415,7 +3415,7 @@ do_dht_put (void *cls,
     expiration = GNUNET_TIME_relative_to_absolute (DNS_ADVERTISEMENT_TIMEOUT);
     dns_advertisement.expiration_time = GNUNET_TIME_absolute_hton (expiration);
     GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CRYPTO_ecc_sign (peer_key,
+		   GNUNET_CRYPTO_eddsa_sign (peer_key,
 					   &dns_advertisement.purpose,
 					   &dns_advertisement.signature));
   }
@@ -3572,11 +3572,11 @@ run (void *cls, char *const *args GNUNET_UNUSED,
   if (NULL != dns_exit)
   {
     dht = GNUNET_DHT_connect (cfg, 1);
-    peer_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (peer_key,
+    peer_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+    GNUNET_CRYPTO_eddsa_key_get_public (peer_key,
 						    &dns_advertisement.peer.public_key);
     dns_advertisement.purpose.size = htonl (sizeof (struct GNUNET_DNS_Advertisement) -
-					    sizeof (struct GNUNET_CRYPTO_EccSignature));
+					    sizeof (struct GNUNET_CRYPTO_EddsaSignature));
     dns_advertisement.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_DNS_RECORD);
     GNUNET_CRYPTO_hash ("dns",
 			strlen ("dns"),

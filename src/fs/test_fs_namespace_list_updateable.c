@@ -33,7 +33,7 @@ static struct GNUNET_FS_Handle *fs;
 
 static int err;
 
-static struct GNUNET_CRYPTO_EccPrivateKey *ns;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *ns;
 
 static struct GNUNET_CONTAINER_MetaData *meta;
 
@@ -127,7 +127,7 @@ sks_cont_this (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 static void
 testNamespace ()
 {
-  ns = GNUNET_CRYPTO_ecc_key_create ();
+  ns = GNUNET_CRYPTO_ecdsa_key_create ();
   GNUNET_assert (NULL != ns);
   bo.content_priority = 1;
   bo.anonymity_level = 1;

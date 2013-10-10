@@ -1152,7 +1152,7 @@ finish_reserve (void *cls, int success,
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
                          struct GNUNET_FS_FileInformation *fi,
-                         const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
 			 const char *nid,
                          const char *nuid,
                          enum GNUNET_FS_PublishOptions options)
@@ -1177,7 +1177,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   ret->fi = fi;
   if (NULL != ns)
   {
-    ret->ns = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    ret->ns = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
     *ret->ns = *ns;
     GNUNET_assert (NULL != nid);
     ret->nid = GNUNET_strdup (nid);

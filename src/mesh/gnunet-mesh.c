@@ -138,7 +138,7 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity pid;
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_sign_key_from_string (tunnel_id,
+      GNUNET_CRYPTO_eddsa_public_key_from_string (tunnel_id,
 						     strlen (tunnel_id),
 						     &pid.public_key))
   {

@@ -41,7 +41,7 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Private key for the our zone.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey zone_pkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey zone_pkey;
 
 /**
  * Handle to identity lookup.
@@ -334,7 +334,7 @@ del_continuation (void *cls,
  */
 static void
 display_record (void *cls,
-		const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+		const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		const char *name,
 		unsigned int rd_len,
 		const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -413,7 +413,7 @@ sync_cb (void *cls)
  */
 static void
 get_existing_record (void *cls,
-		     const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		     const char *rec_name,
 		     unsigned int rd_count,
 		     const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -524,10 +524,10 @@ static void
 handle_block (void *cls,
 	      const struct GNUNET_NAMESTORE_Block *block)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey zone_pubkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
 
   list_qe = NULL;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
 						  &zone_pubkey);
   if (NULL == block)
   {
@@ -560,7 +560,7 @@ handle_block (void *cls,
  */
 static void
 handle_reverse_lookup (void *cls,
-                       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                        const char *label,
                        unsigned int rd_count,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -591,7 +591,7 @@ testservice_task (void *cls,
                   int result)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_NAMESTORE_RecordData rd;
 
   if (GNUNET_YES != result)
@@ -608,7 +608,7 @@ testservice_task (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
                                     &pub);
 
   ns = GNUNET_NAMESTORE_connect (cfg);
@@ -738,9 +738,9 @@ testservice_task (void *cls,
     else
     {
       struct GNUNET_HashCode query;
-      struct GNUNET_CRYPTO_EccPublicSignKey zone_pubkey;
+      struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
 
-      GNUNET_CRYPTO_ecc_key_get_public_for_signature (&zone_pkey,
+      GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
 						      &zone_pubkey);
       GNUNET_NAMESTORE_query_from_public_key (&zone_pubkey,
 					      name,
@@ -753,10 +753,10 @@ testservice_task (void *cls,
   }
   if (NULL != reverse_pkey)
   {
-    struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+    struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_public_sign_key_from_string (reverse_pkey,
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (reverse_pkey,
                                                        strlen (reverse_pkey),
                                                        &pubkey))
     {
@@ -775,14 +775,14 @@ testservice_task (void *cls,
   {
     char sh[105];
     char sname[64];
-    struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+    struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
     if ( (2 != (sscanf (uri,
                         "gnunet://gns/%104s/%63s",
                         sh,
                         sname)) ) ||
          (GNUNET_OK !=
-          GNUNET_CRYPTO_ecc_public_sign_key_from_string (sh, strlen (sh), &pkey)) )
+          GNUNET_CRYPTO_ecdsa_public_key_from_string (sh, strlen (sh), &pkey)) )
     {
       fprintf (stderr,
                _("Invalid URI `%s'\n"),
@@ -793,7 +793,7 @@ testservice_task (void *cls,
     }
     memset (&rd, 0, sizeof (rd));
     rd.data = &pkey;
-    rd.data_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
+    rd.data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
     rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
     if (GNUNET_YES == etime_is_rel)
     {
@@ -952,11 +952,11 @@ main (int argc, char *const *argv)
 			  &run, NULL))
   {
     GNUNET_free ((void*) argv);
-    GNUNET_CRYPTO_ecc_key_clear (&zone_pkey);
+    GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
     return 1;
   }
   GNUNET_free ((void*) argv);
-  GNUNET_CRYPTO_ecc_key_clear (&zone_pkey);
+  GNUNET_CRYPTO_ecdsa_key_clear (&zone_pkey);
   return ret;
 }
 

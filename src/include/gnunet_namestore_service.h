@@ -239,12 +239,12 @@ struct GNUNET_NAMESTORE_Block
   /**
    * Signature of the block.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Derived key used for signing; hash of this is the query.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey derived_key;
 
   /**
    * Number of bytes signed; also specifies the number of bytes
@@ -297,7 +297,7 @@ GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
-				const struct GNUNET_CRYPTO_EccPrivateKey *pkey,
+				const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
 				const char *label,
 				unsigned int rd_count,
 				const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -343,7 +343,7 @@ GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
-						const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+						const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 						const char *label,
 						unsigned int rd_count,
 						const struct GNUNET_NAMESTORE_RecordData *rd);
@@ -364,8 +364,8 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_zone_to_name (struct GNUNET_NAMESTORE_Handle *h,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-			       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+			       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
 			       GNUNET_NAMESTORE_RecordMonitor proc, void *proc_cls);
 
 
@@ -411,7 +411,7 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
  */
 struct GNUNET_NAMESTORE_ZoneIterator *
 GNUNET_NAMESTORE_zone_iteration_start (struct GNUNET_NAMESTORE_Handle *h,
-				       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 				       GNUNET_NAMESTORE_RecordMonitor proc,
 				       void *proc_cls);
 
@@ -471,7 +471,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls);
@@ -614,7 +614,7 @@ GNUNET_NAMESTORE_normalize_string (const char *src);
  * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s.
  */
 const char *
-GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z);
+GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
 
 
 /**
@@ -628,7 +628,7 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z);
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey);
+GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -642,7 +642,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey
  */
 int
 GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
-			       struct GNUNET_CRYPTO_EccPublicSignKey *pkey);
+			       struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -653,7 +653,7 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 struct GNUNET_HashCode *query);
 
@@ -666,7 +666,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
+GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 					const char *label,
 					struct GNUNET_HashCode *query);
 
@@ -681,7 +681,7 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSign
  * @param rd_count number of records in @a rd
  */
 struct GNUNET_NAMESTORE_Block *
-GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 			       struct GNUNET_TIME_Absolute expire,
 			       const char *label,
 			       const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -712,7 +712,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
  */
 int
 GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
-				const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
+				const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
 				const char *label,
 				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls);

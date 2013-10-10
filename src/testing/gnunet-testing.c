@@ -164,7 +164,7 @@ create_hostkeys (const unsigned int no)
   struct GNUNET_TESTING_System *system;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_DISK_FileHandle *fd;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   system = GNUNET_TESTING_system_create ("testing", NULL, NULL, NULL);
   pk = GNUNET_TESTING_hostkey_get (system, create_no, &id);
@@ -182,7 +182,7 @@ create_hostkeys (const unsigned int no)
 			      GNUNET_DISK_PERM_USER_WRITE);
   GNUNET_assert (fd != NULL);
   ret = GNUNET_DISK_file_write (fd, pk,
-				sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
+				sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey));
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fd));
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
 		   "Wrote hostkey to file: `%s'\n", create_hostkey);

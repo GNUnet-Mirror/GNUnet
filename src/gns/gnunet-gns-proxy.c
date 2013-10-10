@@ -623,12 +623,12 @@ static struct Socks5Request *s5r_tail;
 /**
  * The users local GNS master zone
  */
-static struct GNUNET_CRYPTO_EccPublicSignKey local_gns_zone;
+static struct GNUNET_CRYPTO_EcdsaPublicKey local_gns_zone;
 
 /**
  * The users local shorten zone
  */
-static struct GNUNET_CRYPTO_EccPrivateKey local_shorten_zone;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey local_shorten_zone;
 
 /**
  * Is shortening enabled?
@@ -2864,7 +2864,7 @@ main (int argc, char *const *argv)
                            &run, NULL)) ? 0 : 1;
   MHD_destroy_response (curl_failure_response);
   GNUNET_free_non_null ((char *) argv);
-  GNUNET_CRYPTO_ecc_key_clear (&local_shorten_zone);
+  GNUNET_CRYPTO_ecdsa_key_clear (&local_shorten_zone);
   return ret;
 }
 

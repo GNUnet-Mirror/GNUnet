@@ -95,7 +95,7 @@ struct MeshTunnel3;
 void
 GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CRYPTO_EccPrivateKey *key);
+          const struct GNUNET_CRYPTO_EddsaPrivateKey *key);
 
 /**
  * Shut down the tunnel subsystem.

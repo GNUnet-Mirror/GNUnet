@@ -337,7 +337,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri);
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
 			  const char *id);
 
 
@@ -351,7 +351,7 @@ GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_CRYPTO_EccPublicSignKey *pseudonym);
+                                 struct GNUNET_CRYPTO_EcdsaPublicKey *pseudonym);
 
 
 /**
@@ -1377,7 +1377,7 @@ struct GNUNET_FS_ProgressInfo
           /**
 	   * Public key of the namespace.
 	   */
-          struct GNUNET_CRYPTO_EccPublicSignKey pseudonym;
+          struct GNUNET_CRYPTO_EcdsaPublicKey pseudonym;
 
         } ns;
 
@@ -1962,7 +1962,7 @@ enum GNUNET_FS_PublishOptions
 struct GNUNET_FS_PublishContext *
 GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
                          struct GNUNET_FS_FileInformation *fi,
-                         const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
 			 const char *nid,
                          const char *nuid,
                          enum GNUNET_FS_PublishOptions options);
@@ -2054,7 +2054,7 @@ struct GNUNET_FS_PublishSksContext;
  */
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
-                       const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
                        const char *identifier,
 		       const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
@@ -2176,7 +2176,7 @@ typedef void (*GNUNET_FS_IdentifierProcessor) (void *cls,
  */
 void
 GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
-				     const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
                                      const char *next_id,
                                      GNUNET_FS_IdentifierProcessor ip,
                                      void *ip_cls);

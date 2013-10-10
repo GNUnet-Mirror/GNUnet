@@ -73,7 +73,7 @@ struct GNUNET_NAMESTORE_ZoneMonitor
   /**
    * Monitored zone.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
 };
 
@@ -255,7 +255,7 @@ transmit_monitor_message (void *cls,
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				     const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls)

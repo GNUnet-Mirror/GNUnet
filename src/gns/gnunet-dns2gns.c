@@ -143,7 +143,7 @@ static unsigned int listen_port = 53;
 /**
  * Which GNS zone do we translate incoming DNS requests to?
  */
-static struct GNUNET_CRYPTO_EccPublicSignKey my_zone;
+static struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
 
 /**
  * '-z' option with the main zone to use.
@@ -741,7 +741,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   if ( (NULL == gns_zone_str) ||
        (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_sign_key_from_string (gns_zone_str,
+	GNUNET_CRYPTO_ecdsa_public_key_from_string (gns_zone_str,
 						  strlen (gns_zone_str),
 						  &my_zone)) )
   {

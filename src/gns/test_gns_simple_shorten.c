@@ -61,10 +61,10 @@ static struct GNUNET_GNS_Handle *gns_handle;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-struct GNUNET_CRYPTO_EccPublicSignKey priv_pkey;
-struct GNUNET_CRYPTO_EccPublicSignKey short_pkey;
-struct GNUNET_CRYPTO_EccPrivateKey *priv_key;
-struct GNUNET_CRYPTO_EccPrivateKey *short_key;
+struct GNUNET_CRYPTO_EcdsaPublicKey priv_pkey;
+struct GNUNET_CRYPTO_EcdsaPublicKey short_pkey;
+struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+struct GNUNET_CRYPTO_EcdsaPrivateKey *short_key;
 
 struct GNUNET_CRYPTO_ShortHashCode priv_zone;
 struct GNUNET_CRYPTO_ShortHashCode short_zone;
@@ -170,15 +170,15 @@ void do_check (void *cls,
               const struct GNUNET_CONFIGURATION_Handle *ccfg,
               struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey our_pkey;
-  struct GNUNET_CRYPTO_EccPublicSignKey alice_pkey;
-  struct GNUNET_CRYPTO_EccPublicSignKey bob_pkey;
-  struct GNUNET_CRYPTO_EccPrivateKey *our_key;
-  struct GNUNET_CRYPTO_EccPrivateKey *alice_key;
-  struct GNUNET_CRYPTO_EccPrivateKey *bob_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey our_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey alice_pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey bob_pkey;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *our_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *alice_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *bob_key;
   struct GNUNET_CRYPTO_ShortHashCode bob_hash;
   struct GNUNET_CRYPTO_ShortHashCode alice_hash;
-  struct GNUNET_CRYPTO_EccSignature *sig;
+  struct GNUNET_CRYPTO_EcdsaSignature *sig;
   char* our_keyfile;
   char* private_keyfile;
   char* shorten_keyfile;
@@ -226,22 +226,22 @@ void do_check (void *cls,
     return;
   }
 
-  our_key = GNUNET_CRYPTO_ecc_key_create_from_file (our_keyfile);
+  our_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (our_keyfile);
   GNUNET_free(our_keyfile);
 
-  bob_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_BOB);
-  alice_key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE_ALICE);
-  priv_key = GNUNET_CRYPTO_ecc_key_create_from_file (private_keyfile);
-  short_key = GNUNET_CRYPTO_ecc_key_create_from_file (shorten_keyfile);
+  bob_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (KEYFILE_BOB);
+  alice_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (KEYFILE_ALICE);
+  priv_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (private_keyfile);
+  short_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (shorten_keyfile);
 
   GNUNET_free(shorten_keyfile);
   GNUNET_free(private_keyfile);
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (our_key, &our_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (alice_key, &alice_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (bob_key, &bob_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv_key, &priv_pkey);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (short_key, &short_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (our_key, &our_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (alice_key, &alice_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (bob_key, &bob_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (priv_key, &priv_pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (short_key, &short_pkey);
 
   GNUNET_CRYPTO_short_hash(&priv_pkey, sizeof(priv_pkey), &priv_zone);
   GNUNET_CRYPTO_short_hash(&short_pkey, sizeof(short_pkey), &short_zone);

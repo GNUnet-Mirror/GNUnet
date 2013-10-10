@@ -64,7 +64,7 @@ struct ZoneIteration
   /**
    * Key of the zone we are iterating over.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
    * The operation id fot the zone iteration in the response for the client
@@ -140,7 +140,7 @@ struct ZoneMonitor
   /**
    * Private key of the zone.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
    * The operation id fot the zone iteration in the response for the client
@@ -512,7 +512,7 @@ static void
 send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 		      struct GNUNET_SERVER_Client *client,
 		      uint32_t request_id,
-		      const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		      const char *name,
 		      unsigned int rd_count,
 		      const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -563,7 +563,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
  * @param rd records stored under the given @a name
  */
 static void
-refresh_block (const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+refresh_block (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                const char *name,
                unsigned int rd_count,
                const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -617,7 +617,7 @@ handle_record_store (void *cls,
   const char *rd_ser;
   unsigned int rd_count;
   int res;
-  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
   struct ZoneMonitor *zm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -670,7 +670,7 @@ handle_record_store (void *cls,
     }
 
     /* Extracting and converting private key */
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (&rp_msg->private_key,
+    GNUNET_CRYPTO_ecdsa_key_get_public (&rp_msg->private_key,
 				      &pubkey);
     conv_name = GNUNET_NAMESTORE_normalize_string (name_tmp);
     if (NULL == conv_name)
@@ -711,7 +711,7 @@ handle_record_store (void *cls,
 
         for (zm = monitor_head; NULL != zm; zm = zm->next)
           if (0 == memcmp (&rp_msg->private_key, &zm->zone,
-                           sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+                           sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
             send_lookup_response (monitor_nc,
                                   zm->nc->client,
                                   zm->request_id,
@@ -774,7 +774,7 @@ struct ZoneToNameCtx
  */
 static void
 handle_zone_to_name_it (void *cls,
-			const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			const char *name,
 			unsigned int rd_count,
 			const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -936,7 +936,7 @@ struct ZoneIterationProcResult
  */
 static void
 zone_iteraterate_proc (void *cls,
-                       const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                        const char *name,
                        unsigned int rd_count,
                        const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -992,7 +992,7 @@ zone_iteraterate_proc (void *cls,
 static void
 run_zone_iteration_round (struct ZoneIteration *zi)
 {
-  static struct GNUNET_CRYPTO_EccPrivateKey zero;
+  static struct GNUNET_CRYPTO_EcdsaPrivateKey zero;
   struct ZoneIterationProcResult proc;
   struct RecordResultMessage rrm;
   int ret;
@@ -1198,7 +1198,7 @@ monitor_next (void *cls,
  */
 static void
 monitor_iterate_cb (void *cls,
-		    const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		    const char *name,
 		    unsigned int rd_count,
 		    const struct GNUNET_NAMESTORE_RecordData *rd)

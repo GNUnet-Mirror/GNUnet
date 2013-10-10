@@ -112,7 +112,7 @@ struct AuthorityChain
     /**
      * The zone of the GNS authority
      */
-    struct GNUNET_CRYPTO_EccPublicSignKey gns_authority;
+    struct GNUNET_CRYPTO_EcdsaPublicKey gns_authority;
 
     struct
     {
@@ -230,7 +230,7 @@ struct GNS_ResolverHandle
   /**
    * The top-level GNS authoritative zone to query
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey authority_zone;
+  struct GNUNET_CRYPTO_EcdsaPublicKey authority_zone;
 
   /**
    * called when resolution phase finishes
@@ -286,7 +286,7 @@ struct GNS_ResolverHandle
   /**
    * Private key of the shorten zone, NULL to not shorten.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey *shorten_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key;
 
   /**
    * ID of a task associated with the resolution process.
@@ -1421,9 +1421,9 @@ handle_gns_resolution_result (void *cls,
 	/* tigger shortening */
 	if (NULL != rh->shorten_key)
 	{
-	  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+	  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 	
-	  if (rd[i].data_size != sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
+	  if (rd[i].data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
 	  {
 	    GNUNET_break_op (0);
 	    break;
@@ -1454,7 +1454,7 @@ handle_gns_resolution_result (void *cls,
     {
     case GNUNET_NAMESTORE_TYPE_PKEY:
       /* delegation to another zone */
-      if (sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) !=
+      if (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) !=
 	  rd[i].data_size)
       {
 	GNUNET_break_op (0);
@@ -1468,7 +1468,7 @@ handle_gns_resolution_result (void *cls,
       ac->gns_authority = GNUNET_YES;
       memcpy (&ac->authority_info.gns_authority,
 	      rd[i].data,
-	      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+	      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
       ac->label = resolver_lookup_get_next_label (rh);
       /* tigger shortening */
       if (NULL != rh->shorten_key)
@@ -1719,8 +1719,8 @@ handle_dht_response (void *cls,
   block = data;
   if (size !=
       ntohl (block->purpose.size) +
-      sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
-      sizeof (struct GNUNET_CRYPTO_EccSignature))
+      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
+      sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
@@ -1768,7 +1768,7 @@ handle_namestore_block_response (void *cls,
   struct GNS_ResolverHandle *rx;
   struct AuthorityChain *ac = rh->ac_tail;
   const char *label = ac->label;
-  const struct GNUNET_CRYPTO_EccPublicSignKey *auth = &ac->authority_info.gns_authority;
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *auth = &ac->authority_info.gns_authority;
   struct GNUNET_HashCode query;
 
   GNUNET_NAMESTORE_query_from_public_key (auth,
@@ -1947,7 +1947,7 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
     if ( (NULL == x) ||
 	 (NULL == y) ||
 	 (GNUNET_OK !=
-	  GNUNET_CRYPTO_ecc_public_sign_key_from_string (pkey,
+	  GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey,
 						    strlen (pkey),
 						    &rh->authority_zone)) )
     {
@@ -1995,10 +1995,10 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
  * @return handle to cancel operation
  */
 struct GNS_ResolverHandle *
-GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
+GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
-		     const struct GNUNET_CRYPTO_EccPrivateKey *shorten_key,
+		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key,
 		     int only_cached,
 		     GNS_ResultProcessor proc, void *proc_cls)
 {
@@ -2022,7 +2022,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EccPublicSignKey *zone,
   rh->name_resolution_pos = strlen (name);
   if (NULL != shorten_key)
   {
-    rh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    rh->shorten_key = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
     *rh->shorten_key = *shorten_key;
   }
   start_resolver_lookup (rh);

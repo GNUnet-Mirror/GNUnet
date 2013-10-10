@@ -70,17 +70,17 @@ struct MeshTunnel3
   /**
    * Local peer ephemeral private key
    */
-  struct GNUNET_CRYPTO_EccPrivateKey *my_eph_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *my_eph_key;
 
   /**
    * Local peer ephemeral public key
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey *my_eph;
+  struct GNUNET_CRYPTO_EddsaPublicKey *my_eph;
 
   /**
    * Remote peer's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey *peers_eph;
+  struct GNUNET_CRYPTO_EddsaPublicKey *peers_eph;
 
   /**
    * Encryption ("our") key.
@@ -181,7 +181,7 @@ const static struct GNUNET_PeerIdentity *my_full_id;
 /**
  * Own private key.
  */
-const static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 
 /******************************************************************************/
@@ -548,7 +548,7 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
 void
 GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_PeerIdentity *id,
-          const struct GNUNET_CRYPTO_EccPrivateKey *key)
+          const struct GNUNET_CRYPTO_EddsaPrivateKey *key)
 {
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DEFAULT_TTL",

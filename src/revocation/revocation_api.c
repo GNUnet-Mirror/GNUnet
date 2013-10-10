@@ -49,7 +49,7 @@ struct GNUNET_REVOCATION_Query
   /**
    * Key to check.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
 
   /**
    * Function to call with the result.
@@ -146,7 +146,7 @@ send_revocation_query (void *cls,
  */
 struct GNUNET_REVOCATION_Query *
 GNUNET_REVOCATION_query (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const struct GNUNET_CRYPTO_EccPublicSignKey *key,
+			 const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
 			 GNUNET_REVOCATION_Callback func, void *func_cls)
 {
   struct GNUNET_REVOCATION_Query *q;
@@ -210,12 +210,12 @@ struct GNUNET_REVOCATION_Handle
   /**
    * Key to revoke.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey key;
 
   /**
    * Signature showing that we have the right to revoke.
    */
-  struct GNUNET_CRYPTO_EccSignature sig;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
 
   /**
    * Proof of work showing that we spent enough resources to broadcast revocation.
@@ -300,7 +300,7 @@ send_revoke (void *cls,
   rm.proof_of_work = h->pow;
   rm.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
   rm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                           sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+                           sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   rm.public_key = h->key;
   rm.signature = h->sig;
   memcpy (buf, &rm, sizeof (struct RevokeMessage));
@@ -329,8 +329,8 @@ send_revoke (void *cls,
  */
 struct GNUNET_REVOCATION_Handle *
 GNUNET_REVOCATION_revoke (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			  const struct GNUNET_CRYPTO_EccPublicSignKey *key,
-			  const struct GNUNET_CRYPTO_EccSignature *sig,
+			  const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
+			  const struct GNUNET_CRYPTO_EcdsaSignature *sig,
 			  uint64_t pow,
 			  GNUNET_REVOCATION_Callback func, void *func_cls)
 {
@@ -437,17 +437,17 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
  * @return #GNUNET_YES if the @a pow is acceptable, #GNUNET_NO if not
  */
 int
-GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
+GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EcdsaPublicKey *key,
 			     uint64_t pow,
 			     unsigned int matching_bits)
 {
-  char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+  char buf[sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
            sizeof (pow)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
   memcpy (buf, &pow, sizeof (pow));
   memcpy (&buf[sizeof (pow)], key,
-          sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+          sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   pow_hash (buf, sizeof (buf), &result);
   return (count_leading_zeroes (&result) >=
           matching_bits) ? GNUNET_YES : GNUNET_NO;
@@ -461,17 +461,17 @@ GNUNET_REVOCATION_check_pow (const struct GNUNET_CRYPTO_EccPublicSignKey *key,
  * @param sig where to write the revocation signature
  */
 void
-GNUNET_REVOCATION_sign_revocation (const struct GNUNET_CRYPTO_EccPrivateKey *key,
-				   struct GNUNET_CRYPTO_EccSignature *sig)
+GNUNET_REVOCATION_sign_revocation (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+				   struct GNUNET_CRYPTO_EcdsaSignature *sig)
 {
   struct RevokeMessage rm;
 
   rm.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_REVOCATION);
   rm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-			   sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &rm.public_key);
+			   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_CRYPTO_ecdsa_key_get_public (key, &rm.public_key);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_ecc_sign (key,
+		 GNUNET_CRYPTO_ecdsa_sign (key,
 					 &rm.purpose,
 					 sig));
 }

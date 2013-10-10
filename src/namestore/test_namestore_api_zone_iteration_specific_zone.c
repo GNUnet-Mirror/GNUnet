@@ -34,9 +34,9 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey2;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey2;
 
 static struct GNUNET_NAMESTORE_ZoneIterator *zi;
 
@@ -156,7 +156,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_proc (void *cls,
-					 const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+					 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 unsigned int rd_count,
 					 const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -181,7 +181,7 @@ zone_proc (void *cls,
   }
   else
   {
-  	if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+  	if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   	{
       if (0 == strcmp (label, s_name_1))
       {
@@ -225,7 +225,7 @@ zone_proc (void *cls,
         GNUNET_break (0);
       }
   	}
-  	else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)))
+  	else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   	{
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received data for not requested zone\n");
       failed = GNUNET_YES;
@@ -323,7 +323,7 @@ create_record (unsigned int count)
  */
 static void
 empty_zone_proc (void *cls,
-		 const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 		 const char *label,
 		 unsigned int rd_count,
 		 const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -357,14 +357,14 @@ empty_zone_proc (void *cls,
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
 
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "HGU0A0VCU334DN7F2I9UIUMVQMM7JMSD142LIMNUGTTV9R0CF4EG.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey2 = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey2 = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
 

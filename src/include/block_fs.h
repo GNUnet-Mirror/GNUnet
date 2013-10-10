@@ -48,7 +48,7 @@ struct UBlock
   /**
    * Signature using pseudonym and search keyword / identifier.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * What is being signed and why?
@@ -58,7 +58,7 @@ struct UBlock
   /**
    * Public key used to sign this block.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey verification_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey verification_key;
 
   /* rest of the data is encrypted */
 

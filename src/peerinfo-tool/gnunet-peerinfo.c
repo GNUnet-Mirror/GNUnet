@@ -628,7 +628,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EccPrivateKey *priv;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
   char *fn;
 
   cfg = c;
@@ -662,14 +662,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 	       "GNUNETD", "HOSTKEYFILE");
       return;
     }
-    if (NULL == (priv = GNUNET_CRYPTO_ecc_key_create_from_file (fn)))
+    if (NULL == (priv = GNUNET_CRYPTO_eddsa_key_create_from_file (fn)))
     {
       FPRINTF (stderr, _("Loading hostkey from `%s' failed.\n"), fn);
       GNUNET_free (fn);
       return;
     }
     GNUNET_free (fn);
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (priv,
+    GNUNET_CRYPTO_eddsa_key_get_public (priv,
 						    &my_peer_identity.public_key);
     GNUNET_free (priv);
   }

@@ -58,7 +58,7 @@ typedef void (*GNUNET_NAMESTORE_BlockCallback) (void *cls,
  * @param rd array of records with data to store
  */
 typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
-						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
+						 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
 						 const char *label,
 						 unsigned int rd_count,
 						 const struct GNUNET_NAMESTORE_RecordData *rd);
@@ -115,7 +115,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*store_records) (void *cls,
-			const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			const char *label,
 			unsigned int rd_count,
 			const struct GNUNET_NAMESTORE_RecordData *rd);
@@ -133,7 +133,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*iterate_records) (void *cls,
-			  const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+			  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			  uint64_t offset,
 			  GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
@@ -150,8 +150,8 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
    */
   int (*zone_to_name) (void *cls,
-		       const struct GNUNET_CRYPTO_EccPrivateKey *zone,
-		       const struct GNUNET_CRYPTO_EccPublicSignKey *value_zone,
+		       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+		       const struct GNUNET_CRYPTO_EcdsaPublicKey *value_zone,
 		       GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
 
 

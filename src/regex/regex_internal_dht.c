@@ -62,7 +62,7 @@ struct REGEX_INTERNAL_Announcement
   /**
    * Our private key.
    */
-  const struct GNUNET_CRYPTO_EccPrivateKey *priv;
+  const struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
 
   /**
    * Optional statistics handle to report usage. Can be NULL.
@@ -121,10 +121,10 @@ regex_iterator (void *cls,
     ab.purpose.purpose = ntohl (GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT);
     ab.expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_DHT_MAX_EXPIRATION));
     ab.key = *key;
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (h->priv,
+    GNUNET_CRYPTO_eddsa_key_get_public (h->priv,
 						    &ab.peer.public_key);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CRYPTO_ecc_sign (h->priv,
+                   GNUNET_CRYPTO_eddsa_sign (h->priv,
                                            &ab.purpose,
                                            &ab.signature));
 
@@ -179,7 +179,7 @@ regex_iterator (void *cls,
  */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
-			 const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+			 const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 			 const char *regex,
 			 uint16_t compression,
 			 struct GNUNET_STATISTICS_Handle *stats)

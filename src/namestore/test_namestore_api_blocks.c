@@ -40,7 +40,7 @@
 #define TEST_REMOVE_RECORD_DATA 'b'
 
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
 static struct GNUNET_NAMESTORE_RecordData *s_rd;
 
@@ -99,19 +99,19 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_NAMESTORE_Block *block;
-  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
   /* load privat key */
   char *hostkey_file;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   struct GNUNET_TIME_Absolute expire = GNUNET_TIME_absolute_get();
   /* get public key */
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature(privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public(privkey, &pubkey);
 
   /* create record */
   s_name = "DUMMY.dummy.gnunet";

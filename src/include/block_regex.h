@@ -72,7 +72,7 @@ struct RegexAcceptBlock
   /**
    * The signature.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 };
 
 

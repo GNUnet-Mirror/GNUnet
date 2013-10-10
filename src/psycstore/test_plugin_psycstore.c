@@ -50,11 +50,11 @@ static int ok;
  */
 static const char *plugin_name;
 
-static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
-static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key;
 
-static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
-static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey slave_pub_key;
 
 /**
  * Function called when the service shuts down.  Unloads our psycstore
@@ -177,9 +177,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   channel_key = GNUNET_CRYPTO_ecc_key_create ();
   slave_key = GNUNET_CRYPTO_ecc_key_create ();
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (channel_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (channel_key,
                                                   &channel_pub_key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (slave_key, &slave_pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
 
   GNUNET_assert (GNUNET_OK == db->membership_store (db->cls, &channel_pub_key,
                                                     &slave_pub_key, GNUNET_YES,
@@ -218,7 +218,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (234);
-  GNUNET_CRYPTO_ecc_sign (slave_key, &msg->purpose, &msg->signature);
+  GNUNET_CRYPTO_eddsa_sign (slave_key, &msg->purpose, &msg->signature);
 
   struct FragmentClosure fcls = { 0 };
   fcls.n = 0;

@@ -98,13 +98,13 @@ GNUNET_NAMESTORE_normalize_string (const char *src)
  * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s
  */
 const char *
-GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EccPublicSignKey *z)
+GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z)
 {
-  static char buf[sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) * 8];
+  static char buf[sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) * 8];
   char *end;
 
   end = GNUNET_STRINGS_data_to_string ((const unsigned char *) z,
-				       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+				       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 				       buf, sizeof (buf));
   if (NULL == end)
   {
@@ -342,18 +342,18 @@ static void
 derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 		      struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
 		      const char *label,
-		      const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+		      const struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
   static const char ctx_key[] = "gns-aes-ctx-key";
   static const char ctx_iv[] = "gns-aes-ctx-iv";
 
   GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		     pub, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		     label, strlen (label),
 		     ctx_key, strlen (ctx_key),
 		     NULL, 0);
   GNUNET_CRYPTO_kdf (iv, sizeof (struct GNUNET_CRYPTO_SymmetricInitializationVector),
-		     pub, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+		     pub, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 		     label, strlen (label),
 		     ctx_iv, strlen (ctx_iv),
 		     NULL, 0);
@@ -371,7 +371,7 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
  * @return NULL on error (block too large)
  */
 struct GNUNET_NAMESTORE_Block *
-GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
+GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 			       struct GNUNET_TIME_Absolute expire,
 			       const char *label,
 			       const struct GNUNET_NAMESTORE_RecordData *rd,
@@ -380,8 +380,8 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
   size_t payload_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
   char payload[sizeof (uint32_t) + payload_len];
   struct GNUNET_NAMESTORE_Block *block;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
-  struct GNUNET_CRYPTO_EccPrivateKey *dkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *dkey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   uint32_t rd_count_nbo;
@@ -400,12 +400,12 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 			       sizeof (struct GNUNET_TIME_AbsoluteNBO));
   block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
   block->expiration_time = GNUNET_TIME_absolute_hton (expire);
-  dkey = GNUNET_CRYPTO_ecc_key_derive (key,
+  dkey = GNUNET_CRYPTO_ecdsa_private_key_derive (key,
 				       label,
 				       "gns");
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (dkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (dkey,
 				    &block->derived_key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key,
+  GNUNET_CRYPTO_ecdsa_key_get_public (key,
 				    &pkey);
   derive_block_aes_key (&iv, &skey, label, &pkey);
   GNUNET_break (payload_len + sizeof (uint32_t) ==
@@ -413,7 +413,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 					   &skey, &iv,
 					   &block[1]));
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_sign (dkey,
+      GNUNET_CRYPTO_ecdsa_sign (dkey,
 			      &block->purpose,
 			      &block->signature))
   {
@@ -437,7 +437,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EccPrivateKey *key,
 int
 GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
 {
-  return GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
+  return GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
 				   &block->purpose,
 				   &block->signature,
 				   &block->derived_key);
@@ -457,7 +457,7 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
  */
 int
 GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
-				const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
+				const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
 				const char *label,
 				GNUNET_NAMESTORE_RecordCallback proc,
 				void *proc_cls)
@@ -653,9 +653,9 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       return NULL;
     return GNUNET_strdup (tmp);
   case GNUNET_NAMESTORE_TYPE_PKEY:
-    if (data_size != sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
+    if (data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
       return NULL;
-    return GNUNET_CRYPTO_ecc_public_sign_key_to_string (data);
+    return GNUNET_CRYPTO_ecdsa_public_key_to_string (data);
   case GNUNET_NAMESTORE_TYPE_PHONE:
     {
       const struct GNUNET_CONVERSATION_PhoneRecord *pr;
@@ -667,7 +667,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       pr = data;
       if (0 != ntohl (pr->version))
 	return NULL;
-      pkey = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pr->peer.public_key);
+      pkey = GNUNET_CRYPTO_eddsa_public_key_to_string (&pr->peer.public_key);
       GNUNET_asprintf (&ret,
 		       "%u-%s",
 		       ntohl (pr->line),
@@ -792,7 +792,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
 {
   struct in_addr value_a;
   struct in6_addr value_aaaa;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   struct GNUNET_TUN_GnsVpnRecord *vpn;
   struct GNUNET_TUN_DnsTlsaRecord *tlsa;
   char s_peer[103 + 1];
@@ -987,16 +987,16 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PKEY:
     if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecc_public_sign_key_from_string (s, strlen (s), &pkey))
+	GNUNET_CRYPTO_ecdsa_public_key_from_string (s, strlen (s), &pkey))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Unable to parse PKEY record `%s'\n"),
            s);
       return GNUNET_SYSERR;
     }
-    *data = GNUNET_new (struct GNUNET_CRYPTO_EccPublicSignKey);
+    *data = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
     memcpy (*data, &pkey, sizeof (pkey));
-    *data_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
+    *data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
     return GNUNET_OK;
   case GNUNET_NAMESTORE_TYPE_PHONE:
     {
@@ -1008,7 +1008,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       if ( (NULL == (dash = strchr (s, '-'))) ||
 	   (1 != sscanf (s, "%u-", &line)) ||
 	   (GNUNET_OK !=
-	    GNUNET_CRYPTO_ecc_public_sign_key_from_string (dash + 1,
+	    GNUNET_CRYPTO_eddsa_public_key_from_string (dash + 1,
 							   strlen (dash + 1),
 							   &peer.public_key)) )
       {
@@ -1044,7 +1044,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     }
     *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
     *data = vpn = GNUNET_malloc (*data_size);
-    if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string ((char*) s_peer,
+    if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string ((char*) s_peer,
 								    strlen (s_peer),
 								    &vpn->peer.public_key))
     {
@@ -1194,13 +1194,13 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 struct GNUNET_HashCode *query)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (zone, &pub);
+  GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
   GNUNET_NAMESTORE_query_from_public_key (&pub, label, query);
 }
 
@@ -1213,13 +1213,13 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EccPrivateKe
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSignKey *pub,
+GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 					const char *label,
 					struct GNUNET_HashCode *query)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pd;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pd;
 
-  GNUNET_CRYPTO_ecc_public_key_derive (pub, label, "gns", &pd);
+  GNUNET_CRYPTO_ecdsa_public_key_derive (pub, label, "gns", &pd);
   GNUNET_CRYPTO_hash (&pd, sizeof (pd), query);
 }
 
@@ -1235,12 +1235,12 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EccPublicSign
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
+GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   static char ret[128];
   char *pkeys;
 
-  pkeys = GNUNET_CRYPTO_ecc_public_sign_key_to_string (pkey);
+  pkeys = GNUNET_CRYPTO_ecdsa_public_key_to_string (pkey);
   GNUNET_snprintf (ret,
 		   sizeof (ret),
 		   "%s.zkey",
@@ -1261,7 +1261,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EccPublicSignKey *pkey
  */
 int
 GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
-			       struct GNUNET_CRYPTO_EccPublicSignKey *pkey)
+			       struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   char *cpy;
   char *dot;
@@ -1277,7 +1277,7 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
     goto error;
 
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_sign_key_from_string (x,
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (x,
 						strlen (x),
 						pkey))
     goto error;

@@ -98,7 +98,7 @@ static unsigned int rounds = 3;
 /**
  * Private key for this peer.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 
 
@@ -258,7 +258,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
 
   cfg = cfg_;
 
-  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   GNUNET_assert (NULL != my_private_key);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "REGEXPROFILER",

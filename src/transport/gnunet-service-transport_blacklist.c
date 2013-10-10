@@ -254,7 +254,7 @@ blacklist_cfg_iter (void *cls, const char *section,
   char *plugs;
   char *pos;
 
-  if (GNUNET_OK != GNUNET_CRYPTO_ecc_public_sign_key_from_string (option,
+  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (option,
 								  strlen (option),
 								  &peer.public_key))
     return;

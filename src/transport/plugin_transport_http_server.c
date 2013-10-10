@@ -1013,7 +1013,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
       return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_sign_key_from_string (target_start,
+      GNUNET_CRYPTO_eddsa_public_key_from_string (target_start,
 						     hash_length,
 						     &target->public_key))
     {

@@ -717,7 +717,7 @@ static struct GNUNET_PeerIdentity my_full_id;
 /**
  * Own private key.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
  * Tunnel ID for the next created tunnel (global tunnel number).
@@ -5758,7 +5758,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
   server_handle = server;
@@ -5897,11 +5897,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
 						  &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

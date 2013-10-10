@@ -59,8 +59,8 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*membership_store) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                        int did_join,
                        uint64_t announced_at,
                        uint64_t effective_since,
@@ -76,8 +76,8 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*membership_test) (void *cls,
-                      const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                      const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                      const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                       uint64_t message_id);
 
   /**
@@ -89,7 +89,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*fragment_store) (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                      const struct GNUNET_MULTICAST_MessageHeader *message,
                      uint32_t psycstore_flags);
 
@@ -107,7 +107,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*message_add_flags) (void *cls,
-                        const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                         uint64_t message_id,
                         uint64_t psycstore_flags);
 
@@ -120,7 +120,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*fragment_get) (void *cls,
-                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                    uint64_t fragment_id,
                    GNUNET_PSYCSTORE_FragmentCallback cb,
                    void *cb_cls);
@@ -134,7 +134,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*message_get) (void *cls,
-                  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                   uint64_t message_id,
                   uint64_t *returned_fragments,
                   GNUNET_PSYCSTORE_FragmentCallback cb,
@@ -150,7 +150,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*message_get_fragment) (void *cls,
-                           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                           const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                            uint64_t message_id,
                            uint64_t fragment_offset,
                            GNUNET_PSYCSTORE_FragmentCallback cb,
@@ -165,7 +165,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*counters_message_get) (void *cls,
-                           const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                           const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                            uint64_t *max_fragment_id,
                            uint64_t *max_message_id,
                            uint64_t *max_group_generation);
@@ -179,7 +179,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*counters_state_get) (void *cls,
-                         const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                          uint64_t *max_state_message_id);
 
 
@@ -192,7 +192,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_modify_begin) (void *cls,
-                         const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                          uint64_t message_id, uint64_t state_delta);
 
   /**
@@ -208,7 +208,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_modify_set) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                        const char *name, const void *value, size_t value_size);
 
 
@@ -221,7 +221,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_modify_end) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                        uint64_t message_id);
 
 
@@ -234,7 +234,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_sync_begin) (void *cls,
-                         const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key);
 
   /**
    * Set the value of a state variable while synchronizing state.
@@ -249,7 +249,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_sync_set) (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                      const char *name, const void *value, size_t value_size);
 
 
@@ -262,7 +262,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_sync_end) (void *cls,
-                     const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                      uint64_t message_id);
 
 
@@ -277,7 +277,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_reset) (void *cls,
-                  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
+                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key);
 
   /**
    * Update signed state values from the current ones.
@@ -286,7 +286,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_update_signed) (void *cls,
-                          const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key);
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key);
 
 
   /**
@@ -296,7 +296,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_get) (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                 const char *name,
                 GNUNET_PSYCSTORE_StateCallback cb,
                 void *cb_cls);
@@ -310,7 +310,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_get_prefix) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                        const char *name,
                        GNUNET_PSYCSTORE_StateCallback cb,
                        void *cb_cls);
@@ -323,7 +323,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    */
   int
   (*state_get_signed) (void *cls,
-                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                        GNUNET_PSYCSTORE_StateCallback cb,
                        void *cb_cls);
 

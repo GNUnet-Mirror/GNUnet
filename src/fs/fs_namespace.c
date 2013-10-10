@@ -92,7 +92,7 @@ struct GNUNET_FS_UpdateInformationGraph
   /**
    * Private key for the namespace.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ns;
 
   /**
    * Hash map mapping identifiers of update nodes
@@ -127,11 +127,11 @@ struct GNUNET_FS_UpdateInformationGraph
  */
 static char *
 get_update_information_directory (struct GNUNET_FS_Handle *h,
-				  const struct GNUNET_CRYPTO_EccPrivateKey *ns)
+				  const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns)
 {
   char *dn;
   char *ret;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_HashCode hc;
   struct GNUNET_CRYPTO_HashAsciiEncoded enc;
 
@@ -143,7 +143,7 @@ get_update_information_directory (struct GNUNET_FS_Handle *h,
 			       "fs", "UPDATE_DIR");
     return NULL;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns, &pub);
+  GNUNET_CRYPTO_ecdsa_key_get_public (ns, &pub);
   GNUNET_CRYPTO_hash (&pub, sizeof (pub), &hc);
   GNUNET_CRYPTO_hash_to_enc (&hc,
 			     &enc);
@@ -241,7 +241,7 @@ END:
  */
 static struct GNUNET_FS_UpdateInformationGraph *
 read_update_information_graph (struct GNUNET_FS_Handle *h,
-			       const struct GNUNET_CRYPTO_EccPrivateKey *ns)
+			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns)
 {
   struct GNUNET_FS_UpdateInformationGraph *uig;
   char *fn;
@@ -346,7 +346,7 @@ struct GNUNET_FS_PublishSksContext
   /**
    * Namespace we're publishing to.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ns;
 
   /**
    * Handle to the datastore.
@@ -434,7 +434,7 @@ sks_publish_cont (void *cls,
  */
 struct GNUNET_FS_PublishSksContext *
 GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
-                       const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
                        const char *identifier, const char *update,
                        const struct GNUNET_CONTAINER_MetaData *meta,
                        const struct GNUNET_FS_Uri *uri,
@@ -448,7 +448,7 @@ GNUNET_FS_publish_sks (struct GNUNET_FS_Handle *h,
   sks_uri = GNUNET_new (struct GNUNET_FS_Uri);
   sks_uri->type = GNUNET_FS_URI_SKS;
   sks_uri->data.sks.identifier = GNUNET_strdup (identifier);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns,
+  GNUNET_CRYPTO_ecdsa_key_get_public (ns,
 				    &sks_uri->data.sks.ns);
 
   psc = GNUNET_new (struct GNUNET_FS_PublishSksContext);
@@ -679,7 +679,7 @@ find_trees (void *cls,
  */
 void
 GNUNET_FS_namespace_list_updateable (struct GNUNET_FS_Handle *h,
-				     const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
                                      const char *next_id,
                                      GNUNET_FS_IdentifierProcessor ip,
                                      void *ip_cls)

@@ -701,12 +701,12 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return NULL on error (not enough keys)
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
+struct GNUNET_CRYPTO_EddsaPrivateKey *
 GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id)
 {
-  struct GNUNET_CRYPTO_EccPrivateKey *private_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
 
   if ((NULL == id) || (NULL == system->hostkeys_data))
     return NULL;
@@ -716,12 +716,12 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
          _("Key number %u does not exist\n"), key_number);
     return NULL;
   }
-  private_key = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+  private_key = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
   memcpy (private_key,
 	  system->hostkeys_data +
 	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
 	  GNUNET_TESTING_HOSTKEYFILESIZE);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (private_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (private_key,
                                                   &id->public_key);
   return private_key;
 }
@@ -1137,7 +1137,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   char *config_filename;
   char *libexec_binary;
   char *emsg_;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   uint16_t *ports;
   struct SharedService *ss;
   struct SharedServiceInstance **ss_instances;

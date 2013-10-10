@@ -121,7 +121,7 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx);
  * @return GNUNET_OK on success, GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EccPrivateKey *pk);
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
 
 
 /**

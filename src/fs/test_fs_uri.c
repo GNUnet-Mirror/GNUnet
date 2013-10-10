@@ -163,8 +163,8 @@ testNamespace (int i)
   char *uri;
   struct GNUNET_FS_Uri *ret;
   char *emsg;
-  struct GNUNET_CRYPTO_EccPrivateKey *ph;
-  struct GNUNET_CRYPTO_EccPublicSignKey id;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *ph;
+  struct GNUNET_CRYPTO_EcdsaPublicKey id;
   char buf[1024];
   char ubuf[1024];
   char *sret;
@@ -193,8 +193,8 @@ testNamespace (int i)
     GNUNET_assert (0);
   }
   GNUNET_free (emsg);
-  ph = GNUNET_CRYPTO_ecc_key_create ();
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ph, &id);
+  ph = GNUNET_CRYPTO_ecdsa_key_create ();
+  GNUNET_CRYPTO_ecdsa_key_get_public (ph, &id);
   sret = GNUNET_STRINGS_data_to_string (&id, sizeof (id),
 					ubuf, sizeof (ubuf) - 1);
   GNUNET_assert (NULL != sret);

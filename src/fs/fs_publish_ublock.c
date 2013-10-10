@@ -46,7 +46,7 @@ static void
 derive_ublock_encryption_key (struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
 			      struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
 			      const char *label,
-			      const struct GNUNET_CRYPTO_EccPublicSignKey *pub)
+			      const struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
 {
   struct GNUNET_HashCode key;
 
@@ -73,7 +73,7 @@ derive_ublock_encryption_key (struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
 void
 GNUNET_FS_ublock_decrypt_ (const void *input,
 			   size_t input_len,
-			   const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
+			   const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
 			   const char *label,
 			   void *output)
 {
@@ -158,7 +158,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 			   struct GNUNET_DATASTORE_Handle *dsh,
 			   const char *label,
 			   const char *ulabel,
-			   const struct GNUNET_CRYPTO_EccPrivateKey *ns,
+			   const struct GNUNET_CRYPTO_EcdsaPrivateKey *ns,
 			   const struct GNUNET_CONTAINER_MetaData *meta,
 			   const struct GNUNET_FS_Uri *uri,
 			   const struct GNUNET_FS_BlockOptions *bo,
@@ -169,8 +169,8 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   struct GNUNET_HashCode query;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
-  struct GNUNET_CRYPTO_EccPrivateKey *nsd;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *nsd;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   char *uris;
   size_t size;
   char *kbe;
@@ -225,7 +225,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 	      "Publishing under identifier `%s'\n",
               label);
   /* get public key of the namespace */
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns,
+  GNUNET_CRYPTO_ecdsa_key_get_public (ns,
 				    &pub);
   derive_ublock_encryption_key (&skey, &iv,
 				label, &pub);
@@ -238,15 +238,15 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
                              &ub_enc[1]);
   ub_enc->purpose.size = htonl (ulen + slen + mdsize +
 				sizeof (struct UBlock)
-				- sizeof (struct GNUNET_CRYPTO_EccSignature));
+				- sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
   ub_enc->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK);
 
   /* derive signing-key from 'label' and public key of the namespace */
-  nsd = GNUNET_CRYPTO_ecc_key_derive (ns, label, "fs-ublock");
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (nsd,
+  nsd = GNUNET_CRYPTO_ecdsa_private_key_derive (ns, label, "fs-ublock");
+  GNUNET_CRYPTO_ecdsa_key_get_public (nsd,
 				    &ub_enc->verification_key);
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CRYPTO_ecc_sign (nsd,
+		 GNUNET_CRYPTO_ecdsa_sign (nsd,
 					 &ub_enc->purpose,
 					 &ub_enc->signature));
   GNUNET_CRYPTO_hash (&ub_enc->verification_key,

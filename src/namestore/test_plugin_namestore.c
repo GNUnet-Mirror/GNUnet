@@ -81,14 +81,14 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 static void
 test_record (void *cls,
-						 const struct GNUNET_CRYPTO_EccPrivateKey *private_key,
+						 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
 						 const char *label,
 						 unsigned int rd_count,
 						 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   int *idp = cls;
   int id = *idp;
-  struct GNUNET_CRYPTO_EccPrivateKey tzone_private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey tzone_private_key;
   char tname[64];
   unsigned int trd_count = 1 + (id % 1024);
   unsigned int i;
@@ -104,7 +104,7 @@ test_record (void *cls,
   }
   memset (&tzone_private_key, (id % 241), sizeof (tzone_private_key));
   GNUNET_assert (0 == strcmp (label, tname));
-  GNUNET_assert (0 == memcmp (&tzone_private_key, private_key, sizeof (struct GNUNET_CRYPTO_EccPrivateKey)));
+  GNUNET_assert (0 == memcmp (&tzone_private_key, private_key, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)));
 }
 
 
@@ -119,11 +119,11 @@ get_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 static void
 put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
 {
-  struct GNUNET_CRYPTO_EccPrivateKey zone_private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone_private_key;
   char label[64];
   unsigned int rd_count = 1 + (id % 1024);
   struct GNUNET_NAMESTORE_RecordData rd[rd_count];
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
   unsigned int i;
 
   GNUNET_snprintf (label, sizeof (label),

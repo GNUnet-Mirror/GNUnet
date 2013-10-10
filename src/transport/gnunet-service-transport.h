@@ -55,7 +55,7 @@ extern struct GNUNET_PEERINFO_Handle *GST_peerinfo;
 /**
  * Our private key.
  */
-extern struct GNUNET_CRYPTO_EccPrivateKey *GST_my_private_key;
+extern struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
 
 /**
  * ATS handle.

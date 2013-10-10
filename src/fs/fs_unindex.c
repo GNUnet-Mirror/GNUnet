@@ -490,10 +490,10 @@ process_kblock_for_unindex (void *cls,
   }
   {
     char pt[size - sizeof (struct UBlock)];
-    struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
+    struct GNUNET_CRYPTO_EcdsaPublicKey anon_pub;
     const char *keyword;
 
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (GNUNET_CRYPTO_ecc_key_get_anonymous (),
+    GNUNET_CRYPTO_ecdsa_key_get_public (GNUNET_CRYPTO_ecdsa_key_get_anonymous (),
 						    &anon_pub);
     keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
     GNUNET_FS_ublock_decrypt_ (&ub[1], size - sizeof (struct UBlock),
@@ -550,9 +550,9 @@ void
 GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
 {
   const char *keyword;
-  const struct GNUNET_CRYPTO_EccPrivateKey *anon;
-  struct GNUNET_CRYPTO_EccPublicSignKey anon_pub;
-  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *anon;
+  struct GNUNET_CRYPTO_EcdsaPublicKey anon_pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey dpub;
 
   if (NULL == uc->dsh)
     uc->dsh = GNUNET_DATASTORE_connect (uc->h->cfg);
@@ -570,10 +570,10 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
     unindex_finish (uc);
     return;
   }
-  anon = GNUNET_CRYPTO_ecc_key_get_anonymous ();
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (anon, &anon_pub);
+  anon = GNUNET_CRYPTO_ecdsa_key_get_anonymous ();
+  GNUNET_CRYPTO_ecdsa_key_get_public (anon, &anon_pub);
   keyword = &uc->ksk_uri->data.ksk.keywords[uc->ksk_offset][1];
-  GNUNET_CRYPTO_ecc_public_key_derive (&anon_pub,
+  GNUNET_CRYPTO_ecdsa_public_key_derive (&anon_pub,
 				       keyword,
 				       "fs-ublock",
 				       &dpub);

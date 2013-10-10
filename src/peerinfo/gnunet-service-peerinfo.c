@@ -575,7 +575,7 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
       remove_garbage (fullname);
     return GNUNET_OK;
   }
-  if (GNUNET_OK == GNUNET_CRYPTO_ecc_public_sign_key_from_string (filename,
+  if (GNUNET_OK == GNUNET_CRYPTO_eddsa_public_key_from_string (filename,
                                                                   strlen (filename),
                                                                   &identity.public_key))
   {
@@ -654,7 +654,7 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
 {
   struct GNUNET_HELLO_Message * res;
   struct GNUNET_HELLO_Message * tmp;
-  struct GNUNET_CRYPTO_EccPublicSignKey pk;
+  struct GNUNET_CRYPTO_EddsaPublicKey pk;
 
   if (NULL != friend_hello)
   {

@@ -91,7 +91,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   char *keyfile;
 
   GSC_cfg = c;
@@ -111,7 +111,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
   if ((GNUNET_OK != GSC_KX_init (pk)) ||

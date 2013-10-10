@@ -182,7 +182,7 @@ struct REGEX_INTERNAL_Search;
  */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
-			 const struct GNUNET_CRYPTO_EccPrivateKey *priv,
+			 const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 			 const char *regex,
 			 uint16_t compression,
 			 struct GNUNET_STATISTICS_Handle *stats);

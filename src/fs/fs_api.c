@@ -1477,7 +1477,7 @@ deserialize_publish_file (void *cls, const char *filename)
   int32_t all_done;
   int32_t have_ns;
   char *fi_root;
-  struct GNUNET_CRYPTO_EccPrivateKey ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ns;
   char *fi_pos;
   char *emsg;
 
@@ -1522,7 +1522,7 @@ deserialize_publish_file (void *cls, const char *filename)
   }
   if (GNUNET_YES == have_ns)
   {
-    pc->ns = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+    pc->ns = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
     *pc->ns = ns;
   }
   if ((0 == (pc->options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY)) &&
@@ -1637,7 +1637,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc)
       ( (NULL != pc->ns) &&
 	(GNUNET_OK != GNUNET_BIO_write (wh,
 					pc->ns,
-					sizeof (struct GNUNET_CRYPTO_EccPrivateKey)) ) ))
+					sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)) ) ))
   {
     GNUNET_break (0);
     goto cleanup;

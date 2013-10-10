@@ -148,7 +148,7 @@ struct TransportPongMessage
   /**
    * Signature.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
    * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
@@ -189,7 +189,7 @@ struct ValidationEntry
   /**
    * Public key of the peer.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
   /**
    * The identity of the peer. FIXME: duplicated (also in 'address')
@@ -199,7 +199,7 @@ struct ValidationEntry
   /**
    * Cached PONG signature
    */
-  struct GNUNET_CRYPTO_EccSignature pong_sig_cache;
+  struct GNUNET_CRYPTO_EddsaSignature pong_sig_cache;
 
   /**
    * ID of task that will clean up this entry if nothing happens.
@@ -678,7 +678,7 @@ revalidate_address (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         if we don't have an existing entry and no public key was given
  */
 static struct ValidationEntry *
-find_validation_entry (const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
+find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
 		       const struct GNUNET_HELLO_Address *address)
 {
   struct ValidationEntryMatchContext vemc;
@@ -701,7 +701,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
   ve->public_key = *public_key;
   ve->pid = address->peer;
   ve->pong_sig_valid_until = GNUNET_TIME_absolute_get_zero_();
-  memset (&ve->pong_sig_cache, '\0', sizeof (struct GNUNET_CRYPTO_EccSignature));
+  memset (&ve->pong_sig_cache, '\0', sizeof (struct GNUNET_CRYPTO_EddsaSignature));
   ve->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   ve->challenge =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -733,7 +733,7 @@ add_valid_address (void *cls, const struct GNUNET_HELLO_Address *address,
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_ATS_Information ats;
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
@@ -855,7 +855,7 @@ GST_validation_stop ()
  */
 static void
 multicast_pong (void *cls,
-                const struct GNUNET_CRYPTO_EccPublicSignKey *public_key,
+                const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
 		struct GNUNET_TIME_Absolute valid_until,
                 struct GNUNET_TIME_Absolute validation_block,
                 const struct GNUNET_HELLO_Address *address)
@@ -901,7 +901,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_CRYPTO_EccSignature *sig_cache;
+  struct GNUNET_CRYPTO_EddsaSignature *sig_cache;
   struct GNUNET_TIME_Absolute *sig_cache_exp;
   const char *addr;
   const char *addrend;
@@ -1022,7 +1022,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   {
     addrend = NULL;             /* make gcc happy */
     slen = 0;
-    static struct GNUNET_CRYPTO_EccSignature no_address_signature;
+    static struct GNUNET_CRYPTO_EddsaSignature no_address_signature;
     static struct GNUNET_TIME_Absolute no_address_signature_expiration;
 
     sig_cache = &no_address_signature;
@@ -1063,7 +1063,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     *sig_cache_exp = GNUNET_TIME_relative_to_absolute (PONG_SIGNATURE_LIFETIME);
     pong->expiration = GNUNET_TIME_absolute_hton (*sig_cache_exp);
     if (GNUNET_OK !=
-		   GNUNET_CRYPTO_ecc_sign (GST_my_private_key, &pong->purpose,
+		   GNUNET_CRYPTO_eddsa_sign (GST_my_private_key, &pong->purpose,
 					   sig_cache))
     {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1141,7 +1141,7 @@ struct ValidateAddressContext
   /**
    * Public key of the peer whose address is being validated.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey public_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 };
 
 
@@ -1274,7 +1274,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   {
   		/* We have a cached and valid signature for this peer,
   		 * try to compare instead of verify */
-  		if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EccSignature)))
+  		if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EddsaSignature)))
   		{
   			/* signatures are identical, we can skip verification */
   			sig_res = GNUNET_OK;
@@ -1290,7 +1290,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   if (GNUNET_YES == do_verify)
   {
 			/* Do expensive verification */
-  		sig_res = GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+  		sig_res = GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
                                 &pong->purpose, &pong->signature,
                                 &ve->public_key);
   		if (sig_res == GNUNET_SYSERR)

@@ -144,7 +144,7 @@ struct OperationRequest
    */
   uint32_t op_id GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
 };
 
@@ -167,12 +167,12 @@ struct MembershipStoreRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   /**
    * Slave's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 
   uint64_t announced_at GNUNET_PACKED;
   uint64_t effective_since GNUNET_PACKED;
@@ -199,12 +199,12 @@ struct MembershipTestRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   /**
    * Slave's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 
   uint64_t message_id GNUNET_PACKED;
 
@@ -230,7 +230,7 @@ struct FragmentStoreRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint32_t psycstore_flags GNUNET_PACKED;
 };
@@ -254,7 +254,7 @@ struct FragmentGetRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint64_t fragment_id GNUNET_PACKED;
 };
@@ -278,7 +278,7 @@ struct MessageGetRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint64_t message_id GNUNET_PACKED;
 };
@@ -302,7 +302,7 @@ struct MessageGetFragmentRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint64_t message_id GNUNET_PACKED;
 
@@ -328,7 +328,7 @@ struct StateHashUpdateRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   struct GNUNET_HashCode hash;
 };
@@ -357,7 +357,7 @@ struct StateModifyRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint64_t message_id GNUNET_PACKED;
 
@@ -400,7 +400,7 @@ struct StateSyncRequest
   /**
    * Channel's public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   uint64_t message_id GNUNET_PACKED;
 

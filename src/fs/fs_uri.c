@@ -118,7 +118,7 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
   case GNUNET_FS_URI_LOC:
     GNUNET_CRYPTO_hash (&uri->data.loc.fi,
                         sizeof (struct FileIdentifier) +
-                        sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
                         key);
     break;
   default:
@@ -357,7 +357,7 @@ static struct GNUNET_FS_Uri *
 uri_sks_parse (const char *s, char **emsg)
 {
   struct GNUNET_FS_Uri *ret;
-  struct GNUNET_CRYPTO_EccPublicSignKey ns;
+  struct GNUNET_CRYPTO_EcdsaPublicKey ns;
   size_t pos;
   char *end;
 
@@ -559,7 +559,7 @@ uri_loc_parse (const char *s, char **emsg)
   unsigned long long exptime;
   unsigned long long flen;
   struct GNUNET_TIME_Absolute et;
-  struct GNUNET_CRYPTO_EccSignature sig;
+  struct GNUNET_CRYPTO_EddsaSignature sig;
   struct LocUriAssembly ass;
   int ret;
   size_t slen;
@@ -604,7 +604,7 @@ uri_loc_parse (const char *s, char **emsg)
   npos++;
   ret =
       enc2bin (&s[npos], &ass.peer,
-               sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+               sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   if (ret == -1)
   {
     *emsg =
@@ -617,7 +617,7 @@ uri_loc_parse (const char *s, char **emsg)
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not find signature)"));
     goto ERR;
   }
-  ret = enc2bin (&s[npos], &sig, sizeof (struct GNUNET_CRYPTO_EccSignature));
+  ret = enc2bin (&s[npos], &sig, sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
   if (ret == -1)
   {
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode signature)"));
@@ -641,8 +641,8 @@ uri_loc_parse (const char *s, char **emsg)
   et.abs_value_us = exptime * 1000LL * 1000LL;
   ass.exptime = GNUNET_TIME_absolute_hton (et);
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
-                                &ass.purpose, &sig, &ass.peer.public_key))
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT,
+                                  &ass.purpose, &sig, &ass.peer.public_key))
   {
     *emsg =
         GNUNET_strdup (_("SKS URI malformed (signature failed validation)"));
@@ -894,8 +894,8 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
                           struct GNUNET_TIME_Absolute expiration_time)
 {
   struct GNUNET_FS_Uri *uri;
-  struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
-  struct GNUNET_CRYPTO_EccPublicSignKey my_public_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey my_public_key;
   char *keyfile;
   struct LocUriAssembly ass;
   struct GNUNET_TIME_Absolute et;
@@ -910,7 +910,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
                 _("Lacking key configuration settings.\n"));
     return NULL;
   }
-  if (NULL == (my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile)))
+  if (NULL == (my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not access hostkey file `%s'.\n"), keyfile);
@@ -920,7 +920,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   GNUNET_free (keyfile);
   /* we round expiration time to full seconds for SKS URIs */
   et.abs_value_us = (expiration_time.abs_value_us / 1000000LL) * 1000000LL;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_public_key);
   ass.purpose.size = htonl (sizeof (struct LocUriAssembly));
   ass.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   ass.exptime = GNUNET_TIME_absolute_hton (et);
@@ -932,8 +932,8 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   uri->data.loc.expirationTime = et;
   uri->data.loc.peer.public_key = my_public_key;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_ecc_sign (my_private_key, &ass.purpose,
-                                         &uri->data.loc.contentSignature));
+                 GNUNET_CRYPTO_eddsa_sign (my_private_key, &ass.purpose,
+                                           &uri->data.loc.contentSignature));
   GNUNET_free (my_private_key);
   return uri;
 }
@@ -947,7 +947,7 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
  * @return an FS URI for the given namespace and identifier
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EccPublicSignKey *ns,
+GNUNET_FS_uri_sks_create (const struct GNUNET_CRYPTO_EcdsaPublicKey *ns,
 			  const char *id)
 {
   struct GNUNET_FS_Uri *ns_uri;
@@ -1258,7 +1258,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
   case GNUNET_FS_URI_SKS:
     if ((0 ==
          memcmp (&u1->data.sks.ns, &u2->data.sks.ns,
-                 sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))) &&
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) &&
         (0 == strcmp (u1->data.sks.identifier, u2->data.sks.identifier)))
 
       return GNUNET_YES;
@@ -1285,7 +1285,7 @@ GNUNET_FS_uri_test_equal (const struct GNUNET_FS_Uri *u1,
     if (memcmp
         (&u1->data.loc, &u2->data.loc,
          sizeof (struct FileIdentifier) +
-         sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) +
+         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
          sizeof (struct GNUNET_TIME_Absolute) + sizeof (unsigned short) +
          sizeof (unsigned short)) != 0)
       return GNUNET_NO;
@@ -1319,7 +1319,7 @@ GNUNET_FS_uri_test_sks (const struct GNUNET_FS_Uri *uri)
  */
 int
 GNUNET_FS_uri_sks_get_namespace (const struct GNUNET_FS_Uri *uri,
-                                 struct GNUNET_CRYPTO_EccPublicSignKey *pseudonym)
+                                 struct GNUNET_CRYPTO_EcdsaPublicKey *pseudonym)
 {
   if (!GNUNET_FS_uri_test_sks (uri))
   {
@@ -1927,7 +1927,7 @@ uri_sks_to_string (const struct GNUNET_FS_Uri *uri)
   if (GNUNET_FS_URI_SKS != uri->type)
     return NULL;
   ret = GNUNET_STRINGS_data_to_string (&uri->data.sks.ns,
-				       sizeof (struct GNUNET_CRYPTO_EccPublicSignKey),
+				       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 				       buf,
 				       sizeof (buf));
   GNUNET_assert (NULL != ret);
@@ -2032,10 +2032,10 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.query, &queryhash);
   peerId =
       bin2enc (&uri->data.loc.peer,
-               sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+               sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   peerSig =
       bin2enc (&uri->data.loc.contentSignature,
-               sizeof (struct GNUNET_CRYPTO_EccSignature));
+               sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
   GNUNET_asprintf (&ret,
 		   "%s%s%s.%s.%llu.%s.%s.%llu", GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX, (const char *) &keyhash,

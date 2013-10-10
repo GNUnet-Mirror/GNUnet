@@ -29,7 +29,7 @@
 #include "gnunet_fs_service.h"
 
 
-static struct GNUNET_CRYPTO_EccPublicSignKey nsid;
+static struct GNUNET_CRYPTO_EcdsaPublicKey nsid;
 
 static struct GNUNET_FS_Uri *sks_expect_uri;
 
@@ -237,7 +237,7 @@ static void
 adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 {
   struct GNUNET_CONTAINER_MetaData *meta;
-  struct GNUNET_CRYPTO_EccPrivateKey *ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *ns;
   struct GNUNET_FS_BlockOptions bo;
 
   if (NULL != emsg)
@@ -247,7 +247,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
     GNUNET_FS_stop (fs);
     return;
   }
-  ns = GNUNET_CRYPTO_ecc_key_create ();
+  ns = GNUNET_CRYPTO_ecdsa_key_create ();
   meta = GNUNET_CONTAINER_meta_data_create ();
   sks_expect_uri = GNUNET_FS_uri_dup (uri);
   bo.content_priority = 1;
@@ -255,7 +255,7 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
   bo.replication_level = 0;
   bo.expiration_time =
       GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (ns, &nsid);
+  GNUNET_CRYPTO_ecdsa_key_get_public (ns, &nsid);
   GNUNET_FS_publish_sks (fs, ns, "this", "next", meta, uri,
                          &bo, GNUNET_FS_PUBLISH_OPTION_NONE, &sks_cont, NULL);
   GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -266,13 +266,13 @@ adv_cont (void *cls, const struct GNUNET_FS_Uri *uri, const char *emsg)
 static void
 testNamespace ()
 {
-  struct GNUNET_CRYPTO_EccPrivateKey *ns;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *ns;
   struct GNUNET_FS_BlockOptions bo;
   struct GNUNET_CONTAINER_MetaData *meta;
   struct GNUNET_FS_Uri *ksk_uri;
   struct GNUNET_FS_Uri *sks_uri;
 
-  ns = GNUNET_CRYPTO_ecc_key_create ();
+  ns = GNUNET_CRYPTO_ecdsa_key_create ();
   meta = GNUNET_CONTAINER_meta_data_create ();
   ksk_uri = GNUNET_FS_uri_parse ("gnunet://fs/ksk/testnsa", NULL);
   bo.content_priority = 1;

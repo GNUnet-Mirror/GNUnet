@@ -63,7 +63,7 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * Zone that is to be used for lookup
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey zone;
+  struct GNUNET_CRYPTO_EcdsaPublicKey zone;
 
   /**
    * Only check cached results
@@ -83,7 +83,7 @@ struct GNUNET_GNS_ClientLookupMessage
   /**
    * The key for shorten, if @e have_key is set
    */
-  struct GNUNET_CRYPTO_EccPrivateKey shorten_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey shorten_key;
 
   /* Followed by the name to look up */
 };

@@ -196,7 +196,7 @@ static struct GNUNET_NAMESTORE_Handle *ns;
 /**
  * Private key for the fcfsd zone.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey fcfs_zone_pkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey fcfs_zone_pkey;
 
 /**
  * Connection to identity service.
@@ -242,7 +242,7 @@ run_httpd_now ()
 
 static void
 iterate_cb (void *cls,
-	    const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+	    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 	    const char *name,
 	    unsigned int rd_len,
 	    const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -504,14 +504,14 @@ put_continuation (void *cls,
  */
 static void
 zone_to_name_cb (void *cls,
-		 const struct GNUNET_CRYPTO_EccPrivateKey *zone_key,
+		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		 const char *name,
 		 unsigned int rd_count,
 		 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
   struct GNUNET_NAMESTORE_RecordData r;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   request->qe = NULL;
   if (NULL != name)
@@ -523,7 +523,7 @@ zone_to_name_cb (void *cls,
     run_httpd_now ();
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (zone_key,
+  GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
 						  &pub);
   r.data = &pub;
   r.data_size = sizeof (pub);
@@ -554,7 +554,7 @@ lookup_result_processor (void *cls,
 			 const struct GNUNET_NAMESTORE_RecordData *rd)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   if (0 != rd_count)
   {
@@ -567,7 +567,7 @@ lookup_result_processor (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_public_sign_key_from_string (request->public_key,
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
 						strlen (request->public_key),
 						&pub))
   {
@@ -596,7 +596,7 @@ lookup_block_processor (void *cls,
 			const struct GNUNET_NAMESTORE_Block *block)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   request->qe = NULL;
   if (NULL == block)
@@ -604,7 +604,7 @@ lookup_block_processor (void *cls,
     lookup_result_processor (request, 0, NULL);
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&fcfs_zone_pkey,
+  GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
 				    &pub);
   if (GNUNET_OK !=
       GNUNET_NAMESTORE_block_decrypt (block,
@@ -657,7 +657,7 @@ create_response (void *cls,
   struct MHD_Response *response;
   struct Request *request;
   int ret;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
   struct GNUNET_HashCode query;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
@@ -707,7 +707,7 @@ create_response (void *cls,
 	request->pp = NULL;
       }
       if (GNUNET_OK !=
-	  GNUNET_CRYPTO_ecc_public_sign_key_from_string (request->public_key,
+	  GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
 						    strlen (request->public_key),
 						    &pub))
       {
@@ -735,7 +735,7 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&fcfs_zone_pkey,
+	  GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
 					    &pub);
 	  GNUNET_NAMESTORE_query_from_public_key (&pub,
 						  request->domain_name,
@@ -1030,7 +1030,7 @@ main (int argc, char *const *argv)
 			   options,
                            &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
-  GNUNET_CRYPTO_ecc_key_clear (&fcfs_zone_pkey);
+  GNUNET_CRYPTO_ecdsa_key_clear (&fcfs_zone_pkey);
   return ret;
 }
 

@@ -48,7 +48,7 @@ extern "C"
 /**
  * Size of each hostkey in the hostkey file (in BYTES).
  */
-#define GNUNET_TESTING_HOSTKEYFILESIZE sizeof (struct GNUNET_CRYPTO_EccPrivateKey)
+#define GNUNET_TESTING_HOSTKEYFILESIZE sizeof (struct GNUNET_CRYPTO_EddsaPrivateKey)
 
 /**
  * The environmental variable, if set, that dictates where testing should place
@@ -185,7 +185,7 @@ GNUNET_TESTING_system_destroy (struct GNUNET_TESTING_System *system,
  *        key; if NULL, GNUNET_SYSERR is returned immediately
  * @return NULL on error (not enough keys)
  */
-struct GNUNET_CRYPTO_EccPrivateKey *
+struct GNUNET_CRYPTO_EddsaPrivateKey *
 GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 			    uint32_t key_number,
 			    struct GNUNET_PeerIdentity *id);

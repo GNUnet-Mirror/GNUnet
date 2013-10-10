@@ -58,7 +58,7 @@ struct Ego
   /**
    * Private key of the ego.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
 
   /**
    * String identifier for the ego.
@@ -370,10 +370,10 @@ handle_get_default_message (void *cls, struct GNUNET_SERVER_Client *client,
  * @return 0 if the keys are equal
  */
 static int
-key_cmp (const struct GNUNET_CRYPTO_EccPrivateKey *pk1,
-	 const struct GNUNET_CRYPTO_EccPrivateKey *pk2)
+key_cmp (const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk1,
+	 const struct GNUNET_CRYPTO_EcdsaPrivateKey *pk2)
 {
-  return memcmp (pk1, pk2, sizeof (struct GNUNET_CRYPTO_EccPrivateKey));
+  return memcmp (pk1, pk2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
 }
 
 
@@ -517,7 +517,7 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
   ego = GNUNET_new (struct Ego);
-  ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EccPrivateKey);
+  ego->pk = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPrivateKey);
   *ego->pk = crm->private_key;
   ego->identifier = GNUNET_strdup (str);
   GNUNET_CONTAINER_DLL_insert (ego_head,
@@ -526,10 +526,10 @@ handle_create_message (void *cls, struct GNUNET_SERVER_Client *client,
   send_result_code (client, 0, NULL);
   fn = get_ego_filename (ego);
   (void) GNUNET_DISK_directory_create_for_file (fn);
-  if (sizeof (struct GNUNET_CRYPTO_EccPrivateKey) !=
+  if (sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey) !=
       GNUNET_DISK_fn_write (fn,
 			    &crm->private_key,
-			    sizeof (struct GNUNET_CRYPTO_EccPrivateKey),
+			    sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
 			    GNUNET_DISK_PERM_USER_READ |
 			    GNUNET_DISK_PERM_USER_WRITE))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
@@ -819,7 +819,7 @@ process_ego_file (void *cls,
     return GNUNET_OK;
   }
   ego = GNUNET_new (struct Ego);
-  ego->pk = GNUNET_CRYPTO_ecc_key_create_from_file (filename);
+  ego->pk = GNUNET_CRYPTO_ecdsa_key_create_from_file (filename);
   if (NULL == ego->pk)
     {
       GNUNET_free (ego);

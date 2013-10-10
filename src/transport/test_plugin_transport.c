@@ -49,7 +49,7 @@ static struct GNUNET_PeerIdentity my_identity;
 /**
  * Our private key.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
  * Our configuration.
@@ -617,7 +617,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
 
   max_connect_per_transport = (uint32_t) tneigh;
-  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_file (keyfile);
+  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   if (NULL == my_private_key)
   {
@@ -626,7 +626,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     end_badly_now ();
     return;
   }
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (my_private_key, &my_identity.public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_identity.public_key);
 
   hello = GNUNET_HELLO_create (&my_identity.public_key, NULL, NULL, GNUNET_NO);
 

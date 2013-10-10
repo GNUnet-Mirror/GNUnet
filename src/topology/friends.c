@@ -92,7 +92,7 @@ GNUNET_FRIENDS_parse (const struct GNUNET_CONFIGURATION_Handle *cfg,
     while ((pos < fsize) && (! isspace ((int) data[pos])))
       pos++;
     if (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_public_sign_key_from_string (&data[start],
+        GNUNET_CRYPTO_eddsa_public_key_from_string (&data[start],
 						       pos - start,
 						       &pid.public_key))
     {
@@ -196,7 +196,7 @@ GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
   char *ret;
   size_t slen;
 
-  ret = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&friend->public_key);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&friend->public_key);
   GNUNET_asprintf (&buf,
                    "%s\n",
                    ret);

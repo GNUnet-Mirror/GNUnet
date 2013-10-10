@@ -102,7 +102,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 /**
  * Private key for this peer.
  */
-static struct GNUNET_CRYPTO_EccPrivateKey *my_private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 
 /**
@@ -362,7 +362,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
 
-  my_private_key = GNUNET_CRYPTO_ecc_key_create_from_configuration (cfg);
+  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
   if (NULL == my_private_key)
   {
     GNUNET_SCHEDULER_shutdown ();

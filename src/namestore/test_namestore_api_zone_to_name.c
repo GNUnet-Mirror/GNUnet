@@ -41,9 +41,9 @@ static struct GNUNET_NAMESTORE_Handle * nsh;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
-static struct GNUNET_CRYPTO_EccPrivateKey * privkey;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
-static struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
 static struct GNUNET_TIME_Absolute expire;
 
@@ -53,7 +53,7 @@ static struct GNUNET_CRYPTO_ShortHashCode s_zone_value;
 
 static char * s_name;
 
-static struct GNUNET_CRYPTO_EccSignature *s_signature;
+static struct GNUNET_CRYPTO_EcdsaSignature *s_signature;
 
 static int res;
 
@@ -96,12 +96,12 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_to_name_proc (void *cls,
-		   const struct GNUNET_CRYPTO_EccPublicSignKey *zone_key,
+		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
 		   struct GNUNET_TIME_Absolute expire,
 		   const char *n,
 		   unsigned int rd_count,
 		   const struct GNUNET_NAMESTORE_RecordData *rd,
-		   const struct GNUNET_CRYPTO_EccSignature *signature)
+		   const struct GNUNET_CRYPTO_EcdsaSignature *signature)
 {
   int fail = GNUNET_NO;
 
@@ -123,7 +123,7 @@ zone_to_name_proc (void *cls,
       fail = GNUNET_YES;
       GNUNET_break (0);
     }
-    if ((zone_key == NULL) || (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))))
+    if ((zone_key == NULL) || (0 != memcmp (zone_key, &pubkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))))
     {
       fail = GNUNET_YES;
       GNUNET_break (0);
@@ -173,14 +173,14 @@ run (void *cls,
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
-  privkey = GNUNET_CRYPTO_ecc_key_create_from_file(hostkey_file);
+  privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
   /* get public key */
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature(privkey, &pubkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public(privkey, &pubkey);
 
   /* zone hash */
-  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EccPublicSignKey), &s_zone);
+  GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey), &s_zone);
   GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_NAMESTORE_short_h2s (&s_zone_value));
 

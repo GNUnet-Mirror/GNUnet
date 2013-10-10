@@ -20,7 +20,7 @@
 
 /**
  * @file util/gnunet-ecc.c
- * @brief tool to manipulate ECC key files
+ * @brief tool to manipulate EDDSA key files
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -52,7 +52,7 @@ static void
 create_keys (const char *fn)
 {
   FILE *f;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   if (NULL == (f = fopen (fn, "w+")))
   {
@@ -69,7 +69,7 @@ create_keys (const char *fn)
   {
     fprintf (stderr,
 	     ".");
-    if (NULL == (pk = GNUNET_CRYPTO_ecc_key_create ()))
+    if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create ()))
     {
        GNUNET_break (0);
        break;
@@ -109,12 +109,14 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPublicKey pub;
 
   if (NULL == args[0])
   {
-    fprintf (stderr, _("No hostkey file specified on command line\n"));
+    FPRINTF (stderr,
+             "%s",
+             _("No hostkey file specified on command line\n"));
     return;
   }
   if (make_keys > 0)
@@ -122,25 +124,27 @@ run (void *cls, char *const *args, const char *cfgfile,
     create_keys (args[0]);
     return;
   }
-  pk = GNUNET_CRYPTO_ecc_key_create_from_file (args[0]);
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (args[0]);
   if (NULL == pk)
     return;
   if (print_public_key)
   {
     char *s;
 
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
-    s = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pub);
-    fprintf (stdout, "%s\n", s);
+    GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
+    s = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+    FPRINTF (stdout,
+             "%s\n",
+             s);
     GNUNET_free (s);
   }
   if (print_peer_identity)
   {
     char *str;
 
-    GNUNET_CRYPTO_ecc_key_get_public_for_signature (pk, &pub);
-    str = GNUNET_CRYPTO_ecc_public_sign_key_to_string (&pub);
-    fprintf (stdout,
+    GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
+    str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+    FPRINTF (stdout,
              "%s\n",
              str);
     GNUNET_free (str);

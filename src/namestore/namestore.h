@@ -88,12 +88,12 @@ struct LookupBlockResponseMessage
   /**
    * Signature.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Derived public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey derived_key;
 
   /* follwed by encrypted block data */
 };
@@ -117,12 +117,12 @@ struct BlockCacheMessage
   /**
    * Signature.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Derived public key.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey derived_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey derived_key;
 
   /* follwed by encrypted block data */
 };
@@ -183,7 +183,7 @@ struct RecordStoreMessage
   /**
    * The private key of the authority.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by:
    * name with length name_len
@@ -223,12 +223,12 @@ struct ZoneToNameMessage
   /**
    * The private key of the zone to look up in
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
    * The public key of the target zone
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey value_zone;
+  struct GNUNET_CRYPTO_EcdsaPublicKey value_zone;
 };
 
 
@@ -266,7 +266,7 @@ struct ZoneToNameResponseMessage
   /**
    * The private key of the zone that contained the name.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /* followed by:
    * name with length name_len
@@ -309,7 +309,7 @@ struct RecordResultMessage
   /**
    * The private key of the authority.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey private_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
   /* followed by:
    * name with length name_len
@@ -331,7 +331,7 @@ struct ZoneMonitorStartMessage
   /**
    * Zone key.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
 };
 
@@ -349,7 +349,7 @@ struct ZoneIterationStartMessage
   /**
    * Zone key.  All zeros for "all zones".
    */
-  struct GNUNET_CRYPTO_EccPrivateKey zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
 };
 

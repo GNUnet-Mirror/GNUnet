@@ -655,8 +655,8 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
-                                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                   const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+                                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                   const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                    int did_join,
                                    uint64_t announced_at,
                                    uint64_t effective_since,
@@ -721,8 +721,8 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
-                                  const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
-                                  const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+                                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                   uint64_t message_id,
                                   uint64_t group_generation,
                                   GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -769,7 +769,7 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
-                                 const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                                 const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                  const struct GNUNET_MULTICAST_MessageHeader *message,
                                  uint32_t psycstore_flags,
                                  GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -815,7 +815,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
-                               const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                uint64_t fragment_id,
                                GNUNET_PSYCSTORE_FragmentCallback fcb,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -860,7 +860,7 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
-                              const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                               uint64_t message_id,
                               GNUNET_PSYCSTORE_FragmentCallback fcb,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -907,7 +907,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
-                                       const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                        uint64_t message_id,
                                        uint64_t fragment_offset,
                                        GNUNET_PSYCSTORE_FragmentCallback fcb,
@@ -955,7 +955,7 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
-                               struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                               struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                GNUNET_PSYCSTORE_CountersCallback ccb,
                                void *mccb_cls)
 {
@@ -1001,7 +1001,7 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
-                               const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                uint64_t message_id,
                                uint64_t state_delta,
                                size_t modifier_count,
@@ -1070,7 +1070,7 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
-                             const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                             const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                              uint64_t message_id,
                              size_t modifier_count,
                              const struct GNUNET_ENV_Modifier *modifiers,
@@ -1132,7 +1132,7 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
-                              const struct GNUNET_CRYPTO_EccPublicSignKey
+                              const struct GNUNET_CRYPTO_EddsaPublicKey
                               *channel_key,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
                               void *rcb_cls)
@@ -1174,7 +1174,7 @@ GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
-                                    const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                     uint64_t message_id,
                                     const struct GNUNET_HashCode *hash,
                                     GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -1218,7 +1218,7 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
-                            const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                            const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                             const char *name,
                             GNUNET_PSYCSTORE_StateCallback scb,
                             GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -1265,7 +1265,7 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_get_prefix (struct GNUNET_PSYCSTORE_Handle *h,
-                                   const struct GNUNET_CRYPTO_EccPublicSignKey *channel_key,
+                                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                    const char *name_prefix,
                                    GNUNET_PSYCSTORE_StateCallback scb,
                                    GNUNET_PSYCSTORE_ResultCallback rcb,
