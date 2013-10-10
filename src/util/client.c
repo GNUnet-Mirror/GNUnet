@@ -379,7 +379,10 @@ do_connect (const char *service_name,
     /* if port is 0, try UNIX */
     connection = try_unixpath (service_name, cfg);
     if (NULL != connection)
+    {
+      GNUNET_free_non_null (hostname);
       return connection;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Port is 0 for service `%s', UNIXPATH did not work, returning NULL!\n",
          service_name);
@@ -832,8 +835,8 @@ GNUNET_CLIENT_service_test (const char *service,
     char *unixpath;
 
     unixpath = NULL;
-    if ((GNUNET_OK == 
-	 GNUNET_CONFIGURATION_get_value_filename (cfg, service, "UNIXPATH", &unixpath)) && 
+    if ((GNUNET_OK ==
+	 GNUNET_CONFIGURATION_get_value_filename (cfg, service, "UNIXPATH", &unixpath)) &&
 	(0 < strlen (unixpath)))  /* We have a non-NULL unixpath, does that mean it's valid? */
     {
       if (strlen (unixpath) >= sizeof (s_un.sun_path))
