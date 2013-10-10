@@ -24,8 +24,8 @@
  * @author Bartlomiej Polot
  */
 
-#ifndef MESH_PATH_H
-#define MESH_PATH_H
+#ifndef MESH_PATH_H_
+#define MESH_PATH_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -34,8 +34,6 @@ extern "C"
 }
 #endif
 #endif
-
-#include "mesh.h"
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
