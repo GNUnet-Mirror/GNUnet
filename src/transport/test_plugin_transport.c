@@ -580,6 +580,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Could not create statistics.  Exiting.\n");
+    GNUNET_free (keyfile);
     end_badly_now ();
     return;
   }
