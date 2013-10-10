@@ -401,6 +401,27 @@ message_sent (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
     GMC_destroy (c);
   }
+  /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_FWD:
+    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      fc->last_pid_sent++;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!   accounting pid %u\n", fc->last_pid_sent);
+//       send_ack (c, ch, fwd);
+      break;
+    default:
+      break;
+  }
+//   if (NULL != c->t)
+//   {
+//     c->t->pending_messages--;
+//     if (GNUNET_YES == c->t->destroy && 0 == t->pending_messages)
+//     {
+//       LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
+//       GMT_destroy (c->t);
+//     }
+//   }
 }
 
 
@@ -1772,6 +1793,20 @@ const struct GNUNET_HashCode *
 GMC_get_id (const struct MeshConnection *c)
 {
   return &c->id;
+}
+
+
+/**
+ * Get the connection path.
+ *
+ * @param c Connection to get the path from.
+ *
+ * @return path used by the connection.
+ */
+const struct MeshPeerPath *
+GMC_get_path (const struct MeshConnection *c)
+{
+  return c->path;
 }
 
 

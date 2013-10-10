@@ -264,6 +264,16 @@ const struct GNUNET_HashCode *
 GMC_get_id (const struct MeshConnection *c);
 
 /**
+ * Get the connection path.
+ *
+ * @param c Connection to get the path from.
+ *
+ * @return path used by the connection.
+ */
+const struct MeshPeerPath *
+GMC_get_path (const struct MeshConnection *c);
+
+/**
  * Get the connection state.
  *
  * @param c Connection to get the state from.

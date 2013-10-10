@@ -1170,6 +1170,27 @@ GMT_is_loopback (const struct MeshTunnel3 *t)
 
 
 /**
+ * Is the tunnel using this path already?
+ *
+ * @param t Tunnel.
+ * @param p Path.
+ *
+ * @return GNUNET_YES a connection uses this path.
+ */
+int
+GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)
+{
+  struct MeshTConnection *c;
+
+  for (c = t->connection_head; NULL != c; c = c->next)
+    if (GMC_get_path (c) == p)
+      return GNUNET_YES;
+
+  return GNUNET_NO;
+}
+
+
+/**
  * Get the static string for the peer this tunnel is directed.
  *
  * @param t Tunnel.

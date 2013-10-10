@@ -45,6 +45,8 @@ extern "C"
  */
 struct MeshPeer;
 
+#include "gnunet-service-mesh_connection.h"
+
 /**
  * Callback called when a queued message is sent.
  *
@@ -59,9 +61,6 @@ typedef void (*GMP_sent) (void *cls,
                           struct MeshConnection *c, uint16_t type,
                           int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
-
-#include "gnunet-service-mesh_connection.h"
-
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -225,7 +224,7 @@ GMP_add_path_to_origin (struct MeshPeer *peer_info,
  * @param confirmed Whether we know if the path works or not.
  */
 void
-GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed);
+GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed);
 
 /**
  * Remove a connection from a neighboring peer.
