@@ -124,12 +124,12 @@ struct GNUNET_CONVERSATION_Phone
   /**
    * My GNS zone.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey my_zone;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey my_zone;
 
   /**
    * Identity of the person calling us (valid while in state #PS_RINGING).
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey caller_id;
+  struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
 
   /**
    * State machine for the phone.
@@ -159,7 +159,7 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone);
  */
 static void
 handle_caller_name (void *cls,
-                    const struct GNUNET_CRYPTO_EccPrivateKey *zone,
+                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                     const char *label,
                     unsigned int rd_count,
                     const struct GNUNET_NAMESTORE_RecordData *rd)
@@ -985,7 +985,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
       0 },
     { NULL, 0, 0 }
   };
-  struct GNUNET_CRYPTO_EccPublicSignKey my_zone;
+  struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
 
   if (CS_ACTIVE == call->state)
   {

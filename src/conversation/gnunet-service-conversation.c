@@ -503,15 +503,15 @@ handle_client_call_message (void *cls,
   ring->purpose.size = htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
                               sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                              sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&msg->caller_id,
+                              sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id,
                                                   &ring->caller_id);
   ring->remote_line = msg->line;
   ring->source_line = line->local_line;
   ring->target = msg->target;
   ring->source = my_identity;
   ring->expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
-  GNUNET_CRYPTO_ecc_sign (&msg->caller_id,
+  GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
                           &ring->purpose,
                           &ring->signature);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -680,9 +680,9 @@ handle_mesh_ring_message (void *cls,
   if ( (msg->purpose.size != htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
                                     sizeof (struct GNUNET_TIME_AbsoluteNBO) +
                                     sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                                    sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))) ||
+                                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))) ||
        (GNUNET_OK !=
-        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
+        GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING,
                                   &msg->purpose,
                                   &msg->signature,
                                   &msg->caller_id)) )

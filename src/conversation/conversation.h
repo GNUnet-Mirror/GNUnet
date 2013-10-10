@@ -89,7 +89,7 @@ struct ClientPhoneRingMessage
   /**
    * Who is calling us?
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey caller_id;
+  struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
 
 };
 
@@ -176,7 +176,7 @@ struct ClientCallMessage
   /**
    * Identity of the caller.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey caller_id;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey caller_id;
 };
 
 
@@ -219,7 +219,7 @@ struct MeshPhoneRingMessage
   /**
    * Who is calling us? (also who is signing).
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey caller_id;
+  struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
 
   /**
    * Who are we calling?
@@ -239,7 +239,7 @@ struct MeshPhoneRingMessage
   /**
    * Signature on the above.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Source line for audio data in the other direction.
