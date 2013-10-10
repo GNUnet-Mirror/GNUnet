@@ -1003,6 +1003,8 @@ GMT_count_channels (struct MeshTunnel3 *t)
 enum MeshTunnel3State
 GMT_get_state (struct MeshTunnel3 *t)
 {
+  if (NULL == t)
+    return (enum MeshTunnel3State) -1;
   return t->state;
 }
 

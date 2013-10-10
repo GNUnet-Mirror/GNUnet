@@ -41,6 +41,7 @@ extern "C"
 #include "gnunet_util_lib.h"
 
 #include "mesh_protocol_enc.h"
+#include "mesh_enc.h"
 
 /**
  * Struct containing all information regarding a channel to a remote client.

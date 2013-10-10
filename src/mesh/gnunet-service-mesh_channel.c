@@ -526,8 +526,8 @@ channel_retransmit_message (void *cls,
    *   is stalled.
    */
 //   FIXME access to queue elements is limited
-//   payload = (struct GNUNET_MESH_Data *) &copy[1];
-//   fwd = (rel == ch->root_rel);
+  payload = (struct GNUNET_MESH_Data *) &copy[1];
+  fwd = (rel == ch->root_rel);
 //   c = GMT_get_connection (ch->t, fwd);
 //   hop = connection_get_hop (c, fwd);
 //   for (q = hop->queue_head; NULL != q; q = q->next)
@@ -897,7 +897,7 @@ channel_destroy_iterator (void *cls,
  */
 void
 handle_loopback (struct MeshChannel *ch,
-                 struct GNUNET_MessageHeader *msgh,
+                 const struct GNUNET_MessageHeader *msgh,
                  int fwd)
 {
   uint16_t type;
@@ -1200,8 +1200,6 @@ GMCH_handle_data (struct MeshChannel *ch,
   struct MeshChannelReliability *rel;
   struct MeshClient *c;
   uint32_t mid;
-  uint16_t type;
-  size_t size;
 
   /*  Initialize FWD/BCK data */
   c   = fwd ? ch->dest     : ch->root;
@@ -1360,7 +1358,7 @@ GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
   chid = ntohl (msg->chid);
 
   /* Create channel */
-  ch = channel_new (NULL, NULL, 0); /* FIXME t */
+  ch = channel_new (NULL, NULL, 0); /* FIXME pass t */
   ch->gid = chid;
   channel_set_options (ch, ntohl (msg->opt));
 
@@ -1372,11 +1370,11 @@ GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
   {
     /* TODO send reject */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
-    /* TODO free ch */
-    return;
+    channel_destroy (ch);
+    return NULL;
   }
 
-  channel_add_client (ch, c);
+  GMCH_add_client (ch, c);
   if (GNUNET_YES == ch->reliable)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
@@ -1416,10 +1414,6 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd)
 {
-  MESH_ChannelNumber chid;
-
-  /* Check if channel exists */
-  chid = ntohl (msg->chid);
   if ( (fwd && NULL == ch->dest) || (!fwd && NULL == ch->root) )
   {
     /* Not for us (don't destroy twice a half-open loopback channel) */
@@ -1442,8 +1436,6 @@ void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd)
 {
-  size_t size = ntohs (message->size);
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X %s\n",
        GMT_2s (ch->t), ch->gid, fwd ? "FWD" : "BCK");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
@@ -1451,7 +1443,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (GMT_is_loopback (ch->t))
   {
-    handle_loopback (ch->t, message, fwd);
+    handle_loopback (ch, message, fwd);
     return;
   }
 

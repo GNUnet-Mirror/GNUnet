@@ -165,7 +165,7 @@ GML_send_ack (struct MeshChannel *ch, int fwd);
 void
 GML_send_channel_create (struct MeshClient *c,
                          uint32_t id, uint32_t port, uint32_t opt,
-                         struct GNUNET_PeerIdentity *peer);
+                         const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Notify a client that a channel is no longer valid.

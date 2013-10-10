@@ -326,6 +326,64 @@ connection_get (const struct GNUNET_HashCode *cid)
 }
 
 
+static void
+connection_change_state (struct MeshConnection* c,
+                         enum MeshConnectionState state)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %s state was %s\n",
+              GNUNET_h2s (&c->id), GMC_state2s (c->state));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "Connection %s state is now %s\n",
+              GNUNET_h2s (&c->id), GMC_state2s (state));
+  c->state = state;
+}
+
+
+/**
+ * Callback called when a queued message is sent.
+ *
+ * Calculates the average time 
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param wait Time spent waiting for core (only the time for THIS message)
+ */
+static void 
+message_sent (void *cls,
+              struct MeshConnection *c,
+              struct GNUNET_TIME_Relative wait)
+{
+  struct MeshConnectionPerformance *p;
+  size_t size = (size_t) cls;
+  double usecsperbyte;
+
+  if (NULL == c->perf)
+    return; /* Only endpoints are interested in this. */
+
+  p = c->perf;
+  usecsperbyte = ((double) wait.rel_value_us) / size;
+  if (p->size == AVG_MSGS)
+  {
+    /* Array is full. Substract oldest value, add new one and store. */
+    p->avg -= (p->usecsperbyte[p->idx] / AVG_MSGS);
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg += (p->usecsperbyte[p->idx] / AVG_MSGS);
+  }
+  else
+  {
+    /* Array not yet full. Add current value to avg and store. */
+    p->usecsperbyte[p->idx] = usecsperbyte;
+    p->avg *= p->size;
+    p->avg += p->usecsperbyte[p->idx];
+    p->size++;
+    p->avg /= p->size;
+  }
+  p->idx = (p->idx + 1) % AVG_MSGS;
+}
+
+
+
 /**
  * Send an ACK informing the predecessor about the available buffer space.
  *
@@ -407,7 +465,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, NULL, fwd,
                  &message_sent, sizeof (struct GNUNET_MESH_ConnectionACK));
-  if (MESH_TUNNEL3_NEW == t->state)
+  if (MESH_TUNNEL3_NEW == GMT_get_state (t))
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
     GMC_change_state (connection, MESH_CONNECTION_SENT);
@@ -423,39 +481,24 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 static void
 send_connection_create (struct MeshConnection *connection)
 {
-  struct MeshTunnel3 *t;
+enum MeshTunnel3State state;
+  size_t size;
 
-  t = connection->t;
+  size = sizeof (struct GNUNET_MESH_ConnectionCreate);
+  size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  queue_add (NULL,
-             GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-             sizeof (struct GNUNET_MESH_ConnectionCreate) +
-                (connection->path->length *
-                 sizeof (struct GNUNET_PeerIdentity)),
-             connection,
-             NULL,
-             GNUNET_YES);
-  if (NULL != t &&
-      (MESH_TUNNEL3_SEARCHING == t->state || MESH_TUNNEL3_NEW == t->state))
-    tunnel_change_state (t, MESH_TUNNEL3_WAITING);
+  GMP_queue_add (NULL,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+                 size,
+                 connection,
+                 NULL,
+                 GNUNET_YES, &message_sent, size);
+  state = GMT_get_state (connection->t);
+  if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
+    GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
 }
-
-
-static void
-connection_change_state (struct MeshConnection* c,
-                         enum MeshConnectionState state)
-{
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s state was %s\n",
-              GNUNET_h2s (&c->id), GMC_state2s (c->state));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s state is now %s\n",
-              GNUNET_h2s (&c->id), GMC_state2s (state));
-  c->state = state;
-}
-
 
 
 /**
@@ -476,17 +519,15 @@ connection_keepalive (struct MeshConnection *c, int fwd)
                GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "sending %s keepalive for connection %s[%d]\n",
-              fwd ? "FWD" : "BCK",
-              peer2s (c->t->peer),
-              c->id);
+       "sending %s keepalive for connection %s[%d]\n",
+       fwd ? "FWD" : "BCK", GMT_2s (c->t), c->id);
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
   msg->header.size = htons (size);
   msg->header.type = htons (type);
   msg->cid = c->id;
 
-  send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
+  GMC_send_prebuilt_message (&msg->header, c, NULL, fwd);
 }
 
 
@@ -518,7 +559,7 @@ connection_recreate (struct MeshConnection *c, int fwd)
 static void
 connection_maintain (struct MeshConnection *c, int fwd)
 {
-  if (MESH_TUNNEL3_SEARCHING == c->t->state)
+  if (MESH_TUNNEL3_SEARCHING == GMT_get_state (c->t))
   {
     /* TODO DHT GET with RO_BART */
     return;
@@ -922,49 +963,6 @@ unregister_neighbors (struct MeshConnection *c)
   peer = connection_get_prev_hop (c);
   GMP_remove_connection (peer, c);
 
-}
-
-
-/**
- * Callback called when a queued message is sent.
- *
- * Calculates the average time 
- *
- * @param cls Closure.
- * @param c Connection this message was on.
- * @param wait Time spent waiting for core (only the time for THIS message)
- */
-static void 
-message_sent (void *cls,
-              struct MeshConnection *c,
-              struct GNUNET_TIME_Relative wait)
-{
-  struct MeshConnectionPerformance *p;
-  size_t size = (size_t) cls;
-  double usecsperbyte;
-
-  if (NULL == c->perf)
-    return; /* Only endpoints are interested in this. */
-
-  p = c->perf;
-  usecsperbyte = ((double) wait.rel_value_us) / size;
-  if (p->size == AVG_MSGS)
-  {
-    /* Array is full. Substract oldest value, add new one and store. */
-    p->avg -= (p->usecsperbyte[p->idx] / AVG_MSGS);
-    p->usecsperbyte[p->idx] = usecsperbyte;
-    p->avg += (p->usecsperbyte[p->idx] / AVG_MSGS);
-  }
-  else
-  {
-    /* Array not yet full. Add current value to avg and store. */
-    p->usecsperbyte[p->idx] = usecsperbyte;
-    p->avg *= p->size;
-    p->avg += p->usecsperbyte[p->idx];
-    p->size++;
-    p->avg /= p->size;
-  }
-  p->idx = (p->idx + 1) % AVG_MSGS;
 }
 
 
@@ -2047,7 +2045,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
       dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
       dmsg->cid = c->id;
       dmsg->reserved = 0;
@@ -2089,7 +2087,7 @@ GMC_send_destroy (struct MeshConnection *c)
     return;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY);;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
   msg.cid = c->id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s\n",

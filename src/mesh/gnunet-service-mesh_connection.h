@@ -78,7 +78,6 @@ struct MeshConnection;
 
 
 
-
 /**
  * Core handler for connection creation.
  *
