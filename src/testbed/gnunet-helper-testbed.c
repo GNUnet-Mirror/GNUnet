@@ -409,7 +409,7 @@ tokenizer_cb (void *cls, void *client,
 #if WINDOWS
     GNUNET_break (0 == putenv (GNUNET_TESTING_PREFIX "="));
 #else
-    gnunet_break (0 == unsetenv (GNUNET_TESTING_PREFIX));
+    GNUNET_break (0 == unsetenv (GNUNET_TESTING_PREFIX));
 #endif
   }
   test_system =
