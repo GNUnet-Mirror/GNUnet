@@ -339,7 +339,8 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
  * @param type expected return type (i.e. 'struct Foo')
  * @return pointer to user context of type 'type *'.
  */
-#define GNUNET_SERVER_client_get_user_context(client,type) (type *) GNUNET_SERVER_client_get_user_context_ (client, sizeof (type))
+#define GNUNET_SERVER_client_get_user_context(client,type)              \
+  (type *) GNUNET_SERVER_client_get_user_context_ (client, sizeof (type))
 
 /**
  * Set user context to be associated with the given client.
@@ -347,7 +348,8 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
  * @param client client to query
  * @param value pointer to user context
  */
-#define GNUNET_SERVER_client_set_user_context(client,value) GNUNET_SERVER_client_set_user_context_ (client, value, sizeof (*value))
+#define GNUNET_SERVER_client_set_user_context(client,value)             \
+  GNUNET_SERVER_client_set_user_context_ (client, value, sizeof (*value))
 
 
 /**
