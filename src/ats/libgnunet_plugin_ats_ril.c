@@ -572,7 +572,7 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
       solver->plugin_envi->bandwidth_changed_cb (solver->plugin_envi->bw_changed_cb_cls,
           new_address);
     }
-    else
+    else if (agent->address_inuse)
     {
       GNUNET_assert(0 == ntohl (agent->address_inuse->assigned_bw_in.value__));
       GNUNET_assert(0 == ntohl (agent->address_inuse->assigned_bw_out.value__));
@@ -884,7 +884,7 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
 static void
 envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int action)
 {
-  unsigned int address_index;
+  int address_index;
 
   switch (action)
   {
@@ -1050,7 +1050,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->active = GNUNET_NO;
   agent->n = RIL_ACTION_TYPE_NUM;
   agent->m = solver->networks_count * RIL_FEATURES_NETWORK_COUNT;
-  agent->W = (double **) GNUNET_malloc (sizeof (double) * agent->n);
+  agent->W = (double **) GNUNET_malloc (sizeof (double *) * agent->n);
   for (i = 0; i < agent->n; i++)
   {
     agent->W[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
