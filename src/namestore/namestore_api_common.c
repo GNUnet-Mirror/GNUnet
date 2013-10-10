@@ -571,6 +571,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+	GNUNET_free_non_null (cname);
 	return NULL;
       }
       return cname;
@@ -615,6 +616,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+	GNUNET_free_non_null (ptr);
 	return NULL;
       }
       return ptr;
@@ -632,6 +634,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+	GNUNET_free_non_null (mx);
 	return NULL;
       }
       GNUNET_asprintf (&result,
@@ -709,6 +712,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+	GNUNET_free_non_null (ns);
 	return NULL;
       }
       return ns;
