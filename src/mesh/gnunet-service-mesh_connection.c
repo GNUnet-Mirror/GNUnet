@@ -723,8 +723,7 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 static void
 connection_cancel_queues (struct MeshConnection *c, int fwd)
 {
-  struct MeshPeerQueue *q;
-  struct MeshPeerQueue *next;
+
   struct MeshFlowControl *fc;
   struct MeshPeer *peer;
 
@@ -733,32 +732,15 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
     GNUNET_break (0);
     return;
   }
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  peer = connection_get_hop (c, fwd);
 
-  for (q = peer->queue_head; NULL != q; q = next)
+  peer = connection_get_hop (c, fwd);
+  GMP_queue_cancel (peer, c);
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
   {
-    next = q->next;
-    if (q->c == c)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "connection_cancel_queue %s\n",
-                  GNUNET_MESH_DEBUG_M2S (q->type));
-      queue_destroy (q, GNUNET_YES);
-    }
-  }
-  if (NULL == peer->queue_head)
-  {
-    if (NULL != peer->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-      peer->core_transmit = NULL;
-    }
-    if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
-    {
-      GNUNET_SCHEDULER_cancel (fc->poll_task);
-      fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+    GNUNET_SCHEDULER_cancel (fc->poll_task);
+    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 

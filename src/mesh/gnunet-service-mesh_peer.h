@@ -98,6 +98,15 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
                GMP_sent callback, void *callback_cls);
 
 /**
+ * Cancel all queued messages to a peer that belong to a certain connection.
+ *
+ * @param peer Peer towards whom to cancel.
+ * @param c Connection whose queued messages to cancel.
+ */
+void
+GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c);
+
+/**
  * Set tunnel.
  *
  * @param peer Peer.
@@ -132,6 +141,14 @@ GMP_is_neighbor (const struct MeshPeer *peer);
 int
 GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
 
+/**
+ * Remove a connection from a neighboring peer.
+ *
+ * @param peer Peer to remove connection from.
+ * @param c Connection to remove.
+ *
+ * @return GNUNET_OK on success.
+ */
 int
 GMP_remove_connection (struct MeshPeer *peer, struct MeshConnection *c);
 

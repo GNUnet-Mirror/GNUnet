@@ -1407,6 +1407,39 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
 }
 
 
+/**
+ * Cancel all queued messages to a peer that belong to a certain connection.
+ *
+ * @param peer Peer towards whom to cancel.
+ * @param c Connection whose queued messages to cancel.
+ */
+void
+GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
+{
+  struct MeshPeerQueue *q;
+  struct MeshPeerQueue *next;
+
+  for (q = peer->queue_head; NULL != q; q = next)
+  {
+    next = q->next;
+    if (q->c == c)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "connection_cancel_queue %s\n",
+                  GNUNET_MESH_DEBUG_M2S (q->type));
+      GMP_queue_destroy (q, GNUNET_YES);
+    }
+  }
+  if (NULL == peer->queue_head)
+  {
+    if (NULL != peer->core_transmit)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
+      peer->core_transmit = NULL;
+    }
+  }
+}
+
 
 /**
  * Initialize the peer subsystem.
@@ -1624,6 +1657,14 @@ GMP_add_connection (struct MeshPeer *peer,
 }
 
 
+/**
+ * Remove a connection from a neighboring peer.
+ *
+ * @param peer Peer to remove connection from.
+ * @param c Connection to remove.
+ *
+ * @return GNUNET_OK on success.
+ */
 int
 GMP_remove_connection (struct MeshPeer *peer,
                        const struct MeshConnection *c)
