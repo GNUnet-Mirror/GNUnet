@@ -388,7 +388,7 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
 
   GNUNET_assert (NULL != testdir);
   system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
-  if (NULL == (system->tmppath = getenv ("GNUNET_TESTING_PREFIX")))
+  if (NULL == (system->tmppath = getenv (GNUNET_TESTING_PREFIX)))
     system->tmppath = GNUNET_DISK_mkdtemp (testdir);
   else
     system->tmppath = GNUNET_strdup (system->tmppath);

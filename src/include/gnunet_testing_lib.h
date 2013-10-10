@@ -51,6 +51,13 @@ extern "C"
 #define GNUNET_TESTING_HOSTKEYFILESIZE sizeof (struct GNUNET_CRYPTO_EccPrivateKey)
 
 /**
+ * The environmental variable, if set, that dictates where testing should place
+ * generated peer configurations
+ */
+#define GNUNET_TESTING_PREFIX "GNUNET_TESTING_PREFIX"
+
+
+/**
  * Handle for a system on which GNUnet peers are executed;
  * a system is used for reserving unique paths and ports.
  */

@@ -338,6 +338,7 @@ tokenizer_cb (void *cls, void *client,
   char *config;
   char *xconfig;
   char *evstr;
+  char *str;
   size_t config_size;
   uLongf ul_config_size;
   size_t xconfig_size;
@@ -401,8 +402,27 @@ tokenizer_cb (void *cls, void *client,
                     hostname_size);
     hostname[hostname_size] = '\0';
   }
+  /* unset GNUNET_TESTING_PREFIX if present as it is more relevant for testbed */
+  evstr = getenv (GNUNET_TESTING_PREFIX);
+  if (NULL != evstr)
+  {
+#if WINDOWS
+    GNUNET_break (0 == putenv (GNUNET_TESTING_PREFIX "="));
+#else
+    gnunet_break (0 == unsetenv (GNUNET_TESTING_PREFIX));
+#endif
+  }
   test_system =
-      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostname, NULL);
+      GNUNET_TESTING_system_create ("testbed-helper", trusted_ip, hostname,
+                                    NULL);
+  if (NULL != evstr)
+  {
+    GNUNET_assert (0 < GNUNET_asprintf (&str, 
+                                        GNUNET_TESTING_PREFIX "=%s", evstr));
+    putenv (str);
+    /* do not free str will be consumed by putenv */
+    GNUNET_free (evstr);
+  }
   GNUNET_free_non_null (hostname);
   hostname = NULL;
   GNUNET_assert (NULL != test_system);
