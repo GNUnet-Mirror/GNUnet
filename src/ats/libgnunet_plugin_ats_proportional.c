@@ -1126,8 +1126,8 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   if (GNUNET_YES
       == GNUNET_CONTAINER_multipeermap_contains (s->requests,
 						 peer))
-    GNUNET_CONTAINER_multipeermap_remove (s->requests, peer,
-					  NULL);
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (s->requests, peer,
+					  NULL));
 
   cur = get_active_address (s,
 			    s->addresses, peer);
@@ -1383,7 +1383,6 @@ void
 GAS_proportional_address_change_network (void *solver,
     struct ATS_Address *address, uint32_t current_network, uint32_t new_network)
 {
-  struct ATS_Address *new;
   struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
   int save_active = GNUNET_NO;
   struct Network *new_net = NULL;
@@ -1420,7 +1419,7 @@ GAS_proportional_address_change_network (void *solver,
         GNUNET_ATS_print_network_type (new_network));
 
     /* Find new address to suggest since no bandwidth in network*/
-    if (NULL == (new = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer)))
+    if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
     {
       /* No alternative address found, disconnect peer */
       s->bw_changed (s->bw_changed_cls, address);
@@ -1446,10 +1445,7 @@ GAS_proportional_address_change_network (void *solver,
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Not enough bandwidth in new network, suggesting alternative address ..\n");
       /* Find new address to suggest since no bandwidth in network*/
-      if (NULL
-          == (new =
-              (struct ATS_Address *) GAS_proportional_get_preferred_address (s,
-                  &address->peer)))
+      if (NULL == GAS_proportional_get_preferred_address (s, &address->peer))
       {
         /* No alternative address found, disconnect peer */
         s->bw_changed (s->bw_changed_cls, address);
@@ -1472,10 +1468,8 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
-  const struct ATS_Address *new_address;
 
   GNUNET_assert(NULL != s);
-
 
   net = get_network (s, network);
   if (NULL == net)
@@ -1494,7 +1488,7 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   {
     if (NULL == get_active_address (s, s->addresses, &address->peer))
     {
-      if (NULL != (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
+      if (NULL != GAS_proportional_get_preferred_address (s, &address->peer))
           s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) address);
     }
   }
