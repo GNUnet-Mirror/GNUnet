@@ -913,10 +913,10 @@ GML_channel_remove (struct MeshClient *client,
                     uint32_t chid,
                     struct MeshChannel *ch)
 {
-  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-    GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels, chid, ch);
-  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
-    GNUNET_CONTAINER_multihashmap32_remove (c->own_channels, chid, ch);
+  if (GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
+    GNUNET_CONTAINER_multihashmap32_remove (client->incoming_channels, chid, ch);
+  else if (GNUNET_MESH_LOCAL_CHANNEL_ID_CLI <= chid)
+    GNUNET_CONTAINER_multihashmap32_remove (client->own_channels, chid, ch);
   else
     GNUNET_break (0);
 }
@@ -978,25 +978,32 @@ GML_client_get_by_port (uint32_t port)
  *
  * @param c Client whose tunnel to delete.
  * @param ch Channel which should be deleted.
+ * @param id Channel ID.
  */
 void
-GML_client_delete_channel (struct MeshClient *c, struct MeshChannel *ch)
+GML_client_delete_channel (struct MeshClient *c,
+                           struct MeshChannel *ch,
+                           MESH_ChannelNumber id)
 {
   int res;
 
-  if (c == ch->root)
-  {
-    res = GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
-                                                  ch->lid_root, ch);
-    if (GNUNET_YES != res)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel owner KO\n");
-  }
-  if (c == ch->dest)
+  if (GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= id)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
-                                                  ch->lid_dest, ch);
+                                                  id, ch);
     if (GNUNET_YES != res)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel client KO\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel dest KO\n");
+  }
+  else if (GNUNET_MESH_LOCAL_CHANNEL_ID_CLI <= id)
+  {
+    res = GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
+                                                  id, ch);
+    if (GNUNET_YES != res)
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_tunnel root KO\n");
+  }
+  else
+  {
+    GNUNET_break (0);
   }
 }
 
@@ -1005,39 +1012,21 @@ GML_client_delete_channel (struct MeshClient *c, struct MeshChannel *ch)
  *
  * If the client was already allowed to send data, do nothing.
  *
- * @param ch Channel on which to send the ACK.
  * @param c Client to whom send the ACK.
- * @param fwd Set to GNUNET_YES for FWD ACK (dest->root)
+ * @param id Channel ID to use
  */
 void
-GML_send_ack (struct MeshChannel *ch, int fwd)
+GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id)
 {
   struct GNUNET_MESH_LocalAck msg;
-  struct MeshChannelReliability *rel;
-  struct MeshClient *c;
-
-  c   = fwd ? ch->root     : ch->dest;
-  rel = fwd ? ch->root_rel : ch->dest_rel;
-
-  if (GNUNET_YES == rel->client_ready)
-    return; /* don't send double ACKs to client */
-
-  rel->client_ready = GNUNET_YES;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "send local %s ack on %s:%X towards %p\n",
-              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid, c);
+              "send local %s ack on %X towards %p\n",
+              id < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? "FWD" : "BCK", id, c);
 
-  if (NULL == c
-      || ( fwd && (0 == ch->lid_root || c != ch->root))
-      || (!fwd && (0 == ch->lid_dest || c != ch->dest)) )
-  {
-    GNUNET_break (0);
-    return;
-  }
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
-  msg.channel_id = htonl (fwd ? ch->lid_root : ch->lid_dest);
+  msg.channel_id = htonl (id);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
                                               &msg.header,

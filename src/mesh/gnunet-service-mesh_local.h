@@ -141,21 +141,23 @@ GML_client_get_by_port (uint32_t port);
  *
  * @param c Client whose tunnel to delete.
  * @param ch Channel which should be deleted.
+ * @param id Channel ID.
  */
 void
-GML_client_delete_channel (struct MeshClient *c, struct MeshChannel *ch);
+GML_client_delete_channel (struct MeshClient *c,
+                           struct MeshChannel *ch,
+                           MESH_ChannelNumber id);
 
 /**
  * Build a local ACK message and send it to a local client, if needed.
  *
  * If the client was already allowed to send data, do nothing.
  *
- * @param ch Channel on which to send the ACK.
  * @param c Client to whom send the ACK.
- * @param fwd Set to GNUNET_YES for FWD ACK (dest->root)
+ * @param id Channel ID to use
  */
 void
-GML_send_ack (struct MeshChannel *ch, int fwd);
+GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id);
 
 /**
  * Notify the appropriate client that a new incoming channel was created.

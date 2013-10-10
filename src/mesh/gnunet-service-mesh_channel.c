@@ -1380,7 +1380,12 @@ GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
 
   GMCH_send_create (ch);
   GMCH_send_ack (ch, fwd);
-  GML_send_ack (ch, !fwd);
+
+  if (GNUNET_NO == ch->dest_rel->client_ready)
+  {
+    GML_send_ack (ch->dest, ch->lid_dest);
+    ch->dest_rel->client_ready = GNUNET_YES;
+  }
 
   return ch;
 }
