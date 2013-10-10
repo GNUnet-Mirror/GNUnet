@@ -48,27 +48,27 @@ enum MeshTunnel3State
     /**
      * Uninitialized status, should never appear in operation.
      */
-  MESH_TUNNEL_NEW,
+  MESH_TUNNEL3_NEW,
 
     /**
      * Path to the peer not known yet
      */
-  MESH_TUNNEL_SEARCHING,
+  MESH_TUNNEL3_SEARCHING,
 
     /**
      * Request sent, not yet answered.
      */
-  MESH_TUNNEL_WAITING,
+  MESH_TUNNEL3_WAITING,
 
     /**
      * Peer connected and ready to accept data
      */
-  MESH_TUNNEL_READY,
+  MESH_TUNNEL3_READY,
 
     /**
      * Peer connected previosly but not responding
      */
-  MESH_TUNNEL_RECONNECTING
+  MESH_TUNNEL3_RECONNECTING
 };
 
 /**

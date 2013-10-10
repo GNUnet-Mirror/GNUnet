@@ -407,8 +407,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, NULL, fwd,
                  &message_sent, sizeof (struct GNUNET_MESH_ConnectionACK));
-  if (MESH_TUNNEL_NEW == t->state)
-    GMT_change_state (t, MESH_TUNNEL_WAITING);
+  if (MESH_TUNNEL3_NEW == t->state)
+    GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
     GMC_change_state (connection, MESH_CONNECTION_SENT);
 }
@@ -436,8 +436,8 @@ send_connection_create (struct MeshConnection *connection)
              NULL,
              GNUNET_YES);
   if (NULL != t &&
-      (MESH_TUNNEL_SEARCHING == t->state || MESH_TUNNEL_NEW == t->state))
-    tunnel_change_state (t, MESH_TUNNEL_WAITING);
+      (MESH_TUNNEL3_SEARCHING == t->state || MESH_TUNNEL3_NEW == t->state))
+    tunnel_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
 }
@@ -518,7 +518,7 @@ connection_recreate (struct MeshConnection *c, int fwd)
 static void
 connection_maintain (struct MeshConnection *c, int fwd)
 {
-  if (MESH_TUNNEL_SEARCHING == c->t->state)
+  if (MESH_TUNNEL3_SEARCHING == c->t->state)
   {
     /* TODO DHT GET with RO_BART */
     return;
@@ -1086,8 +1086,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       orig_peer->tunnel->peer = orig_peer;
     }
     GMT_add_connection (orig_peer->tunnel, c);
-    if (MESH_TUNNEL_NEW == GMT_get_state (c->t))
-      GMT_change_state (c->t,  MESH_TUNNEL_WAITING);
+    if (MESH_TUNNEL3_NEW == GMT_get_state (c->t))
+      GMT_change_state (c->t,  MESH_TUNNEL3_WAITING);
 
     send_connection_ack (c, GNUNET_NO);
     if (MESH_CONNECTION_SENT == c->state)
@@ -1182,7 +1182,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     connection_change_state (c, MESH_CONNECTION_READY);
-    GMT_change_state (c->t, MESH_TUNNEL_READY);
+    GMT_change_state (c->t, MESH_TUNNEL3_READY);
     send_connection_ack (c, GNUNET_YES);
     GMT_send_queued_data (c->t, GNUNET_YES);
     return GNUNET_OK;
@@ -1193,7 +1193,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
     GMC_change_state (c, MESH_CONNECTION_READY);
-    GMT_change_state (c->t, MESH_TUNNEL_READY);
+    GMT_change_state (c->t, MESH_TUNNEL3_READY);
     GMT_send_queued_data (c->t, GNUNET_NO);
     return GNUNET_OK;
   }
@@ -2047,7 +2047,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
       dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
       dmsg->cid = c->id;
       dmsg->reserved = 0;
@@ -2089,7 +2089,7 @@ GMC_send_destroy (struct MeshConnection *c)
     return;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY);;
   msg.cid = c->id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s\n",

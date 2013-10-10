@@ -202,16 +202,16 @@ GMT_state2s (enum MeshTunnel3State s)
 
   switch (s)
   {
-    case MESH_TUNNEL_NEW:
-      return "MESH_TUNNEL_NEW";
-    case MESH_TUNNEL_SEARCHING:
-      return "MESH_TUNNEL_SEARCHING";
-    case MESH_TUNNEL_WAITING:
-      return "MESH_TUNNEL_WAITING";
-    case MESH_TUNNEL_READY:
-      return "MESH_TUNNEL_READY";
-    case MESH_TUNNEL_RECONNECTING:
-      return "MESH_TUNNEL_RECONNECTING";
+    case MESH_TUNNEL3_NEW:
+      return "MESH_TUNNEL3_NEW";
+    case MESH_TUNNEL3_SEARCHING:
+      return "MESH_TUNNEL3_SEARCHING";
+    case MESH_TUNNEL3_WAITING:
+      return "MESH_TUNNEL3_WAITING";
+    case MESH_TUNNEL3_READY:
+      return "MESH_TUNNEL3_READY";
+    case MESH_TUNNEL3_RECONNECTING:
+      return "MESH_TUNNEL3_RECONNECTING";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", s);
@@ -292,7 +292,7 @@ handle_data (struct MeshTunnel3 *t,
     return;
   }
 
-  GMT_change_state (t, MESH_TUNNEL_READY);
+  GMT_change_state (t, MESH_TUNNEL3_READY);
   GMCH_handle_data (ch, msg, fwd);
 }
 
@@ -502,7 +502,7 @@ GMT_queue_data (struct MeshTunnel3 *t,
   memcpy (&tq[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
 
-  if (MESH_TUNNEL_READY == t->state)
+  if (MESH_TUNNEL3_READY == t->state)
     GMT_send_queued_data (t, fwd);
 }
 
@@ -632,7 +632,7 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
               GMP_2s (t->peer),
               GMT_state2s (state));
   t->state = state;
-  if (MESH_TUNNEL_READY == state && 3 <= GMT_count_connections (t))
+  if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
   {
     GMP_stop_search (t->peer);
   }

@@ -361,8 +361,6 @@ send_client_data (struct MeshChannel *ch,
 void
 GMCH_add_client (struct MeshChannel *ch, struct MeshClient *c)
 {
-  struct MeshTunnel3 *t = ch->t;
-
   if (NULL != ch->dest)
   {
     GNUNET_break (0);
@@ -501,11 +499,8 @@ channel_retransmit_message (void *cls,
 {
   struct MeshChannelReliability *rel = cls;
   struct MeshReliableMessage *copy;
-  struct MeshPeerQueue *q;
   struct MeshChannel *ch;
-  struct MeshConnection *c;
   struct GNUNET_MESH_Data *payload;
-  struct MeshPeer *hop;
   int fwd;
 
   rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1053,7 +1048,6 @@ GMCH_is_terminal (struct MeshChannel *ch, int fwd)
 void
 GMCH_send_create (struct MeshChannel *ch)
 {
-  struct GNUNET_MESH_ChannelMessage msg;
   uint32_t opt;
 
   if (NULL == ch->dest)

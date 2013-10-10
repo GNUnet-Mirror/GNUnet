@@ -920,7 +920,7 @@ search_handler (void *cls, struct MeshPeerPath *path)
   if (3 <= connection_count)
     return;
 
-  if (peer->tunnel->state == MESH_TUNNEL_SEARCHING)
+  if (peer->tunnel->state == MESH_TUNNEL3_SEARCHING)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GMP_connect (peer);
@@ -999,7 +999,7 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -1214,7 +1214,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         GNUNET_break (GNUNET_YES == queue->c->destroy);
         /* fall through */
@@ -1584,8 +1584,8 @@ GMP_connect (struct MeshPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", peer2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
-    if (MESH_TUNNEL_NEW == t->state)
-      GMT_change_state (t, MESH_TUNNEL_SEARCHING);
+    if (MESH_TUNNEL3_NEW == t->state)
+      GMT_change_state (t, MESH_TUNNEL3_SEARCHING);
   }
 }
 
