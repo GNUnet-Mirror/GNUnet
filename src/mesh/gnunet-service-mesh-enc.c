@@ -46,7 +46,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "mesh_enc.h"
-#include "block_mesh.h"
 #include "gnunet_statistics_service.h"
 
 #include "gnunet-service-mesh_local.h"

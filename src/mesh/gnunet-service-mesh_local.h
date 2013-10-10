@@ -177,17 +177,16 @@ void
 GML_send_channel_destroy (struct MeshClient *c, uint32_t id);
 
 /**
- * Modify the mesh message TID from global to local and send to client.
+ * Modify the mesh message ID from global to local and send to client.
  *
- * @param ch Channel on which to send the message.
- * @param msg Message to modify and send.
  * @param c Client to send to.
- * @param tid Tunnel ID to use (c can be both owner and client).
+ * @param msg Message to modify and send.
+ * @param id Channel ID to use (c can be both owner and client).
  */
 void
-GML_send_data (struct MeshChannel *ch,
+GML_send_data (struct MeshClient *c,
                const struct GNUNET_MESH_Data *msg,
-               struct MeshClient *c, MESH_ChannelNumber id);
+               MESH_ChannelNumber id);
 
 /**
  * Get the static string to represent a client.

@@ -25,6 +25,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
+#include "block_mesh.h"
 #include "mesh_path.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"

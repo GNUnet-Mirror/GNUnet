@@ -338,14 +338,14 @@ send_client_data (struct MeshChannel *ch,
   if (fwd)
   {
     if (ch->dest_rel->client_ready)
-      GML_send_data (ch, msg, ch->dest, ch->lid_dest);
+      GML_send_data (ch->dest, msg, ch->lid_dest);
     else
       add_buffered_data (msg, ch->dest_rel);
   }
   else
   {
     if (ch->root_rel->client_ready)
-      GML_send_data (ch, msg, ch->root, ch->lid_root);
+      GML_send_data (ch->root, msg, ch->lid_root);
     else
       add_buffered_data (msg, ch->root_rel);
   }
