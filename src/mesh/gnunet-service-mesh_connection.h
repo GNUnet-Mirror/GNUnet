@@ -370,6 +370,17 @@ int
 GMC_is_terminal (struct MeshConnection *c, int fwd);
 
 /**
+ * See if we are allowed to send by the next hop in the given direction.
+ *
+ * @param c Connection.
+ * @param fwd Is this about fwd traffic?
+ *
+ * @return GNUNET_YES in case it's OK.
+ */
+int
+GMC_is_sendable (struct MeshConnection *c, int fwd);
+
+/**
  * Sends an already built message on a connection, properly registering
  * all used resources.
  *

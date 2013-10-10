@@ -106,6 +106,9 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
 void
 GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c);
 
+void
+GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c);
+
 /**
  * Set tunnel.
  *

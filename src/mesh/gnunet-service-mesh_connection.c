@@ -470,7 +470,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, NULL, fwd,
-                 &message_sent, sizeof (struct GNUNET_MESH_ConnectionACK));
+                 &message_sent,
+                 (void *) sizeof (struct GNUNET_MESH_ConnectionACK));
   if (MESH_TUNNEL3_NEW == GMT_get_state (t))
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
@@ -498,7 +499,7 @@ enum MeshTunnel3State state;
                  size,
                  connection,
                  NULL,
-                 GNUNET_YES, &message_sent, size);
+                 GNUNET_YES, &message_sent, (void *) size);
   state = GMT_get_state (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
     GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
@@ -679,34 +680,6 @@ connection_get_hop (struct MeshConnection *c, int fwd)
 
 
 /**
- * Get the first transmittable message for a connection.
- *
- * @param c Connection.
- * @param fwd Is this FWD?
- *
- * @return First transmittable message.
- */
-static struct MeshPeerQueue *
-connection_get_first_message (struct MeshConnection *c, int fwd)
-{
-  struct MeshPeerQueue *q;
-  struct MeshPeer *p;
-
-  p = connection_get_hop (c, fwd);
-
-  for (q = p->queue_head; NULL != q; q = q->next)
-  {
-    if (q->c != c)
-      continue;
-    if (queue_is_sendable (q))
-      return q;
-  }
-
-  return NULL;
-}
-
-
-/**
  * @brief Re-initiate traffic on this connection if necessary.
  *
  * Check if there is traffic queued towards this peer
@@ -720,8 +693,6 @@ static void
 connection_unlock_queue (struct MeshConnection *c, int fwd)
 {
   struct MeshPeer *peer;
-  struct MeshPeerQueue *q;
-  size_t size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "connection_unlock_queue %s on %s\n",
@@ -734,30 +705,7 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
   }
 
   peer = connection_get_hop (c, fwd);
-
-  if (NULL != peer->core_transmit)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
-    return; /* Already unlocked */
-  }
-
-  q = connection_get_first_message (c, fwd);
-  if (NULL == q)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
-    return; /* Nothing to transmit */
-  }
-
-  size = q->size;
-  peer->core_transmit =
-      GNUNET_CORE_notify_transmit_ready (core_handle,
-                                         GNUNET_NO,
-                                         0,
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         GNUNET_PEER_resolve2 (peer->id),
-                                         size,
-                                         &queue_send,
-                                         peer);
+  GMP_queue_unlock (peer, c);
 }
 
 
@@ -822,7 +770,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
-  send_prebuilt_message_connection (&msg.header, c, NULL, fc == &c->fwd_fc);
+  GMC_send_prebuilt_message (&msg.header, c, NULL, fc == &c->fwd_fc);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll, fc);
@@ -940,14 +888,14 @@ register_neighbors (struct MeshConnection *c)
   if (GNUNET_NO == GMP_is_neighbor (peer))
   {
     GMC_destroy (c);
-    return NULL;
+    return;
   }
   GMP_add_connection (peer, c);
   peer = connection_get_prev_hop (c);
   if (GNUNET_NO == GMP_is_neighbor (peer))
   {
     GMC_destroy (c);
-    return NULL;
+    return;
   }
   GMP_add_connection (peer, c);
 }
@@ -1048,10 +996,10 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
                   GNUNET_i2s (&id[i]));
       path->peers[i] = GNUNET_PEER_intern (&id[i]);
-      if (path->peers[i] == my_short_id)
+      if (path->peers[i] == myid)
         own_pos = i;
     }
-    if (own_pos == 0 && path->peers[own_pos] != my_short_id)
+    if (own_pos == 0 && path->peers[own_pos] != myid)
     {
       /* create path: self not found in path through self */
       GNUNET_break_op (0);
@@ -1086,7 +1034,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     if (NULL == orig_peer->tunnel)
     {
-      orig_peer->tunnel = tunnel_new ();
+      orig_peer->tunnel = GMT_new ();
       orig_peer->tunnel->peer = orig_peer;
     }
     GMT_add_connection (orig_peer->tunnel, c);
@@ -1984,6 +1932,25 @@ GMC_is_terminal (struct MeshConnection *c, int fwd)
   return GMC_is_origin (c, !fwd);
 }
 
+
+/**
+ * See if we are allowed to send by the next hop in the given direction.
+ *
+ * @param c Connection.
+ * @param fwd Is this about fwd traffic?
+ *
+ * @return GNUNET_YES in case it's OK.
+ */
+int
+GMC_is_sendable (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
 
 /**
  * Sends an already built message on a connection, properly registering

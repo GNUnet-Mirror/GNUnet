@@ -1002,7 +1002,7 @@ queue_send (void *cls, size_t size, void *buf)
     if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
     {
 //       LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
-      tunnel_destroy (t);
+      GMT_destroy (t);
     }
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
@@ -1010,6 +1010,22 @@ queue_send (void *cls, size_t size, void *buf)
 }
 
 
+static int
+queue_is_sendable (struct MeshPeerQueue *q)
+{
+  /* Is PID-independent? */
+  switch (q->type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      return GNUNET_YES;
+  }
+
+  if (GMC_is_sendable (q->c, q->fwd))
+    return GNUNET_YES;
+
+  return GNUNET_NO;
+}
 
 /**
  * Get first sendable message.
@@ -1033,26 +1049,6 @@ peer_get_first_message (const struct MeshPeer *peer)
 }
 
 
-static int
-queue_is_sendable (struct MeshPeerQueue *q)
-{
-  struct MeshFlowControl *fc;
-
-  /* Is PID-independent? */
-  switch (q->type)
-  {
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      return GNUNET_YES;
-  }
-
-  /* Is PID allowed? */
-  fc = q->fwd ? &q->c->fwd_fc : &q->c->bck_fc;
-  if (GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
-    return GNUNET_YES;
-
-  return GNUNET_NO;
-}
 
 
 /******************************************************************************/
@@ -1310,6 +1306,62 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
       peer->core_transmit = NULL;
     }
   }
+}
+
+
+/**
+ * Get the first transmittable message for a connection.
+ *
+ * @param peer Neighboring peer.
+ * @param c Connection.
+ *
+ * @return First transmittable message.
+ */
+static struct MeshPeerQueue *
+connection_get_first_message (struct MeshPeer *peer, struct MeshConnection *c)
+{
+  struct MeshPeerQueue *q;
+
+  for (q = peer->queue_head; NULL != q; q = q->next)
+  {
+    if (q->c != c)
+      continue;
+    if (queue_is_sendable (q))
+      return q;
+  }
+
+  return NULL;
+}
+
+void
+GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
+{
+  struct MeshPeerQueue *q;
+  size_t size;
+
+  if (NULL != peer->core_transmit)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
+    return; /* Already unlocked */
+  }
+
+  q = connection_get_first_message (c);
+  if (NULL == q)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
+    return; /* Nothing to transmit */
+  }
+
+  size = q->size;
+  peer->core_transmit =
+      GNUNET_CORE_notify_transmit_ready (core_handle,
+                                         GNUNET_NO,
+                                         0,
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         GNUNET_PEER_resolve2 (peer->id),
+                                         size,
+                                         &queue_send,
+                                         peer);
 }
 
 
