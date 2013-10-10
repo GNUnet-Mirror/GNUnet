@@ -1151,6 +1151,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   msg->reserved = 0;
 
+  t->pending_messages++;
   GMC_send_prebuilt_message (&msg->header, c, ch, fwd);
 }
 

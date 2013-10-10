@@ -50,10 +50,14 @@ struct MeshPeer;
  *
  * @param cls Closure.
  * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
 typedef void (*GMP_sent) (void *cls,
-                          struct MeshConnection *c,
+                          struct MeshConnection *c, uint16_t type,
+                          int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
 
 #include "gnunet-service-mesh_connection.h"

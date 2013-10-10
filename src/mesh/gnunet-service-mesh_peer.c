@@ -768,7 +768,6 @@ static size_t
 queue_send (void *cls, size_t size, void *buf)
 {
   struct MeshPeer *peer = cls;
-  struct MeshFlowControl *fc;
   struct MeshConnection *c;
   struct GNUNET_MessageHeader *msg;
   struct MeshPeerQueue *queue;
@@ -798,7 +797,6 @@ queue_send (void *cls, size_t size, void *buf)
   }
   c = queue->c;
   fwd = queue->fwd;
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
@@ -825,7 +823,7 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
     case GNUNET_MESSAGE_TYPE_MESH_FWD:
@@ -875,14 +873,6 @@ queue_send (void *cls, size_t size, void *buf)
                 "Dropping message of type %s\n",
                 GNUNET_MESH_DEBUG_M2S (queue->type));
     data_size = 0;
-  }
-
-  if (NULL != queue->callback)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   Calling callback\n");
-    queue->callback (queue->callback_cls,
-                    queue->c,
-                    GNUNET_TIME_absolute_get_duration (queue->start_waiting));
   }
 
   /* Free queue, but cls was freed by send_core_* */
@@ -940,22 +930,13 @@ queue_send (void *cls, size_t size, void *buf)
       fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
-  if (NULL != c)
-  {
-    c->pending_messages--;
-    if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying connection!\n");
-      GMC_destroy (c);
-    }
-  }
 
   if (NULL != t)
   {
     t->pending_messages--;
     if (GNUNET_YES == t->destroy && 0 == t->pending_messages)
     {
-//       LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
       GMT_destroy (t);
     }
   }
@@ -1021,24 +1002,19 @@ void
 GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 {
   struct MeshPeer *peer;
-  struct MeshFlowControl *fc;
-  int fwd;
 
-  fwd = queue->fwd;
   peer = queue->peer;
   GNUNET_assert (NULL != queue->c);
-  fc = fwd ? &queue->c->fwd_fc : &queue->c->bck_fc;
 
   if (GNUNET_YES == clear_cls)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   queue destroy type %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   queue destroy type %s\n",
                 GNUNET_MESH_DEBUG_M2S (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL3_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
-        GNUNET_break (GNUNET_YES == queue->c->destroy);
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_FWD:
       case GNUNET_MESSAGE_TYPE_MESH_BCK:
@@ -1047,33 +1023,31 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "   prebuilt message\n");;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#   prebuilt message\n");;
         GNUNET_free_non_null (queue->cls);
         break;
 
       default:
         GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_ERROR, "   type %s unknown!\n",
+        LOG (GNUNET_ERROR_TYPE_ERROR, "#   type %s unknown!\n",
                     GNUNET_MESH_DEBUG_M2S (queue->type));
     }
-
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
 
   if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
       queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N- %p %u\n", fc, fc->queue_n);
-    fc->queue_n--;
     peer->queue_n--;
   }
-  if (NULL != queue->c)
+
+  if (NULL != queue->callback)
   {
-    queue->c->pending_messages--;
-    if (NULL != queue->c->t)
-    {
-      queue->c->t->pending_messages--;
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   Calling callback\n");
+    queue->callback (queue->callback_cls,
+                     queue->c, queue->type,
+                     queue->fwd, queue->size,
+                     GNUNET_TIME_absolute_get_duration (queue->start_waiting));
   }
 
   GNUNET_free (queue);
@@ -1124,34 +1098,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "fc %p\n", fc);
-  if (fc->queue_n >= fc->queue_max && 0 == priority)
-  {
-    GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
-                              1, GNUNET_NO);
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "queue full: %u/%u\n",
-                fc->queue_n, fc->queue_max);
-    return; /* Drop this message */
-  }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
-  if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
-  {
-    call_core = GNUNET_NO;
-    if (GNUNET_SCHEDULER_NO_TASK == fc->poll_task &&
-        GNUNET_MESSAGE_TYPE_MESH_POLL != type)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "no buffer space (%u > %u): starting poll\n",
-                  fc->last_pid_sent + 1, fc->last_ack_recv);
-      GMC_start_poll (c, fwd);
-    }
-  }
-  else
-    call_core = GNUNET_YES;
+  call_core = GMC_is_sendable (c, fwd);
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
   queue->type = type;
@@ -1181,8 +1129,6 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   else
   {
     GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
-    fc->queue_n++;
     peer->queue_n++;
   }
 
@@ -1209,9 +1155,6 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                 peer2s (peer));
 
   }
-  c->pending_messages++;
-  if (NULL != c->t)
-    c->t->pending_messages++;
 }
 
 

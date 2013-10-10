@@ -353,20 +353,25 @@ connection_change_state (struct MeshConnection* c,
  *
  * @param cls Closure.
  * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
 static void 
 message_sent (void *cls,
-              struct MeshConnection *c,
+              struct MeshConnection *c, uint16_t type,
+              int fwd, size_t size,
               struct GNUNET_TIME_Relative wait)
 {
   struct MeshConnectionPerformance *p;
-  size_t size = (size_t) cls;
+  struct MeshFlowControl *fc;
   double usecsperbyte;
 
   if (NULL == c->perf)
     return; /* Only endpoints are interested in this. */
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  message sent!\n");
   p = c->perf;
   usecsperbyte = ((double) wait.rel_value_us) / size;
   if (p->size == AVG_MSGS)
@@ -386,6 +391,16 @@ message_sent (void *cls,
     p->avg /= p->size;
   }
   p->idx = (p->idx + 1) % AVG_MSGS;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
+  fc->queue_n--;
+  c->pending_messages--;
+  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
+    GMC_destroy (c);
+  }
 }
 
 
@@ -528,8 +543,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, NULL, fwd,
-                 &message_sent,
-                 (void *) sizeof (struct GNUNET_MESH_ConnectionACK));
+                 &message_sent, NULL);
   if (MESH_TUNNEL3_NEW == GMT_get_state (t))
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
@@ -1933,9 +1947,11 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshChannel *ch,
                            int fwd)
 {
+  struct MeshFlowControl *fc;
   void *data;
   size_t size;
   uint16_t type;
+  int droppable;
 
   size = ntohs (message->size);
   data = GNUNET_malloc (size);
@@ -1944,6 +1960,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
               GNUNET_MESH_DEBUG_M2S (type), size, GNUNET_h2s (&c->id));
 
+  droppable = GNUNET_YES;
   switch (type)
   {
     struct GNUNET_MESH_Encrypted *emsg;
@@ -1972,6 +1989,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       amsg = (struct GNUNET_MESH_ACK *) data;
       amsg->cid = c->id;
       LOG (GNUNET_ERROR_TYPE_DEBUG, " ack %u\n", ntohl (amsg->ack));
+      droppable = GNUNET_NO;
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
@@ -1979,6 +1997,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       pmsg->cid = c->id;
       pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      droppable = GNUNET_NO;
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
@@ -2001,8 +2020,30 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0);
   }
 
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (fc->queue_n >= fc->queue_max && droppable)
+  {
+    GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
+                              1, GNUNET_NO);
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+                "queue full: %u/%u\n",
+                fc->queue_n, fc->queue_max);
+    return; /* Drop this message */
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
+  if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
+  {
+    GMC_start_poll (c, fwd);
+  }
+  fc->queue_n++;
+  c->pending_messages++;
+
   GMP_queue_add (get_hop (c, fwd), data, type, size, c, ch, fwd,
-                 &message_sent, (void *) size);
+                 &message_sent, NULL);
 }
 
 
@@ -2023,10 +2064,8 @@ enum MeshTunnel3State state;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
   GMP_queue_add (get_next_hop (connection), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-                 size,
-                 connection,
-                 NULL,
-                 GNUNET_YES, &message_sent, (void *) size);
+                 size, connection, NULL,
+                 GNUNET_YES, &message_sent, NULL);
   state = GMT_get_state (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
     GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
