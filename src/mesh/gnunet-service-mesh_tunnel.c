@@ -573,14 +573,17 @@ GMT_shutdown (void)
 
 /**
  * Create a tunnel.
+ *
+ * @param destination Peer this tunnel is towards.
  */
 struct MeshTunnel3 *
-GMT_new (void)
+GMT_new (struct MeshPeer *destination)
 {
   struct MeshTunnel3 *t;
 
   t = GNUNET_new (struct MeshTunnel3);
   t->next_chid = 0;
+  t->peer = destination;
 //   if (GNUNET_OK !=
 //       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
 //                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))

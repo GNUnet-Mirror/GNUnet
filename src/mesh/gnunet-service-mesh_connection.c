@@ -1023,8 +1023,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     connection_change_state (c, MESH_CONNECTION_SENT);
 
   /* Remember peers */
-  dest_peer = peer_get (&id[size - 1]);
-  orig_peer = peer_get (&id[0]);
+  dest_peer = GMP_get (&id[size - 1]);
+  orig_peer = GMP_get (&id[0]);
 
   /* Is it a connection to us? */
   if (c->own_pos == size - 1)
@@ -1032,12 +1032,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     GMP_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
-    if (NULL == orig_peer->tunnel)
-    {
-      orig_peer->tunnel = GMT_new ();
-      orig_peer->tunnel->peer = orig_peer;
-    }
-    GMT_add_connection (orig_peer->tunnel, c);
+    GMP_add_tunnel (orig_peer);
+    GMP_add_connection (orig_peer, c);
     if (MESH_TUNNEL3_NEW == GMT_get_state (c->t))
       GMT_change_state (c->t,  MESH_TUNNEL3_WAITING);
 

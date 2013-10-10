@@ -77,6 +77,30 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c);
 void
 GMP_shutdown (void);
 
+
+/**
+ * Retrieve the MeshPeer stucture associated with the peer, create one
+ * and insert it in the appropriate structures if the peer is not known yet.
+ *
+ * @param peer Full identity of the peer.
+ *
+ * @return Existing or newly created peer structure.
+ */
+struct MeshPeer *
+GMP_get (const struct GNUNET_PeerIdentity *peer_id);
+
+
+/**
+ * Retrieve the MeshPeer stucture associated with the peer, create one
+ * and insert it in the appropriate structures if the peer is not known yet.
+ *
+ * @param peer Short identity of the peer.
+ *
+ * @return Existing or newly created peer structure.
+ */
+struct MeshPeer *
+GMP_get_short (const GNUNET_PEER_Id peer);
+
 /**
  * @brief Queue and pass message to core when possible.
  *
@@ -128,6 +152,15 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
 int
 GMP_is_neighbor (const struct MeshPeer *peer);
 
+/**
+ * Create and initialize a new tunnel towards a peer, in case it has none.
+ *
+ * Does not generate any traffic, just creates the local data structures.
+ *
+ * @param peer Peer towards which to create the tunnel.
+ */
+void
+GMP_add_tunnel (struct MeshPeer *peer);
 
 /**
  * Add a connection to a neighboring peer.
@@ -142,7 +175,7 @@ GMP_is_neighbor (const struct MeshPeer *peer);
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_add_connection (struct MeshPeer *peer, const struct MeshConnection *c);
 
 /**
  * Add the path to the peer and update the path used to reach it in case this

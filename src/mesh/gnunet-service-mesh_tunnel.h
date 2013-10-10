@@ -102,6 +102,14 @@ void
 GMT_shutdown (void);
 
 /**
+ * Create a tunnel.
+ *
+ * @param destination Peer this tunnel is towards.
+ */
+struct MeshTunnel3 *
+GMT_new (struct MeshPeer *destination);
+
+/**
  * Tunnel is empty: destroy it.
  *
  * Notifies all connections about the destruction.

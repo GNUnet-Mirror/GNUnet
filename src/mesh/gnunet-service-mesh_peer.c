@@ -139,7 +139,7 @@ struct MeshPeer
     /**
      * Tunnel to this peer, if any.
      */
-  struct MeshTunnel2 *tunnel;
+  struct MeshTunnel3 *tunnel;
 
     /**
      * Connections that go through this peer, indexed by tid;
@@ -252,7 +252,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   LOG ("Peer connected\n");
   LOG ("     %s\n", GNUNET_i2s (&my_full_id));
-  pi = peer_get (peer);
+  pi = GMP_get (peer);
   if (myid == pi->id)
   {
     LOG ("     (self)\n");
@@ -461,7 +461,7 @@ static size_t
 send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
 {
   struct GNUNET_MESH_ConnectionACK *msg = buf;
-  struct MeshTunnel2 *t = c->t;
+  struct MeshTunnel3 *t = c->t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
   GNUNET_assert (NULL != t);
@@ -501,7 +501,7 @@ shutdown_tunnel (void *cls,
                  void *value)
 {
   struct MeshPeer *p = value;
-  struct MeshTunnel2 *t = p->tunnel;
+  struct MeshTunnel3 *t = p->tunnel;
 
   if (NULL != t)
     GMT_destroy (t);
@@ -647,52 +647,6 @@ peer_delete_oldest (void)
 
 
 /**
- * Retrieve the MeshPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
- *
- * @param peer Full identity of the peer.
- *
- * @return Existing or newly created peer info.
- */
-static struct MeshPeer *
-peer_get (const struct GNUNET_PeerIdentity *peer_id)
-{
-  struct MeshPeer *peer;
-
-  peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
-  if (NULL == peer)
-  {
-    peer = GNUNET_new (struct MeshPeer);
-    if (GNUNET_CONTAINER_multipeermap_size (peers) > max_peers)
-    {
-      peer_delete_oldest ();
-    }
-        GNUNET_CONTAINER_multipeermap_put (peers, peer_id, peer,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-        peer->id = GNUNET_PEER_intern (peer_id);
-  }
-    peer->last_contact = GNUNET_TIME_absolute_get();
-
-    return peer;
-}
-
-
-/**
- * Retrieve the MeshPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
- *
- * @param peer Short identity of the peer.
- *
- * @return Existing or newly created peer info.
- */
-static struct MeshPeer *
-peer_get_short (const GNUNET_PEER_Id peer)
-{
-  return peer_get (GNUNET_PEER_resolve2 (peer));
-}
-
-
-/**
  * Get a cost of a path for a peer considering existing tunnel connections.
  *
  * @param peer Peer towards which the path is considered.
@@ -818,7 +772,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct MeshConnection *c;
   struct GNUNET_MessageHeader *msg;
   struct MeshPeerQueue *queue;
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
   struct MeshChannel *ch;
   const struct GNUNET_PeerIdentity *dst_id;
   size_t data_size;
@@ -1434,6 +1388,50 @@ GMP_shutdown (void)
   GNUNET_PEER_change_rc (myid, -1);
 }
 
+/**
+ * Retrieve the MeshPeer stucture associated with the peer, create one
+ * and insert it in the appropriate structures if the peer is not known yet.
+ *
+ * @param peer Full identity of the peer.
+ *
+ * @return Existing or newly created peer structure.
+ */
+struct MeshPeer *
+GMP_get (const struct GNUNET_PeerIdentity *peer_id)
+{
+  struct MeshPeer *peer;
+
+  peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
+  if (NULL == peer)
+  {
+    peer = GNUNET_new (struct MeshPeer);
+    if (GNUNET_CONTAINER_multipeermap_size (peers) > max_peers)
+    {
+      peer_delete_oldest ();
+    }
+        GNUNET_CONTAINER_multipeermap_put (peers, peer_id, peer,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+        peer->id = GNUNET_PEER_intern (peer_id);
+  }
+    peer->last_contact = GNUNET_TIME_absolute_get();
+
+    return peer;
+}
+
+
+/**
+ * Retrieve the MeshPeer stucture associated with the peer, create one
+ * and insert it in the appropriate structures if the peer is not known yet.
+ *
+ * @param peer Short identity of the peer.
+ *
+ * @return Existing or newly created peer structure.
+ */
+struct MeshPeer *
+GMP_get_short (const GNUNET_PEER_Id peer)
+{
+  return GMP_get (GNUNET_PEER_resolve2 (peer));
+}
 
 /**
  * Try to establish a new connection to this peer in the given tunnel.
@@ -1445,7 +1443,7 @@ GMP_shutdown (void)
 void
 GMP_connect (struct MeshPeer *peer)
 {
-  struct MeshTunnel2 *t;
+  struct MeshTunnel3 *t;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
   int rerun_search;
@@ -1520,7 +1518,7 @@ GMP_connect (struct MeshPeer *peer)
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel2 *t)
+GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
 {
   peer->tunnel = t;
 }
@@ -1549,6 +1547,22 @@ GMP_is_neighbor (const struct MeshPeer *peer)
 
   GNUNET_break (0); /* Is not a neighbor but connections is not NULL */
   return GNUNET_NO;
+}
+
+
+/**
+ * Create and initialize a new tunnel towards a peer, in case it has none.
+ *
+ * Does not generate any traffic, just creates the local data structures.
+ *
+ * @param peer Peer towards which to create the tunnel.
+ */
+void
+GMP_add_tunnel (struct MeshPeer *peer)
+{
+  if (NULL != peer->tunnel)
+    return;
+  peer->tunnel = GMT_new (peer);
 }
 
 
@@ -1707,7 +1721,7 @@ GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed)
     struct MeshPeer *aux;
     struct MeshPeerPath *copy;
 
-    aux = peer_get_short (p->peers[i]);
+    aux = GMP_get_short (p->peers[i]);
     copy = path_duplicate (p);
     copy->length = i + 1;
     GMP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
