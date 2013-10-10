@@ -102,6 +102,16 @@ struct MeshPeer *
 GMP_get_short (const GNUNET_PEER_Id peer);
 
 /**
+ * Try to establish a new connection to this peer (in its tunnel).
+ * If the peer doesn't have any path to it yet, try to get one.
+ * If the peer already has some path, send a CREATE CONNECTION towards it.
+ *
+ * @param peer Peer to connect to.
+ */
+void
+GMP_connect (struct MeshPeer *peer);
+
+/**
  * @brief Queue and pass message to core when possible.
  *
  * @param cls Closure (@c type dependant). It will be used by queue_send to
@@ -175,7 +185,7 @@ GMP_add_tunnel (struct MeshPeer *peer);
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct MeshPeer *peer, const struct MeshConnection *c);
+GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
 
 /**
  * Add the path to the peer and update the path used to reach it in case this

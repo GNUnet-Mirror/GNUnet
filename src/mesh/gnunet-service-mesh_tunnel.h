@@ -222,6 +222,19 @@ void
 GMT_send_queued_data (struct MeshTunnel3 *t, int fwd);
 
 /**
+ * @brief Use the given path for the tunnel.
+ * Update the next and prev hops (and RCs).
+ * (Re)start the path refresh in case the tunnel is locally owned.
+ *
+ * @param t Tunnel to update.
+ * @param p Path to use.
+ *
+ * @return Connection created.
+ */
+struct MeshConnection *
+GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p);
+
+/**
  * Count established (ready) connections of a tunnel.
  *
  * @param t Tunnel on which to count.

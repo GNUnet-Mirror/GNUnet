@@ -397,6 +397,15 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            int fwd);
 
 /**
+ * Sends a CREATE CONNECTION message for a path to a peer.
+ * Changes the connection and tunnel states if necessary.
+ *
+ * @param connection Connection to create.
+ */
+void
+GMC_send_create (struct MeshConnection *connection);
+
+/**
  * Send a message to all peers in this connection that the connection
  * is no longer valid.
  *

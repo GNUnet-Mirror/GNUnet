@@ -732,7 +732,7 @@ peer_get_best_path (const struct MeshPeer *peer)
  * @param path
  */
 static void
-search_handler (void *cls, struct MeshPeerPath *path)
+search_handler (void *cls, const struct MeshPeerPath *path)
 {
   struct MeshPeer *peer = cls;
   unsigned int connection_count;
@@ -1299,7 +1299,7 @@ GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
     return; /* Already unlocked */
   }
 
-  q = connection_get_first_message (c);
+  q = connection_get_first_message (peer, c);
   if (NULL == q)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  queue empty!\n");
@@ -1433,12 +1433,13 @@ GMP_get_short (const GNUNET_PEER_Id peer)
   return GMP_get (GNUNET_PEER_resolve2 (peer));
 }
 
+
 /**
- * Try to establish a new connection to this peer in the given tunnel.
+ * Try to establish a new connection to this peer (in its tunnel).
  * If the peer doesn't have any path to it yet, try to get one.
  * If the peer already has some path, send a CREATE CONNECTION towards it.
  *
- * @param peer PeerInfo of the peer.
+ * @param peer Peer to connect to.
  */
 void
 GMP_connect (struct MeshPeer *peer)
@@ -1462,7 +1463,7 @@ GMP_connect (struct MeshPeer *peer)
     if (NULL != p)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
-      c = tunnel_use_path (t, p);
+      c = GMT_use_path (t, p);
       if (NULL == c)
       {
         /* This case can happen when the path includes a first hop that is
@@ -1482,7 +1483,7 @@ GMP_connect (struct MeshPeer *peer)
       }
       else
       {
-        send_connection_create (c);
+        GMC_send_create (c);
         return;
       }
     }
@@ -1505,7 +1506,7 @@ GMP_connect (struct MeshPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", peer2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
-    if (MESH_TUNNEL3_NEW == t->state)
+    if (MESH_TUNNEL3_NEW == GMT_get_state (t))
       GMT_change_state (t, MESH_TUNNEL3_SEARCHING);
   }
 }
@@ -1580,7 +1581,7 @@ GMP_add_tunnel (struct MeshPeer *peer)
  */
 int
 GMP_add_connection (struct MeshPeer *peer,
-                    const struct MeshConnection *c)
+                    struct MeshConnection *c)
 {
   if (NULL == peer->connections)
   {

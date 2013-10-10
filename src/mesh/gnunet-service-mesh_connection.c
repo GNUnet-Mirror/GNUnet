@@ -480,35 +480,6 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 
 
 /**
- * Sends a CREATE CONNECTION message for a path to a peer.
- * Changes the connection and tunnel states if necessary.
- *
- * @param connection Connection to create.
- */
-static void
-send_connection_create (struct MeshConnection *connection)
-{
-enum MeshTunnel3State state;
-  size_t size;
-
-  size = sizeof (struct GNUNET_MESH_ConnectionCreate);
-  size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  GMP_queue_add (NULL,
-                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-                 size,
-                 connection,
-                 NULL,
-                 GNUNET_YES, &message_sent, (void *) size);
-  state = GMT_get_state (connection->t);
-  if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
-    GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
-  if (MESH_CONNECTION_NEW == connection->state)
-    connection_change_state (connection, MESH_CONNECTION_SENT);
-}
-
-
-/**
  * Send keepalive packets for a connection.
  *
  * @param c Connection to keep alive..
@@ -2033,6 +2004,35 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   GMP_queue_add (data, type, size, c, ch, fwd, &message_sent, (void *) size);
+}
+
+
+/**
+ * Sends a CREATE CONNECTION message for a path to a peer.
+ * Changes the connection and tunnel states if necessary.
+ *
+ * @param connection Connection to create.
+ */
+void
+GMC_send_create (struct MeshConnection *connection)
+{
+enum MeshTunnel3State state;
+  size_t size;
+
+  size = sizeof (struct GNUNET_MESH_ConnectionCreate);
+  size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
+  GMP_queue_add (NULL,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+                 size,
+                 connection,
+                 NULL,
+                 GNUNET_YES, &message_sent, (void *) size);
+  state = GMT_get_state (connection->t);
+  if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
+    GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
+  if (MESH_CONNECTION_NEW == connection->state)
+    GMC_change_state (connection, MESH_CONNECTION_SENT);
 }
 
 
