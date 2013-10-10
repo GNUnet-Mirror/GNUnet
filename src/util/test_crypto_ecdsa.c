@@ -19,8 +19,8 @@
 
 */
 /**
- * @file util/test_crypto_ecc.c
- * @brief testcase for ECC public key crypto
+ * @file util/test_crypto_ecdsa.c
+ * @brief testcase for ECC ECDSA public key crypto
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -30,26 +30,24 @@
 
 #define ITER 25
 
-#define KEYFILE "/tmp/test-gnunet-crypto-ecc.key"
-
 #define PERF GNUNET_YES
 
 
-static struct GNUNET_CRYPTO_EccPrivateKey *key;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *key;
 
 
 static int
 testSignVerify ()
 {
-  struct GNUNET_CRYPTO_EccSignature sig;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
 
   FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
@@ -57,30 +55,32 @@ testSignVerify ()
   for (i = 0; i < ITER; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_sign (key, &purp, &sig))
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_sign returned SYSERR\n");
+      FPRINTF (stderr,
+               "%s",
+               "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }
     if (GNUNET_SYSERR ==
-        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
-                                  &pkey))
+        GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST, &purp, &sig,
+                                    &pkey))
     {
-      printf ("GNUNET_CRYPTO_ecc_verify failed!\n");
+      printf ("GNUNET_CRYPTO_ecdsa_verify failed!\n");
       ok = GNUNET_SYSERR;
       continue;
     }
     if (GNUNET_SYSERR !=
-        GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                  &purp, &sig, &pkey))
+        GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                    &purp, &sig, &pkey))
     {
-      printf ("GNUNET_CRYPTO_ecc_verify failed to fail!\n");
+      printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
       ok = GNUNET_SYSERR;
       continue;
     }
   }
-  printf ("%d ECC sign/verify operations %s\n", ITER,
+  printf ("%d ECDSA sign/verify operations %s\n", ITER,
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
   return ok;
 }
@@ -89,47 +89,47 @@ testSignVerify ()
 static int
 testDeriveSignVerify ()
 {
-  struct GNUNET_CRYPTO_EccSignature sig;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
-  struct GNUNET_CRYPTO_EccPrivateKey *dpriv;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
-  struct GNUNET_CRYPTO_EccPublicSignKey dpub;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *dpriv;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+  struct GNUNET_CRYPTO_EcdsaPublicKey dpub;
 
-  dpriv = GNUNET_CRYPTO_ecc_key_derive (key, "test-derive", "test-CTX");
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
-  GNUNET_CRYPTO_ecc_public_key_derive (&pkey, "test-derive", "test-CTX", &dpub);
+  dpriv = GNUNET_CRYPTO_ecdsa_private_key_derive (key, "test-derive", "test-CTX");
+  GNUNET_CRYPTO_ecdsa_key_get_public (key, &pkey);
+  GNUNET_CRYPTO_ecdsa_public_key_derive (&pkey, "test-derive", "test-CTX", &dpub);
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
 
-  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_sign (dpriv, &purp, &sig))
+  if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (dpriv, &purp, &sig))
   {
-    FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_sign returned SYSERR\n");
+    FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
-				&purp, &sig,
-				&dpub))
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                  &purp, &sig,
+                                  &dpub))
   {
-    printf ("GNUNET_CRYPTO_ecc_verify failed!\n");
+    printf ("GNUNET_CRYPTO_ecdsa_verify failed!\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
-				&purp, &sig,
-				&pkey))
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TEST,
+                                  &purp, &sig,
+                                  &pkey))
   {
-    printf ("GNUNET_CRYPTO_ecc_verify failed to fail!\n");
+    printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
   if (GNUNET_SYSERR !=
-      GNUNET_CRYPTO_ecc_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-				&purp, &sig, &dpub))
+      GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
+                                  &purp, &sig, &dpub))
   {
-    printf ("GNUNET_CRYPTO_ecc_verify failed to fail!\n");
+    printf ("GNUNET_CRYPTO_ecdsa_verify failed to fail!\n");
     GNUNET_free (dpriv);
     return GNUNET_SYSERR;
   }
@@ -138,15 +138,13 @@ testDeriveSignVerify ()
 }
 
 
-
-
 #if PERF
 static int
 testSignPerformance ()
 {
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
-  struct GNUNET_CRYPTO_EccSignature sig;
-  struct GNUNET_CRYPTO_EccPublicSignKey pkey;
+  struct GNUNET_CRYPTO_EcdsaSignature sig;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   int i;
   struct GNUNET_TIME_Absolute start;
   int ok = GNUNET_OK;
@@ -154,14 +152,15 @@ testSignPerformance ()
   purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TEST);
   FPRINTF (stderr, "%s",  "W");
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &pkey);
+  GNUNET_CRYPTO_ecdsa_key_get_public (key, &pkey);
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
     FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecc_sign (key, &purp, &sig))
+    if (GNUNET_SYSERR == GNUNET_CRYPTO_ecdsa_sign (key, &purp, &sig))
     {
-      FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_ecc_sign returned SYSERR\n");
+      FPRINTF (stderr, "%s",
+               "GNUNET_CRYPTO_ecdsa_sign returned SYSERR\n");
       ok = GNUNET_SYSERR;
       continue;
     }
@@ -174,70 +173,22 @@ testSignPerformance ()
 #endif
 
 
-static int
-testCreateFromFile ()
-{
-  struct GNUNET_CRYPTO_EccPublicSignKey p1;
-  struct GNUNET_CRYPTO_EccPublicSignKey p2;
-
-  key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p1);
-  GNUNET_free (key);
-  key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p2);
-  GNUNET_assert (0 == memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_free (key);
-  GNUNET_assert (0 == UNLINK (KEYFILE));
-  key = GNUNET_CRYPTO_ecc_key_create_from_file (KEYFILE);
-  GNUNET_assert (NULL != key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (key, &p2);
-  GNUNET_assert (0 != memcmp (&p1, &p2, sizeof (p1)));
-  GNUNET_free (key);
-  return GNUNET_OK;
-}
-
-
-static void
-test_ecdh ()
-{
-  struct GNUNET_CRYPTO_EccPrivateKey *priv1;
-  struct GNUNET_CRYPTO_EccPrivateKey *priv2;
-  struct GNUNET_CRYPTO_EccPublicEncryptKey pub1;
-  struct GNUNET_CRYPTO_EccPublicEncryptKey pub2;
-  struct GNUNET_HashCode ecdh1;
-  struct GNUNET_HashCode ecdh2;
-
-  priv1 = GNUNET_CRYPTO_ecc_key_create ();
-  priv2 = GNUNET_CRYPTO_ecc_key_create ();
-  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (priv1, &pub1);
-  GNUNET_CRYPTO_ecc_key_get_public_for_encryption (priv2, &pub2);
-  GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &ecdh1);
-  GNUNET_CRYPTO_ecc_ecdh (priv2, &pub1, &ecdh2);
-  GNUNET_assert (0 == memcmp (&ecdh1, &ecdh2,
-			      sizeof (struct GNUNET_HashCode)));
-  GNUNET_free (priv1);
-  GNUNET_free (priv2);
-}
-
-
 static void
 perf_keygen ()
 {
   struct GNUNET_TIME_Absolute start;
-  struct GNUNET_CRYPTO_EccPrivateKey *pk;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *pk;
   int i;
 
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
     fprintf (stderr, ".");
-    pk = GNUNET_CRYPTO_ecc_key_create ();
+    pk = GNUNET_CRYPTO_ecdsa_key_create ();
     GNUNET_free (pk);
   }
   fprintf (stderr, "\n");
-  printf ("Creating 10 ECC keys took %s\n",
+  printf ("Creating 10 ECDSA keys took %s\n",
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
 }
 
@@ -256,7 +207,7 @@ main (int argc, char *argv[])
     return 0;
   }
   GNUNET_log_setup ("test-crypto-ecc", "WARNING", NULL);
-  key = GNUNET_CRYPTO_ecc_key_create ();
+  key = GNUNET_CRYPTO_ecdsa_key_create ();
   if (GNUNET_OK != testDeriveSignVerify ())
   {
     failure_count++;
@@ -271,10 +222,6 @@ main (int argc, char *argv[])
   if (GNUNET_OK != testSignVerify ())
     failure_count++;
   GNUNET_free (key);
-  if (GNUNET_OK != testCreateFromFile ())
-    failure_count++;
-  GNUNET_assert (0 == UNLINK (KEYFILE));
-  test_ecdh ();
   perf_keygen ();
 
   if (0 != failure_count)
@@ -287,4 +234,4 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of test_crypto_ecc.c */
+/* end of test_crypto_ecdsa.c */
