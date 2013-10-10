@@ -40,7 +40,7 @@ uint32_t GSE_node_capabilities;
 /**
  * Capabilities defined at the moment
  */
-#define GNUNET_EXPERIMENTATION_capabilities_count 11;
+#define GNUNET_EXPERIMENTATION_capabilities_count 11
 
 
 /**
@@ -71,7 +71,7 @@ GED_capability_to_str (uint32_t cap)
 	if (test != cap)
 		return "UNDEFINED";
 
-	if (index <= 11)
+	if (index < GNUNET_EXPERIMENTATION_capabilities_count)
 		return capstr[index];
 	else
 	 return "UNDEFINED";
