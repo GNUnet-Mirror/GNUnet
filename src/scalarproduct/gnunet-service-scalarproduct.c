@@ -693,25 +693,25 @@ find_matching_session (struct ServiceSession * tail,
 }
 
 static void
-free_session (struct ServiceSession * session)
+free_session_variables (struct ServiceSession * session)
 {
   unsigned int i;
 
   if (session->a){
     for (i = 0; i < session->used; i++)
       if (session->a[i]) gcry_mpi_release (session->a[i]);
-    GNUNET_free_non_null (session->a);
+    GNUNET_free (session->a);
   }
   GNUNET_free_non_null (session->mask);
   if (session->r){
     for (i = 0; i < session->used; i++)
       if (session->r[i]) gcry_mpi_release (session->r[i]);
-    GNUNET_free_non_null(session->r);
+    GNUNET_free(session->r);
   }
   if (session->r_prime){
     for (i = 0; i < session->used; i++)
       if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
-    GNUNET_free_non_null(session->r_prime);
+    GNUNET_free(session->r_prime);
   }
   if (session->s)
     gcry_mpi_release (session->s);
@@ -724,7 +724,6 @@ free_session (struct ServiceSession * session)
     gcry_sexp_release (session->remote_pubkey);
 
   GNUNET_free_non_null (session->vector);
-  GNUNET_free (session);
 }
 ///////////////////////////////////////////////////////////////////////////////
 //                      Event and Message Handlers
@@ -774,7 +773,8 @@ handle_client_disconnect (void *cls,
     GNUNET_SERVER_notify_transmit_ready_cancel (session->client_transmit_handle);
     session->client_transmit_handle = NULL;
   }
-  free_session (session);
+  free_session_variables (session);
+  GNUNET_free (session);
 }
 
 /**
@@ -1493,7 +1493,8 @@ handle_client_request (void *cls,
   else if (NULL != session) {
     // old session is already completed, clean it up
     GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
-    free_session (session);
+    free_session_variables (session);
+    GNUNET_free (session);
   }
 
   //we need at least a peer and one message id to compare
@@ -1715,7 +1716,8 @@ tunnel_destruction_handler (void *cls,
                                             &session->key,
                                             session->total,
                                             NULL, NULL);
-    free_session (session);
+    free_session_variables (session);
+    GNUNET_free (session);
 
     // the client has to check if it was waiting for a result
     // or if it was a responder, no point in adding more statefulness
@@ -1931,6 +1933,7 @@ handle_service_request_multipart (void *cls,
   uint32_t contained_elements=0;
   uint32_t msg_length;
   unsigned char * current;
+  gcry_error_t rc;
   int32_t i = -1;
  
   // are we in the correct state?
@@ -1953,19 +1956,15 @@ handle_service_request_multipart (void *cls,
   }
   current = (unsigned char *) &msg[1];
   if (contained_elements != 0) {
-    gcry_error_t ret = 0;
     // Convert each vector element to MPI_value
     for (i = session->transferred; i < session->transferred+contained_elements; i++) {
       size_t read = 0;
-
-      ret = gcry_mpi_scan (&session->a[i],
+      if (0 != (rc = gcry_mpi_scan (&session->a[i],
                            GCRYMPI_FMT_USG,
                            &current[i * PAILLIER_ELEMENT_LENGTH],
                            PAILLIER_ELEMENT_LENGTH,
-                           &read);
-      if (ret) {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate E[a%d] to MPI!\n%s/%s\n"),
-                    i, gcry_strsource (ret), gcry_strerror (ret));
+                           &read))) {
+        LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
         goto except;
       }
     }
@@ -1978,7 +1977,6 @@ handle_service_request_multipart (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
         if (GNUNET_OK != compute_service_response (session, session->response)) {
           //something went wrong, remove it again...
-          GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
           goto except;
         }
       }
@@ -1999,7 +1997,8 @@ except:
     session->response->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     session->response);
-  free_session (session);
+  free_session_variables (session);
+  GNUNET_free (session);
   return GNUNET_SYSERR;
 }
 
@@ -2030,6 +2029,7 @@ handle_service_request (void *cls,
   uint32_t element_count;
   uint32_t msg_length;
   unsigned char * current;
+  gcry_error_t rc;
   int32_t i = -1;
   enum SessionState needed_state;
 
@@ -2091,15 +2091,13 @@ handle_service_request (void *cls,
   current += mask_length;
 
   //convert the publickey to sexp
-  if (gcry_sexp_new (&session->remote_pubkey, current, pk_length, 1)) {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate remote public key to sexpression!\n"));
+  if (0 != (rc = gcry_sexp_new (&session->remote_pubkey, current, pk_length, 1))) {
+    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_sexp_new", rc);
     GNUNET_free (session->mask);
     GNUNET_free (session);
     return GNUNET_SYSERR;
   }
-
   current += pk_length;
-
   //check if service queue contains a matching request
   needed_state = CLIENT_RESPONSE_RECEIVED;
   session->response = find_matching_session (from_client_tail,
@@ -2109,25 +2107,20 @@ handle_service_request (void *cls,
 
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION; 
+  GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, session);
   if (contained_elements != 0) {
-    gcry_error_t ret = 0;
     // Convert each vector element to MPI_value
     for (i = 0; i < contained_elements; i++) {
       size_t read = 0;
-
-      ret = gcry_mpi_scan (&session->a[i],
+      if (0 != (rc = gcry_mpi_scan (&session->a[i],
                            GCRYMPI_FMT_USG,
                            &current[i * PAILLIER_ELEMENT_LENGTH],
                            PAILLIER_ELEMENT_LENGTH,
-                           &read);
-      if (ret) {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not translate E[a%d] to MPI!\n%s/%s\n"),
-                    i, gcry_strsource (ret), gcry_strerror (ret));
+                           &read))) {
+        LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
         goto invalid_msg;
       }
     }
-    GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, session);
-    
     if (contained_elements == used_elements) {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
@@ -2135,7 +2128,6 @@ handle_service_request (void *cls,
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
         if (GNUNET_OK != compute_service_response (session, session->response)) {
           //something went wrong, remove it again...
-          GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
           goto invalid_msg;
         }
       }
@@ -2149,13 +2141,15 @@ handle_service_request (void *cls,
   return GNUNET_OK;
 invalid_msg:
   GNUNET_break_op (0);
+  if ((NULL != session->next) || (NULL != session->prev) || (from_service_head == session))
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
   // and notify our client-session that we could not complete the session
   if (session->response)
     // we just found the responder session in this queue
     session->response->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     session->response);
-  free_session (session);
+  free_session_variables (session);
   return GNUNET_SYSERR;
 }
 
@@ -2190,8 +2184,7 @@ handle_service_response_multipart (void *cls,
   // are we in the correct state?
   session = (struct ServiceSession *) * tunnel_ctx;
   if ((ALICE != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
+    goto invalid_msg;
   }
   // shorter than minimum?
   if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
@@ -2210,14 +2203,12 @@ handle_service_response_multipart (void *cls,
     if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
     if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
                                   PAILLIER_ELEMENT_LENGTH, &read))) {
       LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      GNUNET_break_op (0);
       goto invalid_msg;
     }
     current += PAILLIER_ELEMENT_LENGTH;
@@ -2231,32 +2222,14 @@ handle_service_response_multipart (void *cls,
   
 invalid_msg:
   GNUNET_break_op (0);
-  if (session->s)
-    gcry_mpi_release (session->s);
-  if (session->s_prime)
-    gcry_mpi_release (session->s_prime);
-  if (session->r)
-    for (i = 0; session->r && i < session->used; i++)
-      if (session->r[i]) gcry_mpi_release (session->r[i]);
-  if (session->r_prime)
-    for (i = 0; session->r_prime && i < session->used; i++)
-      if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
-  if (session->a)
-    for (i = 0; session->a && i < session->used; i++)
-      if (session->a[i]) gcry_mpi_release (session->a[i]);
-  GNUNET_free_non_null (session->r);
-  GNUNET_free_non_null (session->r_prime);
-  GNUNET_free_non_null (session->a);
-  session->a = NULL;
-  session->s = NULL;
-  session->s_prime = NULL;
-  session->r = NULL;
-  session->r_prime = NULL;
+  free_session_variables (session);
+  session->state = FINALIZED;
   session->tunnel = NULL;
   // send message with product to client
-  session->client_notification_task =
-          GNUNET_SCHEDULER_add_now (&prepare_client_response,
-                                    session);
+  if (ALICE == session->role)
+        session->client_notification_task =
+                GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                          session);
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   // just close the connection, as recommended by Christian
@@ -2351,30 +2324,12 @@ handle_service_response (void *cls,
 
 invalid_msg:
   GNUNET_break_op (0);
-  if (session->s)
-    gcry_mpi_release (session->s);
-  if (session->s_prime)
-    gcry_mpi_release (session->s_prime);
-  if (session->r)
-    for (i = 0; session->r && i < session->used; i++)
-      if (session->r[i]) gcry_mpi_release (session->r[i]);
-  if (session->r_prime)
-    for (i = 0; session->r_prime && i < session->used; i++)
-      if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
-  if (session->a)
-    for (i = 0; session->a && i < session->used; i++)
-      if (session->a[i]) gcry_mpi_release (session->a[i]);
-  GNUNET_free_non_null (session->r);
-  GNUNET_free_non_null (session->r_prime);
-  GNUNET_free_non_null (session->a);
-  session->a = NULL;
-  session->s = NULL;
-  session->s_prime = NULL;
-  session->r = NULL;
-  session->r_prime = NULL;
+  free_session_variables (session);
+  session->state = FINALIZED;
   session->tunnel = NULL;
   // send message with product to client
-  session->client_notification_task =
+  if (ALICE == session->role)
+    session->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     session);
   // the tunnel has done its job, terminate our connection and the tunnel
