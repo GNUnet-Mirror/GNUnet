@@ -1083,6 +1083,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
 /**
  * @brief Queue and pass message to core when possible.
  *
+ * @param peer Peer towards which to queue the message.
  * @param cls Closure (@c type dependant). It will be used by queue_send to
  *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
@@ -1090,19 +1091,15 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
  * @param c Connection this message belongs to (cannot be NULL).
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param callback Function to be called once CORE has taken the message.
- * @param callback_cls Closure for @c callback.
+ * @param cont Continuation to be called once CORE has taken the message.
+ * @param cont_cls Closure for @c cont.
  */
 void
-GMP_queue_add (void *cls, uint16_t type, size_t size,
-               struct MeshConnection *c,
-               struct MeshChannel *ch,
-               int fwd,
-               GMP_sent callback, void *callback_cls)
+GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
+               struct MeshConnection *c, struct MeshChannel *ch, int fwd,
+               GMP_sent cont, void *cont_cls)
 {
   struct MeshPeerQueue *queue;
-  struct MeshFlowControl *fc;
-  struct MeshPeer *peer;
   int priority;
   int call_core;
 
@@ -1110,15 +1107,6 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
               "queue add %s %s (%u) on c %p, ch %p\n",
               fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
   GNUNET_assert (NULL != c);
-
-  fc   = fwd ? &c->fwd_fc : &c->bck_fc;
-  peer = fwd ? connection_get_next_hop (c) : connection_get_prev_hop (c);
-
-  if (NULL == fc)
-  {
-    GNUNET_break (0);
-    return;
-  }
 
   if (NULL == peer->connections)
   {
@@ -1172,8 +1160,8 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
   queue->c = c;
   queue->ch = ch;
   queue->fwd = fwd;
-  queue->callback = callback;
-  queue->callback_cls = callback_cls;
+  queue->callback = cont;
+  queue->callback_cls = cont_cls;
   if (100 <= priority)
   {
     struct MeshPeerQueue *copy;

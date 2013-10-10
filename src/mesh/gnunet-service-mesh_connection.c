@@ -389,6 +389,64 @@ message_sent (void *cls,
 }
 
 
+/**
+ * Get the previous hop in a connection
+ *
+ * @param c Connection.
+ *
+ * @return Previous peer in the connection.
+ */
+static struct MeshPeer *
+get_prev_hop (struct MeshConnection *c)
+{
+  GNUNET_PEER_Id id;
+
+  if (0 == c->own_pos || c->path->length < 2)
+    id = c->path->peers[0];
+  else
+    id = c->path->peers[c->own_pos - 1];
+
+  return GMP_get_short (id);
+}
+
+
+/**
+ * Get the next hop in a connection
+ *
+ * @param c Connection.
+ *
+ * @return Next peer in the connection.
+ */
+static struct MeshPeer *
+get_next_hop (struct MeshConnection *c)
+{
+  GNUNET_PEER_Id id;
+
+  if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
+    id = c->path->peers[c->path->length - 1];
+  else
+    id = c->path->peers[c->own_pos + 1];
+
+  return GMP_get_short (id);
+}
+
+
+/**
+ * Get the hop in a connection.
+ *
+ * @param c Connection.
+ * @param fwd Next hop?
+ *
+ * @return Next peer in the connection.
+ */
+static struct MeshPeer *
+get_hop (struct MeshConnection *c, int fwd)
+{
+  if (fwd)
+    return get_next_hop (c);
+  return get_prev_hop (c);
+}
+
 
 /**
  * Send an ACK informing the predecessor about the available buffer space.
@@ -466,7 +524,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection ack\n");
-  GMP_queue_add (NULL,
+  GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, NULL, fwd,
@@ -590,66 +648,6 @@ connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 }
 
 
-
-/**
- * Get the previous hop in a connection
- *
- * @param c Connection.
- *
- * @return Previous peer in the connection.
- */
-static struct MeshPeer *
-connection_get_prev_hop (struct MeshConnection *c)
-{
-  GNUNET_PEER_Id id;
-
-  if (0 == c->own_pos || c->path->length < 2)
-    id = c->path->peers[0];
-  else
-    id = c->path->peers[c->own_pos - 1];
-
-  return peer_get_short (id);
-}
-
-
-/**
- * Get the next hop in a connection
- *
- * @param c Connection.
- *
- * @return Next peer in the connection.
- */
-static struct MeshPeer *
-connection_get_next_hop (struct MeshConnection *c)
-{
-  GNUNET_PEER_Id id;
-
-  if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
-    id = c->path->peers[c->path->length - 1];
-  else
-    id = c->path->peers[c->own_pos + 1];
-
-  return peer_get_short (id);
-}
-
-
-/**
- * Get the hop in a connection.
- *
- * @param c Connection.
- * @param fwd Next hop?
- *
- * @return Next peer in the connection.
- */
-static struct MeshPeer *
-connection_get_hop (struct MeshConnection *c, int fwd)
-{
-  if (fwd)
-    return connection_get_next_hop (c);
-  return connection_get_prev_hop (c);
-}
-
-
 /**
  * @brief Re-initiate traffic on this connection if necessary.
  *
@@ -675,7 +673,7 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
     return;
   }
 
-  peer = connection_get_hop (c, fwd);
+  peer = get_hop (c, fwd);
   GMP_queue_unlock (peer, c);
 }
 
@@ -699,7 +697,7 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
     return;
   }
 
-  peer = connection_get_hop (c, fwd);
+  peer = get_hop (c, fwd);
   GMP_queue_cancel (peer, c);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -855,14 +853,14 @@ register_neighbors (struct MeshConnection *c)
 {
   struct MeshPeer *peer;
 
-  peer = connection_get_next_hop (c);
+  peer = get_next_hop (c);
   if (GNUNET_NO == GMP_is_neighbor (peer))
   {
     GMC_destroy (c);
     return;
   }
   GMP_add_connection (peer, c);
-  peer = connection_get_prev_hop (c);
+  peer = get_prev_hop (c);
   if (GNUNET_NO == GMP_is_neighbor (peer))
   {
     GMC_destroy (c);
@@ -882,10 +880,10 @@ unregister_neighbors (struct MeshConnection *c)
 {
   struct MeshPeer *peer;
 
-  peer = connection_get_next_hop (c);
+  peer = get_next_hop (c);
   GMP_remove_connection (peer, c);
 
-  peer = connection_get_prev_hop (c);
+  peer = get_prev_hop (c);
   GMP_remove_connection (peer, c);
 
 }
@@ -1065,14 +1063,14 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
               GNUNET_i2s (peer));
   pi = peer_get (peer);
-  if (connection_get_next_hop (c) == pi)
+  if (get_next_hop (c) == pi)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
     fwd = GNUNET_NO;
     if (MESH_CONNECTION_SENT == c->state)
       connection_change_state (c, MESH_CONNECTION_ACK);
   }
-  else if (connection_get_prev_hop (c) == pi)
+  else if (get_prev_hop (c) == pi)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
     fwd = GNUNET_YES;
@@ -1198,9 +1196,9 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   id = GNUNET_PEER_search (peer);
-  if (id == GMP_get_short_id (connection_get_prev_hop (c)))
+  if (id == GMP_get_short_id (get_prev_hop (c)))
     fwd = GNUNET_YES;
-  else if (id == GMP_get_short_id (connection_get_next_hop (c)))
+  else if (id == GMP_get_short_id (get_next_hop (c)))
     fwd = GNUNET_NO;
   else
   {
@@ -1263,7 +1261,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   /* Check if origin is as expected */
-  neighbor = connection_get_hop (c, !fwd);
+  neighbor = get_hop (c, !fwd);
   if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
   {
     GNUNET_break_op (0);
@@ -1413,13 +1411,13 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Is this a forward or backward ACK? */
   id = GNUNET_PEER_search (peer);
-  if (GMP_get_short_id (connection_get_next_hop (c)) == id)
+  if (GMP_get_short_id (get_next_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
     fwd = GNUNET_YES;
   }
-  else if (GMP_get_short_id (connection_get_prev_hop (c)) == id)
+  else if (GMP_get_short_id (get_prev_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
@@ -1496,12 +1494,12 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
    * this way of discerining FWD/BCK should not be a problem.
    */
   id = GNUNET_PEER_search (peer);
-  if (GMP_get_short_id (connection_get_next_hop (c)) == id)
+  if (GMP_get_short_id (get_next_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
   }
-  else if (GMP_get_short_id (connection_get_prev_hop (c)) == id)
+  else if (GMP_get_short_id (get_prev_hop (c)) == id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
@@ -1559,7 +1557,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_YES : GNUNET_NO;
 
   /* Check if origin is as expected */
-  neighbor = connection_get_hop (c, fwd);
+  neighbor = get_hop (c, fwd);
   if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
   {
     GNUNET_break_op (0);
@@ -1843,7 +1841,7 @@ GMC_notify_broken (struct MeshConnection *c,
   struct GNUNET_MESH_ConnectionBroken msg;
   int fwd;
 
-  fwd = peer == connection_get_prev_hop (c);
+  fwd = peer == get_prev_hop (c);
 
   connection_cancel_queues (c, !fwd);
   if (GMC_is_terminal (c, fwd))
@@ -2003,7 +2001,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0);
   }
 
-  GMP_queue_add (data, type, size, c, ch, fwd, &message_sent, (void *) size);
+  GMP_queue_add (get_hop (c, fwd), data, type, size, c, ch, fwd,
+                 &message_sent, (void *) size);
 }
 
 
@@ -2022,7 +2021,7 @@ enum MeshTunnel3State state;
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  GMP_queue_add (NULL,
+  GMP_queue_add (get_next_hop (connection), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
                  size,
                  connection,

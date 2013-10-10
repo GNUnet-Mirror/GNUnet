@@ -114,6 +114,7 @@ GMP_connect (struct MeshPeer *peer);
 /**
  * @brief Queue and pass message to core when possible.
  *
+ * @param peer Peer towards which to queue the message.
  * @param cls Closure (@c type dependant). It will be used by queue_send to
  *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
@@ -121,15 +122,13 @@ GMP_connect (struct MeshPeer *peer);
  * @param c Connection this message belongs to (cannot be NULL).
  * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param callback Function to be called once CORE has taken the message.
- * @param callback_cls Closure for @c callback.
+ * @param cont Continuation to be called once CORE has taken the message.
+ * @param cont_cls Closure for @c cont.
  */
 void
-GMP_queue_add (void *cls, uint16_t type, size_t size,
-               struct MeshConnection *c,
-               struct MeshChannel *ch,
-               int fwd,
-               GMP_sent callback, void *callback_cls);
+GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
+               struct MeshConnection *c, struct MeshChannel *ch, int fwd,
+               GMP_sent cont, void *cont_cls);
 
 /**
  * Cancel all queued messages to a peer that belong to a certain connection.
