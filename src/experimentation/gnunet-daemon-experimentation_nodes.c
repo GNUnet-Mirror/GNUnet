@@ -499,7 +499,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   }
   else if (NULL != (n = GNUNET_CONTAINER_multipeermap_get (nodes_requested, peer)))
   {
-    GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n);
+    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n));
     if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
       {
 	GNUNET_SCHEDULER_cancel (n->timeout_task);
@@ -607,7 +607,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %s from %s peer `%s'\n",
 		"RESPONSE", "requested", GNUNET_i2s (peer));
-    GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n);
+    GNUNET_assert (GNUNET_OK ==  GNUNET_CONTAINER_multipeermap_remove (nodes_requested, peer, n));
     if (GNUNET_SCHEDULER_NO_TASK != n->timeout_task)
     {
       GNUNET_SCHEDULER_cancel (n->timeout_task);

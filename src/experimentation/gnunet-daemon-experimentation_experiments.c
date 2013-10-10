@@ -434,6 +434,7 @@ GED_experiments_start ()
 				 "ISSUERS",
 				 _("Invalid value for public key\n"));
       GED_experiments_stop ();
+      GNUNET_free (issuers);
       return GNUNET_SYSERR;
     }
     i = GNUNET_new (struct Issuer);
