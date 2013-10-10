@@ -1809,8 +1809,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
 void
 GMC_destroy (struct MeshConnection *c)
 {
-  struct MeshPeer *peer;
-
   if (NULL == c)
     return;
 

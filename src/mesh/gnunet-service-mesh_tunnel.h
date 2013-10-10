@@ -89,12 +89,10 @@ struct MeshTunnel3;
  * Initialize tunnel subsystem.
  *
  * @param c Configuration handle.
- * @param id Peer identity.
  * @param key ECC private key, to derive all other keys and do crypto.
  */
 void
 GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          const struct GNUNET_PeerIdentity *id,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key);
 
 /**

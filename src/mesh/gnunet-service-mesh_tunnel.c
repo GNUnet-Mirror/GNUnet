@@ -164,19 +164,19 @@ struct MeshTunnelQueue
 extern struct GNUNET_STATISTICS_Handle *stats;
 
 /**
- * Default TTL for payload packets.
- */
-static unsigned long long default_ttl;
-
-/**
  * Local peer own ID (memory efficient handle).
  */
-static GNUNET_PEER_Id my_short_id;
+extern GNUNET_PEER_Id myid;
 
 /**
  * Local peer own ID (full value).
  */
-const static struct GNUNET_PeerIdentity *my_full_id;
+extern struct GNUNET_PeerIdentity my_full_id;
+
+/**
+ * Default TTL for payload packets.
+ */
+static unsigned long long default_ttl;
 
 /**
  * Own private key.
@@ -547,7 +547,6 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
  */
 void
 GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          const struct GNUNET_PeerIdentity *id,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key)
 {
   if (GNUNET_OK !=
@@ -558,9 +557,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
                                "MESH", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
-  my_full_id = id;
   my_private_key = key;
-  my_short_id = GNUNET_PEER_intern (my_full_id);
 }
 
 
@@ -570,7 +567,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GMT_shutdown (void)
 {
-  GNUNET_PEER_change_rc (my_short_id, -1);
+  GNUNET_PEER_change_rc (myid, -1);
 }
 
 
@@ -894,7 +891,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 
   for (own_pos = 0; own_pos < p->length; own_pos++)
   {
-    if (p->peers[own_pos] == my_short_id)
+    if (p->peers[own_pos] == myid)
       break;
   }
   if (own_pos > p->length - 1)
@@ -1164,7 +1161,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 int
 GMT_is_loopback (const struct MeshTunnel3 *t)
 {
-  return (my_short_id == GMP_get_short_id(t->peer));
+  return (myid == GMP_get_short_id(t->peer));
 }
 
 

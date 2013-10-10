@@ -61,11 +61,9 @@ typedef void (*GMD_search_callback) (void *cls,
  * Initialize the DHT subsystem.
  *
  * @param c Configuration.
- * @param peer_id Local peer ID (must remain valid during all execution time).
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c,
-          struct GNUNET_PeerIdentity *peer_id);
+GMD_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shut down the DHT subsystem.

@@ -169,8 +169,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   pk = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
   GNUNET_assert (NULL != pk);
   my_private_key = pk;
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
-                                                  &my_full_id.public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Mesh for peer [%s] starting\n",
@@ -179,8 +178,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GML_init (server);    /* Local clients */
   GMC_init (c);         /* Connections */
   GMP_init (c);         /* Peers */
-  GMD_init (c, &my_full_id);         /* DHT */
-  GMT_init (c, &my_full_id, my_private_key);
+  GMD_init (c);         /* DHT */
+  GMT_init (c, my_private_key); /* Tunnels */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
 }
