@@ -207,8 +207,8 @@ struct GNUNET_PSYC_MessageMethod
   uint32_t flags GNUNET_PACKED;
 
   /**
-   * Sending slave's public key. NULL if the message is from the master, or when
-   * transmitting a message.
+   * Sending slave's public key.
+   * NULL if the message is from the master, or when transmitting a message.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 
@@ -264,7 +264,7 @@ enum GNUNET_PSYC_DataStatus
 struct GNUNET_PSYC_MessageData
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
    */
   struct GNUNET_MessageHeader header;
 
@@ -367,7 +367,7 @@ typedef int
 void
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
-                           unsigned int relay_count,
+                           uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
@@ -582,7 +582,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                         const struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key,
                         const struct GNUNET_PeerIdentity *origin,
-                        size_t relay_count,
+                        uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_Method method,
                         GNUNET_PSYC_JoinCallback join_cb,
@@ -591,7 +591,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,
                         const void *data,
-                        size_t data_size);
+                        uint16_t data_size);
 
 
 /**

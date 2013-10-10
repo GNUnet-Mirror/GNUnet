@@ -30,7 +30,10 @@
 #include "gnunet_multicast_service.h"
 #include "multicast.h"
 
-/**
+#define LOG(kind,...) GNUNET_log_from (kind, "multicast-api",__VA_ARGS__)
+
+
+/** 
  * Handle for a request to send a message to all multicast group members
  * (from the origin).
  */
@@ -38,6 +41,7 @@ struct GNUNET_MULTICAST_OriginMessageHandle
 {
   GNUNET_MULTICAST_OriginTransmitNotify notify;
   void *notify_cls;
+  struct GNUNET_MULTICAST_Origin *origin;
 
   uint64_t message_id;
   uint64_t group_generation;
@@ -353,6 +357,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 static void
 schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "schedule_origin_to_all()\n");
   struct GNUNET_MULTICAST_Origin *orig = cls;
   struct GNUNET_MULTICAST_OriginMessageHandle *mh = &orig->msg_handle;
 
@@ -361,11 +366,17 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     = GNUNET_malloc (sizeof (*msg) + buf_size);
   int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
 
-  if (ret != GNUNET_YES || ret != GNUNET_NO)
+  if (! (GNUNET_YES == ret || GNUNET_NO == ret)
+      || buf_size > GNUNET_MULTICAST_FRAGMENT_MAX_SIZE)
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "MasterTransmitNotify() returned error or invalid message size.\n");
     /* FIXME: handle error */
     return;
   }
+
+  if (GNUNET_NO == ret && 0 == buf_size)
+    return; /* Transmission paused. */
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->header.size = htons (buf_size);
@@ -393,12 +404,12 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
    *        returned signed message.
    * FIXME: Also send to local members in this group.
    */
-  orig->message_cb (orig->cls, msg);
+  orig->message_cb (orig->cls, (const struct GNUNET_MessageHeader *) msg);
 
   if (GNUNET_NO == ret)
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                   (GNUNET_TIME_UNIT_SECONDS, 1),
-                                  schedule_origin_to_all, mh);
+                                  schedule_origin_to_all, orig);
 
 }
 
@@ -421,6 +432,7 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 void *notify_cls)
 {
   struct GNUNET_MULTICAST_OriginMessageHandle *mh = &origin->msg_handle;
+  mh->origin = origin;
   mh->message_id = message_id;
   mh->group_generation = group_generation;
   mh->notify = notify;
@@ -441,7 +453,7 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
 void
 GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHandle *mh)
 {
-
+  GNUNET_SCHEDULER_add_now (schedule_origin_to_all, mh->origin);
 }
 
 

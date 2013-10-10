@@ -19,8 +19,8 @@
  */
 
 /**
- * @file psycstore/test_psycstore.c
- * @brief Test for the PSYCstore service.
+ * @file psyc/test_psyc.c
+ * @brief Test for the PSYC service.
  * @author Gabor X Toth
  * @author Christian Grothoff
  */
@@ -30,6 +30,7 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
+#include "gnunet_env_lib.h"
 #include "gnunet_psyc_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -58,6 +59,8 @@ static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
 
 static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
 static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
+
+struct GNUNET_PSYC_MasterTransmitHandle *mth;
 
 /**
  * Clean up all resources used.
@@ -120,11 +123,14 @@ end ()
 
 static int
 method (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
-        uint64_t message_id, const char *method_name,
+        uint64_t message_id, const char *name,
         size_t modifier_count, const struct GNUNET_ENV_Modifier *modifiers,
         uint64_t data_offset, const void *data, size_t data_size,
         enum GNUNET_PSYC_MessageFlags flags)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Method: %s, modifiers: %lu, flags: %u\n%.*s\n",
+              name, modifier_count, flags, data_size, data);
   return GNUNET_OK;
 }
 
@@ -138,11 +144,72 @@ join (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
   return GNUNET_OK;
 }
 
+struct TransmitClosure
+{
+  struct GNUNET_PSYC_MasterTransmitHandle *handle;
+  uint8_t n;
+  uint8_t fragment_count;
+  char *fragments[16];
+  uint16_t fragment_sizes[16];
+};
+
+
+static void
+transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Transmit resume\n");
+  struct TransmitClosure *tmit = cls;
+  GNUNET_PSYC_master_transmit_resume (tmit->handle);
+}
+
+
+static int
+transmit_notify (void *cls, size_t *data_size, void *data)
+{
+  struct TransmitClosure *tmit = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Transmit notify: %lu bytes\n", *data_size);
+
+  if (tmit->fragment_count <= tmit->n)
+    return GNUNET_YES;
+
+  GNUNET_assert (tmit->fragment_sizes[tmit->n] <= *data_size);
+
+  *data_size = tmit->fragment_sizes[tmit->n];
+  memcpy (data, tmit->fragments[tmit->n], *data_size);
+  tmit->n++;
+
+  if (tmit->n == tmit->fragment_count - 1)
+  {
+    /* Send last fragment later. */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &transmit_resume,
+                                  tmit);
+    *data_size = 0;
+    return GNUNET_NO;
+  }
+  return tmit->n <= tmit->fragment_count ? GNUNET_NO : GNUNET_YES;
+}
 
 void
 master_started (void *cls, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master started: %lu\n", max_message_id);
+
+  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add_mod (env, GNUNET_ENV_OP_ASSIGN,
+                                  "_foo", "bar baz", 7);
+  GNUNET_ENV_environment_add_mod (env, GNUNET_ENV_OP_ASSIGN,
+                                  "_foo_bar", "foo bar baz", 11);
+
+  struct TransmitClosure *tmit = GNUNET_new (struct TransmitClosure);
+  tmit->fragment_count = 2;
+  tmit->fragments[0] = "foo bar";
+  tmit->fragment_sizes[0] = 7;
+  tmit->fragments[1] = "baz!";
+  tmit->fragment_sizes[1] = 4;
+  tmit->handle
+    = GNUNET_PSYC_master_transmit (mst, "_test", env, transmit_notify, tmit,
+                                   GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN);
 }
 
 
@@ -157,7 +224,7 @@ slave_joined (void *cls, uint64_t max_message_id)
  * Main function of the test, run from scheduler.
  *
  * @param cls NULL
- * @param cfg configuration we use (also to connect to PSYCstore service)
+ * @param cfg configuration we use (also to connect to PSYC service)
  * @param peer handle to access more of the peer (not used)
  */
 static void
@@ -182,9 +249,18 @@ run (void *cls,
   mst = GNUNET_PSYC_master_start (cfg, channel_key,
                                   GNUNET_PSYC_CHANNEL_PRIVATE,
                                   &method, &join, &master_started, NULL);
-
-  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key,
-                                &method, &join, &slave_joined, NULL);
+  return;
+  struct GNUNET_PeerIdentity origin;
+  struct GNUNET_PeerIdentity relays[16];
+  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add_mod (env, GNUNET_ENV_OP_ASSIGN,
+                                  "_foo", "bar baz", 7);
+  GNUNET_ENV_environment_add_mod (env, GNUNET_ENV_OP_ASSIGN,
+                                  "_foo_bar", "foo bar baz", 11);
+  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
+                                16, relays, &method, &join, &slave_joined,
+                                NULL, "_request_join", env, "some data", 9);
+  GNUNET_ENV_environment_destroy (env);
 }
 
 

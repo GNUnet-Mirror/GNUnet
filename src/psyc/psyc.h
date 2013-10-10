@@ -65,6 +65,11 @@ struct CountersResult
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Status code for the operation.
+   */
+  int32_t result_code GNUNET_PACKED;
+
   uint64_t max_message_id;
 };
 
@@ -120,6 +125,8 @@ struct SlaveJoinRequest
   struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
 
   struct GNUNET_CRYPTO_EccPrivateKey slave_key;
+
+  struct GNUNET_PeerIdentity origin;
 
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
 };
