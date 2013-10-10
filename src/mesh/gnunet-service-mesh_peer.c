@@ -1159,9 +1159,7 @@ GMP_queue_add (void *cls, uint16_t type, size_t size,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "no buffer space (%u > %u): starting poll\n",
                   fc->last_pid_sent + 1, fc->last_ack_recv);
-      fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
-                                                    &connection_poll,
-                                                    fc);
+      GMC_start_poll (c, fwd);
     }
   }
   else

@@ -2066,3 +2066,51 @@ GMC_send_destroy (struct MeshConnection *c)
     GMC_send_prebuilt_message (&msg.header, c, NULL, GNUNET_NO);
   c->destroy = GNUNET_YES;
 }
+
+
+/**
+ * @brief Start a polling timer for the connection.
+ *
+ * When a neighbor does not accept more traffic on the connection it could be
+ * caused by a simple congestion or by a lost ACK. Polling enables to check
+ * for the lastest ACK status for a connection.
+ *
+ * @param c Connection.
+ * @param fwd Should we poll in the FWD direction?
+ */
+void
+GMC_start_poll (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+  {
+    return;
+  }
+  fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
+                                                &connection_poll,
+                                                fc);
+}
+
+
+/**
+ * @brief Stop polling a connection for ACKs.
+ *
+ * Once we have enough ACKs for future traffic, polls are no longer necessary.
+ *
+ * @param c Connection.
+ * @param fwd Should we stop the poll in the FWD direction?
+ */
+void
+GMC_stop_poll (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (fc->poll_task);
+    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+}

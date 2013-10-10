@@ -417,6 +417,31 @@ GMC_send_create (struct MeshConnection *connection);
 void
 GMC_send_destroy (struct MeshConnection *c);
 
+/**
+ * @brief Start a polling timer for the connection.
+ *
+ * When a neighbor does not accept more traffic on the connection it could be
+ * caused by a simple congestion or by a lost ACK. Polling enables to check
+ * for the lastest ACK status for a connection.
+ *
+ * @param c Connection.
+ * @param fwd Should we poll in the FWD direction?
+ */
+void
+GMC_start_poll (struct MeshConnection *c, int fwd);
+
+
+/**
+ * @brief Stop polling a connection for ACKs.
+ *
+ * Once we have enough ACKs for future traffic, polls are no longer necessary.
+ *
+ * @param c Connection.
+ * @param fwd Should we stop the poll in the FWD direction?
+ */
+void
+GMC_stop_poll (struct MeshConnection *c, int fwd);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
