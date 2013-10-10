@@ -223,7 +223,7 @@ GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed);
  * @return GNUNET_OK on success.
  */
 int
-GMP_remove_connection (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_remove_connection (struct MeshPeer *peer, const struct MeshConnection *c);
 
 void
 GMP_start_search (struct MeshPeer *peer);
@@ -238,7 +238,7 @@ GMP_stop_search (struct MeshPeer *peer);
  *
  * @return Full ID of peer.
  */
-struct GNUNET_PeerIdentity *
+const struct GNUNET_PeerIdentity *
 GMP_get_id (const struct MeshPeer *peer);
 
 /**

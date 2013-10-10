@@ -1758,7 +1758,7 @@ GMP_remove_connection (struct MeshPeer *peer,
  *
  * @return Full ID of peer.
  */
-struct GNUNET_PeerIdentity *
+const struct GNUNET_PeerIdentity *
 GMP_get_id (const struct MeshPeer *peer)
 {
   return GNUNET_PEER_resolve2 (peer->id);
