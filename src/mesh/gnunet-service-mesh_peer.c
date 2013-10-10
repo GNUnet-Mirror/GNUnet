@@ -202,6 +202,11 @@ static struct GNUNET_CORE_Handle *core_handle;
  */
 const static struct GNUNET_PeerIdentity *my_full_id;
 
+/**
+ * Local peer own ID (short)
+ */
+static GNUNET_PEER_Id my_short_id;
+
 /******************************************************************************/
 /***************************** CORE CALLBACKS *********************************/
 /******************************************************************************/
@@ -764,140 +769,6 @@ peer_get_best_path (const struct MeshPeer *peer)
 
 
 /**
- * Add the path to the peer and update the path used to reach it in case this
- * is the shortest.
- *
- * @param peer_info Destination peer to add the path to.
- * @param path New path to add. Last peer must be the peer in arg 1.
- *             Path will be either used of freed if already known.
- * @param trusted Do we trust that this path is real?
- */
-void
-peer_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
-               int trusted)
-{
-  struct MeshPeerPath *aux;
-  unsigned int l;
-  unsigned int l2;
-
-  if ((NULL == peer_info) || (NULL == path))
-  {
-    GNUNET_break (0);
-    path_destroy (path);
-    return;
-  }
-    if (path->peers[path->length - 1] != peer_info->id)
-    {
-      GNUNET_break (0);
-      path_destroy (path);
-      return;
-    }
-      if (2 >= path->length && GNUNET_NO == trusted)
-      {
-        /* Only allow CORE to tell us about direct paths */
-        path_destroy (path);
-        return;
-      }
-        for (l = 1; l < path->length; l++)
-        {
-          if (path->peers[l] == myid)
-          {
-            LOG (GNUNET_ERROR_TYPE_DEBUG, "shortening path by %u\n", l);
-            for (l2 = 0; l2 < path->length - l; l2++)
-            {
-              path->peers[l2] = path->peers[l + l2];
-            }
-                  path->length -= l;
-                  l = 1;
-                  path->peers =
-                            GNUNET_realloc (path->peers, path->length * sizeof (GNUNET_PEER_Id));
-          }
-        }
-
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
-                      path->length, peer2s (peer_info));
-
-          l = path_get_length (path);
-          if (0 == l)
-          {
-            path_destroy (path);
-            return;
-          }
-
-            GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
-            for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
-            {
-              l2 = path_get_length (aux);
-              if (l2 > l)
-              {
-                GNUNET_CONTAINER_DLL_insert_before (peer_info->path_head,
-                                                    peer_info->path_tail, aux, path);
-                return;
-              }
-                  else
-                  {
-                    if (l2 == l && memcmp (path->peers, aux->peers, l) == 0)
-                    {
-                      path_destroy (path);
-                      return;
-                    }
-                  }
-            }
-              GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head, peer_info->path_tail,
-                                                path);
-              return;
-}
-
-
-/**
- * Add the path to the origin peer and update the path used to reach it in case
- * this is the shortest.
- * The path is given in peer_info -> destination, therefore we turn the path
- * upside down first.
- *
- * @param peer_info Peer to add the path to, being the origin of the path.
- * @param path New path to add after being inversed.
- *             Path will be either used or freed.
- * @param trusted Do we trust that this path is real?
- */
-static void
-peer_add_path_to_origin (struct MeshPeer *peer_info,
-                         struct MeshPeerPath *path, int trusted)
-{
-  if (NULL == path)
-    return;
-  path_invert (path);
-  peer_add_path (peer_info, path, trusted);
-}
-
-
-/**
- * Adds a path to the peer_infos of all the peers in the path
- *
- * @param p Path to process.
- * @param confirmed Whether we know if the path works or not.
- */
-static void
-path_add_to_peers (struct MeshPeerPath *p, int confirmed)
-{
-  unsigned int i;
-
-  /* TODO: invert and add */
-  for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
-  for (i++; i < p->length; i++)
-  {
-    struct MeshPeer *aux;
-    struct MeshPeerPath *copy;
-
-    aux = peer_get_short (p->peers[i]);
-    copy = path_duplicate (p);
-    copy->length = i + 1;
-    peer_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
-  }
-}
-
-
-/**
  * Function to process paths received for a new peer addition. The recorded
  * paths form the initial tunnel, which can be optimized later.
  * Called on each result obtained for the DHT search.
@@ -1452,6 +1323,8 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_PeerIdentity *id)
 {
   my_full_id = id;
+  my_short_id = GNUNET_PEER_intern (id);
+
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
@@ -1509,6 +1382,7 @@ GMP_shutdown (void)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
+  GNUNET_PEER_change_rc (my_short_id, -1);
 }
 
 
@@ -1654,6 +1528,141 @@ GMP_add_connection (struct MeshPeer *peer,
                                             GMC_get_id (c),
                                             c,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+}
+
+
+/**
+ * Add the path to the peer and update the path used to reach it in case this
+ * is the shortest.
+ *
+ * @param peer_info Destination peer to add the path to.
+ * @param path New path to add. Last peer must be the peer in arg 1.
+ *             Path will be either used of freed if already known.
+ * @param trusted Do we trust that this path is real?
+ */
+void
+GMP_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
+              int trusted)
+{
+  struct MeshPeerPath *aux;
+  unsigned int l;
+  unsigned int l2;
+
+  if ((NULL == peer_info) || (NULL == path))
+  {
+    GNUNET_break (0);
+    path_destroy (path);
+    return;
+  }
+  if (path->peers[path->length - 1] != peer_info->id)
+  {
+    GNUNET_break (0);
+    path_destroy (path);
+    return;
+  }
+  if (2 >= path->length && GNUNET_NO == trusted)
+  {
+    /* Only allow CORE to tell us about direct paths */
+    path_destroy (path);
+    return;
+  }
+  for (l = 1; l < path->length; l++)
+  {
+    if (path->peers[l] == myid)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "shortening path by %u\n", l);
+      for (l2 = 0; l2 < path->length - l; l2++)
+      {
+        path->peers[l2] = path->peers[l + l2];
+      }
+            path->length -= l;
+            l = 1;
+            path->peers =
+                      GNUNET_realloc (path->peers, path->length * sizeof (GNUNET_PEER_Id));
+    }
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
+              path->length, peer2s (peer_info));
+
+  l = path_get_length (path);
+  if (0 == l)
+  {
+    path_destroy (path);
+    return;
+  }
+
+  GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
+  for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
+  {
+    l2 = path_get_length (aux);
+    if (l2 > l)
+    {
+      GNUNET_CONTAINER_DLL_insert_before (peer_info->path_head,
+                                          peer_info->path_tail, aux, path);
+      return;
+    }
+        else
+        {
+          if (l2 == l && memcmp (path->peers, aux->peers, l) == 0)
+          {
+            path_destroy (path);
+            return;
+          }
+        }
+  }
+  GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head, peer_info->path_tail,
+                                    path);
+  return;
+}
+
+
+/**
+ * Add the path to the origin peer and update the path used to reach it in case
+ * this is the shortest.
+ * The path is given in peer_info -> destination, therefore we turn the path
+ * upside down first.
+ *
+ * @param peer_info Peer to add the path to, being the origin of the path.
+ * @param path New path to add after being inversed.
+ *             Path will be either used or freed.
+ * @param trusted Do we trust that this path is real?
+ */
+void
+GMP_add_path_to_origin (struct MeshPeer *peer,
+                        struct MeshPeerPath *path,
+                        int trusted)
+{
+  if (NULL == path)
+    return;
+  path_invert (path);
+  GMP_add_path (peer, path, trusted);
+}
+
+
+/**
+ * Adds a path to the info of all the peers in the path
+ *
+ * @param p Path to process.
+ * @param confirmed Whether we know if the path works or not.
+ */
+void
+GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed)
+{
+  unsigned int i;
+
+  /* TODO: invert and add */
+  for (i = 0; i < p->length && p->peers[i] != my_short_id; i++) /* skip'em */ ;
+  for (i++; i < p->length; i++)
+  {
+    struct MeshPeer *aux;
+    struct MeshPeerPath *copy;
+
+    aux = peer_get_short (p->peers[i]);
+    copy = path_duplicate (p);
+    copy->length = i + 1;
+    GMP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
+  }
 }
 
 

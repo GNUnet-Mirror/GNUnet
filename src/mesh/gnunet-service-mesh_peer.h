@@ -142,6 +142,43 @@ int
 GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
 
 /**
+ * Add the path to the peer and update the path used to reach it in case this
+ * is the shortest.
+ *
+ * @param peer_info Destination peer to add the path to.
+ * @param path New path to add. Last peer must be the peer in arg 1.
+ *             Path will be either used of freed if already known.
+ * @param trusted Do we trust that this path is real?
+ */
+void
+GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
+
+/**
+ * Add the path to the origin peer and update the path used to reach it in case
+ * this is the shortest.
+ * The path is given in peer_info -> destination, therefore we turn the path
+ * upside down first.
+ *
+ * @param peer_info Peer to add the path to, being the origin of the path.
+ * @param path New path to add after being inversed.
+ *             Path will be either used or freed.
+ * @param trusted Do we trust that this path is real?
+ */
+void
+GMP_add_path_to_origin (struct MeshPeer *peer_info,
+                        struct MeshPeerPath *path,
+                        int trusted);
+
+/**
+ * Adds a path to the info of all the peers in the path
+ *
+ * @param p Path to process.
+ * @param confirmed Whether we know if the path works or not.
+ */
+void
+GMP_add_path_to_all (struct MeshPeerPath *p, int confirmed);
+
+/**
  * Remove a connection from a neighboring peer.
  *
  * @param peer Peer to remove connection from.

@@ -32,7 +32,6 @@
 #include "mesh_path.h"
 #include "mesh_protocol_enc.h"
 #include "mesh_enc.h"
-
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_tunnel.h"
@@ -1078,7 +1077,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (c->own_pos == size - 1)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
-    peer_add_path_to_origin (orig_peer, path, GNUNET_YES);
+    GMP_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
     if (NULL == orig_peer->tunnel)
     {
@@ -1100,8 +1099,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* It's for somebody else! Retransmit. */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
-    peer_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
-    peer_add_path_to_origin (orig_peer, path, GNUNET_NO);
+    GMP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
+    GMP_add_path_to_origin (orig_peer, path, GNUNET_NO);
     GMC_send_prebuilt_message (message, c, NULL, GNUNET_YES);
   }
   return GNUNET_OK;
