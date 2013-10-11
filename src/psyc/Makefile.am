@@ -67,10 +67,12 @@ test_psyc_SOURCES = \
 test_psyc_LDADD = \
   libgnunetpsyc.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/env/libgnunetenv.la \
   $(top_builddir)/src/util/libgnunetutil.la
 test_psyc_DEPENDENCIES = \
   libgnunetpsyc.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/env/libgnunetenv.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
