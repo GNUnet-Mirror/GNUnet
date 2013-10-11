@@ -240,8 +240,8 @@ run (void *cls,
   cfg = c;
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
-  channel_key = GNUNET_CRYPTO_ecc_key_create ();
-  slave_key = GNUNET_CRYPTO_ecc_key_create ();
+  channel_key = GNUNET_CRYPTO_eddsa_key_create ();
+  slave_key = GNUNET_CRYPTO_eddsa_key_create ();
 
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
