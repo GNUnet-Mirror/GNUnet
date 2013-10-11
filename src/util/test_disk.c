@@ -186,9 +186,11 @@ testCanonicalize ()
 static int
 testChangeOwner ()
 {
+#ifndef WINDOWS
   GNUNET_log_skip (1, GNUNET_NO);
   if (GNUNET_OK == GNUNET_DISK_file_change_owner ("/dev/null", "unknownuser"))
     return 1;
+#endif
   return 0;
 }
 
