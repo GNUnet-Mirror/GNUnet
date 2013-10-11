@@ -110,15 +110,16 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Core handler for notifications of broken paths
  *
  * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
+ * @param id Peer identity of sending neighbor.
  * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_MessageHeader *message);
+GMC_handle_broken (void* cls,
+                   const struct GNUNET_PeerIdentity* id,
+                   const struct GNUNET_MessageHeader* message);
 
 /**
  * Core handler for tunnel destruction
@@ -340,12 +341,10 @@ GMC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *
  * @param c Connection on which there has been a disconnection.
  * @param peer Peer that disconnected.
- * @param my_full_id My ID (to send to other peers).
  */
 void
 GMC_notify_broken (struct MeshConnection *c,
-                   struct MeshPeer *peer,
-                   struct GNUNET_PeerIdentity *my_full_id);
+                   struct MeshPeer *peer);
 
 /**
  * Is this peer the first one on the connection?

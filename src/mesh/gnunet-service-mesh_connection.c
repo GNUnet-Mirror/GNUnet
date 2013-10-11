@@ -217,6 +217,11 @@ extern struct GNUNET_STATISTICS_Handle *stats;
 extern GNUNET_PEER_Id myid;
 
 /**
+ * Local peer own ID (full value).
+ */
+extern struct GNUNET_PeerIdentity my_full_id;
+
+/**
  * Connections known, indexed by cid (MeshConnection).
  */
 static struct GNUNET_CONTAINER_MultiHashMap *connections;
@@ -1157,24 +1162,53 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Is traffic coming from this sender 'FWD' traffic?
+ *
+ * @param c Connection to check.
+ * @param sender Peer identity of neighbor.
+ *
+ * @return GNUNET_YES in case the sender is the 'prev' hop and therefore
+ *         the traffic is 'FWD'. GNUNET_NO for BCK. GNUNET_SYSERR for errors.
+ */
+int 
+is_fwd (const struct MeshConnection *c,
+        const struct GNUNET_PeerIdentity *sender)
+{
+  GNUNET_PEER_Id id;
+
+  id = GNUNET_PEER_search (sender);
+  if (GMP_get_short_id (get_prev_hop (c)) == id)
+    return GNUNET_YES;
+
+  if (GMP_get_short_id (get_next_hop (c)) == id)
+    return GNUNET_NO;
+
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Core handler for notifications of broken paths
  *
  * @param cls Closure (unused).
- * @param peer Peer identity of sending neighbor.
+ * @param id Peer identity of sending neighbor.
  * @param message Message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
-                   const struct GNUNET_MessageHeader *message)
+GMC_handle_broken (void* cls,
+                   const struct GNUNET_PeerIdentity* id,
+                   const struct GNUNET_MessageHeader* message)
 {
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshConnection *c;
+  int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (peer));
+              "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (id));
   msg = (struct GNUNET_MESH_ConnectionBroken *) message;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
@@ -1186,8 +1220,22 @@ GMC_handle_broken (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  tunnel_notify_connection_broken (c->t, GNUNET_PEER_search (&msg->peer1),
-                                   GNUNET_PEER_search (&msg->peer2));
+
+  fwd = is_fwd (c, id);
+  connection_cancel_queues (c, !fwd);
+  if (GMC_is_terminal (c, fwd))
+  {
+    if (0 < c->pending_messages)
+      c->destroy = GNUNET_YES;
+    else
+      GMC_destroy (c);
+  }
+  else
+  {
+    GMC_send_prebuilt_message (message, c, NULL, fwd);
+    c->destroy = GNUNET_YES;
+  }
+
   return GNUNET_OK;
 
 }
@@ -1209,7 +1257,6 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_ConnectionDestroy *msg;
   struct MeshConnection *c;
-  GNUNET_PEER_Id id;
   int fwd;
 
   msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
@@ -1230,12 +1277,8 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return GNUNET_OK;
   }
-  id = GNUNET_PEER_search (peer);
-  if (id == GMP_get_short_id (get_prev_hop (c)))
-    fwd = GNUNET_YES;
-  else if (id == GMP_get_short_id (get_next_hop (c)))
-    fwd = GNUNET_NO;
-  else
+  fwd = is_fwd (c, peer);
+  if (GNUNET_SYSERR == fwd)
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1875,19 +1918,40 @@ GMC_get_qn (struct MeshConnection *c, int fwd)
 
 
 /**
+ * Send a notification that a connection is broken.
+ *
+ * @param c Connection that is broken.
+ * @param id1 Peer that has disconnected.
+ * @param id2 Peer that has disconnected.
+ * @param fwd Direction towards which to send it.
+ */
+static void
+send_broken (struct MeshConnection *c,
+             const struct GNUNET_PeerIdentity *id1,
+             const struct GNUNET_PeerIdentity *id2,
+             int fwd)
+{
+  struct GNUNET_MESH_ConnectionBroken msg;
+
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
+  msg.cid = c->id;
+  msg.peer1 = *id1;
+  msg.peer2 = *id2;
+  GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
+}
+
+/**
  * Notify other peers on a connection of a broken link. Mark connections
  * to destroy after all traffic has been sent.
  *
  * @param c Connection on which there has been a disconnection.
  * @param peer Peer that disconnected.
- * @param my_full_id My ID (to send to other peers).
  */
 void
 GMC_notify_broken (struct MeshConnection *c,
-                   struct MeshPeer *peer,
-                   struct GNUNET_PeerIdentity *my_full_id)
+                   struct MeshPeer *peer)
 {
-  struct GNUNET_MESH_ConnectionBroken msg;
   int fwd;
 
   fwd = peer == get_prev_hop (c);
@@ -1900,12 +1964,11 @@ GMC_notify_broken (struct MeshConnection *c,
     return;
   }
 
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
-  msg.cid = c->id;
-  msg.peer1 = *my_full_id;
-  msg.peer2 = *GMP_get_id (peer);
-  GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
+  send_broken (c, &my_full_id, GMP_get_id (peer), fwd);
+
+  /* Connection will have at least one pending message
+   * (the one we just scheduled), so no point in checking whether to
+   * destroy immediately. */
   c->destroy = GNUNET_YES;
 
   return;

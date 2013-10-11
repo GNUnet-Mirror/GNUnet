@@ -232,7 +232,7 @@ notify_broken (void *cls,
   struct MeshPeer *peer = cls;
   struct MeshConnection *c = value;
 
-  GMC_notify_broken (c, peer, &my_full_id);
+  GMC_notify_broken (c, peer);
 
   return GNUNET_YES;
 }

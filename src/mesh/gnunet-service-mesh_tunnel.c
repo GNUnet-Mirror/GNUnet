@@ -827,48 +827,6 @@ GMT_destroy (struct MeshTunnel3 *t)
 
 
 /**
- * Notifies a tunnel that a connection has broken that affects at least
- * some of its peers. Sends a notification towards the root of the tree.
- * In case the peer is the owner of the tree, notifies the client that owns
- * the tunnel and tries to reconnect.
- *
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
- *
- * @param t Tunnel affected.
- * @param p1 Peer that got disconnected from p2.
- * @param p2 Peer that got disconnected from p1.
- *
- * @return Short ID of the peer disconnected (either p1 or p2).
- *         0 if the tunnel remained unaffected.
- */
-GNUNET_PEER_Id
-GMT_notify_connection_broken (struct MeshTunnel3* t,
-                              GNUNET_PEER_Id p1, GNUNET_PEER_Id p2)
-{
-//   if (myid != p1 && myid != p2) FIXME
-//   {
-//     return;
-//   }
-//
-//   if (tree_get_predecessor (t->tree) != 0)
-//   {
-//     /* We are the peer still connected, notify owner of the disconnection. */
-//     struct GNUNET_MESH_PathBroken msg;
-//     struct GNUNET_PeerIdentity neighbor;
-//
-//     msg.header.size = htons (sizeof (msg));
-//     msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN);
-//     GNUNET_PEER_resolve (t->id.oid, &msg.oid);
-//     msg.tid = htonl (t->id.tid);
-//     msg.peer1 = my_full_id;
-//     GNUNET_PEER_resolve (pid, &msg.peer2);
-//     GNUNET_PEER_resolve (tree_get_predecessor (t->tree), &neighbor);
-//     send_prebuilt_message (&msg.header, &neighbor, t);
-//   }
-  return 0;
-}
-
-/**
  * @brief Use the given path for the tunnel.
  * Update the next and prev hops (and RCs).
  * (Re)start the path refresh in case the tunnel is locally owned.
