@@ -28,7 +28,6 @@
 #include "mesh_protocol_enc.h" // GNUNET_MESH_Data is shared
 
 #include "gnunet-service-mesh_local.h"
-#include "gnunet-service-mesh_tunnel.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-loc",__VA_ARGS__)
 
@@ -435,14 +434,13 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MESH_ChannelMessage *msg;
   struct MeshClient *c;
   struct MeshChannel *ch;
-  struct MeshTunnel2 *t;
   MESH_ChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Got a DESTROY CHANNEL from client!\n");
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -462,7 +460,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Retrieve tunnel */
   chid = ntohl (msg->channel_id);
-  ch = channel_get_by_local_id (c, chid);
+  ch = GML_channel_get (c, chid);
   if (NULL == ch)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "  channel %X not found\n", chid);
@@ -471,27 +469,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  /* Cleanup after the tunnel */
-  client_delete_channel (c, ch);
-  if (c == ch->dest && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
-  {
-    ch->dest = NULL;
-  }
-  else if (c == ch->root && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV > chid)
-  {
-    ch->root = NULL;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-                "  channel %X client %p (%p, %p)\n",
-                chid, c, ch->root, ch->dest);
-    GNUNET_break (0);
-  }
-
-  t = ch->t;
-  channel_destroy (ch);
-  tunnel_destroy_if_empty (t);
+  GMCH_handle_local_destroy (ch, c, chid);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -512,7 +490,6 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MESH_LocalData *msg;
   struct MeshClient *c;
   struct MeshChannel *ch;
-  struct MeshChannelReliability *rel;
   MESH_ChannelNumber chid;
   size_t size;
   int fwd;
@@ -551,30 +528,14 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  rel = fwd ? ch->root_rel : ch->dest_rel;
-  rel->client_ready = GNUNET_NO;
-
-  /* Ok, everything is correct, send the message. */
+  if (GNUNET_OK !=
+      GMCH_handle_local_data (ch, c,
+                              (struct GNUNET_MessageHeader *)&msg[1], fwd))
   {
-    struct GNUNET_MESH_Data *payload;
-    uint16_t p2p_size = sizeof(struct GNUNET_MESH_Data) + size;
-    unsigned char cbuf[p2p_size];
-
-    payload = (struct GNUNET_MESH_Data *) cbuf;
-    payload->mid = htonl (rel->mid_send);
-    rel->mid_send++;
-    memcpy (&payload[1], &msg[1], size);
-    payload->header.size = htons (p2p_size);
-    payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
-    payload->chid = htonl (ch->gid);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-    send_prebuilt_message_channel (&payload->header, ch, fwd);
-
-    if (GNUNET_YES == ch->reliable)
-      channel_save_copy (ch, &payload->header, fwd);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
-  if (tunnel_get_buffer (ch->t, fwd) > 0)
-    send_local_ack (ch, fwd);
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "receive done OK\n");
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
@@ -630,8 +591,8 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   /* If client is dest, the ACK is going BCK, therefore this is "FWD" */
   fwd = chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GMCH_handle_local_ack (ch, fwd);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   return;
 }
@@ -955,7 +916,7 @@ GML_client_get_by_port (uint32_t port)
 
 
 /**
- * Deletes a tunnel from a client (either owner or destination).
+ * Deletes a channel from a client (either owner or destination).
  *
  * @param c Client whose tunnel to delete.
  * @param ch Channel which should be deleted.

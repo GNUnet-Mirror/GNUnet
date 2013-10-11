@@ -50,6 +50,7 @@ struct MeshChannel;
 
 
 #include "gnunet-service-mesh_tunnel.h"
+#include "gnunet-service-mesh_local.h"
 
 
 /**
@@ -167,6 +168,38 @@ void
 GMCH_handle_local_ack (struct MeshChannel *ch, int fwd);
 
 /**
+ * Handle data given by a client.
+ *
+ * Check whether the client is allowed to send in this tunnel, save if channel
+ * is reliable and send an ACK to the client if there is still buffer space
+ * in the tunnel.
+ *
+ * @param ch Channel.
+ * @param fwd Is this a FWD data?
+ *
+ * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
+ */
+int
+GMCH_handle_local_data (struct MeshChannel *ch,
+                        struct MeshClient *c,
+                        struct GNUNET_MessageHeader *message,
+                        int fwd);
+
+/**
+ * Handle a channel destroy requested by a client.
+ *
+ * Destroy the channel and the tunnel in case this was the last channel.
+ *
+ * @param ch Channel.
+ * @param c Client that requested the destruction (to avoid notifying him).
+ * @param chid Channel ID used.
+ */
+void
+GMCH_handle_local_destroy (struct MeshChannel *ch,
+                           struct MeshClient *c,
+                           MESH_ChannelNumber chid);
+
+/**
  * Handler for mesh network payload traffic.
  *
  * @param ch Channel for the message.
@@ -226,8 +259,13 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      int fwd);
 
 /**
- * Sends an already built message on a channel, properly registering
- * all used resources and encrypting the message with the tunnel's key.
+ * Sends an already built message on a channel.
+ *
+ * If the channel is on a loopback tunnel, notifies the appropriate destination
+ * client locally.
+ *
+ * On a normal channel passes the message to the tunnel for encryption and
+ * sending on a connection.
  *
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.

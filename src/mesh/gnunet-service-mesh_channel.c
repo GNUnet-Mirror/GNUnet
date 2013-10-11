@@ -1204,21 +1204,33 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
   rel->client_ready = GNUNET_YES;
   send_client_buffered_data (ch, c, fwd);
   send_ack (NULL, ch, fwd);
-
 }
 
 
 /**
  * Handle data given by a client.
  *
+ * Check whether the client is allowed to send in this tunnel, save if channel
+ * is reliable and send an ACK to the client if there is still buffer space
+ * in the tunnel.
+ *
  * @param ch Channel.
- * @param fwd Is this a FWD data? 
+ * @param fwd Is this a FWD data?
+ *
+ * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
  */
-void
+int
 GMCH_handle_local_data (struct MeshChannel *ch,
                         struct MeshClient *c,
+                        struct GNUNET_MessageHeader *message,
                         int fwd)
 {
+  struct MeshChannelReliability *rel;
+  struct GNUNET_MESH_Data *payload;
+  size_t size = ntohs (message->size);
+  uint16_t p2p_size = sizeof(struct GNUNET_MESH_Data) + size;
+  unsigned char cbuf[p2p_size];
+
   /* Is the client in the channel? */
   if ( !( (fwd &&
            ch->root == c)
@@ -1227,9 +1239,68 @@ GMCH_handle_local_data (struct MeshChannel *ch,
            ch->dest == c) ) )
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
+
+  rel = fwd ? ch->root_rel : ch->dest_rel;
+
+  /* Ok, everything is correct, send the message. */
+  payload = (struct GNUNET_MESH_Data *) cbuf;
+  payload->mid = htonl (rel->mid_send);
+  rel->mid_send++;
+  memcpy (&payload[1], message, size);
+  payload->header.size = htons (p2p_size);
+  payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
+  payload->chid = htonl (ch->gid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd);
+
+  if (GNUNET_YES == ch->reliable)
+    channel_save_copy (ch, &payload->header, fwd);
+  if (GMT_get_buffer (ch->t, fwd) > 0)
+    GML_send_ack (c, fwd ? ch->lid_root : ch->lid_dest);
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle a channel destroy requested by a client.
+ *
+ * Destroy the channel and the tunnel in case this was the last channel.
+ *
+ * @param ch Channel.
+ * @param c Client that requested the destruction (to avoid notifying him).
+ * @param chid Channel ID used.
+ */
+void
+GMCH_handle_local_destroy (struct MeshChannel *ch,
+                           struct MeshClient *c,
+                           MESH_ChannelNumber chid)
+{
+  struct MeshTunnel3 *t;
+
+  /* Cleanup after the tunnel */
+  GML_client_delete_channel (c, ch, chid);
+  if (c == ch->dest && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
+  {
+    ch->dest = NULL;
+  }
+  else if (c == ch->root && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV > chid)
+  {
+    ch->root = NULL;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+                "  channel %X client %p (%p, %p)\n",
+                chid, c, ch->root, ch->dest);
+    GNUNET_break (0);
+  }
+
+  t = ch->t;
+  channel_destroy (ch);
+  GMT_destroy_if_empty (t);
 }
 
 
@@ -1480,6 +1551,14 @@ GMCH_handle_destroy (struct MeshChannel *ch,
 
 /**
  * Sends an already built message on a channel.
+ *
+ * If the channel is on a loopback tunnel, notifies the appropriate destination
+ * client locally.
+ *
+ * On a normal channel passes the message to the tunnel for encryption and
+ * sending on a connection.
+ *
+ * This function DOES NOT save the message for retransmission.
  *
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.

@@ -40,12 +40,12 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#include "gnunet-service-mesh_channel.h"
-
 /**
  * Struct containing information about a client of the service
  */
 struct MeshClient;
+
+#include "gnunet-service-mesh_channel.h"
 
 /******************************************************************************/
 /********************************    API    ***********************************/
