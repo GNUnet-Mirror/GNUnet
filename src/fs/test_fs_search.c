@@ -59,7 +59,7 @@ static int err;
 
 static void
 abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{					
+{
   if (NULL != publish)
   {
     GNUNET_FS_publish_stop (publish);
@@ -122,6 +122,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 		event->value.publish.specifics.progress.depth,
 		(unsigned long long) event->value.publish.specifics.
 		progress.offset);
+    break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);

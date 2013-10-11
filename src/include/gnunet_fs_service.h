@@ -685,7 +685,13 @@ enum GNUNET_FS_Status
    * Notification that the unindexing of this file
    * was stopped (final event for this action).
    */
-  GNUNET_FS_STATUS_UNINDEX_STOPPED = 36
+  GNUNET_FS_STATUS_UNINDEX_STOPPED = 36,
+
+  /**
+   * Notification that we are making progress sharing a directory.
+   */
+  GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY = 37
+
 };
 
 
@@ -841,6 +847,33 @@ struct GNUNET_FS_ProgressInfo
           unsigned int depth;
 
         } progress;
+
+        /**
+	 * These values are only valid for
+	 * #GNUNET_FS_STATUS_PUBLISH_DIRECTORY_PROGRESS events.
+	 */
+        struct
+        {
+
+          /**
+	   * How far are we along in the overall directory?
+	   */
+          uint64_t completed;
+
+          /**
+	   * How big do we estimate the entire directory to be?
+	   */
+          uint64_t total;
+
+          /**
+           * At what time do we expect to finish the upload of the
+           * CONTENTS of the directory. (The direcory itself will take
+           * extra time, indicated with the "eta" member at the
+           * "publish"-level of this struct.)
+           */
+          struct GNUNET_TIME_Relative eta;
+
+        } progress_directory;
 
         /**
 	 * These values are only valid for

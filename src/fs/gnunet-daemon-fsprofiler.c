@@ -385,6 +385,9 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
     p = info->value.publish.cctx;
     return p;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    p = info->value.publish.cctx;
+    return p;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Publishing failed\n");

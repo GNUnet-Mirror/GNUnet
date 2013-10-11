@@ -284,7 +284,7 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "AD: %u, MP: %u; %d probes and %d downloads to start, will run again in %s\n",
 	      h->active_downloads,
-	      h->max_parallel_requests,	
+	      h->max_parallel_requests,
 	      num_probes_change,
 	      num_downloads_change,
 	      GNUNET_STRINGS_relative_time_to_string (restart_at, GNUNET_YES));
@@ -982,6 +982,8 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
   case 4:                      /* directory */
     ret->is_directory = GNUNET_YES;
     if ((GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dsize)) ||
+        (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &ret->data.dir.contents_completed)) ||
+        (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &ret->data.dir.contents_size)) ||
         (NULL == (ret->data.dir.dir_data = GNUNET_malloc_large (dsize))) ||
         (GNUNET_OK !=
          GNUNET_BIO_read (rh, "dir-data", ret->data.dir.dir_data, dsize)) ||
@@ -1335,6 +1337,8 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
 	 (NULL == fi->data.dir.entries->serialization) )
       GNUNET_FS_file_information_sync_ (fi->data.dir.entries);
     if ((GNUNET_OK != GNUNET_BIO_write_int32 (wh, fi->data.dir.dir_size)) ||
+        (GNUNET_OK != GNUNET_BIO_write_int64 (wh, fi->data.dir.contents_completed)) ||
+        (GNUNET_OK != GNUNET_BIO_write_int64 (wh, fi->data.dir.contents_size)) ||
         (GNUNET_OK !=
          GNUNET_BIO_write (wh, fi->data.dir.dir_data,
                            (uint32_t) fi->data.dir.dir_size)) ||

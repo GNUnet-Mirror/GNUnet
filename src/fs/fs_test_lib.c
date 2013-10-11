@@ -253,6 +253,8 @@ publish_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
                   (unsigned long long) info->value.publish.completed,
                   (unsigned long long) info->value.publish.size);
     break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    break;
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
     if (po->verbose)
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Download at %llu/%llu bytes\n",

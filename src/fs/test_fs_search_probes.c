@@ -122,6 +122,8 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 		(unsigned long long) event->value.publish.specifics.
 		progress.offset);
     break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     kuri = GNUNET_FS_uri_ksk_create_from_args (1, keywords);
     start = GNUNET_TIME_absolute_get ();

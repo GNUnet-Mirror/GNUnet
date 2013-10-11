@@ -115,6 +115,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 		(unsigned long long) event->value.publish.specifics.
 		progress.offset);
     break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    ret = event->value.publish.cctx;
+    break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     ret = event->value.publish.cctx;
     FPRINTF (stderr, "Error publishing file: %s\n",

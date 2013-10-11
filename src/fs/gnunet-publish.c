@@ -227,10 +227,23 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     {
       s = GNUNET_STRINGS_relative_time_to_string (info->value.publish.eta,
 						  GNUNET_YES);
-      FPRINTF (stdout, _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+      FPRINTF (stdout,
+               _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
                info->value.publish.filename,
                (unsigned long long) info->value.publish.completed,
                (unsigned long long) info->value.publish.size, s);
+    }
+    break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    if (verbose)
+    {
+      s = GNUNET_STRINGS_relative_time_to_string (info->value.publish.specifics.progress_directory.eta,
+						  GNUNET_YES);
+      FPRINTF (stdout,
+               _("Publishing `%s' at %llu/%llu (%s remaining)\n"),
+               info->value.publish.filename,
+               (unsigned long long) info->value.publish.specifics.progress_directory.completed,
+               (unsigned long long) info->value.publish.specifics.progress_directory.total, s);
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:

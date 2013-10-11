@@ -145,6 +145,9 @@ progress_cb (void *cls,
 	 (0 == strcmp ("publish-context-dir", event->value.publish.cctx)) )
       GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
+  case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
+    ret = event->value.publish.cctx;
+    return ret;
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
     consider_restart (event->status);
     ret = event->value.publish.cctx;

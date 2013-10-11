@@ -362,7 +362,7 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
     if (UINT64_MAX == offset)
     {
       if (&GNUNET_FS_data_reader_file_ == p->data.file.reader)
-      {	
+      {
 	/* force closing the file to avoid keeping too many files open */
 	p->data.file.reader (p->data.file.reader_cls, offset, 0, NULL, NULL);
       }
@@ -390,7 +390,8 @@ block_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
  * @param tc scheduler's task context (not used)
  */
 static void
-encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+encode_cont (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -421,7 +422,7 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-  /* final progress event */
+    /* final progress event */
     GNUNET_assert (NULL != p->chk_uri);
     flen = GNUNET_FS_uri_chk_get_file_size (p->chk_uri);
     pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS;
@@ -454,8 +455,12 @@ encode_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param block_size size of @a block (in bytes)
  */
 static void
-block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
-            unsigned int depth, enum GNUNET_BLOCK_Type type, const void *block,
+block_proc (void *cls,
+            const struct ContentHashKey *chk,
+            uint64_t offset,
+            unsigned int depth,
+            enum GNUNET_BLOCK_Type type,
+            const void *block,
             uint16_t block_size)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
@@ -520,11 +525,14 @@ block_proc (void *cls, const struct ContentHashKey *chk, uint64_t offset,
  * @param depth depth of the block in the tree, 0 for DBLOCK
  */
 static void
-progress_proc (void *cls, uint64_t offset, const void *pt_block, size_t pt_size,
+progress_proc (void *cls, uint64_t offset,
+               const void *pt_block,
+               size_t pt_size,
                unsigned int depth)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
+  struct GNUNET_FS_FileInformation *par;
   struct GNUNET_FS_ProgressInfo pi;
 
   p = pc->fi_pos;
@@ -534,6 +542,23 @@ progress_proc (void *cls, uint64_t offset, const void *pt_block, size_t pt_size,
   pi.value.publish.specifics.progress.data_len = pt_size;
   pi.value.publish.specifics.progress.depth = depth;
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, offset);
+  if ( (0 != depth) ||
+       (GNUNET_YES == p->is_directory) )
+    return;
+  while (NULL != (par = p->dir))
+  {
+    p = par;
+    GNUNET_assert (GNUNET_YES == par->is_directory);
+    p->data.dir.contents_completed += pt_size;
+    pi.status = GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY;
+    pi.value.publish.specifics.progress_directory.completed = p->data.dir.contents_completed;
+    pi.value.publish.specifics.progress_directory.total = p->data.dir.contents_size;
+    pi.value.publish.specifics.progress_directory.eta = GNUNET_TIME_calculate_eta (p->start_time,
+                                                                                   p->data.dir.contents_completed,
+                                                                                   p->data.dir.contents_size);
+    p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
+
+  }
 }
 
 
@@ -1137,6 +1162,25 @@ finish_reserve (void *cls, int success,
 
 
 /**
+ * Calculate the total size of all of the files in the directory structure.
+ *
+ * @param fi file structure to traverse
+ */
+static uint64_t
+compute_contents_size (struct GNUNET_FS_FileInformation *fi)
+{
+  struct GNUNET_FS_FileInformation *ent;
+
+  if (GNUNET_YES != fi->is_directory)
+    return fi->data.file.file_size;
+  fi->data.dir.contents_size = 0;
+  for (ent = fi->data.dir.entries; NULL != ent; ent = ent->next)
+    fi->data.dir.contents_size += compute_contents_size (ent);
+  return fi->data.dir.contents_size;
+}
+
+
+/**
  * Publish a file or directory.
  *
  * @param h handle to the file sharing subsystem
@@ -1161,6 +1205,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   struct GNUNET_DATASTORE_Handle *dsh;
 
   GNUNET_assert (NULL != h);
+  compute_contents_size (fi);
   if (0 == (options & GNUNET_FS_PUBLISH_OPTION_SIMULATE_ONLY))
   {
     dsh = GNUNET_DATASTORE_connect (h->cfg);

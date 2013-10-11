@@ -347,7 +347,7 @@ struct GNUNET_FS_FileInformation
 
       /**
        * Has the service confirmed our INDEX_START request?
-       * GNUNET_YES if this step has been completed.
+       * #GNUNET_YES if this step has been completed.
        */
       int index_start_confirmed;
 
@@ -375,6 +375,16 @@ struct GNUNET_FS_FileInformation
        * available).
        */
       void *dir_data;
+
+      /**
+       * How much of the directory have we published (relative to @e contents_size).
+       */
+      uint64_t contents_completed;
+
+      /**
+       * Sum of all of the sizes of all of the files in the directory.
+       */
+      uint64_t contents_size;
 
     } dir;
 
@@ -416,17 +426,17 @@ typedef void (*GNUNET_FS_QueueStop) (void *cls);
  * Priorities for the queue.
  */
 enum GNUNET_FS_QueuePriority
-  {
-    /**
-     * This is a probe (low priority).
-     */
-    GNUNET_FS_QUEUE_PRIORITY_PROBE,
+{
+  /**
+   * This is a probe (low priority).
+   */
+  GNUNET_FS_QUEUE_PRIORITY_PROBE,
 
-    /**
-     * Default priority.
-     */
-    GNUNET_FS_QUEUE_PRIORITY_NORMAL
-  };
+  /**
+   * Default priority.
+   */
+  GNUNET_FS_QUEUE_PRIORITY_NORMAL
+};
 
 
 /**
@@ -701,6 +711,7 @@ size_t
 GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
                              char **emsg);
 
+
 /**
  * Notification of FS that a search probe has made progress.
  * This function is used INSTEAD of the client's event handler
@@ -901,6 +912,7 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
 void
 GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
 
+
 /**
  * Synchronize this publishing struct with its mirror
  * on disk.  Note that all internal FS-operations that change
@@ -911,6 +923,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *f);
  */
 void
 GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
+
 
 /**
  * Synchronize this unindex struct with its mirror
@@ -923,6 +936,7 @@ GNUNET_FS_publish_sync_ (struct GNUNET_FS_PublishContext *pc);
 void
 GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
 
+
 /**
  * Synchronize this search struct with its mirror
  * on disk.  Note that all internal FS-operations that change
@@ -933,6 +947,7 @@ GNUNET_FS_unindex_sync_ (struct GNUNET_FS_UnindexContext *uc);
  */
 void
 GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
+
 
 /**
  * Synchronize this search result with its mirror
@@ -945,6 +960,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc);
 void
 GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
 
+
 /**
  * Synchronize this download struct with its mirror
  * on disk.  Note that all internal FS-operations that change
@@ -956,6 +972,7 @@ GNUNET_FS_search_result_sync_ (struct GNUNET_FS_SearchResult *sr);
 void
 GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
 
+
 /**
  * Create SUSPEND event for the given publish operation
  * and then clean up our state (without stop signal).
@@ -964,6 +981,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
  */
 void
 GNUNET_FS_publish_signal_suspend_ (void *cls);
+
 
 /**
  * Create SUSPEND event for the given search operation
@@ -974,6 +992,7 @@ GNUNET_FS_publish_signal_suspend_ (void *cls);
 void
 GNUNET_FS_search_signal_suspend_ (void *cls);
 
+
 /**
  * Create SUSPEND event for the given download operation
  * and then clean up our state (without stop signal).
@@ -983,6 +1002,7 @@ GNUNET_FS_search_signal_suspend_ (void *cls);
 void
 GNUNET_FS_download_signal_suspend_ (void *cls);
 
+
 /**
  * Create SUSPEND event for the given unindex operation
  * and then clean up our state (without stop signal).
@@ -991,6 +1011,7 @@ GNUNET_FS_download_signal_suspend_ (void *cls);
  */
 void
 GNUNET_FS_unindex_signal_suspend_ (void *cls);
+
 
 /**
  * Function signature of the functions that can be called
@@ -1034,11 +1055,12 @@ struct TopLevelActivity
  *
  * @param h global fs handle
  * @param ssf suspend signal function to use
- * @param ssf_cls closure for ssf
+ * @param ssf_cls closure for @a ssf
  * @return fresh top-level activity handle
  */
 struct TopLevelActivity *
-GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
+GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
+                    SuspendSignalFunction ssf,
                     void *ssf_cls);
 
 
@@ -1049,7 +1071,8 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
  * @param top top level activity entry
  */
 void
-GNUNET_FS_end_top (struct GNUNET_FS_Handle *h, struct TopLevelActivity *top);
+GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
+                   struct TopLevelActivity *top);
 
 
 
@@ -1256,13 +1279,13 @@ struct GNUNET_FS_PublishContext
   int rid;
 
   /**
-   * Set to GNUNET_YES if all processing has completed.
+   * Set to #GNUNET_YES if all processing has completed.
    */
   int all_done;
 
   /**
-   * Flag set to GNUNET_YES if the next callback from
-   * GNUNET_FS_file_information_inspect should be skipped because it
+   * Flag set to #GNUNET_YES if the next callback from
+   * #GNUNET_FS_file_information_inspect should be skipped because it
    * is for the directory which was already processed with the parent.
    */
   int skip_next_fi_callback;
@@ -1362,7 +1385,7 @@ struct GNUNET_FS_UnindexContext
 
   /**
    * Connection to the FS service, only valid during the
-   * UNINDEX_STATE_FS_NOTIFY phase.
+   * #UNINDEX_STATE_FS_NOTIFY phase.
    */
   struct GNUNET_CLIENT_Connection *client;
 
@@ -1424,7 +1447,7 @@ struct GNUNET_FS_UnindexContext
   uint64_t file_size;
 
   /**
-   * Random offset given to 'GNUNET_DATASTORE_get_key'.
+   * Random offset given to #GNUNET_DATASTORE_get_key.
    */
   uint64_t roff;
 
@@ -1561,7 +1584,7 @@ struct GNUNET_FS_SearchContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the search is being stopped (if not
-   * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * #GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
@@ -1602,65 +1625,65 @@ struct GNUNET_FS_SearchContext
  */
 enum BlockRequestState
 {
-    /**
-     * Initial state, block has only been allocated (since it is
-     * relevant to the overall download request).
-     */
+  /**
+   * Initial state, block has only been allocated (since it is
+   * relevant to the overall download request).
+   */
   BRS_INIT = 0,
 
-    /**
-     * We've checked the block on the path down the tree, and the
-     * content on disk did match the desired CHK, but not all
-     * the way down, so at the bottom some blocks will still
-     * need to be reconstructed).
-     */
+  /**
+   * We've checked the block on the path down the tree, and the
+   * content on disk did match the desired CHK, but not all
+   * the way down, so at the bottom some blocks will still
+   * need to be reconstructed).
+   */
   BRS_RECONSTRUCT_DOWN = 1,
 
-    /**
-     * We've calculated the CHK bottom-up based on the meta data.
-     * This may work, but if it did we have to write the meta data to
-     * disk at the end (and we still need to check against the
-     * CHK set on top).
-     */
+  /**
+   * We've calculated the CHK bottom-up based on the meta data.
+   * This may work, but if it did we have to write the meta data to
+   * disk at the end (and we still need to check against the
+   * CHK set on top).
+   */
   BRS_RECONSTRUCT_META_UP = 2,
 
-    /**
-     * We've calculated the CHK bottom-up based on what we have on
-     * disk, which may not be what the desired CHK is.  If the
-     * reconstructed CHKs match whatever comes from above, we're
-     * done with the respective subtree.
-     */
+  /**
+   * We've calculated the CHK bottom-up based on what we have on
+   * disk, which may not be what the desired CHK is.  If the
+   * reconstructed CHKs match whatever comes from above, we're
+   * done with the respective subtree.
+   */
   BRS_RECONSTRUCT_UP = 3,
 
-    /**
-     * We've determined the real, desired CHK for this block
-     * (full tree reconstruction failed), request is now pending.
-     * If the CHK that bubbled up through reconstruction did match
-     * the top-level request, the state machine for the subtree
-     * would have moved to BRS_DOWNLOAD_UP.
-     */
+  /**
+   * We've determined the real, desired CHK for this block
+   * (full tree reconstruction failed), request is now pending.
+   * If the CHK that bubbled up through reconstruction did match
+   * the top-level request, the state machine for the subtree
+   * would have moved to BRS_DOWNLOAD_UP.
+   */
   BRS_CHK_SET = 4,
 
-    /**
-     * We've successfully downloaded this block, but the children
-     * still need to be either downloaded or verified (download
-     * request propagates down).  If the download fails, the
-     * state machine for this block may move to
-     * BRS_DOWNLOAD_ERROR instead.
-     */
+  /**
+   * We've successfully downloaded this block, but the children
+   * still need to be either downloaded or verified (download
+   * request propagates down).  If the download fails, the
+   * state machine for this block may move to
+   * BRS_DOWNLOAD_ERROR instead.
+   */
   BRS_DOWNLOAD_DOWN = 5,
 
-    /**
-     * This block and all of its children have been downloaded
-     * successfully (full completion propagates up).
-     */
+  /**
+   * This block and all of its children have been downloaded
+   * successfully (full completion propagates up).
+   */
   BRS_DOWNLOAD_UP = 6,
 
-    /**
-     * We got a block back that matched the query but did not hash to
-     * the key (malicious publisher or hash collision); this block
-     * can never be downloaded (error propagates up).
-     */
+  /**
+   * We got a block back that matched the query but did not hash to
+   * the key (malicious publisher or hash collision); this block
+   * can never be downloaded (error propagates up).
+   */
   BRS_ERROR = 7
 };
 
@@ -1724,7 +1747,7 @@ struct DownloadRequest
   enum BlockRequestState state;
 
   /**
-   * GNUNET_YES if this entry is in the pending list.
+   * #GNUNET_YES if this entry is in the pending list.
    */
   int is_pending;
 
@@ -1944,7 +1967,7 @@ struct GNUNET_FS_DownloadContext
 
   /**
    * Flag set upon transitive completion (includes child downloads).
-   * This flag is only set to GNUNET_YES for directories where all
+   * This flag is only set to #GNUNET_YES for directories where all
    * child-downloads have also completed (and signalled completion).
    */
   int has_finished;
