@@ -179,6 +179,7 @@ handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct MeshClient *c;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "client connected: %p\n", client);
   if (NULL == client)
     return;
   c = GNUNET_new (struct MeshClient);

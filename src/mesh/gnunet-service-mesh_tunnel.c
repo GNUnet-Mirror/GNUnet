@@ -392,7 +392,7 @@ handle_ch_create (struct MeshTunnel3 *t,
   }
   else
   {
-    ch = GMCH_handle_create (msg, fwd);
+    ch = GMCH_handle_create (t, msg, fwd);
   }
 
   tch = GNUNET_new (struct MeshTChannel);

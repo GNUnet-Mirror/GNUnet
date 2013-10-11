@@ -811,7 +811,8 @@ channel_destroy (struct MeshChannel *ch)
  */
 static struct MeshChannel *
 channel_new (struct MeshTunnel3 *t,
-             struct MeshClient *owner, MESH_ChannelNumber lid_root)
+             struct MeshClient *owner,
+             MESH_ChannelNumber lid_root)
 {
   struct MeshChannel *ch;
 
@@ -880,8 +881,8 @@ handle_loopback (struct MeshChannel *ch,
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-       // FIXME store channel in loopback tunnel?
-      GMCH_handle_create ((struct GNUNET_MESH_ChannelCreate *) msgh,
+      GMCH_handle_create (ch->t,
+                          (struct GNUNET_MESH_ChannelCreate *) msgh,
                           fwd);
       break;
 
@@ -1329,8 +1330,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   ch->root_rel->ch = ch;
   ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
-       GMT_2s (t), ch->gid, ch->port, ch->lid_root);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s\n", GMCH_2s (ch));
 
   /* Send create channel */
   {
@@ -1505,11 +1505,13 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
 /**
  * Handler for channel create messages.
  *
+ * @param t Tunnel this channel will be in.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 struct MeshChannel *
-GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
+GMCH_handle_create (struct MeshTunnel3 *t,
+                    const struct GNUNET_MESH_ChannelCreate *msg,
                     int fwd)
 {
   MESH_ChannelNumber chid;
@@ -1520,7 +1522,7 @@ GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
   chid = ntohl (msg->chid);
 
   /* Create channel */
-  ch = channel_new (NULL, NULL, 0); /* FIXME pass t */
+  ch = channel_new (t, NULL, 0);
   ch->gid = chid;
   channel_set_options (ch, ntohl (msg->opt));
 

@@ -238,12 +238,13 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
 /**
  * Handler for channel create messages.
  *
- * @param t Tunnel this channel is to be created in.
+ * @param t Tunnel this channel will be in.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 struct MeshChannel *
-GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
+GMCH_handle_create (struct MeshTunnel3 *t,
+                    const struct GNUNET_MESH_ChannelCreate *msg,
                     int fwd);
 
 /**
