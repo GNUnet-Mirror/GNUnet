@@ -639,7 +639,6 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GMT_shutdown (void)
 {
-  GNUNET_PEER_change_rc (myid, -1);
 }
 
 
