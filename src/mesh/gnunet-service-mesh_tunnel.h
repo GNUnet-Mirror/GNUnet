@@ -79,6 +79,7 @@ struct MeshTunnel3;
 
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_connection.h"
+#include "gnunet-service-mesh_peer.h"
 
 
 /******************************************************************************/
@@ -197,6 +198,19 @@ GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
 struct MeshChannel *
 GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
 
+/**
+ * Decrypt and demultiplex by message type. Call appropriate handler
+ * for a message
+ * towards a channel of a local tunnel.
+ *
+ * @param t Tunnel this message came on.
+ * @param msgh Message header.
+ * @param fwd Is this message fwd?
+ */
+void
+GMT_handle_encrypted (struct MeshTunnel3 *t,
+                      const struct GNUNET_MESH_Encrypted *msg,
+                      int fwd);
 
 /**
  * Cache a message to be sent once tunnel is online.

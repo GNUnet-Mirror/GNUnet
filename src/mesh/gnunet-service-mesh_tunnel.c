@@ -257,6 +257,48 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 }
 
 
+/**
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+ * Encrypt data with the tunnel key.
+ * Make static?
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the GMT_encrypted data.
+ * @param src Source of the plaintext.
+ * @param size Size of the plaintext.
+ * @param iv Initialization Vector to use.
+ * @param fwd Is this a fwd message?
+ */
+static void
+GMT_encrypt (struct MeshTunnel3 *t,
+             void *dst, const void *src,
+             size_t size, uint64_t iv, int fwd)
+{
+  memcpy (dst, src, size);
+}
+
+
+/**
+ * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+ * Decrypt data with the tunnel key.
+ * Make static?
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the GMT_encrypted data.
+ * @param size Size of the GMT_encrypted data.
+ * @param iv Initialization Vector to use.
+ * @param fwd Is this a fwd message?
+ */
+static void
+GMT_decrypt (struct MeshTunnel3 *t,
+             void *dst, const void *src,
+             size_t size, uint64_t iv, int fwd)
+{
+  memcpy (dst, src, size);
+}
+
+
 void
 handle_data (struct MeshTunnel3 *t,
              const struct GNUNET_MESH_Data *msg,
@@ -417,9 +459,6 @@ handle_ch_destroy (struct MeshTunnel3 *t,
   GMCH_handle_destroy (ch, msg, fwd);
 }
 
-/******************************************************************************/
-/********************************    API    ***********************************/
-/******************************************************************************/
 
 /**
  * Demultiplex by message type and call appropriate handler for a message
@@ -429,10 +468,10 @@ handle_ch_destroy (struct MeshTunnel3 *t,
  * @param msgh Message header.
  * @param fwd Is this message fwd?
  */
-void
-GMT_handle_decrypted (struct MeshTunnel3 *t,
-                      const struct GNUNET_MessageHeader *msgh,
-                      int fwd)
+static void
+handle_GMT_decrypted (struct MeshTunnel3 *t,
+                  const struct GNUNET_MessageHeader *msgh,
+                  int fwd)
 {
   uint16_t type;
 
@@ -475,6 +514,40 @@ GMT_handle_decrypted (struct MeshTunnel3 *t,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "end-to-end message not known (%u)\n",
            ntohs (msgh->type));
+  }
+}
+
+/******************************************************************************/
+/********************************    API    ***********************************/
+/******************************************************************************/
+
+
+/**
+ * Decrypt and demultiplex by message type. Call appropriate handler
+ * for every message.
+ *
+ * @param t Tunnel this message came on.
+ * @param msgh Encrypted message.
+ * @param fwd Is this message fwd?
+ */
+void
+GMT_handle_GMT_encrypted (struct MeshTunnel3 *t,
+                      const struct GNUNET_MESH_Encrypted *msg,
+                      int fwd)
+{
+  size_t size = ntohs (msg->header.size);
+  size_t payload_size = size - sizeof (struct GNUNET_MESH_Encrypted);
+  char cbuf[payload_size];
+  struct GNUNET_MessageHeader *msgh;
+  unsigned int off;
+
+  GMT_decrypt (t, cbuf, &msg[1], payload_size, msg->iv, fwd);
+  off = 0;
+  while (off < payload_size)
+  {
+    msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
+    handle_GMT_decrypted (t, msgh, fwd);
+    off += ntohs (msgh->size);
   }
 }
 
@@ -868,48 +941,6 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 
 
 /**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
- * Encrypt data with the tunnel key.
- * Make static?
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the encrypted data.
- * @param src Source of the plaintext.
- * @param size Size of the plaintext.
- * @param iv Initialization Vector to use.
- * @param fwd Is this a fwd message?
- */
-void
-GMT_encrypt (struct MeshTunnel3 *t,
-             void *dst, const void *src,
-             size_t size, uint64_t iv, int fwd)
-{
-  memcpy (dst, src, size);
-}
-
-
-/**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
- * Decrypt data with the tunnel key.
- * Make static?
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data.
- * @param size Size of the encrypted data.
- * @param iv Initialization Vector to use.
- * @param fwd Is this a fwd message?
- */
-void
-GMT_decrypt (struct MeshTunnel3 *t,
-             void *dst, const void *src,
-             size_t size, uint64_t iv, int fwd)
-{
-  memcpy (dst, src, size);
-}
-
-
-/**
  * Count established (ready) connections of a tunnel.
  *
  * @param t Tunnel on which to count.
@@ -1056,7 +1087,7 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
 
 
 /**
- * Sends an already built message on a tunnel, encrypting it and
+ * Sends an already built message on a tunnel, GMT_encrypting it and
  * choosing the best connection.
  *
  * @param message Message to send. Function modifies it.

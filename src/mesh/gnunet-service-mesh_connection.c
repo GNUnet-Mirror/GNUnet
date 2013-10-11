@@ -438,7 +438,7 @@ message_sent (void *cls,
  * @return Previous peer in the connection.
  */
 static struct MeshPeer *
-get_prev_hop (struct MeshConnection *c)
+get_prev_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
@@ -459,7 +459,7 @@ get_prev_hop (struct MeshConnection *c)
  * @return Next peer in the connection.
  */
 static struct MeshPeer *
-get_next_hop (struct MeshConnection *c)
+get_next_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
@@ -1305,7 +1305,6 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                        int fwd)
 {
   struct MeshConnection *c;
-  struct MeshTunnel3 *t;
   struct MeshPeer *neighbor;
   struct MeshFlowControl *fc;
   uint32_t pid;
@@ -1335,7 +1334,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
     return GNUNET_OK;
   }
-  t = c->t;
+
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   /* Check if origin is as expected */
@@ -1372,24 +1371,17 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Is this message for us? */
   if (GMC_is_terminal (c, fwd))
   {
-    size_t dsize = size - sizeof (struct GNUNET_MESH_Encrypted);
-    char cbuf[dsize];
-    struct GNUNET_MessageHeader *msgh;
-    unsigned int off;
-
     /* TODO signature verification */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
     GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
 
-    fc->last_pid_recv = pid;
-    tunnel_decrypt (t, cbuf, &msg[1], dsize, msg->iv, fwd);
-    off = 0;
-    while (off < dsize)
+    if (NULL == c->t)
     {
-      msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
-      handle_decrypted (t, msgh, fwd);
-      off += ntohs (msgh->size);
+      GNUNET_break (0);
+      return GNUNET_OK;
     }
+    fc->last_pid_recv = pid;
+    GMT_handle_encrypted (c->t, msg, fwd);
     send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
