@@ -260,7 +260,6 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 /**
  * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Encrypt data with the tunnel key.
- * Make static?
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the GMT_encrypted data.
@@ -281,7 +280,6 @@ GMT_encrypt (struct MeshTunnel3 *t,
 /**
  * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Decrypt data with the tunnel key.
- * Make static?
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
@@ -531,7 +529,7 @@ handle_GMT_decrypted (struct MeshTunnel3 *t,
  * @param fwd Is this message fwd?
  */
 void
-GMT_handle_GMT_encrypted (struct MeshTunnel3 *t,
+GMT_handle_encrypted (struct MeshTunnel3 *t,
                       const struct GNUNET_MESH_Encrypted *msg,
                       int fwd)
 {
