@@ -254,7 +254,7 @@ append_public_key (void *cls,
 		   const struct GNUNET_HashCode *key,
 		   void *value)
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey **issuers = cls;
+  struct GNUNET_CRYPTO_EddsaPublicKey **issuers = cls;
   struct Issuer *issuer = value;
 
   *issuers[0] = issuer->pubkey;
@@ -278,9 +278,9 @@ send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
   struct Experimentation_Request msg;
   unsigned int my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   size_t msg_size = sizeof (msg);
-  size_t ri_size = sizeof (struct GNUNET_CRYPTO_EccPublicSignKey) * my_issuer_count;
+  size_t ri_size = sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) * my_issuer_count;
   size_t total_size = msg_size + ri_size;
-  struct GNUNET_CRYPTO_EccPublicSignKey *issuers;
+  struct GNUNET_CRYPTO_EddsaPublicKey *issuers;
 	
   n->cth = NULL;
   if (NULL == buf)
@@ -299,7 +299,7 @@ send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
   msg.capabilities = htonl (GSE_node_capabilities);
   msg.issuer_count = htonl (my_issuer_count);
   memcpy (buf, &msg, msg_size);
-  issuers = (struct GNUNET_CRYPTO_EccPublicSignKey *) buf + msg_size;
+  issuers = (struct GNUNET_CRYPTO_EddsaPublicKey *) buf + msg_size;
   GNUNET_CONTAINER_multihashmap_iterate (valid_issuers,
 					 &append_public_key,
 					 &issuers);
@@ -325,7 +325,7 @@ send_experimentation_request (const struct GNUNET_PeerIdentity *peer)
 
   c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   size = sizeof (struct Experimentation_Request) +
-    c_issuers * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
+    c_issuers * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey);
   n = GNUNET_new (struct Node);
   n->id = *peer;
   n->timeout_task = GNUNET_SCHEDULER_add_delayed (EXP_RESPONSE_TIMEOUT, &remove_request, n);
@@ -362,10 +362,10 @@ send_response_cb (void *cls, size_t bufsize, void *buf)
   struct Node *n = cls;
   struct Experimentation_Response msg;
   size_t c_issuers = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
-  size_t ri_size = c_issuers * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
+  size_t ri_size = c_issuers * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey);
   size_t msg_size = sizeof (msg);
   size_t total_size = msg_size + ri_size;
-  struct GNUNET_CRYPTO_EccPublicSignKey *issuers;
+  struct GNUNET_CRYPTO_EddsaPublicKey *issuers;
 
   n->cth = NULL;
   if (buf == NULL)
@@ -382,7 +382,7 @@ send_response_cb (void *cls, size_t bufsize, void *buf)
   msg.capabilities = htonl (GSE_node_capabilities);
   msg.issuer_count = htonl (c_issuers);
   memcpy (buf, &msg, msg_size);
-  issuers = (struct GNUNET_CRYPTO_EccPublicSignKey *) buf + msg_size;
+  issuers = (struct GNUNET_CRYPTO_EddsaPublicKey *) buf + msg_size;
   GNUNET_CONTAINER_multihashmap_iterate (valid_issuers,
 					 &append_public_key,
 					 &issuers);
@@ -471,7 +471,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   struct Node *n;
   struct NodeComCtx *e_ctx;
   const struct Experimentation_Request *rm = (const struct Experimentation_Request *) message;
-  const struct GNUNET_CRYPTO_EccPublicSignKey *rmi = (const struct GNUNET_CRYPTO_EccPublicSignKey *) &rm[1];
+  const struct GNUNET_CRYPTO_EddsaPublicKey *rmi = (const struct GNUNET_CRYPTO_EddsaPublicKey *) &rm[1];
   unsigned int my_issuer_count = GNUNET_CONTAINER_multihashmap_size (valid_issuers);
   int c1;
   int c2;
@@ -486,7 +486,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   }
   ic = ntohl (rm->issuer_count);
   if (ntohs (message->size) !=
-      sizeof (struct Experimentation_Request) + ic * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
+      sizeof (struct Experimentation_Request) + ic * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey))
   {
     GNUNET_break (0);
     return;
@@ -537,7 +537,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
 	      "Request from peer `%s' with %u issuers, we accepted %u issuer \n",
 	      GNUNET_i2s (peer), ic, ic_accepted);
   GNUNET_free_non_null (n->issuer_id);
-  n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey));
+  n->issuer_id = GNUNET_malloc (ic_accepted * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   c2 = 0;
   for (c1 = 0; c1 < ic; c1++)
   {
@@ -557,7 +557,7 @@ handle_request (const struct GNUNET_PeerIdentity *peer,
   e_ctx->n = n;
   e_ctx->e = NULL;
   e_ctx->size = sizeof (struct Experimentation_Response) +
-    my_issuer_count * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey);
+    my_issuer_count * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey);
   e_ctx->notify = &send_response_cb;
   e_ctx->notify_cls = n;
 
@@ -577,7 +577,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
 {
   struct Node *n;
   const struct Experimentation_Response *rm = (const struct Experimentation_Response *) message;
-  const struct GNUNET_CRYPTO_EccPublicSignKey *rmi = (const struct GNUNET_CRYPTO_EccPublicSignKey *) &rm[1];
+  const struct GNUNET_CRYPTO_EddsaPublicKey *rmi = (const struct GNUNET_CRYPTO_EddsaPublicKey *) &rm[1];
   uint32_t ic;
   uint32_t ic_accepted;
   int make_active;
@@ -590,7 +590,7 @@ static void handle_response (const struct GNUNET_PeerIdentity *peer,
       return;
     }
   ic = ntohl (rm->issuer_count);
-  if (ntohs (message->size) != sizeof (struct Experimentation_Response) + ic * sizeof (struct GNUNET_CRYPTO_EccPublicSignKey))
+  if (ntohs (message->size) != sizeof (struct Experimentation_Response) + ic * sizeof (struct GNUNET_CRYPTO_EddsaPublicKey))
   {
     GNUNET_break (0);
     return;

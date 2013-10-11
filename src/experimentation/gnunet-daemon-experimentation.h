@@ -93,7 +93,7 @@ struct Experiment
   /**
    * Experiment issuer
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey issuer;
+  struct GNUNET_CRYPTO_EddsaPublicKey issuer;
 
   /**
    * Experiment version as timestamp of creation
@@ -178,7 +178,7 @@ struct Node
   /**
    * Array of issuers accepted by this neighbor.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey *issuer_id;
+  struct GNUNET_CRYPTO_EddsaPublicKey *issuer_id;
 
   unsigned int issuer_count;
 
@@ -192,7 +192,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Used to detect experimentation capability
  *
  * This struct is followed by issuer identities:
- * (issuer_count * struct GNUNET_CRYPTO_EccPublicSignKey)
+ * (issuer_count * struct GNUNET_CRYPTO_EddsaPublicKey)
  *
  */
 struct Experimentation_Request
@@ -210,7 +210,7 @@ struct Experimentation_Request
  * Sent if peer is running the daemon
  *
  * This struct is followed by issuer identities:
- * (issuer_count * struct GNUNET_CRYPTO_EccPublicSignKey)
+ * (issuer_count * struct GNUNET_CRYPTO_EddsaPublicKey)
  */
 struct Experimentation_Response
 {
@@ -227,7 +227,7 @@ struct Experimentation_Response
  */
 struct Issuer
 {
-  struct GNUNET_CRYPTO_EccPublicSignKey pubkey;
+  struct GNUNET_CRYPTO_EddsaPublicKey pubkey;
 };
 
 
@@ -255,7 +255,7 @@ struct GED_start_message
   /**
    * Experiment issuer
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey issuer;
+  struct GNUNET_CRYPTO_EddsaPublicKey issuer;
 
   /**
    * Experiment version as timestamp of creation
@@ -276,7 +276,7 @@ struct GED_start_ack_message
   /**
    * Experiment issuer
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey issuer;
+  struct GNUNET_CRYPTO_EddsaPublicKey issuer;
 
   /**
    * Experiment version as timestamp of creation
@@ -297,7 +297,7 @@ struct GED_stop_message
   /**
    * Experiment issuer
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey issuer;
+  struct GNUNET_CRYPTO_EddsaPublicKey issuer;
 
   /**
    * Experiment version as timestamp of creation
@@ -379,7 +379,7 @@ GED_capabilities_stop (void);
  * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GED_experiments_issuer_accepted (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer_ID);
+GED_experiments_issuer_accepted (const struct GNUNET_CRYPTO_EddsaPublicKey *issuer_ID);
 
 
 /*
@@ -391,7 +391,7 @@ GED_experiments_issuer_accepted (const struct GNUNET_CRYPTO_EccPublicSignKey *is
  * @return the experiment or NULL if not found
  */
 struct Experiment *
-GED_experiments_find (const struct GNUNET_CRYPTO_EccPublicSignKey *issuer,
+GED_experiments_find (const struct GNUNET_CRYPTO_EddsaPublicKey *issuer,
 		      const char *name,
 		      const struct GNUNET_TIME_Absolute version);
 
@@ -402,7 +402,7 @@ typedef void (*GNUNET_EXPERIMENTATION_experiments_get_cb) (struct Node *n,
 
 void
 GED_experiments_get (struct Node *n,
-		     struct GNUNET_CRYPTO_EccPublicSignKey *issuer,
+		     struct GNUNET_CRYPTO_EddsaPublicKey *issuer,
 		     GNUNET_EXPERIMENTATION_experiments_get_cb get_cb);
 
 
