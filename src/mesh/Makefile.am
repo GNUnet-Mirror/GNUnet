@@ -23,8 +23,8 @@ AM_CLFAGS = -g
 EXP_LIB = \
  libgnunetmeshenc.la
 
-#EXP_LIBEXEC = \
-# gnunet-service-mesh-enc
+EXP_LIBEXEC = \
+ gnunet-service-mesh-enc
 
 libexec_PROGRAMS = \
  gnunet-service-mesh $(EXP_LIBEXEC)

@@ -328,6 +328,19 @@ unsigned int
 GMC_get_qn (struct MeshConnection *c, int fwd);
 
 /**
+ * Allow the connection to advertise a buffer of the given size.
+ *
+ * The connection will send an @c fwd ACK message (so: in direction !fwd)
+ * allowing up to last_pid_recv + buffer.
+ *
+ * @param c Connection.
+ * @param buffer How many more messages the connection can accept.
+ * @param fwd Is this about FWD traffic? (The ack will go dest->root).
+ */
+void
+GMC_allow (struct MeshConnection *c, unsigned int buffer, int fwd);
+
+/**
  * Send FWD keepalive packets for a connection.
  *
  * @param cls Closure (connection for which to send the keepalive).

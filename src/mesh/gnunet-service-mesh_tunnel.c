@@ -1095,10 +1095,8 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
  * @param ch Channel which has some free buffer space.
  * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
-static void
-GMT_send_acks (struct MeshTunnel3 *t,
-               unsigned int buffer,
-               int fwd)
+void
+GMT_send_acks (struct MeshTunnel3 *t, unsigned int buffer, int fwd)
 {
   struct MeshTConnection *iter;
   uint32_t allowed;
@@ -1108,7 +1106,19 @@ GMT_send_acks (struct MeshTunnel3 *t,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel send acks on %s:%X\n",
-              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
+              fwd ? "FWD" : "BCK", GMT_2s (t));
+
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (NULL == t->channel_head ||
+      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, fwd))
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   /* Count connections, how many messages are already allowed */
   cs = GMT_count_connections (t);
@@ -1125,7 +1135,7 @@ GMT_send_acks (struct MeshTunnel3 *t,
   }
 
   /* Authorize connections to send more data */
-  to_allow = buffer - allowed;
+  to_allow = buffer; /* - allowed; */
 
   for (iter = t->connection_head; NULL != iter && to_allow > 0; iter = iter->next)
   {
@@ -1136,13 +1146,9 @@ GMT_send_acks (struct MeshTunnel3 *t,
     {
       continue;
     }
-    GMC_send_ack (iter->c, NULL, fwd);
-    connection_send_ack (iter, allow_per_connection, fwd);
+    GMC_allow (iter->c, buffer, fwd);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Channel send connection %s ack on %s:%X\n",
-                fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
   GNUNET_break (to_allow == 0);
 }
 

@@ -516,7 +516,8 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
               fwd ? "FWD" : "BCK", GNUNET_h2s (&c->id));
 
   /* Check if we need to transmit the ACK */
-  if (prev_fc->last_ack_sent - prev_fc->last_pid_recv > 3)
+  delta = prev_fc->last_ack_sent - prev_fc->last_pid_recv;
+  if (3 < delta && buffer < delta)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer > 3\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -526,8 +527,7 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   }
 
   /* Ok, ACK might be necessary, what PID to ACK? */
-  delta = next_fc->queue_max - next_fc->queue_n;
-  ack = prev_fc->last_pid_recv + delta;
+  ack = prev_fc->last_pid_recv + buffer;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        " last pid %u, last ack %u, qmax %u, q %u\n",
@@ -1695,7 +1695,7 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on all connections\n");
     GNUNET_assert (NULL != ch);
-    channel_send_connections_ack (ch, buffer, fwd);
+    GMT_send_acks (GMCH_get_tunnel (ch), buffer, fwd);
   }
   else
   {
@@ -1751,6 +1751,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GMC_shutdown (void)
 {
+  GNUNET_CONTAINER_multihashmap_destroy (connections);
 }
 
 
@@ -1930,6 +1931,23 @@ GMC_get_qn (struct MeshConnection *c, int fwd)
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
   return fc->queue_n;
+}
+
+
+/**
+ * Allow the connection to advertise a buffer of the given size.
+ *
+ * The connection will send an @c fwd ACK message (so: in direction !fwd)
+ * allowing up to last_pid_recv + buffer.
+ *
+ * @param c Connection.
+ * @param buffer How many more messages the connection can accept.
+ * @param fwd Is this about FWD traffic? (The ack will go dest->root).
+ */
+void
+GMC_allow (struct MeshConnection *c, unsigned int buffer, int fwd)
+{
+  connection_send_ack (c, buffer, fwd);
 }
 
 
