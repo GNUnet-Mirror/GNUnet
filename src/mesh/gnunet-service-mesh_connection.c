@@ -1382,7 +1382,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     }
     fc->last_pid_recv = pid;
     GMT_handle_encrypted (c->t, msg, fwd);
-    send_ack (c, NULL, fwd);
+    GMC_send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
 
@@ -1394,7 +1394,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    send_ack (c, NULL, fwd);
+    GMC_send_ack (c, NULL, fwd);
     return GNUNET_OK;
   }
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
@@ -1585,7 +1585,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
               pid, fc->last_pid_recv);
   fc->last_pid_recv = pid;
   fwd = fc == &c->fwd_fc;
-  send_ack (c, NULL, fwd);
+  GMC_send_ack (c, NULL, fwd);
 
   return GNUNET_OK;
 }

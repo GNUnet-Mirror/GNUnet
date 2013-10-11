@@ -631,7 +631,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  send_ack (NULL, ch, fwd);
+  GMC_send_ack (NULL, ch, fwd);
 }
 
 
@@ -828,7 +828,6 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
 }
 
 
-
 /**
  * Confirm we got a channel create.
  *
@@ -843,9 +842,8 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending channel %s ack for channel %s:%X\n",
-              fwd ? "FWD" : "BCK", GMT_2s (ch->t),
-              ch->gid);
+              "  sending channel %s ack for channel %s\n",
+              fwd ? "FWD" : "BCK", GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
   GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
@@ -1168,7 +1166,7 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
 
   rel->client_ready = GNUNET_YES;
   send_client_buffered_data (ch, c, fwd);
-  send_ack (NULL, ch, fwd);
+  GMC_send_ack (NULL, ch, fwd);
 }
 
 
