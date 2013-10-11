@@ -192,6 +192,31 @@ handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 
 
 /**
+ * Iterator for deleting each channel whose client endpoint disconnected.
+ *
+ * @param cls Closure (client that has disconnected).
+ * @param key The local channel id (used to access the hashmap).
+ * @param value The value stored at the key (channel to destroy).
+ *
+ * @return GNUNET_OK, keep iterating.
+ */
+static int
+channel_destroy_iterator (void *cls,
+                          uint32_t key,
+                          void *value)
+{
+  struct MeshChannel *ch = value;
+  struct MeshClient *c = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              " Channel %s destroy, due to client %s shutdown.\n",
+              GMCH_2s (ch), GML_2s (c));
+
+  GMCH_handle_local_destroy (ch, c);
+  return GNUNET_OK;
+}
+
+/**
  * Handler for client disconnection
  *
  * @param cls closure
@@ -210,7 +235,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   }
 
-  c = client_get (client);
+  c = GML_client_get (client);
   if (NULL != c)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u, %p)\n",
@@ -349,7 +374,13 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GMCH_handle_local_create (c, (struct GNUNET_MESH_ChannelMessage *) message);
+  if (GNUNET_OK !=
+      GMCH_handle_local_create (c,
+                                (struct GNUNET_MESH_ChannelMessage *) message))
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -405,7 +436,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GMCH_handle_local_destroy (ch, c, chid);
+  GMCH_handle_local_destroy (ch, c);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;

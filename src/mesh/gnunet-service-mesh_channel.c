@@ -853,47 +853,6 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
- * Iterator for deleting each channel whose client endpoint disconnected.
- *
- * @param cls Closure (client that has disconnected).
- * @param key The local channel id (used to access the hashmap).
- * @param value The value stored at the key (channel to destroy).
- *
- * @return GNUNET_OK, keep iterating.
- */
-static int
-channel_destroy_iterator (void *cls,
-                          uint32_t key,
-                          void *value)
-{
-  struct MeshChannel *ch = value;
-  struct MeshClient *c = cls;
-  struct MeshTunnel3 *t;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              " Channel %X (%X / %X) destroy, due to client %s shutdown.\n",
-              ch->gid, ch->lid_root, ch->lid_dest, GML_2s (c));
-  GMCH_debug (ch);
-
-  if (c == ch->dest)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is destination.\n", GML_2s (c));
-  }
-  if (c == ch->root)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is owner.\n", GML_2s (c));
-  }
-
-  t = ch->t;
-  GMCH_send_destroy (ch);
-  channel_destroy (ch);
-  GMT_destroy_if_empty (t);
-
-  return GNUNET_OK;
-}
-
-
-/**
  * Handle a loopback message: call the appropriate handler for the message type.
  *
  * @param ch Channel this message is on.
@@ -1277,34 +1236,29 @@ GMCH_handle_local_data (struct MeshChannel *ch,
  *
  * @param ch Channel.
  * @param c Client that requested the destruction (to avoid notifying him).
- * @param chid Channel ID used.
  */
 void
 GMCH_handle_local_destroy (struct MeshChannel *ch,
-                           struct MeshClient *c,
-                           MESH_ChannelNumber chid)
+                           struct MeshClient *c)
 {
   struct MeshTunnel3 *t;
 
   /* Cleanup after the tunnel */
-  GML_client_delete_channel (c, ch, chid);
-  if (c == ch->dest && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
+  if (c == ch->dest)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is destination.\n", GML_2s (c));
+    GML_client_delete_channel (c, ch, ch->lid_dest);
     ch->dest = NULL;
   }
-  else if (c == ch->root && GNUNET_MESH_LOCAL_CHANNEL_ID_SERV > chid)
+  if (c == ch->root)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is owner.\n", GML_2s (c));
+    GML_client_delete_channel (c, ch, ch->lid_root);
     ch->root = NULL;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-                "  channel %X client %p (%p, %p)\n",
-                chid, c, ch->root, ch->dest);
-    GNUNET_break (0);
   }
 
   t = ch->t;
+  GMCH_send_destroy (ch);
   channel_destroy (ch);
   GMT_destroy_if_empty (t);
 }
@@ -1317,8 +1271,10 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
  *
  * @param c Client that requested the creation (will be the root).
  * @param msg Create Channel message.
+ *
+ * @return GNUNET_OK if everything went fine, GNUNET_SYSERR otherwise.
  */
-void
+int
 GMCH_handle_local_create (struct MeshClient *c,
                           struct GNUNET_MESH_ChannelMessage *msg)
 {
@@ -1335,15 +1291,14 @@ GMCH_handle_local_create (struct MeshClient *c,
   if (NULL != GML_channel_get (c, chid))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    return GNUNET_SYSERR;
   }
 
   peer = GMP_get (&msg->peer);
   GMP_add_tunnel (peer);
-  t = GMP_get_tunnel(peer);
+  t = GMP_get_tunnel (peer);
 
-  if (GMP_get_short_id(peer) == myid)
+  if (GMP_get_short_id (peer) == myid)
   {
     GMT_change_state (t, MESH_TUNNEL3_READY);
   }
@@ -1357,7 +1312,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   if (NULL == ch)
   {
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
   ch->port = ntohl (msg->port);
   channel_set_options (ch, ntohl (msg->opt));
@@ -1368,7 +1323,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
-              peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
+       GMT_2s (t), ch->gid, ch->port, ch->lid_root);
 
   /* Send create channel */
   {
@@ -1382,6 +1337,7 @@ GMCH_handle_local_create (struct MeshClient *c,
 
     GMT_queue_data (t, ch, &msgcc.header, GNUNET_YES);
   }
+  return GNUNET_OK;
 }
 
 /**
@@ -1618,14 +1574,19 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd)
 {
+  struct MeshTunnel3 *t;
+
+  GMCH_debug (ch);
   if ( (fwd && NULL == ch->dest) || (!fwd && NULL == ch->root) )
   {
     /* Not for us (don't destroy twice a half-open loopback channel) */
     return;
   }
 
+  t = ch->t;
   GMCH_send_destroy (ch);
   channel_destroy (ch);
+  GMT_destroy_if_empty (t);
 }
 
 
@@ -1660,4 +1621,26 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   GMT_send_prebuilt_message (message, ch->t, ch, fwd);
+}
+
+
+/**
+ * Get the static string for identification of the channel.
+ *
+ * @param ch Channel.
+ *
+ * @return Static string with the channel IDs.
+ */
+const char *
+GMCH_2s (const struct MeshChannel *ch)
+{
+  static char buf[64];
+
+  if (NULL == ch)
+    return "(NULL Channel)";
+
+  sprintf (buf, "%s:%X (%X / %X)",
+           GMT_2s (ch->t), ch->gid, ch->lid_root, ch->lid_dest);
+
+  return buf;
 }

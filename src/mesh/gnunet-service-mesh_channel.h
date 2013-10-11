@@ -192,12 +192,10 @@ GMCH_handle_local_data (struct MeshChannel *ch,
  *
  * @param ch Channel.
  * @param c Client that requested the destruction (to avoid notifying him).
- * @param chid Channel ID used.
  */
 void
 GMCH_handle_local_destroy (struct MeshChannel *ch,
-                           struct MeshClient *c,
-                           MESH_ChannelNumber chid);
+                           struct MeshClient *c);
 
 /**
  * Handle a channel create requested by a client.
@@ -206,8 +204,10 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
  *
  * @param c Client that requested the creation (will be the root).
  * @param msg Create Channel message.
+ *
+ * @return GNUNET_OK if everything went fine, GNUNET_SYSERR otherwise.
  */
-void
+int
 GMCH_handle_local_create (struct MeshClient *c,
                           struct GNUNET_MESH_ChannelMessage *msg);
 
@@ -286,6 +286,16 @@ GMCH_handle_destroy (struct MeshChannel *ch,
 void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd);
+
+/**
+ * Get the static string for identification of the channel.
+ *
+ * @param ch Channel.
+ *
+ * @return Static string with the channel IDs.
+ */
+const char *
+GMCH_2s (const struct MeshChannel *ch);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
