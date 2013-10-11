@@ -54,7 +54,7 @@ struct GNUNET_MULTICAST_OriginMessageHandle
  */
 struct GNUNET_MULTICAST_Origin
 {
-  struct GNUNET_CRYPTO_EccPrivateKey priv_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
   struct GNUNET_MULTICAST_OriginMessageHandle msg_handle;
 
   GNUNET_MULTICAST_JoinCallback join_cb;
@@ -100,14 +100,14 @@ struct GNUNET_MULTICAST_RequestHeader
   /**
    * Public key of the sending member.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey member_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
 
   /**
    * ECC signature of the request fragment.
    *
    * Signature must match the public key of the multicast group.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
    * Purpose for the signature and size of the signed data.
@@ -154,7 +154,7 @@ struct GNUNET_MULTICAST_JoinRequest
    *
    * Signature must match the public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EccSignature signature;
+  struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
    * Purpose for the signature and size of the signed data.
@@ -164,12 +164,12 @@ struct GNUNET_MULTICAST_JoinRequest
   /**
    * Public key of the target group.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
 
   /**
    * Public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey member_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
 
   /**
    * Peer identity of the joining member.
@@ -329,7 +329,7 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  */
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_CRYPTO_EccPrivateKey *priv_key,
+                               const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t next_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
                                GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
@@ -393,7 +393,7 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
 
-  if (GNUNET_OK != GNUNET_CRYPTO_ecc_sign (&orig->priv_key, &msg->purpose,
+  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&orig->priv_key, &msg->purpose,
                                            &msg->signature))
   {
     /* FIXME: handle error */
@@ -523,8 +523,8 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin)
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_CRYPTO_EccPublicSignKey *group_key,
-                              const struct GNUNET_CRYPTO_EccPrivateKey *member_key,
+                              const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
+                              const struct GNUNET_CRYPTO_EddsaPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               uint32_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,

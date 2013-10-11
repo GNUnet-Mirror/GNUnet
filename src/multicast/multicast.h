@@ -156,7 +156,7 @@ struct MulticastOriginStartMessage
   /**
    * Private, non-ephemeral key for the mutlicast group.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey group_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey group_key;
 
   /**
    * Last fragment ID, used to continue counting fragments if we resume operating
@@ -222,12 +222,12 @@ struct MulticastJoinMessage
   /**
    * Public non-ephemeral key of the mutlicast group.
    */
-  struct GNUNET_CRYPTO_EccPublicSignKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
 
   /**
    * Our private key for the group.
    */
-  struct GNUNET_CRYPTO_EccPrivateKey member_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey member_key;
 
   /* followed by 'relay_count' `struct GNUNET_PeerIdentity`s */
 
