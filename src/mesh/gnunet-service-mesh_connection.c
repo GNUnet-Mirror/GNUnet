@@ -1097,7 +1097,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
               GNUNET_i2s (peer));
-  pi = peer_get (peer);
+  pi = GMP_get (peer);
   if (get_next_hop (c) == pi)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
@@ -1122,7 +1122,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   p = c->path;
   if (NULL != p)
   {
-    path_add_to_peers (p, GNUNET_YES);
+    GMP_add_path_to_all (p, GNUNET_YES);
   }
   else
   {
@@ -1144,7 +1144,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GMC_is_terminal (c, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
-    GMC_change_state (c, MESH_CONNECTION_READY);
+    connection_change_state (c, MESH_CONNECTION_READY);
     GMT_change_state (c->t, MESH_TUNNEL3_READY);
     GMT_send_queued_data (c->t, GNUNET_NO);
     return GNUNET_OK;
@@ -1364,7 +1364,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
 
-  send_prebuilt_message_connection (&msg->header, c, NULL, fwd);
+  GMC_send_prebuilt_message (&msg->header, c, NULL, fwd);
 
   return GNUNET_OK;
 }
