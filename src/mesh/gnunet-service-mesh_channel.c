@@ -258,6 +258,11 @@ struct MeshChannel
  */
 extern struct GNUNET_STATISTICS_Handle *stats;
 
+/**
+ * Local peer own ID (memory efficient handle).
+ */
+extern GNUNET_PEER_Id myid;
+
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
