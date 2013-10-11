@@ -625,7 +625,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
  * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
  *
  * @param ch Channel to mark as ready.
- * @param fwd Was the CREATE message sent fwd?
+ * @param fwd Was the ACK message sent fwd? (dest->root, SYNACK)
  */
 static void
 channel_confirm (struct MeshChannel *ch, int fwd)
@@ -652,6 +652,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
+  GMCH_send_data_ack (ch, fwd);
 
   /* In case of a FWD ACk (SYNACK) send a BCK ACK (ACK). */
   if (fwd)
@@ -1551,7 +1552,6 @@ GMCH_handle_create (struct MeshTunnel3 *t,
 
   GMCH_send_create (ch);
   channel_send_ack (ch, fwd);
-  GMCH_send_data_ack (ch, fwd);
 
   if (GNUNET_NO == ch->dest_rel->client_ready)
   {
