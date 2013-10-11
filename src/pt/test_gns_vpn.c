@@ -363,7 +363,7 @@ run (void *cls,
   enum MHD_FLAG flags;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CRYPTO_HashAsciiEncoded peername;
-  struct GNUNET_CRYPTO_EccPrivateKey *host_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *host_key;
   struct GNUNET_NAMESTORE_RecordData rd;
   char *rd_string;
   char *zone_keyfile;
@@ -392,7 +392,7 @@ run (void *cls,
     return;
   }
 
-  host_key = GNUNET_CRYPTO_ecc_key_create_from_file (zone_keyfile);
+  host_key = GNUNET_CRYPTO_eddsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gnu.");
   GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_NAMESTORE_TYPE_VPN,
