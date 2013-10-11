@@ -1055,6 +1055,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *end;
   unsigned int lopen;
 
+  if (NULL == orig)
+    return NULL;
   if (depth > 128)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
