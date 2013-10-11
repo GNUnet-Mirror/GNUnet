@@ -197,11 +197,11 @@ main (int argc, char *const *argv)
   int ret;
   int r;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main()\n");
+  fprintf (stderr, "main()\n");
   r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
   ret = (GNUNET_OK == r) ? 0 : 1;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "main() END\n");
+  fprintf (stderr, "main() END\n");
 
   return ret;
 }

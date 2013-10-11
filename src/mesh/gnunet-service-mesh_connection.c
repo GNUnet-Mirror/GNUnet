@@ -1713,6 +1713,7 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
 void
 GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
                                              &max_msgs_queue))

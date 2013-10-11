@@ -1164,6 +1164,7 @@ GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
 void
 GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",

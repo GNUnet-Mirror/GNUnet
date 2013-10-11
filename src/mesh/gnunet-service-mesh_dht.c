@@ -275,7 +275,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))

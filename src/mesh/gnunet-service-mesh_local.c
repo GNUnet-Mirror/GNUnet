@@ -725,6 +725,7 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
 void
 GML_init (struct GNUNET_SERVER_Handle *handle)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   server_handle = handle;
   GNUNET_SERVER_suspend (server_handle);
   ports = GNUNET_CONTAINER_multihashmap32_create (32);
