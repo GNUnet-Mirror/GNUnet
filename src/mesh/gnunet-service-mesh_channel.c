@@ -603,7 +603,7 @@ rel_message_free (struct MeshReliableMessage *copy)
  * Confirm we got a channel create.
  *
  * @param ch The channel to confirm.
- * @param fwd Should we send the ACK fwd?
+ * @param fwd Should we send a FWD ACK? (going dest->root)
  */
 static void
 channel_send_ack (struct MeshChannel *ch, int fwd)
@@ -652,7 +652,10 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  channel_send_ack (ch, fwd);
+
+  /* In case of a FWD ACk (SYNACK) send a BCK ACK (ACK). */
+  if (fwd)
+    channel_send_ack (ch, !fwd);
 }
 
 
@@ -866,8 +869,8 @@ handle_loopback (struct MeshChannel *ch,
 
   type = ntohs (msgh->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Loopback %s message!\n",
-       GNUNET_MESH_DEBUG_M2S (type));
+       "Loopback %s %s message!\n",
+       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (type));
 
   switch (type)
   {
@@ -1521,9 +1524,13 @@ GMCH_handle_create (struct MeshTunnel3 *t,
 
   chid = ntohl (msg->chid);
 
-  /* Create channel */
-  ch = channel_new (t, NULL, 0);
-  ch->gid = chid;
+  ch = GMT_get_channel (t, chid);
+  if (NULL == ch)
+  {
+    /* Create channel */
+    ch = channel_new (t, NULL, 0);
+    ch->gid = chid;
+  }
   channel_set_options (ch, ntohl (msg->opt));
 
   /* Find a destination client */
@@ -1543,8 +1550,8 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
   GMCH_send_create (ch);
+  channel_send_ack (ch, fwd);
   GMCH_send_data_ack (ch, fwd);
-  channel_send_ack (ch, !fwd);
 
   if (GNUNET_NO == ch->dest_rel->client_ready)
   {
@@ -1619,8 +1626,8 @@ void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Channel %s:%X %s\n",
-       GMT_2s (ch->t), ch->gid, fwd ? "FWD" : "BCK");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s on channel %s\n",
+       fwd ? "FWD" : "BCK", GMCH_2s (ch));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
        GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
 

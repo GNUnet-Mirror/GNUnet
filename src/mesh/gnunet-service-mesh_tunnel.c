@@ -33,6 +33,9 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
 
+#define START_FUNCTION LOG(GNUNET_ERROR_TYPE_DEBUG, "%s start\n", __FUNCTION__)
+#define END_FUNCTION LOG(GNUNET_ERROR_TYPE_DEBUG, "%s end\n", __FUNCTION__)
+
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -371,6 +374,8 @@ handle_ch_create (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_ChannelCreate *msg,
                   int fwd)
 {
+  ;
+
   struct MeshTChannel *tch;
   struct MeshChannel *ch;
   size_t size;
@@ -398,6 +403,8 @@ handle_ch_create (struct MeshTunnel3 *t,
   tch = GNUNET_new (struct MeshTChannel);
   tch->ch = ch;
   GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, tch);
+
+  ;
 }
 
 void
