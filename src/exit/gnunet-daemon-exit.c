@@ -1745,7 +1745,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
  * @param source_address IP and port to use for the TCP packet's source
  * @param tcp_header header template to use
  * @param payload payload of the TCP packet
- * @param payload_length number of bytes in 'payload'
+ * @param payload_length number of bytes in @a payload
  */
 static void
 send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -1838,15 +1838,15 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
  *
  * @param cls closure, NULL
  * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param tunnel_ctx pointer to our `struct TunnelState *`
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx GNUNET_UNUSED,
+receive_tcp_service (void *cls,
+                     struct GNUNET_MESH_Tunnel *tunnel,
+                     void **tunnel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *state = *tunnel_ctx;
@@ -2054,9 +2054,8 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
@@ -2133,7 +2132,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param source_address IP to use for the ICMP packet's source
  * @param icmp_header ICMP header to send
  * @param payload payload of the ICMP packet (does NOT include ICMP header)
- * @param payload_length number of bytes of data in payload
+ * @param payload_length number of bytes of data in @a payload
  */
 static void
 send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -2287,13 +2286,13 @@ make_up_icmpv6_payload (struct TunnelState *state,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_icmp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-		     void **tunnel_ctx GNUNET_UNUSED,
+receive_icmp_remote (void *cls,
+                     struct GNUNET_MESH_Tunnel *tunnel,
+		     void **tunnel_ctx,
 		     const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *state = *tunnel_ctx;
@@ -2538,12 +2537,12 @@ make_up_icmp_service_payload (struct TunnelState *state,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+receive_icmp_service (void *cls,
+                      struct GNUNET_MESH_Tunnel *tunnel,
 		      void **tunnel_ctx,
 		      const struct GNUNET_MessageHeader *message)
 {
@@ -2733,7 +2732,7 @@ receive_icmp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel
  * @param destination_address IP and port to use for the UDP packet's destination
  * @param source_address IP and port to use for the UDP packet's source
  * @param payload payload of the UDP packet (does NOT include UDP header)
- * @param payload_length number of bytes of data in payload
+ * @param payload_length number of bytes of data in @a payload
  */
 static void
 send_udp_packet_via_tun (const struct SocketAddress *destination_address,
@@ -2826,13 +2825,13 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx GNUNET_UNUSED,
+receive_udp_remote (void *cls,
+                    struct GNUNET_MESH_Tunnel *tunnel,
+                    void **tunnel_ctx,
                     const struct GNUNET_MessageHeader *message)
 {
   struct TunnelState *state = *tunnel_ctx;
@@ -2937,12 +2936,12 @@ receive_udp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @param tunnel connection to the other end
  * @param tunnel_ctx pointer to our 'struct TunnelState *'
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
+receive_udp_service (void *cls,
+                     struct GNUNET_MESH_Tunnel *tunnel,
                      void **tunnel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
@@ -3012,8 +3011,10 @@ receive_udp_service (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * @return initial tunnel context for the tunnel
  */
 static void *
-new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-            const struct GNUNET_PeerIdentity *initiator, uint32_t port)
+new_tunnel (void *cls,
+            struct GNUNET_MESH_Tunnel *tunnel,
+            const struct GNUNET_PeerIdentity *initiator,
+            uint32_t port)
 {
   struct TunnelState *s = GNUNET_new (struct TunnelState);
 
@@ -3034,13 +3035,14 @@ new_tunnel (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * Function called by mesh whenever an inbound tunnel is destroyed.
  * Should clean up any associated state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_MESH_connect)
  * @param tunnel connection to the other end (henceforth invalid)
  * @param tunnel_ctx place where local state associated
  *                   with the tunnel is stored
  */
 static void
-clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
+clean_tunnel (void *cls,
+              const struct GNUNET_MESH_Tunnel *tunnel,
               void *tunnel_ctx)
 {
   struct TunnelState *s = tunnel_ctx;
@@ -3095,8 +3097,9 @@ clean_tunnel (void *cls GNUNET_UNUSED, const struct GNUNET_MESH_Tunnel *tunnel,
  * @param value value to free
  */
 static int
-free_iterate (void *cls GNUNET_UNUSED,
-              const struct GNUNET_HashCode * hash GNUNET_UNUSED, void *value)
+free_iterate (void *cls,
+              const struct GNUNET_HashCode * hash,
+              void *value)
 {
   GNUNET_free (value);
   return GNUNET_YES;
@@ -3107,7 +3110,7 @@ free_iterate (void *cls GNUNET_UNUSED,
  * Function scheduled as very last function, cleans up after us
  */
 static void
-cleanup (void *cls GNUNET_UNUSED,
+cleanup (void *cls,
          const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
   unsigned int i;
@@ -3339,7 +3342,7 @@ add_services (int proto,
  * @param section name of section in config, equal to hostname
  */
 static void
-read_service_conf (void *cls GNUNET_UNUSED, const char *section)
+read_service_conf (void *cls, const char *section)
 {
   char *cpy;
 
@@ -3441,8 +3444,9 @@ do_dht_put (void *cls,
  * @param cfg_ configuration
  */
 static void
-run (void *cls, char *const *args GNUNET_UNUSED,
-     const char *cfgfile GNUNET_UNUSED,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
   static struct GNUNET_MESH_MessageHandler handlers[] = {
@@ -3586,7 +3590,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
     apptypes[app_idx] = GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER;
     app_idx++;
   }
-
+  GNUNET_free_non_null (dns_exit);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
 
   if (GNUNET_OK !=
