@@ -26,7 +26,6 @@
  *
  * TODO:
  * - double-check queueing logic
- * - improve IPv6 support (#3037)
  * - actually check SSL certificates (#3038)
  */
 #include "platform.h"
@@ -1232,7 +1231,7 @@ curl_task_download (void *cls,
 	case CURLE_GOT_NOTHING:
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		      "CURL download completed.\n");
-	  s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;	
+	  s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
 	  run_mhd_now (s5r->hd);
 	  break;
 	default:
@@ -1241,7 +1240,7 @@ curl_task_download (void *cls,
 		      curl_easy_strerror (msg->data.result));
 	  /* FIXME: indicate error somehow? close MHD connection badly as well? */
 	  s5r->state = SOCKS5_SOCKET_DOWNLOAD_DONE;
-	  run_mhd_now (s5r->hd);	
+	  run_mhd_now (s5r->hd);
 	  break;
 	}
 	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2426,8 +2425,8 @@ do_s5r_read (void *cls,
       {
 	const uint8_t *dom_len;
 	const char *dom_name;
-	const uint16_t *port;	
-	
+	const uint16_t *port;
+
 	dom_len = (const uint8_t *) &c_req[1];
 	alen = *dom_len + 1;
 	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
@@ -2449,7 +2448,7 @@ do_s5r_read (void *cls,
 					     GNUNET_NO /* only cached */,
 					     (GNUNET_YES == do_shorten) ? &local_shorten_zone : NULL,
 					     &handle_gns_result,
-					     s5r);					
+					     s5r);
 	break;
       }
     default:
@@ -2469,7 +2468,7 @@ do_s5r_read (void *cls,
       GNUNET_break_op (0);
       signal_socks_failure (s5r,
 			    SOCKS5_STATUS_GENERAL_FAILURE);
-      return;	
+      return;
     }
     if (SOCKS5_DATA_TRANSFER == s5r->state)
     {
@@ -2593,34 +2592,90 @@ do_shutdown (void *cls,
 
 
 /**
+ * Create an IPv4 listen socket bound to our port.
+ *
+ * @return NULL on error
+ */
+static struct GNUNET_NETWORK_Handle *
+bind_v4 ()
+{
+  struct GNUNET_NETWORK_Handle *ls;
+  struct sockaddr_in sa4;
+  int eno;
+
+  memset (&sa4, 0, sizeof (sa4));
+  sa4.sin_family = AF_INET;
+  sa4.sin_port = htons (port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa4.sin_len = sizeof (sa4);
+#endif
+  ls = GNUNET_NETWORK_socket_create (AF_INET,
+                                     SOCK_STREAM,
+                                     0);
+  if (NULL == ls)
+    return NULL;
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (ls, (const struct sockaddr *) &sa4,
+				  sizeof (sa4)))
+  {
+    eno = errno;
+    GNUNET_NETWORK_socket_close (ls);
+    errno = eno;
+    return NULL;
+  }
+  return ls;
+}
+
+
+/**
+ * Create an IPv6 listen socket bound to our port.
+ *
+ * @return NULL on error
+ */
+static struct GNUNET_NETWORK_Handle *
+bind_v6 ()
+{
+  struct GNUNET_NETWORK_Handle *ls;
+  struct sockaddr_in6 sa6;
+  int eno;
+
+  memset (&sa6, 0, sizeof (sa6));
+  sa6.sin6_family = AF_INET6;
+  sa6.sin6_port = htons (port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  sa6.sin6_len = sizeof (sa6);
+#endif
+  ls = GNUNET_NETWORK_socket_create (AF_INET6,
+                                     SOCK_STREAM,
+                                     0);
+  if (NULL == ls)
+    return NULL;
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (ls, (const struct sockaddr *) &sa6,
+				  sizeof (sa6)))
+  {
+    eno = errno;
+    GNUNET_NETWORK_socket_close (ls);
+    errno = eno;
+    return NULL;
+  }
+  return ls;
+}
+
+
+/**
  * Continue initialization after we have our zone information.
  */
 static void
 run_cont ()
 {
   struct MhdHttpList *hd;
-  struct sockaddr_in sa;
 
   /* Open listen socket for socks proxy */
-  /* FIXME: support IPv6! */
-  memset (&sa, 0, sizeof (sa));
-  sa.sin_family = AF_INET;
-  sa.sin_port = htons (port);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  sa.sin_len = sizeof (sa);
-#endif
-  lsock = GNUNET_NETWORK_socket_create (AF_INET,
-					SOCK_STREAM,
-					0);
+  lsock = bind_v6 ();
   if (NULL == lsock)
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_NETWORK_socket_bind (lsock, (const struct sockaddr *) &sa,
-				  sizeof (sa), 0))
+    lsock = bind_v4 ();
+  if (NULL == lsock)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
     GNUNET_SCHEDULER_shutdown ();
@@ -2629,6 +2684,7 @@ run_cont ()
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock, 5))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
