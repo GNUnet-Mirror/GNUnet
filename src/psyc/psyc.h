@@ -107,7 +107,7 @@ struct MasterStartRequest
    */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_CRYPTO_EccPrivateKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey channel_key;
 
   uint32_t policy GNUNET_PACKED;
 };
@@ -122,9 +122,9 @@ struct SlaveJoinRequest
 
   uint32_t relay_count GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EccPublicSignKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
-  struct GNUNET_CRYPTO_EccPrivateKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
 
   struct GNUNET_PeerIdentity origin;
 
@@ -141,7 +141,7 @@ struct ChannelSlaveAdd
 
   uint32_t reserved;
 
-  struct GNUNET_CRYPTO_EccPublicSignKey *slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey *slave_key;
 
   uint64_t announced_at;
 
@@ -158,7 +158,7 @@ struct ChannelSlaveRemove
 
   uint32_t reserved;
 
-  struct GNUNET_CRYPTO_EccPublicSignKey *slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey *slave_key;
 
   uint64_t announced_at;
 };

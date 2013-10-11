@@ -100,8 +100,8 @@ struct Channel
 struct Master
 {
   struct Channel channel;
-  struct GNUNET_CRYPTO_EccPrivateKey priv_key;
-  struct GNUNET_CRYPTO_EccPublicSignKey pub_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
   struct GNUNET_HashCode pub_key_hash;
 
   struct GNUNET_MULTICAST_Origin *origin;
@@ -124,8 +124,8 @@ struct Master
 struct Slave
 {
   struct Channel channel;
-  struct GNUNET_CRYPTO_EccPrivateKey slave_key;
-  struct GNUNET_CRYPTO_EccPublicSignKey chan_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey chan_key;
   struct GNUNET_HashCode chan_key_hash;
 
   struct GNUNET_MULTICAST_Member *member;
@@ -215,7 +215,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 }
 
 void
-join_cb (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+join_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
          const struct GNUNET_MessageHeader *join_req,
          struct GNUNET_MULTICAST_JoinHandle *jh)
 {
@@ -224,7 +224,7 @@ join_cb (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
 
 void
 membership_test_cb (void *cls,
-                    const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                    const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                     uint64_t message_id, uint64_t group_generation,
                     struct GNUNET_MULTICAST_MembershipTestHandle *mth)
 {
@@ -233,7 +233,7 @@ membership_test_cb (void *cls,
 
 void
 replay_fragment_cb (void *cls,
-                    const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                    const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                     uint64_t fragment_id, uint64_t flags,
                     struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
@@ -242,7 +242,7 @@ replay_fragment_cb (void *cls,
 
 void
 replay_message_cb (void *cls,
-                   const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+                   const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
                    uint64_t message_id,
                    uint64_t fragment_offset,
                    uint64_t flags,
@@ -252,7 +252,7 @@ replay_message_cb (void *cls,
 }
 
 void
-request_cb (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *member_key,
+request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
             const struct GNUNET_MessageHeader *req,
             enum GNUNET_MULTICAST_MessageFlags flags)
 {
@@ -343,7 +343,7 @@ handle_master_start (void *cls, struct GNUNET_SERVER_Client *client,
   mst->channel.is_master = GNUNET_YES;
   mst->policy = ntohl (req->policy);
   mst->priv_key = req->channel_key;
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (&mst->priv_key,
+  GNUNET_CRYPTO_eddsa_key_get_public (&mst->priv_key,
                                                   &mst->pub_key);
   GNUNET_CRYPTO_hash (&mst->pub_key, sizeof (mst->pub_key), &mst->pub_key_hash);
 

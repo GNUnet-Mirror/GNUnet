@@ -54,11 +54,11 @@ static struct GNUNET_PSYC_Master *mst;
 static struct GNUNET_PSYC_Slave *slv;
 static struct GNUNET_PSYC_Channel *ch;
 
-static struct GNUNET_CRYPTO_EccPrivateKey *channel_key;
-static struct GNUNET_CRYPTO_EccPrivateKey *slave_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key;
 
-static struct GNUNET_CRYPTO_EccPublicSignKey channel_pub_key;
-static struct GNUNET_CRYPTO_EccPublicSignKey slave_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey slave_pub_key;
 
 struct GNUNET_PSYC_MasterTransmitHandle *mth;
 
@@ -122,7 +122,7 @@ end ()
 
 
 static int
-method (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+method (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
         uint64_t message_id, const char *name,
         size_t modifier_count, const struct GNUNET_ENV_Modifier *modifiers,
         uint64_t data_offset, const void *data, size_t data_size,
@@ -136,7 +136,7 @@ method (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
 
 
 static int
-join (void *cls, const struct GNUNET_CRYPTO_EccPublicSignKey *slave_key,
+join (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
       const char *method_name,
       size_t variable_count, const struct GNUNET_ENV_Modifier *variables,
       const void *data, size_t data_size, struct GNUNET_PSYC_JoinHandle *jh)
@@ -243,8 +243,8 @@ run (void *cls,
   channel_key = GNUNET_CRYPTO_ecc_key_create ();
   slave_key = GNUNET_CRYPTO_ecc_key_create ();
 
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (channel_key, &channel_pub_key);
-  GNUNET_CRYPTO_ecc_key_get_public_for_signature (slave_key, &slave_pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
 
   mst = GNUNET_PSYC_master_start (cfg, channel_key,
                                   GNUNET_PSYC_CHANNEL_PRIVATE,
