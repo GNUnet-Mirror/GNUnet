@@ -151,7 +151,7 @@ struct RIL_Peer_Agent
   /**
    * Whether the agent is active or not
    */
-  int active; //TODO? rename into something better. It reflects the state whether get_preferred_address() has been called for the according peer or not
+  int active;
 
   /**
    * Number of performed time-steps
@@ -696,7 +696,8 @@ static double
 envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
   /*
-   * Match the preferences of the peer with the current assignment.
+   * - Match the preferences of the peer with the current assignment
+   * - Validity of the solution
    */
   const double *preferences;
   const double *properties;
@@ -710,7 +711,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   properties = solver->plugin_envi->get_property (solver->plugin_envi->get_property_cls,
       agent->address_inuse);
   prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  pref_match += preferences[GNUNET_ATS_PREFERENCE_LATENCY] * properties[prop_index];
+  pref_match += preferences[GNUNET_ATS_PREFERENCE_LATENCY] * (3 - properties[prop_index]); //invert property as we want to maximize for lower latencies
   bw_norm = GNUNET_MAX(2, (((
                   ((double) agent->bw_in / (double) ril_get_max_bw(agent, GNUNET_YES)) +
                   ((double) agent->bw_out / (double) ril_get_max_bw(agent, GNUNET_NO))
@@ -719,7 +720,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm;
 
   net = agent->address_inuse->solver_information;
-  if ((net->bw_in_assigned > net->bw_in_available) || net->bw_out_assigned > net->bw_out_available)
+  if ((net->bw_in_assigned > net->bw_in_available) || (net->bw_out_assigned > net->bw_out_available))
   {
     return -1;
   }
@@ -1429,7 +1430,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
 
   //increase size of old state vector
   agent->m = m_old;
-  GNUNET_array_grow(agent->s_old, agent->m, m_new); //TODO random instead of zero-initialization of state features
+  GNUNET_array_grow(agent->s_old, agent->m, m_new);
 
   agent->m = m_old;
   GNUNET_array_grow(agent->e, agent->m, m_new);
@@ -1697,7 +1698,6 @@ GAS_ril_address_preference_feedback (void *solver,
     enum GNUNET_ATS_PreferenceKind kind,
     double score)
 {
-  //TODO! collect feedback
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
           "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
@@ -1750,11 +1750,18 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
    */
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
+  struct RIL_Network *net;
 
   agent = ril_get_agent (s, peer, GNUNET_YES);
 
   agent->active = GNUNET_YES;
 
+  if (agent->address_inuse)
+  {
+    net = agent->address_inuse->solver_information;
+    net->bw_in_assigned += agent->bw_in;
+    net->bw_out_assigned += agent->bw_out;
+  }
   envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
       GNUNET_YES);
 
@@ -1788,6 +1795,7 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
 {
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
+  struct RIL_Network *net;
 
   agent = ril_get_agent (s, peer, GNUNET_NO);
 
@@ -1803,6 +1811,12 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
   }
 
   agent->active = GNUNET_NO;
+  if (agent->address_inuse)
+  {
+    net = agent->address_inuse->solver_information;
+    net->bw_in_assigned -= agent->bw_in;
+    net->bw_out_assigned -= agent->bw_out;
+  }
   envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
       GNUNET_YES);
 
