@@ -568,7 +568,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
   if (MESH_TUNNEL3_NEW == GMT_get_state (t))
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
-    GMC_change_state (connection, MESH_CONNECTION_SENT);
+    connection_change_state (connection, MESH_CONNECTION_SENT);
 }
 
 
@@ -613,7 +613,7 @@ connection_recreate (struct MeshConnection *c, int fwd)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "sending connection recreate\n");
   if (fwd)
-    send_connection_create (c);
+    GMC_send_create (c);
   else
     send_connection_ack (c, GNUNET_NO);
 }
@@ -1679,7 +1679,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_MSGS_QUEUE",
                                              &max_msgs_queue))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "MAX_MSGS_QUEUE", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1689,7 +1689,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_CONNECTIONS",
                                              &max_connections))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "MAX_CONNECTIONS", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -1699,7 +1699,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
       GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REFRESH_CONNECTION_TIME",
                                            &refresh_connection_time))
   {
-    LOG_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
                                "MESH", "REFRESH_CONNECTION_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -2105,7 +2105,7 @@ enum MeshTunnel3State state;
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
     GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
-    GMC_change_state (connection, MESH_CONNECTION_SENT);
+    connection_change_state (connection, MESH_CONNECTION_SENT);
 }
 
 

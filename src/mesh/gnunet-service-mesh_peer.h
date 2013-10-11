@@ -237,9 +237,21 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed);
 int
 GMP_remove_connection (struct MeshPeer *peer, const struct MeshConnection *c);
 
+/**
+ * Start the DHT search for new paths towards the peer: we don't have
+ * enough good connections.
+ *
+ * @param peer Destination peer.
+ */
 void
 GMP_start_search (struct MeshPeer *peer);
 
+/**
+ * Stop the DHT search for new paths towards the peer: we already have
+ * enough good connections.
+ *
+ * @param peer Destination peer.
+ */
 void
 GMP_stop_search (struct MeshPeer *peer);
 

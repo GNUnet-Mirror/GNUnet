@@ -335,15 +335,6 @@ GMC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Change the tunnel state.
- *
- * @param c Connection whose state to change.
- * @param state New state.
- */
-void
-GMC_change_state (struct MeshConnection* c, enum MeshConnectionState state);
-
-/**
  * Notify other peers on a connection of a broken link. Mark connections
  * to destroy after all traffic has been sent.
  *

@@ -1179,10 +1179,10 @@ GMT_is_loopback (const struct MeshTunnel3 *t)
 int
 GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)
 {
-  struct MeshTConnection *c;
+  struct MeshTConnection *iter;
 
-  for (c = t->connection_head; NULL != c; c = c->next)
-    if (GMC_get_path (c) == p)
+  for (iter = t->connection_head; NULL != iter; iter = iter->next)
+    if (GMC_get_path (iter->c) == p)
       return GNUNET_YES;
 
   return GNUNET_NO;

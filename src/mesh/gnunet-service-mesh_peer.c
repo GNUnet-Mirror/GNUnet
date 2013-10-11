@@ -247,13 +247,13 @@ notify_broken (void *cls,
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct MeshPeer *pi;
+  struct MeshPeer *mp;
   struct MeshPeerPath *path;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer connected\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (&my_full_id));
-  pi = GMP_get (peer);
-  if (myid == pi->id)
+  mp = GMP_get (peer);
+  if (myid == mp->id)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
     path = path_new (1);
@@ -262,15 +262,15 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (peer));
     path = path_new (2);
-    path->peers[1] = pi->id;
-    GNUNET_PEER_change_rc (pi->id, 1);
+    path->peers[1] = mp->id;
+    GNUNET_PEER_change_rc (mp->id, 1);
     GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   }
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
-  peer_add_path (pi, path, GNUNET_YES);
+  GMP_add_path (mp, path, GNUNET_YES);
 
-  pi->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+  mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
   return;
 }
 
@@ -1587,6 +1587,45 @@ GMP_remove_connection (struct MeshPeer *peer,
                                                GMC_get_id (c),
                                                c);
 }
+
+/**
+ * Start the DHT search for new paths towards the peer: we don't have
+ * enough good connections.
+ *
+ * @param peer Destination peer.
+ */
+void
+GMP_start_search (struct MeshPeer *peer)
+{
+  if (NULL != peer->search_h)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  peer->search_h = GMD_search (GMP_get_id (peer), &search_handler, peer);
+}
+
+
+/**
+ * Stop the DHT search for new paths towards the peer: we already have
+ * enough good connections.
+ *
+ * @param peer Destination peer.
+ */
+void
+GMP_stop_search (struct MeshPeer *peer)
+{
+  if (NULL == peer->search_h)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  GMD_search_stop (peer->search_h);
+  peer->search_h = NULL;
+}
+
 
 /**
  * Get the Full ID of a peer.
