@@ -1718,7 +1718,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv,
                      "%s%s%s",
                      xdg,
                      DIR_SEPARATOR_STR,
-                     "gnunet.config");
+                     "gnunet.conf");
   else
     cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   memset (&sctx, 0, sizeof (sctx));
