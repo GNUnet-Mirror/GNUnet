@@ -1507,7 +1507,7 @@ GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
   mpi_scan (&r, sig->r, sizeof (sig->r));
   mpi_scan (&s, sig->s, sizeof (sig->s));
   if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL,
-				  "(sig-val(eddsa(r %m)(s %m)))",
+				  "(sig-val(ecdsa(r %m)(s %m)))", // FIXME: eddsa soon...
                                   r, s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
