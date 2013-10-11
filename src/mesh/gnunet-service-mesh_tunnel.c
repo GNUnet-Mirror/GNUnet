@@ -1018,7 +1018,10 @@ GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
     unsigned int ch_buf;
 
     if (NULL == t->channel_head)
+    {
+      /* Probably getting buffer for a channel create. */
       return 64;
+    }
 
     for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = iter_ch->next)
     {
@@ -1081,6 +1084,66 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
   t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
 
   return chid;
+}
+
+
+/**
+ * Send ACK on one or more connections due to buffer space to the client.
+ *
+ * Iterates all connections of the tunnel and sends ACKs appropriately.
+ *
+ * @param ch Channel which has some free buffer space.
+ * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
+ */
+static void
+GMT_send_acks (struct MeshTunnel3 *t,
+               unsigned int buffer,
+               int fwd)
+{
+  struct MeshTConnection *iter;
+  uint32_t allowed;
+  uint32_t to_allow;
+  uint32_t allow_per_connection;
+  unsigned int cs;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Tunnel send acks on %s:%X\n",
+              fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
+
+  /* Count connections, how many messages are already allowed */
+  cs = GMT_count_connections (t);
+  for (allowed = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
+  {
+    allowed += GMC_get_allowed (iter->c, fwd);
+  }
+
+  /* Make sure there is no overflow */
+  if (allowed > buffer)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* Authorize connections to send more data */
+  to_allow = buffer - allowed;
+
+  for (iter = t->connection_head; NULL != iter && to_allow > 0; iter = iter->next)
+  {
+    allow_per_connection = to_allow/cs;
+    to_allow -= allow_per_connection;
+    cs--;
+    if (GMC_get_allowed (iter->c, fwd) > 64 / 3)
+    {
+      continue;
+    }
+    GMC_send_ack (iter->c, NULL, fwd);
+    connection_send_ack (iter, allow_per_connection, fwd);
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Channel send connection %s ack on %s:%X\n",
+                fwd ? "FWD" : "BCK", peer2s (ch->t->peer), ch->gid);
+  GNUNET_break (to_allow == 0);
 }
 
 

@@ -520,8 +520,8 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending ACK, buffer > 3\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "  last pid recv: %u, last ack sent: %u\n",
-                prev_fc->last_pid_recv, prev_fc->last_ack_sent);
+         "  last pid recv: %u, last ack sent: %u\n",
+         prev_fc->last_pid_recv, prev_fc->last_ack_sent);
     return;
   }
 
@@ -530,9 +530,9 @@ connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
   ack = prev_fc->last_pid_recv + delta;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " ACK %u\n", ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              " last pid %u, last ack %u, qmax %u, q %u\n",
-              prev_fc->last_pid_recv, prev_fc->last_ack_sent,
-              next_fc->queue_max, next_fc->queue_n);
+       " last pid %u, last ack %u, qmax %u, q %u\n",
+       prev_fc->last_pid_recv, prev_fc->last_ack_sent,
+       next_fc->queue_max, next_fc->queue_n);
   if (ack == prev_fc->last_ack_sent)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not sending FWD ACK, not needed\n");
@@ -1663,6 +1663,8 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "send ack %s on %p %p\n",
               fwd ? "FWD" : "BCK", c, ch);
+
+  /* Get available bufffer space */
   if (NULL == c || GMC_is_terminal (c, fwd))
   {
     struct MeshTunnel3 *t;
@@ -1677,6 +1679,7 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer available: %u\n", buffer);
 
+  /* Send available buffer space */
   if ( (NULL != ch && GMCH_is_origin (ch, fwd)) ||
        (NULL != c && GMC_is_origin (c, fwd)) )
   {
@@ -1888,6 +1891,27 @@ GMC_get_buffer (struct MeshConnection *c, int fwd)
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
 
   return (fc->queue_max - fc->queue_n);
+}
+
+/**
+ * Get how many messages have we allowed to send to us from a direction..
+ *
+ * @param c Connection.
+ * @param fwd Are we asking about traffic from FWD (BCK messages)?
+ *
+ * @return last_ack_sent - last_pid_recv
+ */
+unsigned int
+GMC_get_allowed (struct MeshConnection *c, int fwd)
+{
+  struct MeshFlowControl *fc;
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (GMC_is_pid_bigger(fc->last_pid_recv, fc->last_ack_sent))
+  {
+    return 0;
+  }
+  return (fc->last_ack_sent - fc->last_pid_recv);
 }
 
 /**

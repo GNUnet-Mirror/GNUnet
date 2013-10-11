@@ -306,6 +306,17 @@ unsigned int
 GMC_get_buffer (struct MeshConnection *c, int fwd);
 
 /**
+ * Get how many messages have we allowed to send to us from a direction..
+ *
+ * @param c Connection.
+ * @param fwd Are we asking about traffic from FWD (BCK messages)?
+ *
+ * @return last_ack_sent - last_pid_recv
+ */
+unsigned int
+GMC_get_allowed (struct MeshConnection *c, int fwd);
+
+/**
  * Get messages queued in a connection.
  *
  * @param c Connection.
