@@ -1076,7 +1076,7 @@ GMCH_send_data (struct MeshChannel *ch,
  * @param fwd Is for FWD traffic? (ACK dest->owner)
  */
 void
-GMCH_send_ack (struct MeshChannel *ch, int fwd)
+GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
 {
   struct GNUNET_MESH_DataACK msg;
   struct MeshChannelReliability *rel;
@@ -1414,7 +1414,7 @@ GMCH_handle_data (struct MeshChannel *ch,
                 mid, rel->mid_recv, rel->mid_recv + 64);
   }
 
-  GMCH_send_ack (ch, fwd);
+  GMCH_send_data_ack (ch, fwd);
 }
 
 
@@ -1541,7 +1541,8 @@ GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
 
   GMCH_send_create (ch);
-  GMCH_send_ack (ch, fwd);
+  GMCH_send_data_ack (ch, fwd);
+  channel_send_ack (ch, !fwd);
 
   if (GNUNET_NO == ch->dest_rel->client_ready)
   {

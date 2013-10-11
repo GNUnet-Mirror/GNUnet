@@ -107,17 +107,6 @@ int
 GMCH_is_terminal (struct MeshChannel *ch, int fwd);
 
 /**
- * Send an end-to-end ACK message for the most recent in-sequence payload.
- *
- * If channel is not reliable, do nothing.
- *
- * @param ch Channel this is about.
- * @param fwd Is for FWD traffic? (ACK dest->owner)
- */
-void
-GMCH_send_ack (struct MeshChannel *ch, int fwd);
-
-/**
  * Send data on a channel.
  *
  * If the destination is local, send it to client, otherwise encrypt and
@@ -131,6 +120,17 @@ void
 GMCH_send_data (struct MeshChannel *ch,
                 const struct GNUNET_MESH_Data *msg,
                 int fwd);
+
+/**
+ * Send an end-to-end ACK message for the most recent in-sequence payload.
+ *
+ * If channel is not reliable, do nothing.
+ *
+ * @param ch Channel this is about.
+ * @param fwd Is for FWD traffic? (ACK dest->owner)
+ */
+void
+GMCH_send_data_ack (struct MeshChannel *ch, int fwd);
 
 /**
  * Notify the destination client that a new incoming channel was created.

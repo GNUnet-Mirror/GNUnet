@@ -1685,7 +1685,7 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
     {
       GNUNET_assert (NULL != ch);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
-      send_local_ack (ch, fwd);
+      GMCH_send_data_ack (ch, fwd);
     }
   }
   else if (NULL == c)
