@@ -652,7 +652,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  GMCH_send_data_ack (ch, fwd);
+  GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
 
   /* In case of a FWD ACk (SYNACK) send a BCK ACK (ACK). */
   if (fwd)
@@ -1626,10 +1626,9 @@ void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s on channel %s\n",
-       fwd ? "FWD" : "BCK", GMCH_2s (ch));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
-       GNUNET_MESH_DEBUG_M2S (ntohs (message->type)));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
+       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (ntohs (message->type)), 
+       GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))
   {

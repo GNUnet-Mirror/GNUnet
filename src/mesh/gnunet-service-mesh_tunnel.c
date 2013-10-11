@@ -1182,7 +1182,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint64_t iv;
   uint16_t type;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send on Tunnel %s\n", GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMP_2s (t->peer));
 
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
