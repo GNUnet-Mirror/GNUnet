@@ -599,6 +599,27 @@ rel_message_free (struct MeshReliableMessage *copy)
 }
 
 
+/**
+ * Confirm we got a channel create.
+ *
+ * @param ch The channel to confirm.
+ * @param fwd Should we send the ACK fwd?
+ */
+static void
+channel_send_ack (struct MeshChannel *ch, int fwd)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "  sending channel %s ack for channel %s\n",
+              fwd ? "FWD" : "BCK", GMCH_2s (ch));
+
+  msg.chid = htonl (ch->gid);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
+}
+
 
 /**
  * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
@@ -631,7 +652,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  GMC_send_ack (NULL, ch, fwd);
+  channel_send_ack (ch, fwd);
 }
 
 
@@ -825,28 +846,6 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
                  GNUNET_YES : GNUNET_NO;
   ch->reliable = (options & GNUNET_MESH_OPTION_RELIABLE) != 0 ?
                  GNUNET_YES : GNUNET_NO;
-}
-
-
-/**
- * Confirm we got a channel create.
- *
- * @param ch The channel to confirm.
- * @param fwd Should we send the ACK fwd?
- */
-static void
-channel_send_ack (struct MeshChannel *ch, int fwd)
-{
-  struct GNUNET_MESH_ChannelManage msg;
-
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending channel %s ack for channel %s\n",
-              fwd ? "FWD" : "BCK", GMCH_2s (ch));
-
-  msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
 }
 
 
@@ -1055,6 +1054,16 @@ GMCH_send_data (struct MeshChannel *ch,
                 const struct GNUNET_MESH_Data *msg,
                 int fwd)
 {
+  if (GMCH_is_terminal (ch, fwd))
+  {
+    GML_send_data (fwd ? ch->dest : ch->root,
+                   msg,
+                   fwd ? ch->lid_dest : ch->lid_root);
+  }
+  else
+  {
+    GMT_send_prebuilt_message (&msg->header, ch->t, ch, fwd);
+  }
 }
 
 
