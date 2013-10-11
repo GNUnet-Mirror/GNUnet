@@ -42,7 +42,7 @@ enum
 };
 
 static struct GNUNET_CONFIGURATION_Handle *cfg;
-static struct GNUNET_CONFIGURATION_Handle *cfgDefault;
+static struct GNUNET_CONFIGURATION_Handle *cfg_default;
 
 struct DiffsCBData
 {
@@ -199,7 +199,7 @@ editConfiguration (struct GNUNET_CONFIGURATION_Handle *cfg, int option)
  * Checking configuration diffs
  */
 static int
-checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
+checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfg_default, int option)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
   struct GNUNET_CONFIGURATION_Handle *cfgDiffs;
@@ -223,7 +223,7 @@ checkDiffs (struct GNUNET_CONFIGURATION_Handle *cfgDefault, int option)
     GNUNET_CONFIGURATION_destroy (cfgDiffs);
     return 1;
   }
-  GNUNET_CONFIGURATION_write_diffs (cfgDefault, cfg, diffsFileName);
+  GNUNET_CONFIGURATION_write_diffs (cfg_default, cfg, diffsFileName);
   GNUNET_CONFIGURATION_destroy (cfg);
 
   /* Compare the dumped configuration with modifications done */
@@ -514,30 +514,30 @@ main (int argc, char *argv[])
   GNUNET_CONFIGURATION_destroy (cfg);
 
   /* Testing configuration diffs */
-  cfgDefault = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfgDefault, NULL))
+  cfg_default = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg_default, NULL))
   {
     GNUNET_break (0);
-    GNUNET_CONFIGURATION_destroy (cfgDefault);
+    GNUNET_CONFIGURATION_destroy (cfg_default);
     return 1;
   }
 
   /* Nothing changed in the new configuration */
-  failureCount += checkDiffs (cfgDefault, EDIT_NOTHING);
+  failureCount += checkDiffs (cfg_default, EDIT_NOTHING);
 
   /* Modify all entries of the last section */
-  failureCount += checkDiffs (cfgDefault, EDIT_SECTION);
+  failureCount += checkDiffs (cfg_default, EDIT_SECTION);
 
   /* Add a new section */
-  failureCount += checkDiffs (cfgDefault, ADD_NEW_SECTION);
+  failureCount += checkDiffs (cfg_default, ADD_NEW_SECTION);
 
   /* Add a new entry to the last section */
-  failureCount += checkDiffs (cfgDefault, ADD_NEW_ENTRY);
+  failureCount += checkDiffs (cfg_default, ADD_NEW_ENTRY);
 
   /* Modify all entries in the configuration */
-  failureCount += checkDiffs (cfgDefault, EDIT_ALL);
+  failureCount += checkDiffs (cfg_default, EDIT_ALL);
 
-  GNUNET_CONFIGURATION_destroy (cfgDefault);
+  GNUNET_CONFIGURATION_destroy (cfg_default);
 
 error:
   if (failureCount != 0)
