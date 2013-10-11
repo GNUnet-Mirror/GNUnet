@@ -174,8 +174,8 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* Store & test membership */
 
-  channel_key = GNUNET_CRYPTO_ecc_key_create ();
-  slave_key = GNUNET_CRYPTO_ecc_key_create ();
+  channel_key = GNUNET_CRYPTO_eddsa_key_create ();
+  slave_key = GNUNET_CRYPTO_eddsa_key_create ();
 
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key,
                                                   &channel_pub_key);

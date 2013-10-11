@@ -26,8 +26,8 @@
  */
 
 #include "platform.h"
-#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_common.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_psycstore_service.h"
 
@@ -497,8 +497,8 @@ run (void *cls,
   h = GNUNET_PSYCSTORE_connect (cfg);
   GNUNET_assert (NULL != h);
 
-  channel_key = GNUNET_CRYPTO_ecc_key_create ();
-  slave_key = GNUNET_CRYPTO_ecc_key_create ();
+  channel_key = GNUNET_CRYPTO_eddsa_key_create ();
+  slave_key = GNUNET_CRYPTO_eddsa_key_create ();
 
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
