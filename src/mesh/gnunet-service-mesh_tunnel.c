@@ -611,7 +611,6 @@ GMT_new (struct MeshPeer *destination)
 }
 
 
-
 /**
  * Change the tunnel state.
  *

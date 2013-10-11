@@ -328,17 +328,12 @@ static void
 handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ChannelMessage *msg;
-  struct MeshPeer *peer;
-  struct MeshTunnel2 *t;
-  struct MeshChannel *ch;
   struct MeshClient *c;
-  MESH_ChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -354,66 +349,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  msg = (struct GNUNET_MESH_ChannelMessage *) message;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
-              GNUNET_i2s (&msg->peer), ntohl (msg->port));
-  chid = ntohl (msg->channel_id);
-
-  /* Sanity check for duplicate channel IDs */
-  if (NULL != channel_get_by_local_id (c, chid))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
-  peer = peer_get (&msg->peer);
-  if (NULL == peer->tunnel)
-  {
-    peer->tunnel = tunnel_new ();
-    peer->tunnel->peer = peer;
-    if (peer->id == myid)
-    {
-      tunnel_change_state (peer->tunnel, MESH_TUNNEL_READY);
-    }
-    else
-    {
-      peer_connect (peer);
-    }
-  }
-  t = peer->tunnel;
-
-  /* Create channel */
-  ch = channel_new (t, c, chid);
-  if (NULL == ch)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  ch->port = ntohl (msg->port);
-  channel_set_options (ch, ntohl (msg->opt));
-
-  /* In unreliable channels, we'll use the DLL to buffer BCK data */
-  ch->root_rel = GNUNET_new (struct MeshChannelReliability);
-  ch->root_rel->ch = ch;
-  ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
-              peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
-
-  /* Send create channel */
-  {
-    struct GNUNET_MESH_ChannelCreate msgcc;
-
-    msgcc.header.size = htons (sizeof (msgcc));
-    msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
-    msgcc.chid = htonl (ch->gid);
-    msgcc.port = msg->port;
-    msgcc.opt = msg->opt;
-
-    GMT_queue_data (t, ch, &msgcc.header, GNUNET_YES);
-  }
+  GMCH_handle_local_create (c, (struct GNUNET_MESH_ChannelMessage *) message);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;

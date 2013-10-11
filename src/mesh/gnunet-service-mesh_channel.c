@@ -30,6 +30,7 @@
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_tunnel.h"
+#include "gnunet-service-mesh_peer.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
 
@@ -1303,6 +1304,80 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
   GMT_destroy_if_empty (t);
 }
 
+
+/**
+ * Handle a channel create requested by a client.
+ *
+ * Create the channel and the tunnel in case this was the first0 channel.
+ *
+ * @param c Client that requested the creation (will be the root).
+ * @param msg Create Channel message.
+ */
+void
+GMCH_handle_local_create (struct MeshClient *c,
+                          struct GNUNET_MESH_ChannelMessage *msg)
+{
+  struct MeshChannel *ch;
+  struct MeshTunnel3 *t;
+  struct MeshPeer *peer;
+  MESH_ChannelNumber chid;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
+              GNUNET_i2s (&msg->peer), ntohl (msg->port));
+  chid = ntohl (msg->channel_id);
+
+  /* Sanity check for duplicate channel IDs */
+  if (NULL != GML_channel_get (c, chid))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  peer = GMP_get (&msg->peer);
+  GMP_add_tunnel (peer);
+  t = GMP_get_tunnel(peer);
+
+  if (GMP_get_short_id(peer) == myid)
+  {
+    GMT_change_state (t, MESH_TUNNEL3_READY);
+  }
+  else
+  {
+    GMP_connect (peer);
+  }
+
+  /* Create channel */
+  ch = channel_new (t, c, chid);
+  if (NULL == ch)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  ch->port = ntohl (msg->port);
+  channel_set_options (ch, ntohl (msg->opt));
+
+  /* In unreliable channels, we'll use the DLL to buffer BCK data */
+  ch->root_rel = GNUNET_new (struct MeshChannelReliability);
+  ch->root_rel->ch = ch;
+  ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s[%x]:%u (%x)\n",
+              peer2s (t->peer), ch->gid, ch->port, ch->lid_root);
+
+  /* Send create channel */
+  {
+    struct GNUNET_MESH_ChannelCreate msgcc;
+
+    msgcc.header.size = htons (sizeof (msgcc));
+    msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
+    msgcc.chid = htonl (ch->gid);
+    msgcc.port = msg->port;
+    msgcc.opt = msg->opt;
+
+    GMT_queue_data (t, ch, &msgcc.header, GNUNET_YES);
+  }
+}
 
 /**
  * Handler for mesh network payload traffic.

@@ -264,6 +264,16 @@ GNUNET_PEER_Id
 GMP_get_short_id (const struct MeshPeer *peer);
 
 /**
+ * Get the tunnel towards a peer.
+ *
+ * @param peer Peer to get from.
+ *
+ * @return Tunnel towards peer.
+ */
+struct MeshTunnel3 *
+GMP_get_tunnel (const struct MeshPeer *peer);
+
+/**
  * Get the static string for a peer ID.
  *
  * @param peer Peer.

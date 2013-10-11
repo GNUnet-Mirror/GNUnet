@@ -200,6 +200,18 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
                            MESH_ChannelNumber chid);
 
 /**
+ * Handle a channel create requested by a client.
+ *
+ * Create the channel and the tunnel in case this was the first0 channel.
+ *
+ * @param c Client that requested the creation (will be the root).
+ * @param msg Create Channel message.
+ */
+void
+GMCH_handle_local_create (struct MeshClient *c,
+                          struct GNUNET_MESH_ChannelMessage *msg);
+
+/**
  * Handler for mesh network payload traffic.
  *
  * @param ch Channel for the message.
