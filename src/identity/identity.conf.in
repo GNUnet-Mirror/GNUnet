@@ -1,5 +1,6 @@
 [identity]
 AUTOSTART = YES
+USER_SERVICE = YES
 @JAVAPORT@PORT = 2108
 HOSTNAME = localhost
 BINARY = gnunet-service-identity

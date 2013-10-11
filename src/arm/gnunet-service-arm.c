@@ -36,6 +36,7 @@
  */
 #define MAX_NOTIFY_QUEUE 1024
 
+
 /**
  * List of our services.
  */
@@ -159,7 +160,7 @@ struct ServiceList
 
   /**
    * Is this service to be started by default (or did a client tell us explicitly
-   * to start it)?  GNUNET_NO if the service is started only upon 'accept' on a
+   * to start it)?  #GNUNET_NO if the service is started only upon 'accept' on a
    * listen socket or possibly explicitly by a client changing the value.
    */
   int is_default;
@@ -216,6 +217,16 @@ static struct GNUNET_DISK_PipeHandle *sigpipe;
  * Are we in shutdown mode?
  */
 static int in_shutdown;
+
+/**
+ * Are we starting user services?
+ */
+static int start_user = GNUNET_YES;
+
+/**
+ * Are we starting system services?
+ */
+static int start_system = GNUNET_YES;
 
 /**
  * Handle to our server instance.  Our server is a bit special in that
@@ -387,7 +398,9 @@ broadcast_status (const char *name,
  *                   being started. 0 if starting was not requested.
  */
 static void
-start_process (struct ServiceList *sl, struct GNUNET_SERVER_Client *client, uint64_t request_id)
+start_process (struct ServiceList *sl,
+               struct GNUNET_SERVER_Client *client,
+               uint64_t request_id)
 {
   char *loprefix;
   char *options;
@@ -1273,6 +1286,19 @@ setup_service (void *cls, const char *section)
       /* not a service section */
       return;
     }
+  if ((GNUNET_YES ==
+       GNUNET_CONFIGURATION_have_value (cfg, section, "USER_SERVICE")) &&
+      (GNUNET_YES ==
+       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "USER_SERVICE")))
+  {
+    if (GNUNET_NO == start_user)
+      return; /* user service, and we don't deal with those */
+  }
+  else
+  {
+    if (GNUNET_NO == start_system)
+      return; /* system service, and we don't deal with those */
+  }
   sl = find_service (section);
   if (NULL != sl)
   {
@@ -1312,6 +1338,7 @@ setup_service (void *cls, const char *section)
     sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "PIPECONTROL");
 #endif
   GNUNET_CONTAINER_DLL_insert (running_head, running_tail, sl);
+
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))
     return;
@@ -1409,7 +1436,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
       GNUNET_CONFIGURATION_get_value_string (cfg, "ARM", "GLOBAL_POSTFIX",
 					     &final_option))
     final_option = GNUNET_strdup ("");
-
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "ARM", "USER_ONLY"))
+  {
+    GNUNET_break (GNUNET_YES == start_user);
+    start_system = GNUNET_NO;
+    return;
+  }
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "ARM", "SYSTEM_ONLY"))
+  {
+    GNUNET_break (GNUNET_YES == start_system);
+    start_user = GNUNET_NO;
+    return;
+  }
   GNUNET_CONFIGURATION_iterate_sections (cfg, &setup_service, NULL);
 
   /* start default services... */

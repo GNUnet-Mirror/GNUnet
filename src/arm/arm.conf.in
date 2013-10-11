@@ -17,6 +17,27 @@ UNIX_MATCH_GID = YES
 # log files are preserved.
 # GLOBAL_POSTFIX = -l $GNUNET_CACHE_HOME/{}-%Y-%m-%d.log
 GLOBAL_PREFIX = @MONKEYPREFIX@
+
+# If set to YES, ARM will only start services that are marked as
+# system-level services (and we'll expect a second ARM to be
+# run per-user to run user-level services).  Note that in this
+# case you must have manually created a different configuration
+# file with the user where at least this and the USER_ONLY
+# options differ.
+# SYSTEM_ONLY = YES
+
+# If set to YES, ARM will only start services that are marked as
+# per-user services (and we'll expect a system user to run ARM to
+# provide system-level services).  Per-user services enable
+# better personalization and  priviledge separation and in particular
+# ensures that personal data is stored under $HOME, which might
+# be important in a multi-user system (or if $HOME is encrypted
+# and /var/ is not).
+# USER_ONLY = YES
+
+
+
+# Name of the user that will be used to provide the service
 # USERNAME =
 # MAXBUF =
 # TIMEOUT =
