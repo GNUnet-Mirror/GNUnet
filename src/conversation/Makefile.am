@@ -19,7 +19,7 @@ libexecdir= $(prefix)/lib/gnunet/libexec/
 libgnunetmicrophone_la_SOURCES = \
   microphone.c 
 libgnunetmicrophone_la_LIBADD = \
-  -lgnunetutil
+ $(top_builddir)/src/util/libgnunetutil.la
 libgnunetmicrophone_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
@@ -27,7 +27,7 @@ libgnunetmicrophone_la_LDFLAGS = \
 libgnunetspeaker_la_SOURCES = \
   speaker.c 
 libgnunetspeaker_la_LIBADD = \
-  -lgnunetutil
+ $(top_builddir)/src/util/libgnunetutil.la
 libgnunetspeaker_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
