@@ -684,13 +684,12 @@ channel_save_copy (struct MeshChannel *ch,
  *
  * @param ch Channel on which to empty the message buffer.
  * @param c Client to send to.
- * @param rel Reliability structure to corresponding peer.
- *            If rel == bck_rel, this is FWD data.
+ * @param fwd Is this to send FWD data?.
  */
 static void
 send_client_buffered_data (struct MeshChannel *ch,
-                                   struct MeshClient *c,
-                                   int fwd)
+                           struct MeshClient *c,
+                           int fwd)
 {
   struct MeshReliableMessage *copy;
   struct MeshChannelReliability *rel;
@@ -1181,6 +1180,55 @@ GMCH_debug (struct MeshChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
                 ch->dest_rel->client_ready ? "YES" : "NO");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
+  }
+}
+
+
+/**
+ * Handle an ACK given by a client.
+ *
+ * Mark client as ready and send him any buffered data we could have for him.
+ *
+ * @param ch Channel.
+ * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by root and go BCK)
+ */
+void
+GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
+{
+  struct MeshChannelReliability *rel;
+  struct MeshClient *c;
+
+  rel = fwd ? ch->dest_rel : ch->root_rel;
+  c   = fwd ? ch->dest     : ch->root;
+
+  rel->client_ready = GNUNET_YES;
+  send_client_buffered_data (ch, c, fwd);
+  send_ack (NULL, ch, fwd);
+
+}
+
+
+/**
+ * Handle data given by a client.
+ *
+ * @param ch Channel.
+ * @param fwd Is this a FWD data? 
+ */
+void
+GMCH_handle_local_data (struct MeshChannel *ch,
+                        struct MeshClient *c,
+                        int fwd)
+{
+  /* Is the client in the channel? */
+  if ( !( (fwd &&
+           ch->root == c)
+         ||
+          (!fwd &&
+           ch->dest == c) ) )
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
 }
 

@@ -139,7 +139,6 @@ GMCH_send_data (struct MeshChannel *ch,
 void
 GMCH_send_create (struct MeshChannel *ch);
 
-
 /**
  * Notify a client that the channel is no longer valid.
  *
@@ -147,7 +146,6 @@ GMCH_send_create (struct MeshChannel *ch);
  */
 void
 GMCH_send_destroy (struct MeshChannel *ch);
-
 
 /**
  * Log channel info.
@@ -157,6 +155,16 @@ GMCH_send_destroy (struct MeshChannel *ch);
 void
 GMCH_debug (struct MeshChannel *ch);
 
+/**
+ * Handle an ACK given by a client.
+ *
+ * Mark client as ready and send him any buffered data we could have for him.
+ *
+ * @param ch Channel.
+ * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by root and go BCK)
+ */
+void
+GMCH_handle_local_ack (struct MeshChannel *ch, int fwd);
 
 /**
  * Handler for mesh network payload traffic.
@@ -170,7 +178,6 @@ GMCH_handle_data (struct MeshChannel *ch,
                   const struct GNUNET_MESH_Data *msg,
                   int fwd);
 
-
 /**
  * Handler for mesh network traffic end-to-end ACKs.
  *
@@ -183,7 +190,6 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
                       const struct GNUNET_MESH_DataACK *msg,
                       int fwd);
 
-
 /**
  * Handler for channel create messages.
  *
@@ -194,7 +200,6 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
 struct MeshChannel *
 GMCH_handle_create (const struct GNUNET_MESH_ChannelCreate *msg,
                     int fwd);
-
 
 /**
  * Handler for channel ack messages.
@@ -208,7 +213,6 @@ GMCH_handle_ack (struct MeshChannel *ch,
                  const struct GNUNET_MESH_ChannelManage *msg,
                  int fwd);
 
-
 /**
  * Handler for channel destroy messages.
  *
@@ -220,8 +224,6 @@ void
 GMCH_handle_destroy (struct MeshChannel *ch,
                      const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd);
-
-
 
 /**
  * Sends an already built message on a channel, properly registering

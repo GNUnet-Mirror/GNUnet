@@ -521,7 +521,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
               "Got data from a client!\n");
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -543,22 +543,8 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   /* Channel exists? */
   chid = ntohl (msg->id);
   fwd = chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
-  ch = channel_get_by_local_id (c, chid);
+  ch = GML_channel_get (c, chid);
   if (NULL == ch)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
-  /* Is the client in the channel? */
-  if ( !( (fwd &&
-           ch->root &&
-           ch->root->handle == client)
-         ||
-          (!fwd &&
-           ch->dest &&
-           ch->dest->handle == client) ) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -608,7 +594,6 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MESH_LocalAck *msg;
-  struct MeshChannelReliability *rel;
   struct MeshChannel *ch;
   struct MeshClient *c;
   MESH_ChannelNumber chid;
@@ -617,7 +602,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -630,7 +615,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   /* Channel exists? */
   chid = ntohl (msg->channel_id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
-  ch = channel_get_by_local_id (c, chid);
+  ch = GML_channel_get (c, chid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   -- ch %p\n", ch);
   if (NULL == ch)
   {
@@ -644,13 +629,9 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   /* If client is root, the ACK is going FWD, therefore this is "BCK". */
   /* If client is dest, the ACK is going BCK, therefore this is "FWD" */
   fwd = chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
-  rel = fwd ? ch->dest_rel : ch->root_rel;
-
-  rel->client_ready = GNUNET_YES;
-  channel_send_client_buffered_data (ch, c, fwd);
-  send_ack (NULL, ch, fwd);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GMCH_handle_local_ack (ch, fwd);
 
   return;
 }
@@ -703,7 +684,7 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshClient *c;
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -740,7 +721,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshChannel *ch;
 
   /* Sanity check for client registration */
-  if (NULL == (c = client_get (client)))
+  if (NULL == (c = GML_client_get (client)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
