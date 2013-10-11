@@ -678,7 +678,7 @@ hash_redirect_info (struct GNUNET_HashCode *hash,
  */
 static struct TunnelState *
 get_redirect_state (int af,
-		    int protocol,		
+		    int protocol,
 		    const void *destination_ip,
 		    uint16_t destination_port,
 		    const void *local_ip,
@@ -1398,7 +1398,7 @@ setup_fresh_address (int af,
   local_address->af = af;
   local_address->proto = (uint8_t) proto;
   /* default "local" port range is often 32768--61000,
-     so we pick a random value in that range */	
+     so we pick a random value in that range */
   if ( ( (af == AF_INET) && (proto == IPPROTO_ICMP) ) ||
        ( (af == AF_INET6) && (proto == IPPROTO_ICMPV6) ) )
     local_address->port = 0;
@@ -1429,7 +1429,7 @@ setup_fresh_address (int af,
       do
 	{
 	  rnd.s_addr = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-						 UINT32_MAX);	
+						 UINT32_MAX);
 	  local_address->address.ipv4.s_addr = (addr.s_addr | rnd.s_addr) & mask.s_addr;
 	}
       while ( (local_address->address.ipv4.s_addr == addr.s_addr) ||
@@ -1696,7 +1696,7 @@ prepare_ipv6_packet (const void *payload, size_t payload_length,
 
   GNUNET_TUN_initialize_ipv6_header (pkt6,
 				     protocol,
-				     len,				
+				     len,
 				     &src_address->address.ipv6,
 				     &dst_address->address.ipv6);
 
@@ -1796,7 +1796,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET:
       {
 	struct GNUNET_TUN_IPv4Header * ipv4 = (struct GNUNET_TUN_IPv4Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV4);
 	prepare_ipv4_packet (payload, payload_length,
 			     IPPROTO_TCP,
@@ -1809,7 +1809,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET6:
       {
 	struct GNUNET_TUN_IPv6Header * ipv6 = (struct GNUNET_TUN_IPv6Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV6);
 	prepare_ipv6_packet (payload, payload_length,
 			     IPPROTO_TCP,
@@ -1818,7 +1818,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 			     destination_address,
 			     ipv6);
       }
-      break;	
+      break;
     default:
       GNUNET_assert (0);
       break;
@@ -2067,16 +2067,6 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   const struct GNUNET_EXIT_TcpDataMessage *data;
   uint16_t pkt_len = ntohs (message->size);
 
-  if (GNUNET_YES == state->is_dns)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  if (GNUNET_SYSERR == state->is_dns)
-  {
-    /* tunnel is UDP/TCP from now on */
-    state->is_dns = GNUNET_NO;
-  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Bytes received from MESH"),
 			    pkt_len, GNUNET_NO);
@@ -2103,6 +2093,16 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
+  }
+  if (GNUNET_YES == state->is_dns)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_SYSERR == state->is_dns)
+  {
+    /* tunnel is UDP/TCP from now on */
+    state->is_dns = GNUNET_NO;
   }
 
   GNUNET_break_op (ntohl (data->reserved) == 0);
@@ -2185,7 +2185,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET:
       {
 	struct GNUNET_TUN_IPv4Header * ipv4 = (struct GNUNET_TUN_IPv4Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV4);
 	GNUNET_TUN_initialize_ipv4_header (ipv4,
 					   IPPROTO_ICMP,
@@ -2198,7 +2198,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET6:
       {
 	struct GNUNET_TUN_IPv6Header * ipv6 = (struct GNUNET_TUN_IPv6Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV6);
 	GNUNET_TUN_initialize_ipv6_header (ipv6,
 					   IPPROTO_ICMPV6,
@@ -2207,7 +2207,7 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
 					   &destination_address->address.ipv6);
 	icmp = (struct GNUNET_TUN_IcmpHeader*) &ipv6[1];
       }
-      break;	
+      break;
     default:
       GNUNET_assert (0);
       break;
@@ -2783,7 +2783,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET:
       {
 	struct GNUNET_TUN_IPv4Header * ipv4 = (struct GNUNET_TUN_IPv4Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV4);
 	prepare_ipv4_packet (payload, payload_length,
 			     IPPROTO_UDP,
@@ -2796,7 +2796,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
     case AF_INET6:
       {
 	struct GNUNET_TUN_IPv6Header * ipv6 = (struct GNUNET_TUN_IPv6Header*) &tun[1];
-	
+
 	tun->proto = htons (ETH_P_IPV6);
 	prepare_ipv6_packet (payload, payload_length,
 			     IPPROTO_UDP,
@@ -2805,7 +2805,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
 			     destination_address,
 			     ipv6);
       }
-      break;	
+      break;
     default:
       GNUNET_assert (0);
       break;
@@ -3310,7 +3310,7 @@ add_services (int proto,
 	  freeaddrinfo (res);
 	  GNUNET_free (serv);
 	  continue;
-	}	
+	}
 	serv->address.address.ipv6 = ((struct sockaddr_in6 *) res->ai_addr)->sin6_addr;
 	break;
       default:
@@ -3724,7 +3724,7 @@ run (void *cls, char *const *args GNUNET_UNUSED,
       (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
 			      GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
 			      "4", regex);
-      regex4 = GNUNET_REGEX_announce (cfg,			
+      regex4 = GNUNET_REGEX_announce (cfg,
 				      prefixed_regex,
 				      REGEX_REFRESH_FREQUENCY,
 				      REGEX_MAX_PATH_LEN_IPV4);
