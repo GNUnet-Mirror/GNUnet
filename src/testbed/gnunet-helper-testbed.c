@@ -166,7 +166,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != testbed)
   {
     LOG_DEBUG ("Killing testbed\n");
-    GNUNET_break (0 == GNUNET_OS_process_kill (testbed, SIGTERM));
+    GNUNET_break (0 == GNUNET_OS_process_kill (testbed, GNUNET_TERM_SIG));
   }
   if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
   {
@@ -298,7 +298,7 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_process_destroy (testbed);
     testbed = NULL;
     /* Send SIGTERM to our process group */
-    if (0 != PLIBC_KILL (0, SIGTERM))
+    if (0 != PLIBC_KILL (0, GNUNET_TERM_SIG))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "signal");
       shutdown_now ();          /* Couldn't send the signal, we shutdown frowning */

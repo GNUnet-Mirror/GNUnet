@@ -717,6 +717,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   int ret;
   struct GNUNET_SIGNAL_Context *shc_int;
   struct GNUNET_SIGNAL_Context *shc_term;
+#if (SIGTERM != GNUNET_TERM_SIG) 
+  struct GNUNET_SIGNAL_Context *shc_gterm;
+#endif
 
 #ifndef MINGW
   struct GNUNET_SIGNAL_Context *shc_quit;
@@ -741,6 +744,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Registering signal handlers\n");
   shc_int = GNUNET_SIGNAL_handler_install (SIGINT, &sighandler_shutdown);
   shc_term = GNUNET_SIGNAL_handler_install (SIGTERM, &sighandler_shutdown);
+#if (SIGTERM != GNUNET_TERM_SIG)
+  shc_gterm = GNUNET_SIGNAL_handler_install (GNUNET_TERM_SIG, &sighandler_shutdown);
+#endif
 #ifndef MINGW
   shc_pipe = GNUNET_SIGNAL_handler_install (SIGPIPE, &sighandler_pipe);
   shc_quit = GNUNET_SIGNAL_handler_install (SIGQUIT, &sighandler_shutdown);
@@ -820,6 +826,9 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   }
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
+#if (SIGTERM != GNUNET_TERM_SIG)
+  GNUNET_SIGNAL_handler_install (shc_gterm);
+#endif
 #ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_pipe);
   GNUNET_SIGNAL_handler_uninstall (shc_quit);

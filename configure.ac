@@ -1036,22 +1036,21 @@ AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have gnutls])
 
 
 # Test if we are building for superMUC
-AC_MSG_CHECKING(if testbed should use IBM LoadLeveler to run on SuperMUC)
-AC_ARG_ENABLE([ll],
-    [AS_HELP_STRING([--enable-ll],
-       [build GNUnet testbed for use with IBM LoadLeveler for running testbed on
-              SuperMUC (default is NO)])],
-    [if test "x$enable_ll" = "xno"
+AC_MSG_CHECKING(if GNUnet is being configured to run on the SuperMUC)
+AC_ARG_ENABLE([supermuc],
+    [AS_HELP_STRING([--enable-supermuc],
+       [build GNUnet with support to run on the SuperMUC (default is NO)])],
+    [if test "x$enable_supermuc" = "xno"
      then
-       ll=0
+       supermuc=0
      else
-       ll=1
+       supermuc=1
      fi],
-    [ll=0
-     enable_ll=no])
-AC_MSG_RESULT($enable_ll)
-AM_CONDITIONAL([ENABLE_LL], [test "x$ll" = "x1"])
-AC_DEFINE_UNQUOTED([ENABLE_LL], [$ll], [Build with LL support])
+    [supermuc=0
+     enable_supermuc=no])
+AC_MSG_RESULT($enable_SUPERMUC)
+AM_CONDITIONAL([ENABLE_SUPERMUC], [test "x$supermuc" = "x1"])
+AC_DEFINE_UNQUOTED([ENABLE_SUPERMUC], [$supermuc], [Build with support for SuperMUC])
 
 # Check if NSE has to send timestamp information to testbed logger for
 # generating histogram of messages received

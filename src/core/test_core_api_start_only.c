@@ -184,7 +184,7 @@ static void
 stop_arm (struct PeerContext *p)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peer\n");
-  if (0 != GNUNET_OS_process_kill (p->arm_proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (p->arm_proc, GNUNET_TERM_SIG))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (p->arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");

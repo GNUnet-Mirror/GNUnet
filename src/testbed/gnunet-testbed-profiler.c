@@ -225,7 +225,7 @@ test_run (void *cls,
   result = GNUNET_OK;
   fprintf (stdout, "\n");
   print_overlay_links_summary ();
-#if !ENABLE_LL
+#if !ENABLE_SUPERMUC
   fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
   fflush (stdout);
   (void) getc (stdin);
@@ -281,7 +281,7 @@ main (int argc, char *const *argv)
     {'e', "num-errors", "COUNT",
      gettext_noop ("tolerate COUNT number of continious timeout failures"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
-#if !ENABLE_LL
+#if !ENABLE_SUPERMUC
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &hosts_file},

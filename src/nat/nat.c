@@ -789,7 +789,7 @@ nat_server_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Finished reading from server stdout with code: %d\n", bytes);
-    if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
+    if (0 != GNUNET_OS_process_kill (h->server_proc, GNUNET_TERM_SIG))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_destroy (h->server_proc);
@@ -1303,7 +1303,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   }
   if (NULL != h->server_proc)
   {
-    if (0 != GNUNET_OS_process_kill (h->server_proc, SIGTERM))
+    if (0 != GNUNET_OS_process_kill (h->server_proc, GNUNET_TERM_SIG))
       GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_destroy (h->server_proc);

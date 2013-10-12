@@ -838,6 +838,9 @@ main (int argc, char *const*argv)
     }
   }
   if ( (SIG_ERR == signal (SIGTERM, &signal_handler)) ||
+#if (SIGTERM != GNUNET_TERM_SIG)
+       (SIG_ERR == signal (GNUNET_TERM_SIG, &signal_handler)) ||
+#endif
        (SIG_ERR == signal (SIGINT, &signal_handler)) ||
        (SIG_ERR == signal (SIGHUP, &signal_handler)) )
   {
@@ -875,6 +878,9 @@ main (int argc, char *const*argv)
   {
     fprintf (stderr, "Fatal: could not initialize tun-interface\n");
     (void) signal (SIGTERM, SIG_IGN);
+#if (SIGTERM != GNUNET_TERM_SIG)
+    (void) signal (GNUNET_TERM_SIG, SIG_IGN);
+#endif
     (void) signal (SIGINT, SIG_IGN);
     (void) signal (SIGHUP, SIG_IGN);
     (void) close (cpipe[0]);
@@ -891,6 +897,9 @@ main (int argc, char *const*argv)
     {
       fprintf (stderr, "Fatal: prefix_len out of range\n");
       (void) signal (SIGTERM, SIG_IGN);
+#if (SIGTERM != GNUNET_TERM_SIG)
+    (void) signal (GNUNET_TERM_SIG, SIG_IGN);
+#endif
       (void) signal (SIGINT, SIG_IGN);
       (void) signal (SIGHUP, SIG_IGN);
       (void) close (cpipe[0]);
@@ -1043,6 +1052,9 @@ main (int argc, char *const*argv)
   (void) close (fd_tun);
   /* remove signal handler so we can close the pipes */
   (void) signal (SIGTERM, SIG_IGN);
+#if (SIGTERM != GNUNET_TERM_SIG)
+    (void) signal (GNUNET_TERM_SIG, SIG_IGN);
+#endif
   (void) signal (SIGINT, SIG_IGN);
   (void) signal (SIGHUP, SIG_IGN);
   (void) close (cpipe[0]);

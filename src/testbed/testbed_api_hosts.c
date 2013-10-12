@@ -565,7 +565,7 @@ GNUNET_TESTBED_hosts_load_from_loadleveler (const struct
                                             GNUNET_CONFIGURATION_Handle *cfg,
                                             struct GNUNET_TESTBED_Host ***hosts)
 {
-#if !ENABLE_LL
+#if !ENABLE_SUPERMUC
   LOG (GNUNET_ERROR_TYPE_ERROR,
        _("The function %s is only available when compiled with (--with-ll)\n"),
        __func__);
@@ -1374,7 +1374,7 @@ GNUNET_TESTBED_is_host_habitable_cancel (struct
                                          *handle)
 {
   GNUNET_SCHEDULER_cancel (handle->habitability_check_task);
-  (void) GNUNET_OS_process_kill (handle->auxp, SIGTERM);
+  (void) GNUNET_OS_process_kill (handle->auxp, GNUNET_TERM_SIG);
   (void) GNUNET_OS_process_wait (handle->auxp);
   GNUNET_OS_process_destroy (handle->auxp);
   free_argv (handle->helper_argv);

@@ -121,7 +121,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   }
   hard_kill++;
-  GNUNET_break (0 == GNUNET_OS_process_kill (child, SIGTERM));
+  GNUNET_break (0 == GNUNET_OS_process_kill (child, GNUNET_TERM_SIG));
   LOG (GNUNET_ERROR_TYPE_INFO, _("Waiting for child to exit.\n"));
 }
 

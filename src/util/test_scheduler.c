@@ -183,7 +183,7 @@ taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (1 == *ok);
   *ok = 8;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &taskLast, cls);
-  GNUNET_break (0 == PLIBC_KILL (getpid (), SIGTERM));
+  GNUNET_break (0 == PLIBC_KILL (getpid (), GNUNET_TERM_SIG));
 }
 
 

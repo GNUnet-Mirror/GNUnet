@@ -145,7 +145,7 @@ shutdown_testcase ()
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist server ARM process.\n");
-  if (0 != GNUNET_OS_process_kill (adv_peer.arm_proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (adv_peer.arm_proc, GNUNET_TERM_SIG))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (adv_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");
@@ -153,7 +153,7 @@ shutdown_testcase ()
   adv_peer.arm_proc = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Killing hostlist client ARM process.\n");
-  if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (learn_peer.arm_proc, GNUNET_TERM_SIG))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   if (GNUNET_OS_process_wait (learn_peer.arm_proc) != GNUNET_OK)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "waitpid");

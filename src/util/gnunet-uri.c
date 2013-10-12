@@ -62,7 +62,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        (0 == code) )
     ret = 0;
   else
-    GNUNET_break (0 == GNUNET_OS_process_kill (p, SIGTERM));
+    GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
   GNUNET_OS_process_destroy (p);
 }
 

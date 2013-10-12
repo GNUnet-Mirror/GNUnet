@@ -851,7 +851,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
   broadcast_status (servicename, GNUNET_ARM_SERVICE_STOPPING, NULL);
   /* no signal_start - only when it's STOPPED */
   sl->killed_at = GNUNET_TIME_absolute_get ();
-  if (0 != GNUNET_OS_process_kill (sl->proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (sl->proc, GNUNET_TERM_SIG))
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
   sl->killing_client = client;
   sl->killing_client_request_id = request_id;
@@ -1013,7 +1013,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		  "Stopping service `%s'\n",
 		  pos->name);
       pos->killed_at = GNUNET_TIME_absolute_get ();
-      if (0 != GNUNET_OS_process_kill (pos->proc, SIGTERM))
+      if (0 != GNUNET_OS_process_kill (pos->proc, GNUNET_TERM_SIG))
 	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     }
     else

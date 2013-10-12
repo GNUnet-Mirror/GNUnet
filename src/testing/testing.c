@@ -508,7 +508,7 @@ static void
 stop_shared_service_instance (struct SharedServiceInstance *i)
 {
   GNUNET_break (0 == i->n_refs);
-  if (0 != GNUNET_OS_process_kill (i->proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (i->proc, GNUNET_TERM_SIG))
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Killing shared service instance (%s) failed\n", i->ss->sname);
   (void) GNUNET_OS_process_wait (i->proc);
@@ -1418,7 +1418,7 @@ GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (0 != GNUNET_OS_process_kill (peer->main_process, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (peer->main_process, GNUNET_TERM_SIG))
     return GNUNET_SYSERR;
   for (cnt = 0; cnt < peer->system->n_shared_services; cnt++)
   {

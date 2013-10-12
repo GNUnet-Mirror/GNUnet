@@ -64,7 +64,7 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               ok);
   if (NULL != proc)
   {
-    if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+    if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     }

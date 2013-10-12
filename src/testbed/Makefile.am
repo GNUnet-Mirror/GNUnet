@@ -9,11 +9,6 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-if ENABLE_LL
-  ll_binaries = \
-    gnunet-testbed-mpi-spawn
-endif
-
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfgdir= $(pkgdatadir)/config.d/
@@ -28,7 +23,6 @@ libexec_PROGRAMS = \
   gnunet-daemon-testbed-blacklist
 
 bin_PROGRAMS = \
-  $(ll_binaries) \
   gnunet-testbed-profiler
 
 gnunet_service_testbed_SOURCES = \
@@ -92,14 +86,6 @@ gnunet_daemon_testbed_blacklist_LDADD = $(XLIB) \
 gnunet_daemon_testbed_blacklist_DEPENDENCIES = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
-
-gnunet_testbed_mpi_spawn_SOURCES = gnunet_testbed_mpi_spawn.c
-gnunet_testbed_mpi_spawn_LDADD = $(XLIB) \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la
-gnunet_testbed_mpi_spawn_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettestbed.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la \

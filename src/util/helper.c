@@ -208,7 +208,7 @@ GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h,
     h->fh_to_helper = NULL;
     return ret;
   }
-  if (0 != GNUNET_OS_process_kill (h->helper_proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (h->helper_proc, GNUNET_TERM_SIG))
     return GNUNET_SYSERR;
   return GNUNET_OK;
 }

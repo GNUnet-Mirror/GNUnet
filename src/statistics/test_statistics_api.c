@@ -153,7 +153,7 @@ main (int argc, char *argv_ign[])
   GNUNET_assert (NULL != proc);
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options, &run,
                       &ok);
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     ok = 1;
@@ -175,7 +175,7 @@ main (int argc, char *argv_ign[])
                                "-c", "test_statistics_api_data.conf", NULL);
   GNUNET_PROGRAM_run (5, argv, "test-statistics-api", "nohelp", options,
                       &run_more, &ok);
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
+  if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
     ok = 1;

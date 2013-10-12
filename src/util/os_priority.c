@@ -229,6 +229,9 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
   case SIGINT:
   case SIGKILL:
   case SIGTERM:
+#if (SIGTERM != GNUNET_TERM_SIG)
+  case GNUNET_TERM_SIG:
+#endif
 #if defined(WINDOWS) && !defined(__CYGWIN__)
     {
       DWORD exitcode;
