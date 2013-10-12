@@ -334,6 +334,7 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
        "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
   GNUNET_CRYPTO_hash (peer_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   h = GNUNET_new (struct GMD_search_handle);
+  h->callback = callback;
   h->cls = cls;
   h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
                                     GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
