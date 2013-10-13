@@ -1658,7 +1658,7 @@ GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlock_start,
  * @param fn file name to be opened
  * @param flags opening flags, a combination of GNUNET_DISK_OPEN_xxx bit flags
  * @param perm permissions for the newly created file, use
- *             #GNUNET_DISK_PERM_USER_NONE if a file could not be created by this
+ *             #GNUNET_DISK_PERM_NONE if a file could not be created by this
  *             call (because of flags)
  * @return IO handle on success, NULL on error
  */

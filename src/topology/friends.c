@@ -155,6 +155,7 @@ GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                   GNUNET_DISK_OPEN_WRITE |
                                   GNUNET_DISK_OPEN_FAILIFEXISTS,
                                   GNUNET_DISK_PERM_USER_READ);
+  GNUNET_free (fn);
   if (NULL == w->fh)
   {
     GNUNET_free (w);

@@ -145,7 +145,7 @@ GNUNET_CONFIGURATION_destroy (struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param allow_inline set to #GNUNET_YES if we recursively load configuration
  *          from inlined configurations; #GNUNET_NO if not and raise warnings
  *          when we come across them
- * @return #GNUNET_OK on success, #GNUNET_ERROR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_CONFIGURATION_deserialize (struct GNUNET_CONFIGURATION_Handle *cfg,
