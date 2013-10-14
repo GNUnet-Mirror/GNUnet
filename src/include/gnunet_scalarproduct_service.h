@@ -86,9 +86,11 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
  * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
+ * 
+ * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle * cfg,
                               const struct GNUNET_HashCode * key,
                               const struct GNUNET_PeerIdentity *peer,
                               const int32_t * elements,
@@ -96,7 +98,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const unsigned char * mask,
                               uint32_t mask_bytes,
                               GNUNET_SCALARPRODUCT_DatumProcessor cont,
-                              void *cont_cls);
+                              void * cont_cls);
 
 /**
  * Used by Bob's client to cooperate with Alice,
@@ -107,14 +109,16 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param element_count Number of elements in the vector
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
+ * 
+ * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle * cfg,
                                const struct GNUNET_HashCode * key,
                                const int32_t * elements,
                                uint32_t element_count,
                                GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                               void *cont_cls);
+                               void * cont_cls);
 /**
  * Cancel an ongoing computation or revoke our collaboration offer.
  * Closes the connection to the service

@@ -318,14 +318,16 @@ transmit_request (void *cls, size_t size,
  * @param element_count Number of elements in the vector
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
+ * 
+ * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle * cfg,
                                const struct GNUNET_HashCode * key,
                                const int32_t * elements,
                                uint32_t element_count,
                                GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                               void *cont_cls)
+                               void * cont_cls)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h;
   struct GNUNET_SCALARPRODUCT_client_request *msg;
@@ -406,9 +408,11 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
+ * 
+ * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle * cfg,
                               const struct GNUNET_HashCode * key,
                               const struct GNUNET_PeerIdentity *peer,
                               const int32_t * elements,
@@ -416,7 +420,7 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const unsigned char * mask,
                               uint32_t mask_bytes,
                               GNUNET_SCALARPRODUCT_DatumProcessor cont,
-                              void *cont_cls)
+                              void * cont_cls)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h;
   struct GNUNET_SCALARPRODUCT_client_request *msg;
