@@ -1437,11 +1437,11 @@ GNUNET_TESTBED_run (const char *host_filename,
  *        for all peer start events even if GNUNET_TESTBED_ET_PEER_START isn't
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
- * @param cc_cls closure for cc
+ * @param cc_cls closure for @a cc
  * @param test_master this callback will be called once the test is ready or
  *          upon timeout
- * @param test_master_cls closure for 'test_master'.
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param test_master_cls closure for @a test_master.
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
 GNUNET_TESTBED_test_run (const char *testname,
