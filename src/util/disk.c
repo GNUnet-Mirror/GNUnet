@@ -140,9 +140,9 @@ translate_unix_perms (enum GNUNET_DISK_AccessPermissions perm)
  * Iterate over all files in the given directory and
  * accumulate their size.
  *
- * @param cls closure of type "struct GetFileSizeData"
+ * @param cls closure of type `struct GetFileSizeData`
  * @param fn current filename we are looking at
- * @return GNUNET_SYSERR on serious errors, otherwise GNUNET_OK
+ * @return #GNUNET_SYSERR on serious errors, otherwise #GNUNET_OK
  */
 static int
 getSizeRec (void *cls, const char *fn)
@@ -187,7 +187,7 @@ getSizeRec (void *cls, const char *fn)
  * Checks whether a handle is invalid
  *
  * @param h handle to check
- * @return GNUNET_YES if invalid, GNUNET_NO if valid
+ * @return #GNUNET_YES if invalid, #GNUNET_NO if valid
  */
 int
 GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
@@ -204,7 +204,7 @@ GNUNET_DISK_handle_invalid (const struct GNUNET_DISK_FileHandle *h)
  *
  * @param fh open file handle
  * @param size where to write size of the file
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
@@ -237,7 +237,7 @@ GNUNET_DISK_file_handle_size (struct GNUNET_DISK_FileHandle *fh,
  * @param h handle of an open file
  * @param offset position to move to
  * @param whence specification to which position the offset parameter relates to
- * @return the new position on success, GNUNET_SYSERR otherwise
+ * @return the new position on success, #GNUNET_SYSERR otherwise
  */
 off_t
 GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
@@ -282,13 +282,15 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
  *             of all sizes of files in the directory)
  * @param include_symbolic_links should symbolic links be
  *        included?
- * @param single_file_mode GNUNET_YES to only get size of one file
- *        and return GNUNET_SYSERR for directories.
- * @return GNUNET_SYSERR on error, GNUNET_OK on success
+ * @param single_file_mode #GNUNET_YES to only get size of one file
+ *        and return #GNUNET_SYSERR for directories.
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
 int
-GNUNET_DISK_file_size (const char *filename, uint64_t * size,
-                       int include_symbolic_links, int single_file_mode)
+GNUNET_DISK_file_size (const char *filename,
+		       uint64_t * size,
+                       int include_symbolic_links, 
+		       int single_file_mode)
 {
   struct GetFileSizeData gfsd;
   int ret;
@@ -632,7 +634,7 @@ GNUNET_DISK_directory_test (const char *fil, int is_readable)
  * (of a file that exists and that is not a directory).
  *
  * @param fil filename to check
- * @return #GNUNET_YES if yes, GNUNET_NO if not a file, #GNUNET_SYSERR if something
+ * @return #GNUNET_YES if yes, #GNUNET_NO if not a file, #GNUNET_SYSERR if something
  * else (will print an error message in that case, too).
  */
 int
