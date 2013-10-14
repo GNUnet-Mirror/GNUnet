@@ -156,7 +156,7 @@ GNUNET_IDENTITY_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Obtain the identity that is currently preferred/default
+ * Obtain the ego that is currently preferred/default
  * for a service.
  *
  * @param id identity service to query
@@ -184,7 +184,7 @@ typedef void (*GNUNET_IDENTITY_Continuation)(void *cls,
 
 
 /**
- * Set the preferred/default identity for a service.
+ * Set the preferred/default ego for a service.
  *
  * @param id identity service to inform
  * @param service_name for which service is an identity set
@@ -211,7 +211,7 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h);
 
 
 /**
- * Create a new identity with the given name.
+ * Create a new ego with the given name.
  *
  * @param id identity service to use
  * @param name desired name
@@ -227,7 +227,7 @@ GNUNET_IDENTITY_create (struct GNUNET_IDENTITY_Handle *id,
 
 
 /**
- * Renames an existing identity.
+ * Renames an existing ego.
  *
  * @param id identity service to use
  * @param old_name old name
@@ -245,7 +245,7 @@ GNUNET_IDENTITY_rename (struct GNUNET_IDENTITY_Handle *id,
 
 
 /**
- * Delete an existing identity.
+ * Delete an existing ego.
  *
  * @param id identity service to use
  * @param name name of the identity to delete
