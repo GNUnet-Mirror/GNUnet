@@ -96,6 +96,11 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO 22
 
+/**
+ * MQTT publish-subscribe.
+ */
+#define GNUNET_APPLICATION_TYPE_MQTT 23
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
