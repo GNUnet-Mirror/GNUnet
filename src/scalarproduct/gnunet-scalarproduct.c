@@ -36,6 +36,9 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "gnunet-scalarproduct",__VA_ARGS__)
 #define INPUTSTRINGLENGTH       1024
 
+/**
+ * A primitive closure structure holding information about our session
+ */
 struct ScalarProductCallbackClosure
 {
   /**
@@ -112,12 +115,8 @@ responder_callback (void *cls,
  * Callback called if we are initiating a new computation session
  *
  * @param cls unused
- * @param key unused
- * @param peer unused
  * @param status if our job was successfully processed
- * @param size size of the msg returned
- * @param msg the response we got.
- * @param type of the message received
+ * @param result the result in gnu/gcry MPI format
  */
 static void
 requester_callback (void *cls,
