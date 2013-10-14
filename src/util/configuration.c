@@ -1054,6 +1054,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *def;
   char *end;
   unsigned int lopen;
+  char erased_char;
+  char *erased_pos;
 
   if (NULL == orig)
     return NULL;
@@ -1072,6 +1074,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
          "Doesn't start with $ - not expanding\n");
     return orig;
   }
+  erased_char = 0;
+  erased_pos = NULL;
   if ('{' == orig[1])
   {
     start = &orig[2];
@@ -1098,6 +1102,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
         break;
       }
     }
+    erased_char = *end;
+    erased_pos = end;
     *end = '\0';
     post = end + 1;
     def = strchr (orig, ':');
@@ -1126,6 +1132,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else
     {
+      erased_char = orig[i];
+      erased_pos = &orig[i];
       orig[i] = '\0';
       post = &orig[i + 1];
     }
@@ -1155,7 +1163,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     if (NULL == env)
     {
-      orig[strlen (orig)] = DIR_SEPARATOR;
+      if (erased_pos)
+        *erased_pos = erased_char;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Expanded to `%s' (returning orig)\n",
            orig);
