@@ -216,6 +216,32 @@ struct ServiceSession
 };
 
 ///////////////////////////////////////////////////////////////////////////////
+//                      Forward Delcarations
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Send a multi part chunk of a service request from alice to bob.
+ * This element only contains a part of the elements-vector (session->a[]),
+ * mask and public key set have to be contained within the first message
+ * 
+ * This allows a ~32kbit key length while using 32000 elements or 62000 elements per request.
+ * 
+ * @param cls the associated service session
+ */
+static void
+prepare_service_request_multipart (void *cls);
+
+/**
+ * Send a multi part chunk of a service response from bob to alice.
+ * This element only contains the two permutations of R, R'.
+ * 
+ * @param cls the associated service session
+ */
+static void
+prepare_service_response_multipart (void *cls);
+
+
+///////////////////////////////////////////////////////////////////////////////
 //                      Global Variables
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -305,6 +331,7 @@ static int do_shutdown;
 ///////////////////////////////////////////////////////////////////////////////
 //                      Helper Functions
 ///////////////////////////////////////////////////////////////////////////////
+
 
 /**
  * Generates an Paillier private/public keyset and extracts the values using libgrcypt only
@@ -420,6 +447,7 @@ generate_keyset ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Generated key set with key length %d bits.\n"), KEYBITS);
 }
 
+
 /**
  * If target != size, move target bytes to the
  * end of the size-sized buffer and zero out the
@@ -438,8 +466,9 @@ adjust (unsigned char *buf, size_t size, size_t target)
   }
 }
 
+
 /**
- * encrypts an element using the paillier crypto system
+ * Encrypts an element using the paillier crypto system
  *
  * @param c ciphertext (output)
  * @param m plaintext
@@ -466,6 +495,7 @@ encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mp
   gcry_mpi_release (tmp);
 }
 
+
 /**
  * decrypts an element using the paillier crypto system
  *
@@ -484,6 +514,7 @@ decrypt_element (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, g
   gcry_mpi_div (m, NULL, m, n, 0);
   gcry_mpi_mulm (m, m, mu, n);
 }
+
 
 /**
  * computes the square sum over a vector of a given length.
@@ -511,15 +542,6 @@ compute_square_sum (gcry_mpi_t * vector, uint32_t length)
 
   return sum;
 }
-
-
-static void
-prepare_service_request_multipart (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext *tc);
-static void
-prepare_service_response_multipart (void *cls,
-                                    const struct GNUNET_SCHEDULER_TaskContext *tc);
-
 
 /**
  * Primitive callback for copying over a message, as they
@@ -559,24 +581,23 @@ do_send_message (void *cls, size_t size, void *buf)
     session->state = FINALIZED;
     session->client_transmit_handle = NULL;
     break;
+
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB:
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART:
-    //else
     session->service_transmit_handle = NULL;
-    // reset flags for sending
-    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used != session->transferred))
-      prepare_service_request_multipart (session, NULL);
-    //TODO we have sent a message and now need to trigger trigger the next multipart message sending
+    if (session->state == WAITING_FOR_MULTIPART_TRANSMISSION)
+      prepare_service_request_multipart (session);
     break;
+
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE:
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE_MULTIPART:
-    //else
     session->service_transmit_handle = NULL;
-    if ((session->state != WAITING_FOR_MULTIPART_TRANSMISSION) && (session->used != session->transferred))
-      prepare_service_response_multipart (session, NULL);
+    if (session->state == WAITING_FOR_MULTIPART_TRANSMISSION)
+      prepare_service_response_multipart (session);
     break;
+
   default:
-    session->service_transmit_handle = NULL;
+    GNUNET_assert(0);
   }
 
   return size;
@@ -627,43 +648,17 @@ permute_vector (gcry_mpi_t * vector,
   return vector;
 }
 
-/**
- * Populate a vector with random integer values and convert them to
- *
- * @param length the length of the vector we must generate
- * @return an array of MPI values with random values
- */
-static gcry_mpi_t *
-generate_random_vector (uint32_t length)
-{
-  gcry_mpi_t * random_vector;
-  int32_t value;
-  uint32_t i;
-
-  random_vector = initialize_mpi_vector (length);
-  for (i = 0; i < length; i++) {
-    value = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
-
-    // long to gcry_mpi_t
-    if (value < 0)
-      gcry_mpi_sub_ui (random_vector[i],
-                       random_vector[i],
-                       -value);
-    else
-      random_vector[i] = gcry_mpi_set_ui (random_vector[i], value);
-  }
-
-  return random_vector;
-}
 
 /**
  * Finds a not terminated client/service session in the
  * given DLL based on session key, element count and state.
- *
+ * 
  * @param tail - the tail of the DLL
- * @param my - the session to compare it to
- * @return a pointer to a matching session,
- *         else NULL
+ * @param key - the key we want to search for
+ * @param element_count - the total element count of the dataset (session->total)
+ * @param state - a pointer to the state the session should be in, NULL to ignore
+ * @param peerid - a pointer to the peer ID of the associated peer, NULL to ignore
+ * @return a pointer to a matching session, or NULL
  */
 static struct ServiceSession *
 find_matching_session (struct ServiceSession * tail,
@@ -692,6 +687,12 @@ find_matching_session (struct ServiceSession * tail,
   return NULL;
 }
 
+
+/**
+ * Safely frees ALL memory areas referenced by a session.
+ * 
+ * @param session - the session to free elements from
+ */
 static void
 free_session_variables (struct ServiceSession * session)
 {
@@ -732,7 +733,7 @@ free_session_variables (struct ServiceSession * session)
 /**
  * A client disconnected.
  *
- * Remove the associated session(s), release datastructures
+ * Remove the associated session(s), release data structures
  * and cancel pending outgoing transmissions to the client.
  * if the session has not yet completed, we also cancel Alice's request to Bob.
  *
@@ -777,15 +778,15 @@ handle_client_disconnect (void *cls,
   GNUNET_free (session);
 }
 
+
 /**
  * Notify the client that the session has succeeded or failed completely.
  * This message gets sent to
  * * alice's client if bob disconnected or to
  * * bob's client if the operation completed or alice disconnected
  *
- * @param client_session the associated client session
- * @return GNUNET_NO, if we could not notify the client
- *         GNUNET_YES if we notified it.
+ * @param cls the associated client session
+ * @param tc the task context handed to us by the scheduler, unused
  */
 static void
 prepare_client_end_notification (void * cls,
@@ -827,9 +828,15 @@ prepare_client_end_notification (void * cls,
 
 }
 
+
+/**
+ * Send a multi part chunk of a service response from bob to alice.
+ * This element only contains the two permutations of R, R'.
+ * 
+ * @param cls the associated service session
+ */
 static void
-prepare_service_response_multipart (void *cls,
-                                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+prepare_service_response_multipart (void *cls)
 {
   struct ServiceSession * session = cls;
   unsigned char * current;
@@ -1139,7 +1146,18 @@ compute_service_response (struct ServiceSession * request,
   gcry_sexp_release (tmp_exp);
 
   // generate r, p and q
-  rand = generate_random_vector (count);
+  rand = initialize_mpi_vector (count);
+  for (i = 0; i < count; i++) {
+    value = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+
+    // long to gcry_mpi_t
+    if (value < 0)
+      gcry_mpi_sub_ui (rand[i],
+                       rand[i],
+                       -value);
+    else
+      rand[i] = gcry_mpi_set_ui (rand[i], value);
+  }
   p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
   q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
   //initialize the result vectors
@@ -1234,9 +1252,18 @@ except:
   return ret;
 }
 
+
+/**
+ * Send a multi part chunk of a service request from alice to bob.
+ * This element only contains a part of the elements-vector (session->a[]),
+ * mask and public key set have to be contained within the first message
+ * 
+ * This allows a ~32kbit key length while using 32000 elements or 62000 elements per request.
+ * 
+ * @param cls the associated service session
+ */
 static void
-prepare_service_request_multipart (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+prepare_service_request_multipart (void *cls)
 {
   struct ServiceSession * session = cls;
   unsigned char * current;
@@ -1641,6 +1668,7 @@ handle_client_request (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_YES);
 }
 
+
 /**
  * Function called for inbound tunnels.
  *
@@ -1665,6 +1693,7 @@ tunnel_incoming_handler (void *cls,
   c->state = WAITING_FOR_SERVICE_REQUEST;
   return c;
 }
+
 
 /**
  * Function called whenever a tunnel is destroyed.  Should clean up
@@ -1730,18 +1759,11 @@ tunnel_destruction_handler (void *cls,
   }
 }
 
+
 /**
  * Compute our scalar product, done by Alice
  *
  * @param session - the session associated with this computation
- * @param kp - (1) from the protocol definition:
- *             $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- * @param kq - (2) from the protocol definition:
- *             $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- * @param s - S from the protocol definition:
- *            $S := E_A(\sum (r_i + b_i)^2)$
- * @param stick - S' from the protocol definition:
- *                $S' := E_A(\sum r_i^2)$
  * @return product as MPI, never NULL
  */
 static gcry_mpi_t
