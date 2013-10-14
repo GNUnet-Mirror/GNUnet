@@ -49,11 +49,10 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
+/**
+ * Opaque declaration of the SP-Handle
+ */
 struct GNUNET_SCALARPRODUCT_Handle;
-
-typedef void (*GNUNET_SCALARPRODUCT_ResponseMessageHandler) (void *cls,
-                                                             const struct GNUNET_MessageHeader *msg,
-                                                             enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 
 /**
  * Continuation called to notify client about result of the
@@ -69,7 +68,7 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
  *
  * @param cls closure
  * @param status Status of the request
- * @param type result of the computation
+ * @param result result of the computation
  */
 typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
                                                      enum GNUNET_SCALARPRODUCT_ResponseStatus status,
@@ -78,8 +77,8 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
 /**
  * Request by Alice's client for computing a scalar product
  *
- * @param h handle to the master context
- * @param key Session key - unique to the requesting client
+ * @param cfg the gnunet configuration handle
+ * @param key Session key should be unique to the requesting client
  * @param peer PeerID of the other peer
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
@@ -102,8 +101,8 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Used by Bob's client to cooperate with Alice,
  *
- * @param h handle to our configuration
- * @param key Session key - unique to the requesting client
+ * @param cfg the gnunet configuration handle
+ * @param key Session key unique to the requesting client
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
  * @param cont Callback function
@@ -120,7 +119,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Cancel an ongoing computation or revoke our collaboration offer.
  * Closes the connection to the service
  *
- * @param h handel to terminate
+ * @param h computation handle to terminate
  */
 void
 GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
@@ -128,7 +127,6 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
 /**
  * Cancel ALL ongoing computation or revoke our collaboration offer.
  * Closes ALL connections to the service
- *
  */
 void
 GNUNET_SCALARPRODUCT_disconnect ();

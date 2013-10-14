@@ -52,7 +52,7 @@ extern "C"
  * Maximum count of elements we can put into a multipart message
  */
 #define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) / PAILLIER_ELEMENT_LENGTH)
-    
+
 /**
  * Log an error message at log-level 'level' that indicates
  * a failure of the command 'cmd' with the message given

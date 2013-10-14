@@ -95,6 +95,9 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
    */
   struct GNUNET_SCALARPRODUCT_client_request * msg;
 
+  /**
+   * The msg handler callback
+   */
   union
   {
   /**
@@ -145,11 +148,11 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
 
 
 /**
- * Handles the RESULT received in reply of prepare_response from the
- * service
+ * Handles the STATUS received from the service for a response, does not contain a payload
  *
- * @param cls Handle to the Master Context
+ * @param cls our Handle
  * @param msg Pointer to the response received
+ * @param status the condition the request was terminated with (eg: disconnect)
  */
 static void
 process_status_message (void *cls,
@@ -163,11 +166,11 @@ process_status_message (void *cls,
 
 
 /**
- * Handles the RESULT received in reply of prepare_response from the
- * service
+ * Handles the RESULT received from the service for a request, should contain a result MPI value
  *
- * @param cls Handle to the Master Context
+ * @param cls our Handle
  * @param msg Pointer to the response received
+ * @param status the condition the request was terminated with (eg: disconnect)
  */
 static void
 process_result_message (void *cls,
@@ -212,7 +215,7 @@ process_result_message (void *cls,
 
 
 /**
- * Called when a response is received from the service. After basic check
+ * Called when a response is received from the service. After basic check, the
  * handler in qe->response_proc is called. This functions handles the response
  * to the client which used the API.
  *
@@ -255,7 +258,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Transmits the request to the VectorProduct Sevice
+ * Transmits the request to the VectorProduct Service
  *
  * @param cls Closure
  * @param size Size of the buffer
@@ -309,8 +312,8 @@ transmit_request (void *cls, size_t size,
 /**
  * Used by Bob's client to cooperate with Alice,
  *
- * @param h handle to the master context
- * @param key Session key - unique to the requesting client
+ * @param cfg the gnunet configuration handle
+ * @param key Session key unique to the requesting client
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
  * @param cont Callback function
@@ -394,8 +397,8 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Request by Alice's client for computing a scalar product
  *
- * @param h handle to the master context
- * @param key Session key - unique to the requesting client
+ * @param cfg the gnunet configuration handle
+ * @param key Session key should be unique to the requesting client
  * @param peer PeerID of the other peer
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
@@ -488,9 +491,10 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Disconnect from the scalarproduct service.
+ * Cancel an ongoing computation or revoke our collaboration offer.
+ * Closes the connection to the service
  *
- * @param h a computation handle to cancel
+ * @param h computation handle to terminate
  */
 void
 GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h)
@@ -513,7 +517,7 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h)
     }
 }
 /**
- * Cancel ALL our ongoing scalar product computations and collaboration offers.
+ * Cancel ALL ongoing computation or revoke our collaboration offer.
  * Closes ALL connections to the service
  */
 void

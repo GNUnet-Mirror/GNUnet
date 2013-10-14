@@ -384,7 +384,7 @@ generate_keyset ()
   my_lambda = gcry_mpi_new (0);
 
   // calculate lambda
-  // lambda = \frac{(p-1)*(q-1)}{gcd(p-1,q-1)}
+  // lambda = frac{(p-1)*(q-1)}{gcd(p-1,q-1)}
   gcry_mpi_sub_ui (tmp1, p, 1);
   gcry_mpi_sub_ui (tmp2, q, 1);
   gcry_mpi_gcd (gcd, tmp1, tmp2);
@@ -1149,10 +1149,10 @@ prepare_service_response (gcry_mpi_t s,
 /**
  * executed by bob:
  * compute the values
- *  (1)[]: $E_A(a_{\pi(i)}) \otimes E_A(- r_{\pi(i)} - b_{\pi(i)}) &= E_A(a_{\pi(i)} - r_{\pi(i)} - b_{\pi(i)})$
- *  (2)[]: $E_A(a_{\pi'(i)}) \otimes E_A(- r_{\pi'(i)}) &= E_A(a_{\pi'(i)} - r_{\pi'(i)})$
- *      S: $S := E_A(\sum (r_i + b_i)^2)$
- *     S': $S' := E_A(\sum r_i^2)$
+ *  (1)[]: $E_A(a_{pi(i)}) otimes E_A(- r_{pi(i)} - b_{pi(i)}) &= E_A(a_{pi(i)} - r_{pi(i)} - b_{pi(i)})$
+ *  (2)[]: $E_A(a_{pi'(i)}) otimes E_A(- r_{pi'(i)}) &= E_A(a_{pi'(i)} - r_{pi'(i)})$
+ *      S: $S := E_A(sum (r_i + b_i)^2)$
+ *     S': $S' := E_A(sum r_i^2)$
  *
  * @param request the requesting session + bob's requesting peer
  * @param response the responding session + bob's client handle
