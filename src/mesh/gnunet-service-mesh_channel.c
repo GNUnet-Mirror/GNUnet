@@ -1260,11 +1260,9 @@ GMCH_handle_local_data (struct MeshChannel *ch,
     channel_save_copy (ch, &payload->header, fwd);
   if (GMT_get_buffer (ch->t, fwd) > 0)
   {
-    MESH_ChannelNumber ackid;
-    ackid = fwd ? ch->lid_root : ch->lid_dest;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  sending ack to client (%X)\n", ackid);
-    GML_send_ack (c, ackid);
+    send_client_ack (c, fwd);
   }
 
   return GNUNET_OK;
