@@ -325,6 +325,36 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
 }
 
+/**
+ * Add a destination client to a channel, initializing all data structures
+ * in the channel and the client.
+ *
+ * @param ch Channel to which add the destination.
+ * @param c Client which to add to the channel.
+ */
+static void
+add_destination (struct MeshChannel *ch, struct MeshClient *c)
+{
+  if (NULL != ch->dest)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* Assign local id as destination */
+  ch->lid_dest = GML_get_next_chid (c);
+
+  /* Store in client's hashmap */
+  GML_channel_add (c, ch->lid_dest, ch);
+
+  GNUNET_break (NULL == ch->dest_rel);
+  ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
+  ch->dest_rel->ch = ch;
+  ch->dest_rel->expected_delay = MESH_RETRANSMIT_TIME;
+
+  ch->dest = c;
+}
+
 
 /**
  * Send data to a client.
@@ -355,36 +385,6 @@ send_client_data (struct MeshChannel *ch,
     else
       add_buffered_data (msg, ch->root_rel);
   }
-}
-
-
-/**
- * Add a client to a channel, initializing all needed data structures.
- *
- * @param ch Channel to which add the client.
- * @param c Client which to add to the channel.
- */
-void
-GMCH_add_client (struct MeshChannel *ch, struct MeshClient *c)
-{
-  if (NULL != ch->dest)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  /* Assign local id as destination */
-  ch->lid_dest = GML_get_next_chid (c);
-
-  /* Store in client's hashmap */
-  GML_channel_add (c, ch->lid_dest, ch);
-
-  GNUNET_break (NULL == ch->dest_rel);
-  ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
-  ch->dest_rel->ch = ch;
-  ch->dest_rel->expected_delay = MESH_RETRANSMIT_TIME;
-
-  ch->dest = c;
 }
 
 
@@ -916,6 +916,7 @@ handle_loopback (struct MeshChannel *ch,
 /********************************    API    ***********************************/
 /******************************************************************************/
 
+
 /**
  * Get channel ID.
  *
@@ -1235,7 +1236,13 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   if (GNUNET_YES == ch->reliable)
     channel_save_copy (ch, &payload->header, fwd);
   if (GMT_get_buffer (ch->t, fwd) > 0)
-    GML_send_ack (c, fwd ? ch->lid_root : ch->lid_dest);
+  {
+    MESH_ChannelNumber ackid;
+    ackid = fwd ? ch->lid_root : ch->lid_dest;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  sending ack to client (%X)\n", ackid);
+    GML_send_ack (c, ackid);
+  }
 
   return GNUNET_OK;
 }
@@ -1545,19 +1552,19 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     channel_destroy (ch);
     return NULL;
   }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  client %p has port registered\n", c);
+  }
 
-  GMCH_add_client (ch, c);
+  add_destination (ch, c);
   if (GNUNET_YES == ch->reliable)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
 
   GMCH_send_create (ch);
   channel_send_ack (ch, fwd);
-
-  if (GNUNET_NO == ch->dest_rel->client_ready)
-  {
-    GML_send_ack (ch->dest, ch->lid_dest);
-    ch->dest_rel->client_ready = GNUNET_YES;
-  }
 
   return ch;
 }
