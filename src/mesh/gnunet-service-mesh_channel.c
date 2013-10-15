@@ -455,6 +455,10 @@ send_client_ack (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel = fwd ? ch->root_rel : ch->dest_rel;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  sending %s ack to client on channel %s\n",
+       fwd ? "FWD" : "BCK", GMCH_2s (ch));
+
   if (NULL == rel)
   {
     GNUNET_break (0);
@@ -1260,8 +1264,6 @@ GMCH_handle_local_data (struct MeshChannel *ch,
     channel_save_copy (ch, &payload->header, fwd);
   if (GMT_get_buffer (ch->t, fwd) > 0)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  sending ack to client (%X)\n", ackid);
     send_client_ack (ch, fwd);
   }
 
