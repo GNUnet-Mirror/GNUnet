@@ -1256,10 +1256,10 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
   payload->chid = htonl (ch->gid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-  GMCH_send_prebuilt_message (&payload->header, ch, fwd);
-
   if (GNUNET_YES == ch->reliable)
     channel_save_copy (ch, &payload->header, fwd);
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd);
+
   if (GMT_get_buffer (ch->t, fwd) > 0)
   {
     send_client_ack (ch, fwd);
