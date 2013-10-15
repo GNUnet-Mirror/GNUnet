@@ -542,4 +542,4 @@ GNUNET_SCALARPRODUCT_disconnect ()
     }
 }
 
-/* end of ext_api.c */
+/* end of scalarproduct_api.c */

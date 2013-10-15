@@ -2485,4 +2485,4 @@ main (int argc, char *const *argv)
                               &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-service-ext.c */
+/* end of gnunet-service-scalarproduct.c */

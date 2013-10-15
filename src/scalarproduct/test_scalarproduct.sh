@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#necessary to make the testing prefix deterministic, so we can access the config files
+GNUNET_TESTING_PREFIX=/tmp/test-scalarproduct1337
 CFGA="-c ./test_scalarproduct_alice.conf"
 CFGB="-c ./test_scalarproduct_bob.conf"
 					#can't use ` directly
