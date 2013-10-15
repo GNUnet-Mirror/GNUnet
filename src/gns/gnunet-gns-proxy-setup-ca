@@ -25,8 +25,9 @@ GNSCERT=`mktemp /tmp/gnscertXXXXXX.pem`
 GNSCAKY=`mktemp /tmp/gnscakeyXXXXXX.pem`
 GNSCANO=`mktemp /tmp/gnscakeynoencXXXXXX.pem`
 GNS_CA_CERT_PEM=`gnunet-config -s gns-proxy -o PROXY_CACERT -f $options`
+mkdir -p `dirname $GNS_CA_CERT_PEM`
 
-openssl req -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=TNR/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
+openssl req -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
 
 echo "Removing passphrase from key"
 openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
