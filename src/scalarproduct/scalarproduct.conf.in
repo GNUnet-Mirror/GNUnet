@@ -1,6 +1,6 @@
-[vectorproduct]
-BINARY = gnunet-service-vectorproduct
-UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-vectorproduct.sock
+[scalarproduct]
+BINARY = gnunet-service-scalarproduct
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-scalarproduct.sock
 # PORT = 2106
 @UNIXONLY@ PORT = 2087
 
