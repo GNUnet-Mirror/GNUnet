@@ -389,6 +389,86 @@ send_client_data (struct MeshChannel *ch,
 
 
 /**
+ * Send a buffered message to the client, for in order delivery or
+ * as result of client ACK.
+ *
+ * @param ch Channel on which to empty the message buffer.
+ * @param c Client to send to.
+ * @param fwd Is this to send FWD data?.
+ */
+static void
+send_client_buffered_data (struct MeshChannel *ch,
+                           struct MeshClient *c,
+                           int fwd)
+{
+  struct MeshReliableMessage *copy;
+  struct MeshChannelReliability *rel;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
+  rel = fwd ? ch->dest_rel : ch->root_rel;
+  if (GNUNET_NO == rel->client_ready)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "client not ready\n");
+    return;
+  }
+
+  copy = rel->head_recv;
+  /* We never buffer channel management messages */
+  if (NULL != copy)
+  {
+    if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
+    {
+      struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
+
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  " have %u! now expecting %u\n",
+                  copy->mid, rel->mid_recv + 1);
+      send_client_data (ch, msg, fwd);
+      rel->n_recv--;
+      rel->mid_recv++;
+      GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+      GNUNET_free (copy);
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  " reliable && don't have %u, next is %u\n",
+                  rel->mid_recv,
+                  copy->mid);
+      return;
+    }
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
+}
+
+
+/**
+ * Allow a client to send more data.
+ *
+ * In case the client was already allowed to send data, do nothing.
+ *
+ * @param ch Channel.
+ * @param fwd Is this a FWD ACK? (FWD ACKs are sent to root)
+ */
+static void
+send_client_ack (struct MeshChannel *ch, int fwd)
+{
+  struct MeshChannelReliability *rel = fwd ? ch->root_rel : ch->dest_rel;
+
+  if (NULL == rel)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (GNUNET_YES == rel->client_ready)
+    return;
+
+  GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
+  rel->client_ready = GNUNET_YES;
+}
+
+
+/**
  * Destroy all reliable messages queued for a channel,
  * during a channel destruction.
  * Frees the reliability structure itself.
@@ -652,9 +732,9 @@ channel_confirm (struct MeshChannel *ch, int fwd)
       /* TODO return? */
     }
   }
-  GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
+  send_client_ack (ch, fwd);
 
-  /* In case of a FWD ACk (SYNACK) send a BCK ACK (ACK). */
+  /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
   if (fwd)
     channel_send_ack (ch, !fwd);
 }
@@ -706,63 +786,6 @@ channel_save_copy (struct MeshChannel *ch,
                                       rel);
   }
 }
-
-
-
-/**
- * Send a buffered message to the client, for in order delivery or
- * as result of client ACK.
- *
- * @param ch Channel on which to empty the message buffer.
- * @param c Client to send to.
- * @param fwd Is this to send FWD data?.
- */
-static void
-send_client_buffered_data (struct MeshChannel *ch,
-                           struct MeshClient *c,
-                           int fwd)
-{
-  struct MeshReliableMessage *copy;
-  struct MeshChannelReliability *rel;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
-  rel = fwd ? ch->dest_rel : ch->root_rel;
-  if (GNUNET_NO == rel->client_ready)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "client not ready\n");
-    return;
-  }
-
-  copy = rel->head_recv;
-  /* We never buffer channel management messages */
-  if (NULL != copy)
-  {
-    if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
-    {
-      struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  " have %u! now expecting %u\n",
-                  copy->mid, rel->mid_recv + 1);
-      send_client_data (ch, msg, fwd);
-      rel->n_recv--;
-      rel->mid_recv++;
-      GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
-      GNUNET_free (copy);
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  " reliable && don't have %u, next is %u\n",
-                  rel->mid_recv,
-                  copy->mid);
-      return;
-    }
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
-}
-
-
 
 
 /**
