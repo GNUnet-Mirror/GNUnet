@@ -929,6 +929,23 @@ unregister_neighbors (struct MeshConnection *c)
 }
 
 
+/**
+ * Bind the connection to the peer and the tunnel to that peer.
+ *
+ * If the peer has no tunnel, create one. Update tunnel and connection
+ * data structres to reflect new status.
+ *
+ * @param c Connection.
+ * @param peer Peer.
+ */
+static void
+add_to_peer (struct MeshConnection *c, struct MeshPeer *peer)
+{
+  GMP_add_tunnel (peer);
+  c->t = GMP_get_tunnel (peer);
+  GMT_add_connection (c->t, c);
+}
+
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
@@ -1040,8 +1057,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     GMP_add_path_to_origin (orig_peer, path, GNUNET_YES);
 
-    GMP_add_tunnel (orig_peer);
-    GMP_add_connection (orig_peer, c);
+    add_to_peer (c, orig_peer);
     if (MESH_TUNNEL3_NEW == GMT_get_state (c->t))
       GMT_change_state (c->t,  MESH_TUNNEL3_WAITING);
 

@@ -1390,6 +1390,7 @@ GMP_is_neighbor (const struct MeshPeer *peer)
 
 /**
  * Create and initialize a new tunnel towards a peer, in case it has none.
+ * In case the peer already has a tunnel, nothing is done.
  *
  * Does not generate any traffic, just creates the local data structures.
  *
