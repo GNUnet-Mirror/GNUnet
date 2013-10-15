@@ -421,7 +421,9 @@ tokenizer_cb (void *cls, void *client,
                                         GNUNET_TESTING_PREFIX "=%s", evstr));
     putenv (str);
     /* do not free str will be consumed by putenv */
-    GNUNET_free (evstr);
+    str = NULL;
+    /* do not free evstr */
+    evstr = NULL;
   }
   GNUNET_free_non_null (hostname);
   hostname = NULL;
@@ -444,7 +446,9 @@ tokenizer_cb (void *cls, void *client,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
   /* expose testbed configuration through env variable */
   GNUNET_assert (0 < GNUNET_asprintf (&evstr, "%s=%s", ENV_TESTBED_CONFIG, config));
-  GNUNET_assert (0 == putenv (evstr)); /* Do NOT free evstr; it is consumed by putenv */
+  GNUNET_assert (0 == putenv (evstr)); /* Do NOT free evstr; it is consumed by
+                                          putenv */
+  evstr = NULL;
   testbed =
       GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
