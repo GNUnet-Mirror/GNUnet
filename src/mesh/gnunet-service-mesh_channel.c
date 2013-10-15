@@ -464,11 +464,8 @@ send_client_ack (struct MeshChannel *ch, int fwd)
     GNUNET_break (0);
     return;
   }
-  if (GNUNET_YES == rel->client_ready)
-    return;
 
   GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
-  rel->client_ready = GNUNET_YES;
 }
 
 
@@ -724,6 +721,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   ch->state = MESH_CHANNEL_READY;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
+  rel->client_ready = GNUNET_YES;
   for (copy = rel->head_sent; NULL != copy; copy = next)
   {
     struct GNUNET_MessageHeader *msg;
