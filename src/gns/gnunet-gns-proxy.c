@@ -569,14 +569,24 @@ static unsigned long port = GNUNET_GNS_PROXY_PORT;
 static char *cafile_opt;
 
 /**
- * The listen socket of the proxy
+ * The listen socket of the proxy for IPv4
  */
-static struct GNUNET_NETWORK_Handle *lsock;
+static struct GNUNET_NETWORK_Handle *lsock4;
 
 /**
- * The listen task ID
+ * The listen socket of the proxy for IPv6
  */
-static GNUNET_SCHEDULER_TaskIdentifier ltask;
+static struct GNUNET_NETWORK_Handle *lsock6;
+
+/**
+ * The listen task ID for IPv4
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ltask4;
+
+/**
+ * The listen task ID for IPv6
+ */
+static GNUNET_SCHEDULER_TaskIdentifier ltask6;
 
 /**
  * The cURL download task (curl multi API).
@@ -791,41 +801,54 @@ static int
 check_ssl_certificate (struct Socks5Request *s5r)
 {
   unsigned int i;
-  union {
-    gnutls_session_t session;
-    struct curl_slist    * to_slist;
-  } gptr;
+  struct curl_tlsinfo tlsinfo;
   unsigned int cert_list_size;
   const gnutls_datum_t *chainp;
+  union {
+    struct curl_tlsinfo *tlsinfo;
+    struct curl_slist   *to_slist;
+  } gptr;
 
-  gptr.to_slist = NULL;
+  memset (&tlsinfo, 0, sizeof (tlsinfo));
+  gptr.tlsinfo = &tlsinfo;
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
-			 CURLINFO_GNUTLS_SESSION,
+			 CURLINFO_TLS_SESSION,
 			 &gptr))
     return GNUNET_SYSERR;
-
-  chainp = gnutls_certificate_get_peers(gptr.session, &cert_list_size);
+  if (CURLSSLBACKEND_GNUTLS != tlsinfo.ssl_backend)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Unsupported CURL SSL backend %d\n"),
+                tlsinfo.ssl_backend);
+    return GNUNET_SYSERR;
+  }
+  chainp = gnutls_certificate_get_peers (tlsinfo.internals, &cert_list_size);
   if(!chainp)
     return GNUNET_SYSERR;
 
-  for(i=0;i<cert_list_size;i++) {
+  for(i=0;i<cert_list_size;i++)
+  {
     gnutls_x509_crt_t cert;
     gnutls_datum_t dn;
 
-    if(GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&cert)) {
-      if((GNUTLS_E_SUCCESS ==
-	  gnutls_x509_crt_import (cert, &chainp[i],
-				  GNUTLS_X509_FMT_DER)) &&
-	 (GNUTLS_E_SUCCESS ==
-	  gnutls_x509_crt_print (cert,
-				 GNUTLS_CRT_PRINT_FULL,
-				 &dn))) {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "Certificate #%d: %.*s", i, dn.size, dn.data);
-	gnutls_free (dn.data);
-        gnutls_x509_crt_deinit (cert);
+    if (GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&cert))
+    {
+      if (GNUTLS_E_SUCCESS ==
+          gnutls_x509_crt_import (cert, &chainp[i],
+                                  GNUTLS_X509_FMT_DER))
+      {
+        if (GNUTLS_E_SUCCESS ==
+            gnutls_x509_crt_print (cert,
+                                   GNUTLS_CRT_PRINT_FULL,
+                                   &dn))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Certificate #%d: %.*s", i, dn.size, dn.data);
+          gnutls_free (dn.data);
+        }
       }
+      gnutls_x509_crt_deinit (cert);
     }
   }
   return GNUNET_OK;
@@ -1273,7 +1296,7 @@ curl_task_download (void *cls,
 		"Suspending cURL multi loop, no more events pending\n");
     return; /* nothing more in progress */
   }
-  curl_download_prepare();
+  curl_download_prepare ();
 }
 
 
@@ -1838,6 +1861,8 @@ load_key_from_file (gnutls_x509_privkey_t key,
   int ret;
 
   key_data.data = load_file (keyfile, &key_data.size);
+  if (NULL == key_data.data)
+    return GNUNET_SYSERR;
   ret = gnutls_x509_privkey_import (key, &key_data,
                                     GNUTLS_X509_FMT_PEM);
   if (GNUTLS_E_SUCCESS != ret)
@@ -1866,6 +1891,8 @@ load_cert_from_file (gnutls_x509_crt_t crt,
   int ret;
 
   cert_data.data = load_file (certfile, &cert_data.size);
+  if (NULL == cert_data.data)
+    return GNUNET_SYSERR;
   ret = gnutls_x509_crt_import (crt, &cert_data,
                                 GNUTLS_X509_FMT_PEM);
   if (GNUTLS_E_SUCCESS != ret)
@@ -2495,22 +2522,31 @@ do_s5r_read (void *cls,
 /**
  * Accept new incoming connections
  *
- * @param cls the closure
+ * @param cls the closure with the lsock4 or lsock6
  * @param tc the scheduler context
  */
 static void
 do_accept (void *cls,
 	   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_NETWORK_Handle *lsock = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
 
-  ltask = GNUNET_SCHEDULER_NO_TASK;
+  if (lsock == lsock4)
+    ltask4 = GNUNET_SCHEDULER_NO_TASK;
+  else
+    ltask6 = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         lsock,
-                                         &do_accept, NULL);
+  if (lsock == lsock4)
+    ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                            lsock,
+                                            &do_accept, lsock);
+  else
+    ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                            lsock,
+                                            &do_accept, lsock);
   s = GNUNET_NETWORK_socket_accept (lsock, NULL, NULL);
   if (NULL == s)
   {
@@ -2550,10 +2586,15 @@ do_shutdown (void *cls,
     kill_httpd (mhd_httpd_head);
   while (NULL != s5r_head)
     cleanup_s5r (s5r_head);
-  if (NULL != lsock)
+  if (NULL != lsock4)
   {
-    GNUNET_NETWORK_socket_close (lsock);
-    lsock = NULL;
+    GNUNET_NETWORK_socket_close (lsock4);
+    lsock4 = NULL;
+  }
+  if (NULL != lsock6)
+  {
+    GNUNET_NETWORK_socket_close (lsock6);
+    lsock6 = NULL;
   }
   if (NULL != id_op)
   {
@@ -2580,10 +2621,15 @@ do_shutdown (void *cls,
     GNUNET_SCHEDULER_cancel (curl_download_task);
     curl_download_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ltask)
+  if (GNUNET_SCHEDULER_NO_TASK != ltask4)
   {
-    GNUNET_SCHEDULER_cancel (ltask);
-    ltask = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (ltask4);
+    ltask4 = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != ltask6)
+  {
+    GNUNET_SCHEDULER_cancel (ltask6);
+    ltask6 = GNUNET_SCHEDULER_NO_TASK;
   }
   gnutls_x509_crt_deinit (proxy_ca.cert);
   gnutls_x509_privkey_deinit (proxy_ca.key);
@@ -2672,24 +2718,46 @@ run_cont ()
   struct MhdHttpList *hd;
 
   /* Open listen socket for socks proxy */
-  lsock = bind_v6 ();
-  if (NULL == lsock)
-    lsock = bind_v4 ();
-  if (NULL == lsock)
-  {
+  lsock6 = bind_v6 ();
+  if (NULL == lsock6)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock, 5))
+  else
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock6, 5))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+      GNUNET_NETWORK_socket_close (lsock6);
+      lsock6 = NULL;
+    }
+    else
+    {
+      ltask6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                              lsock6, &do_accept, lsock6);
+    }
+  }
+  lsock4 = bind_v4 ();
+  if (NULL == lsock4)
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+  else
+  {
+    if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock4, 5))
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "listen");
+      GNUNET_NETWORK_socket_close (lsock4);
+      lsock4 = NULL;
+    }
+    else
+    {
+      ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                              lsock4, &do_accept, lsock4);
+    }
+  }
+  if ( (NULL == lsock4) &&
+       (NULL == lsock6) )
+  {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  ltask = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         lsock, &do_accept, NULL);
-
   if (0 != curl_global_init (CURL_GLOBAL_WIN32))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
