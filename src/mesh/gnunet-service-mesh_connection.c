@@ -1013,7 +1013,6 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       /* create path: self not found in path through self */
       GNUNET_break_op (0);
       path_destroy (path);
-      GMC_destroy (c);
       return GNUNET_OK;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
