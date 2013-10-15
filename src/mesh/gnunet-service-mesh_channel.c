@@ -1262,7 +1262,7 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  sending ack to client (%X)\n", ackid);
-    send_client_ack (c, fwd);
+    send_client_ack (ch, fwd);
   }
 
   return GNUNET_OK;
