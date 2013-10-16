@@ -34,7 +34,6 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_namecache_service.h"
-#include "gnunet_namestore_service.h"
 #include "namecache.h"
 
 
