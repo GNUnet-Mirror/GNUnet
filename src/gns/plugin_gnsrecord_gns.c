@@ -19,7 +19,7 @@
 */
 
 /**
- * @file gnsrecord/plugin_gnsrecord_gns.c
+ * @file gns/plugin_gnsrecord_gns.c
  * @brief gnsrecord plugin to provide the API for fundamental GNS records
  *                  This includes the VPN record because GNS resolution
  *                  is expected to understand VPN records and (if needed)

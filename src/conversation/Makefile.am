@@ -1,5 +1,7 @@
 SUBDIRS = .
 
+plugindir = $(libdir)/gnunet
+
 INCLUDES = \
   -I$(top_srcdir)/src/include \
   -I$(top_srcdir)
@@ -15,6 +17,19 @@ lib_LTLIBRARIES = \
 pkgcfgdir= $(prefix)/share/gnunet/config.d/
 
 libexecdir= $(prefix)/lib/gnunet/libexec/
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_gnsrecord_conversation.la
+
+
+libgnunet_plugin_gnsrecord_conversation_la_SOURCES = \
+  plugin_gnsrecord_conversation.c
+libgnunet_plugin_gnsrecord_conversation_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_gnsrecord_conversation_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 libgnunetmicrophone_la_SOURCES = \
   microphone.c
