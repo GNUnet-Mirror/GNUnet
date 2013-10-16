@@ -145,7 +145,7 @@ libgnunet_plugin_block_test_init (void *cls)
 void *
 libgnunet_plugin_block_test_done (void *cls)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
+  struct GNUNET_BLOCK_PluginFunctions *api = cls;
 
   GNUNET_free (api);
   return NULL;
