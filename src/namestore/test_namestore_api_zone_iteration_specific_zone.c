@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -400,8 +400,9 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* first, iterate over empty namestore */
-  zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
-					     NULL, &empty_zone_proc, nsh);
+  zi = GNUNET_NAMESTORE_zone_iteration_start (nsh,
+                                              NULL,
+                                              &empty_zone_proc, nsh);
   if (NULL == zi)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
@@ -415,6 +416,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-namestore/");
   res = 1;
   if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-zone-iteration",

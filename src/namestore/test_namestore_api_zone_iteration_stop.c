@@ -449,6 +449,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-namestore/");
   res = 1;
   if (0 !=
       GNUNET_TESTING_service_run ("test-namestore-api-zone-iteration-stop",
