@@ -1357,6 +1357,8 @@ src/mesh/mesh.conf
 src/multicast/Makefile
 src/multicast/multicast.conf
 src/mysql/Makefile
+src/namecache/Makefile
+src/namecache/namecache.conf
 src/namestore/Makefile
 src/namestore/namestore.conf
 src/nat/Makefile
