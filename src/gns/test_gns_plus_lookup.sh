@@ -1,7 +1,7 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
-rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o SERVICEHOME`
+rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME`
 
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf

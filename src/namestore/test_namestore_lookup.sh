@@ -1,7 +1,7 @@
 #!/bin/bash
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
-rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o SERVICEHOME`
+rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o GNUNET_HOME`
 TEST_IP_PLUS="127.0.0.1"
 TEST_RECORD_NAME_DNS="www3"
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
@@ -9,7 +9,7 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 function start_peer
 {
 	gnunet-arm -s -c $CONFIGURATION
-	gnunet-identity -C testego -c $CONFIGURATION	
+	gnunet-identity -C testego -c $CONFIGURATION
 }
 
 function stop_peer
@@ -38,7 +38,7 @@ for LINE in $OUTPUT ;
 	if echo "$LINE" | grep -q "$TEST_IP_PLUS"; then
 		FOUND_IP=true;
 		#echo $FOUND_IP
-	fi	
+	fi
  done
 stop_peer
 
