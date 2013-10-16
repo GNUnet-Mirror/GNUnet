@@ -4,7 +4,7 @@
 // diamond = library
 // black line = dependency
 // blue line = extension via plugin
-// red line = possibly useful 
+// red line = possibly useful
 // dashed = in planning
 
 // this is what we have...o
@@ -47,7 +47,10 @@ splines = true;
   revocation -> core;
   revocation -> set;
   namestore -> identity;
-  namestore -> dnsparser;
+  namestore -> gnsrecord;
+  dnsparser -> gnsrecord [style=dotted,color=blue];
+  conversation -> gnsrecord [style=dotted,color=blue];
+  gns -> gnsrecord [style=dotted,color=blue];
   dht -> core;
   dht -> nse;
   dht -> block;
@@ -81,7 +84,7 @@ splines = true;
   hostlist -> peerinfo;
   hostlist -> hello;
   transport -> ats;
-  transport -> hello;	  
+  transport -> hello;
   transport -> peerinfo;
   transport -> nat;
   transport -> fragmentation;
@@ -131,6 +134,7 @@ splines = true;
   gns -> revocation;
   gns -> vpn;
   gns -> identity;
+  gns -> gnsrecord;
   revocation -> core;
   revocation -> set;
   namestore -> identity;
@@ -201,7 +205,7 @@ splines = true;
   reuters -> identity [style=dashed];
   scalarproduct -> set [style=dashed];
   scalarproduct -> mesh [style=dashed];
-  messaging [style=dashed];  
+  messaging [style=dashed];
   messaging -> regex [style=dashed];
   messaging -> mesh [style=dashed];
   messaging -> dht [style=dashed];
