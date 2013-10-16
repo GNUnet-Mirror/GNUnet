@@ -27,12 +27,11 @@
  * - test
  */
 #include "platform.h"
-#include <gnunet_util_lib.h>
-#include <gnunet_dnsparser_lib.h>
-#include <gnunet_identity_service.h>
-#include <gnunet_gnsrecord_lib.h>
-#include <gnunet_namecache_service.h>
-#include <gnunet_namestore_service.h>
+#include "gnunet_util_lib.h"
+#include "gnunet_dnsparser_lib.h"
+#include "gnunet_identity_service.h"
+#include "gnunet_gnsrecord_lib.h"
+#include "gnunet_namecache_service.h"
 
 
 /**
