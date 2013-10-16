@@ -70,6 +70,7 @@ SUBDIRS = \
   set \
   dv \
   revocation \
+  gnsrecord \
   namestore \
   vpn \
   gns \
@@ -79,4 +80,4 @@ SUBDIRS = \
   exit \
   pt \
   integration-tests \
-  $(EXP_DIR) 
+  $(EXP_DIR)

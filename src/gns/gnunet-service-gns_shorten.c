@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_gns_service.h"
@@ -492,7 +493,7 @@ process_zone_to_name_discover (void *cls,
   }
   /* record does not yet exist, go into DHT to find PSEU record */
   GNUNET_NAMESTORE_query_from_public_key (&gph->target_zone,
-					  GNUNET_GNS_TLD_PLUS, 					
+					  GNUNET_GNS_TLD_PLUS,
 					  &lookup_key);
   gph->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
 						    &handle_auth_discovery_timeout,

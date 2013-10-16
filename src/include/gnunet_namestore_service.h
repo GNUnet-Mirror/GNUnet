@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet
      (C) 2012, 2013 Christian Grothoff (and other contributing authors)
@@ -40,46 +39,6 @@ extern "C"
 }
 #endif
 #endif
-
-/**
- * Record type indicating any record/'*'
- */
-#define GNUNET_NAMESTORE_TYPE_ANY 0
-
-/**
- * Record type for GNS zone transfer ("PKEY").
- */
-#define GNUNET_NAMESTORE_TYPE_PKEY 65536
-
-/**
- * Record type for GNS zone transfer ("PSEU").
- */
-#define GNUNET_NAMESTORE_TYPE_PSEU 65537
-
-/**
- * Record type for GNS legacy hostnames ("LEHO").
- */
-#define GNUNET_NAMESTORE_TYPE_LEHO 65538
-
-/**
- * Record type for VPN resolution
- */
-#define GNUNET_NAMESTORE_TYPE_VPN 65539
-
-/**
- * Record type for delegation to DNS.
- */
-#define GNUNET_NAMESTORE_TYPE_GNS2DNS 65540
-
-/**
- * Record type for a social place.
- */
-#define GNUNET_NAMESTORE_TYPE_PLACE 65541
-
-/**
- * Record type for a phone (of CONVERSATION).
- */
-#define GNUNET_NAMESTORE_TYPE_PHONE 65542
 
 
 /**
@@ -531,58 +490,6 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
 				      const char *src,
 				      unsigned int rd_count,
 				      struct GNUNET_NAMESTORE_RecordData *dest);
-
-
-/**
- * Convert the binary value @a data of a record of
- * type @a type to a human-readable string.
- *
- * @param type type of the record
- * @param data value in binary encoding
- * @param data_size number of bytes in @a data
- * @return NULL on error, otherwise human-readable representation of the value
- */
-char *
-GNUNET_NAMESTORE_value_to_string (uint32_t type,
-				  const void *data,
-				  size_t data_size);
-
-
-/**
- * Convert human-readable version of the value @a s of a record
- * of type @a type to the respective binary representation.
- *
- * @param type type of the record
- * @param s human-readable string
- * @param data set to value in binary encoding (will be allocated)
- * @param data_size set to number of bytes in @a data
- * @return #GNUNET_OK on success
- */
-int
-GNUNET_NAMESTORE_string_to_value (uint32_t type,
-				  const char *s,
-				  void **data,
-				  size_t *data_size);
-
-
-/**
- * Convert a type name (i.e. "AAAA") to the corresponding number.
- *
- * @param dns_typename name to convert
- * @return corresponding number, UINT32_MAX on error
- */
-uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *dns_typename);
-
-
-/**
- * Convert a type number (i.e. 1) to the corresponding type string (i.e. "A")
- *
- * @param type number of a type to convert
- * @return corresponding typestring, NULL on error
- */
-const char *
-GNUNET_NAMESTORE_number_to_typename (uint32_t type);
 
 
 /**

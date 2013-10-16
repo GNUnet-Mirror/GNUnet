@@ -27,6 +27,7 @@
  */
 #include "platform.h"
 #include "gnunet_conversation_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
 #include "conversation.h"
 

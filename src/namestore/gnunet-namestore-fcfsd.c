@@ -34,6 +34,7 @@
 #include <microhttpd.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_identity_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
 
 /**
@@ -212,7 +213,7 @@ static struct GNUNET_IDENTITY_Operation *id_op;
  * Port we use for the HTTP server.
  */
 static unsigned long long port;
-			
+
 
 /**
  * Task run whenever HTTP server operations are pending.
@@ -674,7 +675,7 @@ create_response (void *cls,
       return ret;
     }
   if (0 == strcmp (method, MHD_HTTP_METHOD_POST))
-    {	
+    {
       request = *ptr;
       if (NULL == request)
       {

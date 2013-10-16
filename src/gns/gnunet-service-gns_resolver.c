@@ -34,6 +34,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsstub_lib.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
@@ -853,7 +854,7 @@ dns_result_parser (void *cls,
 	  continue;
 	}
 	rd[i - skip].data_size = buf_off - buf_start;
-	rd[i - skip].data = &buf[buf_start];	
+	rd[i - skip].data = &buf[buf_start];
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
 	buf_start = buf_off;
@@ -868,7 +869,7 @@ dns_result_parser (void *cls,
 	  continue;
 	}
 	rd[i - skip].data_size = buf_off - buf_start;
-	rd[i - skip].data = &buf[buf_start];	
+	rd[i - skip].data = &buf[buf_start];
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
 	buf_start = buf_off;
@@ -883,7 +884,7 @@ dns_result_parser (void *cls,
 	  continue;
 	}
 	rd[i - skip].data_size = buf_off - buf_start;
-	rd[i - skip].data = &buf[buf_start];	
+	rd[i - skip].data = &buf[buf_start];
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
 	buf_start = buf_off;
@@ -898,7 +899,7 @@ dns_result_parser (void *cls,
 	  continue;
 	}
 	rd[i - skip].data_size = buf_off - buf_start;
-	rd[i - skip].data = &buf[buf_start];	
+	rd[i - skip].data = &buf[buf_start];
 	break;
       default:
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1187,7 +1188,7 @@ handle_gns_resolution_result (void *cls,
 	GNUNET_break_op (0);
 	rh->proc (rh->proc_cls, 0, NULL);
 	GNS_resolver_lookup_cancel (rh);
-	return;         	
+	return;
       }
       handle_gns_cname_result (rh,
 			       cname);
@@ -1301,7 +1302,7 @@ handle_gns_resolution_result (void *cls,
 	      rd_off++;
 	    }
 	  }
-	  GNUNET_free_non_null (cname);	
+	  GNUNET_free_non_null (cname);
 	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SOA:
@@ -1338,7 +1339,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	  }
 	  if (NULL != soa)
-	    GNUNET_DNSPARSER_free_soa (soa);	
+	    GNUNET_DNSPARSER_free_soa (soa);
 	}
 	break;
       case GNUNET_DNSPARSER_TYPE_MX:
@@ -1374,8 +1375,8 @@ handle_gns_resolution_result (void *cls,
 	    }
 	  }
 	  if (NULL != mx)
-	    GNUNET_DNSPARSER_free_mx (mx);	
-	}	
+	    GNUNET_DNSPARSER_free_mx (mx);
+	}
 	break;
       case GNUNET_DNSPARSER_TYPE_SRV:
 	{
@@ -1414,7 +1415,7 @@ handle_gns_resolution_result (void *cls,
 	    }
 	  }
 	  if (NULL != srv)
-	    GNUNET_DNSPARSER_free_srv (srv);	
+	    GNUNET_DNSPARSER_free_srv (srv);
 	}
 	break;
       case GNUNET_NAMESTORE_TYPE_PKEY:
@@ -1422,7 +1423,7 @@ handle_gns_resolution_result (void *cls,
 	if (NULL != rh->shorten_key)
 	{
 	  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-	
+
 	  if (rd[i].data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
 	  {
 	    GNUNET_break_op (0);
@@ -1610,7 +1611,7 @@ handle_gns_resolution_result (void *cls,
     case GNUNET_DNSPARSER_TYPE_CNAME:
       {
 	char *cname;
-	
+
 	off = 0;
 	cname = GNUNET_DNSPARSER_parse_name (rd[i].data,
 					     rd[i].data_size,

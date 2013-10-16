@@ -232,7 +232,7 @@ then
 *** You need libgcrypt to build this program.
 **  This library is for example available at
 ***   ftp://ftp.gnupg.org/gcrypt/libgcrypt/
-*** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API) 
+*** (at least version $NEED_LIBGCRYPT_VERSION (API $NEED_LIBGCRYPT_API)
 ***  is required.)
 ***]])
 fi
@@ -296,10 +296,10 @@ AC_LANG_PUSH(C)
 LIBS="$LIBS $LIBGCRYPT_LIBS"
 CFLAGS="$CFLAGS $LIBGCRYPT_CFLAGS"
 AC_RUN_IFELSE(
-  [AC_LANG_PROGRAM([#include <gcrypt.h> 
+  [AC_LANG_PROGRAM([#include <gcrypt.h>
   	#include <stdio.h>], [[
         gcry_md_hd_t mac;
-      
+
         unsigned char data[] = { 0xbf, 0x16, 0x6e, 0x46, 0x3a, 0x6c, 0xf3, 0x93, 0xa7, 0x72,
             0x11, 0xa1, 0xdc, 0x0b, 0x07, 0xdb, 0x1a, 0x5e, 0xd9, 0xb9, 0x81, 0xbe,
             0xea, 0xe4, 0x31, 0x5f, 0x24, 0xff, 0xfe, 0x50, 0x8a, 0xde };
@@ -310,33 +310,33 @@ AC_RUN_IFELSE(
             0xd, 0xba, 0x17, 0x7d, 0xd3, 0x10, 0xb1, 0x37, 0x41, 0x91, 0x7d, 0xeb,
             0x1, 0x4d, 0x71, 0xe8, 0x59, 0x71, 0x42, 0x8e, 0xd6, 0xf3, 0x29, 0x3b,
             0x90, 0xf2, 0xd1, 0xaf, 0x65, 0x1e, 0xb3};
-      
+
         if (!gcry_check_version (GCRYPT_VERSION))
         {
           fprintf (stderr, "Version mismatch %s <-> %s \n", gcry_check_version (NULL), GCRYPT_VERSION);
           return 1;
         }
-  
+
         gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
         gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-  
+
         if (gcry_md_open(&mac, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
         {
           fprintf (stderr, "gcry_md_open error\n");
           return 2;
         }
-  
+
         gcry_md_setkey (mac, key, sizeof (key));
         gcry_md_write (mac, data, sizeof (data));
-  
+
         if (memcmp(gcry_md_read (mac, 0), result, gcry_md_get_algo_dlen (gcry_md_get_algo (mac))) != 0)
         {
           fprintf (stderr, "memcmp error\n");
           return 3;
         }
-  
+
         gcry_md_close (mac);
-  
+
         return 0;
     ]])],
   [AC_MSG_RESULT([yes])],
@@ -425,7 +425,7 @@ if test "$libidn" != "no"; then
   fi
   AC_CHECK_HEADER(idna.h,
     AC_CHECK_LIB(idn, stringprep_check_version,
-      [libidn=yes LIBS="${LIBS} -lidn"], 
+      [libidn=yes LIBS="${LIBS} -lidn"],
       AC_MSG_FAILURE([GNUnet requires libidn])),
     AC_MSG_FAILURE([GNUnet requires libidn]))
 fi
@@ -437,7 +437,7 @@ LIBS=$SAVE_LIBS
 
 AC_CHECK_HEADERS([glpk.h],[glpk=true],[gplk=false])
 # GLPK must support glpk_init_env, version >= 4.43
-AC_CHECK_LIB([glpk],[glp_init_env],,[gplk=false]) 
+AC_CHECK_LIB([glpk],[glp_init_env],,[gplk=false])
 # GLPK must support atm MLP presolving, version >= 4.32
 AC_CHECK_MEMBERS(glp_iocp.presolve,,[gplk=false],[[#include <glpk.h>]])
 if test x$gplk = xfalse
@@ -901,7 +901,7 @@ then
   AC_DEFINE([FRAMEWORK_BUILD], 1, [Build a Mac OS X Framework])
   GN_INTLINCL='-I$(top_srcdir)/src/intlemu'
   GN_LIBINTL='$(top_builddir)/src/intlemu/libintlemu.la -framework CoreFoundation'
-  AC_LIB_APPENDTOVAR([CPPFLAGS], [$GN_INTLINCL]) 
+  AC_LIB_APPENDTOVAR([CPPFLAGS], [$GN_INTLINCL])
 fi
 
 GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
@@ -1257,7 +1257,7 @@ AC_LINK_IFELSE(
 
 else
   AC_MSG_CHECKING(whether to enable windows workarounds)
-  AC_ARG_ENABLE([windows_workarounds], 
+  AC_ARG_ENABLE([windows_workarounds],
      [AS_HELP_STRING([--enable-windows_workarounds], [enable workarounds used on Windows (only useful for test cases)])],
      [enable_workarounds=${enableval}],
      [enable_workarounds=no])
@@ -1273,10 +1273,10 @@ AC_DEFINE_UNQUOTED([ENABLE_WINDOWS_WORKAROUNDS], $workarounds, [enable workaroun
 
 # gcov compilation
 AC_MSG_CHECKING(whether to compile with support for code coverage analysis)
-AC_ARG_ENABLE([coverage], 
+AC_ARG_ENABLE([coverage],
               AS_HELP_STRING([--enable-coverage],
                              [compile the library with code coverage support]),
-              [use_gcov=${enableval}], 
+              [use_gcov=${enableval}],
               [use_gcov=no])
 AC_MSG_RESULT($use_gcov)
 AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
@@ -1303,14 +1303,14 @@ else
   AC_DEFINE_UNQUOTED(VCS_VERSION, ["svn-`svnversion -n`"], [repository svn version])
 fi
 
-AC_CONFIG_FILES([ 
+AC_CONFIG_FILES([
 Makefile
 contrib/Makefile
 doc/Makefile
 doc/man/Makefile
 doc/doxygen/Makefile
 m4/Makefile
-po/Makefile.in 
+po/Makefile.in
 src/Makefile
 src/arm/Makefile
 src/arm/arm.conf
@@ -1344,6 +1344,7 @@ src/fs/fs.conf
 src/gns/Makefile
 src/gns/gns.conf
 src/gns/nss/Makefile
+src/gnsrecord/Makefile
 src/hello/Makefile
 src/identity/Makefile
 src/identity/identity.conf
@@ -1519,7 +1520,7 @@ Make sure that '/var/lib/gnunet' is owned (and writable) by user
 
 After that, run (if necessary as 'root')
         make install
-to install everything. 
+to install everything.
 
 Each GNUnet user should be added to the 'gnunet' group (may
 require fresh login to come into effect):
@@ -1527,8 +1528,8 @@ require fresh login to come into effect):
 (run the above command as root once for each of your users, replacing
 "$USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
-	
-Optionally, download and compile gnunet-gtk to get a GUI for 
+
+Optionally, download and compile gnunet-gtk to get a GUI for
 file-sharing and configuration.  This is particularly recommended
 if your network setup is non-trivial, as gnunet-setup can be
 used to test in the GUI if your network configuration is working.

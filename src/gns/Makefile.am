@@ -58,12 +58,12 @@ endif
 libexec_PROGRAMS = \
   gnunet-service-gns \
   $(DO_W32_HELPER) \
-  gnunet-dns2gns 
-#  $(DO_PROXY) 
+  gnunet-dns2gns
+#  $(DO_PROXY)
 
 bin_PROGRAMS = \
   $(DO_W32_NSPTOOLS) \
-  gnunet-gns 
+  gnunet-gns
 
 bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 
@@ -74,6 +74,7 @@ gnunet_gns_SOURCES = \
  gnunet-gns.c
 gnunet_gns_LDADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -103,7 +104,7 @@ gnunet_dns2gns_DEPENDENCIES = \
   libgnunetgns.la
 
 gnunet_gns_proxy_SOURCES = \
- gnunet-gns-proxy.c 
+ gnunet-gns-proxy.c
 gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -140,7 +141,7 @@ gnunet_service_gns_SOURCES = \
  gnunet-service-gns.c \
  gnunet-service-gns_resolver.c gnunet-service-gns_resolver.h \
  gnunet-service-gns_shorten.c gnunet-service-gns_shorten.h \
- gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h 
+ gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h
 gnunet_service_gns_LDADD = \
   -lm \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -206,9 +207,9 @@ check_SCRIPTS = \
   test_gns_ns_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_pseu_shorten.sh\
-	test_gns_plus_lookup.sh\
-	test_gns_zkey_lookup.sh\
-  test_gns_cname_lookup.sh 
+  test_gns_plus_lookup.sh\
+  test_gns_zkey_lookup.sh\
+  test_gns_cname_lookup.sh
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE

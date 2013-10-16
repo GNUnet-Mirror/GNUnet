@@ -97,8 +97,9 @@ endif
 gnunet_namestore_SOURCES = \
  gnunet-namestore.c
 gnunet_namestore_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la \
   $(GN_LIBINTL)
 gnunet_namestore_DEPENDENCIES = \
@@ -110,9 +111,10 @@ gnunet_namestore_DEPENDENCIES = \
 gnunet_namestore_fcfsd_SOURCES = \
  gnunet-namestore-fcfsd.c
 gnunet_namestore_fcfsd_LDADD = -lmicrohttpd \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_namestore_fcfsd_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
