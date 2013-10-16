@@ -52,6 +52,7 @@ libgnunetconversation_la_SOURCES = \
   conversation_api.c
 libgnunetconversation_la_LIBADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la

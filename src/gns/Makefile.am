@@ -100,6 +100,7 @@ gnunet_gns_DEPENDENCIES = \
 gnunet_dns2gns_SOURCES = \
  gnunet-dns2gns.c
 gnunet_dns2gns_LDADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
@@ -108,6 +109,7 @@ gnunet_dns2gns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(GN_LIBINTL)
 gnunet_dns2gns_DEPENDENCIES = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
@@ -156,6 +158,7 @@ gnunet_service_gns_SOURCES = \
  gnunet-service-gns_interceptor.c gnunet-service-gns_interceptor.h
 gnunet_service_gns_LDADD = \
   -lm \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
@@ -166,6 +169,7 @@ gnunet_service_gns_LDADD = \
   $(USE_VPN) \
   $(GN_LIBINTL)
 gnunet_service_gns_DEPENDENCIES = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dns/libgnunetdns.la \

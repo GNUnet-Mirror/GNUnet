@@ -53,8 +53,6 @@ endif
 
 if HAVE_SQLITE
 check_PROGRAMS = \
- test_namestore_record_serialization \
- test_namestore_api_blocks \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
  $(TESTING_TESTS)
@@ -72,7 +70,6 @@ lib_LTLIBRARIES = \
 libgnunetnamestore_la_SOURCES = \
   namestore_api.c \
   namestore_api_monitor.c \
-  namestore_api_common.c \
   namestore.h
 libgnunetnamestore_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -126,6 +123,7 @@ gnunet_service_namestore_SOURCES = \
  gnunet-service-namestore.c
 
 gnunet_service_namestore_LDADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la \
@@ -171,18 +169,12 @@ libgnunet_plugin_namestore_postgres_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetnamestore.la
 
-test_namestore_api_blocks_SOURCES = \
- test_namestore_api_blocks.c
-test_namestore_api_blocks_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
 test_namestore_api_store_SOURCES = \
  test_namestore_api_store.c
 test_namestore_api_store_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_store_update_SOURCES = \
@@ -190,6 +182,7 @@ test_namestore_api_store_update_SOURCES = \
 test_namestore_api_store_update_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_cache_block_SOURCES = \
@@ -197,6 +190,7 @@ test_namestore_api_cache_block_SOURCES = \
 test_namestore_api_cache_block_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_lookup_public_SOURCES = \
@@ -204,6 +198,7 @@ test_namestore_api_lookup_public_SOURCES = \
 test_namestore_api_lookup_public_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_put_SOURCES = \
@@ -211,6 +206,7 @@ test_namestore_api_put_SOURCES = \
 test_namestore_api_put_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_remove_SOURCES = \
@@ -218,6 +214,7 @@ test_namestore_api_remove_SOURCES = \
 test_namestore_api_remove_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_remove_not_existing_record_SOURCES = \
@@ -225,6 +222,7 @@ test_namestore_api_remove_not_existing_record_SOURCES = \
 test_namestore_api_remove_not_existing_record_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_to_name_SOURCES = \
@@ -239,6 +237,7 @@ test_namestore_api_monitoring_SOURCES = \
 test_namestore_api_monitoring_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_namestore_api_monitoring_existing_SOURCES = \
@@ -246,6 +245,7 @@ test_namestore_api_monitoring_existing_SOURCES = \
 test_namestore_api_monitoring_existing_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_namestore_api_zone_iteration_SOURCES = \
@@ -253,6 +253,7 @@ test_namestore_api_zone_iteration_SOURCES = \
 test_namestore_api_zone_iteration_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_specific_zone_SOURCES = \
@@ -260,6 +261,7 @@ test_namestore_api_zone_iteration_specific_zone_SOURCES = \
 test_namestore_api_zone_iteration_specific_zone_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_namestore_api_zone_iteration_stop_SOURCES = \
@@ -267,13 +269,7 @@ test_namestore_api_zone_iteration_stop_SOURCES = \
 test_namestore_api_zone_iteration_stop_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
-test_namestore_record_serialization_SOURCES = \
- test_namestore_record_serialization.c
-test_namestore_record_serialization_LDADD = \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 test_plugin_namestore_sqlite_SOURCES = \
