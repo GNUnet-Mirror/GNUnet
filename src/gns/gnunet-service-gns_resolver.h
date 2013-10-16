@@ -26,19 +26,21 @@
 #define GNS_RESOLVER_H
 #include "gns.h"
 #include "gnunet_dht_service.h"
-
+#include "gnunet_namecache_service.h"
 
 /**
  * Initialize the resolver subsystem.
  * MUST be called before #GNS_resolver_lookup.
  *
  * @param nh handle to the namestore
+ * @param nc the namecache handle
  * @param dht handle to the dht
  * @param c configuration handle
  * @param max_bg_queries maximum amount of background queries
  */
 void
 GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
+                   struct GNUNET_NAMECACHE_Handle *nc,
 		   struct GNUNET_DHT_Handle *dht,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
 		   unsigned long long max_bg_queries);

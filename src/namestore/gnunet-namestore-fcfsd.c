@@ -132,6 +132,11 @@ struct Request
   struct GNUNET_NAMESTORE_QueueEntry *qe;
 
   /**
+   * Active iteration with the namestore.
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *zi;
+
+  /**
    * Current processing phase.
    */
   enum Phase phase;
@@ -460,16 +465,14 @@ post_iterator (void *cls,
 }
 
 
-
-
 /**
  * Continuation called to notify client about result of the
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop/failure to validate)
+ *                #GNUNET_NO if content was already there
+ *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
 static void
@@ -500,7 +503,7 @@ put_continuation (void *cls,
  * @param cls closure
  * @param zone_key public key of the zone
  * @param name name that is being mapped (at most 255 characters long)
- * @param rd_count number of entries in 'rd' array
+ * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
 static void
@@ -541,84 +544,62 @@ zone_to_name_cb (void *cls,
 
 
 /**
- * Process a record that was stored in the namestore.  Used to check if
- * the requested name already exists in the namestore.  If not,
- * proceed to check if the requested key already exists.
- *
- * @param cls closure
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- */
-static void
-lookup_result_processor (void *cls,
-			 unsigned int rd_count,
-			 const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct Request *request = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-
-  if (0 != rd_count)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("Found %u existing records for domain `%s'\n"),
-		rd_count,
-		request->domain_name);
-    request->phase = RP_FAIL;
-    run_httpd_now ();
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
-						strlen (request->public_key),
-						&pub))
-  {
-    GNUNET_break (0);
-    request->phase = RP_FAIL;
-    run_httpd_now ();
-    return;
-  }
-  request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
-					       &fcfs_zone_pkey,
-					       &pub,
-					       &zone_to_name_cb,
-					       request);
-}
-
-
-/**
  * We got a block back from the namestore.  Decrypt it
  * and continue to process the result.
  *
  * @param cls the 'struct Request' we are processing
- * @param block block returned form namestore, NULL on error
+ * @param zone private key of the zone; NULL on disconnect
+ * @param label label of the records; NULL on disconnect
+ * @param rd_count number of entries in @a rd array, 0 if label was deleted
+ * @param rd array of records with data to store
  */
 static void
 lookup_block_processor (void *cls,
-			const struct GNUNET_GNSRECORD_Block *block)
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                        const char *label,
+                        unsigned int rd_count,
+                        const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   request->qe = NULL;
-  if (NULL == block)
+  if (NULL == label)
   {
-    lookup_result_processor (request, 0, NULL);
+    request->zi = NULL;
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
+                                                    strlen (request->public_key),
+                                                    &pub))
+    {
+      GNUNET_break (0);
+      request->phase = RP_FAIL;
+      run_httpd_now ();
+      return;
+    }
+    request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
+                                                 &fcfs_zone_pkey,
+                                                 &pub,
+                                                 &zone_to_name_cb,
+                                                 request);
     return;
   }
-  GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
-				    &pub);
-  if (GNUNET_OK !=
-      GNUNET_GNSRECORD_block_decrypt (block,
-				      &pub,
-				      request->domain_name,
-				      &lookup_result_processor,
-				      request))
+  if (0 != strcmp (label,
+                   request->domain_name))
   {
-    GNUNET_break (0);
-    request->phase = RP_FAIL;
-    run_httpd_now ();
+    GNUNET_NAMESTORE_zone_iterator_next (request->zi);
     return;
   }
+  GNUNET_NAMESTORE_zone_iteration_stop (request->zi);
+  request->zi = NULL;
+  GNUNET_break (0 != rd_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Found %u existing records for domain `%s'\n"),
+              rd_count,
+              request->domain_name);
+  request->phase = RP_FAIL;
+  run_httpd_now ();
+  return;
 }
 
 
@@ -638,7 +619,7 @@ lookup_block_processor (void *cls,
  *        data *will* be made available incrementally in
  *        upload_data)
  * @param upload_data_size set initially to the size of the
- *        upload_data provided; the method must update this
+ *        @a upload_data provided; the method must update this
  *        value to the number of bytes NOT processed;
  * @param ptr pointer to location where we store the 'struct Request'
  * @return MHD_YES if the connection was handled successfully,
@@ -657,9 +638,8 @@ create_response (void *cls,
 {
   struct MHD_Response *response;
   struct Request *request;
-  int ret;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-  struct GNUNET_HashCode query;
+  int ret;
 
   if ( (0 == strcmp (method, MHD_HTTP_METHOD_GET)) ||
        (0 == strcmp (method, MHD_HTTP_METHOD_HEAD)) )
@@ -709,8 +689,8 @@ create_response (void *cls,
       }
       if (GNUNET_OK !=
 	  GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
-						    strlen (request->public_key),
-						    &pub))
+                                                      strlen (request->public_key),
+                                                      &pub))
       {
 	/* parse error */
 	return fill_s_reply ("Failed to parse given public key",
@@ -736,15 +716,11 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-	  GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
-					    &pub);
-	  GNUNET_GNSRECORD_query_from_public_key (&pub,
-						  request->domain_name,
-						  &query);
-	  request->qe = GNUNET_NAMESTORE_lookup_block (ns,
-						       &query,
-						       &lookup_block_processor,
-						       request);
+          /* FIXME: would be nice to have a more efficient API for this */
+	  request->zi = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                               &fcfs_zone_pkey,
+                                                               &lookup_block_processor,
+                                                               request);
 	  break;
 	case RP_LOOKUP:
 	  break;

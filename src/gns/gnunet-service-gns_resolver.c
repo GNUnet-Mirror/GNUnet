@@ -35,6 +35,7 @@
 #include "gnunet_dnsstub_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_gnsrecord_lib.h"
+#include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
@@ -264,9 +265,9 @@ struct GNS_ResolverHandle
   struct GNUNET_RESOLVER_RequestHandle *std_resolve;
 
   /**
-   * Pending Namestore lookup task
+   * Pending Namecache lookup task
    */
-  struct GNUNET_NAMESTORE_QueueEntry *namestore_qe;
+  struct GNUNET_NAMECACHE_QueueEntry *namecache_qe;
 
   /**
    * Heap node associated with this lookup.  Used to limit number of
@@ -353,7 +354,7 @@ struct CacheOps
   /**
    * Pending Namestore caching task.
    */
-  struct GNUNET_NAMESTORE_QueueEntry *namestore_qe_cache;
+  struct GNUNET_NAMECACHE_QueueEntry *namecache_qe_cache;
 
 };
 
@@ -362,6 +363,11 @@ struct CacheOps
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+/**
+ * Our handle to the namecache service
+ */
+static struct GNUNET_NAMECACHE_Handle *namecache_handle;
 
 /**
  * Our handle to the vpn service
@@ -1672,13 +1678,13 @@ handle_gns_resolution_result (void *cls,
  * @param emsg error message
  */
 static void
-namestore_cache_continuation (void *cls,
+namecache_cache_continuation (void *cls,
 			      int32_t success,
 			      const char *emsg)
 {
   struct CacheOps *co = cls;
 
-  co->namestore_qe_cache = NULL;
+  co->namecache_qe_cache = NULL;
   if (NULL != emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to cache GNS resolution: %s\n"),
@@ -1765,9 +1771,9 @@ handle_dht_response (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Caching response from the DHT in namestore\n");
   co = GNUNET_new (struct CacheOps);
-  co->namestore_qe_cache = GNUNET_NAMESTORE_block_cache (namestore_handle,
+  co->namecache_qe_cache = GNUNET_NAMECACHE_block_cache (namecache_handle,
 							 block,
-							 &namestore_cache_continuation,
+							 &namecache_cache_continuation,
 							 co);
   GNUNET_CONTAINER_DLL_insert (co_head,
 			       co_tail,
@@ -1795,8 +1801,8 @@ handle_namestore_block_response (void *cls,
   GNUNET_GNSRECORD_query_from_public_key (auth,
 					  label,
 					  &query);
-  GNUNET_assert (NULL != rh->namestore_qe);
-  rh->namestore_qe = NULL;
+  GNUNET_assert (NULL != rh->namecache_qe);
+  rh->namecache_qe = NULL;
   if ( (GNUNET_NO == rh->only_cached) &&
        ( (NULL == block) ||
 	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
@@ -1874,11 +1880,11 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
   GNUNET_GNSRECORD_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
-  rh->namestore_qe = GNUNET_NAMESTORE_lookup_block (namestore_handle,
+  rh->namecache_qe = GNUNET_NAMECACHE_lookup_block (namecache_handle,
 						    &query,
 						    &handle_namestore_block_response,
 						    rh);
-  GNUNET_assert (NULL != rh->namestore_qe);
+  GNUNET_assert (NULL != rh->namecache_qe);
 }
 
 
@@ -2100,10 +2106,10 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
     GNUNET_DNSSTUB_resolve_cancel (rh->dns_request);
     rh->dns_request = NULL;
   }
-  if (NULL != rh->namestore_qe)
+  if (NULL != rh->namecache_qe)
   {
-    GNUNET_NAMESTORE_cancel (rh->namestore_qe);
-    rh->namestore_qe = NULL;
+    GNUNET_NAMECACHE_cancel (rh->namecache_qe);
+    rh->namecache_qe = NULL;
   }
   if (NULL != rh->std_resolve)
   {
@@ -2132,12 +2138,14 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
  * Initialize the resolver
  *
  * @param nh the namestore handle
+ * @param nc the namecache handle
  * @param dht the dht handle
  * @param c configuration handle
  * @param max_bg_queries maximum number of parallel background queries in dht
  */
 void
 GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
+                   struct GNUNET_NAMECACHE_Handle *nc,
 		   struct GNUNET_DHT_Handle *dht,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
 		   unsigned long long max_bg_queries)
@@ -2145,6 +2153,7 @@ GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
   char *dns_ip;
 
   cfg = c;
+  namecache_handle = nc;
   namestore_handle = nh;
   dht_handle = dht;
   dht_lookup_heap =
@@ -2185,7 +2194,7 @@ GNS_resolver_done ()
     GNUNET_CONTAINER_DLL_remove (co_head,
 				 co_tail,
 				 co);
-    GNUNET_NAMESTORE_cancel (co->namestore_qe_cache);
+    GNUNET_NAMECACHE_cancel (co->namecache_qe_cache);
     GNUNET_free (co);
   }
   GNUNET_CONTAINER_heap_destroy (dht_lookup_heap);
@@ -2195,6 +2204,7 @@ GNS_resolver_done ()
   GNUNET_VPN_disconnect (vpn_handle);
   vpn_handle = NULL;
   dht_handle = NULL;
+  namecache_handle = NULL;
   namestore_handle = NULL;
 }
 

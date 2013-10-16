@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file namestore/test_namestore_api.c
- * @brief testcase for namestore_api.c: store a record and perform a lookup
+ * @file namestore/test_namestore_api_store.c
+ * @brief testcase for namestore_api.c: store a record
  */
 #include "platform.h"
 #include "gnunet_namestore_service.h"
@@ -92,76 +92,17 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-rd_decrypt_cb (void *cls,
-               unsigned int rd_count,
-               const struct GNUNET_GNSRECORD_Data *rd)
-{
-  char rd_cmp_data[TEST_RECORD_DATALEN];
-
-  GNUNET_assert (1 == rd_count);
-  GNUNET_assert (NULL != rd);
-
-  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-
-  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Block was decrypted successfully \n");
-
-	GNUNET_SCHEDULER_add_now (&end, NULL);
-}
-
-static void
-name_lookup_proc (void *cls,
-                  const struct GNUNET_GNSRECORD_Block *block)
-{
-  const char *name = cls;
-  nsqe = NULL;
-
-  GNUNET_assert (NULL != cls);
-
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (NULL == block)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore returned no block\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Namestore returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
-  		&pubkey, name, &rd_decrypt_cb, (void *) name));
-}
-
-static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   const char *name = cls;
-  struct GNUNET_HashCode derived_hash;
 
+  nsqe = NULL;
   GNUNET_assert (NULL != cls);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-
-  /* Create derived hash */
-  GNUNET_GNSRECORD_query_from_private_key (privkey, name, &derived_hash);
-
-  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
-					 &name_lookup_proc, (void *) name);
+  GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
 
@@ -222,4 +163,4 @@ main (int argc, char *argv[])
 }
 
 
-/* end of test_namestore_api.c */
+/* end of test_namestore_api_store.c */

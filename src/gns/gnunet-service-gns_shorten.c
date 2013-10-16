@@ -94,6 +94,11 @@ struct GetPseuAuthorityHandle
   struct GNUNET_NAMESTORE_QueueEntry *namestore_task;
 
   /**
+   * Handle to namecache request
+   */
+  struct GNUNET_NAMECACHE_QueueEntry *namecache_task;
+
+  /**
    * Task to abort DHT lookup operation.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
@@ -115,6 +120,11 @@ static struct GetPseuAuthorityHandle *gph_tail;
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+/**
+ * Our handle to the namecache service
+ */
+static struct GNUNET_NAMECACHE_Handle *namecache_handle;
 
 /**
  * Resolver handle to the dht
@@ -139,6 +149,11 @@ free_get_pseu_authority_handle (struct GetPseuAuthorityHandle *gph)
   {
     GNUNET_NAMESTORE_cancel (gph->namestore_task);
     gph->namestore_task = NULL;
+  }
+  if (NULL != gph->namecache_task)
+  {
+    GNUNET_NAMECACHE_cancel (gph->namecache_task);
+    gph->namecache_task = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != gph->timeout_task)
   {
@@ -198,7 +213,7 @@ process_pseu_block_ns (void *cls,
   struct GetPseuAuthorityHandle *gph = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
-  gph->namestore_task = NULL;
+  gph->namecache_task = NULL;
   if (NULL == block)
   {
     process_pseu_lookup_ns (gph, 0, NULL);
@@ -240,7 +255,7 @@ perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
   GNUNET_GNSRECORD_query_from_public_key (&pub,
 					  label,
 					  &query);
-  gph->namestore_task = GNUNET_NAMESTORE_lookup_block (namestore_handle,
+  gph->namecache_task = GNUNET_NAMECACHE_lookup_block (namecache_handle,
 						       &query,
 						       &process_pseu_block_ns,
 						       gph);
@@ -553,13 +568,16 @@ GNS_shorten_start (const char *original_label,
  * Initialize the shortening subsystem
  *
  * @param nh the namestore handle
+ * @param nc the namecache handle
  * @param dht the dht handle
  */
 void
 GNS_shorten_init (struct GNUNET_NAMESTORE_Handle *nh,
+                  struct GNUNET_NAMECACHE_Handle *nc,
 		  struct GNUNET_DHT_Handle *dht)
 {
   namestore_handle = nh;
+  namecache_handle = nc;
   dht_handle = dht;
 }
 
@@ -575,6 +593,7 @@ GNS_shorten_done ()
     free_get_pseu_authority_handle (gph_head);
   dht_handle = NULL;
   namestore_handle = NULL;
+  namecache_handle = NULL;
 }
 
 /* end of gnunet-service-gns_shorten.c */

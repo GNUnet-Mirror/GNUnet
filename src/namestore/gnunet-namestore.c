@@ -75,11 +75,6 @@ static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe;
 
 /**
- * Queue entry for the 'list' operation (in combination with a name).
- */
-static struct GNUNET_NAMESTORE_QueueEntry *list_qe;
-
-/**
  * Queue entry for the 'reverse lookup' operation (in combination with a name).
  */
 static struct GNUNET_NAMESTORE_QueueEntry *reverse_qe;
@@ -215,11 +210,6 @@ do_shutdown (void *cls,
     GNUNET_NAMESTORE_cancel (add_qe);
     add_qe = NULL;
   }
-  if (NULL != list_qe)
-  {
-    GNUNET_NAMESTORE_cancel (list_qe);
-    list_qe = NULL;
-  }
   if (NULL != add_qe_uri)
   {
     GNUNET_NAMESTORE_cancel (add_qe_uri);
@@ -261,7 +251,6 @@ static void
 test_finished ()
 {
   if ( (NULL == add_qe) &&
-       (NULL == list_qe) &&
        (NULL == add_qe_uri) &&
        (NULL == del_qe) &&
        (NULL == reverse_qe) &&
@@ -329,14 +318,14 @@ del_continuation (void *cls,
  *
  * @param cls closure
  * @param zone_key private key of the zone
- * @param name name that is being mapped (at most 255 characters long)
+ * @param rname name that is being mapped (at most 255 characters long)
  * @param rd_len number of entries in @a rd array
  * @param rd array of records with data to store
  */
 static void
 display_record (void *cls,
 		const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
-		const char *name,
+		const char *rname,
 		unsigned int rd_len,
 		const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -347,15 +336,21 @@ display_record (void *cls,
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
 
-  if (NULL == name)
+  if (NULL == rname)
   {
     list_it = NULL;
     test_finished ();
     return;
   }
+  if ( (NULL != name) &&
+       (0 != strcmp (name, rname)) )
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (list_it);
+    return;
+  }
   FPRINTF (stdout,
 	   "%s:\n",
-	   name);
+	   rname);
   for (i=0;i<rd_len;i++)
   {
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
@@ -463,89 +458,6 @@ get_existing_record (void *cls,
   if (NULL != rec_name)
     GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
   add_zit = NULL;
-}
-
-
-
-/**
- * Process a record that was stored in the namestore in a block.
- *
- * @param cls closure, NULL
- * @param rd_len number of entries in @a rd array
- * @param rd array of records with data to store
- */
-static void
-display_records_from_block (void *cls,
-			    unsigned int rd_len,
-			    const struct GNUNET_GNSRECORD_Data *rd)
-{
-  const char *typestring;
-  char *s;
-  unsigned int i;
-
-  if (0 == rd_len)
-  {
-    FPRINTF (stdout,
-	     _("No records found for `%s'"),
-	     name);
-    return;
-  }
-  FPRINTF (stdout,
-	   "%s:\n",
-	   name);
-  for (i=0;i<rd_len;i++)
-  {
-    typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
-    s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-					  rd[i].data,
-					  rd[i].data_size);
-    if (NULL == s)
-    {
-      FPRINTF (stdout, _("\tCorrupt or unsupported record of type %u\n"),
-	       (unsigned int) rd[i].record_type);
-      continue;
-    }
-    FPRINTF (stdout,
-	     "\t%s: %s\n",
-	     typestring,
-	     s);
-    GNUNET_free (s);
-  }
-  FPRINTF (stdout, "%s", "\n");
-}
-
-
-/**
- * Display block obtained from listing (by name).
- *
- * @param cls NULL
- * @param block NULL if not found
- */
-static void
-handle_block (void *cls,
-	      const struct GNUNET_GNSRECORD_Block *block)
-{
-  struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
-
-  list_qe = NULL;
-  GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
-						  &zone_pubkey);
-  if (NULL == block)
-  {
-    fprintf (stderr,
-	     "No matching block found\n");
-  }
-  else if (GNUNET_OK !=
-	   GNUNET_GNSRECORD_block_decrypt (block,
-					   &zone_pubkey,
-					   name,
-					   &display_records_from_block,
-					   NULL))
-  {
-    fprintf (stderr,
-	     "Failed to decrypt block!\n");
-  }
-  test_finished ();
 }
 
 
@@ -729,28 +641,10 @@ testservice_task (void *cls,
   }
   if (list)
   {
-    if (NULL == name)
-    {
-      list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
-						       &zone_pkey,
-						       &display_record,
-						       NULL);
-    }
-    else
-    {
-      struct GNUNET_HashCode query;
-      struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
-
-      GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
-						      &zone_pubkey);
-      GNUNET_GNSRECORD_query_from_public_key (&zone_pubkey,
-					      name,
-					      &query);
-      list_qe = GNUNET_NAMESTORE_lookup_block (ns,
-					       &query,
-					       &handle_block,
-					       NULL);
-    }
+    list_it = GNUNET_NAMESTORE_zone_iteration_start (ns,
+                                                     &zone_pkey,
+                                                     &display_record,
+                                                     NULL);
   }
   if (NULL != reverse_pkey)
   {

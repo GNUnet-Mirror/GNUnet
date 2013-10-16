@@ -22,6 +22,7 @@
  * @brief testcase for namestore_api.c: store a record and perform a lookup
  */
 #include "platform.h"
+#include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 
@@ -36,6 +37,8 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
+static struct GNUNET_NAMECACHE_Handle *nch;
+
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
@@ -46,6 +49,8 @@ static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
+static struct GNUNET_NAMECACHE_QueueEntry *ncqe;
+
 
 static void
 cleanup ()
@@ -54,6 +59,11 @@ cleanup ()
   {
     GNUNET_NAMESTORE_disconnect (nsh);
     nsh = NULL;
+  }
+  if (NULL != nch)
+  {
+    GNUNET_NAMECACHE_disconnect (nch);
+    nch = NULL;
   }
   if (NULL != privkey)
   {
@@ -77,6 +87,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_NAMESTORE_cancel (nsqe);
     nsqe = NULL;
+  }
+  if (NULL != ncqe)
+  {
+    GNUNET_NAMECACHE_cancel (ncqe);
+    ncqe = NULL;
   }
   cleanup ();
   res = 1;
@@ -113,13 +128,14 @@ rd_decrypt_cb (void *cls,
 	GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
+
 static void
 name_lookup_proc (void *cls,
                   const struct GNUNET_GNSRECORD_Block *block)
 {
   const char *name = cls;
-  nsqe = NULL;
 
+  ncqe = NULL;
   GNUNET_assert (NULL != cls);
 
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
@@ -144,6 +160,7 @@ name_lookup_proc (void *cls,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
+
 static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -151,8 +168,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
   struct GNUNET_HashCode derived_hash;
   struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
+  nsqe = NULL;
   GNUNET_assert (NULL != cls);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name store added record for `%s': %s\n",
 	      name,
@@ -162,8 +179,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
   GNUNET_GNSRECORD_query_from_public_key (&pubkey, name, &derived_hash);
 
-  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
-					 &name_lookup_proc, (void *) name);
+  ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
+                                        &name_lookup_proc, (void *) name);
 }
 
 
@@ -196,7 +213,9 @@ run (void *cls,
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
+  nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nsh);
+  GNUNET_break (NULL != nch);
   nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
 				      1, &rd, &put_cont, (void *) name);
   if (NULL == nsqe)

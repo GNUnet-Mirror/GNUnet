@@ -31,7 +31,7 @@
 #include "gnunet_crypto_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_dnsparser_lib.h"
-#include "gnunet_arm_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
@@ -76,7 +76,7 @@ struct GNUNET_NAMECACHE_QueueEntry
   /**
    * Function to call with the blocks we get back; or NULL.
    */
-  GNUNET_GNSRECORD_BlockProcessor block_proc;
+  GNUNET_NAMECACHE_BlockProcessor block_proc;
 
   /**
    * Closure for @e block_proc.
@@ -683,7 +683,7 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
 struct GNUNET_NAMECACHE_QueueEntry *
 GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_GNSRECORD_BlockProcessor proc, void *proc_cls)
+			       GNUNET_NAMECACHE_BlockProcessor proc, void *proc_cls)
 {
   struct GNUNET_NAMECACHE_QueueEntry *qe;
   struct PendingMessage *pe;

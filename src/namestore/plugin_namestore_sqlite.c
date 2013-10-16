@@ -73,26 +73,6 @@ struct Plugin
   sqlite3 *dbh;
 
   /**
-   * Precompiled SQL for caching a block
-   */
-  sqlite3_stmt *cache_block;
-
-  /**
-   * Precompiled SQL for deleting an older block
-   */
-  sqlite3_stmt *delete_block;
-
-  /**
-   * Precompiled SQL for looking up a block
-   */
-  sqlite3_stmt *lookup_block;
-
-  /**
-   * Precompiled SQL for removing expired blocks
-   */
-  sqlite3_stmt *expire_blocks;
-
-  /**
    * Precompiled SQL to store records.
    */
   sqlite3_stmt *store_records;
@@ -153,12 +133,6 @@ create_indices (sqlite3 * dbh)
 {
   /* create indices */
   if ( (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_query_hash ON ns096blocks (query,expiration_time)",
-		      NULL, NULL, NULL)) ||
-       (SQLITE_OK !=
-	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_block_expiration ON ns096blocks (expiration_time)",
-		      NULL, NULL, NULL)) ||
-       (SQLITE_OK !=
 	sqlite3_exec (dbh, "CREATE INDEX IF NOT EXISTS ir_pkey_reverse ON ns097records (zone_private_key,pkey)",
 		      NULL, NULL, NULL)) ||
        (SQLITE_OK !=
@@ -255,27 +229,7 @@ database_setup (struct Plugin *plugin)
   CHECK (SQLITE_OK == sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS));
 
 
-  /* Create tables */
-  CHECK (SQLITE_OK ==
-         sq_prepare (plugin->dbh,
-                     "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns096blocks'",
-                     &stmt));
-  if ((sqlite3_step (stmt) == SQLITE_DONE) &&
-      (sqlite3_exec
-       (plugin->dbh,
-        "CREATE TABLE ns096blocks ("
-        " query BLOB NOT NULL DEFAULT '',"
-        " block BLOB NOT NULL DEFAULT '',"
-        " expiration_time INT8 NOT NULL DEFAULT 0"
-	")",
-	NULL, NULL, NULL) != SQLITE_OK))
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
-    sqlite3_finalize (stmt);
-    return GNUNET_SYSERR;
-  }
-  sqlite3_finalize (stmt);
-
+  /* Create table */
   CHECK (SQLITE_OK ==
          sq_prepare (plugin->dbh,
                      "SELECT 1 FROM sqlite_master WHERE tbl_name = 'ns097records'",
@@ -302,22 +256,6 @@ database_setup (struct Plugin *plugin)
   create_indices (plugin->dbh);
 
   if ((sq_prepare
-       (plugin->dbh,
-        "INSERT INTO ns096blocks (query,block,expiration_time) VALUES (?, ?, ?)",
-        &plugin->cache_block) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "DELETE FROM ns096blocks WHERE expiration_time<?",
-        &plugin->expire_blocks) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "DELETE FROM ns096blocks WHERE query=? AND expiration_time<=?",
-        &plugin->delete_block) != SQLITE_OK) ||
-      (sq_prepare
-       (plugin->dbh,
-        "SELECT block FROM ns096blocks WHERE query=? ORDER BY expiration_time DESC LIMIT 1",
-        &plugin->lookup_block) != SQLITE_OK) ||
-      (sq_prepare
        (plugin->dbh,
         "INSERT INTO ns097records (zone_private_key, pkey, rvalue, record_count, record_data, label)"
 	" VALUES (?, ?, ?, ?, ?, ?)",
@@ -361,14 +299,6 @@ database_shutdown (struct Plugin *plugin)
   int result;
   sqlite3_stmt *stmt;
 
-  if (NULL != plugin->cache_block)
-    sqlite3_finalize (plugin->cache_block);
-  if (NULL != plugin->lookup_block)
-    sqlite3_finalize (plugin->lookup_block);
-  if (NULL != plugin->expire_blocks)
-    sqlite3_finalize (plugin->expire_blocks);
-  if (NULL != plugin->delete_block)
-    sqlite3_finalize (plugin->delete_block);
   if (NULL != plugin->store_records)
     sqlite3_finalize (plugin->store_records);
   if (NULL != plugin->delete_records)
@@ -401,246 +331,6 @@ database_shutdown (struct Plugin *plugin)
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite3_close");
 
   GNUNET_free_non_null (plugin->fn);
-}
-
-
-/**
- * Removes any expired block.
- *
- * @param plugin the plugin
- */
-static void
-namestore_sqlite_expire_blocks (struct Plugin *plugin)
-{
-  struct GNUNET_TIME_Absolute now;
-  int n;
-
-  now = GNUNET_TIME_absolute_get ();
-  if (SQLITE_OK != sqlite3_bind_int64 (plugin->expire_blocks,
-				       1, now.abs_value_us))
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->expire_blocks))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
-    return;
-  }
-  n = sqlite3_step (plugin->expire_blocks);
-  if (SQLITE_OK != sqlite3_reset (plugin->expire_blocks))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_reset");
-  switch (n)
-  {
-  case SQLITE_DONE:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Records expired\n");
-    return;
-  case SQLITE_BUSY:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    return;
-  default:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    return;
-  }
-}
-
-
-/**
- * Cache a block in the datastore.
- *
- * @param cls closure (internal context for the plugin)
- * @param block block to cache
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
- */
-static int
-namestore_sqlite_cache_block (void *cls,
-			      const struct GNUNET_GNSRECORD_Block *block)
-{
-  struct Plugin *plugin = cls;
-  struct GNUNET_HashCode query;
-  struct GNUNET_TIME_Absolute expiration;
-  int64_t dval;
-  size_t block_size;
-  int n;
-
-  namestore_sqlite_expire_blocks (plugin);
-  GNUNET_CRYPTO_hash (&block->derived_key,
-		      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
-		      &query);
-  expiration = GNUNET_TIME_absolute_ntoh (block->expiration_time);
-  dval = (int64_t) expiration.abs_value_us;
-  if (dval < 0)
-    dval = INT64_MAX;
-  block_size = ntohl (block->purpose.size) +
-    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-    sizeof (struct GNUNET_CRYPTO_EcdsaSignature);
-  if (block_size > 64 * 65536)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-
-  /* delete old version of the block */
-  if ( (SQLITE_OK !=
-        sqlite3_bind_blob (plugin->delete_block, 1,
-                           &query, sizeof (struct GNUNET_HashCode),
-                           SQLITE_STATIC)) ||
-       (SQLITE_OK !=
-        sqlite3_bind_int64 (plugin->delete_block,
-                            2, dval)) )
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->delete_block))
-      LOG_SQLITE (plugin,
-                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
-    return GNUNET_SYSERR;
-  }
-  n = sqlite3_step (plugin->delete_block);
-  switch (n)
-  {
-  case SQLITE_DONE:
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Old block deleted\n");
-    break;
-  case SQLITE_BUSY:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    break;
-  default:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                "sqlite3_step");
-    break;
-  }
-  if (SQLITE_OK != sqlite3_reset (plugin->delete_block))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-
-  /* insert new version of the block */
-  if ((SQLITE_OK !=
-       sqlite3_bind_blob (plugin->cache_block, 1,
-			  &query, sizeof (struct GNUNET_HashCode),
-			  SQLITE_STATIC)) ||
-      (SQLITE_OK !=
-       sqlite3_bind_blob (plugin->cache_block, 2,
-			  block, block_size,
-			  SQLITE_STATIC)) ||
-      (SQLITE_OK !=
-       sqlite3_bind_int64 (plugin->cache_block, 3,
-			   dval)))
-  {
-    LOG_SQLITE (plugin,
-		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->cache_block))
-      LOG_SQLITE (plugin,
-		  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		  "sqlite3_reset");
-    return GNUNET_SYSERR;
-
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Caching block under derived key `%s'\n",
-	      GNUNET_h2s_full (&query));
-  n = sqlite3_step (plugin->cache_block);
-  if (SQLITE_OK != sqlite3_reset (plugin->cache_block))
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-  switch (n)
-  {
-  case SQLITE_DONE:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Record stored\n");
-    return GNUNET_OK;
-  case SQLITE_BUSY:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_step");
-    return GNUNET_NO;
-  default:
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_step");
-    return GNUNET_SYSERR;
-  }
-}
-
-
-/**
- * Get the block for a particular zone and label in the
- * datastore.  Will return at most one result to the iterator.
- *
- * @param cls closure (internal context for the plugin)
- * @param query hash of public key derived from the zone and the label
- * @param iter function to call with the result
- * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
- */
-static int
-namestore_sqlite_lookup_block (void *cls,
-			       const struct GNUNET_HashCode *query,
-			       GNUNET_GNSRECORD_BlockCallback iter, void *iter_cls)
-{
-  struct Plugin *plugin = cls;
-  int ret;
-  int sret;
-  size_t block_size;
-  const struct GNUNET_GNSRECORD_Block *block;
-
-  if (SQLITE_OK != sqlite3_bind_blob (plugin->lookup_block, 1,
-				      query, sizeof (struct GNUNET_HashCode),
-				      SQLITE_STATIC))
-  {
-    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_bind_XXXX");
-    if (SQLITE_OK != sqlite3_reset (plugin->lookup_block))
-      LOG_SQLITE (plugin,
-		  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		  "sqlite3_reset");
-    return GNUNET_SYSERR;
-  }
-  ret = GNUNET_NO;
-  if (SQLITE_ROW == (sret = sqlite3_step (plugin->lookup_block)))
-  {
-    block = sqlite3_column_blob (plugin->lookup_block, 0);
-    block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
-    if ( (block_size < sizeof (struct GNUNET_GNSRECORD_Block)) ||
-	 (ntohl (block->purpose.size) +
-	  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-	  sizeof (struct GNUNET_CRYPTO_EcdsaSignature) != block_size) )
-    {
-      GNUNET_break (0);
-      ret = GNUNET_SYSERR;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Found block under derived key `%s'\n",
-		  GNUNET_h2s_full (query));
-      iter (iter_cls, block);
-      ret = GNUNET_YES;
-    }
-  }
-  else
-  {
-    if (SQLITE_DONE != sret)
-    {
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-      ret = GNUNET_SYSERR;
-    }
-    else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "No block found under derived key `%s'\n",
-		  GNUNET_h2s_full (query));
-    }
-  }
-  if (SQLITE_OK != sqlite3_reset (plugin->lookup_block))
-    LOG_SQLITE (plugin,
-		GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-		"sqlite3_reset");
-  return ret;
 }
 
 
@@ -965,8 +655,6 @@ libgnunet_plugin_namestore_sqlite_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_NAMESTORE_PluginFunctions);
   api->cls = &plugin;
-  api->cache_block = &namestore_sqlite_cache_block;
-  api->lookup_block = &namestore_sqlite_lookup_block;
   api->store_records = &namestore_sqlite_store_records;
   api->iterate_records = &namestore_sqlite_iterate_records;
   api->zone_to_name = &namestore_sqlite_zone_to_name;

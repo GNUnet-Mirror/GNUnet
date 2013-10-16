@@ -26,6 +26,7 @@
 #define GNS_SHORTEN_H
 #include "gns.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 
 
@@ -34,10 +35,12 @@
  * MUST be called before #GNS_shorten_start.
  *
  * @param nh handle to the namestore
+ * @param nc the namecache handle
  * @param dht handle to the dht
  */
 void
 GNS_shorten_init (struct GNUNET_NAMESTORE_Handle *nh,
+                  struct GNUNET_NAMECACHE_Handle *nc,
 		  struct GNUNET_DHT_Handle *dht);
 
 

@@ -39,16 +39,6 @@ extern "C"
 
 
 /**
- * Function called for matching blocks.
- *
- * @param cls closure
- * @param block lookup result
- */
-typedef void (*GNUNET_GNSRECORD_BlockCallback) (void *cls,
-						const struct GNUNET_GNSRECORD_Block *block);
-
-
-/**
  * Function called by for each matching record.
  *
  * @param cls closure
@@ -74,34 +64,6 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * Closure to pass to all plugin functions.
    */
   void *cls;
-
-  /**
-   * Cache a block in the datastore. Overwrites existing blocks
-   * for the same zone and label.
-   *
-   * @param cls closure (internal context for the plugin)
-   * @param block block to cache
-   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
-   */
-  int (*cache_block) (void *cls,
-		      const struct GNUNET_GNSRECORD_Block *block);
-
-
-  /**
-   * Get the block for a particular zone and label in the
-   * datastore.  Will return at most one result to the iterator.
-   *
-   * @param cls closure (internal context for the plugin)
-   * @param query hash of public key derived from the zone and the label
-   * @param iter function to call with the result
-   * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
-   */
-  int (*lookup_block) (void *cls,
-		       const struct GNUNET_HashCode *query,
-		       GNUNET_GNSRECORD_BlockCallback iter, void *iter_cls);
-
-
 
   /**
    * Store a record in the datastore for which we are the authority.

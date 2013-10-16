@@ -83,16 +83,6 @@ struct GNUNET_NAMESTORE_QueueEntry
   void *proc_cls;
 
   /**
-   * Function to call with the blocks we get back; or NULL.
-   */
-  GNUNET_GNSRECORD_BlockProcessor block_proc;
-
-  /**
-   * Closure for @e block_proc.
-   */
-  void *block_proc_cls;
-
-  /**
    * The operation id this zone iteration operation has
    */
   uint32_t op_id;
@@ -255,91 +245,6 @@ struct GNUNET_NAMESTORE_Handle
  */
 static void
 force_reconnect (struct GNUNET_NAMESTORE_Handle *h);
-
-
-/**
- * Handle an incoming message of type
- * #GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE.
- *
- * @param qe the respective entry in the message queue
- * @param msg the message we received
- * @param size the message size
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
- */
-static int
-handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
-			      const struct LookupBlockResponseMessage *msg,
-			      size_t size)
-{
-  struct GNUNET_GNSRECORD_Block *block;
-  char buf[size + sizeof (struct GNUNET_GNSRECORD_Block)
-	   - sizeof (struct LookupBlockResponseMessage)];
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s'\n",
-       "LOOKUP_BLOCK_RESPONSE");
-  if (0 == GNUNET_TIME_absolute_ntoh (msg->expire).abs_value_us)
-  {
-    /* no match found */
-    if (NULL != qe->block_proc)
-      qe->block_proc (qe->block_proc_cls, NULL);
-    return GNUNET_OK;
-  }
-
-  block = (struct GNUNET_GNSRECORD_Block *) buf;
-  block->signature = msg->signature;
-  block->derived_key = msg->derived_key;
-  block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
-  block->purpose.size = htonl (size - sizeof (struct LookupBlockResponseMessage) +
-			       sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  block->expiration_time = msg->expire;
-  memcpy (&block[1],
-	  &msg[1],
-	  size - sizeof (struct LookupBlockResponseMessage));
-  if (GNUNET_OK !=
-      GNUNET_GNSRECORD_block_verify (block))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (NULL != qe->block_proc)
-    qe->block_proc (qe->block_proc_cls, block);
-  else
-    GNUNET_break (0);
-  return GNUNET_OK;
-}
-
-
-/**
- * Handle an incoming message of type
- * #GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE
- *
- * @param qe the respective entry in the message queue
- * @param msg the message we received
- * @param size the message size
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
- */
-static int
-handle_block_cache_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
-			    const struct BlockCacheResponseMessage *msg,
-			    size_t size)
-{
-  int res;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s'\n",
-       "BLOCK_CACHE_RESPONSE");
-  res = ntohl (msg->op_result);
-  /* TODO: add actual error message from namestore to response... */
-  if (NULL != qe->cont)
-    qe->cont (qe->cont_cls,
-	      res,
-	      (GNUNET_OK == res) ?
-	      NULL
-	      : _("Namestore failed to cache block"));
-  return GNUNET_OK;
-}
 
 
 /**
@@ -536,20 +441,6 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
   /* handle different message type */
   switch (type)
   {
-  case GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE:
-    if (size < sizeof (struct LookupBlockResponseMessage))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-    return handle_lookup_block_response (qe, (const struct LookupBlockResponseMessage *) msg, size);
-  case GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE:
-    if (size != sizeof (struct BlockCacheResponseMessage))
-    {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-    }
-    return handle_block_cache_response (qe, (const struct BlockCacheResponseMessage *) msg, size);
   case GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE:
     if (size != sizeof (struct RecordStoreResponseMessage))
     {
@@ -1010,64 +901,6 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
 
 /**
  * Store an item in the namestore.  If the item is already present,
- * it is replaced with the new record.
- *
- * @param h handle to the namestore
- * @param block block to store
- * @param cont continuation to call when done
- * @param cont_cls closure for cont
- * @return handle to abort the request
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
-			      const struct GNUNET_GNSRECORD_Block *block,
-			      GNUNET_NAMESTORE_ContinuationWithStatus cont,
-			      void *cont_cls)
-{
-  struct GNUNET_NAMESTORE_QueueEntry *qe;
-  struct PendingMessage *pe;
-  struct BlockCacheMessage *msg;
-  uint32_t rid;
-  size_t blen;
-  size_t msg_size;
-
-  GNUNET_assert (NULL != h);
-  blen = ntohl (block->purpose.size)
-    - sizeof (struct GNUNET_TIME_AbsoluteNBO)
-    - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
-  rid = get_op_id (h);
-  qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
-  qe->nsh = h;
-  qe->cont = cont;
-  qe->cont_cls = cont_cls;
-  qe->op_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
-
-  /* setup msg */
-  msg_size = sizeof (struct BlockCacheMessage) + blen;
-  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
-  pe->size = msg_size;
-  msg = (struct BlockCacheMessage *) &pe[1];
-  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE);
-  msg->gns_header.header.size = htons (msg_size);
-  msg->gns_header.r_id = htonl (rid);
-  msg->expire = block->expiration_time;
-  msg->signature = block->signature;
-  msg->derived_key = block->derived_key;
-  memcpy (&msg[1], &block[1], blen);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending `%s' message with size %u and expiration %s\n",
-       "NAMESTORE_BLOCK_CACHE",
-       (unsigned int) msg_size,
-       GNUNET_STRINGS_absolute_time_to_string (GNUNET_TIME_absolute_ntoh (msg->expire)));
-  GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit (h);
-  return qe;
-}
-
-
-/**
- * Store an item in the namestore.  If the item is already present,
  * it is replaced with the new record.  Use an empty array to
  * remove all records under the given name.
  *
@@ -1142,55 +975,6 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
        "Sending `%s' message for name `%s' with size %u and %u records\n",
        "NAMESTORE_RECORD_STORE", label, msg_size,
        rd_count);
-  GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
-  do_transmit (h);
-  return qe;
-}
-
-
-/**
- * Get a result for a particular key from the namestore.  The processor
- * will only be called once.
- *
- * @param h handle to the namestore
- * @param derived_hash hash of zone key combined with name to lookup
- * @param proc function to call on the matching block, or with
- *        NULL if there is no matching block
- * @param proc_cls closure for proc
- * @return a handle that can be used to cancel
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
-			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_GNSRECORD_BlockProcessor proc, void *proc_cls)
-{
-  struct GNUNET_NAMESTORE_QueueEntry *qe;
-  struct PendingMessage *pe;
-  struct LookupBlockMessage *msg;
-  size_t msg_size;
-  uint32_t rid;
-
-  GNUNET_assert (NULL != h);
-  GNUNET_assert (NULL != derived_hash);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Looking for block under %s\n",
-       GNUNET_h2s (derived_hash));
-  rid = get_op_id(h);
-  qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
-  qe->nsh = h;
-  qe->block_proc = proc;
-  qe->block_proc_cls = proc_cls;
-  qe->op_id = rid;
-  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
-
-  msg_size = sizeof (struct LookupBlockMessage);
-  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
-  pe->size = msg_size;
-  msg = (struct LookupBlockMessage *) &pe[1];
-  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK);
-  msg->gns_header.header.size = htons (msg_size);
-  msg->gns_header.r_id = htonl (rid);
-  msg->query = *derived_hash;
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit (h);
   return qe;

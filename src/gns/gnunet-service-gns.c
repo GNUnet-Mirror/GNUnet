@@ -28,6 +28,7 @@
 #include "gnunet_dns_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
@@ -119,6 +120,11 @@ static struct GNUNET_DHT_PutHandle *active_put;
  * Our handle to the namestore service
  */
 static struct GNUNET_NAMESTORE_Handle *namestore_handle;
+
+/**
+ * Our handle to the namecache service
+ */
+static struct GNUNET_NAMECACHE_Handle *namecache_handle;
 
 /**
  * Handle to iterate over our authoritative zone in namestore
@@ -230,6 +236,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_NAMESTORE_disconnect (namestore_handle);
     namestore_handle = NULL;
+  }
+  if (NULL != namecache_handle)
+  {
+    GNUNET_NAMECACHE_disconnect (namecache_handle);
+    namecache_handle = NULL;
   }
   if (NULL != active_put)
   {
@@ -645,6 +656,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  namecache_handle = GNUNET_NAMECACHE_connect (c);
+  if (NULL == namecache_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("Failed to connect to the namecache!\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 
   put_interval = INITIAL_PUT_INTERVAL;
   zone_publish_time_window = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
@@ -705,10 +724,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       return;
     }
   }
-  GNS_resolver_init (namestore_handle, dht_handle,
+  GNS_resolver_init (namestore_handle,
+                     namecache_handle,
+                     dht_handle,
 		     c,
 		     max_parallel_bg_queries);
-  GNS_shorten_init (namestore_handle, dht_handle);
+  GNS_shorten_init (namestore_handle,
+                    namecache_handle,
+                    dht_handle);
   GNUNET_SERVER_disconnect_notify (server,
 				   &notify_client_disconnect,
 				   NULL);

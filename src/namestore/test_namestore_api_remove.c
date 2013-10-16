@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -41,8 +41,6 @@ static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
-
-static struct GNUNET_HashCode derived_hash;
 
 static int res;
 
@@ -119,72 +117,6 @@ remove_cont (void *cls,
 
 
 static void
-rd_decrypt_cb (void *cls,
-	       unsigned int rd_count,
-	       const struct GNUNET_GNSRECORD_Data *rd)
-{
-  const char *name = cls;
-  char rd_cmp_data[TEST_RECORD_DATALEN];
-
-  GNUNET_assert (GNUNET_NO == removed);
-  GNUNET_assert (1 == rd_count);
-  GNUNET_assert (NULL != rd);
-  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-
-  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Block was decrypted successfully, removing records \n");
-
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-					 0, NULL, &remove_cont, (void *) name);
-}
-
-
-static void
-name_lookup_proc (void *cls,
-		  const struct GNUNET_GNSRECORD_Block *block)
-{
-  const char *name = cls;
-  nsqe = NULL;
-
-  if (removed && (NULL == block))
-  {
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-    return;
-  }
-  GNUNET_assert (NULL != cls);
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  if (NULL == block)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore returned no block\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Namestore returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_GNSRECORD_block_decrypt (block,
-						 &pubkey, name, &rd_decrypt_cb, (void *) name));
-}
-
-
-static void
 put_cont (void *cls, int32_t success,
 	  const char *emsg)
 {
@@ -207,24 +139,8 @@ put_cont (void *cls, int32_t success,
 	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
-
-  /* Create derived hash */
-  GNUNET_GNSRECORD_query_from_private_key (privkey,
-					   name,
-					   &derived_hash);
-
-  nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
-					&name_lookup_proc, (void *) name);
-  if (NULL == nsqe)
-  {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore cannot perform lookup\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
-    return;
-  }
+  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
+					 0, NULL, &remove_cont, (void *) name);
 }
 
 

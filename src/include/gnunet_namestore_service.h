@@ -96,23 +96,6 @@ typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
 
 /**
  * Store an item in the namestore.  If the item is already present,
- * it is replaced with the new record.
- *
- * @param h handle to the namestore
- * @param block block to store
- * @param cont continuation to call when done
- * @param cont_cls closure for @a cont
- * @return handle to abort the request
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
-			      const struct GNUNET_GNSRECORD_Block *block,
-			      GNUNET_NAMESTORE_ContinuationWithStatus cont,
-			      void *cont_cls);
-
-
-/**
- * Store an item in the namestore.  If the item is already present,
  * it is replaced with the new record.  Use an empty array to
  * remove all records under the given name.
  *
@@ -134,33 +117,6 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
 				void *cont_cls);
 
-
-/**
- * Process a record that was stored in the namestore.
- *
- * @param cls closure
- * @param block block that was stored in the namestore
- */
-typedef void (*GNUNET_GNSRECORD_BlockProcessor) (void *cls,
-						 const struct GNUNET_GNSRECORD_Block *block);
-
-
-/**
- * Get a result for a particular key from the namestore.  The processor
- * will only be called once.
- *
- * @param h handle to the namestore
- * @param derived_hash hash of zone key combined with name to lookup
- *        then at the end once with NULL
- * @param proc function to call on the matching block, or with
- *        NULL if there is no matching block
- * @param proc_cls closure for @a proc
- * @return a handle that can be used to cancel
- */
-struct GNUNET_NAMESTORE_QueueEntry *
-GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
-			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_GNSRECORD_BlockProcessor proc, void *proc_cls);
 
 
 /**
@@ -223,7 +179,7 @@ GNUNET_NAMESTORE_cancel (struct GNUNET_NAMESTORE_QueueEntry *qe);
  * @param zone zone to access, NULL for all zones
  * @param proc function to call on each name from the zone; it
  *        will be called repeatedly with a value (if available)
- *        and always once at the end with a name of NULL.
+ *        and always once at the end with a label of NULL.
  * @param proc_cls closure for @a proc
  * @return an iterator handle to use for iteration
  */
