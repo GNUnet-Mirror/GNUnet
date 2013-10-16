@@ -27,7 +27,7 @@
  * TODO:
  * - GNS: handle special SRV names --- no delegation, direct lookup;
  *        can likely be done in 'resolver_lookup_get_next_label'. (#3003)
- * - revocation checks (use CORE-level broadcasts!), (#3004)
+ * - revocation checks (use REVOCATION service!), (#3004)
  * - DNAME support (#3005)
  */
 #include "platform.h"
@@ -195,7 +195,7 @@ struct VpnContext
   struct GNUNET_VPN_RedirectionRequest *vpn_request;
 
   /**
-   * Number of records serialized in 'rd_data'.
+   * Number of records serialized in @e rd_data.
    */
   unsigned int rd_count;
 
@@ -205,7 +205,7 @@ struct VpnContext
   char *rd_data;
 
   /**
-   * Number of bytes in 'rd_data'.
+   * Number of bytes in @e rd_data.
    */
   size_t rd_data_size;
 };
@@ -483,7 +483,7 @@ is_canonical (const char *name)
 /* ************************** Resolution **************************** */
 
 /**
- * Exands a name ending in .+ with the zone of origin.
+ * Expands a name ending in .+ with the zone of origin.
  *
  * @param rh resolution context
  * @param name name to modify (to be free'd or returned)
@@ -664,7 +664,7 @@ add_dns_result (struct GNS_ResolverHandle *rh,
  * We had to do a DNS lookup.  Convert the result (if any) and return
  * it.
  *
- * @param cls closure with the 'struct GNS_ResolverHandle'
+ * @param cls closure with the `struct GNS_ResolverHandle`
  * @param addr one of the addresses of the host, NULL for the last address
  * @param addrlen length of the address
  */
@@ -1419,9 +1419,7 @@ handle_gns_resolution_result (void *cls,
 	}
 	break;
       case GNUNET_GNSRECORD_TYPE_PKEY:
-	/* tigger shortening */
-	if (NULL != rh->shorten_key)
-	{
+        {
 	  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
 	  if (rd[i].data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
@@ -1430,11 +1428,33 @@ handle_gns_resolution_result (void *cls,
 	    break;
 	  }
 	  memcpy (&pub, rd[i].data, rd[i].data_size);
-	  GNS_shorten_start (rh->ac_tail->label,
-			     &pub,
-			     rh->shorten_key);
-	}
-	rd_off++;
+
+          /* tigger shortening */
+          if (NULL != rh->shorten_key)
+          {
+            GNS_shorten_start (rh->ac_tail->label,
+                               &pub,
+                               rh->shorten_key);
+          }
+          rd_off++;
+          if (GNUNET_GNSRECORD_TYPE_PKEY != rh->record_type)
+          {
+            /* try to resolve "+" */
+            struct AuthorityChain *ac;
+
+            ac = GNUNET_new (struct AuthorityChain);
+            ac->rh = rh;
+            ac->gns_authority = GNUNET_YES;
+            ac->authority_info.gns_authority = pub;
+            ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+            GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
+                                              rh->ac_tail,
+                                              ac);
+            rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
+                                                    rh);
+            return;
+          }
+        }
 	break;
       default:
 	rd_off++;
