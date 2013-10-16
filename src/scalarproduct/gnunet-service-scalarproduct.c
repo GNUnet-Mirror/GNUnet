@@ -1708,7 +1708,7 @@ handle_client_request (void *cls,
     // get our peer ID
     memcpy (&session->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _ ("Creating new tunnel to for session with key %s.\n"),
+                _ ("Creating new tunnel for session with key %s.\n"),
                 GNUNET_h2s (&session->key));
     session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
                                                  &session->peer,
@@ -1872,9 +1872,9 @@ compute_scalar_product (struct ServiceSession * session)
   uint32_t count;
   gcry_mpi_t t;
   gcry_mpi_t u;
-  gcry_mpi_t utick;
+  gcry_mpi_t u_prime;
   gcry_mpi_t p;
-  gcry_mpi_t ptick;
+  gcry_mpi_t p_prime;
   gcry_mpi_t tmp;
   unsigned int i;
 
@@ -1902,12 +1902,12 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_release (tmp);
 
   //calculate U'
-  utick = gcry_mpi_new (0);
+  u_prime = gcry_mpi_new (0);
   tmp = compute_square_sum (session->r_prime, count);
-  gcry_mpi_sub (utick, utick, tmp);
+  gcry_mpi_sub (u_prime, u_prime, tmp);
 
   GNUNET_assert (p = gcry_mpi_new (0));
-  GNUNET_assert (ptick = gcry_mpi_new (0));
+  GNUNET_assert (p_prime = gcry_mpi_new (0));
 
   // compute P
   decrypt_element (session->s, session->s, my_mu, my_lambda, my_n, my_nsquare);
@@ -1918,16 +1918,16 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_add (p, p, u);
 
   // compute P'
-  gcry_mpi_add (ptick, session->s_prime, t);
-  gcry_mpi_add (ptick, ptick, utick);
+  gcry_mpi_add (p_prime, session->s_prime, t);
+  gcry_mpi_add (p_prime, p_prime, u_prime);
 
   gcry_mpi_release (t);
   gcry_mpi_release (u);
-  gcry_mpi_release (utick);
+  gcry_mpi_release (u_prime);
 
   // compute product
-  gcry_mpi_sub (p, p, ptick);
-  gcry_mpi_release (ptick);
+  gcry_mpi_sub (p, p, p_prime);
+  gcry_mpi_release (p_prime);
   tmp = gcry_mpi_set_ui (tmp, 2);
   gcry_mpi_div (p, NULL, p, tmp, 0);
 
