@@ -1,6 +1,6 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME`
+rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 TEST_DOMAIN="www.homepage.gnu"
 TEST_DOMAIN_ALT="homepage.gnu"
 TEST_DOMAIN_ALT2="uk.homepage.gnu"
