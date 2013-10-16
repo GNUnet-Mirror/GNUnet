@@ -1,0 +1,40 @@
+.TH GNUNET\-NAMECACHE 1 "Oct 16, 2013" "GNUnet"
+
+.SH NAME
+gnunet\-namecache \- inspect namecache
+
+.SH SYNOPSIS
+.B gnunet\-namecache
+.RI [ options ] -z PKEY -n LABEL
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-namecache\fP can be used to inspect values in the namecache.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-n NAME, \-\-name=NAME"
+Name (label) of the record to display (mandatory option)
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+.B
+.IP "\-z PKEY, \-\-zone=PKEY"
+Specifies the public key of the zone to inspect (mandatory option)
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
+
+.SH "SEE ALSO"
+\fBgnunet\-gns\fP(1)
