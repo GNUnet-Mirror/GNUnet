@@ -49,6 +49,7 @@ gnunetinclude_HEADERS = \
   gnunet_getopt_lib.h \
   gnunet_gns_service.h \
   gnunet_gnsrecord_lib.h \
+  gnunet_gnsrecord_plugin.h \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
