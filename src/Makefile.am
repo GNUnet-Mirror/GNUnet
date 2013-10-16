@@ -71,6 +71,7 @@ SUBDIRS = \
   dv \
   revocation \
   gnsrecord \
+  namecache \
   namestore \
   vpn \
   gns \
