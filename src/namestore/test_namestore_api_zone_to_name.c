@@ -186,7 +186,7 @@ run (void *cls,
 
   struct GNUNET_NAMESTORE_RecordData rd;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
-  rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
+  rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));

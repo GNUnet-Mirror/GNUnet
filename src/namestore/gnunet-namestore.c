@@ -358,8 +358,8 @@ display_record (void *cls,
 	   name);
   for (i=0;i<rd_len;i++)
   {
-    typestring = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
-    s = GNUNET_NAMESTORE_value_to_string (rd[i].record_type,
+    typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
+    s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
 					  rd[i].data,
 					  rd[i].data_size);
     if (NULL == s)
@@ -495,8 +495,8 @@ display_records_from_block (void *cls,
 	   name);
   for (i=0;i<rd_len;i++)
   {
-    typestring = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
-    s = GNUNET_NAMESTORE_value_to_string (rd[i].record_type,
+    typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
+    s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
 					  rd[i].data,
 					  rd[i].data_size);
     if (NULL == s)
@@ -639,7 +639,7 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    type = GNUNET_NAMESTORE_typename_to_number (typestring);
+    type = GNUNET_GNSRECORD_typename_to_number (typestring);
     if (UINT32_MAX == type)
     {
       fprintf (stderr, _("Unsupported type `%s'\n"), typestring);
@@ -657,7 +657,7 @@ testservice_task (void *cls,
       return;
     }
     if (GNUNET_OK !=
-	GNUNET_NAMESTORE_string_to_value (type,
+	GNUNET_GNSRECORD_string_to_value (type,
 					  value,
 					  &data,
 					  &data_size))
@@ -795,7 +795,7 @@ testservice_task (void *cls,
     memset (&rd, 0, sizeof (rd));
     rd.data = &pkey;
     rd.data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-    rd.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
+    rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
     if (GNUNET_YES == etime_is_rel)
     {
       rd.expiration_time = etime_rel.rel_value_us;

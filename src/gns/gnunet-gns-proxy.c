@@ -2275,10 +2275,10 @@ handle_gns_result (void *cls,
 #endif
       }
       break;
-    case GNUNET_NAMESTORE_TYPE_VPN:
+    case GNUNET_GNSRECORD_TYPE_VPN:
       GNUNET_break (0); /* should have been translated within GNS */
       break;
-    case GNUNET_NAMESTORE_TYPE_LEHO:
+    case GNUNET_GNSRECORD_TYPE_LEHO:
       GNUNET_free_non_null (s5r->leho);
       s5r->leho = GNUNET_strndup (r->data,
 				  r->data_size);

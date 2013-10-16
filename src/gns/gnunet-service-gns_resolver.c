@@ -1100,7 +1100,7 @@ vpn_allocation_cb (void *cls,
 						       rd));
   for (i=0;i<vpn_ctx->rd_count;i++)
   {
-    if (GNUNET_NAMESTORE_TYPE_VPN == rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_VPN == rd[i].record_type)
     {
       switch (af)
       {
@@ -1204,7 +1204,7 @@ handle_gns_resolution_result (void *cls,
       {
 	switch (rd[i].record_type)
 	{
-	case GNUNET_NAMESTORE_TYPE_VPN:
+	case GNUNET_GNSRECORD_TYPE_VPN:
 	  {
 	    af = (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ? AF_INET : AF_INET6;
 	    if (sizeof (struct GNUNET_TUN_GnsVpnRecord) <
@@ -1247,7 +1247,7 @@ handle_gns_resolution_result (void *cls,
 								rh);
 	    return;
 	  }
-	case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+	case GNUNET_GNSRECORD_TYPE_GNS2DNS:
 	  {
 	    /* delegation to DNS */
 	    goto do_recurse;
@@ -1418,7 +1418,7 @@ handle_gns_resolution_result (void *cls,
 	    GNUNET_DNSPARSER_free_srv (srv);
 	}
 	break;
-      case GNUNET_NAMESTORE_TYPE_PKEY:
+      case GNUNET_GNSRECORD_TYPE_PKEY:
 	/* tigger shortening */
 	if (NULL != rh->shorten_key)
 	{
@@ -1453,7 +1453,7 @@ handle_gns_resolution_result (void *cls,
   {
     switch (rd[i].record_type)
     {
-    case GNUNET_NAMESTORE_TYPE_PKEY:
+    case GNUNET_GNSRECORD_TYPE_PKEY:
       /* delegation to another zone */
       if (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) !=
 	  rd[i].data_size)
@@ -1484,7 +1484,7 @@ handle_gns_resolution_result (void *cls,
       rh->task_id = GNUNET_SCHEDULER_add_now (&recursive_resolution,
 					      rh);
       return;
-    case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+    case GNUNET_GNSRECORD_TYPE_GNS2DNS:
       {
 	char *ns;
 	/* resolution continues within DNS */

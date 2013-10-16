@@ -457,7 +457,7 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
   rd->data = &phone->my_record;
   rd->expiration_time = 0;
   rd->data_size = sizeof (struct GNUNET_CONVERSATION_PhoneRecord);
-  rd->record_type = GNUNET_NAMESTORE_TYPE_PHONE;
+  rd->record_type = GNUNET_GNSRECORD_TYPE_PHONE;
   rd->flags = GNUNET_NAMESTORE_RF_NONE;
 }
 
@@ -914,7 +914,7 @@ handle_gns_response (void *cls,
   call->gns_lookup = NULL;
   for (i=0;i<rd_count;i++)
   {
-    if (GNUNET_NAMESTORE_TYPE_PHONE == rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_PHONE == rd[i].record_type)
     {
       if (rd[i].data_size != sizeof (struct GNUNET_CONVERSATION_PhoneRecord))
       {
@@ -1017,7 +1017,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
   call->gns_lookup = GNUNET_GNS_lookup (call->gns,
                                         call->callee,
                                         &my_zone,
-                                        GNUNET_NAMESTORE_TYPE_PHONE,
+                                        GNUNET_GNSRECORD_TYPE_PHONE,
                                         GNUNET_NO,
                                         NULL /* FIXME: add shortening support */,
                                         &handle_gns_response, call);

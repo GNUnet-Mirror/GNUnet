@@ -287,14 +287,14 @@ iterate_cb (void *cls,
     return;
   }
 
-  if (GNUNET_NAMESTORE_TYPE_PKEY != rd->record_type)
+  if (GNUNET_GNSRECORD_TYPE_PKEY != rd->record_type)
   {
     GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
     return;
   }
 
   bytes_free = zr->buf_len - zr->write_offset;
-  pkey = GNUNET_NAMESTORE_value_to_string (rd->record_type,
+  pkey = GNUNET_GNSRECORD_value_to_string (rd->record_type,
                                            rd->data,
                                            rd->data_size);
 
@@ -529,7 +529,7 @@ zone_to_name_cb (void *cls,
   r.data = &pub;
   r.data_size = sizeof (pub);
   r.expiration_time = UINT64_MAX;
-  r.record_type = GNUNET_NAMESTORE_TYPE_PKEY;
+  r.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   r.flags = GNUNET_NAMESTORE_RF_NONE;
   request->qe = GNUNET_NAMESTORE_records_store (ns,
 						&fcfs_zone_pkey,

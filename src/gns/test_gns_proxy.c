@@ -423,7 +423,7 @@ run (void *cls,
 
   host_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_string_to_value (GNUNET_DNSPARSER_TYPE_A,
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_string_to_value (GNUNET_DNSPARSER_TYPE_A,
                                                                "127.0.0.1",
                                                                (void**)&rd.data,
                                                                &rd.data_size));

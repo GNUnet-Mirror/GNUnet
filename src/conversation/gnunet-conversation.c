@@ -244,7 +244,7 @@ start_phone ()
     GNUNET_CONVERSATION_phone_get_record (phone,
                                           &rd);
     GNUNET_free_non_null (address);
-    address = GNUNET_NAMESTORE_value_to_string (rd.record_type,
+    address = GNUNET_GNSRECORD_value_to_string (rd.record_type,
                                                 rd.data,
                                                 rd.data_size);
     if (verbose)

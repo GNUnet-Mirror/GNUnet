@@ -157,10 +157,10 @@ process_lookup_result (void *cls, uint32_t rd_count,
   for (i=0; i<rd_count; i++)
   {
     if ( (rd[i].record_type != rtype) &&
-	 (GNUNET_NAMESTORE_TYPE_ANY != rtype) )
+	 (GNUNET_GNSRECORD_TYPE_ANY != rtype) )
       continue;
-    typename = GNUNET_NAMESTORE_number_to_typename (rd[i].record_type);
-    string_val = GNUNET_NAMESTORE_value_to_string (rd[i].record_type,
+    typename = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
+    string_val = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
 						   rd[i].data,
 						   rd[i].data_size);
     if (NULL == string_val)
@@ -196,7 +196,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 		  const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key)
 {
   if (NULL != lookup_type)
-    rtype = GNUNET_NAMESTORE_typename_to_number (lookup_type);
+    rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
   else
     rtype = GNUNET_DNSPARSER_TYPE_A;
 

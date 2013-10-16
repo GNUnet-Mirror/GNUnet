@@ -47,7 +47,7 @@
  * @return NULL on error, otherwise human-readable representation of the value
  */
 char *
-GNUNET_NAMESTORE_value_to_string (uint32_t type,
+GNUNET_GNSRECORD_value_to_string (uint32_t type,
 				  const void *data,
 				  size_t data_size)
 {
@@ -176,11 +176,11 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
     if (NULL == inet_ntop (AF_INET6, data, tmp, sizeof (tmp)))
       return NULL;
     return GNUNET_strdup (tmp);
-  case GNUNET_NAMESTORE_TYPE_PKEY:
+  case GNUNET_GNSRECORD_TYPE_PKEY:
     if (data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
       return NULL;
     return GNUNET_CRYPTO_ecdsa_public_key_to_string (data);
-  case GNUNET_NAMESTORE_TYPE_PHONE:
+  case GNUNET_GNSRECORD_TYPE_PHONE:
     {
       const struct GNUNET_CONVERSATION_PhoneRecord *pr;
       char *ret;
@@ -199,11 +199,11 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       GNUNET_free (pkey);
       return ret;
     }
-  case GNUNET_NAMESTORE_TYPE_PSEU:
+  case GNUNET_GNSRECORD_TYPE_PSEU:
     return GNUNET_strndup (data, data_size);
-  case GNUNET_NAMESTORE_TYPE_LEHO:
+  case GNUNET_GNSRECORD_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
-  case GNUNET_NAMESTORE_TYPE_VPN:
+  case GNUNET_GNSRECORD_TYPE_VPN:
     {
       const struct GNUNET_TUN_GnsVpnRecord *vpn;
       char* vpn_str;
@@ -223,7 +223,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
       }
       return vpn_str;
     }
-  case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+  case GNUNET_GNSRECORD_TYPE_GNS2DNS:
     {
       char *ns;
       size_t off;
@@ -309,7 +309,7 @@ GNUNET_NAMESTORE_value_to_string (uint32_t type,
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_NAMESTORE_string_to_value (uint32_t type,
+GNUNET_GNSRECORD_string_to_value (uint32_t type,
 				  const char *s,
 				  void **data,
 				  size_t *data_size)
@@ -509,7 +509,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     *data_size = sizeof (struct in6_addr);
     memcpy (*data, &value_aaaa, sizeof (value_aaaa));
     return GNUNET_OK;
-  case GNUNET_NAMESTORE_TYPE_PKEY:
+  case GNUNET_GNSRECORD_TYPE_PKEY:
     if (GNUNET_OK !=
 	GNUNET_CRYPTO_ecdsa_public_key_from_string (s, strlen (s), &pkey))
     {
@@ -522,7 +522,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     memcpy (*data, &pkey, sizeof (pkey));
     *data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
     return GNUNET_OK;
-  case GNUNET_NAMESTORE_TYPE_PHONE:
+  case GNUNET_GNSRECORD_TYPE_PHONE:
     {
       struct GNUNET_CONVERSATION_PhoneRecord *pr;
       unsigned int line;
@@ -549,15 +549,15 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
       *data_size = sizeof (struct GNUNET_CONVERSATION_PhoneRecord);
       return GNUNET_OK;
     }
-  case GNUNET_NAMESTORE_TYPE_PSEU:
+  case GNUNET_GNSRECORD_TYPE_PSEU:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
     return GNUNET_OK;
-  case GNUNET_NAMESTORE_TYPE_LEHO:
+  case GNUNET_GNSRECORD_TYPE_LEHO:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
     return GNUNET_OK;
-  case GNUNET_NAMESTORE_TYPE_VPN:
+  case GNUNET_GNSRECORD_TYPE_VPN:
     if (3 != SSCANF (s,"%u %103s %253s",
 		     &proto, s_peer, s_serv))
     {
@@ -579,7 +579,7 @@ GNUNET_NAMESTORE_string_to_value (uint32_t type,
     vpn->proto = htons ((uint16_t) proto);
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
-  case GNUNET_NAMESTORE_TYPE_GNS2DNS:
+  case GNUNET_GNSRECORD_TYPE_GNS2DNS:
     {
       char nsbuf[256];
       size_t off;
@@ -643,12 +643,12 @@ static struct {
   { "MX", GNUNET_DNSPARSER_TYPE_MX },
   { "TXT", GNUNET_DNSPARSER_TYPE_TXT },
   { "AAAA", GNUNET_DNSPARSER_TYPE_AAAA },
-  { "PKEY",  GNUNET_NAMESTORE_TYPE_PKEY },
-  { "PSEU",  GNUNET_NAMESTORE_TYPE_PSEU },
-  { "LEHO",  GNUNET_NAMESTORE_TYPE_LEHO },
-  { "VPN", GNUNET_NAMESTORE_TYPE_VPN },
-  { "GNS2DNS", GNUNET_NAMESTORE_TYPE_GNS2DNS },
-  { "PHONE", GNUNET_NAMESTORE_TYPE_PHONE },
+  { "PKEY",  GNUNET_GNSRECORD_TYPE_PKEY },
+  { "PSEU",  GNUNET_GNSRECORD_TYPE_PSEU },
+  { "LEHO",  GNUNET_GNSRECORD_TYPE_LEHO },
+  { "VPN", GNUNET_GNSRECORD_TYPE_VPN },
+  { "GNS2DNS", GNUNET_GNSRECORD_TYPE_GNS2DNS },
+  { "PHONE", GNUNET_GNSRECORD_TYPE_PHONE },
   { "TLSA", GNUNET_DNSPARSER_TYPE_TLSA },
   { NULL, UINT32_MAX }
 };
@@ -661,7 +661,7 @@ static struct {
  * @return corresponding number, UINT32_MAX on error
  */
 uint32_t
-GNUNET_NAMESTORE_typename_to_number (const char *dns_typename)
+GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
 {
   unsigned int i;
 
@@ -680,7 +680,7 @@ GNUNET_NAMESTORE_typename_to_number (const char *dns_typename)
  * @return corresponding typestring, NULL on error
  */
 const char *
-GNUNET_NAMESTORE_number_to_typename (uint32_t type)
+GNUNET_GNSRECORD_number_to_typename (uint32_t type)
 {
   unsigned int i;
 

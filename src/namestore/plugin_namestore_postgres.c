@@ -476,7 +476,7 @@ namestore_postgres_store_records (void *cls,
 
   memset (&pkey, 0, sizeof (pkey));
   for (i=0;i<rd_count;i++)
-    if (GNUNET_NAMESTORE_TYPE_PKEY == rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
     {
       GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
       memcpy (&pkey,
