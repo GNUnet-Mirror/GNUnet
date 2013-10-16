@@ -1350,38 +1350,46 @@ extern "C"
 
 
 /*******************************************************************************
- * NAMESTORE message types
+ * NAMECACHE message types
  ******************************************************************************/
 
 /**
  * Client to service: lookup block
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK 431
+#define GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK 431
 
 /**
  * Service to client: result of block lookup
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_LOOKUP_BLOCK_RESPONSE 432
-
-/**
- * Client to service: store records (as authority)
- */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE 433
-
-/**
- * Service to client: result of store operation.
- */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE 434
+#define GNUNET_MESSAGE_TYPE_NAMECACHE_LOOKUP_BLOCK_RESPONSE 432
 
 /**
  * Client to service: cache a block
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE 435
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE 433
+#define GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE 433
 
 /**
  * Service to client: result of block cache request
  */
-#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE 436
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_BLOCK_CACHE_RESPONSE 434
+#define GNUNET_MESSAGE_TYPE_NAMECACHE_BLOCK_CACHE_RESPONSE 434
+
+/*******************************************************************************
+ * NAMESTORE message types
+ ******************************************************************************/
+
+/**
+ * Client to service: store records (as authority)
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE 435
+
+/**
+ * Service to client: result of store operation.
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE_RESPONSE 436
 
 /**
  * Client to service: "reverse" lookup for zone name based on zone key
