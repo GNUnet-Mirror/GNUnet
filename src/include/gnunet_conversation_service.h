@@ -203,7 +203,7 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
-				      struct GNUNET_NAMESTORE_RecordData *rd);
+				      struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**

@@ -42,20 +42,20 @@
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd;
+static struct GNUNET_GNSRECORD_Data *s_rd;
 
 static char *s_name;
 
 static int res;
 
 
-static struct GNUNET_NAMESTORE_RecordData *
+static struct GNUNET_GNSRECORD_Data *
 create_record (int count)
 {
   unsigned int c;
-  struct GNUNET_NAMESTORE_RecordData * rd;
+  struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
   for (c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
@@ -71,7 +71,7 @@ create_record (int count)
 static void
 rd_decrypt_cb (void *cls,
 						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd)
+						 const struct GNUNET_GNSRECORD_Data *rd)
 {
   char rd_cmp_data[TEST_RECORD_DATALEN];
 
@@ -98,7 +98,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
   /* load privat key */
@@ -118,9 +118,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   s_rd = create_record (RECORDS);
 
   /* Create block */
-  GNUNET_assert (NULL != (block = GNUNET_NAMESTORE_block_create (privkey, expire,s_name, s_rd, RECORDS)));
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_verify (block));
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt (block, &pubkey, s_name, &rd_decrypt_cb, s_name));
+  GNUNET_assert (NULL != (block = GNUNET_GNSRECORD_block_create (privkey, expire,s_name, s_rd, RECORDS)));
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_verify (block));
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt (block, &pubkey, s_name, &rd_decrypt_cb, s_name));
 
   GNUNET_free (block);
 }

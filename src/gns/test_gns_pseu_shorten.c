@@ -181,7 +181,7 @@ process_shorten_result (void* cls, const char* sname)
 
 static void
 on_lookup_result (void *cls, uint32_t rd_count,
-		  const struct GNUNET_NAMESTORE_RecordData *rd)
+		  const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct in_addr a;
   int i;
@@ -266,9 +266,9 @@ put_pseu_dht (void *cls, int success)
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
-  memset (&rd, 0, sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memset (&rd, 0, sizeof (struct GNUNET_GNSRECORD_Data));
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   rd.data_size = strlen(TEST_PSEU_ALICE)+1;
   rd.data = TEST_PSEU_ALICE;
@@ -288,7 +288,7 @@ put_pseu_dht (void *cls, int success)
                                                                  1,
                                                                  &rd,
                                                                  sig));
-  rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
+  rd_payload_length = GNUNET_GNSRECORD_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(GNUNET_GNS_MASTERZONE_STR) + 1
                       + sizeof(struct GNSNameRecordBlock));
   nrb->signature = *sig;
@@ -299,7 +299,7 @@ put_pseu_dht (void *cls, int success)
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(GNUNET_GNS_MASTERZONE_STR) + 1;
 
-  if (-1 == GNUNET_NAMESTORE_records_serialize (1,
+  if (-1 == GNUNET_GNSRECORD_records_serialize (1,
                                                 &rd,
                                                 rd_payload_length,
                                                 nrb_data))
@@ -354,7 +354,7 @@ put_www_dht (void *cls, int success)
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
 
@@ -363,7 +363,7 @@ put_www_dht (void *cls, int success)
   rd.data_size = sizeof(struct in_addr);
   rd.data = web;
   rd.record_type = GNUNET_DNSPARSER_TYPE_A;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   sig = GNUNET_NAMESTORE_create_signature(alice_key,
                                           GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -376,7 +376,7 @@ put_www_dht (void *cls, int success)
                                                                  1,
                                                                  &rd,
                                                                  sig));
-  rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
+  rd_payload_length = GNUNET_GNSRECORD_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_RECORD_NAME) + 1
                       + sizeof(struct GNSNameRecordBlock));
   nrb->signature = *sig;
@@ -387,7 +387,7 @@ put_www_dht (void *cls, int success)
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(TEST_RECORD_NAME) + 1;
 
-  if (-1 == GNUNET_NAMESTORE_records_serialize (1,
+  if (-1 == GNUNET_GNSRECORD_records_serialize (1,
                                                 &rd,
                                                 rd_payload_length,
                                                 nrb_data))
@@ -442,13 +442,13 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
   uint32_t rd_payload_length;
   char* nrb_data = NULL;
   struct GNUNET_CRYPTO_EcdsaSignature *sig;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &alice_hash;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   sig = GNUNET_NAMESTORE_create_signature (bob_key,
 					   GNUNET_TIME_UNIT_FOREVER_ABS,
@@ -456,7 +456,7 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
 					   &rd,
 					   1);
 
-  rd_payload_length = GNUNET_NAMESTORE_records_get_size (1, &rd);
+  rd_payload_length = GNUNET_GNSRECORD_records_get_size (1, &rd);
   nrb = GNUNET_malloc(rd_payload_length + strlen(TEST_AUTHORITY_ALICE) + 1
                       + sizeof(struct GNSNameRecordBlock));
   nrb->signature = *sig;
@@ -467,7 +467,7 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
   nrb_data = (char*)&nrb[1];
   nrb_data += strlen(TEST_AUTHORITY_ALICE) + 1;
 
-  if (-1 == GNUNET_NAMESTORE_records_serialize (1,
+  if (-1 == GNUNET_GNSRECORD_records_serialize (1,
                                                 &rd,
                                                 rd_payload_length,
                                                 nrb_data))
@@ -514,12 +514,12 @@ put_pkey_dht (void *cls, int32_t success, const char *emsg)
 static void
 fin_init_zone (void *cls, int32_t success, const char *emsg)
 {
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    our_key,
@@ -534,13 +534,13 @@ static void
 cont_init_zone (void *cls, int32_t success, const char *emsg)
 {
 
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
   rd.expiration_time = UINT64_MAX;
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &short_zone;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    priv_key,
@@ -559,7 +559,7 @@ do_check (void *cls,
   char *private_keyfile;
   char *shorten_keyfile;
   char *our_keyfile;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
   cfg = ccfg;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
@@ -641,7 +641,7 @@ do_check (void *cls,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &priv_zone;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    our_key,

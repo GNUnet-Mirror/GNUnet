@@ -44,8 +44,8 @@ extern "C"
  * @param cls closure
  * @param block lookup result
  */
-typedef void (*GNUNET_NAMESTORE_BlockCallback) (void *cls,
-						const struct GNUNET_NAMESTORE_Block *block);
+typedef void (*GNUNET_GNSRECORD_BlockCallback) (void *cls,
+						const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -61,7 +61,7 @@ typedef void (*GNUNET_NAMESTORE_RecordIterator) (void *cls,
 						 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
 						 const char *label,
 						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd);
+						 const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -84,7 +84,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*cache_block) (void *cls,
-		      const struct GNUNET_NAMESTORE_Block *block);
+		      const struct GNUNET_GNSRECORD_Block *block);
 
 
   /**
@@ -99,7 +99,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
    */
   int (*lookup_block) (void *cls,
 		       const struct GNUNET_HashCode *query,
-		       GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls);
+		       GNUNET_GNSRECORD_BlockCallback iter, void *iter_cls);
 
 
 
@@ -118,7 +118,7 @@ struct GNUNET_NAMESTORE_PluginFunctions
 			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 			const char *label,
 			unsigned int rd_count,
-			const struct GNUNET_NAMESTORE_RecordData *rd);
+			const struct GNUNET_GNSRECORD_Data *rd);
 
 
   /**

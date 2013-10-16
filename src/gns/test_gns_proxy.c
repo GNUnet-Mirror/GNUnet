@@ -365,7 +365,7 @@ run (void *cls,
 {
   enum MHD_FLAG flags;
   struct GNUNET_CRYPTO_EcdsaPrivateKey *host_key;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char *zone_keyfile;
 
   namestore = GNUNET_NAMESTORE_connect (cfg);

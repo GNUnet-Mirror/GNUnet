@@ -61,7 +61,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
                           size_t xquery_size, const void *reply_block,
                           size_t reply_block_size)
 {
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_HashCode h;
   struct GNUNET_HashCode chash;
   struct GNUNET_HashCode mhash;
@@ -79,7 +79,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   }
 
   /* this is a reply */
-  if (reply_block_size < sizeof (struct GNUNET_NAMESTORE_Block))
+  if (reply_block_size < sizeof (struct GNUNET_GNSRECORD_Block))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -100,7 +100,7 @@ block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_verify (block))
+      GNUNET_GNSRECORD_block_verify (block))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
@@ -140,11 +140,11 @@ block_plugin_gns_get_key (void *cls, enum GNUNET_BLOCK_Type type,
                          const void *reply_block, size_t reply_block_size,
                          struct GNUNET_HashCode *key)
 {
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   if (type != GNUNET_BLOCK_TYPE_GNS_NAMERECORD)
     return GNUNET_SYSERR;
-  if (reply_block_size < sizeof (struct GNUNET_NAMESTORE_Block))
+  if (reply_block_size < sizeof (struct GNUNET_GNSRECORD_Block))
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;

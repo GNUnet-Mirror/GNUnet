@@ -99,7 +99,7 @@ do_shutdown (void *cls,
 static void
 display_records_from_block (void *cls,
 			    unsigned int rd_len,
-			    const struct GNUNET_NAMESTORE_RecordData *rd)
+			    const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typestring;
   char *s;
@@ -145,7 +145,7 @@ display_records_from_block (void *cls,
  */
 static void
 handle_block (void *cls,
-	      const struct GNUNET_NAMESTORE_Block *block)
+	      const struct GNUNET_GNSRECORD_Block *block)
 {
   qe = NULL;
   if (NULL == block)
@@ -154,7 +154,7 @@ handle_block (void *cls,
 	     "No matching block found\n");
   }
   else if (GNUNET_OK !=
-	   GNUNET_NAMESTORE_block_decrypt (block,
+	   GNUNET_GNSRECORD_block_decrypt (block,
 					   &pubkey,
 					   name,
 					   &display_records_from_block,
@@ -202,7 +202,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown,
                                 NULL);
-  GNUNET_NAMESTORE_query_from_public_key (&pubkey,
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey,
                                           name,
                                           &dhash);
   qe = GNUNET_NAMECACHE_lookup_block (ns,

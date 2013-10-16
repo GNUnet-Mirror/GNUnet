@@ -39,9 +39,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   int rd_count = 3;
   size_t data_len;
-  struct GNUNET_NAMESTORE_RecordData src[rd_count];
+  struct GNUNET_GNSRECORD_Data src[rd_count];
 
-  memset(src, '\0', rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memset(src, '\0', rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
 
   data_len = 0;
   for (c = 0; c < rd_count; c++)
@@ -56,16 +56,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   res = 0;
 
-  len = GNUNET_NAMESTORE_records_get_size(rd_count, src);
+  len = GNUNET_GNSRECORD_records_get_size(rd_count, src);
   char rd_ser[len];
-  GNUNET_assert (len == GNUNET_NAMESTORE_records_serialize(rd_count, src, len, rd_ser));
+  GNUNET_assert (len == GNUNET_GNSRECORD_records_serialize(rd_count, src, len, rd_ser));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Serialized data len: %u\n",len);
 
   GNUNET_assert (rd_ser != NULL);
 
-  struct GNUNET_NAMESTORE_RecordData dst[rd_count];
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_records_deserialize (len, rd_ser, rd_count, dst));
+  struct GNUNET_GNSRECORD_Data dst[rd_count];
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_records_deserialize (len, rd_ser, rd_count, dst));
 
   GNUNET_assert (dst != NULL);
 

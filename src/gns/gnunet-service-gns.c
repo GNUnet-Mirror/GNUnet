@@ -321,14 +321,14 @@ put_gns_record (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
                 const char *name,
                 unsigned int rd_count,
-                const struct GNUNET_NAMESTORE_RecordData *rd)
+                const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_HashCode query;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_TIME_Absolute now;
   size_t block_size;
-  struct GNUNET_NAMESTORE_RecordData rd_public[rd_count];
+  struct GNUNET_GNSRECORD_Data rd_public[rd_count];
   unsigned int rd_public_count;
   unsigned int i;
 
@@ -387,13 +387,13 @@ put_gns_record (void *cls,
   rd_public_count = 0;
   now = GNUNET_TIME_absolute_get ();
   for (i=0;i<rd_count;i++)
-    if (0 == (rd[i].flags & (GNUNET_NAMESTORE_RF_PRIVATE |
-			     GNUNET_NAMESTORE_RF_PENDING)))
+    if (0 == (rd[i].flags & (GNUNET_GNSRECORD_RF_PRIVATE |
+			     GNUNET_GNSRECORD_RF_PENDING)))
     {
       rd_public[rd_public_count] = rd[i];
-      if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+      if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
       {
-	rd_public[rd_public_count].flags &= ~GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+	rd_public[rd_public_count].flags &= ~GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 	rd_public[rd_public_count].expiration_time += now.abs_value_us;
       }
       rd_public_count++;
@@ -406,9 +406,9 @@ put_gns_record (void *cls,
                                                    NULL);
     return;
   }
-  expire = GNUNET_NAMESTORE_record_get_expiration_time (rd_public_count,
+  expire = GNUNET_GNSRECORD_record_get_expiration_time (rd_public_count,
 							rd_public);
-  block = GNUNET_NAMESTORE_block_create (key,
+  block = GNUNET_GNSRECORD_block_create (key,
 					 expire,
 					 name,
 					 rd_public,
@@ -416,7 +416,7 @@ put_gns_record (void *cls,
   block_size = ntohl (block->purpose.size)
     + sizeof (struct GNUNET_CRYPTO_EcdsaSignature)
     + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  GNUNET_NAMESTORE_query_from_private_key (key,
+  GNUNET_GNSRECORD_query_from_private_key (key,
 					   name,
 					   &query);
 
@@ -475,7 +475,7 @@ publish_zone_dht_start (void *cls,
 static void
 send_lookup_response (void* cls,
 		      uint32_t rd_count,
-		      const struct GNUNET_NAMESTORE_RecordData *rd)
+		      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ClientLookupHandle *clh = cls;
   struct GNUNET_GNS_ClientLookupResultMessage *rmsg;
@@ -486,13 +486,13 @@ send_lookup_response (void* cls,
               "LOOKUP_RESULT",
 	      rd_count);
 
-  len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   rmsg = GNUNET_malloc (len + sizeof (struct GNUNET_GNS_ClientLookupResultMessage));
   rmsg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT);
   rmsg->header.size = htons (len + sizeof(struct GNUNET_GNS_ClientLookupResultMessage));
   rmsg->id = clh->request_id;
   rmsg->rd_count = htonl (rd_count);
-  GNUNET_NAMESTORE_records_serialize (rd_count, rd, len,
+  GNUNET_GNSRECORD_records_serialize (rd_count, rd, len,
 				      (char*) &rmsg[1]);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      clh->client,

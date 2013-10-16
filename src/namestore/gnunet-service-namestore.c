@@ -347,14 +347,14 @@ struct LookupBlockContext
 
 
 /**
- * A #GNUNET_NAMESTORE_BlockCallback for name lookups in #handle_lookup_block
+ * A #GNUNET_GNSRECORD_BlockCallback for name lookups in #handle_lookup_block
  *
  * @param cls a `struct LookupNameContext *` with information about the request
  * @param block the block
  */
 static void
 handle_lookup_block_it (void *cls,
-			const struct GNUNET_NAMESTORE_Block *block)
+			const struct GNUNET_GNSRECORD_Block *block)
 {
   struct LookupBlockContext *lnc = cls;
   struct LookupBlockResponseMessage *r;
@@ -455,7 +455,7 @@ handle_block_cache (void *cls,
   struct NamestoreClient *nc;
   const struct BlockCacheMessage *rp_msg;
   struct BlockCacheResponseMessage rpr_msg;
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
   size_t esize;
   int res;
 
@@ -468,7 +468,7 @@ handle_block_cache (void *cls,
   }
   rp_msg = (const struct BlockCacheMessage *) message;
   esize = ntohs (rp_msg->gns_header.header.size) - sizeof (struct BlockCacheMessage);
-  block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) + esize);
+  block = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Block) + esize);
   block->signature = rp_msg->signature;
   block->derived_key = rp_msg->derived_key;
   block->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -515,7 +515,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 		      const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		      const char *name,
 		      unsigned int rd_count,
-		      const struct GNUNET_NAMESTORE_RecordData *rd)
+		      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RecordResultMessage *zir_msg;
   size_t name_len;
@@ -525,7 +525,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   char *rd_ser;
 
   name_len = strlen (name) + 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   msg_size = sizeof (struct RecordResultMessage) + name_len + rd_ser_len;
 
   zir_msg = GNUNET_malloc (msg_size);
@@ -539,7 +539,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   name_tmp = (char *) &zir_msg[1];
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
+  GNUNET_GNSRECORD_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message with %u records and size %u\n",
 	      "RECORD_RESULT",
@@ -566,18 +566,18 @@ static void
 refresh_block (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                const char *name,
                unsigned int rd_count,
-               const struct GNUNET_NAMESTORE_RecordData *rd)
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
 
   if (0 == rd_count)
-    block = GNUNET_NAMESTORE_block_create (zone_key,
+    block = GNUNET_GNSRECORD_block_create (zone_key,
                                            GNUNET_TIME_UNIT_ZERO_ABS,
                                            name,
                                            rd, rd_count);
   else
-    block = GNUNET_NAMESTORE_block_create (zone_key,
-                                           GNUNET_NAMESTORE_record_get_expiration_time (rd_count,
+    block = GNUNET_GNSRECORD_block_create (zone_key,
+                                           GNUNET_GNSRECORD_record_get_expiration_time (rd_count,
                                                                                         rd),
                                            name,
                                            rd, rd_count);
@@ -659,10 +659,10 @@ handle_record_store (void *cls,
     return;
   }
   {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
 
     if (GNUNET_OK !=
-	GNUNET_NAMESTORE_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
+	GNUNET_GNSRECORD_records_deserialize (rd_ser_len, rd_ser, rd_count, rd))
     {
       GNUNET_break (0);
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -672,7 +672,7 @@ handle_record_store (void *cls,
     /* Extracting and converting private key */
     GNUNET_CRYPTO_ecdsa_key_get_public (&rp_msg->private_key,
 				      &pubkey);
-    conv_name = GNUNET_NAMESTORE_normalize_string (name_tmp);
+    conv_name = GNUNET_GNSRECORD_string_to_lowercase (name_tmp);
     if (NULL == conv_name)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -684,7 +684,7 @@ handle_record_store (void *cls,
 		"Creating %u records for name `%s' in zone `%s'\n",
 		(unsigned int) rd_count,
 		conv_name,
-		GNUNET_NAMESTORE_z2s (&pubkey));
+		GNUNET_GNSRECORD_z2s (&pubkey));
 
     if ( (0 == rd_count) &&
          (GNUNET_NO ==
@@ -777,7 +777,7 @@ handle_zone_to_name_it (void *cls,
 			const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			const char *name,
 			unsigned int rd_count,
-			const struct GNUNET_NAMESTORE_RecordData *rd)
+			const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneToNameCtx *ztn_ctx = cls;
   struct ZoneToNameResponseMessage *ztnr_msg;
@@ -793,7 +793,7 @@ handle_zone_to_name_it (void *cls,
 	      name);
   res = GNUNET_YES;
   name_len = (NULL == name) ? 0 : strlen (name) + 1;
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   msg_size = sizeof (struct ZoneToNameResponseMessage) + name_len + rd_ser_len;
   if (msg_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -814,7 +814,7 @@ handle_zone_to_name_it (void *cls,
   if (NULL != name)
     memcpy (name_tmp, name, name_len);
   rd_tmp = &name_tmp[name_len];
-  GNUNET_NAMESTORE_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
+  GNUNET_GNSRECORD_records_serialize (rd_count, rd, rd_ser_len, rd_tmp);
   ztn_ctx->success = GNUNET_OK;
   GNUNET_SERVER_notification_context_unicast (snc, ztn_ctx->nc->client,
 					      &ztnr_msg->gns_header.header,
@@ -939,7 +939,7 @@ zone_iteraterate_proc (void *cls,
                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                        const char *name,
                        unsigned int rd_count,
-                       const struct GNUNET_NAMESTORE_RecordData *rd)
+                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneIterationProcResult *proc = cls;
   unsigned int i;
@@ -969,8 +969,8 @@ zone_iteraterate_proc (void *cls,
 			rd);
   do_refresh_block = GNUNET_NO;
   for (i=0;i<rd_count;i++)
-    if(  (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)) &&
-         (0 == (rd[i].flags & GNUNET_NAMESTORE_RF_PENDING)) )
+    if(  (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION)) &&
+         (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PENDING)) )
     {
       do_refresh_block = GNUNET_YES;
       break;
@@ -1201,7 +1201,7 @@ monitor_iterate_cb (void *cls,
 		    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		    const char *name,
 		    unsigned int rd_count,
-		    const struct GNUNET_NAMESTORE_RecordData *rd)
+		    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneMonitor *zm = cls;
 

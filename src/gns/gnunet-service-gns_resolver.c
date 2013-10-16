@@ -504,7 +504,7 @@ translate_dot_plus (struct GNS_ResolverHandle *rh,
 		   "%.*s.%s",
 		   (int) (s_len - 2),
 		   name,
-		   GNUNET_NAMESTORE_pkey_to_zkey (&rh->ac_tail->authority_info.gns_authority));
+		   GNUNET_GNSRECORD_pkey_to_zkey (&rh->ac_tail->authority_info.gns_authority));
   GNUNET_free (name);
   return ret;
 }
@@ -598,7 +598,7 @@ transmit_lookup_dns_result (struct GNS_ResolverHandle *rh)
   for (pos = rh->dns_result_head; NULL != pos; pos = pos->next)
     n++;
   {
-    struct GNUNET_NAMESTORE_RecordData rd[n];
+    struct GNUNET_GNSRECORD_Data rd[n];
 
     i = 0;
     for (pos = rh->dns_result_head; NULL != pos; pos = pos->next)
@@ -608,12 +608,12 @@ transmit_lookup_dns_result (struct GNS_ResolverHandle *rh)
       rd[i].record_type = pos->record_type;
       if (0 == pos->expiration_time)
       {
-	rd[i].flags = GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+	rd[i].flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 	rd[i].expiration_time = 0;
       }
       else
       {
-	rd[i].flags = GNUNET_NAMESTORE_RF_NONE;
+	rd[i].flags = GNUNET_GNSRECORD_RF_NONE;
 	rd[i].expiration_time = pos->expiration_time;
       }
       i++;
@@ -785,7 +785,7 @@ dns_result_parser (void *cls,
   /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
   {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
     unsigned int skip;
     char buf[UINT16_MAX];
     size_t buf_off;
@@ -1064,7 +1064,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
 static void
 handle_gns_resolution_result (void *cls,
 			      unsigned int rd_count,
-			      const struct GNUNET_NAMESTORE_RecordData *rd);
+			      const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -1088,13 +1088,13 @@ vpn_allocation_cb (void *cls,
 {
   struct VpnContext *vpn_ctx = cls;
   struct GNS_ResolverHandle *rh = vpn_ctx->rh;
-  struct GNUNET_NAMESTORE_RecordData rd[vpn_ctx->rd_count];
+  struct GNUNET_GNSRECORD_Data rd[vpn_ctx->rd_count];
   unsigned int i;
 
   vpn_ctx->vpn_request = NULL;
   rh->vpn_ctx = NULL;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_NAMESTORE_records_deserialize (vpn_ctx->rd_data_size,
+		 GNUNET_GNSRECORD_records_deserialize (vpn_ctx->rd_data_size,
 						       vpn_ctx->rd_data,
 						       vpn_ctx->rd_count,
 						       rd));
@@ -1143,7 +1143,7 @@ vpn_allocation_cb (void *cls,
 static void
 handle_gns_resolution_result (void *cls,
 			      unsigned int rd_count,
-			      const struct GNUNET_NAMESTORE_RecordData *rd)
+			      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac;
@@ -1163,13 +1163,13 @@ handle_gns_resolution_result (void *cls,
   size_t scratch_off;
   size_t scratch_start;
   size_t off;
-  struct GNUNET_NAMESTORE_RecordData rd_new[rd_count];
+  struct GNUNET_GNSRECORD_Data rd_new[rd_count];
   unsigned int rd_off;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resolution succeeded for `%s' in zone %s, got %u records\n",
 	      rh->ac_tail->label,
-	      GNUNET_NAMESTORE_z2s (&rh->ac_tail->authority_info.gns_authority),
+	      GNUNET_GNSRECORD_z2s (&rh->ac_tail->authority_info.gns_authority),
 	      rd_count);
   if (0 == rh->name_resolution_pos)
   {
@@ -1230,10 +1230,10 @@ handle_gns_resolution_result (void *cls,
 	    vpn_ctx = GNUNET_new (struct VpnContext);
 	    rh->vpn_ctx = vpn_ctx;
 	    vpn_ctx->rh = rh;
-	    vpn_ctx->rd_data_size = GNUNET_NAMESTORE_records_get_size (rd_count,
+	    vpn_ctx->rd_data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
 								       rd);
 	    vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
-	    (void) GNUNET_NAMESTORE_records_serialize (rd_count,
+	    (void) GNUNET_GNSRECORD_records_serialize (rd_count,
 						       rd,
 						       vpn_ctx->rd_data_size,
 						       vpn_ctx->rd_data);
@@ -1720,7 +1720,7 @@ handle_dht_response (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac = rh->ac_tail;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
   struct CacheOps *co;
 
   GNUNET_DHT_get_stop (rh->get_handle);
@@ -1729,7 +1729,7 @@ handle_dht_response (void *cls,
   rh->dht_heap_node = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Handling response from the DHT\n");
-  if (size < sizeof (struct GNUNET_NAMESTORE_Block))
+  if (size < sizeof (struct GNUNET_GNSRECORD_Block))
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
@@ -1750,7 +1750,7 @@ handle_dht_response (void *cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_decrypt (block,
+      GNUNET_GNSRECORD_block_decrypt (block,
 				      &ac->authority_info.gns_authority,
 				      ac->label,
 				      &handle_gns_resolution_result,
@@ -1783,7 +1783,7 @@ handle_dht_response (void *cls,
  */
 static void
 handle_namestore_block_response (void *cls,
-				 const struct GNUNET_NAMESTORE_Block *block)
+				 const struct GNUNET_GNSRECORD_Block *block)
 {
   struct GNS_ResolverHandle *rh = cls;
   struct GNS_ResolverHandle *rx;
@@ -1792,7 +1792,7 @@ handle_namestore_block_response (void *cls,
   const struct GNUNET_CRYPTO_EcdsaPublicKey *auth = &ac->authority_info.gns_authority;
   struct GNUNET_HashCode query;
 
-  GNUNET_NAMESTORE_query_from_public_key (auth,
+  GNUNET_GNSRECORD_query_from_public_key (auth,
 					  label,
 					  &query);
   GNUNET_assert (NULL != rh->namestore_qe);
@@ -1805,7 +1805,7 @@ handle_namestore_block_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Starting DHT lookup for `%s' in zone %s\n",
 		ac->label,
-		GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
+		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
     GNUNET_assert (NULL == rh->get_handle);
     rh->get_handle = GNUNET_DHT_get_start (dht_handle,
 					   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
@@ -1834,7 +1834,7 @@ handle_namestore_block_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Resolution failed for `%s' in zone %s (DHT lookup not permitted by configuration)\n",
 		ac->label,
-		GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
+		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
     rh->proc (rh->proc_cls, 0, NULL);
     GNS_resolver_lookup_cancel (rh);
     return;
@@ -1842,7 +1842,7 @@ handle_namestore_block_response (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Decrypting block from the namestore\n");
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_decrypt (block,
+      GNUNET_GNSRECORD_block_decrypt (block,
 				      auth,
 				      label,
 				      &handle_gns_resolution_result,
@@ -1870,8 +1870,8 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting GNS resolution for `%s' in zone %s\n",
 	      ac->label,
-	      GNUNET_NAMESTORE_z2s (&ac->authority_info.gns_authority));
-  GNUNET_NAMESTORE_query_from_public_key (&ac->authority_info.gns_authority,
+	      GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
+  GNUNET_GNSRECORD_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
   rh->namestore_qe = GNUNET_NAMESTORE_lookup_block (namestore_handle,

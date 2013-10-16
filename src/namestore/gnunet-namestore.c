@@ -100,12 +100,12 @@ static struct GNUNET_NAMESTORE_ZoneIterator *list_it;
 static int del;
 
 /**
- * Is record public (opposite of #GNUNET_NAMESTORE_RF_PRIVATE)
+ * Is record public (opposite of #GNUNET_GNSRECORD_RF_PRIVATE)
  */
 static int public;
 
 /**
- * Is record a shadow record (#GNUNET_NAMESTORE_RF_SHADOW_RECORD)
+ * Is record a shadow record (#GNUNET_GNSRECORD_RF_SHADOW_RECORD)
  */
 static int shadow;
 
@@ -338,7 +338,7 @@ display_record (void *cls,
 		const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		const char *name,
 		unsigned int rd_len,
-		const struct GNUNET_NAMESTORE_RecordData *rd)
+		const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typestring;
   char *s;
@@ -368,7 +368,7 @@ display_record (void *cls,
 	       (unsigned int) rd[i].record_type);
       continue;
     }
-    if (0 != (rd[i].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
       rt.rel_value_us = rd[i].expiration_time;
       ets = GNUNET_STRINGS_relative_time_to_string (rt, GNUNET_YES);
@@ -417,10 +417,10 @@ get_existing_record (void *cls,
 		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		     const char *rec_name,
 		     unsigned int rd_count,
-		     const struct GNUNET_NAMESTORE_RecordData *rd)
+		     const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_NAMESTORE_RecordData rdn[rd_count + 1];
-  struct GNUNET_NAMESTORE_RecordData *rde;
+  struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
+  struct GNUNET_GNSRECORD_Data *rde;
 
   if ( (NULL != zone_key) &&
        (0 != strcmp (rec_name, name)) )
@@ -428,8 +428,8 @@ get_existing_record (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (add_zit);
     return;
   }
-  memset (rdn, 0, sizeof (struct GNUNET_NAMESTORE_RecordData));
-  memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
+  memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
   /* FIXME: should add some logic to overwrite records if there
      can only be one record of a particular type, and to check
      if the combination of records is valid to begin with... */
@@ -438,13 +438,13 @@ get_existing_record (void *cls,
   rde->data_size = data_size;
   rde->record_type = type;
   if (1 != shadow)
-    rde->flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
+    rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   if (1 != public)
-    rde->flags |= GNUNET_NAMESTORE_RF_PRIVATE;
+    rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
   if (GNUNET_YES == etime_is_rel)
   {
     rde->expiration_time = etime_rel.rel_value_us;
-    rde->flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+    rde->flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   }
   else if (GNUNET_NO == etime_is_rel)
     rde->expiration_time = etime_abs.abs_value_us;
@@ -477,7 +477,7 @@ get_existing_record (void *cls,
 static void
 display_records_from_block (void *cls,
 			    unsigned int rd_len,
-			    const struct GNUNET_NAMESTORE_RecordData *rd)
+			    const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typestring;
   char *s;
@@ -523,7 +523,7 @@ display_records_from_block (void *cls,
  */
 static void
 handle_block (void *cls,
-	      const struct GNUNET_NAMESTORE_Block *block)
+	      const struct GNUNET_GNSRECORD_Block *block)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey zone_pubkey;
 
@@ -536,7 +536,7 @@ handle_block (void *cls,
 	     "No matching block found\n");
   }
   else if (GNUNET_OK !=
-	   GNUNET_NAMESTORE_block_decrypt (block,
+	   GNUNET_GNSRECORD_block_decrypt (block,
 					   &zone_pubkey,
 					   name,
 					   &display_records_from_block,
@@ -564,7 +564,7 @@ handle_reverse_lookup (void *cls,
                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                        const char *label,
                        unsigned int rd_count,
-                       const struct GNUNET_NAMESTORE_RecordData *rd)
+                       const struct GNUNET_GNSRECORD_Data *rd)
 {
   reverse_qe = NULL;
   if (NULL == label)
@@ -593,7 +593,7 @@ testservice_task (void *cls,
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
   if (GNUNET_YES != result)
   {
@@ -743,7 +743,7 @@ testservice_task (void *cls,
 
       GNUNET_CRYPTO_ecdsa_key_get_public (&zone_pkey,
 						      &zone_pubkey);
-      GNUNET_NAMESTORE_query_from_public_key (&zone_pubkey,
+      GNUNET_GNSRECORD_query_from_public_key (&zone_pubkey,
 					      name,
 					      &query);
       list_qe = GNUNET_NAMESTORE_lookup_block (ns,
@@ -799,14 +799,14 @@ testservice_task (void *cls,
     if (GNUNET_YES == etime_is_rel)
     {
       rd.expiration_time = etime_rel.rel_value_us;
-      rd.flags |= GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION;
+      rd.flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
     }
     else if (GNUNET_NO == etime_is_rel)
       rd.expiration_time = etime_abs.abs_value_us;
     else
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
     if (1 != shadow)
-      rd.flags |= GNUNET_NAMESTORE_RF_SHADOW_RECORD;
+      rd.flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
 						 &zone_pkey,
 						 sname,

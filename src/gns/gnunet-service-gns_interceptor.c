@@ -97,7 +97,7 @@ static struct InterceptLookupHandle *ilh_tail;
  */
 static void
 reply_to_dns (void *cls, uint32_t rd_count,
-	      const struct GNUNET_NAMESTORE_RecordData *rd)
+	      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct InterceptLookupHandle *ilh = cls;
   struct GNUNET_DNSPARSER_Packet *packet = ilh->packet;
@@ -125,7 +125,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 
     packet->answers = answer_records;
     packet->additional_records = additional_records;
-    /* FIXME: need to handle #GNUNET_NAMESTORE_RF_SHADOW_RECORD option
+    /* FIXME: need to handle #GNUNET_GNSRECORD_RF_SHADOW_RECORD option
        (by ignoring records where this flag is set if there is any
        other record of that type in the result set) */
     for (i=0; i < rd_count; i++)
@@ -183,7 +183,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  answer_records[i - skip_answers].data.raw.data = (char*)rd[i].data;
 	  break;
 	}
-	GNUNET_break (0 == (rd[i - skip_answers].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+	GNUNET_break (0 == (rd[i - skip_answers].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION));
 	answer_records[i - skip_answers].expiration_time.abs_value_us = rd[i].expiration_time;
 	answer_records[i - skip_answers].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }
@@ -240,7 +240,7 @@ reply_to_dns (void *cls, uint32_t rd_count,
 	  additional_records[i - skip_additional].data.raw.data = (char*)rd[i].data;
 	  break;
 	}
-	GNUNET_break (0 == (rd[i - skip_additional].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION));
+	GNUNET_break (0 == (rd[i - skip_additional].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION));
 	additional_records[i - skip_additional].expiration_time.abs_value_us = rd[i].expiration_time;
 	additional_records[i - skip_additional].dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
       }

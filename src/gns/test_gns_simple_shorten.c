@@ -246,7 +246,7 @@ void do_check (void *cls,
   GNUNET_CRYPTO_short_hash(&priv_pkey, sizeof(priv_pkey), &priv_zone);
   GNUNET_CRYPTO_short_hash(&short_pkey, sizeof(short_pkey), &short_zone);
 
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
@@ -257,7 +257,7 @@ void do_check (void *cls,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   /* put bob into our zone */
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,

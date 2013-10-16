@@ -46,15 +46,15 @@ static int returned_records;
 
 static char * s_name_1;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_1;
+static struct GNUNET_GNSRECORD_Data *s_rd_1;
 
 static char * s_name_2;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_2;
+static struct GNUNET_GNSRECORD_Data *s_rd_2;
 
 static char * s_name_3;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_3;
+static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 
 /**
@@ -159,7 +159,7 @@ zone_proc (void *cls,
 					 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 unsigned int rd_count,
-					 const struct GNUNET_NAMESTORE_RecordData *rd)
+					 const struct GNUNET_GNSRECORD_Data *rd)
 {
   int failed = GNUNET_NO;
   if ((zone == NULL) && (label == NULL))
@@ -187,7 +187,7 @@ zone_proc (void *cls,
       {
         if (rd_count == 1)
         {
-          if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_1))
+          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
           {
             failed = GNUNET_YES;
             GNUNET_break (0);
@@ -203,7 +203,7 @@ zone_proc (void *cls,
       {
         if (rd_count == 1)
         {
-          if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_2))
+          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
           {
             failed = GNUNET_YES;
             GNUNET_break (0);
@@ -297,13 +297,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
 }
 
 
-static struct GNUNET_NAMESTORE_RecordData *
+static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
   unsigned int c;
-  struct GNUNET_NAMESTORE_RecordData * rd;
+  struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
   for (c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;
@@ -326,7 +326,7 @@ empty_zone_proc (void *cls,
 		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 		 const char *label,
 		 unsigned int rd_count,
-		 const struct GNUNET_NAMESTORE_RecordData *rd)
+		 const struct GNUNET_GNSRECORD_Data *rd)
 {
   char *hostkey_file;
 

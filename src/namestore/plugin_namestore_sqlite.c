@@ -457,7 +457,7 @@ namestore_sqlite_expire_blocks (struct Plugin *plugin)
  */
 static int
 namestore_sqlite_cache_block (void *cls,
-			      const struct GNUNET_NAMESTORE_Block *block)
+			      const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
@@ -580,13 +580,13 @@ namestore_sqlite_cache_block (void *cls,
 static int
 namestore_sqlite_lookup_block (void *cls,
 			       const struct GNUNET_HashCode *query,
-			       GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls)
+			       GNUNET_GNSRECORD_BlockCallback iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   int ret;
   int sret;
   size_t block_size;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   if (SQLITE_OK != sqlite3_bind_blob (plugin->lookup_block, 1,
 				      query, sizeof (struct GNUNET_HashCode),
@@ -605,7 +605,7 @@ namestore_sqlite_lookup_block (void *cls,
   {
     block = sqlite3_column_blob (plugin->lookup_block, 0);
     block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
-    if ( (block_size < sizeof (struct GNUNET_NAMESTORE_Block)) ||
+    if ( (block_size < sizeof (struct GNUNET_GNSRECORD_Block)) ||
 	 (ntohl (block->purpose.size) +
 	  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
 	  sizeof (struct GNUNET_CRYPTO_EcdsaSignature) != block_size) )
@@ -660,7 +660,7 @@ namestore_sqlite_store_records (void *cls,
 				const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 				const char *label,
 				unsigned int rd_count,
-				const struct GNUNET_NAMESTORE_RecordData *rd)
+				const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -680,7 +680,7 @@ namestore_sqlite_store_records (void *cls,
       break;
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  data_size = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -689,7 +689,7 @@ namestore_sqlite_store_records (void *cls,
   {
     char data[data_size];
 
-    if (data_size != GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+    if (data_size != GNUNET_GNSRECORD_records_serialize (rd_count, rd,
 							 data_size, data))
     {
       GNUNET_break (0);
@@ -817,10 +817,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
     }
     else
     {
-      struct GNUNET_NAMESTORE_RecordData rd[record_count];
+      struct GNUNET_GNSRECORD_Data rd[record_count];
 
       if (GNUNET_OK !=
-	  GNUNET_NAMESTORE_records_deserialize (data_size, data,
+	  GNUNET_GNSRECORD_records_deserialize (data_size, data,
 						record_count, rd))
       {
 	GNUNET_break (0);
@@ -935,7 +935,7 @@ namestore_sqlite_zone_to_name (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Performing reverse lookup for `%s'\n",
-       GNUNET_NAMESTORE_z2s (value_zone));
+       GNUNET_GNSRECORD_z2s (value_zone));
 
   return get_record_and_call_iterator (plugin, stmt, zone, iter, iter_cls);
 }

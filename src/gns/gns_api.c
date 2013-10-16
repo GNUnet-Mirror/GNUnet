@@ -366,7 +366,7 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
   struct GNUNET_GNS_Handle *handle = qe->gns_handle;
   struct PendingMessage *p = (struct PendingMessage *) &qe[1];
   uint32_t rd_count = ntohl (msg->rd_count);
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  struct GNUNET_GNSRECORD_Data rd[rd_count];
   size_t mlen;
 
   if (GNUNET_YES != p->transmitted)
@@ -378,7 +378,7 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
   }
   mlen = ntohs (msg->header.size);
   mlen -= sizeof (struct GNUNET_GNS_ClientLookupResultMessage);
-  if (GNUNET_SYSERR == GNUNET_NAMESTORE_records_deserialize (mlen,
+  if (GNUNET_SYSERR == GNUNET_GNSRECORD_records_deserialize (mlen,
                                                              (const char*) &msg[1],
                                                              rd_count,
                                                              rd))

@@ -104,7 +104,7 @@ shutdown_task (void *cls,
 
 static void
 on_lookup_result(void *cls, uint32_t rd_count,
-                 const struct GNUNET_NAMESTORE_RecordData *rd)
+                 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct in_addr a;
   int i;
@@ -216,7 +216,7 @@ do_check (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (alice_key, &alice_pkey);
   GNUNET_CRYPTO_ecdsa_key_get_public (bob_key, &bob_pkey);
 
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char* ip = TEST_IP;
   struct in_addr *web = GNUNET_malloc(sizeof(struct in_addr));
   rd.expiration_time = UINT64_MAX;
@@ -227,7 +227,7 @@ do_check (void *cls,
   rd.data_size = sizeof(struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = &bob_hash;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
 
   GNUNET_NAMESTORE_record_put_by_authority (namestore_handle,
 					    alice_key,

@@ -84,7 +84,7 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle);
  */
 typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
 						  uint32_t rd_count,
-						  const struct GNUNET_NAMESTORE_RecordData *rd);
+						  const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**

@@ -43,7 +43,7 @@
  * @return converted result
  */
 char *
-GNUNET_NAMESTORE_normalize_string (const char *src)
+GNUNET_GNSRECORD_string_to_lowercase (const char *src)
 {
   GNUNET_assert (NULL != src);
   char *res = strdup (src);
@@ -59,10 +59,10 @@ GNUNET_NAMESTORE_normalize_string (const char *src)
  * NOT reentrant!
  *
  * @param z the zone key
- * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s
+ * @return string form; will be overwritten by next call to #GNUNET_GNSRECORD_z2s
  */
 const char *
-GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z)
+GNUNET_GNSRECORD_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z)
 {
   static char buf[sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) * 8];
   char *end;
@@ -90,8 +90,8 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z)
  * @return #GNUNET_YES if the records are equal or #GNUNET_NO if they are not
  */
 int
-GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
-                              const struct GNUNET_NAMESTORE_RecordData *b)
+GNUNET_GNSRECORD_records_cmp (const struct GNUNET_GNSRECORD_Data *a,
+                              const struct GNUNET_GNSRECORD_Data *b)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Comparing records\n");
@@ -110,13 +110,13 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
          b->expiration_time);
     return GNUNET_NO;
   }
-  if ((a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS)
-       != (b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS))
+  if ((a->flags & GNUNET_GNSRECORD_RF_RCMP_FLAGS)
+       != (b->flags & GNUNET_GNSRECORD_RF_RCMP_FLAGS))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Flags %lu (%lu) != %lu (%lu)\n", a->flags,
-         a->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS, b->flags,
-         b->flags & GNUNET_NAMESTORE_RF_RCMP_FLAGS);
+         a->flags & GNUNET_GNSRECORD_RF_RCMP_FLAGS, b->flags,
+         b->flags & GNUNET_GNSRECORD_RF_RCMP_FLAGS);
     return GNUNET_NO;
   }
   if (a->data_size != b->data_size)
@@ -149,8 +149,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
-GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
-					     const struct GNUNET_NAMESTORE_RecordData *rd)
+GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
+					     const struct GNUNET_GNSRECORD_Data *rd)
 {
   unsigned int c;
   struct GNUNET_TIME_Absolute expire;
@@ -162,7 +162,7 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
   expire = GNUNET_TIME_UNIT_FOREVER_ABS;
   for (c = 0; c < rd_count; c++)
   {
-    if (0 != (rd[c].flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+    if (0 != (rd[c].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
       rt.rel_value_us = rd[c].expiration_time;
       at = GNUNET_TIME_relative_to_absolute (rt);
@@ -188,11 +188,11 @@ GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
  *         #GNUNET_NO if not
  */
 int
-GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
+GNUNET_GNSRECORD_is_expired (const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_TIME_Absolute at;
 
-  if (0 != (rd->flags & GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION))
+  if (0 != (rd->flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     return GNUNET_NO;
   at.abs_value_us = rd->expiration_time;
   return (0 == GNUNET_TIME_absolute_get_remaining (at).rel_value_us) ? GNUNET_YES : GNUNET_NO;
@@ -210,7 +210,7 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd)
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
+GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   static char ret[128];
   char *pkeys;
@@ -235,7 +235,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
-GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
+GNUNET_GNSRECORD_zkey_to_pkey (const char *zkey,
 			       struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
 {
   char *cpy;

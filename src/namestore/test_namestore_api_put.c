@@ -45,7 +45,7 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
 static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd;
+static struct GNUNET_GNSRECORD_Data *s_rd;
 
 static int res;
 
@@ -111,13 +111,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
 }
 
 
-static struct GNUNET_NAMESTORE_RecordData *
+static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
   unsigned int c;
-  struct GNUNET_NAMESTORE_RecordData * rd;
+  struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
   for (c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
@@ -154,7 +154,7 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* create record */
-  s_name = GNUNET_NAMESTORE_normalize_string ("DUMMY.dummy.gnunet");
+  s_name = GNUNET_GNSRECORD_string_to_lowercase ("DUMMY.dummy.gnunet");
   s_rd = create_record (RECORDS);
   et.abs_value_us = s_rd[0].expiration_time;
   signature = GNUNET_NAMESTORE_create_signature(privkey, et, s_name, s_rd, RECORDS);

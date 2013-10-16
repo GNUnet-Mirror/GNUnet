@@ -112,9 +112,9 @@ put_cont (void *cls, int32_t success, const char *emsg);
 static void
 rd_decrypt_cb (void *cls,
                unsigned int rd_count,
-               const struct GNUNET_NAMESTORE_RecordData *rd)
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_NAMESTORE_RecordData rd_new;
+  struct GNUNET_GNSRECORD_Data rd_new;
 
   GNUNET_assert (1 == rd_count);
   GNUNET_assert (NULL != rd);
@@ -131,7 +131,7 @@ rd_decrypt_cb (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Block was decrypted successfully, updating record \n");
 
-    rd_new.flags = GNUNET_NAMESTORE_RF_NONE;
+    rd_new.flags = GNUNET_GNSRECORD_RF_NONE;
     rd_new.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
     rd_new.record_type = TEST_RECORD_TYPE2;
     rd_new.data_size = TEST_RECORD_DATALEN2;
@@ -158,7 +158,7 @@ rd_decrypt_cb (void *cls,
 
 static void
 name_lookup_proc (void *cls,
-                  const struct GNUNET_NAMESTORE_Block *block)
+                  const struct GNUNET_GNSRECORD_Block *block)
 {
   const char *name = cls;
   nsqe = NULL;
@@ -183,7 +183,7 @@ name_lookup_proc (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
@@ -202,7 +202,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
-  GNUNET_NAMESTORE_query_from_private_key (privkey, name, &derived_hash);
+  GNUNET_GNSRECORD_query_from_private_key (privkey, name, &derived_hash);
 
   nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
 					 &name_lookup_proc, (void *) name);
@@ -214,7 +214,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char *hostkey_file;
 
   update_performed = GNUNET_NO;
@@ -230,7 +230,7 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
-  rd.flags = GNUNET_NAMESTORE_RF_NONE;
+  rd.flags = GNUNET_GNSRECORD_RF_NONE;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;

@@ -84,7 +84,7 @@ test_record (void *cls,
 						 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
 						 const char *label,
 						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd)
+						 const struct GNUNET_GNSRECORD_Data *rd)
 {
   int *idp = cls;
   int id = *idp;
@@ -122,7 +122,7 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone_private_key;
   char label[64];
   unsigned int rd_count = 1 + (id % 1024);
-  struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+  struct GNUNET_GNSRECORD_Data rd[rd_count];
   struct GNUNET_CRYPTO_EcdsaSignature signature;
   unsigned int i;
 

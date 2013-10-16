@@ -296,7 +296,7 @@ dns_result_processor (void *cls,
 static void
 result_processor (void *cls,
 		  uint32_t rd_count,
-		  const struct GNUNET_NAMESTORE_RecordData *rd)
+		  const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *request = cls;
   struct GNUNET_DNSPARSER_Packet *packet;
@@ -316,7 +316,7 @@ result_processor (void *cls,
   //packet->flags.opcode = GNUNET_TUN_DNS_OPCODE_STATUS; // ???
   for (i=0;i<rd_count;i++)
     {
-      // FIXME: do we need to hanlde #GNUNET_NAMESTORE_RF_SHADOW_RECORD
+      // FIXME: do we need to hanlde #GNUNET_GNSRECORD_RF_SHADOW_RECORD
       // here? Or should we do this in libgnunetgns?
       rec.expiration_time.abs_value_us = rd[i].expiration_time;
       switch (rd[i].record_type)

@@ -2208,11 +2208,11 @@ signal_socks_success (struct Socks5Request *s5r)
 static void
 handle_gns_result (void *cls,
 		   uint32_t rd_count,
-		   const struct GNUNET_NAMESTORE_RecordData *rd)
+		   const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Socks5Request *s5r = cls;
   uint32_t i;
-  const struct GNUNET_NAMESTORE_RecordData *r;
+  const struct GNUNET_GNSRECORD_Data *r;
   int got_ip;
 
   s5r->gns_lookup = NULL;

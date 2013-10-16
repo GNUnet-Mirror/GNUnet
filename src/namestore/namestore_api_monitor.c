@@ -186,9 +186,9 @@ handle_updates (void *cls,
   }
   rd_ser_tmp = (const char *) &name_tmp[name_len];
   {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd))
+    if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize (rd_len, rd_ser_tmp, rd_count, rd))
     {
       GNUNET_break (0);
       reconnect (zm);

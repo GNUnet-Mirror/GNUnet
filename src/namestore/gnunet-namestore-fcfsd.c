@@ -246,7 +246,7 @@ iterate_cb (void *cls,
 	    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 	    const char *name,
 	    unsigned int rd_len,
-	    const struct GNUNET_NAMESTORE_RecordData *rd)
+	    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct ZoneinfoRequest *zr = cls;
   struct MHD_Response *response;
@@ -508,10 +508,10 @@ zone_to_name_cb (void *cls,
 		 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 		 const char *name,
 		 unsigned int rd_count,
-		 const struct GNUNET_NAMESTORE_RecordData *rd)
+		 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *request = cls;
-  struct GNUNET_NAMESTORE_RecordData r;
+  struct GNUNET_GNSRECORD_Data r;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   request->qe = NULL;
@@ -530,7 +530,7 @@ zone_to_name_cb (void *cls,
   r.data_size = sizeof (pub);
   r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  r.flags = GNUNET_NAMESTORE_RF_NONE;
+  r.flags = GNUNET_GNSRECORD_RF_NONE;
   request->qe = GNUNET_NAMESTORE_records_store (ns,
 						&fcfs_zone_pkey,
 						request->domain_name,
@@ -552,7 +552,7 @@ zone_to_name_cb (void *cls,
 static void
 lookup_result_processor (void *cls,
 			 unsigned int rd_count,
-			 const struct GNUNET_NAMESTORE_RecordData *rd)
+			 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
@@ -594,7 +594,7 @@ lookup_result_processor (void *cls,
  */
 static void
 lookup_block_processor (void *cls,
-			const struct GNUNET_NAMESTORE_Block *block)
+			const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Request *request = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
@@ -608,7 +608,7 @@ lookup_block_processor (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
 				    &pub);
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_decrypt (block,
+      GNUNET_GNSRECORD_block_decrypt (block,
 				      &pub,
 				      request->domain_name,
 				      &lookup_result_processor,
@@ -738,7 +738,7 @@ create_response (void *cls,
 	  request->phase = RP_LOOKUP;
 	  GNUNET_CRYPTO_ecdsa_key_get_public (&fcfs_zone_pkey,
 					    &pub);
-	  GNUNET_NAMESTORE_query_from_public_key (&pub,
+	  GNUNET_GNSRECORD_query_from_public_key (&pub,
 						  request->domain_name,
 						  &query);
 	  request->qe = GNUNET_NAMESTORE_lookup_block (ns,

@@ -78,30 +78,30 @@ derive_block_aes_key (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
  * @param rd_count number of records
  * @return NULL on error (block too large)
  */
-struct GNUNET_NAMESTORE_Block *
-GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+struct GNUNET_GNSRECORD_Block *
+GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 			       struct GNUNET_TIME_Absolute expire,
 			       const char *label,
-			       const struct GNUNET_NAMESTORE_RecordData *rd,
+			       const struct GNUNET_GNSRECORD_Data *rd,
 			       unsigned int rd_count)
 {
-  size_t payload_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  size_t payload_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   char payload[sizeof (uint32_t) + payload_len];
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   struct GNUNET_CRYPTO_EcdsaPrivateKey *dkey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
   uint32_t rd_count_nbo;
 
-  if (payload_len > GNUNET_NAMESTORE_MAX_VALUE_SIZE)
+  if (payload_len > GNUNET_GNSRECORD_MAX_BLOCK_SIZE)
     return NULL;
   rd_count_nbo = htonl (rd_count);
   memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
   GNUNET_assert (payload_len ==
-		 GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+		 GNUNET_GNSRECORD_records_serialize (rd_count, rd,
 						     payload_len, &payload[sizeof (uint32_t)]));
-  block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) +
+  block = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Block) +
 			 sizeof (uint32_t) + payload_len);
   block->purpose.size = htonl (sizeof (uint32_t) + payload_len +
 			       sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -143,7 +143,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @return #GNUNET_OK if the signature is valid
  */
 int
-GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
+GNUNET_GNSRECORD_block_verify (const struct GNUNET_GNSRECORD_Block *block)
 {
   return GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN,
 				   &block->purpose,
@@ -164,10 +164,10 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block)
  *        not well-formed
  */
 int
-GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
+GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
 				const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
 				const char *label,
-				GNUNET_NAMESTORE_RecordCallback proc,
+				GNUNET_GNSRECORD_RecordCallback proc,
 				void *proc_cls)
 {
   size_t payload_len = ntohl (block->purpose.size) -
@@ -203,10 +203,10 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
       return GNUNET_SYSERR;
     }
     {
-      struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+      struct GNUNET_GNSRECORD_Data rd[rd_count];
 
       if (GNUNET_OK !=
-	  GNUNET_NAMESTORE_records_deserialize (payload_len - sizeof (uint32_t),
+	  GNUNET_GNSRECORD_records_deserialize (payload_len - sizeof (uint32_t),
 						&payload[sizeof (uint32_t)],
 						rd_count,
 						rd))
@@ -230,14 +230,14 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+GNUNET_GNSRECORD_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 struct GNUNET_HashCode *query)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-  GNUNET_NAMESTORE_query_from_public_key (&pub, label, query);
+  GNUNET_GNSRECORD_query_from_public_key (&pub, label, query);
 }
 
 
@@ -249,7 +249,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivate
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+GNUNET_GNSRECORD_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 					const char *label,
 					struct GNUNET_HashCode *query)
 {

@@ -37,7 +37,7 @@ extern "C"
 /**
  * Maximum size of a value that can be stored in a GNS block.
  */
-#define GNUNET_NAMESTORE_MAX_VALUE_SIZE (63 * 1024)
+#define GNUNET_GNSRECORD_MAX_BLOCK_SIZE (63 * 1024)
 
 
 /**
@@ -84,37 +84,37 @@ extern "C"
 /**
  * Flags that can be set for a record.
  */
-enum GNUNET_NAMESTORE_RecordFlags
+enum GNUNET_GNSRECORD_Flags
 {
 
   /**
    * No special options.
    */
-  GNUNET_NAMESTORE_RF_NONE = 0,
+  GNUNET_GNSRECORD_RF_NONE = 0,
 
   /**
    * This is a private record of this peer and it should
    * thus not be handed out to other peers.
    */
-  GNUNET_NAMESTORE_RF_PRIVATE = 2,
+  GNUNET_GNSRECORD_RF_PRIVATE = 2,
 
   /**
    * This record was added automatically by the system
    * and is pending user confimation.
    */
-  GNUNET_NAMESTORE_RF_PENDING = 4,
+  GNUNET_GNSRECORD_RF_PENDING = 4,
 
   /**
    * This expiration time of the record is a relative
    * time (not an absolute time).
    */
-  GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION = 8,
+  GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION = 8,
 
   /**
    * This record should not be used unless all (other) records with an absolute
    * expiration time have expired.
    */
-  GNUNET_NAMESTORE_RF_SHADOW_RECORD = 16
+  GNUNET_GNSRECORD_RF_SHADOW_RECORD = 16
 
   /**
    * When comparing flags for record equality for removal,
@@ -125,16 +125,16 @@ enum GNUNET_NAMESTORE_RecordFlags
    * pass the '--private' option when removing a record from
    * the namestore, hence we don't require this particular option
    * to match upon removal).  See also
-   * #GNUNET_NAMESTORE_records_cmp.
+   * #GNUNET_GNSRECORD_records_cmp.
    */
-#define GNUNET_NAMESTORE_RF_RCMP_FLAGS (GNUNET_NAMESTORE_RF_RELATIVE_EXPIRATION)
+#define GNUNET_GNSRECORD_RF_RCMP_FLAGS (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION)
 };
 
 
 /**
  * A GNS record.
  */
-struct GNUNET_NAMESTORE_RecordData
+struct GNUNET_GNSRECORD_Data
 {
 
   /**
@@ -164,7 +164,7 @@ struct GNUNET_NAMESTORE_RecordData
   /**
    * Flags for the record.
    */
-  enum GNUNET_NAMESTORE_RecordFlags flags;
+  enum GNUNET_GNSRECORD_Flags flags;
 };
 
 
@@ -175,7 +175,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Information we have in an encrypted block with record data (i.e. in the DHT).
  */
-struct GNUNET_NAMESTORE_Block
+struct GNUNET_GNSRECORD_Block
 {
 
   /**
@@ -212,9 +212,9 @@ GNUNET_NETWORK_STRUCT_END
  * @param rd_count number of entries in @a rd array
  * @param rd array of records with data to store
  */
-typedef void (*GNUNET_NAMESTORE_RecordCallback) (void *cls,
+typedef void (*GNUNET_GNSRECORD_RecordCallback) (void *cls,
 						 unsigned int rd_count,
-						 const struct GNUNET_NAMESTORE_RecordData *rd);
+						 const struct GNUNET_GNSRECORD_Data *rd);
 
 
 
@@ -279,26 +279,26 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type);
  * records.
  *
  * @param rd_count number of records in the @a rd array
- * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
+ * @param rd array of #GNUNET_GNSRECORD_Data with @a rd_count elements
  * @return the required size to serialize
  */
 size_t
-GNUNET_NAMESTORE_records_get_size (unsigned int rd_count,
-				   const struct GNUNET_NAMESTORE_RecordData *rd);
+GNUNET_GNSRECORD_records_get_size (unsigned int rd_count,
+				   const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
  * Serialize the given records to the given destination buffer.
  *
  * @param rd_count number of records in the @a rd array
- * @param rd array of #GNUNET_NAMESTORE_RecordData with @a rd_count elements
+ * @param rd array of #GNUNET_GNSRECORD_Data with @a rd_count elements
  * @param dest_size size of the destination array @a dst
  * @param dest where to write the result
  * @return the size of serialized records, -1 if records do not fit
  */
 ssize_t
-GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
-				    const struct GNUNET_NAMESTORE_RecordData *rd,
+GNUNET_GNSRECORD_records_serialize (unsigned int rd_count,
+				    const struct GNUNET_GNSRECORD_Data *rd,
 				    size_t dest_size,
 				    char *dest);
 
@@ -313,10 +313,10 @@ GNUNET_NAMESTORE_records_serialize (unsigned int rd_count,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_NAMESTORE_records_deserialize (size_t len,
+GNUNET_GNSRECORD_records_deserialize (size_t len,
 				      const char *src,
 				      unsigned int rd_count,
-				      struct GNUNET_NAMESTORE_RecordData *dest);
+				      struct GNUNET_GNSRECORD_Data *dest);
 
 
 /* ******* general APIs relating to blocks, records and labels ******** */
@@ -331,7 +331,7 @@ GNUNET_NAMESTORE_records_deserialize (size_t len,
  *         #GNUNET_NO if not
  */
 int
-GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd);
+GNUNET_GNSRECORD_is_expired (const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -340,7 +340,7 @@ GNUNET_NAMESTORE_is_expired (const struct GNUNET_NAMESTORE_RecordData *rd);
  * @return converted result
  */
 char *
-GNUNET_NAMESTORE_normalize_string (const char *src);
+GNUNET_GNSRECORD_string_to_lowercase (const char *src);
 
 
 /**
@@ -349,10 +349,10 @@ GNUNET_NAMESTORE_normalize_string (const char *src);
  * NOT reentrant!
  *
  * @param z public key of a zone
- * @return string form; will be overwritten by next call to #GNUNET_NAMESTORE_z2s.
+ * @return string form; will be overwritten by next call to #GNUNET_GNSRECORD_z2s.
  */
 const char *
-GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
+GNUNET_GNSRECORD_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
 
 
 /**
@@ -366,7 +366,7 @@ GNUNET_NAMESTORE_z2s (const struct GNUNET_CRYPTO_EcdsaPublicKey *z);
  *         key in an encoding suitable for DNS labels.
  */
 const char *
-GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
+GNUNET_GNSRECORD_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
 /**
@@ -379,7 +379,7 @@ GNUNET_NAMESTORE_pkey_to_zkey (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
  * @return #GNUNET_SYSERR if @a zkey has the wrong syntax
  */
 int
-GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
+GNUNET_GNSRECORD_zkey_to_pkey (const char *zkey,
 			       struct GNUNET_CRYPTO_EcdsaPublicKey *pkey);
 
 
@@ -391,7 +391,7 @@ GNUNET_NAMESTORE_zkey_to_pkey (const char *zkey,
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+GNUNET_GNSRECORD_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 					 const char *label,
 					 struct GNUNET_HashCode *query);
 
@@ -404,7 +404,7 @@ GNUNET_NAMESTORE_query_from_private_key (const struct GNUNET_CRYPTO_EcdsaPrivate
  * @param query hash to use for the query
  */
 void
-GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+GNUNET_GNSRECORD_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 					const char *label,
 					struct GNUNET_HashCode *query);
 
@@ -418,11 +418,11 @@ GNUNET_NAMESTORE_query_from_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKe
  * @param rd record data
  * @param rd_count number of records in @a rd
  */
-struct GNUNET_NAMESTORE_Block *
-GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
+struct GNUNET_GNSRECORD_Block *
+GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 			       struct GNUNET_TIME_Absolute expire,
 			       const char *label,
-			       const struct GNUNET_NAMESTORE_RecordData *rd,
+			       const struct GNUNET_GNSRECORD_Data *rd,
 			       unsigned int rd_count);
 
 
@@ -434,7 +434,7 @@ GNUNET_NAMESTORE_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  * @return #GNUNET_OK if the signature is valid
  */
 int
-GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
+GNUNET_GNSRECORD_block_verify (const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -449,10 +449,10 @@ GNUNET_NAMESTORE_block_verify (const struct GNUNET_NAMESTORE_Block *block);
  *        not well-formed
  */
 int
-GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
+GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
 				const struct GNUNET_CRYPTO_EcdsaPublicKey *zone_key,
 				const char *label,
-				GNUNET_NAMESTORE_RecordCallback proc,
+				GNUNET_GNSRECORD_RecordCallback proc,
 				void *proc_cls);
 
 
@@ -464,8 +464,8 @@ GNUNET_NAMESTORE_block_decrypt (const struct GNUNET_NAMESTORE_Block *block,
  * @return #GNUNET_YES if the records are equal, or #GNUNET_NO if not.
  */
 int
-GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
-                              const struct GNUNET_NAMESTORE_RecordData *b);
+GNUNET_GNSRECORD_records_cmp (const struct GNUNET_GNSRECORD_Data *a,
+                              const struct GNUNET_GNSRECORD_Data *b);
 
 
 /**
@@ -478,8 +478,8 @@ GNUNET_NAMESTORE_records_cmp (const struct GNUNET_NAMESTORE_RecordData *a,
  * @return absolute expiration time
  */
 struct GNUNET_TIME_Absolute
-GNUNET_NAMESTORE_record_get_expiration_time (unsigned int rd_count,
-					     const struct GNUNET_NAMESTORE_RecordData *rd);
+GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
+					     const struct GNUNET_GNSRECORD_Data *rd);
 
 
 

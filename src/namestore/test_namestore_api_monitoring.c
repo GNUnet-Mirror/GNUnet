@@ -44,15 +44,15 @@ static int res;
 
 static char * s_name_1;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_1;
+static struct GNUNET_GNSRECORD_Data *s_rd_1;
 
 static char * s_name_2;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_2;
+static struct GNUNET_GNSRECORD_Data *s_rd_2;
 
 static char * s_name_3;
 
-static struct GNUNET_NAMESTORE_RecordData *s_rd_3;
+static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
@@ -148,7 +148,7 @@ zone_proc (void *cls,
 	   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 	   const char *name,
 	   unsigned int rd_count,
-	   const struct GNUNET_NAMESTORE_RecordData *rd)
+	   const struct GNUNET_GNSRECORD_Data *rd)
 {
 	static int returned_records;
 	static int fail = GNUNET_NO;
@@ -168,7 +168,7 @@ zone_proc (void *cls,
 
   if (0 == strcmp (name, s_name_1))
   {
-    if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_1))
+    if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
     {
       GNUNET_break (0);
     	fail = GNUNET_YES;
@@ -176,7 +176,7 @@ zone_proc (void *cls,
   }
   else if (0 == strcmp (name, s_name_2))
   {
-    if (GNUNET_YES != GNUNET_NAMESTORE_records_cmp(rd, s_rd_2))
+    if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
     {
       GNUNET_break (0);
     	fail = GNUNET_YES;
@@ -234,13 +234,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
 }
 
 
-static struct GNUNET_NAMESTORE_RecordData *
+static struct GNUNET_GNSRECORD_Data *
 create_record (unsigned int count)
 {
   unsigned int c;
-  struct GNUNET_NAMESTORE_RecordData * rd;
+  struct GNUNET_GNSRECORD_Data * rd;
 
-  rd = GNUNET_malloc (count * sizeof (struct GNUNET_NAMESTORE_RecordData));
+  rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
   for (c = 0; c < count; c++)
   {
     rd[c].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_HOURS).abs_value_us;

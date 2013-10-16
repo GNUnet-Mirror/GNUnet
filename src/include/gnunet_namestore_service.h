@@ -106,7 +106,7 @@ typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
-			      const struct GNUNET_NAMESTORE_Block *block,
+			      const struct GNUNET_GNSRECORD_Block *block,
 			      GNUNET_NAMESTORE_ContinuationWithStatus cont,
 			      void *cont_cls);
 
@@ -130,7 +130,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 				const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
 				const char *label,
 				unsigned int rd_count,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
+				const struct GNUNET_GNSRECORD_Data *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
 				void *cont_cls);
 
@@ -141,8 +141,8 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
  * @param cls closure
  * @param block block that was stored in the namestore
  */
-typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
-						 const struct GNUNET_NAMESTORE_Block *block);
+typedef void (*GNUNET_GNSRECORD_BlockProcessor) (void *cls,
+						 const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -160,7 +160,7 @@ typedef void (*GNUNET_NAMESTORE_BlockProcessor) (void *cls,
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_NAMESTORE_BlockProcessor proc, void *proc_cls);
+			       GNUNET_GNSRECORD_BlockProcessor proc, void *proc_cls);
 
 
 /**
@@ -176,7 +176,7 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
 						const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
 						const char *label,
 						unsigned int rd_count,
-						const struct GNUNET_NAMESTORE_RecordData *rd);
+						const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**

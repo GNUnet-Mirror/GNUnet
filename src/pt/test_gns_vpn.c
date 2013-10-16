@@ -364,7 +364,7 @@ run (void *cls,
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CRYPTO_HashAsciiEncoded peername;
   struct GNUNET_CRYPTO_EddsaPrivateKey *host_key;
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   char *rd_string;
   char *zone_keyfile;
 

@@ -244,7 +244,7 @@ MarshallWSAQUERYSETW (WSAQUERYSETW *qs, GUID *sc)
 static void
 process_ip_lookup_result (void* cls,
 			  uint32_t rd_count,
-			  const struct GNUNET_NAMESTORE_RecordData *rd)
+			  const struct GNUNET_GNSRECORD_Data *rd)
 {
   int i, j, csanum;
   struct request *rq = (struct request *) cls;

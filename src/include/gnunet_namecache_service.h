@@ -107,7 +107,7 @@ typedef void (*GNUNET_NAMECACHE_ContinuationWithStatus) (void *cls,
  */
 struct GNUNET_NAMECACHE_QueueEntry *
 GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
-			      const struct GNUNET_NAMESTORE_Block *block,
+			      const struct GNUNET_GNSRECORD_Block *block,
 			      GNUNET_NAMECACHE_ContinuationWithStatus cont,
 			      void *cont_cls);
 
@@ -119,7 +119,7 @@ GNUNET_NAMECACHE_block_cache (struct GNUNET_NAMECACHE_Handle *h,
  * @param block block that was stored in the namecache
  */
 typedef void (*GNUNET_NAMECACHE_BlockProcessor) (void *cls,
-						 const struct GNUNET_NAMESTORE_Block *block);
+						 const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**

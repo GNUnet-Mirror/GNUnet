@@ -333,7 +333,7 @@ delete_old_block (struct Plugin *plugin,
  */
 static int
 namestore_postgres_cache_block (void *cls,
-                                const struct GNUNET_NAMESTORE_Block *block)
+                                const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
@@ -392,7 +392,7 @@ namestore_postgres_cache_block (void *cls,
 static int
 namestore_postgres_lookup_block (void *cls,
                                  const struct GNUNET_HashCode *query,
-                                 GNUNET_NAMESTORE_BlockCallback iter, void *iter_cls)
+                                 GNUNET_GNSRECORD_BlockCallback iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   const char *paramValues[] = {
@@ -405,7 +405,7 @@ namestore_postgres_lookup_block (void *cls,
   PGresult *res;
   unsigned int cnt;
   size_t bsize;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   res = PQexecPrepared (plugin->dbh,
                         "lookup_block", 1,
@@ -431,7 +431,7 @@ namestore_postgres_lookup_block (void *cls,
   GNUNET_assert (1 == cnt);
   GNUNET_assert (1 != PQnfields (res));
   bsize = PQgetlength (res, 0, 0);
-  block = (const struct GNUNET_NAMESTORE_Block *) PQgetvalue (res, 0, 0);
+  block = (const struct GNUNET_GNSRECORD_Block *) PQgetvalue (res, 0, 0);
   if ( (bsize < sizeof (*block)) ||
        (bsize != ntohl (block->purpose.size) +
         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
@@ -465,7 +465,7 @@ namestore_postgres_store_records (void *cls,
                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                                   const char *label,
                                   unsigned int rd_count,
-                                  const struct GNUNET_NAMESTORE_RecordData *rd)
+                                  const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
@@ -485,7 +485,7 @@ namestore_postgres_store_records (void *cls,
       break;
     }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  data_size = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
   {
     GNUNET_break (0);
@@ -512,7 +512,7 @@ namestore_postgres_store_records (void *cls,
     const int paramFormats[] = { 1, 1, 1, 1, 1, 1 };
     PGresult *res;
 
-    if (data_size != GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+    if (data_size != GNUNET_GNSRECORD_records_serialize (rd_count, rd,
 							 data_size, data))
     {
       GNUNET_break (0);
@@ -610,13 +610,13 @@ get_record_and_call_iterator (struct Plugin *plugin,
     return GNUNET_SYSERR;
   }
   {
-    struct GNUNET_NAMESTORE_RecordData rd[record_count];
+    struct GNUNET_GNSRECORD_Data rd[record_count];
     char buf[label_len + 1];
 
     memcpy (buf, label, label_len);
     buf[label_len] = '\0';
     if (GNUNET_OK !=
-	GNUNET_NAMESTORE_records_deserialize (data_size, data,
+	GNUNET_GNSRECORD_records_deserialize (data_size, data,
 					      record_count, rd))
     {
       GNUNET_break (0);

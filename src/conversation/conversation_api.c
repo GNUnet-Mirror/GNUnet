@@ -163,14 +163,14 @@ handle_caller_name (void *cls,
                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
                     const char *label,
                     unsigned int rd_count,
-                    const struct GNUNET_NAMESTORE_RecordData *rd)
+                    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
   char *name;
 
   phone->qe = NULL;
   if (NULL == label)
-    name = GNUNET_strdup (GNUNET_NAMESTORE_pkey_to_zkey (&phone->caller_id));
+    name = GNUNET_strdup (GNUNET_GNSRECORD_pkey_to_zkey (&phone->caller_id));
   else
     GNUNET_asprintf (&name, "%.gnu", label);
   phone->event_handler (phone->event_handler_cls,
@@ -452,13 +452,13 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
-				      struct GNUNET_NAMESTORE_RecordData *rd)
+				      struct GNUNET_GNSRECORD_Data *rd)
 {
   rd->data = &phone->my_record;
   rd->expiration_time = 0;
   rd->data_size = sizeof (struct GNUNET_CONVERSATION_PhoneRecord);
   rd->record_type = GNUNET_GNSRECORD_TYPE_PHONE;
-  rd->flags = GNUNET_NAMESTORE_RF_NONE;
+  rd->flags = GNUNET_GNSRECORD_RF_NONE;
 }
 
 
@@ -904,7 +904,7 @@ handle_call_audio_message (void *cls,
 static void
 handle_gns_response (void *cls,
                      uint32_t rd_count,
-                     const struct GNUNET_NAMESTORE_RecordData *rd)
+                     const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
   uint32_t i;

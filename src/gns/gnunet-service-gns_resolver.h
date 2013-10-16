@@ -66,7 +66,7 @@ struct GNS_ResolverHandle;
  */
 typedef void (*GNS_ResultProcessor)(void *cls,
 				    uint32_t rd_count,
-				    const struct GNUNET_NAMESTORE_RecordData *rd);
+				    const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**

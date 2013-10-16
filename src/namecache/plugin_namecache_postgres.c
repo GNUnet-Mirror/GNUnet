@@ -255,7 +255,7 @@ delete_old_block (struct Plugin *plugin,
  */
 static int
 namecache_postgres_cache_block (void *cls,
-                                const struct GNUNET_NAMESTORE_Block *block)
+                                const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
@@ -327,7 +327,7 @@ namecache_postgres_lookup_block (void *cls,
   PGresult *res;
   unsigned int cnt;
   size_t bsize;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   res = PQexecPrepared (plugin->dbh,
                         "lookup_block", 1,
@@ -353,7 +353,7 @@ namecache_postgres_lookup_block (void *cls,
   GNUNET_assert (1 == cnt);
   GNUNET_assert (1 != PQnfields (res));
   bsize = PQgetlength (res, 0, 0);
-  block = (const struct GNUNET_NAMESTORE_Block *) PQgetvalue (res, 0, 0);
+  block = (const struct GNUNET_GNSRECORD_Block *) PQgetvalue (res, 0, 0);
   if ( (bsize < sizeof (*block)) ||
        (bsize != ntohl (block->purpose.size) +
         sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +

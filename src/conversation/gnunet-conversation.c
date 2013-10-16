@@ -218,7 +218,7 @@ phone_event_handler (void *cls,
 static void
 start_phone ()
 {
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
 
   if (NULL == caller_id)
   {

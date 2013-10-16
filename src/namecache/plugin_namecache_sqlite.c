@@ -366,7 +366,7 @@ namecache_sqlite_expire_blocks (struct Plugin *plugin)
  */
 static int
 namecache_sqlite_cache_block (void *cls,
-			      const struct GNUNET_NAMESTORE_Block *block)
+			      const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
@@ -495,7 +495,7 @@ namecache_sqlite_lookup_block (void *cls,
   int ret;
   int sret;
   size_t block_size;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   if (SQLITE_OK != sqlite3_bind_blob (plugin->lookup_block, 1,
 				      query, sizeof (struct GNUNET_HashCode),
@@ -514,7 +514,7 @@ namecache_sqlite_lookup_block (void *cls,
   {
     block = sqlite3_column_blob (plugin->lookup_block, 0);
     block_size = sqlite3_column_bytes (plugin->lookup_block, 0);
-    if ( (block_size < sizeof (struct GNUNET_NAMESTORE_Block)) ||
+    if ( (block_size < sizeof (struct GNUNET_GNSRECORD_Block)) ||
 	 (ntohl (block->purpose.size) +
 	  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
 	  sizeof (struct GNUNET_CRYPTO_EcdsaSignature) != block_size) )

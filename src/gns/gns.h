@@ -109,7 +109,7 @@ struct GNUNET_GNS_ClientLookupResultMessage
    */
   uint32_t rd_count GNUNET_PACKED;
 
-  /* followed by rd_count GNUNET_NAMESTORE_RecordData structs*/
+  /* followed by rd_count GNUNET_GNSRECORD_Data structs*/
 
 };
 

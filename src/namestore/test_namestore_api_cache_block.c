@@ -94,7 +94,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 rd_decrypt_cb (void *cls,
                unsigned int rd_count,
-               const struct GNUNET_NAMESTORE_RecordData *rd)
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
   char rd_cmp_data[TEST_RECORD_DATALEN];
 
@@ -115,7 +115,7 @@ rd_decrypt_cb (void *cls,
 
 static void
 name_lookup_proc (void *cls,
-                  const struct GNUNET_NAMESTORE_Block *block)
+                  const struct GNUNET_GNSRECORD_Block *block)
 {
   const char *name = cls;
   nsqe = NULL;
@@ -140,7 +140,7 @@ name_lookup_proc (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore returned block, decrypting \n");
-  GNUNET_assert (GNUNET_OK == GNUNET_NAMESTORE_block_decrypt(block,
+  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
 
@@ -158,7 +158,7 @@ cache_cont (void *cls, int32_t success, const char *emsg)
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
-  GNUNET_NAMESTORE_query_from_public_key (&pubkey, name, &derived_hash);
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey, name, &derived_hash);
 
   nsqe = GNUNET_NAMESTORE_lookup_block (nsh, &derived_hash,
 					 &name_lookup_proc, (void *) name);
@@ -170,8 +170,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_NAMESTORE_RecordData rd;
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Data rd;
+  struct GNUNET_GNSRECORD_Block *block;
   char *hostkey_file;
   const char * name = "dummy.dummy.gnunet";
 
@@ -193,7 +193,7 @@ run (void *cls,
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
-  block = GNUNET_NAMESTORE_block_create (privkey,
+  block = GNUNET_GNSRECORD_block_create (privkey,
       GNUNET_TIME_UNIT_FOREVER_ABS, name, &rd, 1 );
   if (NULL == block)
   {

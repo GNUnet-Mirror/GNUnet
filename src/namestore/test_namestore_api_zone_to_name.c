@@ -100,7 +100,7 @@ zone_to_name_proc (void *cls,
 		   struct GNUNET_TIME_Absolute expire,
 		   const char *n,
 		   unsigned int rd_count,
-		   const struct GNUNET_NAMESTORE_RecordData *rd,
+		   const struct GNUNET_GNSRECORD_Data *rd,
 		   const struct GNUNET_CRYPTO_EcdsaSignature *signature)
 {
   int fail = GNUNET_NO;
@@ -184,7 +184,7 @@ run (void *cls,
   GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_NAMESTORE_short_h2s (&s_zone_value));
 
-  struct GNUNET_NAMESTORE_RecordData rd;
+  struct GNUNET_GNSRECORD_Data rd;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);

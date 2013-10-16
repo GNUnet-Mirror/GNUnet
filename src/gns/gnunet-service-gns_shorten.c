@@ -181,7 +181,7 @@ create_pkey_cont (void* cls,
 static void
 process_pseu_lookup_ns (void *cls,
 			unsigned int rd_count,
-			const struct GNUNET_NAMESTORE_RecordData *rd);
+			const struct GNUNET_GNSRECORD_Data *rd);
 
 
 /**
@@ -193,7 +193,7 @@ process_pseu_lookup_ns (void *cls,
  */
 static void
 process_pseu_block_ns (void *cls,
-		       const struct GNUNET_NAMESTORE_Block *block)
+		       const struct GNUNET_GNSRECORD_Block *block)
 {
   struct GetPseuAuthorityHandle *gph = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
@@ -207,7 +207,7 @@ process_pseu_block_ns (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (&gph->shorten_zone_key,
 				    &pub);
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_decrypt (block,
+      GNUNET_GNSRECORD_block_decrypt (block,
 				      &pub,
 				      gph->current_label,
 				      &process_pseu_lookup_ns,
@@ -237,7 +237,7 @@ perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
 				    &pub);
   GNUNET_free_non_null (gph->current_label);
   gph->current_label = GNUNET_strdup (label);
-  GNUNET_NAMESTORE_query_from_public_key (&pub,
+  GNUNET_GNSRECORD_query_from_public_key (&pub,
 					  label,
 					  &query);
   gph->namestore_task = GNUNET_NAMESTORE_lookup_block (namestore_handle,
@@ -258,10 +258,10 @@ perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
 static void
 process_pseu_lookup_ns (void *cls,
 			unsigned int rd_count,
-			const struct GNUNET_NAMESTORE_RecordData *rd)
+			const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GetPseuAuthorityHandle *gph = cls;
-  struct GNUNET_NAMESTORE_RecordData new_pkey;
+  struct GNUNET_GNSRECORD_Data new_pkey;
 
   gph->namestore_task = NULL;
   if (rd_count > 0)
@@ -285,15 +285,15 @@ process_pseu_lookup_ns (void *cls,
   /* name is available */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shortening `%s' to `%s'\n",
-	      GNUNET_NAMESTORE_z2s (&gph->target_zone),
+	      GNUNET_GNSRECORD_z2s (&gph->target_zone),
 	      gph->current_label);
   new_pkey.expiration_time = UINT64_MAX;
   new_pkey.data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
   new_pkey.data = &gph->target_zone;
   new_pkey.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
-  new_pkey.flags = GNUNET_NAMESTORE_RF_NONE
-                 | GNUNET_NAMESTORE_RF_PRIVATE
-                 | GNUNET_NAMESTORE_RF_PENDING;
+  new_pkey.flags = GNUNET_GNSRECORD_RF_NONE
+                 | GNUNET_GNSRECORD_RF_PRIVATE
+                 | GNUNET_GNSRECORD_RF_PENDING;
   gph->namestore_task
     = GNUNET_NAMESTORE_records_store (namestore_handle,
 				      &gph->shorten_zone_key,
@@ -358,7 +358,7 @@ handle_auth_discovery_timeout (void *cls,
 static void
 process_auth_records (void *cls,
 		      unsigned int rd_count,
-		      const struct GNUNET_NAMESTORE_RecordData *rd)
+		      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GetPseuAuthorityHandle *gph = cls;
   unsigned int i;
@@ -412,7 +412,7 @@ process_auth_discovery_dht_result (void* cls,
                                    const void *data)
 {
   struct GetPseuAuthorityHandle *gph = cls;
-  const struct GNUNET_NAMESTORE_Block *block;
+  const struct GNUNET_GNSRECORD_Block *block;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got DHT result for PSEU request\n");
@@ -428,7 +428,7 @@ process_auth_discovery_dht_result (void* cls,
     process_pseu_result (gph, NULL);
     return;
   }
-  if (size < sizeof (struct GNUNET_NAMESTORE_Block))
+  if (size < sizeof (struct GNUNET_GNSRECORD_Block))
   {
     /* how did this pass DHT block validation!? */
     GNUNET_break (0);
@@ -447,7 +447,7 @@ process_auth_discovery_dht_result (void* cls,
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_decrypt (block,
+      GNUNET_GNSRECORD_block_decrypt (block,
 				      &gph->target_zone,
 				      GNUNET_GNS_TLD_PLUS,
 				      &process_auth_records,
@@ -476,7 +476,7 @@ process_zone_to_name_discover (void *cls,
 			       const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
 			       const char *name,
 			       unsigned int rd_len,
-			       const struct GNUNET_NAMESTORE_RecordData *rd)
+			       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GetPseuAuthorityHandle* gph = cls;
   struct GNUNET_HashCode lookup_key;
@@ -492,7 +492,7 @@ process_zone_to_name_discover (void *cls,
     return;
   }
   /* record does not yet exist, go into DHT to find PSEU record */
-  GNUNET_NAMESTORE_query_from_public_key (&gph->target_zone,
+  GNUNET_GNSRECORD_query_from_public_key (&gph->target_zone,
 					  GNUNET_GNS_TLD_PLUS,
 					  &lookup_key);
   gph->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
@@ -533,7 +533,7 @@ GNS_shorten_start (const char *original_label,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting shortening process for `%s' with old label `%s'\n",
-	      GNUNET_NAMESTORE_z2s (pub),
+	      GNUNET_GNSRECORD_z2s (pub),
 	      original_label);
   gph = GNUNET_new (struct GetPseuAuthorityHandle);
   gph->shorten_zone_key = *shorten_zone;

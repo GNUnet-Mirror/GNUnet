@@ -46,7 +46,7 @@ extern "C"
  * @param block lookup result
  */
 typedef void (*GNUNET_NAMECACHE_BlockCallback) (void *cls,
-						const struct GNUNET_NAMESTORE_Block *block);
+						const struct GNUNET_GNSRECORD_Block *block);
 
 
 /**
@@ -69,7 +69,7 @@ struct GNUNET_NAMECACHE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int (*cache_block) (void *cls,
-		      const struct GNUNET_NAMESTORE_Block *block);
+		      const struct GNUNET_GNSRECORD_Block *block);
 
 
   /**

@@ -85,7 +85,7 @@ struct GNUNET_NAMESTORE_QueueEntry
   /**
    * Function to call with the blocks we get back; or NULL.
    */
-  GNUNET_NAMESTORE_BlockProcessor block_proc;
+  GNUNET_GNSRECORD_BlockProcessor block_proc;
 
   /**
    * Closure for @e block_proc.
@@ -271,8 +271,8 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 			      const struct LookupBlockResponseMessage *msg,
 			      size_t size)
 {
-  struct GNUNET_NAMESTORE_Block *block;
-  char buf[size + sizeof (struct GNUNET_NAMESTORE_Block)
+  struct GNUNET_GNSRECORD_Block *block;
+  char buf[size + sizeof (struct GNUNET_GNSRECORD_Block)
 	   - sizeof (struct LookupBlockResponseMessage)];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -286,7 +286,7 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     return GNUNET_OK;
   }
 
-  block = (struct GNUNET_NAMESTORE_Block *) buf;
+  block = (struct GNUNET_GNSRECORD_Block *) buf;
   block->signature = msg->signature;
   block->derived_key = msg->derived_key;
   block->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_GNS_RECORD_SIGN);
@@ -298,7 +298,7 @@ handle_lookup_block_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 	  &msg[1],
 	  size - sizeof (struct LookupBlockResponseMessage));
   if (GNUNET_OK !=
-      GNUNET_NAMESTORE_block_verify (block))
+      GNUNET_GNSRECORD_block_verify (block))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -419,9 +419,9 @@ handle_record_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
   }
   rd_tmp = &name[name_len];
   {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_len, rd_tmp, rd_count, rd))
+    if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize(rd_len, rd_tmp, rd_count, rd))
     {
       GNUNET_break (0);
       return GNUNET_SYSERR;
@@ -490,9 +490,9 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
     }
     rd_tmp = &name_tmp[name_len];
     {
-      struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+      struct GNUNET_GNSRECORD_Data rd[rd_count];
 
-      if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd))
+      if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize(rd_ser_len, rd_tmp, rd_count, rd))
       {
 	GNUNET_break (0);
 	return GNUNET_SYSERR;
@@ -633,9 +633,9 @@ handle_zone_iteration_response (struct GNUNET_NAMESTORE_ZoneIterator *ze,
   }
   rd_ser_tmp = (const char *) &name_tmp[name_len];
   {
-    struct GNUNET_NAMESTORE_RecordData rd[rd_count];
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
 
-    if (GNUNET_OK != GNUNET_NAMESTORE_records_deserialize (rd_len,
+    if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize (rd_len,
 							   rd_ser_tmp,
 							   rd_count,
 							   rd))
@@ -1020,7 +1020,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
  */
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_block_cache (struct GNUNET_NAMESTORE_Handle *h,
-			      const struct GNUNET_NAMESTORE_Block *block,
+			      const struct GNUNET_GNSRECORD_Block *block,
 			      GNUNET_NAMESTORE_ContinuationWithStatus cont,
 			      void *cont_cls)
 {
@@ -1085,7 +1085,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 				const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
 				const char *label,
 				unsigned int rd_count,
-				const struct GNUNET_NAMESTORE_RecordData *rd,
+				const struct GNUNET_GNSRECORD_Data *rd,
 				GNUNET_NAMESTORE_ContinuationWithStatus cont,
 				void *cont_cls)
 {
@@ -1117,7 +1117,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
 
   /* setup msg */
-  rd_ser_len = GNUNET_NAMESTORE_records_get_size (rd_count, rd);
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   msg_size = sizeof (struct RecordStoreMessage) + name_len + rd_ser_len;
   pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
   pe->size = msg_size;
@@ -1135,7 +1135,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   memcpy (name_tmp, label, name_len);
   rd_ser = &name_tmp[name_len];
   GNUNET_break (rd_ser_len ==
-		GNUNET_NAMESTORE_records_serialize (rd_count, rd,
+		GNUNET_GNSRECORD_records_serialize (rd_count, rd,
 						    rd_ser_len,
 						    rd_ser));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1162,7 +1162,7 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 struct GNUNET_NAMESTORE_QueueEntry *
 GNUNET_NAMESTORE_lookup_block (struct GNUNET_NAMESTORE_Handle *h,
 			       const struct GNUNET_HashCode *derived_hash,
-			       GNUNET_NAMESTORE_BlockProcessor proc, void *proc_cls)
+			       GNUNET_GNSRECORD_BlockProcessor proc, void *proc_cls)
 {
   struct GNUNET_NAMESTORE_QueueEntry *qe;
   struct PendingMessage *pe;

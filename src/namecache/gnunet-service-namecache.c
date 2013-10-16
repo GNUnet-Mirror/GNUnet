@@ -215,7 +215,7 @@ struct LookupBlockContext
  */
 static void
 handle_lookup_block_it (void *cls,
-			const struct GNUNET_NAMESTORE_Block *block)
+			const struct GNUNET_GNSRECORD_Block *block)
 {
   struct LookupBlockContext *lnc = cls;
   struct LookupBlockResponseMessage *r;
@@ -316,7 +316,7 @@ handle_block_cache (void *cls,
   struct NamecacheClient *nc;
   const struct BlockCacheMessage *rp_msg;
   struct BlockCacheResponseMessage rpr_msg;
-  struct GNUNET_NAMESTORE_Block *block;
+  struct GNUNET_GNSRECORD_Block *block;
   size_t esize;
   int res;
 
@@ -329,7 +329,7 @@ handle_block_cache (void *cls,
   }
   rp_msg = (const struct BlockCacheMessage *) message;
   esize = ntohs (rp_msg->gns_header.header.size) - sizeof (struct BlockCacheMessage);
-  block = GNUNET_malloc (sizeof (struct GNUNET_NAMESTORE_Block) + esize);
+  block = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Block) + esize);
   block->signature = rp_msg->signature;
   block->derived_key = rp_msg->derived_key;
   block->purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +

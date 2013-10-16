@@ -138,7 +138,7 @@ do_shutdown (void *cls,
  */
 static void
 process_lookup_result (void *cls, uint32_t rd_count,
-		       const struct GNUNET_NAMESTORE_RecordData *rd)
+		       const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *name = cls;
   uint32_t i;
