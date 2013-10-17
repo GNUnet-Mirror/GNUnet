@@ -61,7 +61,7 @@ static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
 static struct GNUNET_NAMECACHE_QueueEntry *ncqe;
 
-static const char * name = "dummy.dummy.gnunet";
+static const char *name = "dummy";
 
 
 static void
@@ -166,6 +166,8 @@ rd_decrypt_cb (void *cls,
     GNUNET_assert (TEST_RECORD_DATALEN2 == rd[0].data_size);
     GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN2));
 
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
     GNUNET_SCHEDULER_add_now (&end, NULL);
   }
 }
@@ -179,16 +181,11 @@ name_lookup_proc (void *cls,
 
   ncqe = NULL;
   GNUNET_assert (NULL != cls);
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-
   if (NULL == block)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore returned no block\n"));
+                _("Namecache returned no block for `%s'\n"),
+                name);
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
@@ -196,7 +193,7 @@ name_lookup_proc (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Namestore returned block, decrypting \n");
+	      "Namecache returned block, decrypting \n");
   GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
   		&pubkey, name, &rd_decrypt_cb, (void *) name));
 }
@@ -215,7 +212,12 @@ put_cont (void *cls, int32_t success, const char *emsg)
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
   /* Create derived hash */
-  GNUNET_GNSRECORD_query_from_private_key (privkey, name, &derived_hash);
+  GNUNET_GNSRECORD_query_from_private_key (privkey,
+                                           name,
+                                           &derived_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Looking in namecache for `%s'\n",
+              GNUNET_h2s (&derived_hash));
   ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
                                         &name_lookup_proc, (void *) name);
 }
@@ -253,14 +255,15 @@ run (void *cls,
   GNUNET_break (NULL != nsh);
   nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nch);
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-				      1, &rd, &put_cont, (void *) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh,
+                                         privkey, name,
+                                         1, &rd,
+                                         &put_cont, (void *) name);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namestore cannot store no block\n"));
   }
-
   GNUNET_free ((void *)rd.data);
 }
 

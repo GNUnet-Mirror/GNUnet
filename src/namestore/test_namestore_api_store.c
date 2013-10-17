@@ -102,6 +102,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
 	      "Name store added record for `%s': %s\n",
 	      name,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
+  GNUNET_SCHEDULER_cancel (endbadly_task);
+  endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 

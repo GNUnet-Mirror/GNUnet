@@ -526,6 +526,7 @@ refresh_block (struct GNUNET_SERVER_Client *client,
 {
   struct GNUNET_GNSRECORD_Block *block;
   struct CacheOperation *cop;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
   if (0 == rd_count)
     block = GNUNET_GNSRECORD_block_create (zone_key,
@@ -538,8 +539,12 @@ refresh_block (struct GNUNET_SERVER_Client *client,
                                                                                         rd),
                                            name,
                                            rd, rd_count);
+  GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
+                                      &pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Caching block in namecache\n");
+              "Caching block for label `%s' in zone `%s' in namecache\n",
+              name,
+              GNUNET_GNSRECORD_z2s (&pkey));
   cop = GNUNET_new (struct CacheOperation);
   cop->client = client;
   cop->rid = rid;
@@ -675,7 +680,6 @@ handle_record_store (void *cls,
                                   conv_name,
                                   rd_count, rd);
       }
-      GNUNET_free (conv_name);
     }
     if (GNUNET_OK == res)
     {
@@ -684,8 +688,10 @@ handle_record_store (void *cls,
                      conv_name,
                      rd_count, rd);
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
+      GNUNET_free (conv_name);
       return;
     }
+    GNUNET_free (conv_name);
   }
   send_store_response (client, res, rid);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
