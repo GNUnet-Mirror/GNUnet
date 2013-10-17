@@ -200,6 +200,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown,
                                 NULL);
+  ns = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_GNSRECORD_query_from_public_key (&pubkey,
                                           name,
                                           &dhash);
