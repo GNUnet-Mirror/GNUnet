@@ -1825,7 +1825,8 @@ GMC_destroy (struct MeshConnection *c)
 
   /* Delete */
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
-  GMT_remove_connection (c->t, c);
+  if (NULL != c->t)
+    GMT_remove_connection (c->t, c);
   GNUNET_free (c);
 }
 
