@@ -600,11 +600,12 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "GMT_send_queued_data on tunnel %s\n",
-              GMP_2s (t->peer));
+              GMT_2s (t));
   room = GMT_get_buffer (t, fwd);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " data on channel %s\n", GMCH_2s (tq->ch));
     next = tq->next;
     room--;
     GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
@@ -613,6 +614,9 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
 
     GNUNET_free (tq);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GMT_send_queued_data end\n",
+       GMP_2s (t->peer));
 }
 
 
