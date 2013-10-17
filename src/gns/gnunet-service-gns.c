@@ -368,10 +368,11 @@ put_gns_record (void *cls,
     }
     else
     {
+      zone_publish_time_window = GNUNET_TIME_relative_min (
+                                                     min_relative_record_time,
+                                                     zone_publish_time_window);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
-      put_interval = GNUNET_TIME_relative_min (min_relative_record_time,
-                                               put_interval);
     }
     put_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
 					     put_interval);
