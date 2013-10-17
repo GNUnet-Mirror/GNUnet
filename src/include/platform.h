@@ -54,7 +54,7 @@
  * For strptime (glibc2 needs this).
  */
 #ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 499
 #endif
 
 #ifndef _REENTRANT
