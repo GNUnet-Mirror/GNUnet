@@ -2195,7 +2195,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 void
 GMC_send_create (struct MeshConnection *connection)
 {
-enum MeshTunnel3State state;
+  enum MeshTunnel3State state;
   size_t size;
 
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
@@ -2210,6 +2210,7 @@ enum MeshTunnel3State state;
     GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
+  connection->fwd_fc.queue_n++;
 }
 
 
