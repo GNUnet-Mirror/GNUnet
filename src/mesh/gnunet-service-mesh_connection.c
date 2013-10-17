@@ -490,6 +490,34 @@ get_hop (struct MeshConnection *c, int fwd)
 
 
 /**
+ * Is traffic coming from this sender 'FWD' traffic?
+ *
+ * @param c Connection to check.
+ * @param sender Peer identity of neighbor.
+ *
+ * @return GNUNET_YES in case the sender is the 'prev' hop and therefore
+ *         the traffic is 'FWD'. GNUNET_NO for BCK. GNUNET_SYSERR for errors.
+ */
+static int 
+is_fwd (const struct MeshConnection *c,
+        const struct GNUNET_PeerIdentity *sender)
+{
+  GNUNET_PEER_Id id;
+
+  id = GNUNET_PEER_search (sender);
+  if (GMP_get_short_id (get_prev_hop (c)) == id)
+    return GNUNET_YES;
+
+  if (GMP_get_short_id (get_next_hop (c)) == id)
+    return GNUNET_NO;
+
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+
+/**
  * Send an ACK informing the predecessor about the available buffer space.
  *
  * Note that for fwd ack, the FWD mean forward *traffic* (root->dest),
@@ -500,7 +528,7 @@ get_hop (struct MeshConnection *c, int fwd)
  * @param fwd Is this FWD ACK? (Going dest->owner)
  */
 static void
-connection_send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
+send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
 {
   struct MeshFlowControl *next_fc;
   struct MeshFlowControl *prev_fc;
@@ -574,7 +602,34 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
+  
 }
+
+
+/**
+ * Send a notification that a connection is broken.
+ *
+ * @param c Connection that is broken.
+ * @param id1 Peer that has disconnected.
+ * @param id2 Peer that has disconnected.
+ * @param fwd Direction towards which to send it.
+ */
+static void
+send_broken (struct MeshConnection *c,
+             const struct GNUNET_PeerIdentity *id1,
+             const struct GNUNET_PeerIdentity *id2,
+             int fwd)
+{
+  struct GNUNET_MESH_ConnectionBroken msg;
+
+  msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
+  msg.cid = c->id;
+  msg.peer1 = *id1;
+  msg.peer2 = *id2;
+  GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
+}
+
 
 
 /**
@@ -1177,33 +1232,6 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Is traffic coming from this sender 'FWD' traffic?
- *
- * @param c Connection to check.
- * @param sender Peer identity of neighbor.
- *
- * @return GNUNET_YES in case the sender is the 'prev' hop and therefore
- *         the traffic is 'FWD'. GNUNET_NO for BCK. GNUNET_SYSERR for errors.
- */
-int 
-is_fwd (const struct MeshConnection *c,
-        const struct GNUNET_PeerIdentity *sender)
-{
-  GNUNET_PEER_Id id;
-
-  id = GNUNET_PEER_search (sender);
-  if (GMP_get_short_id (get_prev_hop (c)) == id)
-    return GNUNET_YES;
-
-  if (GMP_get_short_id (get_next_hop (c)) == id)
-    return GNUNET_NO;
-
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
-}
-
-
-/**
  * Core handler for notifications of broken paths
  *
  * @param cls Closure (unused).
@@ -1707,7 +1735,7 @@ GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd)
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on connection\n");
-    connection_send_ack (c, buffer, fwd);
+    send_ack (c, buffer, fwd);
   }
 }
 
@@ -1956,33 +1984,9 @@ GMC_get_qn (struct MeshConnection *c, int fwd)
 void
 GMC_allow (struct MeshConnection *c, unsigned int buffer, int fwd)
 {
-  connection_send_ack (c, buffer, fwd);
+  send_ack (c, buffer, fwd);
 }
 
-
-/**
- * Send a notification that a connection is broken.
- *
- * @param c Connection that is broken.
- * @param id1 Peer that has disconnected.
- * @param id2 Peer that has disconnected.
- * @param fwd Direction towards which to send it.
- */
-static void
-send_broken (struct MeshConnection *c,
-             const struct GNUNET_PeerIdentity *id1,
-             const struct GNUNET_PeerIdentity *id2,
-             int fwd)
-{
-  struct GNUNET_MESH_ConnectionBroken msg;
-
-  msg.header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
-  msg.cid = c->id;
-  msg.peer1 = *id1;
-  msg.peer2 = *id2;
-  GMC_send_prebuilt_message (&msg.header, c, NULL, fwd);
-}
 
 /**
  * Notify other peers on a connection of a broken link. Mark connections
