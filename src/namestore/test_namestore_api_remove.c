@@ -191,13 +191,12 @@ main (int argc, char *argv[])
 {
   res = 1;
   if (0 !=
-      GNUNET_TESTING_service_run ("test-namestore-api",
-				  "namestore",
-				  "test_namestore_api.conf",
-				  &run,
-				  NULL))
+      GNUNET_TESTING_peer_run ("test-namestore-api",
+                               "test_namestore_api.conf",
+                               &run,
+                               NULL))
     return 1;
   return res;
 }
 
-/* end of test_namestore_api.c */
+/* end of test_namestore_api_remove.c */
