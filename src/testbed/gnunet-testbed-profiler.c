@@ -97,6 +97,11 @@ static unsigned int failed_links;
  */
 static int result;
 
+/**
+ * Are we running non interactively
+ */
+static int noninteractive;
+
 
 /**
  * Shutdown nicely
@@ -225,7 +230,15 @@ test_run (void *cls,
   result = GNUNET_OK;
   fprintf (stdout, "\n");
   print_overlay_links_summary ();
-#if !ENABLE_SUPERMUC
+  if (noninteractive)    
+  {
+    GNUNET_SCHEDULER_cancel (abort_task);
+    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &do_shutdown, NULL);
+    return;
+  }
+#if (!ENABLE_SUPERMUC)
   fprintf (stdout, "Testbed running, waiting for keystroke to shut down\n");
   fflush (stdout);
   (void) getc (stdin);
@@ -233,6 +246,7 @@ test_run (void *cls,
   fprintf (stdout, "Shutting down. Please wait\n");
   fflush (stdout);
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  return;
 }
 
 
@@ -281,6 +295,12 @@ main (int argc, char *const *argv)
     {'e', "num-errors", "COUNT",
      gettext_noop ("tolerate COUNT number of continious timeout failures"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_cont_fails},
+    {'n', "non-interactive", NULL,
+     gettext_noop ("run profiler in non-interactive mode where upon "
+                   "testbed setup the profiler does not wait for a "
+                   "keystroke but continues to run until a termination "
+                   "signal is received"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &noninteractive},
 #if !ENABLE_SUPERMUC
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
