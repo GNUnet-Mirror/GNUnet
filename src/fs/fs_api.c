@@ -797,7 +797,7 @@ write_start_time (struct GNUNET_BIO_WriteHandle *wh,
  *
  * @param rh handle for reading
  * @param timestamp where to write the deserialized timestamp
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 read_start_time (struct GNUNET_BIO_ReadHandle *rh,

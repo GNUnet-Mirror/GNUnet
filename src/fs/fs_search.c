@@ -69,18 +69,19 @@ GNUNET_FS_search_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
 
 
 /**
- * Check if the given result is identical
- * to the given URI.
+ * Check if the given result is identical to the given URI.
  *
  * @param cls points to the URI we check against
  * @param key not used
- * @param value a "struct GNUNET_FS_SearchResult" who's URI we
+ * @param value a `struct GNUNET_FS_SearchResult` who's URI we
  *        should compare with
- * @return GNUNET_SYSERR if the result is present,
- *         GNUNET_OK otherwise
+ * @return #GNUNET_SYSERR if the result is present,
+ *         #GNUNET_OK otherwise
  */
 static int
-test_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
+test_result_present (void *cls,
+                     const struct GNUNET_HashCode * key,
+                     void *value)
 {
   const struct GNUNET_FS_Uri *uri = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -163,11 +164,11 @@ struct GetResultContext
  * Check if the given result is identical to the given URI and if so
  * return it.
  *
- * @param cls a "struct GetResultContext"
+ * @param cls a `struct GetResultContext`
  * @param key not used
- * @param value a "struct GNUNET_FS_SearchResult" who's URI we
+ * @param value a `struct GNUNET_FS_SearchResult` who's URI we
  *        should compare with
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
 get_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -184,6 +185,8 @@ get_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
 /**
  * Signal result of last probe to client and then schedule next
  * probe.
+ *
+ * @param sr search result to signal for
  */
 static void
 signal_probe_result (struct GNUNET_FS_SearchResult *sr)
@@ -209,7 +212,7 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
 /**
  * Handle the case where we have failed to receive a response for our probe.
  *
- * @param cls our 'struct GNUNET_FS_SearchResult*'
+ * @param cls our `struct GNUNET_FS_SearchResult *`
  * @param tc scheduler context
  */
 static void
@@ -238,7 +241,7 @@ probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Handle the case where we have gotten a response for our probe.
  *
- * @param cls our 'struct GNUNET_FS_SearchResult*'
+ * @param cls our `struct GNUNET_FS_SearchResult *`
  * @param tc scheduler context
  */
 static void
@@ -268,7 +271,7 @@ probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Notification of FS that a search probe has made progress.
  * This function is used INSTEAD of the client's event handler
- * for downloads where the GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
+ * for downloads where the #GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
  *
  * @param cls closure, always NULL (!), actual closure
  *        is in the client-context of the info struct
@@ -278,7 +281,7 @@ probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         for this operation; should be set to NULL for
  *         SUSPEND and STOPPED events).  The value returned
  *         will be passed to future callbacks in the respective
- *         field in the GNUNET_FS_ProgressInfo struct.
+ *         field in the `struct GNUNET_FS_ProgressInfo`.
  */
 void *
 GNUNET_FS_search_probe_progress_ (void *cls,
@@ -499,7 +502,7 @@ GNUNET_FS_search_stop_probe_ (struct GNUNET_FS_SearchResult *sr)
 
 /**
  * Stop probe activity.  Must ONLY be used on values
- * returned from 'GNUNET_FS_probe'.
+ * returned from #GNUNET_FS_probe.
  *
  * @param sr search result to stop probing for (freed)
  * @return the value of the 'client_info' pointer
@@ -527,7 +530,7 @@ GNUNET_FS_probe_stop (struct GNUNET_FS_SearchResult *sr)
  * @param ent entry for the specific keyword
  * @param uri the URI that was found
  * @param meta metadata associated with the URI
- *        under the "ent" keyword
+ *        under the @a ent keyword
  */
 static void
 process_ksk_result (struct GNUNET_FS_SearchContext *sc,
@@ -621,7 +624,8 @@ search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
  * @param meta metadata associated with the URI
   */
 static void
-process_sks_result (struct GNUNET_FS_SearchContext *sc, const char *id_update,
+process_sks_result (struct GNUNET_FS_SearchContext *sc,
+                    const char *id_update,
                     const struct GNUNET_FS_Uri *uri,
                     const struct GNUNET_CONTAINER_MetaData *meta)
 {
@@ -778,7 +782,7 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
  *
  * @param sc our search context
  * @param ub the ublock with a namespace result
- * @param size size of sb
+ * @param size size of @a ub
  */
 static void
 process_sblock (struct GNUNET_FS_SearchContext *sc,
@@ -967,10 +971,10 @@ struct MessageBuilderContext
  * Iterating over the known results, pick those matching the given
  * result range and store their keys at 'xoff'.
  *
- * @param cls the 'struct MessageBuilderContext'
+ * @param cls the `struct MessageBuilderContext`
  * @param key key for a result
  * @param value the search result
- * @return GNUNET_OK to continue iterating
+ * @return #GNUNET_OK to continue iterating
  */
 static int
 build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1000,10 +1004,10 @@ build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
  * matching the given result range and increment
  * put count for each.
  *
- * @param cls the 'struct MessageBuilderContext'
+ * @param cls the `struct MessageBuilderContext`
  * @param key key for a result
  * @param value the search result
- * @return GNUNET_OK to continue iterating
+ * @return #GNUNET_OK to continue iterating
  */
 static int
 find_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1024,9 +1028,9 @@ find_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
  * file-sharing service.  Do it.
  *
  * @param cls closure
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
 transmit_search_request (void *cls, size_t size, void *buf)
@@ -1225,14 +1229,17 @@ try_reconnect (struct GNUNET_FS_SearchContext *sc)
  * @return context that can be used to control the search
  */
 static struct GNUNET_FS_SearchContext *
-search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
-              uint32_t anonymity, enum GNUNET_FS_SearchOptions options,
-              void *cctx, struct GNUNET_FS_SearchResult *psearch)
+search_start (struct GNUNET_FS_Handle *h,
+              const struct GNUNET_FS_Uri *uri,
+              uint32_t anonymity,
+              enum GNUNET_FS_SearchOptions options,
+              void *cctx,
+              struct GNUNET_FS_SearchResult *psearch)
 {
   struct GNUNET_FS_SearchContext *sc;
   struct GNUNET_FS_ProgressInfo pi;
 
-  sc = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchContext));
+  sc = GNUNET_new (struct GNUNET_FS_SearchContext);
   sc->h = h;
   sc->options = options;
   sc->uri = GNUNET_FS_uri_dup (uri);
@@ -1264,7 +1271,7 @@ search_start (struct GNUNET_FS_Handle *h, const struct GNUNET_FS_Uri *uri,
  * GNUnet FS service.
  *
  * @param sc search context
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
@@ -1316,7 +1323,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
  * @param cls the global FS handle
  * @param key the key for the search result (unused)
  * @param value the search result to free
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
 search_result_freeze_probes (void *cls, const struct GNUNET_HashCode * key,
@@ -1351,10 +1358,11 @@ search_result_freeze_probes (void *cls, const struct GNUNET_HashCode * key,
  * @param cls the global FS handle
  * @param key the key for the search result (unused)
  * @param value the search result to free
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
-search_result_resume_probes (void *cls, const struct GNUNET_HashCode * key,
+search_result_resume_probes (void *cls,
+                             const struct GNUNET_HashCode * key,
                              void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1372,10 +1380,12 @@ search_result_resume_probes (void *cls, const struct GNUNET_HashCode * key,
  * @param cls the global FS handle
  * @param key the key for the search result (unused)
  * @param value the search result to free
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
-search_result_suspend (void *cls, const struct GNUNET_HashCode * key, void *value)
+search_result_suspend (void *cls,
+                       const struct GNUNET_HashCode * key,
+                       void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
