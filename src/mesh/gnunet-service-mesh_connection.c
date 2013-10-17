@@ -354,7 +354,7 @@ connection_change_state (struct MeshConnection* c,
 /**
  * Callback called when a queued message is sent.
  *
- * Calculates the average time 
+ * Calculates the average time and connection packet tracking.
  *
  * @param cls Closure.
  * @param c Connection this message was on.
@@ -373,8 +373,29 @@ message_sent (void *cls,
   struct MeshFlowControl *fc;
   double usecsperbyte;
 
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
+  fc->queue_n--;
+  c->pending_messages--;
+  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
+    GMC_destroy (c);
+  }
+  /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      fc->last_pid_sent++;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!   accounting pid %u\n", fc->last_pid_sent);
+//       send_ack (c, ch, fwd);
+      break;
+    default:
+      break;
+  }
+
   if (NULL == c->perf)
-    return; /* Only endpoints are interested in this. */
+    return; /* Only endpoints are interested in timing. */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  message sent!\n");
   p = c->perf;
@@ -397,26 +418,6 @@ message_sent (void *cls,
   }
   p->idx = (p->idx + 1) % AVG_MSGS;
 
-  fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
-  fc->queue_n--;
-  c->pending_messages--;
-  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
-    GMC_destroy (c);
-  }
-  /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
-  switch (type)
-  {
-    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
-      fc->last_pid_sent++;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!   accounting pid %u\n", fc->last_pid_sent);
-//       send_ack (c, ch, fwd);
-      break;
-    default:
-      break;
-  }
 //   if (NULL != c->t)
 //   {
 //     c->t->pending_messages--;

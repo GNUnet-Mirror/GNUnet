@@ -83,20 +83,20 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Transport data in the mesh (origin->end) unicast
        */
-    case 260: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST";
+    case 260: return "GNUNET_MESSAGE_TYPE_MESH_DATA";
 
       /**
-       * Transport data back in the mesh (end->origin)
+       * Transport data back in the mesh (end->origin) FIXME
        */
     case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN";
 
       /**
-       * Send origin an ACK that UNICAST arrived
+       * Send origin an ACK that UNICAST arrived FIXME
        */
     case 263: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK";
 
       /**
-       * Send origin an ACK that TO_ORIGIN arrived
+       * Send origin an ACK that TO_ORIGIN arrived FIXME
        */
     case 264: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK";
 
