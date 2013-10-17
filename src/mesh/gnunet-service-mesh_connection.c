@@ -584,11 +584,13 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd)
  * or a first CONNECTION_ACK directed to us.
  *
  * @param connection Connection to confirm.
- * @param fwd Is this a fwd ACK? (First is bck (SYNACK), second is fwd (ACK))
+ * @param fwd Should we send it FWD?
+ *            (First (~SYNACK) goes BCK, second (~ACK) goes FWD)
  */
 static void
 send_connection_ack (struct MeshConnection *connection, int fwd)
 {
+  struct MeshFlowControl *fc;
   struct MeshTunnel3 *t;
 
   t = connection->t;
@@ -602,7 +604,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
-  
+  fc = fwd ? &connection->fwd_fc : &connection->bck_fc;
+  fc->queue_n++;
 }
 
 
