@@ -59,6 +59,7 @@ libgnunetnamecache_la_SOURCES = \
   namecache_api.c \
   namecache.h
 libgnunetnamecache_la_LIBADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunetnamecache_la_LDFLAGS = \
