@@ -108,17 +108,6 @@ put_cont (void *cls, int32_t success, const char *emsg)
   }
   else if (GNUNET_OK == success)
   {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Namestore did remove not exisiting record: `%s'\n",
-                emsg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Name was not removed\n");
     res = 0;
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
     {
@@ -144,7 +133,9 @@ run (void *cls,
 		   "zonefiles%s%s",
 		   DIR_SEPARATOR_STR,
 		   "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s' \n",
+              hostkey_file);
   privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file (hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
@@ -153,7 +144,8 @@ run (void *cls,
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-				      0, NULL, &put_cont, (void *) name);
+                                         0, NULL,
+                                         &put_cont, (void *) name);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

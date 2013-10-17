@@ -440,6 +440,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
+  GNUNET_DISK_directory_remove ("/tmp/test-gnunet-namestore");
   if (0 !=
       GNUNET_TESTING_peer_run ("test-namestore-api-zone-iteration",
                                "test_namestore_api.conf",
