@@ -281,9 +281,9 @@ process_pseu_lookup_ns (void *cls,
   gph->namestore_task = NULL;
   if (rd_count > 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Name `%s' already taken, cannot shorten.\n",
-	       gph->current_label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Name `%s' already taken, cannot shorten.\n",
+                gph->current_label);
     /* if this was not yet the original label, try one more
        time, this time not using PSEU but the original label */
     if (0 == strcmp (gph->current_label,
@@ -356,7 +356,8 @@ handle_auth_discovery_timeout (void *cls,
 
   gph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DHT lookup for PSEU query timed out.\n");
+              "DHT lookup for PSEU query in zone `%s' timed out.\n",
+              GNUNET_GNSRECORD_z2s (&gph->target_zone));
   GNUNET_DHT_get_stop (gph->get_handle);
   gph->get_handle = NULL;
   process_pseu_result (gph, NULL);
@@ -395,7 +396,8 @@ process_auth_records (void *cls,
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "No PSEU record found in DHT reply.\n");
+              "No PSEU record found in DHT reply with %u records.\n",
+              rd_count);
   process_pseu_result (gph, NULL);
 }
 
@@ -407,11 +409,11 @@ process_auth_records (void *cls,
  * @param exp lifetime
  * @param key the key the record was stored under
  * @param get_path get path
- * @param get_path_length get path length
+ * @param get_path_length @a get_path length
  * @param put_path put path
- * @param put_path_length put path length
+ * @param put_path_length @a put_path length
  * @param type the block type
- * @param size the size of the record
+ * @param size number of bytes in @a data
  * @param data the record data
  */
 static void
@@ -510,6 +512,11 @@ process_zone_to_name_discover (void *cls,
   GNUNET_GNSRECORD_query_from_public_key (&gph->target_zone,
 					  GNUNET_GNS_TLD_PLUS,
 					  &lookup_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Shortening searches in DHT for PSEU record under `%s' in zone `%s'\n",
+              GNUNET_h2s (&lookup_key),
+              GNUNET_GNSRECORD_z2s (&gph->target_zone));
+
   gph->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
 						    &handle_auth_discovery_timeout,
 						    gph);
@@ -540,7 +547,6 @@ GNS_shorten_start (const char *original_label,
 {
   struct GetPseuAuthorityHandle *gph;
 
-  // if (1) return;
   if (strlen (original_label) > GNUNET_DNSPARSER_MAX_LABEL_LENGTH)
   {
     GNUNET_break (0);

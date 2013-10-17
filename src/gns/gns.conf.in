@@ -12,8 +12,8 @@ UNIX_MATCH_UID = NO
 # Do we require users that want to access GNS to be in the 'gnunet' group?
 UNIX_MATCH_GID = YES
 
-# How many queries is GADS allowed to perform in the background at the same time?
-MAX_PARALLEL_BACKGROUND_QUERIES = 25
+# How many queries is GNS allowed to perform in the background at the same time?
+MAX_PARALLEL_BACKGROUND_QUERIES = 1000
 
 # How frequently do we try to publish our full zone?
 ZONE_PUBLISH_TIME_WINDOW = 4 h

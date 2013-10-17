@@ -430,7 +430,6 @@ put_gns_record (void *cls,
   GNUNET_GNSRECORD_query_from_private_key (key,
 					   name,
 					   &query);
-
   active_put = GNUNET_DHT_put (dht_handle, &query,
 			       DHT_GNS_REPLICATION_LEVEL,
 			       GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -463,7 +462,7 @@ publish_zone_dht_start (void *cls,
   zone_publish_task = GNUNET_SCHEDULER_NO_TASK;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Scheduling DHT zone update!\n");
+	      "Starting DHT zone update!\n");
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
