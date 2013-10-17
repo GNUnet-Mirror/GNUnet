@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -84,7 +84,8 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls,
+     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   cleanup ();
   res = 0;
@@ -95,40 +96,36 @@ static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
   GNUNET_assert (NULL != cls);
-
   nsqe = NULL;
-
   if (GNUNET_SYSERR == success)
   {
-  	GNUNET_break (0);
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore could not remove record: `%s'\n"), emsg);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+                "Namestore could not remove record: `%s'\n",
+                emsg);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   else if (GNUNET_OK == success)
   {
-  	GNUNET_break (0);
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      _("Namestore did remove not exisiting record: `%s'\n"), emsg);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+                "Namestore did remove not exisiting record: `%s'\n",
+                emsg);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   else
   {
-  	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name was not removed\n");
-  	res = 0;
+    res = 0;
     if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (endbadly_task);
       endbadly_task = GNUNET_SCHEDULER_NO_TASK;
     }
-  	GNUNET_SCHEDULER_add_now (&end, NULL);
+    GNUNET_SCHEDULER_add_now (&end, NULL);
   }
 }
 
