@@ -203,9 +203,8 @@ test_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
            struct GNUNET_TESTING_Peer *p)
 {
   FAIL_TEST (NULL != (h = GNUNET_TESTBED_LOGGER_connect (cfg)), return);
-  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string
+  FAIL_TEST (GNUNET_OK == GNUNET_CONFIGURATION_get_value_filename
              (cfg, "testbed-logger", "dir", &search_dir), return);
-  search_dir = GNUNET_CONFIGURATION_expand_dollar (cfg, search_dir);
   peer = p;
   write_task = GNUNET_SCHEDULER_add_now (&do_write, NULL);
   abort_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS (10),

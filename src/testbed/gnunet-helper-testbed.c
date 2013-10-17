@@ -431,7 +431,7 @@ tokenizer_cb (void *cls, void *client,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_TESTING_configuration_create (test_system, cfg));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
+                 GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS",
                                                         "DEFAULTCONFIG",
                                                         &config));
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config))

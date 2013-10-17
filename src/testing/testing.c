@@ -1227,7 +1227,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
       goto err_ret;
   }
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_string
+                 GNUNET_CONFIGURATION_get_value_filename
                  (cfg, "PATHS", "DEFAULTCONFIG", &config_filename));
   if (GNUNET_OK != GNUNET_CONFIGURATION_write (cfg, config_filename))
   {

@@ -1326,7 +1326,7 @@ GNUNET_TESTBED_run (const char *host_filename,
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (rc->cfg, TESTBED_CONFIG_SECTION,
+        GNUNET_CONFIGURATION_get_value_filename (rc->cfg, TESTBED_CONFIG_SECTION,
                                                "OVERLAY_TOPOLOGY_FILE",
                                                &rc->topo_file))
     {

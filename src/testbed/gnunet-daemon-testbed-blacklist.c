@@ -214,9 +214,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *shome;
   char fname[PATH_MAX];
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (c, "PATHS",
-                                                          "GNUNET_HOME",
-                                                          &shome))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "PATHS",
+                                                            "GNUNET_HOME",
+                                                            &shome))
   {
     GNUNET_break (0);
     return;

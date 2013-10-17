@@ -1102,7 +1102,7 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
     GNUNET_asprintf (&port, "%u", host->port);
     LOG_DEBUG ("Starting remote connection to destination %s\n", hostname);
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg, "testbed",
+        GNUNET_CONFIGURATION_get_value_filename (cfg, "testbed",
                                                "HELPER_BINARY_PATH",
                                                &helper_binary_path_args[0]))
       helper_binary_path_args[0] =
@@ -1330,7 +1330,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   h->host = host;
   hostname = (NULL == host->hostname) ? "127.0.0.1" : host->hostname;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (config, "testbed",
+      GNUNET_CONFIGURATION_get_value_filename (config, "testbed",
                                              "HELPER_BINARY_PATH",
                                              &stat_args[1]))
     stat_args[1] =
