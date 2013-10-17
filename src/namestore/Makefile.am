@@ -141,7 +141,7 @@ plugin_LTLIBRARIES = \
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
   plugin_namestore_sqlite.c
 libgnunet_plugin_namestore_sqlite_la_LIBADD = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
@@ -156,7 +156,7 @@ libgnunet_plugin_namestore_sqlite_la_DEPENDENCIES = \
 libgnunet_plugin_namestore_postgres_la_SOURCES = \
   plugin_namestore_postgres.c
 libgnunet_plugin_namestore_postgres_la_LIBADD = \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la  \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
