@@ -71,6 +71,7 @@ libgnunetnamestore_la_SOURCES = \
   namestore_api_monitor.c \
   namestore.h
 libgnunetnamestore_la_LIBADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/util/libgnunetutil.la \
