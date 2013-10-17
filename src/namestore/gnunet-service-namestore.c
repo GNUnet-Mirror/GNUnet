@@ -472,7 +472,6 @@ send_store_response (struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_unicast (snc, client,
 					      &rcr_msg.gns_header.header,
 					      GNUNET_NO);
-
 }
 
 
@@ -618,6 +617,7 @@ handle_record_store (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  (void) client_lookup (client);
   {
     struct GNUNET_GNSRECORD_Data rd[rd_count];
 
