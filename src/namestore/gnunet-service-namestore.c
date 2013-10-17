@@ -422,7 +422,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   name_len = strlen (name) + 1;
   rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   msg_size = sizeof (struct RecordResultMessage) + name_len + rd_ser_len;
-
+  (void) client_lookup (client);
   zir_msg = GNUNET_malloc (msg_size);
   zir_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT);
   zir_msg->gns_header.header.size = htons (msg_size);
@@ -539,7 +539,8 @@ refresh_block (struct GNUNET_SERVER_Client *client,
                                                                                         rd),
                                            name,
                                            rd, rd_count);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Caching block in namecache\n");
   cop = GNUNET_new (struct CacheOperation);
   cop->client = client;
   cop->rid = rid;
@@ -1180,7 +1181,7 @@ monitor_iterate_cb (void *cls,
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START message
  *
  * @param cls unused
- * @param client GNUNET_SERVER_Client sending the message
+ * @param client the client sending the message
  * @param message message of type 'struct ZoneMonitorStartMessage'
  */
 static void

@@ -208,11 +208,10 @@ main (int argc, char *argv[])
 {
   res = 1;
   if (0 !=
-      GNUNET_TESTING_service_run ("test-namestore-api-zone-to-name",
-				  "namestore",
-				  "test_namestore_api.conf",
-				  &run,
-				  NULL))
+      GNUNET_TESTING_peer_run ("test-namestore-api-zone-to-name",
+                               "test_namestore_api.conf",
+                               &run,
+                               NULL))
     return 1;
   return res;
 }

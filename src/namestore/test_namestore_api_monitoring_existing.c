@@ -340,11 +340,10 @@ main (int argc, char *argv[])
 {
   res = 1;
   if (0 !=
-      GNUNET_TESTING_service_run ("test-namestore-api-monitoring",
-				  "namestore",
-				  "test_namestore_api.conf",
-				  &run,
-				  NULL))
+      GNUNET_TESTING_peer_run ("test-namestore-api-monitoring",
+                               "test_namestore_api.conf",
+                               &run,
+                               NULL))
     return 1;
   return res;
 }
