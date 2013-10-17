@@ -136,7 +136,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for mesh network traffic going orig->dest.
+ * Core handler for encrypted mesh network traffic (channel mgmt, data).
  *
  * @param cls Closure (unused).
  * @param message Message received.
@@ -146,23 +146,8 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Core handler for mesh network traffic going dest->orig.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GMC_handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message);
+GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
+                      const struct GNUNET_MessageHeader *message);
 
 /**
  * Core handler for mesh network traffic point-to-point acks.

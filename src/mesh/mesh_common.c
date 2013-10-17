@@ -146,19 +146,14 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 274: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY";
 
       /**
-       * Confirm the creation of a channel
+       * Confirm the creation of a channel.
        */
     case 275: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK";
 
       /**
-       * Ask the mesh service to create a new tunnel
+       * Encrypted payload.
        */
-    case 280: return "GNUNET_MESSAGE_TYPE_MESH_FWD";
-
-      /**
-       * Ask the mesh service to destroy a tunnel
-       */
-    case 281: return "GNUNET_MESSAGE_TYPE_MESH_BCK";
+    case 280: return "GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED";
 
       /**
        * Local payload traffic

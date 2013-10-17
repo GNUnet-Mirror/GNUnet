@@ -409,8 +409,7 @@ message_sent (void *cls,
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_FWD:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       fc->last_pid_sent++;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!   accounting pid %u\n", fc->last_pid_sent);
 //       send_ack (c, ch, fwd);
@@ -1309,23 +1308,23 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * @param peer Peer identity this notification is about.
  * @param message Encrypted message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_MESH_Encrypted *msg,
-                       int fwd)
+                       const struct GNUNET_MESH_Encrypted *msg)
 {
   struct MeshConnection *c;
   struct MeshPeer *neighbor;
   struct MeshFlowControl *fc;
+  GNUNET_PEER_Id peer_id;
   uint32_t pid;
   uint32_t ttl;
   uint16_t type;
   size_t size;
+  int fwd;
 
   /* Check size */
   size = ntohs (msg->header.size);
@@ -1350,15 +1349,27 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  fc = fwd ? &c->bck_fc : &c->fwd_fc;
-
   /* Check if origin is as expected */
-  neighbor = get_hop (c, !fwd);
-  if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
+  neighbor = get_prev_hop (c);
+  peer_id = GNUNET_PEER_search (peer);
+  if (peer_id == GMP_get_short_id (neighbor))
   {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
+    fwd = GNUNET_YES;
   }
+  else
+  {
+    neighbor = get_next_hop (c);
+    if (peer_id == GMP_get_short_id (neighbor))
+    {
+      fwd = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
+  }
+  fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   /* Check PID */
   pid = ntohl (msg->pid);
@@ -1421,7 +1432,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Core handler for mesh network traffic going orig->dest.
+ * Core handler for encrypted mesh network traffic (channel mgmt, data).
  *
  * @param cls Closure (unused).
  * @param message Message received.
@@ -1431,31 +1442,11 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_fwd (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
+GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
+                      const struct GNUNET_MessageHeader *message)
 {
   return handle_mesh_encrypted (peer,
-                                (struct GNUNET_MESH_Encrypted *)message,
-                                GNUNET_YES);
-}
-
-/**
- * Core handler for mesh network traffic going dest->orig.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Peer who sent the message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- */
-int
-GMC_handle_bck (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_MessageHeader *message)
-{
-  return handle_mesh_encrypted (peer,
-                                (struct GNUNET_MESH_Encrypted *)message,
-                                GNUNET_NO);
+                                (struct GNUNET_MESH_Encrypted *)message);
 }
 
 
@@ -2118,8 +2109,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_ConnectionBroken  *bmsg;
     uint32_t ttl;
 
-    case GNUNET_MESSAGE_TYPE_MESH_FWD:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       emsg = (struct GNUNET_MESH_Encrypted *) data;
       ttl = ntohl (emsg->ttl);
       if (0 == ttl)

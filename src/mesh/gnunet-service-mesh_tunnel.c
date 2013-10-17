@@ -1199,10 +1199,10 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   type = ntohs (message->type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_FWD:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
       msg->cid = *GMC_get_id (c);
       msg->ttl = htonl (default_ttl);
       break;

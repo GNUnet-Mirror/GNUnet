@@ -332,8 +332,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     sizeof (struct GNUNET_MESH_ACK)},
   {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
     sizeof (struct GNUNET_MESH_Poll)},
-  {&GMC_handle_fwd, GNUNET_MESSAGE_TYPE_MESH_FWD, 0},
-  {&GMC_handle_bck, GNUNET_MESSAGE_TYPE_MESH_BCK, 0},
+  {&GMC_handle_encrypted, GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED, 0},
   {NULL, 0, 0}
 };
 
@@ -774,8 +773,7 @@ queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         /* fall through */
-      case GNUNET_MESSAGE_TYPE_MESH_FWD:
-      case GNUNET_MESSAGE_TYPE_MESH_BCK:
+      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
@@ -872,8 +870,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-    case GNUNET_MESSAGE_TYPE_MESH_FWD:
-    case GNUNET_MESSAGE_TYPE_MESH_BCK:
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       LOG (GNUNET_ERROR_TYPE_DEBUG,
