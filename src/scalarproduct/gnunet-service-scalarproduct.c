@@ -707,29 +707,45 @@ free_session_variables (struct ServiceSession * session)
     for (i = 0; i < session->used; i++)
       if (session->a[i]) gcry_mpi_release (session->a[i]);
     GNUNET_free (session->a);
+    session->a = NULL;
   }
   GNUNET_free_non_null (session->mask);
   if (session->r) {
     for (i = 0; i < session->used; i++)
       if (session->r[i]) gcry_mpi_release (session->r[i]);
     GNUNET_free (session->r);
+    session->r = NULL;
   }
   if (session->r_prime) {
     for (i = 0; i < session->used; i++)
       if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
     GNUNET_free (session->r_prime);
+    session->r_prime = NULL;
   }
-  if (session->s)
+  if (session->s){
     gcry_mpi_release (session->s);
-  if (session->s_prime)
+  session->s = NULL;
+  }
+  
+  if (session->s_prime){
     gcry_mpi_release (session->s_prime);
-  if (session->product)
+  session->s_prime = NULL;
+  }
+  
+  if (session->product){
     gcry_mpi_release (session->product);
+  session->product = NULL;
+  }
 
-  if (session->remote_pubkey)
+  if (session->remote_pubkey){
     gcry_sexp_release (session->remote_pubkey);
+  session->remote_pubkey = NULL;
+  }
 
-  GNUNET_free_non_null (session->vector);
+  if (session->vector) {
+    GNUNET_free_non_null (session->vector);
+    session->s = NULL;
+  }
 }
 ///////////////////////////////////////////////////////////////////////////////
 //                      Event and Message Handlers
@@ -751,14 +767,16 @@ handle_client_disconnect (void *cls,
                           struct GNUNET_SERVER_Client *client)
 {
   struct ServiceSession *session;
-
-  if (client == NULL)
+  
+  if (NULL != client)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _ ("Client (%p) disconnected from us.\n"), client);
+  else
     return;
+
   session = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if (NULL == session)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _ ("Client (%p) disconnected from us.\n"), client);
   GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, session);
 
   if (!(session->role == BOB && session->state == FINALIZED)) {
@@ -1007,11 +1025,16 @@ prepare_service_response_multipart (void *cls)
     return;
   }
   if (session->transferred != session->used)
-    // multipart
+    // more multiparts
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-  else
-    //singlepart
+  else{
+    // final part
     session->state = FINALIZED;
+    GNUNET_free(session->r);
+    GNUNET_free(session->r_prime);
+    session->r_prime = NULL;
+    session->r = NULL;
+  }
 }
 
 
@@ -1058,7 +1081,7 @@ prepare_service_response (gcry_mpi_t s,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE);
   msg->header.size = htons (msg_length);
   msg->total_element_count = htonl (session->total);
-  msg->contained_element_count = htonl (session->used);
+  msg->used_element_count = htonl (session->used);
   msg->contained_element_count = htonl (session->transferred);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   current = (unsigned char *) &msg[1];
@@ -1138,9 +1161,14 @@ prepare_service_response (gcry_mpi_t s,
   if (session->transferred != session->used)
     // multipart
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-  else
+  else{
     //singlepart
     session->state = FINALIZED;
+    GNUNET_free(session->r);
+    GNUNET_free(session->r_prime);
+    session->r_prime = NULL;
+    session->r = NULL;
+  }
 
   return GNUNET_OK;
 }
@@ -1787,6 +1815,8 @@ tunnel_incoming_handler (void *cls,
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("New incoming tunnel from peer %s.\n"), GNUNET_i2s (initiator));
+  
   c->peer = *initiator;
   c->tunnel = tunnel;
   c->role = BOB;
@@ -2104,7 +2134,6 @@ handle_service_request (void *cls,
     return GNUNET_SYSERR;
   }
 
-  memcpy (&session->peer, &session->peer, sizeof (struct GNUNET_PeerIdentity));
   session->total = element_count;
   session->used = used_elements;
   session->transferred = contained_elements;
@@ -2297,7 +2326,10 @@ handle_service_response (void *cls,
     goto invalid_msg;
   }
   //we need at least a full message without elements attached
-  if (sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH > ntohs (msg->header.size)) {
+  msg_size = ntohs (msg->header.size);
+  size_t expected = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH;
+  
+  if (expected > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
