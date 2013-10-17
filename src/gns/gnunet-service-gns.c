@@ -157,6 +157,12 @@ static unsigned long long num_public_records;
 static unsigned long long last_num_public_records;
 
 /**
+ * Minimum relative expiration time
+ * of records seem during zone iteration
+ */
+static struct GNUNET_TIME_Relative min_relative_record_time;
+
+/**
  * Zone iteration PUT interval.
  */
 static struct GNUNET_TIME_Relative put_interval;
@@ -364,6 +370,8 @@ put_gns_record (void *cls,
     {
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
+      put_interval = GNUNET_TIME_relative_min (min_relative_record_time,
+                                               put_interval);
     }
     put_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
 					     put_interval);
@@ -404,6 +412,9 @@ put_gns_record (void *cls,
       rd_public[rd_public_count] = rd[i];
       if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
       {
+        min_relative_record_time.rel_value_us = MIN
+          (rd_public[rd_public_count].expiration_time,
+           min_relative_record_time.rel_value_us);
 	rd_public[rd_public_count].flags &= ~GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 	rd_public[rd_public_count].expiration_time += now.abs_value_us;
       }
