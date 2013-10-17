@@ -595,8 +595,10 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
   static int on = 1;
   struct GNUNET_NETWORK_Handle *sock;
   struct ServiceListeningInfo *sli;
+#ifndef WINDOWS
   int match_uid;
   int match_gid;
+#endif
 
   switch (sa->sa_family)
   {
@@ -673,7 +675,7 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("ARM now monitors connections to service `%s' at `%s'\n"),
 	      sl->name, GNUNET_a2s (sa, addr_len));
-  sli = GNUNET_malloc (sizeof (struct ServiceListeningInfo));
+  sli = GNUNET_new (struct ServiceListeningInfo);
   sli->service_addr = sa;
   sli->service_addr_len = addr_len;
   sli->listen_socket = sock;

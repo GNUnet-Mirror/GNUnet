@@ -129,7 +129,7 @@ static int pref_val;
 /**
  * Number master peers
  */
-static int num_masters;
+static unsigned int num_masters;
 
 /**
  * Array of master peers
@@ -139,7 +139,8 @@ static  struct BenchmarkPeer *mps;
 /**
  * Number slave peers
  */
-static int num_slaves;
+static unsigned int num_slaves;
+
 /**
  * Array of slave peers
  */
