@@ -1405,13 +1405,14 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     }
     else
     {
+      /* Unexpected peer sending traffic on a connection. */
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
   }
-  fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   /* Check PID */
+  fc = fwd ? &c->bck_fc : &c->fwd_fc;
   pid = ntohl (msg->pid);
   if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
   {
@@ -1429,7 +1430,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                 pid, fc->last_pid_recv + 1);
     return GNUNET_OK;
   }
-  if (MESH_CONNECTION_SENT == c->state)
+  if (MESH_CONNECTION_SENT == c->state || MESH_CONNECTION_ACK == c->state)
     connection_change_state (c, MESH_CONNECTION_READY);
   connection_reset_timeout (c, fwd);
   fc->last_pid_recv = pid;

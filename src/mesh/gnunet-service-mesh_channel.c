@@ -1086,18 +1086,32 @@ GMCH_send_create (struct MeshChannel *ch)
 
 /**
  * Notify a client that the channel is no longer valid.
- * FIXME send on tunnel if some client == NULL?
  *
  * @param ch Channel that is destroyed.
  */
 void
 GMCH_send_destroy (struct MeshChannel *ch)
 {
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.size = htons (sizeof (msg));
+  msg.chid = htonl (ch->gid);
+
+  /* If root is not NULL, notify.
+   * If it's NULL, check lid_root. When a local destroy comes in, root 
+   * is set to NULL but lid_root is left untouched. In this case, do nothing,
+   * the client is the one who reuqested the channel to be destroyed.
+   */
   if (NULL != ch->root)
     GML_send_channel_destroy (ch->root, ch->lid_root);
+  else if (0 == ch->lid_root)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
 
   if (NULL != ch->dest)
     GML_send_channel_destroy (ch->dest, ch->lid_dest);
+  else if (0 == ch->lid_dest)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES);
 }
 
 

@@ -474,7 +474,7 @@ handle_ch_destroy (struct MeshTunnel3 *t,
  * @param fwd Is this message fwd?
  */
 static void
-handle_GMT_decrypted (struct MeshTunnel3 *t,
+handle_decrypted (struct MeshTunnel3 *t,
                   const struct GNUNET_MessageHeader *msgh,
                   int fwd)
 {
@@ -551,7 +551,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   while (off < payload_size)
   {
     msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
-    handle_GMT_decrypted (t, msgh, fwd);
+        handle_decrypted (t, msgh, fwd);
     off += ntohs (msgh->size);
   }
 }
@@ -1172,9 +1172,9 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
   unsigned int cs;
   unsigned int buffer;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel send %s ACKs on %s\n",
-              fwd ? "FWD" : "BCK", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel send %s ACKs on %s\n",
+       fwd ? "FWD" : "BCK", GMT_2s (t));
 
   if (NULL == t)
   {
