@@ -68,7 +68,7 @@ typedef void (*GNUNET_MESH_TEST_AppMain) (void *cls,
  * @param num_peers Number of peers to start.
  * @param tmain Main function to run once the testbed is ready.
  * @param tmain_cls Closure for 'tmain'.
- * @param new_tunnel Handler for incoming tunnels.
+ * @param new_channel Handler for incoming tunnels.
  * @param cleaner Cleaner for destroyed incoming tunnels.
  * @param handlers Message handlers.
  * @param ports Ports the peers offer.
