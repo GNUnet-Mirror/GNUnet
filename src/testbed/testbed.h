@@ -693,7 +693,7 @@ struct GNUNET_TESTBED_SlaveGetConfigurationMessage
 
 
 /**
- * Reply to #GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIG message
+ * Reply to #GNUNET_MESSAGE_TYPE_TESTBED_GET_SLAVE_CONFIGURATION message
  */
 struct GNUNET_TESTBED_SlaveConfiguration
 {
