@@ -92,19 +92,25 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   struct GNUNET_CRYPTO_EcdsaPrivateKey *dkey;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CRYPTO_SymmetricSessionKey skey;
+  struct GNUNET_GNSRECORD_Data rdc[rd_count];
   uint32_t rd_count_nbo;
   unsigned int i;
+  struct GNUNET_TIME_Absolute now;
 
   if (payload_len > GNUNET_GNSRECORD_MAX_BLOCK_SIZE)
     return NULL;
-  /* sanity check */
+  /* convert relative to absolute times */
+  now = GNUNET_TIME_absolute_get ();
   for (i=0;i<rd_count;i++)
+  {
+    rdc[i] = rd[i];
     if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
-      {
-        /* encrypted blocks must never have relative expiration times, skip! */
-        GNUNET_break (0);
-        return NULL;
-      }
+    {
+      /* encrypted blocks must never have relative expiration times, convert! */
+      rdc[i].flags ^= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      rdc[i].expiration_time += now.abs_value_us;
+    }
+  }
   /* serialize */
   rd_count_nbo = htonl (rd_count);
   memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
