@@ -53,46 +53,15 @@ libgnunetscalarproduct_la_LIBADD = \
 libgnunetscalarproduct_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
-#check_PROGRAMS = \
-#	test_scalarproduct_api_regression \
-#	test_scalarproduct_api \
-#	test_scalarproduct_api_4peers
-#FIXME unfinished
-#test_scalarproduct_api_regression2 
-
-if ENABLE_TEST_RUN
-  TESTS = $(check_PROGRAMS)
-endif
-
-test_scalarproduct_api_SOURCES = \
-  test_scalarproduct_api.c
-test_scalarproduct_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
-  -lgcrypt
-
-#FIXME unfinished
-#test_scalarproduct_api_regression2_SOURCES = \
-#	test_scalarproduct_api_regression2.c
-#test_scalarproduct_api_regression2_LDADD = \
-#  $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
-#  $(top_builddir)/src/util/libgnunetutil.la \
-#  -lgcrypt
-
-test_scalarproduct_api_regression_SOURCES = \
-        test_scalarproduct_api_regression.c
-test_scalarproduct_api_regression_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
-  -lgcrypt
-
-test_scalarproduct_api_4peers_SOURCES = \
- test_scalarproduct_api_4peers.c
-test_scalarproduct_api_4peers_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
-  -lgcrypt
-
 EXTRA_DIST = \
-  test_scalarproduct.conf
+  test_scalarproduct.conf \
+  $(check_SCRIPTS)
 
+check_SCRIPTS = \
+  test_scalarproduct.sh \
+  test_scalarproduct_negative.sh \
+  test_scalarproduct_negativezero.sh
+  
+if ENABLE_TEST_RUN
+  TESTS = $(check_SCRIPTS)
+endif

@@ -16,34 +16,26 @@ CFGBOB="-c $PREFIX/1/config"
 # interactive mode would terminate the test immediately 
 # because the rest of the script is already in stdin, 
 # thus redirecting stdin does not suffice)
-GNUNET_LOG='scalarproduct;;;;DEBUG' GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 2>service.log &
+GNUNET_LOG=';;;;DEBUG' GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
 PID=$!
+# sleep 1 is too short on most systems, 2 works on most, 5 seems to be safe
 sleep 5
 
 # get bob's peer ID, necessary for alice
 PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 
-GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGBOB $INPUTBOB 2>bob.log &
-RESULT=`GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB 2>alice.log`
-
-cat alice.log bob.log service.log >> test_scalarproduct.log
-rm -f alice.log bob.log service.log
-ISSUES=$((`grep scalarproduct test_scalarproduct.log | grep -c ERROR` + `grep scalarproduct test_scalarproduct.log | grep -c WARNING`))
+GNUNET_LOG=';;;;DEBUG' gnunet-scalarproduct $CFGBOB $INPUTBOB &
+RESULT=`GNUNET_LOG=';;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
 
 # terminate the testbed
 kill $PID 
 
 EXPECTED="-0CCC"
-if [ "$ISSUES" -eq "0" ]
+if [ "$RESULT" == "$EXPECTED" ]
 then
-	if [ "$RESULT" == "$EXPECTED" ]
-	then
-	  echo "OK"
-          rm -f test_scalarproduct.log
-	  exit 0
-	fi
+    	echo "OK"
+        exit 0
 else
-  echo "Result $RESULT NOTOK, see $PWD/test_scalarproduct.log for details"
-  exit 1
+    	echo "Result $RESULT NOTOK"
+        exit 1
 fi
-
