@@ -1319,8 +1319,10 @@ GAS_proportional_address_property_changed (void *solver,
       address, rel_value);
   switch (type)
   {
-  case GNUNET_ATS_UTILIZATION_UP:
-  case GNUNET_ATS_UTILIZATION_DOWN:
+  case GNUNET_ATS_UTILIZATION_OUT:
+  case GNUNET_ATS_UTILIZATION_IN:
+  case GNUNET_ATS_UTILIZATION_PAYLOAD_IN:
+  case GNUNET_ATS_UTILIZATION_PAYLOAD_OUT:
   case GNUNET_ATS_QUALITY_NET_DELAY:
   case GNUNET_ATS_QUALITY_NET_DISTANCE:
   case GNUNET_ATS_COST_WAN:
