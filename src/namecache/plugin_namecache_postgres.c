@@ -211,10 +211,9 @@ namecache_postgres_expire_blocks (struct Plugin *plugin)
 /**
  * Delete older block in the datastore.
  *
- * @param the plugin
+ * @param plugin the plugin
  * @param query query for the block
- * @param expiration time how old does the block have to be for deletion
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @param expiration_time how old does the block have to be for deletion
  */
 static void
 delete_old_block (struct Plugin *plugin,
