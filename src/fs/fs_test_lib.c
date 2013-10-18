@@ -410,6 +410,7 @@ publish_fs_connect_complete_cb (void *cls,
                                                       po->publish_tmp_file,
                                                       NULL, NULL, po->do_index,
                                                       &bo);
+    GNUNET_assert (NULL != fi);
   }
   else
   {
@@ -418,6 +419,7 @@ publish_fs_connect_complete_cb (void *cls,
 							&file_generator, &po->publish_seed,
 							NULL, NULL,
                                                         po->do_index, &bo);
+    GNUNET_assert (NULL != fi);
   }
   po->publish_context =
     GNUNET_FS_publish_start (po->fs, fi, NULL, NULL, NULL,

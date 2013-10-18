@@ -70,6 +70,7 @@ dns_value_to_string (void *cls,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+        GNUNET_free_non_null (ns);
 	return NULL;
       }
       return ns;
@@ -105,6 +106,8 @@ dns_value_to_string (void *cls,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+        if (NULL != soa)
+          GNUNET_DNSPARSER_free_soa (soa);
 	return NULL;
       }
       GNUNET_asprintf (&result,
@@ -182,6 +185,8 @@ dns_value_to_string (void *cls,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
+        if (NULL != srv)
+          GNUNET_DNSPARSER_free_srv (srv);
 	return NULL;
       }
       GNUNET_asprintf (&result,
