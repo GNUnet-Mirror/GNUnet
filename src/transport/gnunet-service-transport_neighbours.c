@@ -2567,7 +2567,7 @@ util_it (void *cls,
   atsi[0].value = htonl (bps_out);
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
   atsi[1].value = htonl (bps_in);
-  GNUNET_ATS_address_update (GST_ats, n->primary_address.address,
+  GST_ats_update_metrics (key, n->primary_address.address,
       n->primary_address.session, atsi, 2);
   n->util_bytes_recv = 0;
   n->util_bytes_sent = 0;
