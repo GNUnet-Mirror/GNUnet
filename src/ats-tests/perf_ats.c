@@ -942,13 +942,13 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     {
       case GNUNET_ATS_ARRAY_TERMINATOR:
         break;
-      case GNUNET_ATS_UTILIZATION_UP:
+      case GNUNET_ATS_UTILIZATION_OUT:
         if (p->ats_utilization_up != ntohl (ats[c_a].value))
             log = GNUNET_YES;
         p->ats_utilization_up = ntohl (ats[c_a].value);
 
         break;
-      case GNUNET_ATS_UTILIZATION_DOWN:
+      case GNUNET_ATS_UTILIZATION_IN:
         if (p->ats_utilization_down != ntohl (ats[c_a].value))
             log = GNUNET_YES;
         p->ats_utilization_down = ntohl (ats[c_a].value);
