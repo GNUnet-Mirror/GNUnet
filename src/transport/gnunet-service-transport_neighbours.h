@@ -205,10 +205,24 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 
 
 void
-GST_neighbours_notify_payload (const struct GNUNET_PeerIdentity *peer,
+GST_neighbours_notify_data_recv (const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address,
                  struct Session *session,
                  const struct GNUNET_MessageHeader *message);
+
+void
+GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
+                 const struct GNUNET_MessageHeader *message);
+
+void
+GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
+    size_t size);
+
+void
+GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
+    size_t size);
 
 /**
  * For an existing neighbour record, set the active connection to

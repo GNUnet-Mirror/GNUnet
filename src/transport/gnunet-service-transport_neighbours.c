@@ -540,12 +540,24 @@ struct NeighbourMapEntry
   /**
    * Tracking utilization of outbound bandwidth
    */
-  uint32_t util_bytes_sent;
+  uint32_t util_payload_bytes_sent;
 
   /**
    * Tracking utilization of inbound bandwidth
    */
-  uint32_t util_bytes_recv;
+  uint32_t util_payload_bytes_recv;
+
+  /**
+   * Tracking utilization of outbound bandwidth
+   */
+  uint32_t util_total_bytes_sent;
+
+  /**
+   * Tracking utilization of inbound bandwidth
+   */
+  uint32_t util_total_bytes_recv;
+
+
 
 
   /**
@@ -1196,13 +1208,10 @@ transmit_send_continuation (void *cls,
 			 ("# bytes in message queue for other peers"),
 			 bytes_in_send_queue, GNUNET_NO);
   if (GNUNET_OK == success)
-  {
-    n->util_bytes_sent += size_payload;
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
 			      ("# messages transmitted to other peers"),
 			      1, GNUNET_NO);
-  }
   else
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
@@ -1648,8 +1657,10 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->state = S_NOT_CONNECTED;
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   n->last_util_transmission = GNUNET_TIME_absolute_get();
-  n->util_bytes_recv = 0;
-  n->util_bytes_sent = 0;
+  n->util_payload_bytes_recv = 0;
+  n->util_payload_bytes_sent = 0;
+  n->util_total_bytes_recv = 0;
+  n->util_total_bytes_sent = 0;
   GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
@@ -2369,31 +2380,51 @@ send_utilization_data (void *cls,
     void *value)
 {
   struct NeighbourMapEntry *n = value;
-  struct GNUNET_ATS_Information atsi[2];
+  struct GNUNET_ATS_Information atsi[4];
+  uint32_t bps_pl_in;
+  uint32_t bps_pl_out;
   uint32_t bps_in;
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
 
   delta = GNUNET_TIME_absolute_get_difference(n->last_util_transmission, GNUNET_TIME_absolute_get());
-  bps_in = 0;
-  if (0 != n->util_bytes_recv)
-    bps_in =  (1000LL * 1000LL *  n->util_bytes_recv) / (delta.rel_value_us);
-  bps_out = 0;
-  if (0 != n->util_bytes_sent)
-    bps_out = (1000LL * 1000LL * n->util_bytes_sent) / delta.rel_value_us;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s'received %u Bytes/s, sent %u Bytes/s  \n",
+  bps_pl_in = 0;
+  if (0 != n->util_payload_bytes_recv)
+    bps_pl_in =  (1000LL * 1000LL *  n->util_payload_bytes_recv) / (delta.rel_value_us);
+  bps_pl_out = 0;
+  if (0 != n->util_payload_bytes_sent)
+    bps_pl_out = (1000LL * 1000LL * n->util_payload_bytes_sent) / delta.rel_value_us;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' payload: received %u Bytes/s, sent %u Bytes/s  \n",
+      GNUNET_i2s (key), bps_pl_in, bps_pl_out);
+
+  bps_in = 0;
+  if (0 != n->util_total_bytes_recv)
+    bps_in =  (1000LL * 1000LL *  n->util_total_bytes_recv) / (delta.rel_value_us);
+  bps_out = 0;
+  if (0 != n->util_total_bytes_sent)
+    bps_out = (1000LL * 1000LL * n->util_total_bytes_sent) / delta.rel_value_us;
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' total: received %u Bytes/s, sent %u Bytes/s  \n",
       GNUNET_i2s (key), bps_in, bps_out);
 
-
-  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
+  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_OUT);
   atsi[0].value = htonl (bps_out);
-  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
+  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_IN);
   atsi[1].value = htonl (bps_in);
+
+  atsi[2].type = htonl (GNUNET_ATS_UTILIZATION_PAYLOAD_OUT);
+  atsi[2].value = htonl (bps_pl_out);
+  atsi[3].type = htonl (GNUNET_ATS_UTILIZATION_PAYLOAD_IN);
+  atsi[3].value = htonl (bps_pl_in);
+
   GST_ats_update_metrics (key, n->primary_address.address,
-      n->primary_address.session, atsi, 2);
-  n->util_bytes_recv = 0;
-  n->util_bytes_sent = 0;
+      n->primary_address.session, atsi, 4);
+  n->util_payload_bytes_recv = 0;
+  n->util_payload_bytes_sent = 0;
+  n->util_total_bytes_recv = 0;
+  n->util_total_bytes_sent = 0;
   n->last_util_transmission = GNUNET_TIME_absolute_get();
   return GNUNET_OK;
 }
@@ -2419,7 +2450,7 @@ utilization_transmission (void *cls,
 }
 
 void
-GST_neighbours_notify_payload (const struct GNUNET_PeerIdentity *peer,
+GST_neighbours_notify_data_recv (const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_HELLO_Address *address,
                  struct Session *session,
                  const struct GNUNET_MessageHeader *message)
@@ -2428,10 +2459,51 @@ GST_neighbours_notify_payload (const struct GNUNET_PeerIdentity *peer,
   n = lookup_neighbour (peer);
   if (NULL == n)
   {
-      GNUNET_break (0);
       return;
   }
-  n->util_bytes_recv += ntohs(message->size);
+  n->util_total_bytes_recv += ntohs(message->size);
+}
+
+void
+GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
+                 const struct GNUNET_MessageHeader *message)
+{
+  struct NeighbourMapEntry *n;
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+  {
+      return;
+  }
+  n->util_payload_bytes_recv += ntohs(message->size);
+}
+
+
+void
+GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
+    size_t size)
+{
+  struct NeighbourMapEntry *n;
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+  {
+      return;
+  }
+  n->util_total_bytes_sent += size;
+}
+
+void
+GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
+    size_t size)
+{
+  struct NeighbourMapEntry *n;
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+  {
+      return;
+  }
+  n->util_payload_bytes_sent += size;
 }
 
 

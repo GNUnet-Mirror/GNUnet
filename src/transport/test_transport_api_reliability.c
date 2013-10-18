@@ -118,16 +118,19 @@ static void
 end ()
 {
   unsigned long long delta;
-
+  unsigned long long rate;
   char *value_name;
+
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
-           total_bytes * 1024 / delta);
+  rate = (1000LL * 1000LL * total_bytes) / (1024 * delta);
+  FPRINTF (stderr, "\nThroughput was %llu KiBytes/s\n",
+      rate);
+
   GNUNET_asprintf (&value_name, "reliable_%s", test_plugin);
-  GAUGER ("TRANSPORT", value_name, (int) (total_bytes / 1024 / delta),
+  GAUGER ("TRANSPORT", value_name, (int) rate,
           "kb/s");
   GNUNET_free (value_name);
 
