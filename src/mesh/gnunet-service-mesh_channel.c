@@ -718,7 +718,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
  * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
  *
  * @param ch Channel to mark as ready.
- * @param fwd Was the ACK message sent fwd? (dest->root, SYNACK)
+ * @param fwd Was the ACK message a FWD ACK? (dest->root, SYNACK)
  */
 static void
 channel_confirm (struct MeshChannel *ch, int fwd)
@@ -1191,6 +1191,9 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
 void
 GMCH_allow_client (struct MeshChannel *ch, int fwd)
 {
+  if (MESH_CHANNEL_READY != ch->state)
+    return;
+
   send_client_ack (ch, fwd);
 }
 

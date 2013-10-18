@@ -1182,7 +1182,7 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
     return;
   }
   if (NULL == t->channel_head ||
-      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, fwd))
+      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, !fwd))
   {
     GNUNET_break (0);
     return;
