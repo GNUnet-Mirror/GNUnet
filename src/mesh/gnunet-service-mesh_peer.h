@@ -213,7 +213,7 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
  * @param trusted Do we trust that this path is real?
  */
 void
-GMP_add_path_to_origin (struct MeshPeer *peer_info,
+GMP_add_path_to_origin (struct MeshPeer *peer,
                         struct MeshPeerPath *path,
                         int trusted);
 

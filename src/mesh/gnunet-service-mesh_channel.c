@@ -1518,7 +1518,7 @@ GMCH_handle_data (struct MeshChannel *ch,
 /**
  * Handler for mesh network traffic end-to-end ACKs.
  *
- * @param t Tunnel on which we got this message.
+ * @param ch Channel on which we got this message.
  * @param msg Data message.
  * @param fwd Is this a fwd ACK? (dest->orig)
  */

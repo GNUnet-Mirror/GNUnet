@@ -1522,7 +1522,7 @@ GMP_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
  * The path is given in peer_info -> destination, therefore we turn the path
  * upside down first.
  *
- * @param pee Peer to add the path to, being the origin of the path.
+ * @param peer Peer to add the path to, being the origin of the path.
  * @param path New path to add after being inversed.
  *             Path will be either used or freed.
  * @param trusted Do we trust that this path is real?

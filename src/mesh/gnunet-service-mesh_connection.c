@@ -2009,6 +2009,7 @@ GMC_notify_broken (struct MeshConnection *c,
 
   fwd = peer == get_prev_hop (c);
 
+  send_broken (c, &my_full_id, GMP_get_id (peer), fwd);
   connection_cancel_queues (c, !fwd);
   if (GMC_is_terminal (c, fwd))
   {
@@ -2016,8 +2017,6 @@ GMC_notify_broken (struct MeshConnection *c,
     GMC_destroy (c);
     return;
   }
-
-  send_broken (c, &my_full_id, GMP_get_id (peer), fwd);
 
   /* Connection will have at least one pending message
    * (the one we just scheduled), so no point in checking whether to
