@@ -107,7 +107,7 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
     if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
       /* encrypted blocks must never have relative expiration times, convert! */
-      rdc[i].flags ^= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+      rdc[i].flags &= ~GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
       rdc[i].expiration_time += now.abs_value_us;
     }
   }
@@ -115,7 +115,7 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
   rd_count_nbo = htonl (rd_count);
   memcpy (payload, &rd_count_nbo, sizeof (uint32_t));
   GNUNET_assert (payload_len ==
-		 GNUNET_GNSRECORD_records_serialize (rd_count, rd,
+		 GNUNET_GNSRECORD_records_serialize (rd_count, rdc,
 						     payload_len, &payload[sizeof (uint32_t)]));
   block = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Block) +
 			 sizeof (uint32_t) + payload_len);
