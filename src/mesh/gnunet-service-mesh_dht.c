@@ -270,7 +270,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Initialize the DHT subsystem.
  *
  * @param c Configuration.
- * @param peer_id Local peer ID (must remain valid during all execution time).
  */
 void
 GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
