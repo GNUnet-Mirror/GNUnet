@@ -167,7 +167,7 @@ struct DnsResult
   uint64_t expiration_time;
 
   /**
-   * Number of bytes in 'data'.
+   * Number of bytes in @e data.
    */
   size_t data_size;
 
@@ -1767,6 +1767,12 @@ handle_dht_response (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
+  if (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received expired block from the DHT, will not cache it.\n");
+    return;
+  }
   /* Cache well-formed blocks */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Caching response from the DHT in namestore\n");
@@ -1845,8 +1851,6 @@ handle_namestore_block_response (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Decrypting block from the namestore\n");
   if (GNUNET_OK !=
       GNUNET_GNSRECORD_block_decrypt (block,
 				      auth,

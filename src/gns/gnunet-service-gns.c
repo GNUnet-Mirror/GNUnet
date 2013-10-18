@@ -370,7 +370,7 @@ put_gns_record (void *cls,
     {
       zone_publish_time_window
         = GNUNET_TIME_relative_min (min_relative_record_time,
-                                    zone_publish_time_window);
+                                    DEFAULT_ZONE_PUBLISH_TIME_WINDOW);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
     }
