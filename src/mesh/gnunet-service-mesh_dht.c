@@ -50,6 +50,9 @@ struct GMD_search_handle
 
   /** Provided closure. */
   void *cls;
+
+  /** Peer ID searched for */
+  GNUNET_PEER_Id peer_id;
 };
 
 
@@ -92,6 +95,10 @@ static unsigned long long dht_replication_level;
  */
 static GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
 
+/**
+ * GET requests to stop on shutdown.
+ */
+static struct GNUNET_CONTAINER_MultiHashMap32 *get_requests;
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
@@ -261,6 +268,27 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (id_announce_time, &announce_id, cls);
 }
 
+/**
+ * Iterator over hash map entries and stop GET requests before disconnecting 
+ * from the DHT.
+ *
+ * @param cls Closure (unused)
+ * @param key Current peer ID.
+ * @param value Value in the hash map (GMD_search_handle).
+ *
+ * @return #GNUNET_YES, we should continue to iterate,
+ */
+int
+stop_get (void *cls,
+          uint32_t key,
+          void *value)
+{
+  struct GMD_search_handle *h = value;
+
+  GMD_search_stop (h);
+  return GNUNET_YES;
+}
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -301,6 +329,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
   }
 
   announce_id_task = GNUNET_SCHEDULER_add_now (&announce_id, NULL);
+  get_requests = GNUNET_CONTAINER_multihashmap32_create (32);
 }
 
 
@@ -308,8 +337,10 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
  * Shut down the DHT subsystem.
  */
 void
-GMD_shutdown(void )
+GMD_shutdown (void)
 {
+  GNUNET_CONTAINER_multihashmap32_iterate (get_requests, &stop_get, NULL);
+  GNUNET_CONTAINER_multihashmap32_destroy (get_requests);
   if (dht_handle != NULL)
   {
     GNUNET_DHT_disconnect (dht_handle);
@@ -333,6 +364,7 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
        "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
   GNUNET_CRYPTO_hash (peer_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   h = GNUNET_new (struct GMD_search_handle);
+  h->peer_id = GNUNET_PEER_intern (peer_id);
   h->callback = callback;
   h->cls = cls;
   h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
@@ -344,12 +376,15 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
                                     NULL,       /* xquery */
                                     0,     /* xquery bits */
                                     &dht_get_id_handler, h);
+  GNUNET_CONTAINER_multihashmap32_put (get_requests, h->peer_id, h,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   return h;
 }
 
 void
 GMD_search_stop (struct GMD_search_handle *h)
 {
+  GNUNET_CONTAINER_multihashmap32_remove (get_requests, h->peer_id, h);
   GNUNET_DHT_get_stop (h->dhtget);
   GNUNET_free (h);
 }
