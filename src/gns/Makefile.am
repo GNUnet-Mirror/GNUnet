@@ -193,12 +193,12 @@ libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
 libgnunetgns_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
- $(top_builddir)/src/namestore/libgnunetnamestore.la
+ $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunetgns_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 libgnunetgns_la_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/namestore/libgnunetnamestore.la
+ $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 
 
 libgnunet_plugin_block_gns_la_SOURCES = \
