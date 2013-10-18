@@ -3674,6 +3674,7 @@ run (void *cls,
 	return;
       }
     exit_argv[5] = ipv4addr;
+    ipv4mask = NULL;
     if ( (GNUNET_SYSERR ==
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit", "IPV4MASK",
 						 &ipv4mask) ||
@@ -3681,6 +3682,7 @@ run (void *cls,
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "EXIT", "IPV4MASK");
       GNUNET_SCHEDULER_shutdown ();
+      GNUNET_free_non_null (ipv4mask);
       return;
     }
     exit_argv[6] = ipv4mask;

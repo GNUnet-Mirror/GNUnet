@@ -388,7 +388,7 @@ request_done (struct RequestRecord *rr)
       {
 	struct sockaddr_in *src = (struct sockaddr_in *) &rr->src_addr;
 	struct sockaddr_in *dst = (struct sockaddr_in *) &rr->dst_addr;
-	
+
 	source_port = dst->sin_port;
 	destination_port = src->sin_port;
 	GNUNET_TUN_initialize_ipv4_header (&ip4,
@@ -1071,6 +1071,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     dns_exit = NULL;
   }
   dnsstub = GNUNET_DNSSTUB_start (dns_exit);
+  GNUNET_free_non_null (dns_exit);
   helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))

@@ -1194,6 +1194,7 @@ handle_gns_resolution_result (void *cls,
 	GNUNET_break_op (0);
 	rh->proc (rh->proc_cls, 0, NULL);
 	GNS_resolver_lookup_cancel (rh);
+        GNUNET_free_non_null (cname);
 	return;
       }
       handle_gns_cname_result (rh,

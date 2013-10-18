@@ -95,7 +95,7 @@ struct LookupBlockResponseMessage
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey derived_key;
 
-  /* follwed by encrypted block data */
+  /* followed by encrypted block data */
 };
 
 
