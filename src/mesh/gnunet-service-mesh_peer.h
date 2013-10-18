@@ -85,7 +85,7 @@ GMP_shutdown (void);
  * Retrieve the MeshPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
- * @param peer Full identity of the peer.
+ * @param peer_id Full identity of the peer.
  *
  * @return Existing or newly created peer structure.
  */
@@ -207,7 +207,7 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
  * The path is given in peer_info -> destination, therefore we turn the path
  * upside down first.
  *
- * @param peer_info Peer to add the path to, being the origin of the path.
+ * @param peer Peer to add the path to, being the origin of the path.
  * @param path New path to add after being inversed.
  *             Path will be either used or freed.
  * @param trusted Do we trust that this path is real?
