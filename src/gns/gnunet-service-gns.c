@@ -160,7 +160,7 @@ static unsigned long long last_num_public_records;
  * Minimum relative expiration time
  * of records seem during zone iteration
  */
-static struct GNUNET_TIME_Relative min_relative_record_time;
+static struct GNUNET_TIME_Relative min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
 
 /**
  * Zone iteration PUT interval.
@@ -374,6 +374,8 @@ put_gns_record (void *cls,
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
     }
+    /* reset for next iteration */
+    min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
     put_interval = GNUNET_TIME_relative_max (MINIMUM_ZONE_ITERATION_INTERVAL,
 					     put_interval);
 
