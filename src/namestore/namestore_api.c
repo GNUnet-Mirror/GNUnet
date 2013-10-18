@@ -982,6 +982,60 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
 
 
 /**
+ * Lookup an item in the namestore.
+ *
+ * @param h handle to the namestore
+ * @param pkey private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rm function to call with the result (with 0 records if we don't have that label)
+ * @param rm_cls closure for @a rm
+ * @return handle to abort the request
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
+                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                 const char *label,
+                                 GNUNET_NAMESTORE_RecordMonitor rm,
+                                 void *rm_cls)
+{
+  struct GNUNET_NAMESTORE_QueueEntry *qe;
+  struct PendingMessage *pe;
+  struct LabelLookupMessage * msg;
+  size_t msg_size;
+  size_t label_len;
+
+  GNUNET_assert (NULL != h);
+  GNUNET_assert (NULL != pkey);
+  GNUNET_assert (NULL != label);
+
+  if (1 == (label_len = strlen (label) + 1))
+    return NULL;
+
+  qe = GNUNET_new (struct GNUNET_NAMESTORE_QueueEntry);
+  qe->nsh = h;
+  qe->proc = rm;
+  qe->proc_cls = rm_cls;
+  qe->op_id = get_op_id(h);
+  GNUNET_CONTAINER_DLL_insert_tail (h->op_head, h->op_tail, qe);
+
+  msg_size = sizeof (struct LabelLookupMessage) + label_len;
+  pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
+  pe->size = msg_size;
+  msg = (struct LabelLookupMessage *) &pe[1];
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LABEL_LOOKUP);
+  msg->gns_header.header.size = htons (msg_size);
+  msg->gns_header.r_id = htonl (qe->op_id);
+  msg->zone = *pkey;
+  msg->label_len = htons(label_len);
+
+  /* transmit message */
+  GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
+  do_transmit (h);
+  return qe;
+}
+
+
+/**
  * Look for an existing PKEY delegation record for a given public key.
  * Returns at most one result to the processor.
  *

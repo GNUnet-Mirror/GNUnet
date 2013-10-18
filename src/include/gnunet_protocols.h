@@ -1433,6 +1433,10 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_ITERATION_STOP 448
 
+/**
+ * Client to service: lookup label
+ */
+#define GNUNET_MESSAGE_TYPE_NAMESTORE_LABEL_LOOKUP 449
 
 /*******************************************************************************
  * LOCKMANAGER message types

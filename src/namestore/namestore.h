@@ -209,6 +209,33 @@ struct RecordStoreResponseMessage
 };
 
 
+/**
+ * Lookup a label
+ */
+struct LabelLookupMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_LABEL_LOOKUP
+   */
+  struct GNUNET_NAMESTORE_Header gns_header;
+
+  /**
+   * The private key of the zone to look up in
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
+
+  /**
+   * Length of the name
+   */
+  uint16_t label_len GNUNET_PACKED;
+
+  /* followed by:
+   * name with length name_len
+   */
+};
+
+
+
 
 /**
  * Lookup a name for a zone hash
