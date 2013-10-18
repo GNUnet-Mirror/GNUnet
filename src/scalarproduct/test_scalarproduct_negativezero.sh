@@ -1,8 +1,8 @@
 #!/bin/bash
 # compute a simple scalar product
 # payload for this test:
-INPUTALICE="-k CCC -e 3,3,-1"
-INPUTBOB="-k CCC -e 1000,100,24"
+INPUTALICE="-k CCC -e -1,1,-1"
+INPUTBOB="-k CCC -e 1,1,0"
 
 # necessary to make the testing prefix deterministic, so we can access the config files
 PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
@@ -33,7 +33,7 @@ ISSUES=$((`grep scalarproduct test_scalarproduct.log | grep -c ERROR` + `grep sc
 # terminate the testbed
 kill $PID 
 
-EXPECTED="0CCC"
+EXPECTED="00"
 if [ "$ISSUES" -eq "0" ]
 then
 	if [ "$RESULT" == "$EXPECTED" ]
