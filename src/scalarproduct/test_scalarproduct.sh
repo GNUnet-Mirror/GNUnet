@@ -1,8 +1,8 @@
 #!/bin/bash
 # compute a simple scalar product
 # payload for this test:
-INPUTALICE="-k AAAA -e 10,10,10"
-INPUTBOB="-k AAAA -e 10,10,10"
+INPUTALICE="-k AAAA -e 3,3,-1"
+INPUTBOB="-k AAAA -e 1000,100,24"
 
 # necessary to make the testing prefix deterministic, so we can access the config files
 PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
@@ -17,25 +17,36 @@ CFGBOB="-c $PREFIX/1/config"
 # because the rest of the script is already in stdin, 
 # thus redirecting stdin does not suffice)
 GNUNET_LOG='scalarproduct;;;;DEBUG' GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 2>service.log &
-sleep 5
+PID=$!
 
+echo $PID
+read
+sleep 5
 # get bob's peer ID, necessary for alice
 PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 
 GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGBOB $INPUTBOB 2>bob.log &
-GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB 2>alice.log
+RESULT=`GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB 2>alice.log`
+RESULT=`printf "%X\n" "0x$RESULT"`
 
-# termiante the testbed
-kill $( pgrep -P $$ | tr '\n' ' ' )
-#rm alice.log bob.log service.log
+cat alice.log bob.log service.log >> test_scalarproduct.log
+rm -f alice.log bob.log service.log
+ISSUES=$((`grep scalarproduct test_scalarproduct.log | grep -c ERROR` + `grep scalarproduct test_scalarproduct.log | grep -c WARNING`))
 
-EXPECTED="12C"
-if [ "$RESULT" == "$EXPECTED" ]
+# terminate the testbed
+kill $PID 
+
+EXPECTED="CCC"
+if [ "$ISSUES" -eq "0" ]
 then
-  echo "OK"
-  exit 0
+	if [ "$RESULT" == "$EXPECTED" ]
+	then
+	  echo "OK"
+          rm -f test_scalarproduct.log
+	  exit 0
+	fi
 else
-  echo "Result $RESULT NOTOK"
+  echo "Result $RESULT NOTOK, see $PWD/test_scalarproduct.log for details"
   exit 1
 fi
 
