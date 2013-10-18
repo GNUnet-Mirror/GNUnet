@@ -228,6 +228,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                         gettext_noop
                         ("# bytes total received"),
                             ntohs (message->size), GNUNET_NO);
+  GST_neighbours_notify_data_recv (peer, &address, session, message);
 
   switch (type)
   {
@@ -275,7 +276,7 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
                               gettext_noop
                               ("# bytes payload received"),
                               ntohs (message->size), GNUNET_NO);
-    GST_neighbours_notify_payload (peer, &address, session, message);
+    GST_neighbours_notify_payload_recv (peer, &address, session, message);
     ret = process_payload (peer, &address, session, message);
     break;
   }
