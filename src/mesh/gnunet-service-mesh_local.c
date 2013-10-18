@@ -555,8 +555,8 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  /* If client is root, the ACK is going FWD, therefore this is "BCK". */
-  /* If client is dest, the ACK is going BCK, therefore this is "FWD" */
+  /* If client is root, the ACK is going FWD, therefore this is "BCK ACK". */
+  /* If client is dest, the ACK is going BCK, therefore this is "FWD ACK" */
   fwd = chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
 
   GMCH_handle_local_ack (ch, fwd);

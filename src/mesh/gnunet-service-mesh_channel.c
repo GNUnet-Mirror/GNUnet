@@ -143,6 +143,11 @@ struct MeshChannelReliability
      */
   int                               client_ready;
 
+  /**
+   * Can the client send data to us?
+   */
+  int                               client_allowed;
+
     /**
      * Task to resend/poll in case no ACK is received.
      */
@@ -464,6 +469,13 @@ send_client_ack (struct MeshChannel *ch, int fwd)
     GNUNET_break (0);
     return;
   }
+
+  if (GNUNET_YES == rel->client_allowed)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already allowed\n");
+    return;
+  }
+  rel->client_allowed = GNUNET_YES;
 
   GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
 }
@@ -997,6 +1009,25 @@ GMCH_get_buffer (struct MeshChannel *ch, int fwd)
 
 
 /**
+ * Get flow control status of end point: is client allow to send?
+ *
+ * @param ch Channel.
+ * @param fwd Is query about FWD traffic? (Request root status).
+ *
+ * @return GNUNET_YES if client is allowed to send us data.
+ */
+int
+GMCH_get_allowed (struct MeshChannel *ch, int fwd)
+{
+  struct MeshChannelReliability *rel;
+
+  rel = fwd ? ch->root_rel : ch->dest_rel;
+
+  return rel->client_allowed;
+}
+
+
+/**
  * Is the root client for this channel on this peer?
  *
  * @param ch Channel.
@@ -1152,6 +1183,19 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
+ * Allow a client to send us more data, in case it was choked.
+ *
+ * @param ch Channel.
+ * @param fwd Is this about FWD traffic? (Root client).
+ */
+void
+GMCH_allow_client (struct MeshChannel *ch, int fwd)
+{
+  send_client_ack (ch, fwd);
+}
+
+
+/**
  * Log channel info.
  *
  * @param ch Channel.
@@ -1206,7 +1250,7 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
 
   rel->client_ready = GNUNET_YES;
   send_client_buffered_data (ch, c, fwd);
-  GMC_send_ack (NULL, ch, fwd);
+  GMT_send_acks (ch->t, fwd);
 }
 
 
@@ -1246,6 +1290,8 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   }
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
+
+  rel->client_allowed = GNUNET_NO;
 
   /* Ok, everything is correct, send the message. */
   payload = (struct GNUNET_MESH_Data *) cbuf;

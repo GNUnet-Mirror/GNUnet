@@ -280,6 +280,8 @@ GMT_get_state (struct MeshTunnel3 *t);
 
 /**
  * Get the total buffer space for a tunnel.
+ * 
+ * FIXME get a ch parameter in case of loopback tunnels
  *
  * @param t Tunnel.
  * @param fwd Is this for FWD traffic?
@@ -310,6 +312,15 @@ MESH_ChannelNumber
 GMT_get_next_chid (struct MeshTunnel3 *t);
 
 /**
+ * Send ACK on one or more channels due to buffer in connections..
+ *
+ * @param t Channel which has some free buffer space.
+ * @param fwd Is this for FWD traffic? (ACK goes to root)
+ */
+void
+GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd);
+
+/**
  * Send ACK on one or more connections due to buffer space to the client.
  *
  * Iterates all connections of the tunnel and sends ACKs appropriately.
@@ -318,7 +329,7 @@ GMT_get_next_chid (struct MeshTunnel3 *t);
  * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
 void
-GMT_send_acks (struct MeshTunnel3 *t, unsigned int buffer, int fwd);
+GMT_send_acks (struct MeshTunnel3 *t, int fwd);
 
 /**
  * Sends an already built message on a tunnel, encrypting it and

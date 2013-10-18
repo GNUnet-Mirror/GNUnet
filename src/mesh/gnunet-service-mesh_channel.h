@@ -84,6 +84,19 @@ GMCH_get_tunnel (const struct MeshChannel *ch);
 unsigned int
 GMCH_get_buffer (struct MeshChannel *ch, int fwd);
 
+
+/**
+ * Get flow control status of end point: is client allow to send?
+ *
+ * @param ch Channel.
+ * @param fwd Is query about FWD traffic? (Request root status).
+ *
+ * @return GNUNET_YES if client is allowed to send us data.
+ */
+int
+GMCH_get_allowed (struct MeshChannel *ch, int fwd);
+
+
 /**
  * Is the root client for this channel on this peer?
  *
@@ -147,6 +160,15 @@ GMCH_send_create (struct MeshChannel *ch);
  */
 void
 GMCH_send_destroy (struct MeshChannel *ch);
+
+/**
+ * Allow a client to send us more data, in case it was choked.
+ *
+ * @param ch Channel.
+ * @param fwd Is this about FWD traffic? (Root client).
+ */
+void
+GMCH_allow_client (struct MeshChannel *ch, int fwd);
 
 /**
  * Log channel info.

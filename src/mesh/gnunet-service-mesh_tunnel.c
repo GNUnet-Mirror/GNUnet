@@ -984,7 +984,7 @@ GMT_count_channels (struct MeshTunnel3 *t)
 
   for (count = 0, iter = t->channel_head;
        NULL != iter;
-  iter = iter->next, count++);
+       iter = iter->next, count++) /* skip */;
 
   return count;
 }
@@ -1008,10 +1008,13 @@ GMT_get_state (struct MeshTunnel3 *t)
 /**
  * Get the total buffer space for a tunnel.
  *
+ * If terminal, use the biggest channel buffer (or 64) if no channel exists.
+ * If not terminal, use the sum of all connection buffers.
+ *
  * @param t Tunnel.
  * @param fwd Is this for FWD traffic?
  *
- * @return Buffer space offered by all connections in the tunnel.
+ * @return Buffer space offered by all entities (c/ch) in the tunnel.
  */
 unsigned int
 GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
@@ -1030,7 +1033,7 @@ GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
 
     if (NULL == t->channel_head)
     {
-      /* Probably getting buffer for a channel create. */
+      /* Probably getting buffer for a channel create/handshake. */
       return 64;
     }
 
@@ -1099,24 +1102,78 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
 
 
 /**
+ * Send ACK on one or more channels due to buffer in connections..
+ *
+ * @param t Channel which has some free buffer space.
+ * @param fwd Is this for FWD traffic? (ACK goes to root)
+ */
+void
+GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
+{
+  struct MeshTChannel *iter;
+  unsigned int buffer;
+  unsigned int channels = GMT_count_channels (t);
+  unsigned int choked_n;
+  struct MeshChannel *choked[channels];
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_unchoke_channels on %s\n", GMT_2s (t));
+
+  if (NULL == t)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* Get buffer space */
+  buffer = GMT_get_buffer (t, fwd);
+  if (0 == buffer)
+  {
+    return;
+  }
+
+  /* Count and remember choked channels */
+  choked_n = 0;
+  for (iter = t->channel_head; NULL != iter; iter = iter->next)
+  {
+    if (GNUNET_NO == GMCH_get_allowed (iter->ch, fwd))
+    {
+      choked[choked_n++] = iter->ch;
+    }
+  }
+
+  /* Unchoke random channels */
+  while (0 < buffer && 0 < choked_n)
+  {
+    unsigned int r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                               choked_n);
+    GMCH_allow_client (choked[r], fwd);
+    choked_n--;
+    buffer--;
+    choked[r] = choked[choked_n];
+  }
+}
+
+
+/**
  * Send ACK on one or more connections due to buffer space to the client.
  *
  * Iterates all connections of the tunnel and sends ACKs appropriately.
  *
- * @param ch Channel which has some free buffer space.
+ * @param t Tunnel.
  * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
 void
-GMT_send_acks (struct MeshTunnel3 *t, unsigned int buffer, int fwd)
+GMT_send_acks (struct MeshTunnel3 *t, int fwd)
 {
   struct MeshTConnection *iter;
   uint32_t allowed;
   uint32_t to_allow;
   uint32_t allow_per_connection;
   unsigned int cs;
+  unsigned int buffer;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel send acks on %s:%X\n",
+              "Tunnel send %s ACKs on %s\n",
               fwd ? "FWD" : "BCK", GMT_2s (t));
 
   if (NULL == t)
@@ -1130,6 +1187,8 @@ GMT_send_acks (struct MeshTunnel3 *t, unsigned int buffer, int fwd)
     GNUNET_break (0);
     return;
   }
+
+  buffer = GMT_get_buffer (t, fwd);
 
   /* Count connections, how many messages are already allowed */
   cs = GMT_count_connections (t);

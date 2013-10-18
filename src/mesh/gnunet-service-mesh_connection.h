@@ -197,11 +197,10 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * the direction and the position of the peer.
  *
  * @param c Which connection to send the hop-by-hop ACK.
- * @param ch Channel, if any.
  * @param fwd Is this a fwd ACK? (will go dest->root)
  */
 void
-GMC_send_ack (struct MeshConnection *c, struct MeshChannel *ch, int fwd);
+GMC_send_ack (struct MeshConnection *c, int fwd);
 
 /**
  * Initialize the connections subsystem
@@ -450,6 +449,14 @@ GMC_start_poll (struct MeshConnection *c, int fwd);
  */
 void
 GMC_stop_poll (struct MeshConnection *c, int fwd);
+
+/**
+ * Get a (static) string for a connection.
+ *
+ * @param c Connection.
+ */
+const char *
+GMC_2s (struct MeshConnection *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
