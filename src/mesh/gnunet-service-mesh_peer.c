@@ -1156,7 +1156,6 @@ GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
  * Initialize the peer subsystem.
  *
  * @param c Configuration.
- * @param id Peer identity
  */
 void
 GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)

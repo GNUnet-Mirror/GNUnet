@@ -312,7 +312,7 @@ MESH_ChannelNumber
 GMT_get_next_chid (struct MeshTunnel3 *t);
 
 /**
- * Send ACK on one or more channels due to buffer in connections..
+ * Send ACK on one or more channels due to buffer in connections.
  *
  * @param t Channel which has some free buffer space.
  * @param fwd Is this for FWD traffic? (ACK goes to root)
@@ -325,7 +325,7 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd);
  *
  * Iterates all connections of the tunnel and sends ACKs appropriately.
  *
- * @param ch Channel which has some free buffer space.
+ * @param t Tunnel which has some free buffer space.
  * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
 void

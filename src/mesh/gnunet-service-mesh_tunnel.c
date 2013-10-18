@@ -624,7 +624,6 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
  * Initialize the tunnel subsystem.
  *
  * @param c Configuration handle.
- * @param id Peer identity.
  * @param key ECC private key, to derive all other keys and do crypto.
  */
 void

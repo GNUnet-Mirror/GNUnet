@@ -72,15 +72,15 @@ void
 GML_shutdown (void);
 
 /**
- * Get a chennel from a client
+ * Get a channel from a client.
  *
- * @param client the client to check
- * @param chid Channel ID
+ * @param c Client to check.
+ * @param chid Channel ID, must be local (> 0x800...).
  *
- * @return non-NULL if channel exists in the global DLL
+ * @return non-NULL if channel exists in the clients lists
  */
 struct MeshChannel *
-GML_channel_get (struct MeshClient *client, uint32_t chid);
+GML_channel_get (struct MeshClient *c, uint32_t chid);
 
 /**
  * Add a channel to a client

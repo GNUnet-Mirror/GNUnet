@@ -274,7 +274,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
 /**
  * Handler for channel ack messages.
  *
- * @param t Tunnel this channel is to be created in.
+ * @param ch Channel this channel is to be created in.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
@@ -286,7 +286,7 @@ GMCH_handle_ack (struct MeshChannel *ch,
 /**
  * Handler for channel destroy messages.
  *
- * @param t Tunnel this channel is to be destroyed of.
+ * @param ch Channel this channel is to be destroyed of.
  * @param msg Message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
