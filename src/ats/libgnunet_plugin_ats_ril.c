@@ -588,8 +588,8 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
 
 /**
  * Allocates a state vector and fills it with the features present
- *
  * @param solver the solver handle
+ * @param agent the agent handle
  * @return pointer to the state vector
  */
 static double *
@@ -633,7 +633,6 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
  * For all networks a peer has an address in, this gets the maximum bandwidth which could
  * theoretically be available in one of the networks. This is used for bandwidth normalization.
  *
- * @param solver the solver handle
  * @param agent the agent handle
  * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
  */
@@ -744,7 +743,8 @@ envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
  * parts from the local (the peer specific) and the global (for all peers
  * identical) reward.
  *
- * @param solver solver handle
+ * @param solver the solver handle
+ * @param agent the agent handle
  * @return the reward
  */
 static double
@@ -916,8 +916,9 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
 /**
  * Puts the action into effect by calling the according function
  *
- * @param solver solver handle
- * @param action action to perform by the solver
+ * @param solver the solver handle
+ * @param agent the action handle
+ * @param action the action to perform by the solver
  */
 static void
 envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int action)
@@ -1045,8 +1046,8 @@ agent_step (struct RIL_Peer_Agent *agent)
 /**
  * Cycles through all agents and lets the active ones do a step. Schedules the next step.
  *
- * @param solver the solver handle
- * @param tc task context for the scheduler
+ * @param cls the solver handle
+ * @param tc the task context for the scheduler
  */
 static void
 ril_periodic_step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1106,7 +1107,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
 /**
  * Deallocate agent
  *
- * @param s solver handle
+ * @param solver the solver handle
  * @param agent the agent to retire
  */
 static void
@@ -1127,10 +1128,10 @@ agent_die (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 /**
  * Returns the agent for a peer
  *
- * @param s solver handle
- * @param peer identity of the peer
- * @param create whether to create an agent if none is allocated yet
- * @return agent
+ * @param solver the solver handle
+ * @param peer the identity of the peer
+ * @param create whether or not to create an agent, if none is allocated yet
+ * @return the agent
  */
 static struct RIL_Peer_Agent *
 ril_get_agent (struct GAS_RIL_Handle *solver, const struct GNUNET_PeerIdentity *peer, int create)
@@ -1259,7 +1260,7 @@ ril_cut_from_vector (void **old,
  * @param pref_rel the normalized preference value for this kind over all clients
  */
 void
-GAS_ril_address_change_preference (void *s,
+GAS_ril_address_change_preference (void *solver,
     const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_ATS_PreferenceKind kind,
     double pref_rel)
