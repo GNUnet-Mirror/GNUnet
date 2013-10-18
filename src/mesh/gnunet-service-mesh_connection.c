@@ -804,15 +804,14 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
     return;
   }
 
-  peer = get_hop (c, fwd);
-  GMP_queue_cancel (peer, c);
-
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  peer = get_hop (c, fwd);
+  GMP_queue_cancel (peer, c);
 }
 
 
