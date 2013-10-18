@@ -157,10 +157,10 @@ static unsigned long long num_public_records;
 static unsigned long long last_num_public_records;
 
 /**
- * Minimum relative expiration time
- * of records seem during zone iteration
+ * Minimum relative expiration time of records seem during the current
+ * zone iteration.
  */
-static struct GNUNET_TIME_Relative min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
+static struct GNUNET_TIME_Relative min_relative_record_time;
 
 /**
  * Zone iteration PUT interval.
@@ -660,7 +660,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
   v4_enabled = GNUNET_NETWORK_test_pf (PF_INET);
-
+  min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
   namestore_handle = GNUNET_NAMESTORE_connect (c);
   if (NULL == namestore_handle)
   {
