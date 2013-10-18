@@ -83,12 +83,12 @@ enum GNUNET_ATS_Network_Type
 /**
  * Number of property types supported by ATS
  */
-#define GNUNET_ATS_PropertyCount 9
+#define GNUNET_ATS_PropertyCount 11
 
 /**
  * ATS properties types as string array initializer
  */
-#define GNUNET_ATS_PropertyStrings {"TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"}
+#define GNUNET_ATS_PropertyStrings {"TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "UTILIZATION_PAYLOAD_UP", "UTILIZATION_PAYLOAD_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"}
 
 /**
  * Enum defining all known property types for ATS Enum values are used
@@ -110,18 +110,37 @@ enum GNUNET_ATS_Property
   GNUNET_ATS_ARRAY_TERMINATOR = 0,
 
   /**
-   * Actual traffic on this connection from the other peer to this peer.
+   * Actual traffic on this connection from this peer to the other peer.
+   * Includes transport overhead
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_UP,
+  GNUNET_ATS_UTILIZATION_OUT,
+
+  /**
+   * Actual traffic on this connection from the other peer to this peer.
+   * Includes transport overhead
+   *
+   * Unit: [bytes/second]
+   */
+  GNUNET_ATS_UTILIZATION_IN,
+
 
   /**
    * Actual traffic on this connection from this peer to the other peer.
+   * Only payload from layers > transport
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_DOWN,
+  GNUNET_ATS_UTILIZATION_PAYLOAD_OUT,
+
+  /**
+   * Actual traffic on this connection from the other peer to this peer.
+   * Only payload from layers > transport
+   *
+   * Unit: [bytes/second]
+   */
+  GNUNET_ATS_UTILIZATION_PAYLOAD_IN,
 
   /**
    * Is this address located in WAN, LAN or a loopback address
