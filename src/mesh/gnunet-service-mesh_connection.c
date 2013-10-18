@@ -452,6 +452,7 @@ message_sent (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
     GMC_destroy (c);
+    return;
   }
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
@@ -2158,7 +2159,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       droppable = GNUNET_NO;
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
       dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
       dmsg->cid = c->id;
       dmsg->reserved = 0;
@@ -2243,7 +2244,7 @@ GMC_send_destroy (struct MeshConnection *c)
     return;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY);;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY);;
   msg.cid = c->id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s\n",
