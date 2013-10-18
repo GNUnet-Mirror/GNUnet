@@ -136,6 +136,24 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
 
 
 /**
+ * Lookup an item in the namestore.
+ *
+ * @param h handle to the namestore
+ * @param pkey private key of the zone
+ * @param label name that is being mapped (at most 255 characters long)
+ * @param rm function to call with the result (with 0 records if we don't have that label)
+ * @param rm_cls closure for @a rm
+ * @return handle to abort the request
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
+                                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                                 const char *label,
+                                 GNUNET_NAMESTORE_RecordMonitor rm,
+                                 void *rm_cls);
+
+
+/**
  * Look for an existing PKEY delegation record for a given public key.
  * Returns at most one result to the processor.
  *
