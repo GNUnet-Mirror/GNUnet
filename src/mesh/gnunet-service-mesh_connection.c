@@ -2178,7 +2178,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0);
   }
 
-  if (fc->queue_n >= fc->queue_max && droppable)
+  if (fc->queue_n > fc->queue_max && droppable)
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
@@ -2186,6 +2186,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "queue full: %u/%u\n",
                 fc->queue_n, fc->queue_max);
+    if (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED == type)
+      fc->queue_n--;
     return; /* Drop this message */
   }
 
