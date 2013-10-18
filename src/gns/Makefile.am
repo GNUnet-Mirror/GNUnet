@@ -226,7 +226,7 @@ check_SCRIPTS = \
   test_gns_pseu_shorten.sh\
   test_gns_plus_lookup.sh\
   test_gns_zkey_lookup.sh\
-	test_gns_rel_expiration.sh\
+  test_gns_rel_expiration.sh\
   test_gns_cname_lookup.sh
 
 if ENABLE_TEST_RUN
