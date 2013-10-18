@@ -204,7 +204,7 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
  * towards a channel of a local tunnel.
  *
  * @param t Tunnel this message came on.
- * @param msgh Message header.
+ * @param msg Message header.
  * @param fwd Is this message fwd?
  */
 void

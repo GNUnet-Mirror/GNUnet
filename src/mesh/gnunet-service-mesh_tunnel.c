@@ -532,7 +532,7 @@ handle_decrypted (struct MeshTunnel3 *t,
  * for every message.
  *
  * @param t Tunnel this message came on.
- * @param msgh Encrypted message.
+ * @param msg Encrypted message.
  * @param fwd Is this message fwd?
  */
 void
