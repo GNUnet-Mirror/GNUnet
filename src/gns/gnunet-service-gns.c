@@ -368,9 +368,9 @@ put_gns_record (void *cls,
     }
     else
     {
-      zone_publish_time_window = GNUNET_TIME_relative_min (
-                                                     min_relative_record_time,
-                                                     zone_publish_time_window);
+      zone_publish_time_window
+        = GNUNET_TIME_relative_min (min_relative_record_time,
+                                    zone_publish_time_window);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
     }
@@ -413,9 +413,9 @@ put_gns_record (void *cls,
       rd_public[rd_public_count] = rd[i];
       if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
       {
-        min_relative_record_time.rel_value_us = MIN
-          (rd_public[rd_public_count].expiration_time,
-           min_relative_record_time.rel_value_us);
+        min_relative_record_time.rel_value_us =
+          GNUNET_MIN (rd_public[rd_public_count].expiration_time,
+                      min_relative_record_time.rel_value_us);
 	rd_public[rd_public_count].flags &= ~GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
 	rd_public[rd_public_count].expiration_time += now.abs_value_us;
       }
