@@ -1580,6 +1580,9 @@ GMP_remove_connection (struct MeshPeer *peer,
   if (NULL == peer || NULL == peer->connections)
   {
     GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer %s is not a neighbor!\n",
+         GMP_2s (peer));
     return GNUNET_SYSERR;
   }
   return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
