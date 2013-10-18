@@ -19,7 +19,7 @@
  */
 
 /**
- * @file include/gnunet_solver_plugin.h
+ * @file include/gnunet_ats_plugin.h
  * @brief API for the ATS solvers.  This header
  *        specifies the struct that is given to the plugin's entry
  *        method and the other struct that must be returned.

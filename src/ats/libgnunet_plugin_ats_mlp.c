@@ -19,7 +19,7 @@
 */
 
 /**
- * @file ats/gnunet-service-ats-solver_mlp.c
+ * @file ats/libgnunet_plugin_ats_mlp.c
  * @brief ats mlp problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -1794,7 +1794,8 @@ mlp_free_peers (void *cls,
 /**
  * Shutdown the MLP problem solving component
  *
- * @param solver the solver handle
+ * @param cls the solver handle
+ * @return NULL
  */
 void *
 libgnunet_plugin_ats_mlp_done (void *cls)

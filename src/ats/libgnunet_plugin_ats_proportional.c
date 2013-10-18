@@ -19,7 +19,7 @@
  */
 
 /**
- * @file ats/gnunet-service-ats-solver_proportional.c
+ * @file ats/libgnunet_plugin_ats_proportional.c
  * @brief ATS proportional solver
  * @author Matthias Wachs
  * @author Christian Grothoff

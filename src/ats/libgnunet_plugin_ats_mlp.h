@@ -18,7 +18,7 @@
  */
 
 /**
- * @file ats/gnunet-service-ats-solver_mlp.h
+ * @file ats/libgnunet_plugin_ats_mlp..h
  * @brief ats MLP problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -376,6 +376,7 @@ GAS_mlp_solve_problem (void *solver);
  *
  * @param cfg the GNUNET_CONFIGURATION_Handle handle
  * @param stats the GNUNET_STATISTICS handle
+ * @param addresses Hashmap containing addresses
  * @param network array of GNUNET_ATS_NetworkType with length dest_length
  * @param out_dest array of outbound quotas
  * @param in_dest array of outbound quota
@@ -384,18 +385,24 @@ GAS_mlp_solve_problem (void *solver);
  * @param bw_changed_cb_cls cls for callback
  * @param get_preference callback to get relative preferences for a peer
  * @param get_preference callback to get relative preferences for a peer
- * @param get_properties_cls for callback to get relative properties
+ * @param get_properties callback to get relative properties
  * @param get_properties_cls cls for callback to get relative properties
  * @return struct GAS_MLP_Handle on success, NULL on fail
  */
 void *
 GAS_mlp_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	      const struct GNUNET_STATISTICS_Handle *stats,
-    const struct GNUNET_CONTAINER_MultiPeerMap *addresses, int *network,
-    unsigned long long *out_dest, unsigned long long *in_dest, int dest_length,
-    GAS_bandwidth_changed_cb bw_changed_cb, void *bw_changed_cb_cls,
-    GAS_get_preferences get_preference, void *get_preference_cls,
-    GAS_get_properties get_properties, void *get_properties_cls);
+              const struct GNUNET_CONTAINER_MultiPeerMap *addresses,
+              int *network,
+              unsigned long long *out_dest,
+              unsigned long long *in_dest,
+              int dest_length,
+              GAS_bandwidth_changed_cb bw_changed_cb,
+              void *bw_changed_cb_cls,
+              GAS_get_preferences get_preference,
+              void *get_preference_cls,
+              GAS_get_properties get_properties,
+              void *get_properties_cls);
 
 
 /**
