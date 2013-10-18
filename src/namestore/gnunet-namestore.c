@@ -205,6 +205,11 @@ do_shutdown (void *cls,
     GNUNET_NAMESTORE_zone_iteration_stop (list_it);
     list_it = NULL;
   }
+  if (NULL != add_zit)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
+    add_zit = NULL;
+  }
   if (NULL != add_qe)
   {
     GNUNET_NAMESTORE_cancel (add_qe);

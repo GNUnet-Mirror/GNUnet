@@ -541,6 +541,7 @@ refresh_block (struct GNUNET_SERVER_Client *client,
                                                                                         rd),
                                            name,
                                            rd, rd_count);
+  GNUNET_assert (NULL != block);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
                                       &pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
