@@ -204,6 +204,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                                    struct Session *session);
 
 
+void
+GST_neighbours_notify_payload (const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
+                 const struct GNUNET_MessageHeader *message);
+
 /**
  * For an existing neighbour record, set the active connection to
  * use the given address.

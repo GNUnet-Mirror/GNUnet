@@ -92,6 +92,11 @@
  */
 #define BLACKLIST_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
+/**
+ * Interval to send utilization data
+ */
+#define UTIL_TRANSMISSION_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
 #define DEBUG_MALLOC GNUNET_NO
 
 #if DEBUG_MALLOC
@@ -704,6 +709,21 @@ struct NeighbourMapEntry
    */
   int send_connect_ack;
 
+  /**
+   * Tracking utilization of outbound bandwidth
+   */
+  unsigned int util_bytes_sent;
+
+  /**
+   * Tracking utilization of inbound bandwidth
+   */
+  unsigned int util_bytes_recv;
+
+
+  /**
+   * Date of last utilization transmission
+   */
+  struct GNUNET_TIME_Absolute last_util_transmission;
 };
 
 
@@ -782,6 +802,11 @@ static unsigned int neighbours_connected;
  * Number of bytes we have currently queued for transmission.
  */
 static unsigned long long bytes_in_send_queue;
+
+/**
+ * Task transmitting utilization data
+ */
+static GNUNET_SCHEDULER_TaskIdentifier util_transmission_tk;
 
 
 /**
@@ -1346,10 +1371,13 @@ transmit_send_continuation (void *cls,
 			 ("# bytes in message queue for other peers"),
 			 bytes_in_send_queue, GNUNET_NO);
   if (GNUNET_OK == success)
+  {
+    n->util_bytes_sent += size_payload;
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
 			      ("# messages transmitted to other peers"),
 			      1, GNUNET_NO);
+  }
   else
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
@@ -1794,6 +1822,9 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->id = *peer;
   n->state = S_NOT_CONNECTED;
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
+  n->last_util_transmission = GNUNET_TIME_absolute_get();
+  n->util_bytes_recv = 0;
+  n->util_bytes_sent = 0;
   GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
@@ -2510,6 +2541,74 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     break;
   }
+}
+
+static int
+util_it (void *cls,
+    const struct GNUNET_PeerIdentity *key,
+    void *value)
+{
+  struct NeighbourMapEntry *n = value;
+  struct GNUNET_ATS_Information atsi[2];
+  uint32_t bps_in;
+  uint32_t bps_out;
+  struct GNUNET_TIME_Relative delta;
+
+  delta = GNUNET_TIME_absolute_get_difference(n->last_util_transmission, GNUNET_TIME_absolute_get());
+  bps_in = 0;
+  if (0 != n->util_bytes_recv)
+    bps_in =  ((1000 * 1000) * n->util_bytes_recv) / (delta.rel_value_us);
+  bps_out = 0;
+  if (0 != n->util_bytes_sent)
+    bps_out = ((1000 * 1000) * n->util_bytes_sent) / (delta.rel_value_us);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s': Bytes sent: %u recv %u in %llu sec.\n",
+      GNUNET_i2s (key), bps_out, bps_in, delta.rel_value_us / (1000 * 1000));
+  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_UP);
+  atsi[0].value = htonl (bps_out);
+  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_DOWN);
+  atsi[1].value = htonl (bps_in);
+  GNUNET_ATS_address_update (GST_ats, n->primary_address.address,
+      n->primary_address.session, atsi, 2);
+  n->util_bytes_recv = 0;
+  n->util_bytes_sent = 0;
+  n->last_util_transmission = GNUNET_TIME_absolute_get();
+  return GNUNET_OK;
+}
+
+/**
+ * Task transmitting utilization in a regular interval
+ *
+ * @param cls the 'struct NeighbourMapEntry' for which we are running
+ * @param tc scheduler context (unused)
+ */
+static void
+utilization_transmission (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 < GNUNET_CONTAINER_multipeermap_size (neighbours))
+    GNUNET_CONTAINER_multipeermap_iterate (neighbours, util_it, NULL);
+
+  util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
+      utilization_transmission, NULL);
+
+}
+
+void
+GST_neighbours_notify_payload (const struct GNUNET_PeerIdentity *peer,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
+                 const struct GNUNET_MessageHeader *message)
+{
+  struct NeighbourMapEntry *n;
+  n = lookup_neighbour (peer);
+  if (NULL == n)
+  {
+      GNUNET_break (0);
+      return;
+  }
+  n->util_bytes_recv += ntohs(message->size);
 }
 
 
@@ -3376,6 +3475,8 @@ GST_neighbours_start (void *cls,
   disconnect_notify_cb = disconnect_cb;
   address_change_cb = peer_address_cb;
   neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
+  util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
+      utilization_transmission, NULL);
 }
 
 
@@ -3411,6 +3512,12 @@ GST_neighbours_stop ()
 {
   if (NULL == neighbours)
     return;
+  if (GNUNET_SCHEDULER_NO_TASK != util_transmission_tk)
+  {
+    GNUNET_SCHEDULER_cancel (util_transmission_tk);
+    util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
 					 &disconnect_all_neighbours,
                                          NULL);
