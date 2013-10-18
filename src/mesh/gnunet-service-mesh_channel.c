@@ -54,7 +54,7 @@ enum MeshChannelState
   MESH_CHANNEL_SENT,
 
   /**
-   * Connection confirmed, ready to carry traffic..
+   * Connection confirmed, ready to carry traffic.
    */
   MESH_CHANNEL_READY,
 };
@@ -1279,6 +1279,8 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
  * in the tunnel.
  *
  * @param ch Channel.
+ * @param c Client which sent the data.
+ * @param message Message.
  * @param fwd Is this a FWD data?
  *
  * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
@@ -1446,7 +1448,7 @@ GMCH_handle_local_create (struct MeshClient *c,
  * Handler for mesh network payload traffic.
  *
  * @param ch Channel for the message.
- * @param message Unencryted data message.
+ * @param msg Unencryted data message.
  * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
  */
 void
@@ -1517,7 +1519,7 @@ GMCH_handle_data (struct MeshChannel *ch,
  * Handler for mesh network traffic end-to-end ACKs.
  *
  * @param t Tunnel on which we got this message.
- * @param message Data message.
+ * @param msg Data message.
  * @param fwd Is this a fwd ACK? (dest->orig)
  */
 void
