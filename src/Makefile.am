@@ -7,7 +7,6 @@ if HAVE_TESTING
  TESTBED = testbed
  CONSENSUS = consensus
  EXPERIMENTATION = experimentation
- SCALARPRODUCT = scalarproduct
 endif
 
 if HAVE_EXPERIMENTAL
@@ -17,7 +16,6 @@ if HAVE_EXPERIMENTAL
   psyc \
   $(CONSENSUS) \
   $(EXPERIMENTATION)
-  # NOTE: scalarproduct is not being listed here yet as the crypto is being reworked at the moment
 endif
 
 
@@ -73,6 +71,7 @@ SUBDIRS = \
   gnsrecord \
   namecache \
   namestore \
+  scalarproduct \
   vpn \
   gns \
   $(CONVERSATION_DIR) \
