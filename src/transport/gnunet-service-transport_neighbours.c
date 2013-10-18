@@ -993,6 +993,8 @@ send_with_session (struct NeighbourMapEntry *n,
 			    cont, cont_cls)))) &&
        (NULL != cont))
     cont (cont_cls, &n->id, GNUNET_SYSERR, msgbuf_size, 0);
+  GST_neighbours_notify_data_sent (&n->id,
+      n->primary_address.address, n->primary_address.session, msgbuf_size);
   GNUNET_break (NULL != papi);
 }
 
@@ -1593,6 +1595,8 @@ send_session_connect (struct NeighbourAddress *na)
 		     UINT_MAX,
 		     GNUNET_TIME_UNIT_FOREVER_REL,
 		     NULL, NULL);
+  GST_neighbours_notify_data_sent (&na->address->peer,
+      na->address, na->session, sizeof (struct SessionConnectMessage));
 
 }
 
@@ -2482,10 +2486,14 @@ GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
 
 void
 GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
-    size_t size)
+                     const struct GNUNET_HELLO_Address *address,
+                     struct Session *session,
+                     size_t size)
 {
   struct NeighbourMapEntry *n;
   n = lookup_neighbour (peer);
+  if (n->primary_address.session != session)
+    return;
   if (NULL == n)
   {
       return;

@@ -222,7 +222,9 @@ GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
 
 void
 GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
-    size_t size);
+                     const struct GNUNET_HELLO_Address *address,
+                     struct Session *session,
+                     size_t size);
 
 /**
  * For an existing neighbour record, set the active connection to

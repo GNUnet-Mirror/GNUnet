@@ -28,6 +28,7 @@
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_blacklist.h"
+#include "gnunet-service-transport_neighbours.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_ats_service.h"
@@ -552,11 +553,12 @@ transmit_ping_if_allowed (void *cls, const struct GNUNET_PeerIdentity *pid,
         network = papi->get_network (ve->address, session);
         if (GNUNET_ATS_NET_UNSPECIFIED == network)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          						"Could not obtain a valid network for `%s' %s\n",
-                      GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
-        	GNUNET_break (0);
+          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+              "Could not obtain a valid network for `%s' %s\n",
+              GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
+          GNUNET_break(0);
         }
+        GST_neighbours_notify_data_sent (pid, ve->address, session, tsize);
       }
       else
       {
@@ -881,6 +883,9 @@ multicast_pong (void *cls,
               (const char *) pong, ntohs (pong->header.size),
               PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
               NULL, NULL);
+  GST_neighbours_notify_data_sent (&address->peer,
+      address, session, pong->header.size);
+
 }
 
 
@@ -1102,6 +1107,10 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                         (const char *) pong, ntohs (pong->header.size),
                         PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
                         NULL, NULL);
+      if (-1 != ret)
+        GST_neighbours_notify_data_sent (sender,
+            sender_address, session, pong->header.size);
+
     }
   }
   if (ret != -1)
