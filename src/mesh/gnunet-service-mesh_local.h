@@ -162,7 +162,11 @@ GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id);
 /**
  * Notify the appropriate client that a new incoming channel was created.
  *
- * @param ch Channel that was created.
+ * @param c Client to notify.
+ * @param id Channel ID.
+ * @param port Channel's destination port.
+ * @param opt Options (bit array).
+ * @param peer Origin peer.
  */
 void
 GML_send_channel_create (struct MeshClient *c,
