@@ -6,7 +6,8 @@ cat __tmp_peers | while read line; do
     PID=`echo $line | sed -e 's/.*mesh-\([0-9]*\).*/\1/'`
     echo "$PID => $PEER"
     cat .log | sed -e "s/mesh-\([a-z2]*\)-$PID/MESH \1 $PEER/" > .log2
-    mv .log2 .log
+    cat .log2 | sed -e "s/mesh-$PID/MESH XXX $PEER/" > .log3
+    mv .log3 .log
 done 
 
 rm __tmp_peers
