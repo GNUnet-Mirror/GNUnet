@@ -850,7 +850,7 @@ struct GNUNET_FS_ProgressInfo
 
         /**
 	 * These values are only valid for
-	 * #GNUNET_FS_STATUS_PUBLISH_DIRECTORY_PROGRESS events.
+	 * #GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY events.
 	 */
         struct
         {

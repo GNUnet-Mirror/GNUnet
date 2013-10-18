@@ -33,7 +33,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "multicast-api",__VA_ARGS__)
 
 
-/** 
+/**
  * Handle for a request to send a message to all multicast group members
  * (from the origin).
  */
@@ -508,7 +508,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin)
  *        identity/pseudonym to peer identity, application-level message to
  *        origin, etc.).
  * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param test_cb Function multicast can use to test group membership.
+ * @param mem_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
  *        client is unable to support replay.
@@ -530,7 +530,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_request,
                               GNUNET_MULTICAST_JoinCallback join_cb,
-                              GNUNET_MULTICAST_MembershipTestCallback test_cb,
+                              GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,

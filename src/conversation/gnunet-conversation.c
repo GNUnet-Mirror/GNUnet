@@ -645,7 +645,7 @@ static struct VoipCommand commands[] = {
 /**
  * Action function to print help for the command shell.
  *
- * @param arguments arguments given to the command
+ * @param args arguments given to the command
  */
 static void
 do_help (const char *args)

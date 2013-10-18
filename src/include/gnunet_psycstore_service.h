@@ -315,7 +315,7 @@ typedef void
  * @param h Handle for the PSYCstore.
  * @param channel_key Public key that identifies the channel.
  * @param ccb Callback to call with the result.
- * @param ccb_cls Closure for the callback.
+ * @param ccb_cls Closure for the @a ccb callback.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -339,7 +339,7 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param modifier_count Number of elements in the @a modifiers array.
  * @param modifiers List of modifiers to apply.
  * @param rcb Callback to call with the result of the operation.
- * @param rcb_cls Closure for the callback.
+ * @param rcb_cls Closure for the @a rcb callback.
  *
  * @return Handle that can be used to cancel the operation.
  */

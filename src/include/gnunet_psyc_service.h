@@ -415,7 +415,7 @@ typedef void
  *        Used to automate join decisions.
  * @param method Function to invoke on messages received from slaves.
  * @param join_cb Function to invoke when a peer wants to join.
- * @param start_cb Function to invoke after the channel master started.
+ * @param master_started_cb Function to invoke after the channel master started.
  * @param cls Closure for @a method and @a join_cb.
  * @return Handle for the channel master, NULL on error.
  */
@@ -425,7 +425,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           enum GNUNET_PSYC_Policy policy,
                           GNUNET_PSYC_Method method,
                           GNUNET_PSYC_JoinCallback join_cb,
-                          GNUNET_PSYC_MasterStartCallback start_cb,
+                          GNUNET_PSYC_MasterStartCallback master_started_cb,
                           void *cls);
 
 
@@ -569,8 +569,10 @@ typedef void
  *        as relays and used to join the group at.
  * @param method Function to invoke on messages received from the channel,
  *        typically at least contains functions for @e join and @e part.
- * @param join_cb Function to invoke when a peer wants to join.
- * @param cls Closure for @a method_cb and @a join_cb.
+ * @param join_cb function invoked once we have joined with the current
+ *        message ID of the channel
+ * @param slave_joined_cb Function to invoke when a peer wants to join.
+ * @param cls Closure for @a method_cb and @a slave_joined_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
  * @param data Payload for the join message.
@@ -598,7 +600,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Part a PSYC channel.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
- * first explicitly send a @e part request (via GNUNET_PSYC_slave_transmit()).
+ * first explicitly send a part request (via GNUNET_PSYC_slave_transmit()).
  *
  * @param slave Slave handle.
  */
@@ -732,8 +734,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
-                               const struct GNUNET_CRYPTO_EddsaPublicKey
-                               *slave_key,
+                               const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since);
 

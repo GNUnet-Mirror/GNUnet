@@ -19,7 +19,7 @@
  */
 
 /**
- * @file conversation/conversation_api2.c
+ * @file conversation/conversation_api.c
  * @brief API to the conversation service
  * @author Simon Dieterle
  * @author Andreas Fuchs

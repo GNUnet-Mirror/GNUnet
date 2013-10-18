@@ -207,7 +207,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 /**
  * Reschedule a connect attempt to the service.
  *
- * @param h transport service to reconnect
+ * @param c channel to reconnect
  */
 static void
 reschedule_connect (struct GNUNET_PSYC_Channel *c)
@@ -237,13 +237,13 @@ reschedule_connect (struct GNUNET_PSYC_Channel *c)
 /**
  * Schedule transmission of the next message from our queue.
  *
- * @param h PSYC handle
+ * @param ch PSYC channel handle
  */
 static void
-transmit_next (struct GNUNET_PSYC_Channel *c);
+transmit_next (struct GNUNET_PSYC_Channel *ch);
 
 
-void
+static void
 master_transmit_data (struct GNUNET_PSYC_Master *mst)
 {
   struct GNUNET_PSYC_Channel *ch = &mst->ch;
@@ -295,11 +295,16 @@ master_transmit_data (struct GNUNET_PSYC_Master *mst)
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+message_handler (void *cls,
+                 const struct GNUNET_MessageHeader *msg)
 {
+  // YUCK! => please have disjoint message handlers...
   struct GNUNET_PSYC_Channel *ch = cls;
   struct GNUNET_PSYC_Master *mst = cls;
   struct GNUNET_PSYC_Slave *slv = cls;
+  struct CountersResult *cres;
+  struct TransmitAck *tack;
+
 
   if (NULL == msg)
   {
@@ -332,9 +337,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     reschedule_connect (ch);
     return;
   }
-
-  struct CountersResult *cres;
-  struct TransmitAck *tack;
 
   switch (type)
   {
@@ -381,6 +383,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_CLIENT_receive (ch->client, &message_handler, ch,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 }
+
 
 /**
  * Transmit next message to service.
@@ -430,7 +433,7 @@ send_next_message (void *cls, size_t size, void *buf)
 /**
  * Schedule transmission of the next message from our queue.
  *
- * @param h PSYC handle.
+ * @param ch PSYC handle.
  */
 static void
 transmit_next (struct GNUNET_PSYC_Channel *ch)
@@ -485,13 +488,13 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Disconnect from the PSYC service.
  *
- * @param cls Channel handle.
- * @param tc Scheduler context.
+ * @param c Channel handle to disconnect
  */
 static void
 disconnect (void *c)
 {
   struct GNUNET_PSYC_Channel *ch = c;
+
   GNUNET_assert (NULL != ch);
   if (ch->transmit_head != ch->transmit_tail)
   {
@@ -546,7 +549,8 @@ disconnect (void *c)
  *        Used to automate join decisions.
  * @param method Function to invoke on messages received from slaves.
  * @param join_cb Function to invoke when a peer wants to join.
- * @param cls Closure for @a method and @a join_cb.
+ * @param master_started_cb Function to invoke after the channel master started.
+ * @param cls Closure for @a master_started_cb and @a join_cb.
  * @return Handle for the channel master, NULL on error.
  */
 struct GNUNET_PSYC_Master *
@@ -588,10 +592,10 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param master PSYC channel master to stop.
  */
 void
-GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst)
+GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master)
 {
-  disconnect (mst);
-  GNUNET_free (mst);
+  disconnect (master);
+  GNUNET_free (master);
 }
 
 
@@ -633,7 +637,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
 
 /* FIXME: split up value into <64K chunks and transmit the continuations in
  *        MOD_CONT msgs */
-int
+static int
 send_modifier (void *cls, struct GNUNET_ENV_Modifier *mod)
 {
   struct GNUNET_PSYC_Channel *ch = cls;
@@ -658,7 +662,7 @@ send_modifier (void *cls, struct GNUNET_ENV_Modifier *mod)
 /**
  * Send a message to call a method to all members in the PSYC channel.
  *
- * @param mst Handle to the PSYC channel.
+ * @param master Handle to the PSYC channel.
  * @param method_name Which method should be invoked.
  * @param env Environment containing state operations and transient variables
  *            for the message, or NULL.
@@ -669,15 +673,15 @@ send_modifier (void *cls, struct GNUNET_ENV_Modifier *mod)
  *         queued).
  */
 struct GNUNET_PSYC_MasterTransmitHandle *
-GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *mst,
+GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_PSYC_MasterTransmitNotify notify,
                              void *notify_cls,
                              enum GNUNET_PSYC_MasterTransmitFlags flags)
 {
-  GNUNET_assert (NULL != mst);
-  struct GNUNET_PSYC_Channel *ch = &mst->ch;
+  GNUNET_assert (NULL != master);
+  struct GNUNET_PSYC_Channel *ch = &master->ch;
   if (GNUNET_NO != ch->in_transmit)
     return NULL;
   ch->in_transmit = GNUNET_YES;
@@ -696,15 +700,15 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *mst,
   memcpy (&pmeth[1], method_name, size);
 
   GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
-  GNUNET_ENV_environment_iterate (env, send_modifier, mst);
+  GNUNET_ENV_environment_iterate (env, send_modifier, master);
   transmit_next (ch);
 
-  mst->tmit = GNUNET_malloc (sizeof (*mst->tmit));
-  mst->tmit->master = mst;
-  mst->tmit->notify = notify;
-  mst->tmit->notify_cls = notify_cls;
-  mst->tmit->status = GNUNET_PSYC_DATA_CONT;
-  return mst->tmit;
+  master->tmit = GNUNET_malloc (sizeof (*master->tmit));
+  master->tmit->master = master;
+  master->tmit->notify = notify;
+  master->tmit->notify_cls = notify_cls;
+  master->tmit->status = GNUNET_PSYC_DATA_CONT;
+  return master->tmit;
 }
 
 
@@ -728,12 +732,10 @@ GNUNET_PSYC_master_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th)
 void
 GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
 {
-  struct GNUNET_PSYC_Master *mst = th->master;
-  struct GNUNET_PSYC_Channel *ch = &mst->ch;
+  struct GNUNET_PSYC_Master *master = th->master;
+  struct GNUNET_PSYC_Channel *ch = &master->ch;
   if (GNUNET_NO != ch->in_transmit)
     return;
-
-
 }
 
 
@@ -758,8 +760,10 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
  *        as relays and used to join the group at.
  * @param method Function to invoke on messages received from the channel,
  *        typically at least contains functions for @e join and @e part.
- * @param join_cb Function to invoke when a peer wants to join.
- * @param cls Closure for @a method_cb and @a join_cb.
+ * @param join_cb function invoked once we have joined with the current
+ *        message ID of the channel
+ * @param slave_joined_cb Function to invoke when a peer wants to join.
+ * @param cls Closure for @a method_cb and @a slave_joined_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
  * @param data Payload for the join message.
@@ -810,15 +814,15 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Part a PSYC channel.
  *
  * Will terminate the connection to the PSYC service.  Polite clients should
- * first explicitly send a @e part request (via GNUNET_PSYC_slave_transmit()).
+ * first explicitly send a part request (via GNUNET_PSYC_slave_transmit()).
  *
- * @param slv Slave handle.
+ * @param slave Slave handle.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv)
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave)
 {
-  disconnect (slv);
-  GNUNET_free (slv);
+  disconnect (slave);
+  GNUNET_free (slave);
 }
 
 
@@ -914,20 +918,20 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave)
  * correctly; not doing so correctly will result in either denying other slaves
  * access or offering access to channel data to non-members.
  *
- * @param ch Channel handle.
+ * @param channel Channel handle.
  * @param slave_key Identity of channel slave to add.
  * @param announced_at ID of the message that announced the membership change.
  * @param effective_since Addition of slave is in effect since this message ID.
  */
 void
-GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *ch,
-                               const struct GNUNET_CRYPTO_EddsaPublicKey
-                               *slave_key,
+GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
+                               const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since)
 {
   struct ChannelSlaveAdd *slvadd;
   struct OperationHandle *op = GNUNET_malloc (sizeof (*op) + sizeof (*slvadd));
+
   slvadd = (struct ChannelSlaveAdd *) &op[1];
   op->msg = (struct GNUNET_MessageHeader *) slvadd;
 
@@ -935,9 +939,10 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *ch,
   slvadd->header.size = htons (sizeof (*slvadd));
   slvadd->announced_at = GNUNET_htonll (announced_at);
   slvadd->effective_since = GNUNET_htonll (effective_since);
-
-  GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
-  transmit_next (ch);
+  GNUNET_CONTAINER_DLL_insert_tail (channel->transmit_head,
+                                    channel->transmit_tail,
+                                    op);
+  transmit_next (channel);
 }
 
 
@@ -958,27 +963,27 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *ch,
  * denying members access or offering access to channel data to
  * non-members.
  *
- * @param ch Channel handle.
+ * @param channel Channel handle.
  * @param slave_key Identity of channel slave to remove.
  * @param announced_at ID of the message that announced the membership change.
  */
 void
-GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *ch,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey
-                                  *slave_key,
+GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
+                                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                   uint64_t announced_at)
 {
   struct ChannelSlaveRemove *slvrm;
   struct OperationHandle *op = GNUNET_malloc (sizeof (*op) + sizeof (*slvrm));
+
   slvrm = (struct ChannelSlaveRemove *) &op[1];
   op->msg = (struct GNUNET_MessageHeader *) slvrm;
-
   slvrm->header.type = GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM;
   slvrm->header.size = htons (sizeof (*slvrm));
   slvrm->announced_at = GNUNET_htonll (announced_at);
-
-  GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
-  transmit_next (ch);
+  GNUNET_CONTAINER_DLL_insert_tail (channel->transmit_head,
+                                    channel->transmit_tail,
+                                    op);
+  transmit_next (channel);
 }
 
 
@@ -990,24 +995,21 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *ch,
  *
  * To get the latest message, use 0 for both the start and end message ID.
  *
- * @param ch Which channel should be replayed?
+ * @param channel Which channel should be replayed?
  * @param start_message_id Earliest interesting point in history.
  * @param end_message_id Last (exclusive) interesting point in history.
  * @param method Function to invoke on messages received from the story.
  * @param finish_cb Function to call when the requested story has been fully
  *        told (counting message IDs might not suffice, as some messages
  *        might be secret and thus the listener would not know the story is
- *        finished without being told explicitly)
-{
-  return NULL;
-} once this function
+ *        finished without being told explicitly) once this function
  *        has been called, the client must not call
  *        GNUNET_PSYC_channel_story_tell_cancel() anymore.
  * @param cls Closure for the callbacks.
  * @return Handle to cancel story telling operation.
  */
 struct GNUNET_PSYC_Story *
-GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *ch,
+GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t start_message_id,
                                 uint64_t end_message_id,
                                 GNUNET_PSYC_Method method,

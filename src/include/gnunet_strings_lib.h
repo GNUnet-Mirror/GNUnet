@@ -108,7 +108,7 @@ GNUNET_STRINGS_byte_size_fancy (unsigned long long size);
  * @param input input string
  * @param len number of bytes in @a input
  * @param input_charset character set used for @a input
- * @param ouptut_charset desired character set for the return value
+ * @param output_charset desired character set for the return value
  * @return the converted string (0-terminated),
  *  if conversion fails, a copy of the orignal
  *  string is returned.

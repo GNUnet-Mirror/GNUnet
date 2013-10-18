@@ -649,7 +649,7 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
  * Accept a request we got via #GNUNET_SET_listen.  Must be called during
  * #GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
  * afterwards.
- * Call #GNUNET_SET_conclude to provide the local set to use for the operation,
+ * Call #GNUNET_SET_commit to provide the local set to use for the operation,
  * and to begin the exchange with the remote peer.
  *
  * @param request request to accept
