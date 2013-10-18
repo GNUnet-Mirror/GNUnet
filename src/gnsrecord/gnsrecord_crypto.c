@@ -204,6 +204,9 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
     }
     {
       struct GNUNET_GNSRECORD_Data rd[rd_count];
+      unsigned int i;
+      unsigned int j;
+      struct GNUNET_TIME_Absolute now;
 
       if (GNUNET_OK !=
 	  GNUNET_GNSRECORD_records_deserialize (payload_len - sizeof (uint32_t),
@@ -214,6 +217,25 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
 	GNUNET_break_op (0);
 	return GNUNET_SYSERR;
       }
+      /* hide expired records */
+      now = GNUNET_TIME_absolute_get ();
+      j = 0;
+      for (i=0;i<rd_count;i++)
+      {
+        if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
+        {
+          /* encrypted blocks must never have relative expiration times, skip! */
+          GNUNET_break_op (0);
+          continue;
+        }
+        if (rd[i].expiration_time >= now.abs_value_us)
+        {
+          if (j != i)
+            rd[j] = rd[i];
+          j++;
+        }
+      }
+      rd_count = j;
       if (NULL != proc)
       	proc (proc_cls, rd_count, (0 != rd_count) ? rd : NULL);
     }
