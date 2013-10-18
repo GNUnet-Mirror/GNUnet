@@ -53,12 +53,12 @@ static struct GNUNET_GNSRECORD_Data *
 create_record (int count)
 {
   unsigned int c;
-  struct GNUNET_GNSRECORD_Data * rd;
+  struct GNUNET_GNSRECORD_Data *rd;
 
   rd = GNUNET_malloc (count * sizeof (struct GNUNET_GNSRECORD_Data));
   for (c = 0; c < count; c++)
   {
-    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
+    rd[c].expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
     rd[c].record_type = TEST_RECORD_TYPE;
     rd[c].data_size = TEST_RECORD_DATALEN;
     rd[c].data = GNUNET_malloc(TEST_RECORD_DATALEN);
@@ -70,23 +70,21 @@ create_record (int count)
 
 static void
 rd_decrypt_cb (void *cls,
-						 unsigned int rd_count,
-						 const struct GNUNET_GNSRECORD_Data *rd)
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd)
 {
   char rd_cmp_data[TEST_RECORD_DATALEN];
-
   int c;
 
   GNUNET_assert (RECORDS == rd_count);
   GNUNET_assert (NULL != rd);
 
   memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-
   for (c = 0; c < rd_count; c++)
   {
-  	GNUNET_assert (TEST_RECORD_TYPE == rd[c].record_type);
-  	GNUNET_assert (TEST_RECORD_DATALEN == rd[c].data_size);
-  	GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[c].data, TEST_RECORD_DATALEN));
+    GNUNET_assert (TEST_RECORD_TYPE == rd[c].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN == rd[c].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[c].data, TEST_RECORD_DATALEN));
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Block was decrypted successfully \n");
@@ -103,9 +101,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   /* load privat key */
   char *hostkey_file;
-  GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
-      "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  GNUNET_asprintf(&hostkey_file,
+                  "zonefiles%s%s",
+                  DIR_SEPARATOR_STR,
+                  "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s'\n",
+              hostkey_file);
   privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
