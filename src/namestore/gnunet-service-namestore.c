@@ -479,6 +479,8 @@ send_store_response (struct GNUNET_SERVER_Client *client,
  * Cache operation complete, clean up.
  *
  * @param cls the `struct CacheOperation`
+ * @param success success
+ * @param emsg error messages
  */
 static void
 finish_cache_operation (void *cls,
