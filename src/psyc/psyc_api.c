@@ -788,10 +788,9 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_PSYC_Slave *slv = GNUNET_malloc (sizeof (*slv));
   struct GNUNET_PSYC_Channel *ch = &slv->ch;
-  struct SlaveJoinRequest *req = GNUNET_malloc (sizeof (*req));
-
+  struct SlaveJoinRequest *req = GNUNET_malloc (sizeof (*req)
+                                                + relay_count * sizeof (*relays));
   req->header.size = htons (sizeof (*req)
-                            + sizeof (*channel_key) + sizeof (*slave_key)
                             + relay_count * sizeof (*relays));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN);
   req->channel_key = *channel_key;
