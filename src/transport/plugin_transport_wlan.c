@@ -721,6 +721,7 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param endpoint pointer to the mac endpoint of the peer
  * @param peer peer identity to use for this session
+ * @param inbound inbound session?
  * @return returns the session or NULL
  */
 static struct Session *
@@ -745,6 +746,7 @@ lookup_session (struct MacEndpoint *endpoint,
  *
  * @param endpoint pointer to the mac endpoint of the peer
  * @param peer peer identity to use for this session
+ * @param inbound inbound session?
  * @return returns the session or NULL
  */
 static struct Session *
@@ -781,6 +783,7 @@ create_session (struct MacEndpoint *endpoint,
  *
  * @param endpoint pointer to the mac endpoint of the peer
  * @param peer peer identity to use for this session
+ * @param inbound inbound session?
  * @return returns the session
  */
 static struct Session *
