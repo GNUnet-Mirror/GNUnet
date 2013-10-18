@@ -10,31 +10,24 @@ PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
 # where can we find the peers config files?
 CFGALICE="-c $PREFIX/0/config"
 CFGBOB="-c $PREFIX/1/config"
-# log at which loglevel?
-LOGLEVEL=DEBUG
 
-echo start
 # launch two peers in line topology non-interactively
 #
 # interactive mode would terminate the test immediately 
 # because the rest of the script is already in stdin, 
 # thus redirecting stdin does not suffice)
-GNUNET_LOG="scalarproduct;;;;$LOGLEVEL" GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 2>service.log &
-sleep 2
-echo tesbed up
+GNUNET_LOG='scalarproduct;;;;DEBUG' GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 2>service.log &
+sleep 5
 
 # get bob's peer ID, necessary for alice
-PEERIDBOB=`gnunet-peerinfo -qs $CFGB`
-echo peerinfo receivd
+PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 
-GNUNET_LOG="scalarproduct;;;;$LOGLEVEL" gnunet-scalarproduct $CFGBOB $INPUTBOB 2>bob.log &
-echo bob started
-GNUNET_LOG="scalarproduct;;;;$LOGLEVEL" gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB 2>alice.log
-echo alice returned
+GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGBOB $INPUTBOB 2>bob.log &
+GNUNET_LOG='scalarproduct;;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB 2>alice.log
 
 # termiante the testbed
 kill $( pgrep -P $$ | tr '\n' ' ' )
-echo killed testbed
+#rm alice.log bob.log service.log
 
 EXPECTED="12C"
 if [ "$RESULT" == "$EXPECTED" ]
