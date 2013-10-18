@@ -18,7 +18,7 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_mlp..h
+ * @file ats/libgnunet_plugin_ats_mlp.h
  * @brief ats MLP problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -384,7 +384,7 @@ GAS_mlp_solve_problem (void *solver);
  * @param bw_changed_cb callback for changed bandwidth amounts
  * @param bw_changed_cb_cls cls for callback
  * @param get_preference callback to get relative preferences for a peer
- * @param get_preference callback to get relative preferences for a peer
+ * @param get_preference_cls cls for callback to get relative preferences for a peer
  * @param get_properties callback to get relative properties
  * @param get_properties_cls cls for callback to get relative properties
  * @return struct GAS_MLP_Handle on success, NULL on fail
