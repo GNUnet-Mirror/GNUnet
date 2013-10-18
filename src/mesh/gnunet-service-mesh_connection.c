@@ -1347,7 +1347,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  * Generic handler for mesh network encrypted traffic.
  *
  * @param peer Peer identity this notification is about.
- * @param message Encrypted message.
+ * @param msg Encrypted message.
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
@@ -1939,7 +1939,7 @@ GMC_get_buffer (struct MeshConnection *c, int fwd)
 }
 
 /**
- * Get how many messages have we allowed to send to us from a direction..
+ * Get how many messages have we allowed to send to us from a direction.
  *
  * @param c Connection.
  * @param fwd Are we asking about traffic from FWD (BCK messages)?
