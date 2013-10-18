@@ -451,7 +451,7 @@ create_channel (struct GNUNET_MESH_Handle *h, MESH_ChannelNumber chid)
  * - Calls cleaner if channel was inbound
  * - Frees all memory used
  *
- * @param t Pointer to the channel.
+ * @param ch Pointer to the channel.
  * @param call_cleaner Whether to call the cleaner handler.
  *
  * @return Handle to the required channel or NULL if not found.
