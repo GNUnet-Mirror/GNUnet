@@ -101,7 +101,7 @@ typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
- * @param label name that is being mapped (at most 255 characters long)
+ * @param label name that is being mapped
  * @param rd_count number of records in the 'rd' array
  * @param rd array of records with data to store
  * @param cont continuation to call when done
@@ -140,7 +140,7 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
  *
  * @param h handle to the namestore
  * @param pkey private key of the zone
- * @param label name that is being mapped (at most 255 characters long)
+ * @param label name that is being mapped
  * @param rm function to call with the result (with 0 records if we don't have that label)
  * @param rm_cls closure for @a rm
  * @return handle to abort the request
