@@ -2492,12 +2492,10 @@ GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   n = lookup_neighbour (peer);
+  if (NULL == n)
+      return;
   if (n->primary_address.session != session)
     return;
-  if (NULL == n)
-  {
-      return;
-  }
   n->util_total_bytes_sent += size;
 }
 
