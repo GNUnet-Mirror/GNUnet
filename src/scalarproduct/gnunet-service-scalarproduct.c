@@ -692,7 +692,6 @@ find_matching_session (struct ServiceSession * tail,
   return NULL;
 }
 
-
 /**
  * Safely frees ALL memory areas referenced by a session.
  * 
@@ -709,7 +708,10 @@ free_session_variables (struct ServiceSession * session)
     GNUNET_free (session->a);
     session->a = NULL;
   }
-  GNUNET_free_non_null (session->mask);
+  if (session->mask) {
+    GNUNET_free (session->mask);
+    session->mask = NULL;
+  }
   if (session->r) {
     for (i = 0; i < session->used; i++)
       if (session->r[i]) gcry_mpi_release (session->r[i]);
@@ -722,24 +724,24 @@ free_session_variables (struct ServiceSession * session)
     GNUNET_free (session->r_prime);
     session->r_prime = NULL;
   }
-  if (session->s){
+  if (session->s) {
     gcry_mpi_release (session->s);
-  session->s = NULL;
-  }
-  
-  if (session->s_prime){
-    gcry_mpi_release (session->s_prime);
-  session->s_prime = NULL;
-  }
-  
-  if (session->product){
-    gcry_mpi_release (session->product);
-  session->product = NULL;
+    session->s = NULL;
   }
 
-  if (session->remote_pubkey){
+  if (session->s_prime) {
+    gcry_mpi_release (session->s_prime);
+    session->s_prime = NULL;
+  }
+
+  if (session->product) {
+    gcry_mpi_release (session->product);
+    session->product = NULL;
+  }
+
+  if (session->remote_pubkey) {
     gcry_sexp_release (session->remote_pubkey);
-  session->remote_pubkey = NULL;
+    session->remote_pubkey = NULL;
   }
 
   if (session->vector) {
@@ -849,7 +851,8 @@ prepare_client_end_notification (void * cls,
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Sending session-end notification to client (%p) for session %s\n"), &session->client, GNUNET_h2s (&session->key));
-
+  
+  free_session_variables (session);
 }
 
 
@@ -943,6 +946,7 @@ prepare_client_response (void *cls,
                 _ ("Sent result to client (%p), this session (%s) has ended!\n"),
                 session->client,
                 GNUNET_h2s (&session->key));
+  free_session_variables (session);
 }
 
 
@@ -1003,7 +1007,9 @@ prepare_service_response_multipart (void *cls)
   GNUNET_free (element_exported);
   for (i = session->transferred; i < session->transferred; i++) {
     gcry_mpi_release (session->r_prime[i]);
+    session->r_prime[i] = NULL;
     gcry_mpi_release (session->r[i]);
+    session->r[i] = NULL;
   }
   session->transferred += todo_count;
   session->msg = (struct GNUNET_MessageHeader *) msg;
@@ -1135,10 +1141,14 @@ prepare_service_response (gcry_mpi_t s,
   GNUNET_free (element_exported);
   for (i = 0; i < session->transferred; i++) {
     gcry_mpi_release (session->r_prime[i]);
+    session->r_prime[i] = NULL;
     gcry_mpi_release (session->r[i]);
+    session->r[i] = NULL;
   }
   gcry_mpi_release (s);
+  session->s = NULL;
   gcry_mpi_release (s_prime);
+  session->s_prime = NULL;
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
@@ -1851,7 +1861,7 @@ tunnel_destruction_handler (void *cls,
               GNUNET_i2s (&session->peer));
   if (ALICE == session->role) {
     // as we have only one peer connected in each session, just remove the session
-
+    
     if ((SERVICE_RESPONSE_RECEIVED > session->state) && (!do_shutdown)) {
       session->tunnel = NULL;
       // if this happened before we received the answer, we must terminate the session
@@ -2235,6 +2245,7 @@ handle_service_response_multipart (void *cls,
   size_t i;
   uint32_t contained = 0;
   size_t msg_size;
+  size_t required_size;
   int rc;
 
   GNUNET_assert (NULL != message);
@@ -2243,15 +2254,17 @@ handle_service_response_multipart (void *cls,
   if ((ALICE != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
     goto invalid_msg;
   }
+  msg_size = ntohs (msg->header.size);
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message) + 2 * PAILLIER_ELEMENT_LENGTH;
   // shorter than minimum?
-  if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
+  if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->multipart_element_count);
-  msg_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
           + 2 * contained * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_size) || (session->used < contained)) {
+  if ((required_size != msg_size) || (session->used < session->transferred + contained)) {
     goto invalid_msg;
   }
   current = (unsigned char *) &msg[1];
@@ -2274,19 +2287,19 @@ handle_service_response_multipart (void *cls,
   if (session->transferred != session->used)
     return GNUNET_OK;
   session->state = SERVICE_RESPONSE_RECEIVED;
-  session->product = compute_scalar_product (session);
-  return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
-
+  session->product = compute_scalar_product (session); //never NULL
+  
 invalid_msg:
-  GNUNET_break_op (0);
-  free_session_variables (session);
-  session->state = FINALIZED;
-  session->tunnel = NULL;
+  GNUNET_break_op (NULL != session->product);
+
   // send message with product to client
-  if (ALICE == session->role)
+  if (ALICE == session->role){
+    session->state = FINALIZED;
+    session->tunnel = NULL;
     session->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     session);
+  }
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   // just close the connection, as recommended by Christian
@@ -2317,27 +2330,28 @@ handle_service_response (void *cls,
   size_t i;
   uint32_t contained = 0;
   size_t msg_size;
+  size_t required_size;
   int rc;
 
   GNUNET_assert (NULL != message);
   session = (struct ServiceSession *) * tunnel_ctx;
   // are we in the correct state?
-  if (session->state != WAITING_FOR_SERVICE_REQUEST) {
+  if (WAITING_FOR_SERVICE_RESPONSE != session->state) {
     goto invalid_msg;
   }
   //we need at least a full message without elements attached
   msg_size = ntohs (msg->header.size);
-  size_t expected = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH;
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH;
   
-  if (expected > msg_size) {
+  if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
-  msg_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
           + 2 * contained * PAILLIER_ELEMENT_LENGTH
           + 2 * PAILLIER_ELEMENT_LENGTH;
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_size) || (session->used < contained)) {
+  if ((msg_size != required_size) || (session->used < contained)) {
     goto invalid_msg;
   }
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
@@ -2378,19 +2392,18 @@ handle_service_response (void *cls,
     return GNUNET_OK; //wait for the other multipart chunks
 
   session->state = SERVICE_RESPONSE_RECEIVED;
-  session->product = compute_scalar_product (session);
-  return GNUNET_SYSERR; // terminate the tunnel right away, we are done here!
-
+  session->product = compute_scalar_product (session); //never NULL
+  
 invalid_msg:
-  GNUNET_break_op (0);
-  free_session_variables (session);
-  session->state = FINALIZED;
-  session->tunnel = NULL;
+  GNUNET_break_op (NULL != session->product);
   // send message with product to client
-  if (ALICE == session->role)
+  if (ALICE == session->role){
+    session->state = FINALIZED;
+    session->tunnel = NULL;
     session->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     session);
+  }
   // the tunnel has done its job, terminate our connection and the tunnel
   // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
   // just close the connection, as recommended by Christian
