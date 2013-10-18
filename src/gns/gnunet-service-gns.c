@@ -168,7 +168,13 @@ static struct GNUNET_TIME_Relative min_relative_record_time;
 static struct GNUNET_TIME_Relative put_interval;
 
 /**
- * Time window for zone iteration
+ * Default time window for zone iteration
+ */
+static struct GNUNET_TIME_Relative zone_publish_time_window_default;
+
+/**
+ * Time window for zone iteration, adjusted based on relative record
+ * expiration times in our zone.
  */
 static struct GNUNET_TIME_Relative zone_publish_time_window;
 
@@ -369,8 +375,9 @@ put_gns_record (void *cls,
     else
     {
       zone_publish_time_window
-        = GNUNET_TIME_relative_min (min_relative_record_time,
-                                    DEFAULT_ZONE_PUBLISH_TIME_WINDOW);
+        = GNUNET_TIME_relative_min (GNUNET_TIME_relative_divide (min_relative_record_time,
+                                                                 4),
+                                    zone_publish_time_window_default);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
 						  num_public_records);
     }
@@ -449,6 +456,9 @@ put_gns_record (void *cls,
   GNUNET_GNSRECORD_query_from_private_key (key,
 					   name,
 					   &query);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Storing record in DHT with expiration `%s'\n",
+              GNUNET_STRINGS_absolute_time_to_string (expire));
   active_put = GNUNET_DHT_put (dht_handle, &query,
 			       DHT_GNS_REPLICATION_LEVEL,
 			       GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -684,17 +694,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
 
   put_interval = INITIAL_PUT_INTERVAL;
-  zone_publish_time_window = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
-
+  zone_publish_time_window_default = DEFAULT_ZONE_PUBLISH_TIME_WINDOW;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (c, "gns",
 					   "ZONE_PUBLISH_TIME_WINDOW",
-					   &zone_publish_time_window))
+					   &zone_publish_time_window_default))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Time window for zone iteration: %s\n",
-		GNUNET_STRINGS_relative_time_to_string (zone_publish_time_window, GNUNET_YES));
+		GNUNET_STRINGS_relative_time_to_string (zone_publish_time_window,
+                                                        GNUNET_YES));
   }
+  zone_publish_time_window = zone_publish_time_window_default;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_number (c, "gns",
                                             "MAX_PARALLEL_BACKGROUND_QUERIES",
