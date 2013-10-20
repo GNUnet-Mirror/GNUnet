@@ -39,6 +39,7 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_dns_service.h"
 #include "gnunet_resolver_service.h"
+#include "gnunet_revocation_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_gns_service.h"
 #include "gns.h"
@@ -268,6 +269,11 @@ struct GNS_ResolverHandle
    * Pending Namecache lookup task
    */
   struct GNUNET_NAMECACHE_QueueEntry *namecache_qe;
+
+  /**
+   * Pending revocation check.
+   */
+  struct GNUNET_REVOCATION_Query *rev_check;
 
   /**
    * Heap node associated with this lookup.  Used to limit number of
@@ -1890,6 +1896,54 @@ recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
 
 
 /**
+ * Function called with the result from a revocation check.
+ *
+ * @param cls the `struct GNS_ResovlerHandle`
+ * @param is_valid #GNUNET_YES if the zone was not yet revoked
+ */
+static void
+handle_revocation_result (void *cls,
+                          int is_valid)
+{
+  struct GNS_ResolverHandle *rh = cls;
+  struct AuthorityChain *ac = rh->ac_tail;
+
+  rh->rev_check = NULL;
+  if (GNUNET_YES != is_valid)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Zone %s was revoked, resolution fails\n"),
+                GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
+    rh->proc (rh->proc_cls, 0, NULL);
+    GNS_resolver_lookup_cancel (rh);
+    return;
+  }
+  recursive_gns_resolution_namestore (rh);
+}
+
+
+/**
+ * Perform revocation check on tail of our authority chain.
+ *
+ * @param rh query we are processing
+ */
+static void
+recursive_gns_resolution_revocation (struct GNS_ResolverHandle *rh)
+{
+  struct AuthorityChain *ac = rh->ac_tail;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting revocation check for zone %s\n",
+	      GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
+  rh->rev_check = GNUNET_REVOCATION_query (cfg,
+                                           &ac->authority_info.gns_authority,
+                                           &handle_revocation_result,
+                                           rh);
+  GNUNET_assert (NULL != rh->rev_check);
+}
+
+
+/**
  * Task scheduled to continue with the resolution process.
  *
  * @param cls the `struct GNS_ResolverHandle` of the resolution
@@ -1912,7 +1966,7 @@ recursive_resolution (void *cls,
     return;
   }
   if (GNUNET_YES == rh->ac_tail->gns_authority)
-    recursive_gns_resolution_namestore (rh);
+    recursive_gns_resolution_revocation (rh);
   else
     recursive_dns_resolution (rh);
 }
@@ -2111,6 +2165,11 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
   {
     GNUNET_NAMECACHE_cancel (rh->namecache_qe);
     rh->namecache_qe = NULL;
+  }
+  if (NULL != rh->rev_check)
+  {
+    GNUNET_REVOCATION_query_cancel (rh->rev_check);
+    rh->rev_check = NULL;
   }
   if (NULL != rh->std_resolve)
   {

@@ -159,6 +159,7 @@ gnunet_service_gns_SOURCES = \
 gnunet_service_gns_LDADD = \
   -lm \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/revocation/libgnunetrevocation.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
@@ -171,6 +172,7 @@ gnunet_service_gns_LDADD = \
   $(GN_LIBINTL)
 gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/revocation/libgnunetrevocation.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
