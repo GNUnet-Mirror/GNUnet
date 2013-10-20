@@ -236,15 +236,6 @@ static int v6_enabled;
 static int v4_enabled;
 
 /**
- * Did we finish the initial iteration over the namestore?
- * (while we do the initial iteration, we do not generate
- * DHT PUTs as there might be WAY too many of those).
- * TODO: expand namestore monitor API with a way to
- * suppress this initial iteration.
- */
-static int sync_finished;
-
-/**
  * Handle to the statistics service
  */
 static struct GNUNET_STATISTICS_Handle *statistics;
@@ -485,8 +476,9 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 					   label,
 					   &query);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Storing record in DHT with expiration `%s'\n",
-              GNUNET_STRINGS_absolute_time_to_string (expire));
+              "Storing record in DHT with expiration `%s' under key %s\n",
+              GNUNET_STRINGS_absolute_time_to_string (expire),
+              GNUNET_h2s (&query));
   ret = GNUNET_DHT_put (dht_handle, &query,
                         DHT_GNS_REPLICATION_LEVEL,
                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
@@ -646,9 +638,10 @@ handle_monitor_event (void *cls,
   unsigned int rd_public_count;
   struct MonitorActivity *ma;
 
-  if (GNUNET_YES != sync_finished)
-    return; /* do not do DHT PUTs on initial sync, as that may
-               create far too many PUTs on startup */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u records for label `%s' via namestore monitor\n",
+              rd_count,
+              label);
   /* filter out records that are not public, and convert to
      absolute expiration time. */
   rd_public_count = convert_records_for_export (rd, rd_count,
@@ -833,7 +826,6 @@ notify_client_disconnect (void *cls,
 static void
 monitor_sync_event (void *cls)
 {
-  sync_finished = GNUNET_YES;
   zone_publish_task = GNUNET_SCHEDULER_add_now (&publish_zone_dht_start,
 						NULL);
 }
@@ -955,9 +947,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   zmon = GNUNET_NAMESTORE_zone_monitor_start (c,
                                               NULL,
+                                              GNUNET_NO,
                                               &handle_monitor_event,
                                               &monitor_sync_event,
                                               NULL);
+  GNUNET_break (NULL != zmon);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task, NULL);
 }
