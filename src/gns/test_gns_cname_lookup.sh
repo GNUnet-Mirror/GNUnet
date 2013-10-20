@@ -19,12 +19,21 @@ gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_REC
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.gnu -t A -c test_gns_lookup.conf`
+RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.gnu -t CNAME -c test_gns_lookup.conf`
 RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www3.gnu -t A -c test_gns_lookup.conf`
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 gnunet-identity -D testego -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
+
+if [ "$RES_CNAME_RAW" == "server.gnu" ]
+then
+  echo "PASS: CNAME resulution from GNS"
+else
+  echo "FAIL: CNAME resolution from GNS, got $RES_CNAME_RAW."
+  exit 1
+fi
 
 if [ "$RES_CNAME" == "$TEST_IP_PLUS" ]
 then
