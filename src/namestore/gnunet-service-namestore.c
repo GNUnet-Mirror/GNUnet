@@ -199,6 +199,11 @@ struct CacheOperation
 
 
 /**
+ * Public key of all zeros.
+ */
+static const struct GNUNET_CRYPTO_EcdsaPrivateKey zero;
+
+/**
  * Configuration handle.
  */
 static const struct GNUNET_CONFIGURATION_Handle *GSN_cfg;
@@ -674,8 +679,11 @@ handle_record_store (void *cls,
       if (GNUNET_OK == res)
       {
         for (zm = monitor_head; NULL != zm; zm = zm->next)
-          if (0 == memcmp (&rp_msg->private_key, &zm->zone,
-                           sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+          if ( (0 == memcmp (&rp_msg->private_key, &zm->zone,
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) ||
+               (0 == memcmp (&zm->zone,
+                             &zero,
+                             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
             send_lookup_response (monitor_nc,
                                   zm->nc->client,
                                   zm->request_id,
@@ -956,7 +964,6 @@ zone_iteraterate_proc (void *cls,
 static void
 run_zone_iteration_round (struct ZoneIteration *zi)
 {
-  static struct GNUNET_CRYPTO_EcdsaPrivateKey zero;
   struct ZoneIterationProcResult proc;
   struct RecordResultMessage rrm;
   int ret;
@@ -1098,7 +1105,9 @@ handle_iteration_next (void *cls,
   const struct ZoneIterationNextMessage *zis_msg;
   uint32_t rid;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ZONE_ITERATION_NEXT");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "ZONE_ITERATION_NEXT");
   if (NULL == (nc = client_lookup(client)))
   {
     GNUNET_break (0);
@@ -1234,7 +1243,9 @@ monitor_next (void *cls,
 
   zm->task = GNUNET_SCHEDULER_NO_TASK;
   ret = GSN_database->iterate_records (GSN_database->cls,
-				       &zm->zone,
+                                       (0 == memcmp (&zm->zone, &zero, sizeof (zero)))
+                                       ? NULL
+                                       : &zm->zone,
 				       zm->offset++,
 				       &monitor_iterate_cb, zm);
   if (GNUNET_SYSERR == ret)
