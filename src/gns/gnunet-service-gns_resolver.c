@@ -1293,6 +1293,7 @@ handle_gns_resolution_result (void *cls,
 	  else
 	  {
 	    cname = translate_dot_plus (rh, cname);
+            GNUNET_break (NULL != cname);
 	    scratch_start = scratch_off;
 	    if (GNUNET_OK !=
 		GNUNET_DNSPARSER_builder_add_name (scratch,
