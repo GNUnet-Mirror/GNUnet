@@ -360,11 +360,6 @@ struct CacheOps
 
 
 /**
- * Our handle to the namestore service
- */
-static struct GNUNET_NAMESTORE_Handle *namestore_handle;
-
-/**
  * Our handle to the namecache service
  */
 static struct GNUNET_NAMECACHE_Handle *namecache_handle;
@@ -2143,15 +2138,13 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
 /**
  * Initialize the resolver
  *
- * @param nh the namestore handle
  * @param nc the namecache handle
  * @param dht the dht handle
  * @param c configuration handle
  * @param max_bg_queries maximum number of parallel background queries in dht
  */
 void
-GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
-                   struct GNUNET_NAMECACHE_Handle *nc,
+GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
 		   struct GNUNET_DHT_Handle *dht,
 		   const struct GNUNET_CONFIGURATION_Handle *c,
 		   unsigned long long max_bg_queries)
@@ -2160,7 +2153,6 @@ GNS_resolver_init (struct GNUNET_NAMESTORE_Handle *nh,
 
   cfg = c;
   namecache_handle = nc;
-  namestore_handle = nh;
   dht_handle = dht;
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
@@ -2211,7 +2203,6 @@ GNS_resolver_done ()
   vpn_handle = NULL;
   dht_handle = NULL;
   namecache_handle = NULL;
-  namestore_handle = NULL;
 }
 
 

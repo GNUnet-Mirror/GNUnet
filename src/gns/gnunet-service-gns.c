@@ -753,8 +753,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       return;
     }
   }
-  GNS_resolver_init (namestore_handle,
-                     namecache_handle,
+  GNS_resolver_init (namecache_handle,
                      dht_handle,
 		     c,
 		     max_parallel_bg_queries);
