@@ -916,6 +916,10 @@ dns_result_parser (void *cls,
 	continue;
       }
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Returning DNS response for `%s' with %u answers\n",
+                rh->ac_tail->label,
+                (unsigned int) p->num_answers);
     rh->proc (rh->proc_cls, rd_count - skip, rd);
     GNS_resolver_lookup_cancel (rh);
   }
@@ -1472,6 +1476,10 @@ handle_gns_resolution_result (void *cls,
     }
 
     /* yes, we are done, return result */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Returning GNS response for `%s' with %u answers\n",
+                rh->ac_tail->label,
+                rd_off);
     rh->proc (rh->proc_cls, rd_off, rd_new);
     GNS_resolver_lookup_cancel (rh);
     return;

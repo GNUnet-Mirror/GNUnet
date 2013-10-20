@@ -23,10 +23,10 @@ then
   exit 1
 fi
 
-if [ "$RES_IP_REV" == " " ]
+if [ "x$RES_IP_REV" == "x" ]
 then
   exit 0
 else
-  echo "Failed to revoke zone, got $RES_IP."
+  echo "Failed to revoke zone, got $RES_IP_REV."
   exit 1
 fi
