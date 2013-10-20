@@ -718,6 +718,7 @@ testservice_task (void *cls,
   {
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
 					      &zone_pkey,
+                                              GNUNET_YES,
 					      &display_record,
 					      &sync_cb,
 					      NULL);

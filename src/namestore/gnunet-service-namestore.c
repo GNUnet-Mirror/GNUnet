@@ -144,11 +144,6 @@ struct ZoneMonitor
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
   /**
-   * The operation id fot the zone iteration in the response for the client
-   */
-  uint32_t request_id;
-
-  /**
    * Task active during initial iteration.
    */
   GNUNET_SCHEDULER_TaskIdentifier task;
@@ -679,17 +674,36 @@ handle_record_store (void *cls,
       if (GNUNET_OK == res)
       {
         for (zm = monitor_head; NULL != zm; zm = zm->next)
+        {
           if ( (0 == memcmp (&rp_msg->private_key, &zm->zone,
                              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) ||
                (0 == memcmp (&zm->zone,
                              &zero,
                              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey))) )
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Notifying monitor about changes under label `%s'\n",
+                        conv_name);
             send_lookup_response (monitor_nc,
                                   zm->nc->client,
-                                  zm->request_id,
+                                  0,
                                   &rp_msg->private_key,
                                   conv_name,
                                   rd_count, rd);
+          }
+          else
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Monitor is for another zone\n");
+        }
+        if (NULL == monitor_head)
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "No monitors active\n");
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Error storing record: %d\n",
+                    res);
       }
     }
     if (GNUNET_OK == res)
@@ -1186,7 +1200,7 @@ monitor_iterate_cb (void *cls,
   }
   send_lookup_response (monitor_nc,
 			zm->nc->client,
-			zm->request_id,
+			0,
 			zone_key,
 			name,
 			rd_count,
@@ -1215,7 +1229,6 @@ handle_monitor_start (void *cls,
 	      "ZONE_MONITOR_START");
   zis_msg = (const struct ZoneMonitorStartMessage *) message;
   zm = GNUNET_new (struct ZoneMonitor);
-  zm->request_id = ntohl (zis_msg->gns_header.r_id);
   zm->offset = 0;
   zm->nc = client_lookup (client);
   zm->zone = zis_msg->zone;
@@ -1224,7 +1237,10 @@ handle_monitor_start (void *cls,
   GNUNET_SERVER_disable_receive_done_warning (client);
   GNUNET_SERVER_notification_context_add (monitor_nc,
 					  client);
-  zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
+  if (GNUNET_YES == ntohs (zis_msg->iterate_first))
+    zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
+  else
+    monitor_sync (zm);
 }
 
 

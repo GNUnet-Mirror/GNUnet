@@ -274,7 +274,8 @@ run (void *cls,
 
   /* Start monitoring */
   zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
-  						privkey,
+                                            privkey,
+                                            GNUNET_YES,
 					    &zone_proc,
 					    NULL,
 					    NULL);

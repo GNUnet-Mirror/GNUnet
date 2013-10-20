@@ -353,7 +353,13 @@ struct ZoneMonitorStartMessage
   /**
    * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START
    */
-  struct GNUNET_NAMESTORE_Header gns_header;
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * #GNUNET_YES to first iterate over all records,
+   * #GNUNET_NO to only monitor changes.o
+   */
+  uint32_t iterate_first GNUNET_PACKED;
 
   /**
    * Zone key.

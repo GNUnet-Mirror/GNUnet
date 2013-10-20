@@ -237,10 +237,11 @@ put_cont (void *cls, int32_t success, const char *emsg)
   {
     /* Start monitoring */
     zm = GNUNET_NAMESTORE_zone_monitor_start (cfg,
-    						privkey,
-  					    &zone_proc,
-  					    NULL,
-  					    NULL);
+                                              privkey,
+                                              GNUNET_YES,
+                                              &zone_proc,
+                                              NULL,
+                                              NULL);
     if (NULL == zm)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone monitor\n");

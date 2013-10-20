@@ -247,15 +247,20 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
 
 
 /**
- * Begin monitoring a zone for changes.  Will first call the @a monitor function
- * on all existing records in the selected zone(s), then calls @a sync_cb,
- * and then calls the @a monitor whenever a record changes.  If the namestore
- * disconnects, the @a monitor function is called with a disconnect event; if
- * the connection is re-established, the process begins from the start (all
- * existing records, sync, then updates).
+ * Begin monitoring a zone for changes.  Will first call the @a
+ * monitor function on all existing records in the selected zone(s) if
+ * @a iterate_first is #GNUNET_YES.  In any case, we will then call @a
+ * sync_cb, and then afterwards call the @a monitor whenever a record
+ * changes.  If the namestore disconnects, the @a monitor function is
+ * called with a disconnect event; if the connection is
+ * re-established, the process begins from the start (depending on @a
+ * iterate_first, we first do all existing records, then @a sync, then
+ * updates).
  *
  * @param cfg configuration to use to connect to namestore
- * @param zone zone to monitor
+ * @param zone zone to monitor, NULL for all zones
+ * @param iterate_first #GNUNET_YES to first iterate over all existing records,
+ *                      #GNUNET_NO to only return changes that happen from now on
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
  * @param cls closure for @a monitor and @a sync_cb
@@ -264,6 +269,7 @@ typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                     int iterate_first,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls);

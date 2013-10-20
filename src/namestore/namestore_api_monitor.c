@@ -75,6 +75,11 @@ struct GNUNET_NAMESTORE_ZoneMonitor
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey zone;
 
+  /**
+   * Do we first iterate over all existing records?
+   */
+  int iterate_first;
+
 };
 
 
@@ -228,9 +233,9 @@ transmit_monitor_message (void *cls,
     reconnect (zm);
     return 0;
   }
-  sm.gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START);
-  sm.gns_header.header.size = htons (sizeof (struct ZoneMonitorStartMessage));
-  sm.gns_header.r_id = htonl (0);
+  sm.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_MONITOR_START);
+  sm.header.size = htons (sizeof (struct ZoneMonitorStartMessage));
+  sm.iterate_first = htonl (zm->iterate_first);
   sm.zone = zm->zone;
   memcpy (buf, &sm, sizeof (sm));
   GNUNET_CLIENT_receive (zm->h,
@@ -242,20 +247,24 @@ transmit_monitor_message (void *cls,
 
 
 /**
- * Begin monitoring a zone for changes.  Will first call the 'monitor' function
- * on all existing records in the selected zone(s) and then call it whenever
- * a record changes.
+ * Begin monitoring a zone for changes.  If @a iterate_first is set,
+ * we Will first call the @a monitor function on all existing records
+ * in the selected zone(s).  In any case, we will call @a sync and
+ * afterwards call @a monitor whenever a record changes.
  *
  * @param cfg configuration to use to connect to namestore
  * @param zone zone to monitor
+ * @param iterate_first #GNUNET_YES to first iterate over all existing records,
+ *                      #GNUNET_NO to only return changes that happen from now on
  * @param monitor function to call on zone changes
  * @param sync_cb function called when we're in sync with the namestore
- * @param cls closure for 'monitor' and 'sync_cb'
+ * @param cls closure for @a monitor and @a sync_cb
  * @return handle to stop monitoring
  */
 struct GNUNET_NAMESTORE_ZoneMonitor *
 GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				     const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                     int iterate_first,
 				     GNUNET_NAMESTORE_RecordMonitor monitor,
 				     GNUNET_NAMESTORE_RecordsSynchronizedCallback sync_cb,
 				     void *cls)
@@ -263,16 +272,14 @@ GNUNET_NAMESTORE_zone_monitor_start (const struct GNUNET_CONFIGURATION_Handle *c
   struct GNUNET_NAMESTORE_ZoneMonitor *zm;
   struct GNUNET_CLIENT_Connection *client;
 
-  if (NULL == zone)
-  	return NULL;
   if (NULL == (client = GNUNET_CLIENT_connect ("namestore", cfg)))
     return NULL;
-
-
   zm = GNUNET_new (struct GNUNET_NAMESTORE_ZoneMonitor);
   zm->cfg = cfg;
   zm->h = client;
-  zm->zone = *zone;
+  if (NULL != zone)
+    zm->zone = *zone;
+  zm->iterate_first = iterate_first;
   zm->monitor = monitor;
   zm->sync_cb = sync_cb;
   zm->cls = cls;
