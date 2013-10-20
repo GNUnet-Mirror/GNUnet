@@ -12,9 +12,11 @@ gnunet-namestore -p -z testego -a -n b -t PKEY -V $DELEGATED_PKEY -e never -c te
 sleep 5
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 gnunet-namestore -z delegatedego -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
+gnunet-arm -k gns -c test_gns_lookup.conf
+gnunet-arm -k namestore -c test_gns_lookup.conf
 gnunet-arm -k namecache -c test_gns_lookup.conf
 rm -r `gnunet-config -c test_gns_lookup.conf -s namecache-sqlite -o FILENAME`
-gnunet-arm -i namecache -c test_gns_lookup.conf
+gnunet-arm -i gns -c test_gns_lookup.conf
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.b.gnu -t A -c test_gns_lookup.conf`
 gnunet-namestore -z testego -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 gnunet-identity -D testego -c test_gns_lookup.conf
