@@ -294,7 +294,7 @@ parse_name (const char *udp_payload,
       GNUNET_free (xstr);
       ret = tmp;
       if (strlen (ret) > udp_payload_length)
-      {	
+      {
 	GNUNET_break_op (0);
 	goto error; /* we are looping (building an infinite string) */
       }
@@ -796,7 +796,7 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
   if (IDNA_SUCCESS !=
       (rc = idna_to_ascii_8z (name, &idna_start, IDNA_ALLOW_UNASSIGNED)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to convert UTF-8 name `%s' to DNS IDNA format: %s\n"),
 		name,
 		idna_strerror (rc));
@@ -815,7 +815,10 @@ GNUNET_DNSPARSER_builder_add_name (char *dst,
     else
       len = dot - idna_name;
     if ( (len >= 64) || (0 == len) )
+    {
+      GNUNET_break (0);
       goto fail; /* segment too long or empty */
+    }
     dst[pos++] = (char) (uint8_t) len;
     memcpy (&dst[pos], idna_name, len);
     pos += len;
