@@ -7,6 +7,7 @@ gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C testego -c test_gns_lookup.conf
 gnunet-identity -C delegatedego -c test_gns_lookup.conf
 DELEGATED_PKEY=$(gnunet-identity -d -c test_gns_lookup.conf | grep delegatedego | awk '{print $3}')
+gnunet-arm -i gns -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n b -t PKEY -V $DELEGATED_PKEY -e never -c test_gns_lookup.conf
 sleep 1
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
