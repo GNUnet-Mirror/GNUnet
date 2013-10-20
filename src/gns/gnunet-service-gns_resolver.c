@@ -1262,6 +1262,8 @@ handle_gns_resolution_result (void *cls,
 	case GNUNET_GNSRECORD_TYPE_GNS2DNS:
 	  {
 	    /* delegation to DNS */
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Found GNS2DNS record, delegating to DNS!\n");
 	    goto do_recurse;
 	  }
 	default:
@@ -1469,6 +1471,13 @@ handle_gns_resolution_result (void *cls,
           }
         }
 	break;
+      case GNUNET_GNSRECORD_TYPE_GNS2DNS:
+        {
+          /* delegation to DNS */
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Found GNS2DNS record, delegating to DNS!\n");
+          goto do_recurse;
+        }
       default:
 	rd_off++;
 	break;
