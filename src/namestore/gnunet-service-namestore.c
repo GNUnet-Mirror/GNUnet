@@ -1237,7 +1237,7 @@ handle_monitor_start (void *cls,
   GNUNET_SERVER_disable_receive_done_warning (client);
   GNUNET_SERVER_notification_context_add (monitor_nc,
 					  client);
-  if (GNUNET_YES == ntohs (zis_msg->iterate_first))
+  if (GNUNET_YES == ntohl (zis_msg->iterate_first))
     zm->task = GNUNET_SCHEDULER_add_now (&monitor_next, zm);
   else
     monitor_sync (zm);

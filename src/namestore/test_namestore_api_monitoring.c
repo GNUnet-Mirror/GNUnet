@@ -150,13 +150,15 @@ zone_proc (void *cls,
 	   unsigned int rd_count,
 	   const struct GNUNET_GNSRECORD_Data *rd)
 {
-	static int returned_records;
-	static int fail = GNUNET_NO;
+  static int returned_records;
+  static int fail = GNUNET_NO;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Comparing results name %s\n",
 	      name);
-
-  if (0 != memcmp (zone_key, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  if (0 != memcmp (zone_key,
+                   privkey,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
   	      "Monitoring returned wrong zone key\n");
@@ -185,8 +187,9 @@ zone_proc (void *cls,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-  	      "Invalid name %s\n",  name);
-  	GNUNET_break (0);
+  	      "Invalid name %s\n",
+                name);
+    GNUNET_break (0);
     fail = GNUNET_YES;
   }
 
@@ -202,7 +205,6 @@ zone_proc (void *cls,
     else
     	GNUNET_SCHEDULER_add_now (&end, NULL);
   }
-
 }
 
 
@@ -222,11 +224,15 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     c++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record %u: `%s'\n", c, label);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created record %u: `%s'\n",
+                c,
+                label);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to created records\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to created records\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
@@ -281,7 +287,8 @@ run (void *cls,
 					    NULL);
   if (NULL == zm)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone monitor\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create zone monitor\n");
     GNUNET_break (0);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
