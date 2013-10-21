@@ -377,5 +377,12 @@ struct TunnelContext
 const struct SetVT *
 _GSS_union_vt (void);
 
+/**
+ * Get the table with implementing functions for
+ * set intersection.
+ */
+const struct SetVT *
+_GSS_intersection_vt (void);
+
 
 #endif
