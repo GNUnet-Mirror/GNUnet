@@ -1073,16 +1073,29 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
 {
   struct MeshPeerQueue *q;
   struct MeshPeerQueue *next;
+  struct MeshPeerQueue *prev;
 
   for (q = peer->queue_head; NULL != q; q = next)
   {
-    next = q->next;
+    prev = q->prev;
     if (q->c == c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "connection_cancel_queue %s\n",
+                  "GMP_cancel_queue %s\n",
                   GNUNET_MESH_DEBUG_M2S (q->type));
       queue_destroy (q, GNUNET_YES);
+
+      /* Get next from prev, q->next might be already freed:
+       * queue destroy -> callback -> GMC_destroy -> cancel_queues -> here
+       */
+      if (NULL == prev)
+        next = peer->queue_head;
+      else
+        next = prev->next;
+    }
+    else
+    {
+      next = q->next;
     }
   }
   if (NULL == peer->queue_head)
