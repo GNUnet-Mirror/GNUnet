@@ -231,7 +231,10 @@ GMC_new (const struct GNUNET_HashCode *cid,
          unsigned int own_pos);
 
 /**
- * Connection is no longer needed: destroy it and remove from tunnel.
+ * Connection is no longer needed: destroy it.
+ *
+ * Cancels all pending traffic (including possible DESTROY messages), all
+ * maintenance tasks and removes the connection from neighbor peers and tunnel.
  *
  * @param c Connection to destroy.
  */

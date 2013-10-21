@@ -787,8 +787,11 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 
 /**
  * Cancel all transmissions that belong to a certain connection.
+ * 
+ * If the connection is scheduled for destruction and no more messages are left,
+ * the connection will be destroyed by the continuation call.
  *
- * @param c Connection which to cancel.
+ * @param c Connection which to cancel. Might be destroyed during this call.
  * @param fwd Cancel fwd traffic?
  */
 static void
