@@ -26,7 +26,6 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-service-set.h"
-#include "ibf.h"
 #include "strata_estimator.h"
 #include "set_protocol.h"
 #include <gcrypt.h>
@@ -65,33 +64,18 @@
 
 
 /**
- * Current phase we are in for a union operation.
+ * Current phase we are in for a intersection operation.
  */
 enum IntersectionOperationPhase
 {
   /**
-   * We sent the request message, and expect a strata estimator
+   * We sent the request message, and expect a BF
    */
-  PHASE_EXPECT_SE,
+  PHASE_EXPECT_INITIAL,
   /**
-   * We sent the strata estimator, and expect an IBF
+   * We sent the request message, and expect a BF
    */
-  PHASE_EXPECT_IBF,
-  /**
-   * We know what type of IBF the other peer wants to send us,
-   * and expect the remaining parts
-   */
-  PHASE_EXPECT_IBF_CONT,
-  /**
-   * We are sending request and elements,
-   * and thus only expect elements from the other peer.
-   */
-  PHASE_EXPECT_ELEMENTS,
-  /**
-   * We are expecting elements and requests, and send
-   * requested elements back to the other peer.
-   */
-  PHASE_EXPECT_ELEMENTS_AND_REQUESTS,
+  PHASE_EXPECT_BF,
   /**
    * The protocol is over.
    * Results may still have to be sent to the client.
@@ -231,7 +215,7 @@ struct SendElementClosure
 
 
 /**
- * Extra state required for efficient set union.
+ * Extra state required for efficient set intersection.
  */
 struct SetState
 {
@@ -290,15 +274,15 @@ destroy_key_to_element_iter (void *cls,
 
 
 /**
- * Destroy a union operation, and free all resources
+ * Destroy a intersection operation, and free all resources
  * associated with it.
  *
- * @param eo the union operation to destroy
+ * @param eo the intersection operation to destroy
  */
 static void
 intersection_operation_destroy (struct OperationState *eo)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying union op\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op\n");
   GNUNET_CONTAINER_DLL_remove (eo->set->state->ops_head,
                                eo->set->state->ops_tail,
                                eo);
@@ -346,17 +330,17 @@ intersection_operation_destroy (struct OperationState *eo)
   }
   GNUNET_free (eo);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying union op done\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op done\n");
 
   /* FIXME: do a garbage collection of the set generations */
 }
 
 
 /**
- * Inform the client that the union operation has failed,
+ * Inform the client that the intersection operation has failed,
  * and proceed to destroy the evaluate operation.
  *
- * @param eo the union operation to fail
+ * @param eo the intersection operation to fail
  */
 static void
 fail_intersection_operation (struct OperationState *eo)
@@ -369,7 +353,7 @@ fail_intersection_operation (struct OperationState *eo)
   msg->request_id = htonl (eo->spec->client_request_id);
   msg->element_type = htons (0);
   GNUNET_MQ_send (eo->spec->set->client_mq, ev);
-  union_operation_destroy (eo);
+  intersection_operation_destroy (eo);
 }
 
 
@@ -470,14 +454,14 @@ op_register_element_iterator (void *cls,
 
 
 /**
- * Insert an element into the union operation's
+ * Insert an element into the intersection operation's
  * key-to-element mapping. Takes ownership of 'ee'.
  * Note that this does not insert the element in the set,
  * only in the operation's key-element mapping.
  * This is done to speed up re-tried operations, if some elements
  * were transmitted, and then the IBF fails to decode.
  *
- * @param eo the union operation
+ * @param eo the intersection operation
  * @param ee the element entry
  */
 static void
@@ -528,9 +512,9 @@ prepare_ibf_iterator (void *cls,
 
 /**
  * Iterator for initializing the
- * key-to-element mapping of a union operation
+ * key-to-element mapping of a intersection operation
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param key unised
  * @param value the element entry to insert
  *        into the key-to-element mapping
@@ -563,7 +547,7 @@ init_key_to_element_iterator (void *cls,
  * Create an ibf with the operation's elements
  * of the specified size
  *
- * @param eo the union operation
+ * @param eo the intersection operation
  * @param size size of the ibf to create
  */
 static void
@@ -588,7 +572,7 @@ prepare_ibf (struct OperationState *eo, uint16_t size)
 /**
  * Send an ibf of appropriate size.
  *
- * @param eo the union operation
+ * @param eo the intersection operation
  * @param ibf_order order of the ibf to send, size=2^order
  */
 static void
@@ -634,7 +618,7 @@ send_ibf (struct OperationState *eo, uint16_t ibf_order)
 /**
  * Send a strata estimator to the remote peer.
  *
- * @param eo the union operation with the remote peer
+ * @param eo the intersection operation with the remote peer
  */
 static void
 send_strata_estimator (struct OperationState *eo)
@@ -647,7 +631,7 @@ send_strata_estimator (struct OperationState *eo)
                                    GNUNET_MESSAGE_TYPE_SET_P2P_SE);
   strata_estimator_write (eo->set->state->se, &strata_msg[1]);
   GNUNET_MQ_send (eo->mq, ev);
-  eo->phase = PHASE_EXPECT_IBF;
+  eo->phase = PHASE_EXPECT_BF;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent SE, expecting IBF\n");
 }
 
@@ -676,7 +660,7 @@ get_order_from_difference (unsigned int diff)
 /**
  * Handle a strata estimator from a remote peer
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the message
  */
 static void
@@ -688,7 +672,7 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
 
   if (eo->phase != PHASE_EXPECT_SE)
   {
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     GNUNET_break (0);
     return;
   }
@@ -710,7 +694,7 @@ handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
 /**
  * Iterator to send elements to a remote peer
  *
- * @param cls closure with the element key and the union operation
+ * @param cls closure with the element key and the intersection operation
  * @param key ignored
  * @param value the key entry
  */
@@ -751,9 +735,9 @@ send_element_iterator (void *cls,
 
 /**
  * Send all elements that have the specified IBF key
- * to the remote peer of the union operation
+ * to the remote peer of the intersection operation
  *
- * @param eo union operation
+ * @param eo intersection operation
  * @param ibf_key IBF key of interest
  */
 static void
@@ -772,7 +756,7 @@ send_elements_for_key (struct OperationState *eo, struct IBF_Key ibf_key)
  * Decode which elements are missing on each side, and
  * send the appropriate elemens and requests
  *
- * @param eo union operation
+ * @param eo intersection operation
  */
 static void
 decode_and_send (struct OperationState *eo)
@@ -834,7 +818,7 @@ decode_and_send (struct OperationState *eo)
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    "set union failed: reached ibf limit\n");
+		    "set intersection failed: reached ibf limit\n");
       }
       break;
     }
@@ -879,7 +863,7 @@ decode_and_send (struct OperationState *eo)
 /**
  * Handle an IBF message from a remote peer.
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the header of the message
  */
 static void
@@ -890,9 +874,9 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
   unsigned int buckets_in_message;
 
   if ( (eo->phase == PHASE_EXPECT_ELEMENTS_AND_REQUESTS) ||
-       (eo->phase == PHASE_EXPECT_IBF) )
+       (eo->phase == PHASE_EXPECT_BF) )
   {
-    eo->phase = PHASE_EXPECT_IBF_CONT;
+    eo->phase = PHASE_EXPECT_BF_CONT;
     GNUNET_assert (NULL == eo->remote_ibf);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "creating new ibf of size %u\n", 1<<msg->order);
     eo->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
@@ -900,17 +884,17 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     if (0 != ntohs (msg->offset))
     {
       GNUNET_break (0);
-      fail_union_operation (eo);
+      fail_intersection_operation (eo);
       return;
     }
   }
-  else if (eo->phase == PHASE_EXPECT_IBF_CONT)
+  else if (eo->phase == PHASE_EXPECT_BF_CONT)
   {
     if ( (ntohs (msg->offset) != eo->ibf_buckets_received) ||
          (1<<msg->order != eo->remote_ibf->size) )
     {
       GNUNET_break (0);
-      fail_union_operation (eo);
+      fail_intersection_operation (eo);
       return;
     }
   }
@@ -920,14 +904,14 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
   if (0 == buckets_in_message)
   {
     GNUNET_break_op (0);
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     return;
   }
 
   if ((ntohs (msg->header.size) - sizeof *msg) != buckets_in_message * IBF_BUCKET_SIZE)
   {
     GNUNET_break (0);
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     return;
   }
 
@@ -947,7 +931,7 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
  * Send a result message to the client indicating
  * that there is a new element.
  *
- * @param eo union operation
+ * @param eo intersection operation
  * @param element element to send
  */
 static void
@@ -980,7 +964,7 @@ send_client_element (struct OperationState *eo,
  * After the result done message has been sent to the client,
  * destroy the evaluate operation.
  *
- * @param eo union operation
+ * @param eo intersection operation
  */
 static void
 send_client_done_and_destroy (struct OperationState *eo)
@@ -998,14 +982,14 @@ send_client_done_and_destroy (struct OperationState *eo)
   rm->element_type = htons (0);
   GNUNET_MQ_send (eo->spec->set->client_mq, ev);
 
-  union_operation_destroy (eo);
+  intersection_operation_destroy (eo);
 }
 
 
 /**
  * Handle an element message from a remote peer.
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the message
  */
 static void
@@ -1020,7 +1004,7 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   if ( (eo->phase != PHASE_EXPECT_ELEMENTS) &&
        (eo->phase != PHASE_EXPECT_ELEMENTS_AND_REQUESTS) )
   {
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     GNUNET_break (0);
     return;
   }
@@ -1042,7 +1026,7 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
 /**
  * Handle an element request from a remote peer.
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the message
  */
 static void
@@ -1056,7 +1040,7 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
   if (eo->phase != PHASE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
     GNUNET_break (0);
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     return;
   }
 
@@ -1065,7 +1049,7 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
   if ((ntohs (mh->size) - sizeof *mh) != num_keys * sizeof (struct IBF_Key))
   {
     GNUNET_break (0);
-    fail_union_operation (eo);
+    fail_intersection_operation (eo);
     return;
   }
 
@@ -1081,7 +1065,7 @@ handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
 /**
  * Handle a done message from a remote peer
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the message
  */
 static void
@@ -1108,18 +1092,18 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
   }
   GNUNET_break (0);
-  fail_union_operation (eo);
+  fail_intersection_operation (eo);
 }
 
 
 /**
- * Evaluate a union operation with
+ * Evaluate a intersection operation with
  * a remote peer.
  *
  * @param spec specification of the operation the evaluate
  * @param tunnel tunnel already connected to the partner peer
  * @param tc tunnel context, passed here so all new incoming
- *        messages are directly going to the union operations
+ *        messages are directly going to the intersection operations
  * @return a handle to the operation
  */
 static void
@@ -1130,7 +1114,7 @@ intersection_evaluate (struct OperationSpecification *spec,
   struct OperationState *eo;
 
   eo = GNUNET_new (struct OperationState);
-  tc->vt = _GSS_union_vt ();
+  tc->vt = _GSS_intersection_vt ();
   tc->op = eo;
   eo->se = strata_estimator_dup (spec->set->state->se);
   eo->generation_created = spec->set->current_generation++;
@@ -1140,7 +1124,7 @@ intersection_evaluate (struct OperationSpecification *spec,
   eo->mq = GNUNET_MESH_mq_create (tunnel);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "evaluating union operation, (app %s)\n",
+	      "evaluating intersection operation, (app %s)\n",
               GNUNET_h2s (&eo->spec->app_id));
 
   /* we started the operation, thus we have to send the operation request */
@@ -1155,12 +1139,12 @@ intersection_evaluate (struct OperationSpecification *spec,
 
 
 /**
- * Accept an union operation request from a remote peer
+ * Accept an intersection operation request from a remote peer
  *
  * @param spec all necessary information about the operation
  * @param tunnel open tunnel to the partner's peer
  * @param tc tunnel context, passed here so all new incoming
- *        messages are directly going to the union operations
+ *        messages are directly going to the intersection operations
  * @return operation
  */
 static void
@@ -1170,10 +1154,10 @@ intersection_accept (struct OperationSpecification *spec,
 {
   struct OperationState *eo;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "accepting set union operation\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "accepting set intersection operation\n");
 
   eo = GNUNET_new (struct OperationState);
-  tc->vt = _GSS_union_vt ();
+  tc->vt = _GSS_intersection_vt ();
   tc->op = eo;
   eo->set = spec->set;
   eo->generation_created = eo->set->current_generation++;
@@ -1191,7 +1175,7 @@ intersection_accept (struct OperationSpecification *spec,
 
 
 /**
- * Create a new set supporting the union operation
+ * Create a new set supporting the intersection operation
  *
  * @return the newly created set
  */
@@ -1200,7 +1184,7 @@ intersection_set_create (void)
 {
   struct SetState *set_state;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "union set created\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "intersection set created\n");
 
   set_state = GNUNET_new (struct SetState);
   set_state->se = strata_estimator_create (SE_STRATA_COUNT,
@@ -1223,17 +1207,17 @@ intersection_add (struct SetState *set_state, struct ElementEntry *ee)
 
 
 /**
- * Destroy a set that supports the union operation
+ * Destroy a set that supports the intersection operation
  *
  * @param set_state the set to destroy
  */
 static void
 intersection_set_destroy (struct SetState *set_state)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying union set\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection set\n");
   /* important to destroy operations before the rest of the set */
   while (NULL != set_state->ops_head)
-    union_operation_destroy (set_state->ops_head);
+    intersection_operation_destroy (set_state->ops_head);
   if (NULL != set_state->se)
   {
     strata_estimator_destroy (set_state->se);
@@ -1258,9 +1242,9 @@ intersection_remove (struct SetState *set_state, struct ElementEntry *element)
 
 
 /**
- * Dispatch messages for a union operation.
+ * Dispatch messages for a intersection operation.
  *
- * @param eo the state of the union evaluate operation
+ * @param eo the state of the intersection evaluate operation
  * @param mh the received message
  * @return GNUNET_SYSERR if the tunnel should be disconnected,
  *         GNUNET_OK otherwise
@@ -1319,7 +1303,7 @@ intersection_peer_disconnect (struct OperationState *op)
     msg->element_type = htons (0);
     GNUNET_MQ_send (op->spec->set->client_mq, ev);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "other peer disconnected prematurely\n");
-    union_operation_destroy (op);
+    intersection_operation_destroy (op);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
@@ -1338,17 +1322,17 @@ intersection_op_cancel (struct SetState *set_state, uint32_t op_id)
 const struct SetVT *
 _GSS_intersection_vt ()
 {
-  static const struct SetVT union_vt = {
-    .create = &union_set_create,
-    .msg_handler = &union_handle_p2p_message,
-    .add = &union_add,
-    .remove = &union_remove,
-    .destroy_set = &union_set_destroy,
-    .evaluate = &union_evaluate,
-    .accept = &union_accept,
-    .peer_disconnect = &union_peer_disconnect,
-    .cancel = &union_op_cancel,
+  static const struct SetVT intersection_vt = {
+    .create = &intersection_set_create,
+    .msg_handler = &intersection_handle_p2p_message,
+    .add = &intersection_add,
+    .remove = &intersection_remove,
+    .destroy_set = &intersection_set_destroy,
+    .evaluate = &intersection_evaluate,
+    .accept = &intersection_accept,
+    .peer_disconnect = &intersection_peer_disconnect,
+    .cancel = &intersection_op_cancel,
   };
 
-  return &union_vt;
+  return &intersection_vt;
 }

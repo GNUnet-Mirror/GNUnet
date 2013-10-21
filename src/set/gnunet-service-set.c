@@ -583,7 +583,7 @@ handle_client_create (void *cls,
   switch (ntohs (msg->operation))
   {
     case GNUNET_SET_OPERATION_INTERSECTION:
-      set->vt = _GSS_intersection_vt ();
+//      set->vt = _GSS_intersection_vt ();
       break;
     case GNUNET_SET_OPERATION_UNION:
       set->vt = _GSS_union_vt ();
