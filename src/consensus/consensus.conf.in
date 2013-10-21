@@ -1,6 +1,6 @@
 [consensus]
 AUTOSTART = YES
-@UNIXONLY@ PORT = 2103
+@JAVAPORT@PORT = 2103
 HOSTNAME = localhost
 BINARY = gnunet-service-consensus
 ACCEPT_FROM = 127.0.0.1;

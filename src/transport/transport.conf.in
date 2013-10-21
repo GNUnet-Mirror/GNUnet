@@ -1,6 +1,6 @@
 [transport]
 AUTOSTART = YES
-@UNIXONLY@ PORT = 2091
+@JAVAPORT@PORT = 2091
 HOSTNAME = localhost
 BINARY = gnunet-service-transport
 #PREFIX = valgrind
