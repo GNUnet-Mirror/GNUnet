@@ -374,9 +374,6 @@ handle_ch_create (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_ChannelCreate *msg,
                   int fwd)
 {
-  ;
-
-  struct MeshTChannel *tch;
   struct MeshChannel *ch;
   size_t size;
 
@@ -399,12 +396,7 @@ handle_ch_create (struct MeshTunnel3 *t,
   {
     ch = GMCH_handle_create (t, msg, fwd);
   }
-
-  tch = GNUNET_new (struct MeshTChannel);
-  tch->ch = ch;
-  GNUNET_CONTAINER_DLL_insert (t->channel_head, t->channel_tail, tch);
-
-  ;
+  GMT_add_channel (t, ch);
 }
 
 void
@@ -772,12 +764,18 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
 {
   struct MeshTChannel *aux;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding channel %p to tunnel %p\n", ch, t);
+
   for (aux = t->channel_head; aux != NULL; aux = aux->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  already there %p\n", aux->ch);
     if (aux->ch == ch)
       return;
+  }
 
   aux = GNUNET_new (struct MeshTChannel);
   aux->ch = ch;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " adding %p to %p\n", aux, t->channel_head);
   GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
 }
 
@@ -792,20 +790,14 @@ void
 GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
 {
   struct MeshTChannel *aux;
-  struct MeshTChannel *next;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Removing channel %p from tunnel %p\n",
-       ch, t);
-  for (aux = t->channel_head; aux != NULL; aux = next)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing channel %p from tunnel %p\n", ch, t);
+  for (aux = t->channel_head; aux != NULL; aux = aux->next)
   {
-    next = aux->next;
     if (aux->ch == ch)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GMCH_2s (ch));
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " head pre:  %p\n", t->channel_head);
       GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " head post: %p\n", t->channel_head);
       GNUNET_free (aux);
       return;
     }
