@@ -1066,7 +1066,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
  * Cancel all queued messages to a peer that belong to a certain connection.
  *
  * @param peer Peer towards whom to cancel.
- * @param c Connection whose queued messages to cancel.
+ * @param c Connection whose queued messages to cancel. Might be destroyed by
+ *          the sent continuation call.
  */
 void
 GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
