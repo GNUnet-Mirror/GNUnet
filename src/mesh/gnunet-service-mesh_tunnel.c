@@ -792,14 +792,22 @@ void
 GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
 {
   struct MeshTChannel *aux;
+  struct MeshTChannel *next;
 
-  for (aux = t->channel_head; aux != NULL; aux = aux->next)
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing channel %p from tunnel %p\n",
+       ch, t);
+  for (aux = t->channel_head; aux != NULL; aux = next)
+  {
+    next = aux->next;
     if (aux->ch == ch)
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GMCH_2s (ch));
       GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
       GNUNET_free (aux);
       return;
     }
+  }
 }
 
 
