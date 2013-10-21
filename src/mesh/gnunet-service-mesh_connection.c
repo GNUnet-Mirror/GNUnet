@@ -1842,6 +1842,10 @@ GMC_destroy (struct MeshConnection *c)
   if (NULL == c)
     return;
 
+  if (2 == c->destroy) /* cancel queues -> GMP_queue_cancel -> q_destroy -> */
+    return;            /* -> message_sent -> GMC_destroy. Don't loop. */
+  c->destroy = 2;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s\n", GMC_2s (c));
 
   /* Cancel all traffic */
