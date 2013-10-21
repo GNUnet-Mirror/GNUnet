@@ -800,7 +800,6 @@ mhd_content_cb (void *cls,
 static int
 check_ssl_certificate (struct Socks5Request *s5r)
 {
-  unsigned int i;
   struct curl_tlsinfo tlsinfo;
   unsigned int cert_list_size;
   const gnutls_datum_t *chainp;
@@ -808,6 +807,11 @@ check_ssl_certificate (struct Socks5Request *s5r)
     struct curl_tlsinfo *tlsinfo;
     struct curl_slist   *to_slist;
   } gptr;
+  char certdn[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 3];
+  size_t size;
+  gnutls_x509_crt x509_cert;
+  int rc;
+  const char *name;
 
   memset (&tlsinfo, 0, sizeof (tlsinfo));
   gptr.tlsinfo = &tlsinfo;
@@ -824,8 +828,57 @@ check_ssl_certificate (struct Socks5Request *s5r)
     return GNUNET_SYSERR;
   }
   chainp = gnutls_certificate_get_peers (tlsinfo.internals, &cert_list_size);
-  if(!chainp)
+  if ( (! chainp) || (0 == cert_list_size) )
     return GNUNET_SYSERR;
+
+  size = sizeof (certdn);
+  /* initialize an X.509 certificate structure. */
+  gnutls_x509_crt_init (&x509_cert);
+  gnutls_x509_crt_import (x509_cert,
+                          chainp,
+                          GNUTLS_X509_FMT_DER);
+
+  if (0 != (rc = gnutls_x509_crt_get_dn_by_oid (x509_cert,
+                                                GNUTLS_OID_X520_COMMON_NAME,
+                                                0, /* the first and only one */
+                                                0 /* no DER encoding */,
+                                                certdn,
+                                                &size)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to fetch CN from cert: %s\n",
+                gnutls_strerror(rc));
+    gnutls_x509_crt_deinit (x509_cert);
+    return GNUNET_SYSERR;
+  }
+  /* FIXME: here we should check for TLSA/DANE records */
+
+  name = s5r->domain;
+  if (NULL != s5r->leho)
+    name = s5r->leho;
+  if (NULL != name)
+  {
+    if (0 == (rc = gnutls_x509_crt_check_hostname (x509_cert,
+                                                   name)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("SSL certificate subject name (%s) does not match `%s'\n"),
+                  certdn,
+                  name);
+      gnutls_x509_crt_deinit (x509_cert);
+      return GNUNET_SYSERR;
+    }
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("No LEHO or domain name available and TLSA/DANE is not yet implemented!\n"));
+    return GNUNET_SYSERR;
+  }
+  gnutls_x509_crt_deinit (x509_cert);
+#if 0
+  {
+  unsigned int i;
 
   for(i=0;i<cert_list_size;i++)
   {
@@ -851,6 +904,8 @@ check_ssl_certificate (struct Socks5Request *s5r)
       gnutls_x509_crt_deinit (cert);
     }
   }
+  }
+#endif
   return GNUNET_OK;
 }
 
@@ -1452,7 +1507,7 @@ create_response (void *cls,
     curl_easy_setopt (s5r->curl, CURLOPT_HTTP_TRANSFER_DECODING, 0);
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
-    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0); // FIXME: remove later
+    curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0);
     GNUNET_asprintf (&curlurl,
 		     (HTTPS_PORT != s5r->port)
 		     ? "http://%s:%d%s"
@@ -1962,6 +2017,22 @@ generate_gns_certificate (const char *name)
 
 
 /**
+ * Function called by MHD with errors, suppresses them all.
+ *
+ * @param cls closure
+ * @param fm format string (`printf()`-style)
+ * @param ap arguments to @a fm
+ */
+static void
+mhd_error_log_callback (void *cls,
+                        const char *fm,
+                        va_list ap)
+{
+  /* do nothing */
+}
+
+
+/**
  * Lookup (or create) an SSL MHD instance for a particular domain.
  *
  * @param domain the domain the SSL daemon has to serve
@@ -1992,6 +2063,7 @@ lookup_ssl_httpd (const char* domain)
 				 MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
 				 MHD_OPTION_NOTIFY_COMPLETED, &mhd_completed_cb, NULL,
 				 MHD_OPTION_URI_LOG_CALLBACK, &mhd_log_callback, NULL,
+                                 MHD_OPTION_EXTERNAL_LOGGER, &mhd_error_log_callback, NULL,
 				 MHD_OPTION_HTTPS_MEM_KEY, pgc->key,
 				 MHD_OPTION_HTTPS_MEM_CERT, pgc->cert,
 				 MHD_OPTION_END);
@@ -2889,6 +2961,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char* cafile;
 
   cfg = c;
+
   if (NULL == (curl_multi = curl_multi_init ()))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
