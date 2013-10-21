@@ -35,6 +35,9 @@
 #include <gnutls/x509.h>
 #include <gnutls/abstract.h>
 #include <gnutls/crypto.h>
+#if HAVE_GNUTLS_DANE
+#include <gnutls/dane.h>
+#endif
 #include <regex.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_gns_service.h"
@@ -502,6 +505,11 @@ struct Socks5Request
   char *leho;
 
   /**
+   * Payload of the (last) DANE record encountered.
+   */
+  char *dane_data;
+
+  /**
    * The URL to fetch
    */
   char *url;
@@ -520,6 +528,11 @@ struct Socks5Request
    * HTTP response code to give to MHD for the response.
    */
   unsigned int response_code;
+
+  /**
+   * Number of bytes in @e dane_data.
+   */
+  size_t dane_data_len;
 
   /**
    * Number of bytes already in read buffer
@@ -725,6 +738,7 @@ cleanup_s5r (struct Socks5Request *s5r)
   GNUNET_free_non_null (s5r->domain);
   GNUNET_free_non_null (s5r->leho);
   GNUNET_free_non_null (s5r->url);
+  GNUNET_free_non_null (s5r->dane_data);
   GNUNET_free (s5r);
 }
 
@@ -809,7 +823,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   } gptr;
   char certdn[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 3];
   size_t size;
-  gnutls_x509_crt x509_cert;
+  gnutls_x509_crt_t x509_cert;
   int rc;
   const char *name;
 
@@ -846,34 +860,101 @@ check_ssl_certificate (struct Socks5Request *s5r)
                                                 &size)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Failed to fetch CN from cert: %s\n",
+                _("Failed to fetch CN from cert: %s\n"),
                 gnutls_strerror(rc));
     gnutls_x509_crt_deinit (x509_cert);
     return GNUNET_SYSERR;
   }
-  /* FIXME: here we should check for TLSA/DANE records */
-
-  name = s5r->domain;
-  if (NULL != s5r->leho)
-    name = s5r->leho;
-  if (NULL != name)
+  /* check for TLSA/DANE records */
+#if HAVE_GNUTLS_DANE
+  if (NULL != s5r->dane_data)
   {
-    if (0 == (rc = gnutls_x509_crt_check_hostname (x509_cert,
-                                                   name)))
+    char *dd[] = { s5r->dane_data, NULL };
+    int dlen[] = { s5r->dane_data_len, 0};
+    dane_state_t dane_state;
+    dane_query_t dane_query;
+    unsigned int verify;
+
+    /* FIXME: add flags to gnutls to NOT read UNBOUND_ROOT_KEY_FILE here! */
+    if (0 != (rc = dane_state_init (&dane_state,
+                                    DANE_F_IGNORE_LOCAL_RESOLVER)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("SSL certificate subject name (%s) does not match `%s'\n"),
-                  certdn,
-                  name);
+                  _("Failed to initialize DANE: %s\n"),
+                  dane_strerror(rc));
       gnutls_x509_crt_deinit (x509_cert);
       return GNUNET_SYSERR;
     }
+    if (0 != (rc = dane_raw_tlsa (dane_state,
+                                  &dane_query,
+                                  dd,
+                                  dlen,
+                                  GNUNET_YES,
+                                  GNUNET_NO)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to parse DANE record: %s\n"),
+                  dane_strerror(rc));
+      dane_state_deinit (dane_state);
+      gnutls_x509_crt_deinit (x509_cert);
+      return GNUNET_SYSERR;
+    }
+    if (0 != (rc = dane_verify_crt_raw (dane_state,
+                                        chainp,
+                                        cert_list_size,
+                                        gnutls_certificate_type_get (tlsinfo.internals),
+                                        dane_query,
+                                        0, 0,
+                                        &verify)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed to verify TLS connection using DANE: %s\n"),
+                  dane_strerror(rc));
+      dane_query_deinit (dane_query);
+      dane_state_deinit (dane_state);
+      gnutls_x509_crt_deinit (x509_cert);
+      return GNUNET_SYSERR;
+    }
+    if (0 != verify)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Failed DANE verification failed with GnuTLS verify status code: %u\n"),
+                  verify);
+      dane_query_deinit (dane_query);
+      dane_state_deinit (dane_state);
+      gnutls_x509_crt_deinit (x509_cert);
+      return GNUNET_SYSERR;
+    }
+    dane_query_deinit (dane_query);
+    dane_state_deinit (dane_state);
+    /* success! */
   }
   else
+#endif
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("No LEHO or domain name available and TLSA/DANE is not yet implemented!\n"));
-    return GNUNET_SYSERR;
+    /* try LEHO or ordinary domain name X509 verification */
+    name = s5r->domain;
+    if (NULL != s5r->leho)
+      name = s5r->leho;
+    if (NULL != name)
+    {
+      if (0 == (rc = gnutls_x509_crt_check_hostname (x509_cert,
+                                                     name)))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    _("SSL certificate subject name (%s) does not match `%s'\n"),
+                    certdn,
+                    name);
+        gnutls_x509_crt_deinit (x509_cert);
+        return GNUNET_SYSERR;
+      }
+    }
+    else
+    {
+      /* we did not even have the domain name!? */
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
   }
   gnutls_x509_crt_deinit (x509_cert);
 #if 0
@@ -2354,6 +2435,14 @@ handle_gns_result (void *cls,
       GNUNET_free_non_null (s5r->leho);
       s5r->leho = GNUNET_strndup (r->data,
 				  r->data_size);
+      break;
+    case GNUNET_DNSPARSER_TYPE_TLSA:
+      GNUNET_free_non_null (s5r->dane_data);
+      s5r->dane_data_len = r->data_size;
+      s5r->dane_data = GNUNET_malloc (r->data_size);
+      memcpy (s5r->dane_data,
+              r->data,
+              r->data_size);
       break;
     default:
       /* don't care */

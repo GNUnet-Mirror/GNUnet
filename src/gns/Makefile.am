@@ -124,6 +124,9 @@ gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+if HAVE_GNUTLS_DANE
+gnunet_gns_proxy_LDADD += -lgnutls-dane
+endif
 gnunet_gns_proxy_DEPENDENCIES = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \

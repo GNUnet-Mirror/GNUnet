@@ -1032,7 +1032,14 @@ AC_ARG_WITH(gnutls,
         AC_CHECK_LIB([gnutls], [gnutls_priority_set],
           gnutls=true))])
 AM_CONDITIONAL(HAVE_GNUTLS, test x$gnutls = xtrue)
-AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have gnutls])
+AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have GnuTLS])
+
+gnutls_dane=0
+AC_CHECK_HEADERS([gnutls/dane.h],
+   AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
+	     gnutls_dane=true))
+AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = xtrue)
+AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
 
 # Test if we are building for superMUC
@@ -1470,7 +1477,12 @@ fi
 #gnutls
 if test x$gnutls != xtrue
 then
-  AC_MSG_NOTICE([NOTICE: gnutls not found, gnunet-gns-proxy will not be built])
+  AC_MSG_NOTICE([NOTICE: GnuTLS not found, gnunet-gns-proxy will not be built])
+else
+if test x$gnutls_dane != xtrue
+then
+  AC_MSG_NOTICE([NOTICE: GnuTLS has no DANE support, DANE validation will not be possible])
+fi
 fi
 
 # java ports
