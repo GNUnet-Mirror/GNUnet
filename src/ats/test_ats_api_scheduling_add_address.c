@@ -150,14 +150,11 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
+got_initial_value (void *cls, int success)
 {
-  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
-  stats = GNUNET_STATISTICS_create ("ats", cfg);
-  GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
+  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got initial value\n");
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
@@ -190,6 +187,33 @@ run (void *cls,
 
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
+
+}
+
+
+static int
+dummy_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+            int is_persistent)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got dummy stat %s%s:%s = %llu\n",
+              is_persistent ? "!" : " ", subsystem, name, value);
+  return GNUNET_OK;
+}
+
+
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
+{
+  die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  stats = GNUNET_STATISTICS_create ("ats", cfg);
+  GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
+
+  GNUNET_STATISTICS_get (stats, "ats", "# addresses", TIMEOUT,
+                                       &got_initial_value, &dummy_stat,
+                                       GNUNET_CONFIGURATION_dup (cfg));
+
 }
 
 
