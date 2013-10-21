@@ -803,7 +803,9 @@ GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
     if (aux->ch == ch)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GMCH_2s (ch));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " head pre:  %p\n", t->channel_head);
       GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " head post: %p\n", t->channel_head);
       GNUNET_free (aux);
       return;
     }
@@ -1124,6 +1126,9 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
   struct MeshChannel *choked[channels];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_unchoke_channels on %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " head: %p\n", t->channel_head);
+  if (NULL != t->channel_head)
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " head ch: %p\n", t->channel_head->ch);
 
   if (NULL == t)
   {
