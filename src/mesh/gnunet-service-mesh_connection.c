@@ -794,7 +794,6 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 static void
 connection_cancel_queues (struct MeshConnection *c, int fwd)
 {
-
   struct MeshFlowControl *fc;
   struct MeshPeer *peer;
 
@@ -2013,7 +2012,6 @@ GMC_notify_broken (struct MeshConnection *c,
 
   fwd = peer == get_prev_hop (c);
 
-  connection_cancel_queues (c, !fwd);
   if (GNUNET_YES == GMC_is_terminal (c, fwd))
   {
     /* Local shutdown, no one to notify about this. */
@@ -2021,6 +2019,7 @@ GMC_notify_broken (struct MeshConnection *c,
     return;
   }
   send_broken (c, &my_full_id, GMP_get_id (peer), fwd);
+  connection_cancel_queues (c, !fwd);
 
   /* Connection will have at least one pending message
    * (the one we just scheduled), so no point in checking whether to
