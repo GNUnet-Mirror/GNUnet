@@ -25,6 +25,7 @@
  */
 
 #include "gnunet-service-testbed.h"
+#include "gnunet-service-testbed_connectionpool.h"
 
 /**
  * Redefine LOG with a changed log component string
@@ -54,7 +55,7 @@ struct TryConnectContext
   /**
    * The GetCacheHandle for the p1th transport handle
    */
-  struct GSTCacheGetHandle *cgh_th;
+  struct GST_ConnectionPool_GetHandle *cgh_th;
 
   /**
    * the try connect handle
@@ -188,15 +189,15 @@ struct OverlayConnectContext
   struct GNUNET_TRANSPORT_Handle *p1th_;
 
   /**
-   * The CacheGetHandle for the p1th transport handle
+   * The #GST_ConnectionPool_GetHandle for the peer1's transport handle
    */
-  struct GSTCacheGetHandle *cgh_p1th;
+  struct GST_ConnectionPool_GetHandle *cgh_p1th;
 
   /**
-   * The GetCacheHandle for registering callback to notify CORE level peer
-   * connects and to get our identity.
+   * The #GST_ConnectionPool_GetHandle for registering callback to notify CORE
+   * level peer connects and to get our identity.
    */
-  struct GSTCacheGetHandle *cgh_ch;
+  struct GST_ConnectionPool_GetHandle *cgh_ch;
 
   /**
    * HELLO of the first peer.  This should be sent to the second peer.
@@ -474,7 +475,7 @@ cleanup_occ_lp2c (struct LocalPeer2Context *lp2c)
   if (NULL != lp2c->ohh)
     GNUNET_TRANSPORT_offer_hello_cancel (lp2c->ohh);
   if (NULL != lp2c->tcc.cgh_th)
-    GST_cache_get_handle_done (lp2c->tcc.cgh_th);
+    GST_connection_pool_get_handle_done (lp2c->tcc.cgh_th);
   if (NULL != lp2c->tcc.tch)
     GNUNET_TRANSPORT_try_connect_cancel (lp2c->tcc.tch);
   if (GNUNET_SCHEDULER_NO_TASK != lp2c->tcc.task)
@@ -529,11 +530,11 @@ cleanup_occ (struct OverlayConnectContext *occ)
   if (GNUNET_SCHEDULER_NO_TASK != occ->timeout_task)
     GNUNET_SCHEDULER_cancel (occ->timeout_task);
   if (NULL != occ->cgh_ch)
-    GST_cache_get_handle_done (occ->cgh_ch);
+    GST_connection_pool_get_handle_done (occ->cgh_ch);
   if (NULL != occ->ghh)
     GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   if (NULL != occ->cgh_p1th)
-    GST_cache_get_handle_done (occ->cgh_p1th);
+    GST_connection_pool_get_handle_done (occ->cgh_p1th);
   GNUNET_assert (NULL != GST_peer_list);
   GNUNET_assert (occ->peer->reference_cnt > 0);
   occ->peer->reference_cnt--;
@@ -921,8 +922,9 @@ p2_transport_connect (struct OverlayConnectContext *occ)
   {
     GNUNET_assert (NULL != (peer2 = GST_peer_list[occ->other_peer_id]));
     occ->p2ctx.local.tcc.cgh_th =
-        GST_cache_get_handle_transport (occ->other_peer_id,
+        GST_connection_pool_get_handle (occ->other_peer_id,
                                         peer2->details.local.cfg,
+                                        GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
                                         &p2_transport_connect_cache_callback,
                                         occ, NULL, NULL, NULL);
     return;
@@ -985,7 +987,7 @@ hello_update_cb (void *cls, const struct GNUNET_MessageHeader *hello)
   memcpy (occ->hello, hello, msize);
   GNUNET_TRANSPORT_get_hello_cancel (occ->ghh);
   occ->ghh = NULL;
-  GST_cache_get_handle_done (occ->cgh_p1th);
+  GST_connection_pool_get_handle_done (occ->cgh_p1th);
   occ->cgh_p1th = NULL;
   occ->p1th_ = NULL;
   GNUNET_free_non_null (occ->emsg);
@@ -1086,8 +1088,9 @@ occ_cache_get_handle_core_cb (void *cls, struct GNUNET_CORE_Handle *ch,
                    "0x%llx: Timeout while acquiring TRANSPORT of %s from cache",
                    occ->op_id, GNUNET_i2s (&occ->peer_identity));
   occ->cgh_p1th =
-      GST_cache_get_handle_transport (occ->peer->id,
+      GST_connection_pool_get_handle (occ->peer->id,
                                       occ->peer->details.local.cfg,
+                                      GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
                                       p1_transport_connect_cache_callback, occ,
                                       NULL, NULL, NULL);
 }
@@ -1127,10 +1130,12 @@ overlay_connect_get_config (void *cls, const struct GNUNET_MessageHeader *msg)
                    "0x%llx: Timeout while connecting to CORE of peer with "
                    "id: %u", occ->op_id, occ->peer->id);
   occ->cgh_ch =
-      GST_cache_get_handle_core (occ->peer->id, occ->peer->details.local.cfg,
-                                 occ_cache_get_handle_core_cb, occ,
-                                 &occ->other_peer_identity,
-                                 &overlay_connect_notify, occ);
+      GST_connection_pool_get_handle (occ->peer->id,
+                                      occ->peer->details.local.cfg,
+                                      GST_CONNECTIONPOOL_SERVICE_CORE,
+                                      occ_cache_get_handle_core_cb, occ,
+                                      &occ->other_peer_identity,
+                                      &overlay_connect_notify, occ);
   return;
 }
 
@@ -1481,10 +1486,12 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
                      "0x%llx: Timeout while connecting to CORE of peer with "
                      "id: %u", occ->op_id, occ->peer->id);
     occ->cgh_ch =
-        GST_cache_get_handle_core (occ->peer->id, occ->peer->details.local.cfg,
-                                   occ_cache_get_handle_core_cb, occ,
-                                   &occ->other_peer_identity,
-                                   &overlay_connect_notify, occ);
+        GST_connection_pool_get_handle (occ->peer->id,
+                                        occ->peer->details.local.cfg,
+                                        GST_CONNECTIONPOOL_SERVICE_CORE,
+                                        occ_cache_get_handle_core_cb, occ,
+                                        &occ->other_peer_identity,
+                                        &overlay_connect_notify, occ);
     break;
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1511,8 +1518,7 @@ cleanup_rocc (struct RemoteOverlayConnectCtx *rocc)
     GNUNET_TRANSPORT_try_connect_cancel (rocc->tcc.tch);
   if (GNUNET_SCHEDULER_NO_TASK != rocc->tcc.task)
     GNUNET_SCHEDULER_cancel (rocc->tcc.task);
-  //GNUNET_TRANSPORT_disconnect (rocc->tcc.th_);
-  GST_cache_get_handle_done (rocc->tcc.cgh_th);
+  GST_connection_pool_get_handle_done (rocc->tcc.cgh_th);
   GNUNET_assert (rocc->peer->reference_cnt > 0);
   rocc->peer->reference_cnt--;
   if ((GNUNET_YES == rocc->peer->destroy_flag) &&
@@ -1752,8 +1758,11 @@ GST_handle_remote_overlay_connect (void *cls,
   memcpy (rocc->hello, msg->hello, hsize);
   rocc->tcc.op_id = rocc->op_id;
   rocc->tcc.cgh_th =
-      GST_cache_get_handle_transport (peer_id, rocc->peer->details.local.cfg,
-                                      &rocc_cache_get_handle_transport_cb, rocc,
+      GST_connection_pool_get_handle (peer_id,
+                                      rocc->peer->details.local.cfg,
+                                      GST_CONNECTIONPOOL_SERVICE_TRANSPORT,
+                                      &rocc_cache_get_handle_transport_cb,
+                                      rocc,
                                       &rocc->a_id,
                                       &cache_transport_peer_connect_notify,
                                       rocc);
