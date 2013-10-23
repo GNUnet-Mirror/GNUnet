@@ -402,14 +402,14 @@ else
 fi
 
 
-# libcurl
-LIBCURL_CHECK_CONFIG(,7.21.3,curl=1,curl=0)
-if test "$curl" = 1
+# libgnurl
+LIBGNURL_CHECK_CONFIG(,7.33.0,gnurl=1,gnurl=0)
+if test "$gnurl" = 1
 then
-	AM_CONDITIONAL(HAVE_LIBCURL, true)
-	AC_DEFINE([HAVE_LIBCURL],[1],[Have libcurl])
+	AM_CONDITIONAL(HAVE_LIBGNURL, true)
+	AC_DEFINE([HAVE_LIBGNURL],[1],[Have libgnurl])
 else
-	AM_CONDITIONAL(HAVE_LIBCURL, false)
+	AM_CONDITIONAL(HAVE_LIBGNURL, false)
 fi
 
 
@@ -1462,10 +1462,10 @@ then
   AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
 fi
 
-# libcurl
-if test "x$curl" = "x0"
+# libgnurl
+if test "x$gnurl" = "x0"
 then
-  AC_MSG_NOTICE([NOTICE: libcurl not found.  http client support will not be compiled.])
+  AC_MSG_NOTICE([NOTICE: libgnurl not found.  http client support will not be compiled.])
 fi
 
 # bluetooth

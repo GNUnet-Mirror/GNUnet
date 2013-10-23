@@ -49,7 +49,7 @@ lib_LTLIBRARIES = \
 
 if HAVE_MHD
 if HAVE_GNUTLS
-if HAVE_LIBCURL
+if HAVE_LIBGNURL
 # DO_PROXY=gnunet-gns-proxy
 endif
 endif
@@ -119,7 +119,7 @@ gnunet_dns2gns_DEPENDENCIES = \
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c
-gnunet_gns_proxy_LDADD = -lmicrohttpd -lcurl -lgnutls \
+gnunet_gns_proxy_LDADD = -lmicrohttpd -lgnurl -lgnutls \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \

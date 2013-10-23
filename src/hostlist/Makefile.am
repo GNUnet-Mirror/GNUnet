@@ -12,11 +12,11 @@ if USE_COVERAGE
 endif
 
 if HAVE_MHD
- HOSTLIST_SERVER_SOURCES =  hostlist-server.c hostlist-server.h 
+ HOSTLIST_SERVER_SOURCES =  hostlist-server.c hostlist-server.h
  GN_LIBMHD = -lmicrohttpd
 endif
 
-if HAVE_LIBCURL
+if HAVE_LIBGNURL
 libexec_PROGRAMS = \
  gnunet-daemon-hostlist
 endif
@@ -34,13 +34,13 @@ gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBMHD) \
-  @LIBCURL@  \
+  @LIBGNURL@  \
   $(GN_LIBINTL)
 
 gnunet_daemon_hostlist_CPPFLAGS = \
- @LIBCURL_CPPFLAGS@  $(AM_CPPFLAGS)
+ @LIBGNURL_CPPFLAGS@  $(AM_CPPFLAGS)
 
-if HAVE_LIBCURL
+if HAVE_LIBGNURL
 check_PROGRAMS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \
@@ -60,13 +60,13 @@ test_gnunet_daemon_hostlist_SOURCES = \
  test_gnunet_daemon_hostlist.c
 test_gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_gnunet_daemon_hostlist_reconnect_SOURCES = \
  test_gnunet_daemon_hostlist_reconnect.c
 test_gnunet_daemon_hostlist_reconnect_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_gnunet_daemon_hostlist_learning_SOURCES = \
  test_gnunet_daemon_hostlist_learning.c
@@ -74,7 +74,7 @@ test_gnunet_daemon_hostlist_learning_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
   test_hostlist_defaults.conf \
