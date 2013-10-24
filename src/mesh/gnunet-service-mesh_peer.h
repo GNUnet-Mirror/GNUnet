@@ -123,14 +123,13 @@ GMP_connect (struct MeshPeer *peer);
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
  * @param c Connection this message belongs to (cannot be NULL).
- * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
  */
 void
 GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
-               struct MeshConnection *c, struct MeshChannel *ch, int fwd,
+               struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls);
 
 /**
@@ -194,12 +193,15 @@ GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
  * Add the path to the peer and update the path used to reach it in case this
  * is the shortest.
  *
- * @param peer_info Destination peer to add the path to.
+ * @param peer Destination peer to add the path to.
  * @param path New path to add. Last peer must be the peer in arg 1.
  *             Path will be either used of freed if already known.
  * @param trusted Do we trust that this path is real?
+ *
+ * @return path if path was taken, pointer to existing duplicate if exists
+ *         NULL on error.
  */
-void
+struct MeshPeerPath *
 GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
 
 /**
@@ -212,8 +214,11 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
  * @param path New path to add after being inversed.
  *             Path will be either used or freed.
  * @param trusted Do we trust that this path is real?
+ *
+ * @return path if path was taken, pointer to existing duplicate if exists
+ *         NULL on error.
  */
-void
+struct MeshPeerPath *
 GMP_add_path_to_origin (struct MeshPeer *peer,
                         struct MeshPeerPath *path,
                         int trusted);

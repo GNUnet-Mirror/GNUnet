@@ -118,11 +118,6 @@ struct MeshTunnel3
   MESH_ChannelNumber next_chid;
 
   /**
-   * Pending message count.
-   */
-  int pending_messages;
-
-  /**
    * Destroy flag: if true, destroy on last message.
    */
   int destroy;
@@ -848,10 +843,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
     GMC_send_destroy (iter->c);
   }
 
-  if (0 == t->pending_messages)
-    GMT_destroy (t);
-  else
-    t->destroy = GNUNET_YES;
+  t->destroy = GNUNET_YES;
 }
 
 
@@ -1249,7 +1241,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint64_t iv;
   uint16_t type;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
@@ -1280,8 +1272,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   msg->reserved = 0;
 
-  t->pending_messages++;
-  GMC_send_prebuilt_message (&msg->header, c, ch, fwd);
+  GMC_send_prebuilt_message (&msg->header, c, fwd);
 }
 
 /**

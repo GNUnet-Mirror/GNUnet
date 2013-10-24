@@ -30,7 +30,6 @@
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_connection.h"
-#include "gnunet-service-mesh_local.h"
 #include "gnunet-service-mesh_tunnel.h"
 #include "mesh_path.h"
 
@@ -69,11 +68,6 @@ struct MeshPeerQueue
      * Is FWD in c?
      */
   int fwd;
-
-    /**
-     * Channel this message belongs to, if known.
-     */
-  struct MeshChannel *ch;
 
     /**
      * Pointer to info stucture used as cls.
@@ -967,14 +961,13 @@ queue_send (void *cls, size_t size, void *buf)
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
  * @param c Connection this message belongs to (cannot be NULL).
- * @param ch Channel this message belongs to, if applicable (otherwise NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
  */
 void
 GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
-               struct MeshConnection *c, struct MeshChannel *ch, int fwd,
+               struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls)
 {
   struct MeshPeerQueue *queue;
@@ -982,8 +975,9 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   int call_core;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "queue add %s %s (%u) on c %p, ch %p\n",
-              fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), size, c, ch);
+       "queue add %s %s towards %s (size %u) on c %p (%s)\n",
+       fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), GMP_2s(peer),
+       size, c, GMC_2s (c));
   GNUNET_assert (NULL != c);
 
   if (NULL == peer->connections)
@@ -1010,7 +1004,6 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   queue->size = size;
   queue->peer = peer;
   queue->c = c;
-  queue->ch = ch;
   queue->fwd = fwd;
   queue->callback = cont;
   queue->callback_cls = cont_cls;
@@ -1447,36 +1440,42 @@ GMP_add_connection (struct MeshPeer *peer,
  * Add the path to the peer and update the path used to reach it in case this
  * is the shortest.
  *
- * @param peer_info Destination peer to add the path to.
+ * @param peer Destination peer to add the path to.
  * @param path New path to add. Last peer must be the peer in arg 1.
  *             Path will be either used of freed if already known.
  * @param trusted Do we trust that this path is real?
+ *
+ * @return path if path was taken, pointer to existing duplicate if exists
+ *         NULL on error.
  */
-void
-GMP_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
+struct MeshPeerPath *
+GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
               int trusted)
 {
   struct MeshPeerPath *aux;
   unsigned int l;
   unsigned int l2;
 
-  if ((NULL == peer_info) || (NULL == path))
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
+       path->length, GMP_2s (peer));
+
+  if ((NULL == peer) || (NULL == path))
   {
     GNUNET_break (0);
     path_destroy (path);
-    return;
+    return NULL;
   }
-  if (path->peers[path->length - 1] != peer_info->id)
+  if (path->peers[path->length - 1] != peer->id)
   {
     GNUNET_break (0);
     path_destroy (path);
-    return;
+    return NULL;
   }
   if (2 >= path->length && GNUNET_NO == trusted)
   {
     /* Only allow CORE to tell us about direct paths */
     path_destroy (path);
-    return;
+    return NULL;
   }
   for (l = 1; l < path->length; l++)
   {
@@ -1487,45 +1486,47 @@ GMP_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
       {
         path->peers[l2] = path->peers[l + l2];
       }
-            path->length -= l;
-            l = 1;
-            path->peers =
-                      GNUNET_realloc (path->peers, path->length * sizeof (GNUNET_PEER_Id));
+      path->length -= l;
+      l = 1;
+      path->peers = GNUNET_realloc (path->peers,
+                                    path->length * sizeof (GNUNET_PEER_Id));
     }
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
-              path->length, GMP_2s (peer_info));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u]\n", path->length);
 
   l = path_get_length (path);
   if (0 == l)
   {
     path_destroy (path);
-    return;
+    return NULL;
   }
 
-  GNUNET_assert (peer_info->id == path->peers[path->length - 1]);
-  for (aux = peer_info->path_head; aux != NULL; aux = aux->next)
+  GNUNET_assert (peer->id == path->peers[path->length - 1]);
+  for (aux = peer->path_head; aux != NULL; aux = aux->next)
   {
     l2 = path_get_length (aux);
     if (l2 > l)
     {
-      GNUNET_CONTAINER_DLL_insert_before (peer_info->path_head,
-                                          peer_info->path_tail, aux, path);
-      return;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  added\n");
+      GNUNET_CONTAINER_DLL_insert_before (peer->path_head,
+                                          peer->path_tail, aux, path);
+      return path;
     }
-        else
-        {
-          if (l2 == l && memcmp (path->peers, aux->peers, l) == 0)
-          {
-            path_destroy (path);
-            return;
-          }
-        }
+    else
+    {
+      if (l2 == l && memcmp (path->peers, aux->peers, l) == 0)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  already known\n");
+        path_destroy (path);
+        return aux;
+      }
+    }
   }
-  GNUNET_CONTAINER_DLL_insert_tail (peer_info->path_head, peer_info->path_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (peer->path_head, peer->path_tail,
                                     path);
-  return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  added last\n");
+  return path;
 }
 
 
@@ -1539,16 +1540,19 @@ GMP_add_path (struct MeshPeer *peer_info, struct MeshPeerPath *path,
  * @param path New path to add after being inversed.
  *             Path will be either used or freed.
  * @param trusted Do we trust that this path is real?
+ *
+ * @return path if path was taken, pointer to existing duplicate if exists
+ *         NULL on error.
  */
-void
+struct MeshPeerPath *
 GMP_add_path_to_origin (struct MeshPeer *peer,
                         struct MeshPeerPath *path,
                         int trusted)
 {
   if (NULL == path)
-    return;
+    return NULL;
   path_invert (path);
-  GMP_add_path (peer, path, trusted);
+  return GMP_add_path (peer, path, trusted);
 }
 
 

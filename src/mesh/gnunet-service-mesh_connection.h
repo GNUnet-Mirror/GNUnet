@@ -223,6 +223,8 @@ GMC_shutdown (void);
  * @param t Tunnel this connection belongs to (or NULL);
  * @param p Path this connection has to use.
  * @param own_pos Own position in the @c p path.
+ *
+ * @return Newly created connection, NULL in case of error (own id not in path).
  */
 struct MeshConnection *
 GMC_new (const struct GNUNET_HashCode *cid,
@@ -398,13 +400,11 @@ GMC_is_sendable (struct MeshConnection *c, int fwd);
  * @param message Message to send. Function makes a copy of it.
  *                If message is not hop-by-hop, decrements TTL of copy.
  * @param c Connection on which this message is transmitted.
- * @param ch Channel on which this message is transmitted, or NULL.
  * @param fwd Is this a fwd message?
  */
 void
 GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshConnection *c,
-                           struct MeshChannel *ch,
                            int fwd);
 
 /**
