@@ -123,3 +123,14 @@ path_destroy (struct MeshPeerPath *p)
   GNUNET_free (p);
   return GNUNET_OK;
 }
+
+void
+path_debug (struct MeshPeerPath *p)
+{
+  unsigned int i;
+
+  fprintf (stderr, "PATH:"); 
+  for (i = 0; i < p->length; i++)
+    fprintf (stderr, "  %s", GNUNET_i2s (GNUNET_PEER_resolve2 (p->peers[i]))); 
+  fprintf (stderr, " END\n"); 
+}

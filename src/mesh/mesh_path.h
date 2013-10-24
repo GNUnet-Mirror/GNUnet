@@ -123,6 +123,8 @@ path_get_length (struct MeshPeerPath *path);
 int
 path_destroy (struct MeshPeerPath *p);
 
+void
+path_debug (struct MeshPeerPath *p);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
