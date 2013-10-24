@@ -446,6 +446,7 @@ message_sent (void *cls,
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  sent %s\n", GNUNET_MESH_DEBUG_M2S (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
   if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
   {
@@ -2204,6 +2205,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return; /* Drop this message */
   }
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u\n", c, c->pending_messages);
   c->pending_messages++;
 
   GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
@@ -2229,6 +2231,9 @@ GMC_send_create (struct MeshConnection *connection)
   GMP_queue_add (get_next_hop (connection), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
                  size, connection, GNUNET_YES, &message_sent, NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
+       connection, connection->pending_messages);
+  connection->pending_messages++;
   state = GMT_get_state (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
     GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
