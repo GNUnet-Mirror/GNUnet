@@ -891,7 +891,6 @@ GMT_destroy (struct MeshTunnel3 *t)
   {
     next = iter->next;
     GMC_destroy (iter->c);
-    GNUNET_free (iter);
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
