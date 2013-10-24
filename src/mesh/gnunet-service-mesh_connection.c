@@ -517,7 +517,6 @@ get_prev_hop (const struct MeshConnection *c)
   GNUNET_PEER_Id id;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Get prev hop, own pos %u\n", c->own_pos);
-  path_debug (c->path);
   if (0 == c->own_pos || c->path->length < 2)
     id = c->path->peers[0];
   else
