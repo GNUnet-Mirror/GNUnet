@@ -33,9 +33,6 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
 
-#define START_FUNCTION LOG(GNUNET_ERROR_TYPE_DEBUG, "%s start\n", __FUNCTION__)
-#define END_FUNCTION LOG(GNUNET_ERROR_TYPE_DEBUG, "%s end\n", __FUNCTION__)
-
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -152,6 +149,7 @@ struct MeshTunnelQueue
   /* struct GNUNET_MessageHeader *msg; */
 };
 
+
 /******************************************************************************/
 /*******************************   GLOBALS  ***********************************/
 /******************************************************************************/
@@ -171,6 +169,13 @@ extern GNUNET_PEER_Id myid;
  */
 extern struct GNUNET_PeerIdentity my_full_id;
 
+
+/**
+ * Set of all tunnels, in order to trigger a new exchange on rekey.
+ * Indexed by peer's ID.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *tunnels;
+
 /**
  * Default TTL for payload packets.
  */
@@ -181,6 +186,25 @@ static unsigned long long default_ttl;
  */
 const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
+/**
+ * Own ephemeral private key.
+ */
+static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
+
+/**
+ * Cached message used to perform a key exchange.
+ */
+static struct GNUNET_MESH_KX kx_msg;
+
+/**
+ * Task to generate a new ephemeral key.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier rekey_task;
+
+/**
+ * Rekey period.
+ */
+static struct GNUNET_TIME_Relative rekey_period;
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
@@ -260,18 +284,21 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
  * Encrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
- * @param dst Destination for the GMT_encrypted data.
+ * @param dst Destination for the encrypted data.
  * @param src Source of the plaintext.
  * @param size Size of the plaintext.
  * @param iv Initialization Vector to use.
  * @param fwd Is this a fwd message?
  */
-static void
-GMT_encrypt (struct MeshTunnel3 *t,
-             void *dst, const void *src,
-             size_t size, uint64_t iv, int fwd)
+static int
+t_encrypt (struct MeshTunnel3 *t,
+           void *dst, const void *src,
+           size_t size, uint64_t iv, int fwd)
 {
-  memcpy (dst, src, size);
+  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  return GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
 }
 
 
@@ -281,17 +308,20 @@ GMT_encrypt (struct MeshTunnel3 *t,
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
- * @param src Source of the GMT_encrypted data.
- * @param size Size of the GMT_encrypted data.
+ * @param src Source of the encrypted data.
+ * @param size Size of the encrypted data.
  * @param iv Initialization Vector to use.
  * @param fwd Is this a fwd message?
  */
-static void
-GMT_decrypt (struct MeshTunnel3 *t,
+static int
+t_decrypt (struct MeshTunnel3 *t,
              void *dst, const void *src,
              size_t size, uint64_t iv, int fwd)
 {
-  memcpy (dst, src, size);
+  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
 }
 
 
@@ -514,6 +544,14 @@ handle_decrypted (struct MeshTunnel3 *t,
 /******************************************************************************/
 
 
+void
+GMT_send_kx (struct MeshTunnel3 *t)
+{
+  
+
+}
+
+
 /**
  * Decrypt and demultiplex by message type. Call appropriate handler
  * for every message.
@@ -529,16 +567,17 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
 {
   size_t size = ntohs (msg->header.size);
   size_t payload_size = size - sizeof (struct GNUNET_MESH_Encrypted);
-  char cbuf[payload_size];
+  size_t decrypted_size;
+  char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
-  GMT_decrypt (t, cbuf, &msg[1], payload_size, msg->iv, fwd);
+  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv, fwd);
   off = 0;
-  while (off < payload_size)
+  while (off < decrypted_size)
   {
     msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
-        handle_decrypted (t, msgh, fwd);
+    handle_decrypted (t, msgh, fwd);
     off += ntohs (msgh->size);
   }
 }
@@ -606,6 +645,19 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
        GMP_2s (t->peer));
 }
 
+static void
+rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  rekey_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
+  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
+  kx_msg.header.size = htons (sizeof (kx_msg));
+
+  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period, &rekey, NULL);
+}
 
 /**
  * Initialize the tunnel subsystem.
@@ -626,7 +678,17 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
                                "MESH", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REKEY_PERIOD",
+                                           &rekey_period))
+  {
+    rekey_period = GNUNET_TIME_UNIT_DAYS;
+  }
+
   my_private_key = key;
+  rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
+
+  tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
 }
 
 
@@ -636,6 +698,12 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GMT_shutdown (void)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != rekey_task)
+  {
+    GNUNET_SCHEDULER_cancel (rekey_task);
+    rekey_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_CONTAINER_multipeermap_destroy (tunnels);
 }
 
 
@@ -675,6 +743,8 @@ GMT_new (struct MeshPeer *destination)
 //                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
 //                      NULL);
 
+  GNUNET_CONTAINER_multipeermap_put (tunnels, GMP_get_id (destination), t,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   return t;
 }
 
@@ -1219,7 +1289,7 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
 
 
 /**
- * Sends an already built message on a tunnel, GMT_encrypting it and
+ * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection.
  *
  * @param message Message to send. Function modifies it.
@@ -1236,7 +1306,8 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   struct MeshConnection *c;
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
-  char *cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
+  size_t encrypted_size;
+  char *cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size + 64];
   uint64_t iv;
   uint16_t type;
 
@@ -1245,9 +1316,9 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
   msg->iv = GNUNET_htonll (iv);
-  GMT_encrypt (t, &msg[1], message, size, iv, fwd);
+  encrypted_size = t_encrypt (t, &msg[1], message, size, iv, fwd);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + encrypted_size);
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)
   {
@@ -1269,7 +1340,6 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
            GNUNET_MESH_DEBUG_M2S (type));
       GNUNET_break (0);
   }
-  msg->reserved = 0;
 
   GMC_send_prebuilt_message (&msg->header, c, fwd);
 }

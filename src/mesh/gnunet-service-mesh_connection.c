@@ -492,16 +492,6 @@ message_sent (void *cls,
     p->avg /= p->size;
   }
   p->idx = (p->idx + 1) % AVG_MSGS;
-
-//   if (NULL != c->t) FIXME
-//   {
-//     c->t->pending_messages--;
-//     if (GNUNET_YES == c->t->destroy && 0 == t->pending_messages)
-//     {
-//       LOG (GNUNET_ERROR_TYPE_DEBUG, "*  destroying tunnel!\n");
-//       GMT_destroy (c->t);
-//     }
-//   }
 }
 
 
