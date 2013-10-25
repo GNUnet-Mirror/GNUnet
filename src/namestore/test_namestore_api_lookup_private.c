@@ -96,6 +96,7 @@ void lookup_it (void *cls,
                 unsigned int rd_count,
                 const struct GNUNET_GNSRECORD_Data *rd)
 {
+ nsqe = NULL;
  /* Check here */
 
 
