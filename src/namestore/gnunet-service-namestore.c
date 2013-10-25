@@ -561,6 +561,49 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   GNUNET_free (block);
 }
 
+/**
+ * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP message
+ *
+ * @param cls unused
+ * @param client client sending the message
+ * @param message message of type 'struct RecordCreateMessage'
+ */
+static void
+handle_record_lookup (void *cls,
+                     struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *message)
+{
+  const struct LabelLookupMessage * ll_msg;
+  const char *name_tmp;
+  uint32_t rid;
+  uint32_t name_len;
+  size_t msg_size;
+
+  if (ntohs (message->size) < sizeof (struct LabelLookupMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  ll_msg = (const struct LabelLookupMessage *) message;
+  rid = ntohl (ll_msg->gns_header.r_id);
+  name_len = ntohs (ll_msg->label_len);
+  msg_size = ntohs (message->size);
+
+  if (name_len !=  msg_size - sizeof (struct LabelLookupMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  name_tmp = &ll_msg[1];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message for name `%s'\n",
+              "NAMESTORE_RECORD_LOOKUP", name_tmp);
+}
+
 
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE message
@@ -1292,6 +1335,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_record_store, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_STORE, 0},
+    {&handle_record_lookup, NULL,
+     GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP, 0},
     {&handle_zone_to_name, NULL,
      GNUNET_MESSAGE_TYPE_NAMESTORE_ZONE_TO_NAME, sizeof (struct ZoneToNameMessage) },
     {&handle_iteration_start, NULL,

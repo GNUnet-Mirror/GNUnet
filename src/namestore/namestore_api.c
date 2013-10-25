@@ -1022,11 +1022,12 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
   pe = GNUNET_malloc (sizeof (struct PendingMessage) + msg_size);
   pe->size = msg_size;
   msg = (struct LabelLookupMessage *) &pe[1];
-  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_LABEL_LOOKUP);
+  msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP);
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (qe->op_id);
   msg->zone = *pkey;
   msg->label_len = htons(label_len);
+  memcpy (&msg[1], label, label_len);
 
   /* transmit message */
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
