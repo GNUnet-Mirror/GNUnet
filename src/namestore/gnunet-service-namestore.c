@@ -561,6 +561,48 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   GNUNET_free (block);
 }
 
+
+struct RecordLookupContext
+{
+  const char *label;
+
+  int found;
+
+  unsigned int res_rd_count;
+
+  size_t rd_ser_len;
+
+  char *res_rd;
+};
+
+static void lookup_it (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+                       const char *label,
+                       unsigned int rd_count,
+                       const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RecordLookupContext *rlc = cls;
+
+  if (0 == strcmp (label, rlc->label))
+  {
+    rlc->found = GNUNET_YES;
+    if (0 != rd_count)
+    {
+      rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+      rlc->res_rd_count = rd_count;
+      rlc->res_rd = GNUNET_malloc (rlc->rd_ser_len);
+      GNUNET_GNSRECORD_records_serialize (rd_count, rd, rlc->rd_ser_len , rlc->res_rd);
+    }
+    else
+    {
+      rlc->rd_ser_len = 0;
+      rlc->res_rd_count = 0;
+      rlc->res_rd = NULL;
+    }
+  }
+}
+
+
 /**
  * Handles a #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP message
  *
@@ -573,11 +615,16 @@ handle_record_lookup (void *cls,
                      struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
-  const struct LabelLookupMessage * ll_msg;
+  const struct LabelLookupMessage *ll_msg;
+  struct LabelLookupResponseMessage *llr_msg;
+  struct RecordLookupContext rlc;
   const char *name_tmp;
-  uint32_t rid;
+  char *res_name;
   uint32_t name_len;
-  size_t msg_size;
+  size_t src_size;
+  size_t res_size;
+  int offset;
+  int res;
 
   if (ntohs (message->size) < sizeof (struct LabelLookupMessage))
   {
@@ -587,21 +634,64 @@ handle_record_lookup (void *cls,
   }
 
   ll_msg = (const struct LabelLookupMessage *) message;
-  rid = ntohl (ll_msg->gns_header.r_id);
-  name_len = ntohs (ll_msg->label_len);
-  msg_size = ntohs (message->size);
+  name_len = ntohl (ll_msg->label_len);
+  src_size = ntohs (message->size);
 
-  if (name_len !=  msg_size - sizeof (struct LabelLookupMessage))
+  if (name_len !=  src_size - sizeof (struct LabelLookupMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  name_tmp = &ll_msg[1];
 
+  name_tmp = (const char *) &ll_msg[1];
+  if ('\0' != name_tmp[name_len -1])
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message for name `%s'\n",
               "NAMESTORE_RECORD_LOOKUP", name_tmp);
+
+
+  rlc.label = name_tmp;
+  rlc.found = GNUNET_NO;
+  rlc.res_rd_count = 0;
+  rlc.rd_ser_len = 0;
+  rlc.res_rd = NULL;
+
+  offset = 0;
+  do
+  {
+    /* changee this call */
+    res = GSN_database->iterate_records (GSN_database->cls,
+        &ll_msg->zone, offset, &lookup_it, &rlc);
+    offset++;
+  }
+  while ((GNUNET_NO == rlc.found) && (GNUNET_OK == res));
+
+  res_size = sizeof (struct LabelLookupResponseMessage) + name_len + rlc.rd_ser_len;
+  llr_msg = GNUNET_malloc (res_size);
+  llr_msg->gns_header.header.size = htons (res_size);
+  llr_msg->gns_header.header.type = htons (GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE);
+  llr_msg->gns_header.r_id = ll_msg->gns_header.r_id;
+  llr_msg->private_key = ll_msg->zone;
+  llr_msg->name_len = htons (name_len);
+  llr_msg->rd_count = htons (rlc.res_rd_count);
+  llr_msg->rd_len = htons (rlc.rd_ser_len);
+  res_name = (char *) &llr_msg[1];
+  memcpy (&llr_msg[1], name_tmp, name_len);
+  memcpy (&res_name[name_len], rlc.res_rd, rlc.rd_ser_len);
+
+  GNUNET_SERVER_notification_context_unicast (snc, client, &llr_msg->gns_header.header,
+      GNUNET_NO);
+
+  GNUNET_free_non_null (rlc.res_rd);
+  GNUNET_free (llr_msg);
 }
 
 
@@ -963,7 +1053,7 @@ struct ZoneIterationProcResult
  * @param rd record data
  */
 static void
-zone_iteraterate_proc (void *cls,
+zone_iterate_proc (void *cls,
                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                        const char *name,
                        unsigned int rd_count,
@@ -1036,7 +1126,7 @@ run_zone_iteration_round (struct ZoneIteration *zi)
 					      ? NULL
 					      : &zi->zone,
 					      zi->offset,
-					      &zone_iteraterate_proc, &proc)))
+					      &zone_iterate_proc, &proc)))
     {
       GNUNET_break (0);
       break;

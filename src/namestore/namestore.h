@@ -235,6 +235,47 @@ struct LabelLookupMessage
 };
 
 
+/**
+ * Lookup a label
+ */
+struct LabelLookupResponseMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE
+   */
+  struct GNUNET_NAMESTORE_Header gns_header;
+
+  /**
+   * Name length
+   */
+  uint16_t name_len GNUNET_PACKED;
+
+  /**
+   * Length of serialized record data
+   */
+  uint16_t rd_len GNUNET_PACKED;
+
+  /**
+   * Number of records contained
+   */
+  uint16_t rd_count GNUNET_PACKED;
+
+  /**
+   * always zero (for alignment)
+   */
+  uint16_t reserved GNUNET_PACKED;
+
+  /**
+   * The private key of the authority.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
+
+  /* followed by:
+   * name with length name_len
+   * serialized record data with rd_count records
+   */
+};
+
 
 
 /**

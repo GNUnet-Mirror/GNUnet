@@ -281,6 +281,72 @@ handle_record_store_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
 
 /**
  * Handle an incoming message of type
+ * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE
+ *
+ * @param qe the respective entry in the message queue
+ * @param msg the message we received
+ * @param size the message size
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and we did NOT notify the client
+ */
+static int
+handle_lookup_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
+                      const struct LabelLookupResponseMessage *msg,
+                      size_t size)
+{
+  const char *name;
+  const char *rd_tmp;
+  size_t exp_msg_len;
+  size_t msg_len;
+  size_t name_len;
+  size_t rd_len;
+  unsigned int rd_count;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received `%s'\n",
+       "RECORD_LOOKUP_RESULT");
+
+  rd_len = ntohs (msg->rd_len);
+  rd_count = ntohs (msg->rd_count);
+  msg_len = ntohs (msg->gns_header.header.size);
+  name_len = ntohs (msg->name_len);
+  GNUNET_break (0 == ntohs (msg->reserved));
+  exp_msg_len = sizeof (struct LabelLookupResponseMessage) + name_len + rd_len;
+  if (msg_len != exp_msg_len)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  name = (const char *) &msg[1];
+  if ( (name_len > 0) &&
+       ('\0' != name[name_len -1]) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  rd_tmp = &name[name_len];
+  {
+    struct GNUNET_GNSRECORD_Data rd[rd_count];
+
+    if (GNUNET_OK != GNUNET_GNSRECORD_records_deserialize(rd_len, rd_tmp, rd_count, rd))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    if (0 == name_len)
+      name = NULL;
+    if (NULL != qe->proc)
+      qe->proc (qe->proc_cls,
+                &msg->private_key,
+                name,
+                rd_count,
+                (rd_count > 0) ? rd : NULL);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle an incoming message of type
  * #GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_RESULT
  *
  * @param qe the respective entry in the message queue
@@ -462,6 +528,13 @@ manage_record_operations (struct GNUNET_NAMESTORE_QueueEntry *qe,
       return GNUNET_SYSERR;
     }
     return handle_record_result (qe, (const struct RecordResultMessage *) msg, size);
+  case GNUNET_MESSAGE_TYPE_NAMESTORE_RECORD_LOOKUP_RESPONSE:
+    if (size < sizeof (struct LabelLookupResponseMessage))
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    return handle_lookup_result (qe, (const struct LabelLookupResponseMessage *) msg, size);
   default:
     GNUNET_break (0);
     return GNUNET_SYSERR;
@@ -1026,7 +1099,7 @@ GNUNET_NAMESTORE_records_lookup (struct GNUNET_NAMESTORE_Handle *h,
   msg->gns_header.header.size = htons (msg_size);
   msg->gns_header.r_id = htonl (qe->op_id);
   msg->zone = *pkey;
-  msg->label_len = htons(label_len);
+  msg->label_len = htonl(label_len);
   memcpy (&msg[1], label, label_len);
 
   /* transmit message */

@@ -45,7 +45,8 @@ static int res;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
-static const char * name = "dummy.dummy.gnunet";
+//static const char * name = "dummy.dummy.gnunet";
+static const char * name = "d";
 
 static void
 cleanup ()
@@ -96,14 +97,45 @@ void lookup_it (void *cls,
                 unsigned int rd_count,
                 const struct GNUNET_GNSRECORD_Data *rd)
 {
- nsqe = NULL;
- /* Check here */
+  nsqe = NULL;
 
+  if (0 != memcmp(privkey, zone, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  {
+    GNUNET_break(0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL );
+    return;
+  }
+
+
+  if (NULL == label)
+  {
+    GNUNET_break(0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL );
+    return;
+  }
+
+  if (0 != strcmp (label, name))
+  {
+    GNUNET_break(0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL );
+    return;
+  }
+
+  if (1 != rd_count)
+  {
+    GNUNET_break(0);
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL );
+    return;
+  }
 
   /* Done */
   GNUNET_SCHEDULER_cancel (endbadly_task);
   endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_SCHEDULER_add_now (&end, NULL);
+  GNUNET_SCHEDULER_add_now (&end, NULL );
 }
 
 
