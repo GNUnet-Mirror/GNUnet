@@ -3719,7 +3719,7 @@ run (void *cls,
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,
                                                "exit",
-                                               "EXIT_RANGE_IPV4_REGEX",
+                                               "EXIT_RANGE_IPV4_POLICY",
                                                &policy))
       regex = NULL;
     else
@@ -3745,7 +3745,7 @@ run (void *cls,
     if (GNUNET_OK !=
 	GNUNET_CONFIGURATION_get_value_string (cfg,
                                                "exit",
-                                               "EXIT_RANGE_IPV6_REGEX",
+                                               "EXIT_RANGE_IPV6_POLICY",
                                                &policy))
       regex = NULL;
     else
