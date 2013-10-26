@@ -121,11 +121,16 @@ test_policy6toregex (const char *policy,
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test-regex", "WARNING", NULL);
-
   int error;
+  char *r;
 
+  GNUNET_log_setup ("test-regex", "WARNING", NULL);
   error = 0;
+
+  /* this is just a performance test ... */
+  r = GNUNET_TUN_ipv4policy2regex ("1.2.3.4/16:!25;");
+  GNUNET_break (NULL != r);
+  GNUNET_free (r);
 
   error +=
     test_iptoregex ("192.1.2.3", 2086,

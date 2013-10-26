@@ -186,8 +186,9 @@ port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
 {
   char *reg;
   char *ret;
-  char *tmp;
+  char *pos;
   unsigned int i;
+  unsigned int cnt;
 
   if ( (0 == pp->start_port) ||
        ( (1 == pp->start_port) &&
@@ -202,27 +203,31 @@ port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
                      pp->start_port);
     return ret;
   }
-  reg = NULL;
+  cnt = pp->end_port - pp->start_port + 1;
+  if (GNUNET_YES == pp->negate_portrange)
+    cnt = 0xFFFF - cnt;
+  reg = GNUNET_malloc (cnt * 5 + 1);
+  pos = reg;
   for (i=1;i<=0xFFFF;i++)
   {
     if ( ( (i >= pp->start_port) && (i <= pp->end_port) ) ^
          (GNUNET_YES == pp->negate_portrange) )
     {
-      if (NULL == reg)
+      if (pos == reg)
       {
-        GNUNET_asprintf (&tmp,
+        GNUNET_snprintf (pos,
+                         5,
                          "%04X",
                          i);
       }
       else
       {
-        GNUNET_asprintf (&tmp,
-                         "%s|%04X",
-                         reg,
+        GNUNET_snprintf (pos,
+                         6,
+                         "|%04X",
                          i);
-        GNUNET_free (reg);
       }
-      reg = tmp;
+      pos += strlen (pos);
     }
   }
   GNUNET_asprintf (&ret,
