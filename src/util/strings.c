@@ -1371,7 +1371,7 @@ parse_port_policy (const char *port_policy,
          (e < s) ||
          (e > 0xFFFF) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Port not in range\n"));
       return GNUNET_SYSERR;
     }
@@ -1387,7 +1387,7 @@ parse_port_policy (const char *port_policy,
     if ( (0 == s) ||
          (s > 0xFFFF) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("Port not in range\n"));
       return GNUNET_SYSERR;
     }
@@ -1480,7 +1480,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       for (j = 0; j < 8; j++)
         if (temps[j] > 0xFF)
         {
-          LOG (GNUNET_ERROR_TYPE_ERROR,
+          LOG (GNUNET_ERROR_TYPE_WARNING,
                _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
@@ -1511,7 +1511,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       for (j = 0; j < 4; j++)
         if (temps[j] > 0xFF)
         {
-          LOG (GNUNET_ERROR_TYPE_ERROR,
+          LOG (GNUNET_ERROR_TYPE_WARNING,
                _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
@@ -1537,7 +1537,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_ERROR,
+        LOG (GNUNET_ERROR_TYPE_WARNING,
              _("Invalid network notation ('/%d' is not legal in IPv4 CIDR)."),
              slash);
         GNUNET_free (result);
@@ -1559,7 +1559,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       for (j = 0; j < 4; j++)
         if (temps[j] > 0xFF)
         {
-          LOG (GNUNET_ERROR_TYPE_ERROR,
+          LOG (GNUNET_ERROR_TYPE_WARNING,
                _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
@@ -1580,7 +1580,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       i++;
       continue;
     }
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Invalid format for IP: `%s'\n"),
          &routeList[pos]);
     GNUNET_free (result);
@@ -1589,7 +1589,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
   }
   if (pos < strlen (routeList))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Invalid format: `%s'\n"),
          &routeListX[pos]);
     GNUNET_free (result);
@@ -1641,7 +1641,7 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
       count++;
   if (';' != routeList[len - 1])
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Invalid network notation (does not end with ';': `%s')\n"),
          routeList);
     GNUNET_free (routeList);
@@ -1691,13 +1691,13 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
         if ((1 != SSCANF (&routeList[slash + 1], "%u", &bits)) || (bits > 128))
         {
           if (0 == ret)
-            LOG (GNUNET_ERROR_TYPE_ERROR,
+            LOG (GNUNET_ERROR_TYPE_WARNING,
                  _("Wrong format `%s' for netmask\n"),
                  &routeList[slash + 1]);
           else
           {
             errno = save;
-            LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "inet_pton");
+            LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "inet_pton");
           }
           GNUNET_free (result);
           GNUNET_free (routeList);
@@ -1722,7 +1722,7 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
     if (ret <= 0)
     {
       if (0 == ret)
-        LOG (GNUNET_ERROR_TYPE_ERROR,
+        LOG (GNUNET_ERROR_TYPE_WARNING,
              _("Wrong format `%s' for network\n"),
              &routeList[slash + 1]);
       else
