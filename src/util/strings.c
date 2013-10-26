@@ -1354,6 +1354,7 @@ parse_port_policy (const char *port_policy,
   const char *pos;
   int s;
   int e;
+  char eol[2];
 
   pos = port_policy;
   if ('!' == *pos)
@@ -1362,17 +1363,35 @@ parse_port_policy (const char *port_policy,
     pos++;
   }
   if (2 == sscanf (pos,
-                   "%u-%u",
-                   &s, &e))
+                   "%u-%u%1s",
+                   &s, &e, eol))
   {
+    if ( (0 == s) ||
+         (s > 0xFFFF) ||
+         (e < s) ||
+         (e > 0xFFFF) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Port not in range\n"));
+      return GNUNET_SYSERR;
+    }
     pp->start_port = (uint16_t) s;
     pp->end_port = (uint16_t) e;
     return GNUNET_OK;
   }
   if (1 == sscanf (pos,
-                   "%u",
-                   &s))
+                   "%u%1s",
+                   &s,
+                   eol))
   {
+    if ( (0 == s) ||
+         (s > 0xFFFF) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Port not in range\n"));
+      return GNUNET_SYSERR;
+    }
+
     pp->start_port = (uint16_t) s;
     pp->end_port = (uint16_t) s;
     return GNUNET_OK;
@@ -1571,8 +1590,8 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
   if (pos < strlen (routeList))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Invalid format for IP: `%s'\n"),
-         &routeList[pos]);
+         _("Invalid format: `%s'\n"),
+         &routeListX[pos]);
     GNUNET_free (result);
     GNUNET_free (routeList);
     return NULL;                /* oops */

@@ -126,7 +126,7 @@ nibble_to_regex (uint8_t value,
     return ret;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Bad mask: %d\n",
+                _("Bad mask: %d\n"),
                 mask);
     GNUNET_break (0);
     return NULL;
@@ -203,6 +203,8 @@ port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
                      pp->start_port);
     return ret;
   }
+  if (pp->end_port < pp->start_port)
+    return NULL;
   cnt = pp->end_port - pp->start_port + 1;
   if (GNUNET_YES == pp->negate_portrange)
     cnt = 0xFFFF - cnt;
@@ -305,6 +307,11 @@ ipv4_to_regex (const struct GNUNET_STRINGS_IPv4NetworkPolicy *v4)
   if (NULL == reg)
     return NULL;
   pp = port_to_regex (&v4->pp);
+  if (NULL == pp)
+  {
+    GNUNET_free (reg);
+    return NULL;
+  }
   GNUNET_asprintf (&ret,
                    "4-%s-%s",
                    pp, reg);
@@ -333,6 +340,11 @@ ipv6_to_regex (const struct GNUNET_STRINGS_IPv6NetworkPolicy *v6)
   if (NULL == reg)
     return NULL;
   pp = port_to_regex (&v6->pp);
+  if (NULL == pp)
+  {
+    GNUNET_free (reg);
+    return NULL;
+  }
   GNUNET_asprintf (&ret,
                    "6-%s-%s",
                    pp, reg);
@@ -364,7 +376,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
   if (NULL == np)
     return NULL;
   reg = NULL;
-  for (i=0; 0 != np[i].network.s_addr; i++)
+  for (i=0; (0 == i) || (0 != np[i].network.s_addr); i++)
   {
     line = ipv4_to_regex (&np[i]);
     if (NULL == line)
@@ -385,6 +397,8 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
       GNUNET_free (line);
       reg = tmp;
     }
+    if (0 == np[i].network.s_addr)
+      break;
   }
   return reg;
 }
@@ -414,7 +428,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy)
     return NULL;
   reg = NULL;
   memset (&zero, 0, sizeof (struct in6_addr));
-  for (i=0; 0 != memcmp (&zero, &np[i].network, sizeof (struct in6_addr)); i++)
+  for (i=0; (0 == i) || (0 != memcmp (&zero, &np[i].network, sizeof (struct in6_addr))); i++)
   {
     line = ipv6_to_regex (&np[i]);
     if (NULL == line)
@@ -435,6 +449,8 @@ GNUNET_TUN_ipv6policy2regex (const char *policy)
       GNUNET_free (line);
       reg = tmp;
     }
+    if (0 == memcmp (&zero, &np[i].network, sizeof (struct in6_addr)))
+      break;
   }
   return reg;
 }
