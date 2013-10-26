@@ -1022,7 +1022,7 @@ enum ZoneIterationResult
 
 /**
  * Context for record remove operations passed from
- * #run_zone_iteration_round to #zone_iteraterate_proc as closure
+ * #run_zone_iteration_round to #zone_iterate_proc as closure
  */
 struct ZoneIterationProcResult
 {
