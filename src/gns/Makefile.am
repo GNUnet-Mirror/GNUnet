@@ -50,7 +50,7 @@ lib_LTLIBRARIES = \
 if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBGNURL
-# DO_PROXY=gnunet-gns-proxy
+  DO_PROXY=gnunet-gns-proxy
 endif
 endif
 endif
@@ -58,8 +58,8 @@ endif
 libexec_PROGRAMS = \
   gnunet-service-gns \
   $(DO_W32_HELPER) \
-  gnunet-dns2gns
-#  $(DO_PROXY)
+  gnunet-dns2gns \
+  $(DO_PROXY)
 
 bin_PROGRAMS = \
   $(DO_W32_NSPTOOLS) \

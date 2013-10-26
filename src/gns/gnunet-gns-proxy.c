@@ -26,7 +26,6 @@
  *
  * TODO:
  * - double-check queueing logic
- * - actually check SSL certificates (#3038)
  */
 #include "platform.h"
 #include <microhttpd.h>
@@ -877,6 +876,9 @@ check_ssl_certificate (struct Socks5Request *s5r)
 
     /* FIXME: add flags to gnutls to NOT read UNBOUND_ROOT_KEY_FILE here! */
     if (0 != (rc = dane_state_init (&dane_state,
+#ifdef DANE_F_IGNORE_DNSSEC
+                                    DANE_F_IGNORE_DNSSEC |
+#endif
                                     DANE_F_IGNORE_LOCAL_RESOLVER)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -957,36 +959,6 @@ check_ssl_certificate (struct Socks5Request *s5r)
     }
   }
   gnutls_x509_crt_deinit (x509_cert);
-#if 0
-  {
-  unsigned int i;
-
-  for(i=0;i<cert_list_size;i++)
-  {
-    gnutls_x509_crt_t cert;
-    gnutls_datum_t dn;
-
-    if (GNUTLS_E_SUCCESS == gnutls_x509_crt_init (&cert))
-    {
-      if (GNUTLS_E_SUCCESS ==
-          gnutls_x509_crt_import (cert, &chainp[i],
-                                  GNUTLS_X509_FMT_DER))
-      {
-        if (GNUTLS_E_SUCCESS ==
-            gnutls_x509_crt_print (cert,
-                                   GNUTLS_CRT_PRINT_FULL,
-                                   &dn))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Certificate #%d: %.*s", i, dn.size, dn.data);
-          gnutls_free (dn.data);
-        }
-      }
-      gnutls_x509_crt_deinit (cert);
-    }
-  }
-  }
-#endif
   return GNUNET_OK;
 }
 

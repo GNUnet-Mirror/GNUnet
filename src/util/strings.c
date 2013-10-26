@@ -1328,4 +1328,285 @@ GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *co
 #endif
 }
 
+
+/**
+ * Parse an IPv4 network policy. The argument specifies a list of
+ * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
+ * must be terminated with a semicolon). The network must be given in
+ * dotted-decimal notation. The netmask can be given in CIDR notation
+ * (/16) or in dotted-decimal (/255.255.0.0).
+ *
+ * @param routeList a string specifying the IPv4 subnets
+ * @return the converted list, terminated with all zeros;
+ *         NULL if the synatx is flawed
+ */
+struct GNUNET_STRINGS_IPv4NetworkPolicy *
+GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
+{
+  unsigned int count;
+  unsigned int i;
+  unsigned int j;
+  unsigned int len;
+  int cnt;
+  unsigned int pos;
+  unsigned int temps[8];
+  int slash;
+  struct GNUNET_STRINGS_IPv4NetworkPolicy *result;
+
+  if (NULL == routeList)
+    return NULL;
+  len = strlen (routeList);
+  if (0 == len)
+    return NULL;
+  count = 0;
+  for (i = 0; i < len; i++)
+    if (routeList[i] == ';')
+      count++;
+  result = GNUNET_malloc (sizeof (struct GNUNET_STRINGS_IPv4NetworkPolicy) * (count + 1));
+  i = 0;
+  pos = 0;
+  while (i < count)
+  {
+    cnt =
+        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u.%u.%u.%u;", &temps[0],
+                &temps[1], &temps[2], &temps[3], &temps[4], &temps[5],
+                &temps[6], &temps[7]);
+    if (8 == cnt)
+    {
+      for (j = 0; j < 8; j++)
+        if (temps[j] > 0xFF)
+        {
+          LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid format for IP: `%s'\n"),
+               &routeList[pos]);
+          GNUNET_free (result);
+          return NULL;
+        }
+      result[i].network.s_addr =
+          htonl ((temps[0] << 24) + (temps[1] << 16) + (temps[2] << 8) +
+                 temps[3]);
+      result[i].netmask.s_addr =
+          htonl ((temps[4] << 24) + (temps[5] << 16) + (temps[6] << 8) +
+                 temps[7]);
+      while (routeList[pos] != ';')
+        pos++;
+      pos++;
+      i++;
+      continue;
+    }
+    /* try second notation */
+    cnt =
+        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u;", &temps[0], &temps[1],
+                &temps[2], &temps[3], &slash);
+    if (5 == cnt)
+    {
+      for (j = 0; j < 4; j++)
+        if (temps[j] > 0xFF)
+        {
+          LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid format for IP: `%s'\n"),
+               &routeList[pos]);
+          GNUNET_free (result);
+          return NULL;
+        }
+      result[i].network.s_addr =
+          htonl ((temps[0] << 24) + (temps[1] << 16) + (temps[2] << 8) +
+                 temps[3]);
+      if ((slash <= 32) && (slash >= 0))
+      {
+        result[i].netmask.s_addr = 0;
+        while (slash > 0)
+        {
+          result[i].netmask.s_addr =
+              (result[i].netmask.s_addr >> 1) + 0x80000000;
+          slash--;
+        }
+        result[i].netmask.s_addr = htonl (result[i].netmask.s_addr);
+        while (';' != routeList[pos])
+          pos++;
+        pos++;
+        i++;
+        continue;
+      }
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Invalid network notation ('/%d' is not legal in IPv4 CIDR)."),
+             slash);
+        GNUNET_free (result);
+        return NULL;            /* error */
+      }
+    }
+    /* try third notation */
+    slash = 32;
+    cnt =
+        SSCANF (&routeList[pos],
+                "%u.%u.%u.%u;",
+                &temps[0],
+                &temps[1],
+                &temps[2],
+                &temps[3]);
+    if (4 == cnt)
+    {
+      for (j = 0; j < 4; j++)
+        if (temps[j] > 0xFF)
+        {
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+               _("Invalid format for IP: `%s'\n"),
+               &routeList[pos]);
+          GNUNET_free (result);
+          return NULL;
+        }
+      result[i].network.s_addr =
+          htonl ((temps[0] << 24) + (temps[1] << 16) + (temps[2] << 8) +
+                 temps[3]);
+      result[i].netmask.s_addr = 0;
+      while (slash > 0)
+      {
+        result[i].netmask.s_addr = (result[i].netmask.s_addr >> 1) + 0x80000000;
+        slash--;
+      }
+      result[i].netmask.s_addr = htonl (result[i].netmask.s_addr);
+      while (routeList[pos] != ';')
+        pos++;
+      pos++;
+      i++;
+      continue;
+    }
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Invalid format for IP: `%s'\n"),
+         &routeList[pos]);
+    GNUNET_free (result);
+    return NULL;                /* error */
+  }
+  if (pos < strlen (routeList))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Invalid format for IP: `%s'\n"),
+         &routeList[pos]);
+    GNUNET_free (result);
+    return NULL;                /* oops */
+  }
+  return result;                /* ok */
+}
+
+
+/**
+ * Parse an IPv6 network policy. The argument specifies a list of
+ * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
+ * must be terminated with a semicolon). The network must be given in
+ * colon-hex notation.  The netmask must be given in CIDR notation
+ * (/16) or can be omitted to specify a single host.
+ *
+ * @param routeListX a string specifying the policy
+ * @return the converted list, 0-terminated, NULL if the synatx is flawed
+ */
+struct GNUNET_STRINGS_IPv6NetworkPolicy *
+GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
+{
+  unsigned int count;
+  unsigned int i;
+  unsigned int len;
+  unsigned int pos;
+  int start;
+  int slash;
+  int ret;
+  char *routeList;
+  struct GNUNET_STRINGS_IPv6NetworkPolicy *result;
+  unsigned int bits;
+  unsigned int off;
+  int save;
+
+  if (NULL == routeListX)
+    return NULL;
+  len = strlen (routeListX);
+  if (0 == len)
+    return NULL;
+  routeList = GNUNET_strdup (routeListX);
+  count = 0;
+  for (i = 0; i < len; i++)
+    if (';' == routeList[i])
+      count++;
+  if (';' != routeList[len - 1])
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Invalid network notation (does not end with ';': `%s')\n"),
+         routeList);
+    GNUNET_free (routeList);
+    return NULL;
+  }
+
+  result = GNUNET_malloc (sizeof (struct GNUNET_STRINGS_IPv6NetworkPolicy) * (count + 1));
+  i = 0;
+  pos = 0;
+  while (i < count)
+  {
+    start = pos;
+    while (';' != routeList[pos])
+      pos++;
+    slash = pos;
+    while ((slash >= start) && (routeList[slash] != '/'))
+      slash--;
+    if (slash < start)
+    {
+      memset (&result[i].netmask, 0xFF, sizeof (struct in6_addr));
+      slash = pos;
+    }
+    else
+    {
+      routeList[pos] = '\0';
+      ret = inet_pton (AF_INET6, &routeList[slash + 1], &result[i].netmask);
+      if (ret <= 0)
+      {
+        save = errno;
+        if ((1 != SSCANF (&routeList[slash + 1], "%u", &bits)) || (bits >= 128))
+        {
+          if (0 == ret)
+            LOG (GNUNET_ERROR_TYPE_ERROR,
+                 _("Wrong format `%s' for netmask\n"),
+                 &routeList[slash + 1]);
+          else
+          {
+            errno = save;
+            LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "inet_pton");
+          }
+          GNUNET_free (result);
+          GNUNET_free (routeList);
+          return NULL;
+        }
+        off = 0;
+        while (bits > 8)
+        {
+          result[i].netmask.s6_addr[off++] = 0xFF;
+          bits -= 8;
+        }
+        while (bits > 0)
+        {
+          result[i].netmask.s6_addr[off] =
+              (result[i].netmask.s6_addr[off] >> 1) + 0x80;
+          bits--;
+        }
+      }
+    }
+    routeList[slash] = '\0';
+    ret = inet_pton (AF_INET6, &routeList[start], &result[i].network);
+    if (ret <= 0)
+    {
+      if (0 == ret)
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Wrong format `%s' for network\n"),
+             &routeList[slash + 1]);
+      else
+        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+                      "inet_pton");
+      GNUNET_free (result);
+      GNUNET_free (routeList);
+      return NULL;
+    }
+    pos++;
+    i++;
+  }
+  GNUNET_free (routeList);
+  return result;
+}
+
+
 /* end of strings.c */
