@@ -775,12 +775,12 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * Retrieve the MeshPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
- * @param peer Full identity of the peer.
+ * @param peer_id Full identity of the peer.
  *
  * @return Existing or newly created peer info.
  */
 static struct MeshPeer *
-peer_get (const struct GNUNET_PeerIdentity *peer);
+peer_get (const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
@@ -1487,7 +1487,7 @@ peer_timeout (void *cls,
  * Retrieve the MeshPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
- * @param peer Full identity of the peer.
+ * @param peer_id Full identity of the peer.
  *
  * @return Existing or newly created peer info.
  */
@@ -1534,7 +1534,7 @@ peer_get_short (const GNUNET_PEER_Id peer)
 /**
  * Select which PID to POLL for, to compensate for lost messages.
  *
- * @param pi Peer we want to poll.
+ * @param p Peer we want to poll.
  * @param t Tunnel about which we want to poll.
  *
  * @return PID to use, either last sent or first_in_queue - 1
