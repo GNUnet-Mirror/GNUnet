@@ -993,22 +993,24 @@ GNUNET_STRINGS_parse_uri (const char *path, char **scheme_part,
 
 
 /**
- * Check whether 'filename' is absolute or not, and if it's an URI
+ * Check whether @a filename is absolute or not, and if it's an URI
  *
  * @param filename filename to check
- * @param can_be_uri GNUNET_YES to check for being URI, GNUNET_NO - to
+ * @param can_be_uri #GNUNET_YES to check for being URI, #GNUNET_NO - to
  *        assume it's not URI
- * @param r_is_uri a pointer to an int that is set to GNUNET_YES if 'filename'
- *        is URI and to GNUNET_NO otherwise. Can be NULL. If 'can_be_uri' is
- *        not GNUNET_YES, *r_is_uri is set to GNUNET_NO.
+ * @param r_is_uri a pointer to an int that is set to #GNUNET_YES if @a filename
+ *        is URI and to #GNUNET_NO otherwise. Can be NULL. If @a can_be_uri is
+ *        not #GNUNET_YES, `* r_is_uri` is set to #GNUNET_NO.
  * @param r_uri_scheme a pointer to a char * that is set to a pointer to URI scheme.
  *        The string is allocated by the function, and should be freed with
- *        GNUNET_free (). Can be NULL.
- * @return GNUNET_YES if 'filename' is absolute, GNUNET_NO otherwise.
+ *        GNUNET_free(). Can be NULL.
+ * @return #GNUNET_YES if @a filename is absolute, #GNUNET_NO otherwise.
  */
 int
-GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
-    int *r_is_uri, char **r_uri_scheme)
+GNUNET_STRINGS_path_is_absolute (const char *filename,
+                                 int can_be_uri,
+                                 int *r_is_uri,
+                                 char **r_uri_scheme)
 {
 #if WINDOWS
   size_t len;
@@ -1067,12 +1069,12 @@ GNUNET_STRINGS_path_is_absolute (const char *filename, int can_be_uri,
 
 
 /**
- * Perform 'checks' on 'filename'
+ * Perform @a checks on @a filename.
  *
  * @param filename file to check
  * @param checks checks to perform
- * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
- *         fails, GNUNET_SYSERR when a check can't be performed
+ * @return #GNUNET_YES if all checks pass, #GNUNET_NO if at least one of them
+ *         fails, #GNUNET_SYSERR when a check can't be performed
  */
 int
 GNUNET_STRINGS_check_filename (const char *filename,
@@ -1111,11 +1113,12 @@ GNUNET_STRINGS_check_filename (const char *filename,
  * The string is expected to have the format "[ABCD::01]:80".
  *
  * @param zt_addr 0-terminated string. May be mangled by the function.
- * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param addrlen length of @a zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill. Initially gets filled with zeroes,
  *        then its sin6_port, sin6_family and sin6_addr are set appropriately.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
- *         case the contents of r_buf are undefined.
+ * @return #GNUNET_OK if conversion succeded.
+ *         #GNUNET_SYSERR otherwise, in which
+ *         case the contents of @a r_buf are undefined.
  */
 int
 GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
@@ -1182,10 +1185,11 @@ GNUNET_STRINGS_to_address_ipv6 (const char *zt_addr,
  * The string is expected to have the format "1.2.3.4:80".
  *
  * @param zt_addr 0-terminated string. May be mangled by the function.
- * @param addrlen length of zt_addr (not counting 0-terminator).
+ * @param addrlen length of @a zt_addr (not counting 0-terminator).
  * @param r_buf a buffer to fill.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which case
- *         the contents of r_buf are undefined.
+ * @return #GNUNET_OK if conversion succeded.
+ *         #GNUNET_SYSERR otherwise, in which case
+ *         the contents of @a r_buf are undefined.
  */
 int
 GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
@@ -1217,14 +1221,14 @@ GNUNET_STRINGS_to_address_ipv4 (const char *zt_addr, uint16_t addrlen,
 
 
 /**
- * Tries to convert 'addr' string to an IP (v4 or v6) address.
+ * Tries to convert @a addr string to an IP (v4 or v6) address.
  * Will automatically decide whether to treat 'addr' as v4 or v6 address.
  *
  * @param addr a string, may not be 0-terminated.
- * @param addrlen number of bytes in addr (if addr is 0-terminated,
+ * @param addrlen number of bytes in @a addr (if addr is 0-terminated,
  *        0-terminator should not be counted towards addrlen).
  * @param r_buf a buffer to fill.
- * @return GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
+ * @return #GNUNET_OK if conversion succeded. GNUNET_SYSERR otherwise, in which
  *         case the contents of r_buf are undefined.
  */
 int
@@ -1233,8 +1237,12 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 			      struct sockaddr_storage *r_buf)
 {
   if (addr[0] == '[')
-    return GNUNET_STRINGS_to_address_ipv6 (addr, addrlen, (struct sockaddr_in6 *) r_buf);
-  return GNUNET_STRINGS_to_address_ipv4 (addr, addrlen, (struct sockaddr_in *) r_buf);
+    return GNUNET_STRINGS_to_address_ipv6 (addr,
+                                           addrlen,
+                                           (struct sockaddr_in6 *) r_buf);
+  return GNUNET_STRINGS_to_address_ipv4 (addr,
+                                         addrlen,
+                                         (struct sockaddr_in *) r_buf);
 }
 
 
@@ -1243,7 +1251,8 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
  * freed with a single call to GNUNET_free ();
  */
 static char *const *
-_make_continuous_arg_copy (int argc, char *const *argv)
+_make_continuous_arg_copy (int argc,
+                           char *const *argv)
 {
   size_t argvsize = 0;
   int i;
@@ -1276,7 +1285,7 @@ _make_continuous_arg_copy (int argc, char *const *argv)
  * @param argv argv (as given by main())
  * @param u8argc a location to store new argc in (though it's th same as argc)
  * @param u8argv a location to store new argv in
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *const **u8argv)
@@ -1330,18 +1339,65 @@ GNUNET_STRINGS_get_utf8_args (int argc, char *const *argv, int *u8argc, char *co
 
 
 /**
+ * Parse the given port policy.  The format is
+ * "[!]SPORT[-DPORT]".
+ *
+ * @param port_policy string to parse
+ * @param pp policy to fill in
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
+ *         @a port_policy is malformed
+ */
+static int
+parse_port_policy (const char *port_policy,
+                   struct GNUNET_STRINGS_PortPolicy *pp)
+{
+  const char *pos;
+  int s;
+  int e;
+
+  pos = port_policy;
+  if ('!' == *pos)
+  {
+    pp->negate_portrange = GNUNET_YES;
+    pos++;
+  }
+  if (2 == sscanf (pos,
+                   "%u-%u",
+                   &s, &e))
+  {
+    pp->start_port = (uint16_t) s;
+    pp->end_port = (uint16_t) e;
+    return GNUNET_OK;
+  }
+  if (1 == sscanf (pos,
+                   "%u",
+                   &s))
+  {
+    pp->start_port = (uint16_t) s;
+    pp->end_port = (uint16_t) s;
+    return GNUNET_OK;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Malformed port policy `%s'\n"),
+              port_policy);
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Parse an IPv4 network policy. The argument specifies a list of
- * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
- * must be terminated with a semicolon). The network must be given in
+ * subnets. The format is
+ * <tt>(network[/netmask][:SPORT[-DPORT]];)*</tt> (no whitespace, must
+ * be terminated with a semicolon). The network must be given in
  * dotted-decimal notation. The netmask can be given in CIDR notation
  * (/16) or in dotted-decimal (/255.255.0.0).
  *
- * @param routeList a string specifying the IPv4 subnets
+ * @param routeListX a string specifying the IPv4 subnets
  * @return the converted list, terminated with all zeros;
  *         NULL if the synatx is flawed
  */
 struct GNUNET_STRINGS_IPv4NetworkPolicy *
-GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
+GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
 {
   unsigned int count;
   unsigned int i;
@@ -1352,12 +1408,16 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
   unsigned int temps[8];
   int slash;
   struct GNUNET_STRINGS_IPv4NetworkPolicy *result;
+  int colon;
+  int end;
+  char *routeList;
 
-  if (NULL == routeList)
+  if (NULL == routeListX)
     return NULL;
-  len = strlen (routeList);
+  len = strlen (routeListX);
   if (0 == len)
     return NULL;
+  routeList = GNUNET_strdup (routeListX);
   count = 0;
   for (i = 0; i < len; i++)
     if (routeList[i] == ';')
@@ -1367,18 +1427,45 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
   pos = 0;
   while (i < count)
   {
+    for (colon = pos; ':' != routeList[colon]; colon++)
+      if ( (';' == routeList[colon]) ||
+           ('\0' == routeList[colon]) )
+        break;
+    end = colon;
+    for (end = colon; ';' != routeList[end]; end++)
+      if ('\0' == routeList[end])
+        break;
+    if ('\0' == routeList[end])
+      break;
+    routeList[end] = '\0';
+    if (':' == routeList[colon])
+    {
+      routeList[colon] = '\0';
+      if (GNUNET_OK != parse_port_policy (&routeList[colon + 1],
+                                          &result[i].pp))
+        break;
+    }
     cnt =
-        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u.%u.%u.%u;", &temps[0],
-                &temps[1], &temps[2], &temps[3], &temps[4], &temps[5],
-                &temps[6], &temps[7]);
+        SSCANF (&routeList[pos],
+                "%u.%u.%u.%u/%u.%u.%u.%u",
+                &temps[0],
+                &temps[1],
+                &temps[2],
+                &temps[3],
+                &temps[4],
+                &temps[5],
+                &temps[6],
+                &temps[7]);
     if (8 == cnt)
     {
       for (j = 0; j < 8; j++)
         if (temps[j] > 0xFF)
         {
-          LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid format for IP: `%s'\n"),
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+               _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
+          GNUNET_free (routeList);
           return NULL;
         }
       result[i].network.s_addr =
@@ -1387,24 +1474,29 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
       result[i].netmask.s_addr =
           htonl ((temps[4] << 24) + (temps[5] << 16) + (temps[6] << 8) +
                  temps[7]);
-      while (routeList[pos] != ';')
-        pos++;
-      pos++;
+      pos = end + 1;
       i++;
       continue;
     }
     /* try second notation */
     cnt =
-        SSCANF (&routeList[pos], "%u.%u.%u.%u/%u;", &temps[0], &temps[1],
-                &temps[2], &temps[3], &slash);
+        SSCANF (&routeList[pos],
+                "%u.%u.%u.%u/%u",
+                &temps[0],
+                &temps[1],
+                &temps[2],
+                &temps[3],
+                &slash);
     if (5 == cnt)
     {
       for (j = 0; j < 4; j++)
         if (temps[j] > 0xFF)
         {
-          LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid format for IP: `%s'\n"),
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+               _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
+          GNUNET_free (routeList);
           return NULL;
         }
       result[i].network.s_addr =
@@ -1420,9 +1512,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
           slash--;
         }
         result[i].netmask.s_addr = htonl (result[i].netmask.s_addr);
-        while (';' != routeList[pos])
-          pos++;
-        pos++;
+        pos = end + 1;
         i++;
         continue;
       }
@@ -1432,6 +1522,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
              _("Invalid network notation ('/%d' is not legal in IPv4 CIDR)."),
              slash);
         GNUNET_free (result);
+          GNUNET_free (routeList);
         return NULL;            /* error */
       }
     }
@@ -1439,7 +1530,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
     slash = 32;
     cnt =
         SSCANF (&routeList[pos],
-                "%u.%u.%u.%u;",
+                "%u.%u.%u.%u",
                 &temps[0],
                 &temps[1],
                 &temps[2],
@@ -1453,6 +1544,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
                _("Invalid format for IP: `%s'\n"),
                &routeList[pos]);
           GNUNET_free (result);
+          GNUNET_free (routeList);
           return NULL;
         }
       result[i].network.s_addr =
@@ -1465,9 +1557,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
         slash--;
       }
       result[i].netmask.s_addr = htonl (result[i].netmask.s_addr);
-      while (routeList[pos] != ';')
-        pos++;
-      pos++;
+      pos = end + 1;
       i++;
       continue;
     }
@@ -1475,6 +1565,7 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
          _("Invalid format for IP: `%s'\n"),
          &routeList[pos]);
     GNUNET_free (result);
+    GNUNET_free (routeList);
     return NULL;                /* error */
   }
   if (pos < strlen (routeList))
@@ -1483,18 +1574,21 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeList)
          _("Invalid format for IP: `%s'\n"),
          &routeList[pos]);
     GNUNET_free (result);
+    GNUNET_free (routeList);
     return NULL;                /* oops */
   }
+  GNUNET_free (routeList);
   return result;                /* ok */
 }
 
 
 /**
  * Parse an IPv6 network policy. The argument specifies a list of
- * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
- * must be terminated with a semicolon). The network must be given in
- * colon-hex notation.  The netmask must be given in CIDR notation
- * (/16) or can be omitted to specify a single host.
+ * subnets. The format is <tt>(network[/netmask[:SPORT[-DPORT]]];)*</tt>
+ * (no whitespace, must be terminated with a semicolon). The network
+ * must be given in colon-hex notation.  The netmask must be given in
+ * CIDR notation (/16) or can be omitted to specify a single host.
+ * Note that the netmask is mandatory if ports are specified.
  *
  * @param routeListX a string specifying the policy
  * @return the converted list, 0-terminated, NULL if the synatx is flawed
@@ -1514,6 +1608,7 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
   unsigned int bits;
   unsigned int off;
   int save;
+  int colon;
 
   if (NULL == routeListX)
     return NULL;
@@ -1545,19 +1640,36 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
     slash = pos;
     while ((slash >= start) && (routeList[slash] != '/'))
       slash--;
+
     if (slash < start)
     {
-      memset (&result[i].netmask, 0xFF, sizeof (struct in6_addr));
+      memset (&result[i].netmask,
+              0xFF,
+              sizeof (struct in6_addr));
       slash = pos;
     }
     else
     {
       routeList[pos] = '\0';
+      for (colon = pos; ':' != routeList[colon]; colon--)
+        if ('/' == routeList[colon])
+          break;
+      if (':' == routeList[colon])
+      {
+        routeList[colon] = '\0';
+        if (GNUNET_OK != parse_port_policy (&routeList[colon + 1],
+                                            &result[i].pp))
+        {
+          GNUNET_free (result);
+          GNUNET_free (routeList);
+          return NULL;
+        }
+      }
       ret = inet_pton (AF_INET6, &routeList[slash + 1], &result[i].netmask);
       if (ret <= 0)
       {
         save = errno;
-        if ((1 != SSCANF (&routeList[slash + 1], "%u", &bits)) || (bits >= 128))
+        if ((1 != SSCANF (&routeList[slash + 1], "%u", &bits)) || (bits > 128))
         {
           if (0 == ret)
             LOG (GNUNET_ERROR_TYPE_ERROR,

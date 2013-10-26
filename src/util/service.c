@@ -65,10 +65,11 @@ GNUNET_SPEEDUP_stop_ (void);
  *
  * @param list a list of networks
  * @param add the IP to check (in network byte order)
- * @return GNUNET_NO if the IP is not in the list, GNUNET_YES if it it is
+ * @return #GNUNET_NO if the IP is not in the list, #GNUNET_YES if it it is
  */
 static int
-check_ipv4_listed (const struct GNUNET_STRINGS_IPv4NetworkPolicy *list, const struct in_addr *add)
+check_ipv4_listed (const struct GNUNET_STRINGS_IPv4NetworkPolicy *list,
+                   const struct in_addr *add)
 {
   unsigned int i;
 
@@ -91,10 +92,11 @@ check_ipv4_listed (const struct GNUNET_STRINGS_IPv4NetworkPolicy *list, const st
  *
  * @param list a list of networks
  * @param ip the IP to check (in network byte order)
- * @return GNUNET_NO if the IP is not in the list, GNUNET_YES if it it is
+ * @return #GNUNET_NO if the IP is not in the list, #GNUNET_YES if it it is
  */
 static int
-check_ipv6_listed (const struct GNUNET_STRINGS_IPv6NetworkPolicy *list, const struct in6_addr *ip)
+check_ipv6_listed (const struct GNUNET_STRINGS_IPv6NetworkPolicy *list,
+                   const struct in6_addr *ip)
 {
   unsigned int i;
   unsigned int j;

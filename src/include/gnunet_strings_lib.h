@@ -471,6 +471,28 @@ GNUNET_STRINGS_get_utf8_args (int argc,
 
 /* ***************** IPv4/IPv6 parsing ****************** */
 
+struct GNUNET_STRINGS_PortPolicy
+{
+
+  /**
+   * Starting port range (0 if none given).
+   */
+  uint16_t start_port;
+
+  /**
+   * End of port range (0 if none given).
+   */
+  uint16_t end_port;
+
+  /**
+   * #GNUNET_YES if the port range should be negated
+   * ("!" in policy).
+   */
+  int negate_portrange;
+
+};
+
+
 /**
  * @brief IPV4 network in CIDR notation.
  */
@@ -485,10 +507,16 @@ struct GNUNET_STRINGS_IPv4NetworkPolicy
    * IPv4 netmask.
    */
   struct in_addr netmask;
+
+  /**
+   * Policy for port access.
+   */
+  struct GNUNET_STRINGS_PortPolicy pp;
+
 };
 
-/**
 
+/**
  * @brief network in CIDR notation for IPV6.
  */
 struct GNUNET_STRINGS_IPv6NetworkPolicy
@@ -502,30 +530,37 @@ struct GNUNET_STRINGS_IPv6NetworkPolicy
    * IPv6 netmask.
    */
   struct in6_addr netmask;
+
+  /**
+   * Policy for port access.
+   */
+  struct GNUNET_STRINGS_PortPolicy pp;
+
 };
 
 
 /**
  * Parse an IPv4 network policy. The argument specifies a list of
- * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
- * must be terminated with a semicolon). The network must be given in
- * dotted-decimal notation. The netmask can be given in CIDR notation
- * (/16) or in dotted-decimal (/255.255.0.0).
+ * subnets. The format is <tt>(network[/netmask][:[!]SPORT-DPORT];)*</tt>
+ * (no whitespace, must be terminated with a semicolon). The network
+ * must be given in dotted-decimal notation. The netmask can be given
+ * in CIDR notation (/16) or in dotted-decimal (/255.255.0.0).
  *
- * @param routeList a string specifying the IPv4 subnets
+ * @param routeListX a string specifying the IPv4 subnets
  * @return the converted list, terminated with all zeros;
  *         NULL if the synatx is flawed
  */
 struct GNUNET_STRINGS_IPv4NetworkPolicy *
-GNUNET_STRINGS_parse_ipv4_policy (const char *routeList);
+GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX);
 
 
 /**
  * Parse an IPv6 network policy. The argument specifies a list of
- * subnets. The format is <tt>[network/netmask;]*</tt> (no whitespace,
- * must be terminated with a semicolon). The network must be given in
- * colon-hex notation.  The netmask must be given in CIDR notation
- * (/16) or can be omitted to specify a single host.
+ * subnets. The format is <tt>(network[/netmask[:[!]SPORT[-DPORT]]];)*</tt>
+ * (no whitespace, must be terminated with a semicolon). The network
+ * must be given in colon-hex notation.  The netmask must be given in
+ * CIDR notation (/16) or can be omitted to specify a single host.
+ * Note that the netmask is mandatory if ports are specified.
  *
  * @param routeListX a string specifying the policy
  * @return the converted list, 0-terminated, NULL if the synatx is flawed

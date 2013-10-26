@@ -21,6 +21,7 @@
  * @file src/tun/regex.c
  * @brief functions to convert IP networks to regexes
  * @author Maximilian Szengel
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -28,114 +29,311 @@
 
 
 /**
- * Create a string with binary IP notation for the given 'addr' in 'str'.
+ * Create a regex in @a rxstr from the given @a ip and @a netmask.
  *
- * @param af address family of the given 'addr'.
- * @param addr address that should be converted to a string.
- *             struct in_addr * for IPv4 and struct in6_addr * for IPv6.
- * @param str string that will contain binary notation of 'addr'. Expected
- *            to be at least 33 bytes long for IPv4 and 129 bytes long for IPv6.
+ * @param ip IPv4 representation.
+ * @param port destination port
+ * @param rxstr generated regex, must be at least #GNUNET_TUN_IPV4_REGEXLEN
+ *              bytes long.
  */
-static void
-iptobinstr (const int af, const void *addr, char *str)
+void
+GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip,
+                              uint16_t port,
+                              char *rxstr)
 {
-  int i;
+  GNUNET_snprintf (rxstr,
+                   GNUNET_TUN_IPV4_REGEXLEN,
+                   "4-%04X-%08X",
+                   (unsigned int) port,
+                   ntohl (ip->s_addr));
+}
 
-  switch (af)
+
+/**
+ * Create a regex in @a rxstr from the given @a ipv6 and @a prefixlen.
+ *
+ * @param ipv6 IPv6 representation.
+ * @param port destination port
+ * @param rxstr generated regex, must be at least #GNUNET_TUN_IPV6_REGEXLEN
+ *              bytes long.
+ */
+void
+GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
+                              uint16_t port,
+                              char *rxstr)
+{
+  const uint32_t *addr;
+
+  addr = (const uint32_t *) ipv6;
+  GNUNET_snprintf (rxstr,
+                   GNUNET_TUN_IPV6_REGEXLEN,
+                   "6-%04X-%08X%08X%08X%08X",
+                   (unsigned int) port,
+                   ntohl (addr[0]),
+                   ntohl (addr[1]),
+                   ntohl (addr[2]),
+                   ntohl (addr[3]));
+}
+
+
+/**
+ * Convert the given 4-bit (!) number to a regex.
+ *
+ * @param value the value, only the lowest 4 bits will be looked at
+ * @param mask which bits in value are wildcards (any value)?
+ */
+static char *
+nibble_to_regex (uint8_t value,
+                 uint8_t mask)
+{
+  char *ret;
+
+  value &= mask;
+  switch (mask)
   {
-    case AF_INET:
-    {
-      uint32_t b = htonl (((struct in_addr *) addr)->s_addr);
-
-      str[32] = '\0';
-          str += 31;
-          for (i = 31; i >= 0; i--)
-          {
-            *str = (b & 1) + '0';
-            str--;
-            b >>= 1;
-          }
-              break;
-    }
-    case AF_INET6:
-    {
-      struct in6_addr b = *(const struct in6_addr *) addr;
-
-      str[128] = '\0';
-            str += 127;
-            for (i = 127; i >= 0; i--)
-            {
-              *str = (b.s6_addr[i / 8] & 1) + '0';
-            str--;
-            b.s6_addr[i / 8] >>= 1;
-            }
-                break;
-    }
+  case 0:
+    return GNUNET_strdup ("."); /* wildcard */
+  case 8:
+    GNUNET_asprintf (&ret,
+                     "(%X|%X|%X|%X|%X|%X|%X|%X)",
+                     value,
+                     value + 1,
+                     value + 2,
+                     value + 3,
+                     value + 4,
+                     value + 5,
+                     value + 6,
+                     value + 7);
+    return ret;
+  case 12:
+    GNUNET_asprintf (&ret,
+                     "(%X|%X|%X|%X)",
+                     value,
+                     value + 1,
+                     value + 2,
+                     value + 3);
+    return ret;
+  case 14:
+    GNUNET_asprintf (&ret,
+                     "(%X|%X)",
+                     value,
+                     value + 1);
+    return ret;
+  case 15:
+    GNUNET_asprintf (&ret,
+                     "%X",
+                     value);
+    return ret;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Bad mask: %d\n",
+                mask);
+    GNUNET_break (0);
+    return NULL;
   }
 }
 
 
 /**
- * Get the ipv4 network prefix from the given 'netmask'.
+ * Convert the given 16-bit number to a regex.
  *
- * @param netmask netmask for which to get the prefix len.
- *
- * @return length of ipv4 prefix for 'netmask'.
+ * @param value the value
+ * @param mask which bits in value are wildcards (any value)?
  */
-static unsigned int
-ipv4netmasktoprefixlen (const char *netmask)
+static char *
+num_to_regex (uint16_t value,
+              uint16_t mask)
 {
-  struct in_addr a;
-  unsigned int len;
-  uint32_t t;
+  const uint8_t *v = (const uint8_t *) &value;
+  const uint8_t *m = (const uint8_t *) &mask;
+  char *a;
+  char *b;
+  char *c;
+  char *d;
+  char *ret;
 
-  if (1 != inet_pton (AF_INET, netmask, &a))
-    return 0;
-  len = 32;
-  for (t = htonl (~a.s_addr); 0 != t; t >>= 1)
-    len--;
-  return len;
+  a = nibble_to_regex (v[0] >> 4, m[0] >> 4);
+  b = nibble_to_regex (v[0] & 15, m[0] & 15);
+  c = nibble_to_regex (v[1] >> 4, m[1] >> 4);
+  d = nibble_to_regex (v[1] & 15, m[1] & 15);
+  ret = NULL;
+  if ( (NULL != a) &&
+       (NULL != b) &&
+       (NULL != c) &&
+       (NULL != d) )
+    GNUNET_asprintf (&ret,
+                     "%s%s%s%s",
+                     a, b, c, d);
+  GNUNET_free_non_null (a);
+  GNUNET_free_non_null (b);
+  GNUNET_free_non_null (c);
+  GNUNET_free_non_null (d);
+  return ret;
 }
 
 
 /**
- * Create a regex in 'rxstr' from the given 'ip' and 'netmask'.
+ * Convert a port policy to a regular expression.  Note: this is a
+ * very simplistic implementation, we might want to consider doing
+ * something more sophisiticated (resulting in smaller regular
+ * expressions) at a later time.
  *
- * @param ip IPv4 representation.
- * @param netmask netmask for the ip.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV4_REGEXLEN
- *              bytes long.
+ * @param pp port policy to convert
+ * @return NULL on error
  */
-void
-GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
-			char *rxstr)
+static char *
+port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
 {
-  unsigned int pfxlen;
+  char *reg;
+  char *ret;
+  char *tmp;
+  unsigned int i;
 
-  pfxlen = ipv4netmasktoprefixlen (netmask);
-  iptobinstr (AF_INET, ip, rxstr);
-  rxstr[pfxlen] = '\0';
-            if (pfxlen < 32)
-              strcat (rxstr, "(0|1)+");
+  if ( (0 == pp->start_port) ||
+       ( (1 == pp->start_port) &&
+         (0xFFFF == pp->end_port) &&
+         (GNUNET_NO == pp->negate_portrange)) )
+    return GNUNET_strdup ("....");
+  if ( (pp->start_port == pp->end_port) &&
+       (GNUNET_NO == pp->negate_portrange))
+  {
+    GNUNET_asprintf (&ret,
+                     "%04X",
+                     pp->start_port);
+    return ret;
+  }
+  reg = NULL;
+  for (i=1;i<=0xFFFF;i++)
+  {
+    if ( ( (i >= pp->start_port) && (i <= pp->end_port) ) ^
+         (GNUNET_YES == pp->negate_portrange) )
+    {
+      if (NULL == reg)
+      {
+        GNUNET_asprintf (&tmp,
+                         "%04X",
+                         i);
+      }
+      else
+      {
+        GNUNET_asprintf (&tmp,
+                         "%s|%04X",
+                         reg,
+                         i);
+        GNUNET_free (reg);
+      }
+      reg = tmp;
+    }
+  }
+  GNUNET_asprintf (&ret,
+                   "(%s)",
+                   reg);
+  GNUNET_free (reg);
+  return ret;
 }
 
 
 /**
- * Create a regex in 'rxstr' from the given 'ipv6' and 'prefixlen'.
+ * Convert an address (IPv4 or IPv6) to a regex.
  *
- * @param ipv6 IPv6 representation.
- * @param prefixlen length of the ipv6 prefix.
- * @param rxstr generated regex, must be at least GNUNET_REGEX_IPV6_REGEXLEN
- *              bytes long.
+ * @param addr address
+ * @param mask network mask
+ * @param len number of bytes in @a addr and @a mask
+ * @return NULL on error, otherwise regex for the address
  */
-void
-GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6, unsigned int prefixlen,
-			char *rxstr)
+static char *
+address_to_regex (const void *addr,
+                  const void *mask,
+                  size_t len)
 {
-  iptobinstr (AF_INET6, ipv6, rxstr);
-  rxstr[prefixlen] = '\0';
-    if (prefixlen < 128)
-      strcat (rxstr, "(0|1)+");
+  const uint16_t *a = addr;
+  const uint16_t *m = mask;
+  char *ret;
+  char *tmp;
+  char *reg;
+  unsigned int i;
+
+  ret = NULL;
+  GNUNET_assert (1 != (len % 2));
+  for (i=0;i<len / 2;i++)
+  {
+    reg = num_to_regex (a[i], m[i]);
+    if (NULL == reg)
+    {
+      GNUNET_free_non_null (ret);
+      return NULL;
+    }
+    if (NULL == ret)
+    {
+      ret = reg;
+    }
+    else
+    {
+      GNUNET_asprintf (&tmp,
+                       "%s%s",
+                       ret, reg);
+      GNUNET_free (ret);
+      GNUNET_free (reg);
+      ret = tmp;
+    }
+  }
+  return ret;
+}
+
+
+/**
+ * Convert a single line of an IPv4 policy to a regular expression.
+ *
+ * @param v4 line to convert
+ * @return NULL on error
+ */
+static char *
+ipv4_to_regex (const struct GNUNET_STRINGS_IPv4NetworkPolicy *v4)
+{
+  char *reg;
+  char *pp;
+  char *ret;
+
+  reg = address_to_regex (&v4->network,
+                          &v4->netmask,
+                          sizeof (struct in_addr));
+  if (NULL == reg)
+    return NULL;
+  pp = port_to_regex (&v4->pp);
+  GNUNET_asprintf (&ret,
+                   "4-%s-%s",
+                   pp, reg);
+  GNUNET_free (pp);
+  GNUNET_free (reg);
+  return ret;
+}
+
+
+/**
+ * Convert a single line of an IPv4 policy to a regular expression.
+ *
+ * @param v6 line to convert
+ * @return NULL on error
+ */
+static char *
+ipv6_to_regex (const struct GNUNET_STRINGS_IPv6NetworkPolicy *v6)
+{
+  char *reg;
+  char *pp;
+  char *ret;
+
+  reg = address_to_regex (&v6->network,
+                          &v6->netmask,
+                          sizeof (struct in6_addr));
+  if (NULL == reg)
+    return NULL;
+  pp = port_to_regex (&v6->pp);
+  GNUNET_asprintf (&ret,
+                   "6-%s-%s",
+                   pp, reg);
+  GNUNET_free (pp);
+  GNUNET_free (reg);
+  return ret;
 }
 
 
@@ -151,8 +349,39 @@ GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6, unsigned int prefixle
 char *
 GNUNET_TUN_ipv4policy2regex (const char *policy)
 {
-  // FIXME: do actual policy parsing here, see #2919
-  return GNUNET_strdup (policy);
+  struct GNUNET_STRINGS_IPv4NetworkPolicy *np;
+  char *reg;
+  char *tmp;
+  char *line;
+  unsigned int i;
+
+  np = GNUNET_STRINGS_parse_ipv4_policy (policy);
+  if (NULL == np)
+    return NULL;
+  reg = NULL;
+  for (i=0; 0 != np[i].network.s_addr; i++)
+  {
+    line = ipv4_to_regex (&np[i]);
+    if (NULL == line)
+    {
+      GNUNET_free_non_null (reg);
+      return NULL;
+    }
+    if (NULL == reg)
+    {
+      reg = line;
+    }
+    else
+    {
+      GNUNET_asprintf (&tmp,
+                       "%s|(%s)",
+                       reg, line);
+      GNUNET_free (reg);
+      GNUNET_free (line);
+      reg = tmp;
+    }
+  }
+  return reg;
 }
 
 
@@ -160,7 +389,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
+ * IPv6 address strings as returned by 'GNUNET_TUN_ipv6toregexsearch'.
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
@@ -168,8 +397,41 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
 char *
 GNUNET_TUN_ipv6policy2regex (const char *policy)
 {
-  // FIXME: do actual policy parsing here, see #2919
-  return GNUNET_strdup (policy);
+  struct in6_addr zero;
+  struct GNUNET_STRINGS_IPv6NetworkPolicy *np;
+  char *reg;
+  char *tmp;
+  char *line;
+  unsigned int i;
+
+  np = GNUNET_STRINGS_parse_ipv6_policy (policy);
+  if (NULL == np)
+    return NULL;
+  reg = NULL;
+  memset (&zero, 0, sizeof (struct in6_addr));
+  for (i=0; 0 != memcmp (&zero, &np[i].network, sizeof (struct in6_addr)); i++)
+  {
+    line = ipv6_to_regex (&np[i]);
+    if (NULL == line)
+    {
+      GNUNET_free_non_null (reg);
+      return NULL;
+    }
+    if (NULL == reg)
+    {
+      reg = line;
+    }
+    else
+    {
+      GNUNET_asprintf (&tmp,
+                       "%s|(%s)",
+                       reg, line);
+      GNUNET_free (reg);
+      GNUNET_free (line);
+      reg = tmp;
+    }
+  }
+  return reg;
 }
 
 

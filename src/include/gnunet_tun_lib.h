@@ -47,15 +47,21 @@
 
 
 /**
- * Maximum regex string length for use with GNUNET_TUN_ipv4toregexsearch
+ * Maximum regex string length for use with #GNUNET_TUN_ipv4toregexsearch.
+ *
+ * 8 bytes for IPv4, 4 bytes for port, 1 byte for "4", 2 bytes for "-",
+ * one byte for 0-termination.
  */
-#define GNUNET_TUN_IPV4_REGEXLEN 32 + 6
+#define GNUNET_TUN_IPV4_REGEXLEN 16
 
 
 /**
- * Maximum regex string length for use with GNUNET_TUN_ipv6toregexsearch
+ * Maximum regex string length for use with #GNUNET_TUN_ipv6toregexsearch
+ *
+ * 32 bytes for IPv4, 4 bytes for port, 1 byte for "4", 2 bytes for "-",
+ * one byte for 0-termination.
  */
-#define GNUNET_TUN_IPV6_REGEXLEN 128 + 6
+#define GNUNET_TUN_IPV6_REGEXLEN 40
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -653,8 +659,8 @@ struct GNUNET_TUN_DnsRecordLine
  * ICMP header.
  */
 struct GNUNET_TUN_IcmpHeader {
-  uint8_t type;		
-  uint8_t code;		
+  uint8_t type;
+  uint8_t code;
   uint16_t crc GNUNET_PACKED;
 
   union {
@@ -677,8 +683,8 @@ struct GNUNET_TUN_IcmpHeader {
 
     /**
      * ICMP Redirect
-     */	
-    struct in_addr redirect_gateway_address GNUNET_PACKED;	
+     */
+    struct in_addr redirect_gateway_address GNUNET_PACKED;
 
     /**
      * MTU for packets that are too big (IPv6).
@@ -775,7 +781,7 @@ GNUNET_TUN_calculate_udp4_checksum (const struct GNUNET_TUN_IPv4Header *ip,
  * @param ip ipv6 header fully initialized
  * @param udp UDP header (initialized except for CRC)
  * @param payload the UDP payload
- * @param payload_length number of bytes of UDP payload
+ * @param payload_length number of bytes of @a payload
  */
 void
 GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
@@ -789,7 +795,7 @@ GNUNET_TUN_calculate_udp6_checksum (const struct GNUNET_TUN_IPv6Header *ip,
  *
  * @param icmp IMCP header (initialized except for CRC)
  * @param payload the ICMP payload
- * @param payload_length number of bytes of ICMP payload
+ * @param payload_length number of bytes of @a payload
  */
 void
 GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
@@ -798,29 +804,31 @@ GNUNET_TUN_calculate_icmp_checksum (struct GNUNET_TUN_IcmpHeader *icmp,
 
 
 /**
- * Create a regex in @a rxstr from the given @a ip and @a netmask.
+ * Create a regex in @a rxstr from the given @a ip and @a port.
  *
  * @param ip IPv4 representation.
- * @param netmask netmask for the ip.
+ * @param port destination port
  * @param rxstr generated regex, must be at least #GNUNET_TUN_IPV4_REGEXLEN
  *              bytes long.
  */
 void
-GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip, const char *netmask,
-			char *rxstr);
+GNUNET_TUN_ipv4toregexsearch (const struct in_addr *ip,
+                              uint16_t port,
+                              char *rxstr);
 
 
 /**
- * Create a regex in @a rxstr from the given @a ipv6 and @a prefixlen.
+ * Create a regex in @a rxstr from the given @a ipv6 and @a port.
  *
  * @param ipv6 IPv6 representation.
- * @param prefixlen length of the ipv6 prefix.
+ * @param port destination port
  * @param rxstr generated regex, must be at least #GNUNET_TUN_IPV6_REGEXLEN
  *              bytes long.
  */
 void
 GNUNET_TUN_ipv6toregexsearch (const struct in6_addr *ipv6,
-			unsigned int prefixlen, char *rxstr);
+                              uint16_t port,
+                              char *rxstr);
 
 
 /**

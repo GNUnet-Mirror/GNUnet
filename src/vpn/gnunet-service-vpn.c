@@ -803,13 +803,11 @@ create_tunnel_to_destination (struct DestinationTunnel *dt,
       char address[GNUNET_TUN_IPV4_REGEXLEN];
 
       GNUNET_TUN_ipv4toregexsearch (&dt->destination->details.exit_destination.ip.v4,
-				    "255.255.255.255",
+				    dt->destination_port,
 				    address);
-      GNUNET_asprintf (&policy, "%s%s%s:%u",
+      GNUNET_asprintf (&policy, "%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-                       "4",
-                       address,
-		       (unsigned int) dt->destination_port);
+                       address);
       break;
     }
     case AF_INET6:
@@ -817,12 +815,11 @@ create_tunnel_to_destination (struct DestinationTunnel *dt,
       char address[GNUNET_TUN_IPV6_REGEXLEN];
 
       GNUNET_TUN_ipv6toregexsearch (&dt->destination->details.exit_destination.ip.v6,
-				    128, address);
-      GNUNET_asprintf (&policy, "%s%s%s:%u",
+				    dt->destination_port, 
+                                    address);
+      GNUNET_asprintf (&policy, "%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-                       "6",
-                       address,
-		       (unsigned int) dt->destination_port);
+                       address);
       break;
     }
     default:
