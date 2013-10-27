@@ -23,14 +23,13 @@
  * @brief Identity service; implements identity management for GNUnet
  * @author Christian Grothoff
  *
- * Identities in GNUnet are ECDSA keys.  You assume an identity by
- * using (signing with) a particular private key.  As GNUnet users are
- * expected to have many egos, we need an identity service to
- * allow users to manage their egos.  The identity service
- * manages the egos (private keys) of the local user; it does
- * NOT manage identities of other users (public keys).  For giving
- * names to other users and manage their public keys securely, we
- * use GNS.
+ * Egos in GNUnet are ECDSA keys.  You assume an ego by using (signing
+ * with) a particular private key.  As GNUnet users are expected to
+ * have many egos, we need an identity service to allow users to
+ * manage their egos.  The identity service manages the egos (private
+ * keys) of the local user; it does NOT manage egos of other users
+ * (public keys).  For giving names to other users and manage their
+ * public keys securely, we use GNS.
  *
  * @defgroup identity identity management service
  * @{
