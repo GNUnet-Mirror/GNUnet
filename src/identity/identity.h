@@ -42,7 +42,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_IDENTITY_ResultCodeMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RESULT_CODE
    */
   struct GNUNET_MessageHeader header;
 
@@ -63,7 +63,7 @@ struct GNUNET_IDENTITY_ResultCodeMessage
 struct GNUNET_IDENTITY_UpdateMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_UPDATE
    */
   struct GNUNET_MessageHeader header;
 
@@ -74,7 +74,7 @@ struct GNUNET_IDENTITY_UpdateMessage
   uint16_t name_len GNUNET_PACKED;
 
   /**
-   * Usually GNUNET_NO, GNUNET_YES to signal end of list.
+   * Usually #GNUNET_NO, #GNUNET_YES to signal end of list.
    */
   uint16_t end_of_list GNUNET_PACKED;
 
@@ -96,7 +96,7 @@ struct GNUNET_IDENTITY_UpdateMessage
 struct GNUNET_IDENTITY_GetDefaultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_GET_DEFAULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -123,7 +123,7 @@ struct GNUNET_IDENTITY_GetDefaultMessage
 struct GNUNET_IDENTITY_SetDefaultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_SET_DEFAULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -154,7 +154,7 @@ struct GNUNET_IDENTITY_SetDefaultMessage
 struct GNUNET_IDENTITY_CreateRequestMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_CREATE
    */
   struct GNUNET_MessageHeader header;
 
@@ -185,7 +185,7 @@ struct GNUNET_IDENTITY_CreateRequestMessage
 struct GNUNET_IDENTITY_RenameMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_RENAME
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_RENAME
    */
   struct GNUNET_MessageHeader header;
 
@@ -211,7 +211,7 @@ struct GNUNET_IDENTITY_RenameMessage
 struct GNUNET_IDENTITY_DeleteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_IDENTITY_DELETE
+   * Type: #GNUNET_MESSAGE_TYPE_IDENTITY_DELETE
    */
   struct GNUNET_MessageHeader header;
 
