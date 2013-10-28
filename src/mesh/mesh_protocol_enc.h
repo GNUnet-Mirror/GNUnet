@@ -96,6 +96,118 @@ struct GNUNET_MESH_ConnectionACK
   /* TODO: signature */
 };
 
+
+/**
+ * Message transmitted with the signed ephemeral key of a peer.  The
+ * session key is then derived from the two ephemeral keys (ECDHE).
+ *
+ * As far as possible, same as CORE's EphemeralKeyMessage.
+ */
+struct GNUNET_MESH_KX
+{
+
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Status of the sender (should be in "enum PeerStateMachine"), nbo.
+   */
+  int32_t sender_status GNUNET_PACKED;
+
+  /**
+   * An ECC signature of the 'origin' asserting the validity of
+   * the given ephemeral key.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Information about what is being signed.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * At what time was this key created (beginning of validity).
+   */
+  struct GNUNET_TIME_AbsoluteNBO creation_time;
+
+  /**
+   * When does the given ephemeral key expire (end of validity).
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /**
+   * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
+   * for network transmission as created using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+  /**
+   * Public key of the signing peer (persistent version, not the ephemeral public key).
+   */
+  struct GNUNET_PeerIdentity origin_identity;
+};
+
+
+/**
+ * We're sending an (encrypted) PING to the other peer to check if he
+ * can decrypt.  The other peer should respond with a PONG with the
+ * same content, except this time encrypted with the receiver's key.
+ */
+struct GNUNET_MESH_KX_Ping
+{
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PING.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * Intended target of the PING, used primarily to check
+   * that decryption actually worked.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Random number chosen to make reply harder.
+   */
+  uint32_t nonce GNUNET_PACKED;
+};
+
+
+/**
+ * Response to a PING.  Includes data from the original PING.
+ */
+struct GNUNET_MESH_KX_Pong
+{
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PONG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * Intended target of the PING, used primarily to check
+   * that decryption actually worked.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Same nonce as in the received PING message.
+   */
+  uint32_t nonce GNUNET_PACKED;
+};
+
+
 /**
  * Tunnel(ed) message.
  */
@@ -107,9 +219,9 @@ struct GNUNET_MESH_Encrypted
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the packet (hop by hop).
+   * Initialization Vector for payload encryption.
    */
-  uint32_t pid GNUNET_PACKED;
+  uint32_t iv GNUNET_PACKED;
 
   /**
    * ID of the connection.
@@ -117,19 +229,14 @@ struct GNUNET_MESH_Encrypted
   struct GNUNET_HashCode cid;
 
   /**
-   * Initialization Vector for payload encryption.
+   * ID of the packet (hop by hop).
    */
-  uint64_t iv GNUNET_PACKED;
+  uint32_t pid GNUNET_PACKED;
 
   /**
    * Number of hops to live.
    */
   uint32_t ttl GNUNET_PACKED;
-
-  /**
-   * Always 0.
-   */
-  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Encrypted content follows.
