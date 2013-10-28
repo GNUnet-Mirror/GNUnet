@@ -566,7 +566,7 @@ lookup_block_processor (void *cls,
   request->qe = NULL;
   if (NULL == label)
   {
-    request->zi = NULL;
+
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
                                                     strlen (request->public_key),
@@ -584,14 +584,7 @@ lookup_block_processor (void *cls,
                                                  request);
     return;
   }
-  if (0 != strcmp (label,
-                   request->domain_name))
-  {
-    GNUNET_NAMESTORE_zone_iterator_next (request->zi);
-    return;
-  }
-  GNUNET_NAMESTORE_zone_iteration_stop (request->zi);
-  request->zi = NULL;
+  GNUNET_break (0 != strcmp (label, request->domain_name));
   GNUNET_break (0 != rd_count);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Found %u existing records for domain `%s'\n"),
@@ -716,11 +709,11 @@ create_response (void *cls,
 				 request, connection);
 	  }
 	  request->phase = RP_LOOKUP;
-          /* FIXME: would be nice to have a more efficient API for this */
-	  request->zi = GNUNET_NAMESTORE_zone_iteration_start (ns,
-                                                               &fcfs_zone_pkey,
-                                                               &lookup_block_processor,
-                                                               request);
+	  request->qe = GNUNET_NAMESTORE_records_lookup (ns,
+                                                       &fcfs_zone_pkey,
+                                                       request->domain_name,
+                                                       &lookup_block_processor,
+                                                       request);
 	  break;
 	case RP_LOOKUP:
 	  break;
