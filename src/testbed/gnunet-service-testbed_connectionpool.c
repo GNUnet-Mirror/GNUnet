@@ -286,6 +286,11 @@ destroy_pooled_connection (struct PooledConnection *entry)
                    GNUNET_CONTAINER_multihashmap32_remove (map,
                                                            entry->index,
                                                            entry));
+  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
+  {
+    GNUNET_SCHEDULER_cancel (entry->notify_task);
+    entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   LOG_DEBUG ("Cleaning up handles of a pooled connection\n");
   if (NULL != entry->handle_transport)
     GNUNET_assert (NULL != entry->op_transport);
@@ -889,7 +894,9 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
   GNUNET_free (gh);
   gh = NULL;
   GNUNET_assert (!entry->in_lru);
-  if ( (!entry->in_pool) && (NULL != map) )
+  if (!entry->in_pool)
+    GNUNET_CONTAINER_DLL_remove (head_not_pooled, tail_not_pooled, entry);
+  if (NULL != map)
   {
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap32_contains (map,
                                                                 entry->index))
@@ -900,7 +907,6 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
         goto unallocate;
       destroy_pooled_connection (head_lru);
     }
-    GNUNET_CONTAINER_DLL_remove (head_not_pooled, tail_not_pooled, entry);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multihashmap32_put (map,
                                                         entry->index,
@@ -908,6 +914,7 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
                                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     entry->in_pool = GNUNET_YES;
   }
+
  unallocate:
   GNUNET_assert (0 < entry->demand);
   entry->demand--;
