@@ -60,11 +60,6 @@ static char *ego_name;
 static int add;
 
 /**
- * Iterator for the 'add' operation.
- */
-static struct GNUNET_NAMESTORE_ZoneIterator *add_zit;
-
-/**
  * Queue entry for the 'add-uri' operation.
  */
 static struct GNUNET_NAMESTORE_QueueEntry *add_qe_uri;
@@ -204,11 +199,6 @@ do_shutdown (void *cls,
   {
     GNUNET_NAMESTORE_zone_iteration_stop (list_it);
     list_it = NULL;
-  }
-  if (NULL != add_zit)
-  {
-    GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
-    add_zit = NULL;
   }
   if (NULL != add_qe)
   {
@@ -422,10 +412,11 @@ get_existing_record (void *cls,
   struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
   struct GNUNET_GNSRECORD_Data *rde;
 
+  add_qe = NULL;
   if ( (NULL != zone_key) &&
        (0 != strcmp (rec_name, name)) )
   {
-    GNUNET_NAMESTORE_zone_iterator_next (add_zit);
+    GNUNET_break (0);
     return;
   }
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
@@ -458,11 +449,6 @@ get_existing_record (void *cls,
 					   rde,
 					   &add_continuation,
 					   &add_qe);
-  /* only cancel if we were not told that this
-     was the end of the iteration already */
-  if (NULL != rec_name)
-    GNUNET_NAMESTORE_zone_iteration_stop (add_zit);
-  add_zit = NULL;
 }
 
 
@@ -621,10 +607,8 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    add_zit = GNUNET_NAMESTORE_zone_iteration_start (ns,
-						     &zone_pkey,
-						     &get_existing_record,
-						     NULL);
+    add_qe = GNUNET_NAMESTORE_records_lookup (ns, &zone_pkey, name,
+        &get_existing_record, NULL );
   }
   if (del)
   {
