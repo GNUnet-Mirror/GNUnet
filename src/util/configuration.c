@@ -1163,11 +1163,13 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     if (NULL == env)
     {
+      start = GNUNET_strdup (start);
       if (erased_pos)
         *erased_pos = erased_char;
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Expanded to `%s' (returning orig)\n",
-           orig);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("Failed to expand `%s' in `%s' as it is neither found in [PATHS] nor defined as an environmental variable\n"),
+           start, orig);
+      GNUNET_free (start);
       return orig;
     }
     prefix = GNUNET_strdup (env);
