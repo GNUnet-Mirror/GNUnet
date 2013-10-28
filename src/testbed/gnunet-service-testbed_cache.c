@@ -36,13 +36,6 @@
 
 
 /**
- * Time to expire a cache entry
- */
-#define CACHE_EXPIRY                            \
-  GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
-
-
-/**
  * Cache entry
  */
 struct CacheEntry
@@ -58,18 +51,6 @@ struct CacheEntry
   struct CacheEntry *prev;
 
   /**
-   * The peer identity of this peer. Will be set upon opening a connection to
-   * the peers CORE service. Will be NULL until then and after the CORE
-   * connection is closed
-   */
-  struct GNUNET_PeerIdentity *peer_identity;
-
-  /**
-   * The key for this entry
-   */
-  struct GNUNET_HashCode key;
-
-  /**
    * The HELLO message
    */
   struct GNUNET_MessageHeader *hello;
@@ -78,18 +59,13 @@ struct CacheEntry
    * The id of the peer this entry corresponds to
    */
   unsigned int peer_id;
-
-  /**
-   * Is this entry in LRU cache queue?
-   */
-  unsigned int in_lru;
 };
 
 
 /**
  * Hashmap to maintain cache
  */
-static struct GNUNET_CONTAINER_MultiHashMap *cache;
+static struct GNUNET_CONTAINER_MultiHashMap32 *cache;
 
 /**
  * DLL head for least recently used cache entries; least recently used
@@ -97,7 +73,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *cache;
  * their demand becomes zero. They are removed from the queue when they are
  * needed by any operation.
  */
-static struct CacheEntry *lru_cache_head;
+static struct CacheEntry *cache_head;
 
 /**
  * DLL tail for least recently used cache entries; recently used cache
@@ -105,20 +81,10 @@ static struct CacheEntry *lru_cache_head;
  * their demand becomes zero. They are removed from the queue when they are
  * needed by any operation.
  */
-static struct CacheEntry *lru_cache_tail;
+static struct CacheEntry *cache_tail;
 
 /**
- * the size of the LRU queue
- */
-static unsigned int lru_cache_size;
-
-/**
- * the threshold size for the LRU queue
- */
-static unsigned int lru_cache_threshold_size;
-
-/**
- * The total number of elements in cache
+ * Maximum number of elements to cache
  */
 static unsigned int cache_size;
 
@@ -131,13 +97,16 @@ static unsigned int cache_size;
  * @return the HELLO message; NULL if not found
  */
 static struct CacheEntry *
-cache_lookup (const struct GNUNET_HashCode *key)
+cache_lookup (unsigned int peer_id)
 {
   struct CacheEntry *entry;
 
-  if (NULL == cache)
+  GNUNET_assert (NULL != cache);
+  entry = GNUNET_CONTAINER_multihashmap32_get (cache, peer_id);
+  if (NULL == entry)
     return NULL;
-  entry = GNUNET_CONTAINER_multihashmap_get (cache, key);
+  GNUNET_CONTAINER_DLL_remove (cache_head, cache_tail, entry);
+  GNUNET_CONTAINER_DLL_insert_tail (cache_head, cache_tail, entry);
   return entry;
 }
 
@@ -145,22 +114,32 @@ cache_lookup (const struct GNUNET_HashCode *key)
 /**
  * Creates a new cache entry and then puts it into the cache's hashtable.
  *
- * @param key the hash code to use for inserting the newly created entry
  * @param peer_id the index of the peer to tag the newly created entry
  * @return the newly created entry
  */
 static struct CacheEntry *
-add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
+add_entry (unsigned int peer_id)
 {
   struct CacheEntry *entry;
-
+  
+  GNUNET_assert (NULL != cache);
+  if (cache_size == GNUNET_CONTAINER_multihashmap32_size (cache))
+  {
+    /* remove the LRU head */
+    entry = cache_head;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multihashmap32_remove (cache, (uint32_t)
+                                                           entry->peer_id,
+                                                           entry));
+  }
   entry = GNUNET_malloc (sizeof (struct CacheEntry));
   entry->peer_id = peer_id;
-  memcpy (&entry->key, key, sizeof (struct GNUNET_HashCode));
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (cache, &entry->key, entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
-  cache_size++;
+                 GNUNET_CONTAINER_multihashmap32_put (cache,
+                                                      (uint32_t) peer_id,
+                                                      entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+  GNUNET_CONTAINER_DLL_insert_tail (cache_head, cache_tail, entry);
   return entry;
 }
 
@@ -169,22 +148,20 @@ add_entry (const struct GNUNET_HashCode *key, unsigned int peer_id)
  * Iterator over hash map entries.
  *
  * @param cls closure
- * @param key current key code
+ * @param key current key
  * @param value value in the hash map
  * @return GNUNET_YES if we should continue to
  *         iterate,
  *         GNUNET_NO if not.
  */
 static int
-cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
+cache_clear_iterator (void *cls, uint32_t key, void *value)
 {
   struct CacheEntry *entry = value;
-  static unsigned int ncleared;
 
   GNUNET_assert (NULL != entry);
-  LOG_DEBUG ("Clearing entry %u of %u\n", ++ncleared, cache_size);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_remove (cache, key, value));
+                 GNUNET_CONTAINER_multihashmap32_remove (cache, key, value));
   GNUNET_free_non_null (entry->hello);
   GNUNET_free (entry);
   return GNUNET_YES;
@@ -197,15 +174,16 @@ cache_clear_iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
 void
 GST_cache_clear ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (cache, &cache_clear_iterator, NULL);
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (cache));
-  GNUNET_CONTAINER_multihashmap_destroy (cache);
-  cache = NULL;
-  lru_cache_size = 0;
-  lru_cache_threshold_size = 0;
+  if (NULL != cache)
+  {
+    GNUNET_CONTAINER_multihashmap32_iterate (cache, &cache_clear_iterator, NULL);
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap32_size (cache));
+    GNUNET_CONTAINER_multihashmap32_destroy (cache);
+    cache = NULL;
+  }
   cache_size = 0;
-  lru_cache_head = NULL;
-  lru_cache_tail = NULL;
+  cache_head = NULL;
+  cache_tail = NULL;
 }
 
 
@@ -219,10 +197,8 @@ GST_cache_init (unsigned int size)
 {
   if (0 == size)
     return;
-  lru_cache_threshold_size = size;
-  if (size > 1)
-    size = size / 2;
-  cache = GNUNET_CONTAINER_multihashmap_create (size, GNUNET_YES);
+  cache_size = size;
+  cache = GNUNET_CONTAINER_multihashmap32_create (cache_size);
 }
 
 
@@ -236,11 +212,14 @@ const struct GNUNET_MessageHeader *
 GST_cache_lookup_hello (const unsigned int peer_id)
 {
   struct CacheEntry *entry;
-  struct GNUNET_HashCode key;
 
   LOG_DEBUG ("Looking up HELLO for peer %u\n", peer_id);
-  GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
-  entry = cache_lookup (&key);
+  if (NULL == cache)
+  {
+    LOG_DEBUG ("Caching disabled\n");
+    return NULL;
+  }
+  entry = cache_lookup (peer_id);
   if (NULL == entry)
     return NULL;
   if (NULL != entry->hello)
@@ -261,12 +240,12 @@ GST_cache_add_hello (const unsigned int peer_id,
                      const struct GNUNET_MessageHeader *hello)
 {
   struct CacheEntry *entry;
-  struct GNUNET_HashCode key;
 
-  GNUNET_CRYPTO_hash (&peer_id, sizeof (peer_id), &key);
-  entry = GNUNET_CONTAINER_multihashmap_get (cache, &key);
+  if (NULL == cache)
+    return;
+  entry = cache_lookup (peer_id);
   if (NULL == entry)
-    entry = add_entry (&key, peer_id);
+    entry = add_entry (peer_id);
   GNUNET_free_non_null (entry->hello);
   entry->hello = GNUNET_copy_message (hello);
 }
