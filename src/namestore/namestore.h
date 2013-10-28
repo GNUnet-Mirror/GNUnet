@@ -168,9 +168,10 @@ struct LabelLookupResponseMessage
   uint16_t rd_count GNUNET_PACKED;
 
   /**
-   * always zero (for alignment)
+   * Was the label found in the database??
+   * GNUNET_YES or GNUNET_NO
    */
-  uint16_t reserved GNUNET_PACKED;
+  uint16_t found GNUNET_PACKED;
 
   /**
    * The private key of the authority.

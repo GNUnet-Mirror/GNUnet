@@ -623,7 +623,6 @@ handle_record_lookup (void *cls,
   uint32_t name_len;
   size_t src_size;
   size_t res_size;
-  int offset;
   int res;
 
   if (ntohs (message->size) < sizeof (struct LabelLookupMessage))
@@ -664,15 +663,8 @@ handle_record_lookup (void *cls,
   rlc.rd_ser_len = 0;
   rlc.res_rd = NULL;
 
-  offset = 0;
-  do
-  {
-    /* changee this call */
-    res = GSN_database->iterate_records (GSN_database->cls,
-        &ll_msg->zone, offset, &lookup_it, &rlc);
-    offset++;
-  }
-  while ((GNUNET_NO == rlc.found) && (GNUNET_OK == res));
+  res = GSN_database->lookup_records (GSN_database->cls,
+        &ll_msg->zone, name_tmp, &lookup_it, &rlc);
 
   res_size = sizeof (struct LabelLookupResponseMessage) + name_len + rlc.rd_ser_len;
   llr_msg = GNUNET_malloc (res_size);
@@ -684,6 +676,10 @@ handle_record_lookup (void *cls,
   llr_msg->rd_count = htons (rlc.res_rd_count);
   llr_msg->rd_len = htons (rlc.rd_ser_len);
   res_name = (char *) &llr_msg[1];
+  if  ((GNUNET_YES == rlc.found) && (GNUNET_OK == res))
+    llr_msg->found = ntohs (GNUNET_YES);
+  else
+    llr_msg->found = ntohs (GNUNET_NO);
   memcpy (&llr_msg[1], name_tmp, name_len);
   memcpy (&res_name[name_len], rlc.res_rd, rlc.rd_ser_len);
 

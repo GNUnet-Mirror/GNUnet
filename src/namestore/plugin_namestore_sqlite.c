@@ -97,6 +97,10 @@ struct Plugin
    */
   sqlite3_stmt *zone_to_name;
 
+  /**
+   * Precompiled SQL to lookup records based on label.
+   */
+  sqlite3_stmt *lookup_label;
 };
 
 
@@ -278,7 +282,12 @@ database_setup (struct Plugin *plugin)
        (plugin->dbh,
 	"SELECT record_count,record_data,label,zone_private_key"
 	" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET ?",
-	&plugin->iterate_all_zones) != SQLITE_OK)
+	&plugin->iterate_all_zones) != SQLITE_OK)  ||
+      (sq_prepare
+       (plugin->dbh,
+        "SELECT record_count,record_data,label,zone_private_key"
+        " FROM ns097records WHERE zone_private_key=? AND label=?",
+        &plugin->lookup_label) != SQLITE_OK)
       )
   {
     LOG_SQLITE (plugin,GNUNET_ERROR_TYPE_ERROR, "precompiling");
@@ -309,6 +318,8 @@ database_shutdown (struct Plugin *plugin)
     sqlite3_finalize (plugin->iterate_all_zones);
   if (NULL != plugin->zone_to_name)
     sqlite3_finalize (plugin->zone_to_name);
+  if (NULL != plugin->zone_to_name)
+    sqlite3_finalize (plugin->lookup_label);
   result = sqlite3_close (plugin->dbh);
   if (result == SQLITE_BUSY)
   {
@@ -536,6 +547,51 @@ get_record_and_call_iterator (struct Plugin *plugin,
   return ret;
 }
 
+/**
+ * Lookup records in the datastore for which we are the authority.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone private key of the zone
+ * @param label name of the record in the zone
+ * @param iter function to call with the result
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+namestore_sqlite_lookup_records (void *cls,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone, const char *label,
+    GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+  int err;
+
+  if (NULL == zone)
+  {
+    return GNUNET_SYSERR;
+  }
+  else
+  {
+    stmt = plugin->lookup_label;
+    err = ( (SQLITE_OK != sqlite3_bind_blob (stmt, 1,
+                                             zone, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
+                                             SQLITE_STATIC)) ||
+            (SQLITE_OK != sqlite3_bind_text (stmt, 2,
+                                              label, -1, SQLITE_STATIC)) );
+  }
+  if (err)
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind_XXXX");
+    if (SQLITE_OK != sqlite3_reset (stmt))
+      LOG_SQLITE (plugin,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_reset");
+    return GNUNET_SYSERR;
+  }
+  return get_record_and_call_iterator (plugin, stmt, zone, iter, iter_cls);
+}
+
 
 /**
  * Iterate over the results for a particular key and zone in the
@@ -658,6 +714,7 @@ libgnunet_plugin_namestore_sqlite_init (void *cls)
   api->store_records = &namestore_sqlite_store_records;
   api->iterate_records = &namestore_sqlite_iterate_records;
   api->zone_to_name = &namestore_sqlite_zone_to_name;
+  api->lookup_records = &namestore_sqlite_lookup_records;
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Sqlite database running\n"));
   return api;

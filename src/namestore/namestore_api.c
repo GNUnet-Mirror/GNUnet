@@ -300,6 +300,7 @@ handle_lookup_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
   size_t name_len;
   size_t rd_len;
   unsigned int rd_count;
+  int found;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received `%s'\n",
@@ -309,7 +310,7 @@ handle_lookup_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
   rd_count = ntohs (msg->rd_count);
   msg_len = ntohs (msg->gns_header.header.size);
   name_len = ntohs (msg->name_len);
-  GNUNET_break (0 == ntohs (msg->reserved));
+  found = ntohs (msg->found);
   exp_msg_len = sizeof (struct LabelLookupResponseMessage) + name_len + rd_len;
   if (msg_len != exp_msg_len)
   {
@@ -323,6 +324,17 @@ handle_lookup_result (struct GNUNET_NAMESTORE_QueueEntry *qe,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+  if (GNUNET_NO == found)
+  {
+    /* label was not in namestore */
+    if (NULL != qe->proc)
+      qe->proc (qe->proc_cls,
+                &msg->private_key,
+                name,
+                0, NULL);
+    return GNUNET_OK;
+  }
+
   rd_tmp = &name[name_len];
   {
     struct GNUNET_GNSRECORD_Data rd[rd_count];

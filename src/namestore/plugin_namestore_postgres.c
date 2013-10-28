@@ -86,8 +86,9 @@ create_indices (PGconn * dbh)
 	GNUNET_POSTGRES_exec (dbh,
                               "CREATE INDEX ir_pkey_iter ON ns097records (zone_private_key,rvalue)")) ||
        (GNUNET_OK !=
-	GNUNET_POSTGRES_exec (dbh,
-                              "CREATE INDEX it_iter ON ns097records (rvalue)")) )
+	GNUNET_POSTGRES_exec (dbh, "CREATE INDEX it_iter ON ns097records (rvalue)")) ||
+       (GNUNET_OK !=
+        GNUNET_POSTGRES_exec (dbh, "CREATE INDEX ir_label ON ns097records (label)")) )
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to create indices\n"));
 }
@@ -178,7 +179,12 @@ database_setup (struct Plugin *plugin)
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_all_zones",
 				"SELECT record_count,record_data,label,zone_private_key"
-				" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)))
+				" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)) ||
+      (GNUNET_OK !=
+       GNUNET_POSTGRES_prepare (plugin->dbh,
+                              "lookup_label",
+                              "SELECT record_count,record_data,label,zone_private_key"
+                              " FROM ns097records WHERE records zone_private_key=$1 AND label=$2", 2)))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -370,6 +376,44 @@ get_record_and_call_iterator (struct Plugin *plugin,
 
 
 /**
+ * Lookup records in the datastore for which we are the authority.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param zone private key of the zone
+ * @param label name of the record in the zone
+ * @param iter function to call with the result
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+namestore_postgres_lookup_records (void *cls,
+    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone, const char *label,
+    GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  const char *paramValues[] = {
+    (const char *) zone,
+    label
+  };
+  int paramLengths[] = {
+    sizeof (*zone),
+    strlen (label)
+  };
+  const int paramFormats[] = { 1, 1 };
+  PGresult *res;
+
+  res = PQexecPrepared (plugin->dbh,
+                        "lookup_label", 2,
+                        paramValues, paramLengths, paramFormats,
+                        1);
+  return get_record_and_call_iterator (plugin,
+                                       res,
+                                       zone,
+                                       iter, iter_cls);
+}
+
+
+/**
  * Iterate over the results for a particular key and zone in the
  * datastore.  Will return at most one result to the iterator.
  *
@@ -515,6 +559,7 @@ libgnunet_plugin_namestore_postgres_init (void *cls)
   api->store_records = &namestore_postgres_store_records;
   api->iterate_records = &namestore_postgres_iterate_records;
   api->zone_to_name = &namestore_postgres_zone_to_name;
+  api->lookup_records = &namestore_postgres_lookup_records;
   LOG (GNUNET_ERROR_TYPE_INFO,
        _("Postgres database running\n"));
   return api;
