@@ -432,6 +432,30 @@ test_ats_solver_alternative_after_delete_address_ril_LDADD = \
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la \
 #  $(top_builddir)/src/ats/libgnunetats.la  
 
+perf_ats_solver_mlp_SOURCES = \
+  perf_ats_solver.c
+perf_ats_solver_mlp_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/ats/libgnunetats.la 
+
+perf_ats_solver_proportional_SOURCES = \
+  perf_ats_solver.c
+perf_ats_solver_proportional_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/ats/libgnunetats.la 
+
+perf_ats_solver_ril_SOURCES = \
+  perf_ats_solver.c
+perf_ats_solver_ril_LDADD = \
+  $(GN_LIBGLPK) \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/ats/libgnunetats.la 
+
 
 EXTRA_DIST = \
   ats.h \
