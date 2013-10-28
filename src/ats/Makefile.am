@@ -26,6 +26,7 @@ if HAVE_LIBGLPK
   GN_MLP_REQUEST_ADD_ADDRESS = test_ats_solver_request_and_add_address_mlp
   GN_MLP_REQUEST_DELETE_ADDRESS = test_ats_solver_request_and_delete_address_mlp
   GN_MLP_ALTERNATIVE_DELETE_ADDRESS = test_ats_solver_alternative_after_delete_address_mlp
+  GN_MLP_SOLVER_PERF = perf_ats_solver_mlp
 endif
 
 lib_LTLIBRARIES = libgnunetats.la
@@ -131,7 +132,10 @@ TESTING_TESTS = \
  test_ats_solver_add_address_and_request_ril \
  test_ats_solver_request_and_add_address_ril \
  test_ats_solver_request_and_delete_address_ril \
- test_ats_solver_alternative_after_delete_address_ril
+ test_ats_solver_alternative_after_delete_address_ril \
+ perf_ats_solver_proportional \
+ $(GN_MLP_SOLVER_PERF) \
+ perf_ats_solver_ril 
 endif
 
 check_PROGRAMS = \

@@ -28,8 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_service.h"
-#include "gnunet-service-ats-solver_mlp.h"
-#include "gnunet-service-ats_normalization.h"
+#include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"
 
 #define PEERS_START 100
@@ -77,7 +76,7 @@ struct GNUNET_CONTAINER_MultiHashMap * addresses;
 struct GNUNET_ATS_Information ats[2];
 
 struct PerfPeer *peers;
-
+#if 0
 static void
 end_now (int res)
 {
@@ -240,11 +239,14 @@ update_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
     }
   }
 }
+#endif
+
 
 static void
 check (void *cls, char * const *args, const char *cfgfile,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+#if 0
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
@@ -427,14 +429,19 @@ check (void *cls, char * const *args, const char *cfgfile,
 
   }
   GNUNET_free(peers);
-
+#endif
 }
 
 int
 main (int argc, char *argv[])
 {
+  char *sep;
+  char *src_filename = GNUNET_strdup (__FILE__);
+  char *test_filename = GNUNET_strdup (argv[0]);
+  char *config_file;
+  char *solver;
 
-  static char * const argv2[] = { "perf_ats_mlp", "-c", "test_ats_mlp.conf",
+  static char * const argv2[] = { "perf_ats_mlp", "-c", "perf_ats_mlp.conf",
       "-L", "WARNING", NULL };
 
   opt_dump = GNUNET_NO;
@@ -445,6 +452,7 @@ main (int argc, char *argv[])
   N_peers_end = 0;
   N_address = 0;
   int c;
+  /* extract command line arguments */
   for (c = 0; c < argc; c++)
   {
     if ((0 == strcmp (argv[c], "-z")) && (c < (argc - 1)))
@@ -520,11 +528,55 @@ main (int argc, char *argv[])
     exit (1);
   }
 
+  /* Extract test name */
+  if (NULL == (sep  = (strstr (src_filename,".c"))))
+  {
+    GNUNET_break (0);
+    return -1;
+  }
+  sep[0] = '\0';
+
+  if (NULL != (sep = strstr (test_filename, ".exe")))
+    sep[0] = '\0';
+
+  if (NULL == (solver = strstr (test_filename, src_filename)))
+  {
+    GNUNET_break (0);
+    return -1;
+  }
+  solver += strlen (src_filename) +1;
+
+  if (0 == strcmp(solver, "proportional"))
+  {
+    config_file = "perf_ats_solver_proportional.conf";
+  }
+  else if (0 == strcmp(solver, "mlp"))
+  {
+    config_file = "perf_ats_solver_mlp.conf";
+  }
+  else if ((0 == strcmp(solver, "ril")))
+  {
+    config_file = "perf_ats_solver_ril.conf";
+  }
+  else
+  {
+    GNUNET_break (0);
+    GNUNET_free (src_filename);
+    GNUNET_free (test_filename);
+    return 1;
+  }
+
+  GNUNET_free (src_filename);
+  GNUNET_free (test_filename);
+
+  fprintf (stderr, "Using cfg file `%s'\n",config_file);
+  return 0;
+
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       GNUNET_GETOPT_OPTION_END };
 
   GNUNET_PROGRAM_run ((sizeof(argv2) / sizeof(char *)) - 1, argv2,
-      "perf_ats_mlp", "nohelp", options, &check, NULL );
+      "perf_ats", "nohelp", options, &check, NULL );
 
   return ret;
 }
