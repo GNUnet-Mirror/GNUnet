@@ -885,7 +885,15 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
              gh,
              gh->service, entry->index);
   if (!gh->connection_ready_called)
+  {
     GNUNET_CONTAINER_DLL_remove (entry->head_waiting, entry->tail_waiting, gh);
+    if ((NULL == entry->head_waiting)
+        && (GNUNET_SCHEDULER_NO_TASK != entry->notify_task))
+    {
+      GNUNET_SCHEDULER_cancel (entry->notify_task);
+      entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+  }
   if (gh->notify_waiting)
   { 
     GNUNET_CONTAINER_DLL_remove (entry->head_notify, entry->tail_notify, gh);
