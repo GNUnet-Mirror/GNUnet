@@ -82,6 +82,22 @@ struct GNUNET_NAMESTORE_PluginFunctions
 			unsigned int rd_count,
 			const struct GNUNET_GNSRECORD_Data *rd);
 
+  /**
+   * Lookup records in the datastore for which we are the authority.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param zone private key of the zone
+   * @param label name of the record in the zone
+   * @param iter function to call with the result
+   * @param iter_cls closure for @a iter
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int (*lookup_records) (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                        const char *label,
+                        GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls);
+
+
 
   /**
    * Iterate over the results for a particular zone in the
