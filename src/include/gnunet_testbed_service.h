@@ -114,7 +114,8 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id,
 
 
 /**
- * Load a set of hosts from a configuration file.
+ * Load a set of hosts from a configuration file.  The hostfile format is
+ * specified at https://gnunet.org/content/hosts-file-format
  *
  * @param filename file with the host specification
  * @param cfg the configuration to use as a template while starting a controller
