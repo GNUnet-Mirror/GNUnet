@@ -805,6 +805,7 @@ handle_client_evaluate (void *cls,
   spec->salt = ntohl (msg->salt);
   spec->peer = msg->target_peer;
   spec->set = set;
+  spec->result_mode = ntohs (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
   spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
   if (NULL != spec->context_msg)
@@ -923,6 +924,7 @@ handle_client_accept (void *cls,
 
   incoming->spec->set = set;
   incoming->spec->client_request_id = ntohl (msg->request_id);
+  incoming->spec->result_mode = ntohs (msg->result_mode);
   set->vt->accept (incoming->spec, incoming->tunnel, incoming->tc);
   /* tunnel ownership goes to operation */
   incoming->tunnel = NULL;
@@ -1124,7 +1126,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {handle_client_reject, NULL, GNUNET_MESSAGE_TYPE_SET_REJECT,
         sizeof (struct GNUNET_SET_AcceptRejectMessage)},
     {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
-    {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE,
+    {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_CANCEL,
         sizeof (struct GNUNET_SET_CancelMessage)},
     {NULL, NULL, 0, 0}
   };

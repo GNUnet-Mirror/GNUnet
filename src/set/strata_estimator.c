@@ -67,6 +67,19 @@ strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
 }
 
 
+void
+strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key)
+{
+  uint64_t v;
+  int i;
+  v = key.key_val;
+  /* count trailing '1'-bits of v */
+  for (i = 0; v & 1; v>>=1, i++)
+    /* empty */;
+  ibf_remove (se->strata[i], key);
+}
+
+
 
 struct StrataEstimator *
 strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum)

@@ -134,7 +134,7 @@ ibf_insert_into  (struct InvertibleBloomFilter *ibf,
 
 
 /**
- * Insert an element into an IBF.
+ * Insert a key into an IBF.
  *
  * @param ibf the IBF
  * @param key the element's hash code
@@ -147,6 +147,23 @@ ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
   ibf_get_indices (ibf, key, buckets);
   ibf_insert_into (ibf, key, buckets, 1);
 }
+
+
+/**
+ * Remove a key from an IBF.
+ *
+ * @param ibf the IBF
+ * @param key the element's hash code
+ */
+void
+ibf_remove (struct InvertibleBloomFilter *ibf, struct IBF_Key key)
+{
+  int buckets[ibf->hash_num];
+  GNUNET_assert (ibf->hash_num <= ibf->size);
+  ibf_get_indices (ibf, key, buckets);
+  ibf_insert_into (ibf, key, buckets, -1);
+}
+
 
 /**
  * Test is the IBF is empty, i.e. all counts, keys and key hashes are zero.

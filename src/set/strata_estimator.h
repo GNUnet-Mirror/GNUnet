@@ -70,6 +70,10 @@ strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key);
 
 
 void
+strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key);
+
+
+void
 strata_estimator_destroy (struct StrataEstimator *se);
 
 

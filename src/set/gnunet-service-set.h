@@ -100,6 +100,11 @@ struct OperationSpecification
    * with a set.
    */
   struct Set *set;
+
+  /**
+   * When are elements sent to the client, and which elements are sent?
+   */
+  enum GNUNET_SET_ResultMode result_mode;
 };
 
 

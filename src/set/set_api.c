@@ -550,9 +550,9 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   mqm = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_EVALUATE, context_msg);
 
   msg->app_id = *app_id;
+  msg->result_mode = htons (result_mode);
   msg->target_peer = *other_peer;
   msg->salt = salt;
-  msg->reserved = 0;
   oh->conclude_mqm = mqm;
   oh->request_id_addr = &msg->request_id;
 
@@ -679,6 +679,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_ACCEPT);
   msg->accept_reject_id = htonl (request->accept_id);
+  msg->result_mode = htons (result_mode);
 
   oh->conclude_mqm = mqm;
   oh->request_id_addr = &msg->request_id;
@@ -688,10 +689,8 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
 
 
 /**
- * Cancel the given set operation.
- * We need to send an explicit cancel message, as
- * all operations communicate with the set's client
- * handle.
+ * Cancel the given set operation.  We need to send an explicit cancel message,
+ * as all operations one one set communicate using one handle.
  *
  * @param oh set operation to cancel
  */

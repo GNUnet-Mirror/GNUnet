@@ -273,7 +273,7 @@ destroy_key_to_element_iter (void *cls,
                              void *value)
 {
   struct KeyEntry *k = value;
-
+  /* destroy the linked list of colliding ibf key entries */
   while (NULL != k)
   {
     struct KeyEntry *k_tmp = k;
@@ -1035,7 +1035,9 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   /* FIXME: see if the element has already been inserted! */
 
   op_register_element (eo, ee);
-  send_client_element (eo, &ee->element);
+  /* only send results immediately if the client wants it */
+  if (GNUNET_SET_RESULT_ADDED == eo->spec->result_mode)
+    send_client_element (eo, &ee->element);
 }
 
 
@@ -1137,6 +1139,7 @@ union_evaluate (struct OperationSpecification *spec,
   eo->set = spec->set;
   eo->spec = spec;
   eo->tunnel = tunnel;
+  eo->tunnel = tunnel;
   eo->mq = GNUNET_MESH_mq_create (tunnel);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1223,6 +1226,20 @@ union_add (struct SetState *set_state, struct ElementEntry *ee)
 
 
 /**
+ * Remove the element given in the element message from the set.
+ * Only marks the element as removed, so that older set operations can still exchange it.
+ *
+ * @param set_state state of the set to remove from
+ * @param ee set element to remove
+ */
+static void
+union_remove (struct SetState *set_state, struct ElementEntry *ee)
+{
+  strata_estimator_remove (set_state->se, get_ibf_key (&ee->element_hash, 0));
+}
+
+
+/**
  * Destroy a set that supports the union operation
  *
  * @param set_state the set to destroy
@@ -1240,20 +1257,6 @@ union_set_destroy (struct SetState *set_state)
     set_state->se = NULL;
   }
   GNUNET_free (set_state);
-}
-
-
-/**
- * Remove the element given in the element message from the set.
- * Only marks the element as removed, so that older set operations can still exchange it.
- *
- * @param set_state state of the set to remove from
- * @param element set element to remove
- */
-static void
-union_remove (struct SetState *set_state, struct ElementEntry *element)
-{
-  /* FIXME: remove from strata estimator */
 }
 
 
@@ -1331,7 +1334,22 @@ union_peer_disconnect (struct OperationState *op)
 static void
 union_op_cancel (struct SetState *set_state, uint32_t op_id)
 {
-  /* FIXME: implement */
+  struct OperationState *op_state; 
+  int found = GNUNET_NO;
+  for (op_state = set_state->ops_head; NULL != op_state; op_state = op_state->next)
+  {
+    if (op_state->spec->client_request_id == op_id)
+    {
+      found = GNUNET_YES;
+      break;
+    }
+  }
+  if (GNUNET_NO == found)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "canceling non-existing operation\n");
+    return;
+  }
+  union_operation_destroy (op_state);
 }
 
 

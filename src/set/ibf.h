@@ -158,13 +158,23 @@ ibf_create (uint32_t size, uint8_t hash_num);
 
 
 /**
- * Insert an element into an IBF.
+ * Insert a key into an IBF.
  *
  * @param ibf the IBF
  * @param key the element's hash code
  */
 void
 ibf_insert (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
+
+
+/**
+ * Remove a key from an IBF.
+ *
+ * @param ibf the IBF
+ * @param key the element's hash code
+ */
+void
+ibf_remove (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
 
 
 /**

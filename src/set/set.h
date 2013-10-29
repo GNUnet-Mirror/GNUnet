@@ -87,6 +87,12 @@ struct GNUNET_SET_AcceptRejectMessage
    * must be 0 if we don't accept the request.
    */
   uint32_t request_id GNUNET_PACKED;
+
+  /**
+   * How should results be sent to us?
+   * See enum GNUNET_SET_ResultMode.
+   */
+  uint16_t result_mode GNUNET_PACKED;
 };
 
 
@@ -143,9 +149,10 @@ struct GNUNET_SET_EvaluateMessage
   uint16_t salt GNUNET_PACKED;
 
   /**
-   * Padding
+   * How should results be sent to us?
+   * See enum GNUNET_SET_ResultMode.
    */
-  uint16_t reserved GNUNET_PACKED;
+  uint16_t result_mode GNUNET_PACKED;
 
   /* rest: inner message */
 };
