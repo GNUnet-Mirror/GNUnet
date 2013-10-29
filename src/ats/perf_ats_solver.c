@@ -113,10 +113,6 @@ struct PerfPeer
 
 static struct PerfHandle ph;
 
-
-int count_p;
-int count_a;
-
 /**
  * Return value
  */
@@ -439,7 +435,7 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   /* Load quotas */
   if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg,
-      quotas_in, quotas_in, GNUNET_ATS_NetworkTypeCount))
+      quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount))
   {
     GNUNET_break(0);
     end_now (1);
@@ -462,12 +458,16 @@ run (void *cls, char * const *args, const char *cfgfile,
     ph.env.networks[c] = networks[c];
     ph.env.out_quota[c] = quotas_out[c];
     ph.env.in_quota[c] = quotas_in[c];
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loading network quotas: `%s' %llu %llu \n",
+        GNUNET_ATS_print_network_type(ph.env.networks[c]),
+        ph.env.out_quota[c],
+        ph.env.in_quota[c]);
   }
   GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL );
 
 
   GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s '`%s'\n"), ph.ats_string, plugin);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s' `%s'\n"), ph.ats_string, plugin);
   if  (NULL == (ph.solver = GNUNET_PLUGIN_load (plugin, &ph.env)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver `%s'!\n"), plugin);
