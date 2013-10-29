@@ -95,6 +95,47 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
   SRANDOM (seed);
 }
 
+/**
+ * @ingroup crypto
+ * Fill block with a random values.
+ *
+ * @param mode desired quality of the random number
+ * @param buffer the buffer to fill
+ * @param length buffer length
+ */
+void
+GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_t length)
+{
+#ifdef gcry_fast_random_poll
+  static unsigned int invokeCount;
+#endif
+  switch (mode)
+  {
+  case GNUNET_CRYPTO_QUALITY_STRONG:
+    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+#ifdef gcry_fast_random_poll
+    if ((invokeCount++ % 256) == 0)
+      gcry_fast_random_poll ();
+#endif
+    gcry_randomize (buffer, length, GCRY_STRONG_RANDOM);
+    return;
+  case GNUNET_CRYPTO_QUALITY_NONCE:
+    gcry_create_nonce (buffer, length);
+    return;
+  case GNUNET_CRYPTO_QUALITY_WEAK:
+    /* see http://lists.gnupg.org/pipermail/gcrypt-devel/2004-May/000613.html */
+#ifdef gcry_fast_random_poll
+    if ((invokeCount++ % 256) == 0)
+      gcry_fast_random_poll ();
+#endif
+    gcry_randomize (buffer, length, GCRY_WEAK_RANDOM);
+    return;
+    return;
+  default:
+    GNUNET_assert (0);
+  }
+}
+
 
 /**
  * Produce a random value.

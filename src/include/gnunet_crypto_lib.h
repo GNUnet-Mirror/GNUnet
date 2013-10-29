@@ -410,6 +410,17 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len);
 
 /**
  * @ingroup crypto
+ * Fill block with a random values.
+ *
+ * @param mode desired quality of the random number
+ * @param buffer the buffer to fill
+ * @param length buffer length
+ */
+void
+GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_t length);
+
+/**
+ * @ingroup crypto
  * Produce a random value.
  *
  * @param mode desired quality of the random number
