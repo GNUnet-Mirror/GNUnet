@@ -1478,8 +1478,8 @@ sign_ephemeral_key ()
   current_ekm.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
 				    sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-				    sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
-				    sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
+				    sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+				    sizeof (struct GNUNET_PeerIdentity));
   current_ekm.creation_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (GSC_cfg,
