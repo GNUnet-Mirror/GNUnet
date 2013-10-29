@@ -153,9 +153,9 @@ end_now (int res)
 static void
 perf_create_peer (int cp)
 {
-  /*
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
-      &ph.peers[cp].id.);*/
+
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+      &ph.peers[cp].id, sizeof (struct GNUNET_PeerIdentity));
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Creating peer #%u: %s \n", cp,
       GNUNET_i2s (&ph.peers[cp].id));
 }
@@ -302,11 +302,16 @@ check ()
   int ca;
   int count_p = ph.N_peers_end;
   int count_a = ph.N_address;
+  int bulk_running;
   struct ATS_Address * cur_addr;
   ph.peers = GNUNET_malloc ((count_p) * sizeof (struct PerfPeer));
 
   for (cp = 0; cp < count_p; cp++)
     perf_create_peer (cp);
+
+  /* Set initial bulk start to not solve */
+  ph.env.sf.s_bulk_start (ph.solver);
+  bulk_running = GNUNET_YES;
 
   for (cp = 0; cp < count_p; cp++)
   {
@@ -316,13 +321,30 @@ check ()
       /* add address */
       ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LAN);
       address_initial_update (ph.solver, ph.addresses, cur_addr);
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Adding address for peer %u address %u\n", cp, ca);
     }
-    //ph.env.sf.s_get (ph.solver, &ph.peers[cp].id);
+    ph.env.sf.s_get (ph.solver, &ph.peers[cp].id);
+
     if (cp + 1 >= ph.N_peers_start)
     {
-      /* Solve */
+      /* Disable bulk to solve the problem */
+      if (GNUNET_YES == bulk_running)
+      {
+        ph.env.sf.s_bulk_stop (ph.solver);
+        bulk_running = GNUNET_NO;
+      }
+
+      /* Problem should be solved here */
+
+      /* Disable bulk to solve the problem */
+      if (GNUNET_NO == bulk_running)
+      {
+        ph.env.sf.s_bulk_start (ph.solver);
+        bulk_running = GNUNET_YES;
+      }
+
+#if 0
       if ((0 < ph.opt_update_quantity) || (0 < ph.opt_update_percent))
       {
         /* Update */
@@ -332,8 +354,11 @@ check ()
         //update_addresses (cp + 1, ca, ph.opt_update_quantity);
         //ph.env.sf.s_bulk_stop (ph.solver);
       }
+#endif
     }
   }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Done, cleaning up addresses\n");
   for (cp = 0; cp < count_p; cp++)
   {
     for (cur = ph.peers[cp].head; cur != NULL ; cur = next)
