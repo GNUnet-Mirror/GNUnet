@@ -468,4 +468,7 @@ EXTRA_DIST = \
   test_ats_solver_default.conf \
   test_ats_solver_proportional.conf \
   test_ats_solver_mlp.conf \
-  test_ats_solver_ril.conf 
+  test_ats_solver_ril.conf \
+  perf_ats_solver_mlp.conf \
+  perf_ats_solver_proportional.conf \
+  perf_ats_solver_ril.conf
