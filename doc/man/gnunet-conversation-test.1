@@ -1,0 +1,34 @@
+.TH GNUNET\-CONVERSATION\-TEST 1 "Oct 30, 2013" "GNUnet"
+
+.SH NAME
+gnunet\-conversation\-test \- check your speaker and microphone settings
+
+.SH SYNOPSIS
+.B gnunet\-conversation\-test [OPTIONS]
+.RI URI
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-conversation\-test\fP can be used to check your speaker and microphone settings.  It will record you for five seconds and then play the recording back to you.  If this fails, you might want to use the \fBpavucontrol\fP tool to check which microphone or speaker were assigned to GNUnet by PulseAudio (you may have more than one set of microphones or speakers known to your computer).
+
+You can use gnunet\-conversation\-test without having a peer running on your computer.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+.SH "SEE ALSO"
+\fBgnunet\-conversation\fP(1)
