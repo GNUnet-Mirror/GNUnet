@@ -367,6 +367,11 @@ static void
 incoming_destroy (struct Incoming *incoming)
 {
   GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
+  if (GNUNET_SCHEDULER_NO_TASK != incoming->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (incoming->timeout_task);
+    incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != incoming->tunnel)
   {
     struct GNUNET_MESH_Tunnel *t = incoming->tunnel;
@@ -414,6 +419,7 @@ incoming_suggest (struct Incoming *incoming, struct Listener *listener)
   incoming->suggest_id = suggest_id++;
 
   GNUNET_SCHEDULER_cancel (incoming->timeout_task);
+  incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   mqm = GNUNET_MQ_msg_nested_mh (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
@@ -422,7 +428,6 @@ incoming_suggest (struct Incoming *incoming, struct Listener *listener)
   cmsg->accept_id = htonl (incoming->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
   GNUNET_MQ_send (listener->client_mq, mqm);
-
 }
 
 
@@ -902,7 +907,6 @@ handle_client_accept (void *cls,
 
   if (NULL == incoming)
   {
-
     GNUNET_break (0);
     GNUNET_SERVER_client_disconnect (client);
     return;
@@ -970,6 +974,9 @@ incoming_timeout_cb (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Incoming *incoming = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "remote peer timed out\n");
   incoming_destroy (incoming);
