@@ -68,7 +68,8 @@ struct GNUNET_CONTAINER_BloomFilter;
  * @return #GNUNET_YES if next was updated
  *         #GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_HashCodeIterator) (void *cls, struct GNUNET_HashCode * next);
+typedef int (*GNUNET_HashCodeIterator) (void *cls,
+                                        struct GNUNET_HashCode *next);
 
 
 /**
@@ -84,7 +85,8 @@ typedef int (*GNUNET_HashCodeIterator) (void *cls, struct GNUNET_HashCode * next
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
+GNUNET_CONTAINER_bloomfilter_load (const char *filename,
+                                   size_t size,
                                    unsigned int k);
 
 
@@ -103,7 +105,8 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
  * @return the bloomfilter
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
+GNUNET_CONTAINER_bloomfilter_init (const char *data,
+                                   size_t size,
                                    unsigned int k);
 
 
@@ -117,8 +120,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
  * @return #GNUNET_SYSERR if the data array of the wrong size
  */
 int
-GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
-                                           GNUNET_CONTAINER_BloomFilter *bf,
+GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct GNUNET_CONTAINER_BloomFilter *bf,
                                            char *data, size_t size);
 
 
@@ -131,8 +133,8 @@ GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct
  * @return #GNUNET_YES if the element is in the filter, #GNUNET_NO if not
  */
 int
-GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
-                                   *bf, const struct GNUNET_HashCode * e);
+GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter *bf,
+                                   const struct GNUNET_HashCode *e);
 
 
 /**
@@ -144,7 +146,7 @@ GNUNET_CONTAINER_bloomfilter_test (const struct GNUNET_CONTAINER_BloomFilter
  */
 void
 GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                  const struct GNUNET_HashCode * e);
+                                  const struct GNUNET_HashCode *e);
 
 
 /**
@@ -156,7 +158,7 @@ GNUNET_CONTAINER_bloomfilter_add (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 void
 GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     const struct GNUNET_HashCode * e);
+                                     const struct GNUNET_HashCode *e);
 
 
 /**
@@ -167,8 +169,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
  * @return copy of bf
  */
 struct GNUNET_CONTAINER_BloomFilter *
-GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter
-                                   *bf);
+GNUNET_CONTAINER_bloomfilter_copy (const struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
 
@@ -192,8 +193,7 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf);
  * @return number of bytes used for the data of the bloom filter
  */
 size_t
-GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter
-                                       *bf);
+GNUNET_CONTAINER_bloomfilter_get_size (const struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
 /**
@@ -235,8 +235,7 @@ GNUNET_CONTAINER_bloomfilter_or (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 int
 GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                  const struct GNUNET_CONTAINER_BloomFilter
-                                  *to_or);
+                                  const struct GNUNET_CONTAINER_BloomFilter *to_or);
 
 /**
  * @ingroup bloomfilter
@@ -308,10 +307,8 @@ GNUNET_CONTAINER_meta_data_destroy (struct GNUNET_CONTAINER_MetaData *md);
  * @return #GNUNET_YES if they are equal
  */
 int
-GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData
-                                       *md1,
-                                       const struct GNUNET_CONTAINER_MetaData
-                                       *md2);
+GNUNET_CONTAINER_meta_data_test_equal (const struct GNUNET_CONTAINER_MetaData *md1,
+                                       const struct GNUNET_CONTAINER_MetaData *md2);
 
 
 /**
