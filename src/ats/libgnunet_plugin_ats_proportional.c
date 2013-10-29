@@ -830,7 +830,6 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
   {
     if (s->network_entries[c].type == type)
       return &s->network_entries[c];
-
   }
   return NULL ;
 }
