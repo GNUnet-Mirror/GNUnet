@@ -21,18 +21,20 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 
 #include "mesh_protocol_enc.h"
+#include "mesh_path.h"
 
 #include "gnunet-service-mesh_tunnel.h"
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_peer.h"
-#include "mesh_path.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
 
+#define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -68,21 +70,6 @@ struct MeshTunnel3
   enum MeshTunnel3State state;
 
   /**
-   * Local peer ephemeral private key
-   */
-  struct GNUNET_CRYPTO_EddsaPrivateKey *my_eph_key;
-
-  /**
-   * Local peer ephemeral public key
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey *my_eph;
-
-  /**
-   * Remote peer's public key.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey *peers_eph;
-
-  /**
    * Encryption ("our") key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey e_key;
@@ -91,6 +78,21 @@ struct MeshTunnel3
    * Decryption ("their") key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey d_key;
+
+  /**
+   * Encryption ("our") key.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old;
+
+  /**
+   * Decryption ("their") key.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
+
+  /**
+   * Task to start the rekey process.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier rekey_task;
 
   /**
    * Paths that are actively used to reach the destination peer.
@@ -280,7 +282,108 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 
 
 /**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
+ * Send the ephemeral key on a tunnel.
+ *
+ * @param t Tunnel on which to send the key.
+ */
+static void
+send_ephemeral (struct MeshTunnel3 *t)
+{
+  kx_msg.sender_status = htonl (t->state);
+
+  /* When channel is NULL, fwd is irrelevant. */
+  GMT_send_prebuilt_message (&kx_msg.header, t, NULL, GNUNET_YES);
+}
+
+
+/**
+ * Initiate a rekey with the remote peer.
+ *
+ * @param cls Closure (tunnel).
+ * @param tc TaskContext.
+ */
+static void
+rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnel3 *t = cls;
+
+  t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
+  send_ephemeral (t);
+  t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
+}
+
+
+/**
+ * Out ephemeral key has changed, create new session key on all tunnels.
+ *
+ * @param cls Closure (size of the hashmap).
+ * @param key Current public key.
+ * @param value Value in the hash map (tunnel).
+ *
+ * @return #GNUNET_YES, so we should continue to iterate,
+ */
+static int
+rekey_iterator (void *cls,
+                const struct GNUNET_PeerIdentity *key,
+                void *value)
+{
+  struct MeshTunnel3 *t = value;
+  struct GNUNET_TIME_Relative delay;
+  long n = (long) cls;
+  uint32_t r;
+
+  r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
+  t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Create a new ephemeral key and key message, schedule next rekeying.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext.
+ */
+static void
+rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TIME_Absolute time;
+  long n;
+
+  rekey_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
+  GNUNET_free_non_null (my_ephemeral_key);
+  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
+
+  time = GNUNET_TIME_absolute_get ();
+  kx_msg.creation_time = GNUNET_TIME_absolute_hton (time);
+  time = GNUNET_TIME_absolute_add (time, rekey_period);
+  time = GNUNET_TIME_absolute_add (time, GNUNET_TIME_UNIT_MINUTES);
+  kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
+  GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key, &kx_msg.ephemeral_key);
+
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (my_private_key,
+                                           &kx_msg.purpose,
+                                           &kx_msg.signature));
+
+  n = (long) GNUNET_CONTAINER_multipeermap_size (tunnels);
+  GNUNET_CONTAINER_multipeermap_iterate (tunnels, &rekey_iterator, (void *) n);
+
+  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period, &rekey, NULL);
+}
+
+
+/**
  * Encrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
@@ -303,7 +406,6 @@ t_encrypt (struct MeshTunnel3 *t,
 
 
 /**
- * FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME FIXME
  * Decrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
@@ -645,19 +747,6 @@ GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
        GMP_2s (t->peer));
 }
 
-static void
-rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  rekey_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-
-  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
-  kx_msg.header.size = htons (sizeof (kx_msg));
-
-  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period, &rekey, NULL);
-}
 
 /**
  * Initialize the tunnel subsystem.
@@ -686,6 +775,15 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   }
 
   my_private_key = key;
+  kx_msg.header.size = htons (sizeof (kx_msg));
+  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
+  kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MESH_KX);
+  kx_msg.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+                               sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+                               sizeof (struct GNUNET_PeerIdentity));
+  kx_msg.origin_identity = my_full_id;
   rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
 
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
@@ -965,6 +1063,9 @@ GMT_destroy (struct MeshTunnel3 *t)
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
   GMP_set_tunnel (t->peer, NULL);
+
+  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+    GNUNET_SCHEDULER_cancel (t->rekey_task);
 
   GNUNET_free (t);
 }

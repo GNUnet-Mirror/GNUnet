@@ -1253,9 +1253,9 @@ GMP_get (const struct GNUNET_PeerIdentity *peer_id)
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
         peer->id = GNUNET_PEER_intern (peer_id);
   }
-    peer->last_contact = GNUNET_TIME_absolute_get();
+  peer->last_contact = GNUNET_TIME_absolute_get();
 
-    return peer;
+  return peer;
 }
 
 

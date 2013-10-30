@@ -202,7 +202,7 @@ struct GNUNET_MESH_KX_Pong
   struct GNUNET_PeerIdentity target;
 
   /**
-   * Same nonce as in the received PING message.
+   * Same nonce as in the reve.
    */
   uint32_t nonce GNUNET_PACKED;
 };
