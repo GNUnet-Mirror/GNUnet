@@ -58,10 +58,6 @@
 
 struct MLP_Solution
 {
-  struct GNUNET_TIME_Relative build_dur;
-  struct GNUNET_TIME_Relative lp_dur;
-  struct GNUNET_TIME_Relative mip_dur;
-
   int lp_res;
   int lp_presolv;
   int mip_res;
