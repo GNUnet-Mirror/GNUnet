@@ -1224,7 +1224,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
       s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) new_address);
     }
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_INFO,
       "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses, net->active_addresses, net->desc);
 
@@ -1493,9 +1493,10 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
           s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) address);
     }
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "After adding address now total %u and active %u addresses in network `%s'\n",
-      net->total_addresses, net->active_addresses, net->desc);
+
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "Adding new address %p for peer `%s', now total %u and active %u addresses in network `%s'\n",
+      address, GNUNET_i2s(&address->peer), net->total_addresses, net->active_addresses, net->desc);
 }
 
 
