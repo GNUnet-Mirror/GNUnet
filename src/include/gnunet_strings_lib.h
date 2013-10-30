@@ -153,27 +153,27 @@ GNUNET_STRINGS_from_utf8 (const char *input,
 
 
 /**
- * Convert the utf-8 input string to lowercase
- * Output needs to be allocated appropriately
+ * Convert the utf-8 input string to lower case.
+ * Output needs to be allocated appropriately.
  *
  * @param input input string
  * @param output output buffer
  */
 void
-GNUNET_STRINGS_utf8_tolower (const char* input,
-			     char** output);
+GNUNET_STRINGS_utf8_tolower (const char *input,
+			     char *output);
 
 
 /**
- * Convert the utf-8 input string to lowercase
- * Output needs to be allocated appropriately
+ * Convert the utf-8 input string to upper case.
+ * Output needs to be allocated appropriately.
  *
  * @param input input string
  * @param output output buffer
  */
 void
-GNUNET_STRINGS_utf8_toupper (const char* input,
-			     char** output);
+GNUNET_STRINGS_utf8_toupper (const char *input,
+			     char *output);
 
 
 /**

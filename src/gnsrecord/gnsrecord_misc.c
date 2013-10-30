@@ -45,10 +45,10 @@
 char *
 GNUNET_GNSRECORD_string_to_lowercase (const char *src)
 {
-  GNUNET_assert (NULL != src);
-  char *res = strdup (src);
-  /* normalize */
-  GNUNET_STRINGS_utf8_tolower(src, &res);
+  char *res;
+
+  res = GNUNET_strdup (src);
+  GNUNET_STRINGS_utf8_tolower (src, res);
   return res;
 }
 

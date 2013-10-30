@@ -758,7 +758,7 @@ handle_lookup (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_STRINGS_utf8_tolower (utf_in, &nameptr);
+  GNUNET_STRINGS_utf8_tolower (utf_in, nameptr);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   clh = GNUNET_new (struct ClientLookupHandle);

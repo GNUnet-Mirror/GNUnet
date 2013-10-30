@@ -274,12 +274,12 @@ GNUNET_CRYPTO_hash_to_enc (const struct GNUNET_HashCode *block,
 int
 GNUNET_CRYPTO_hash_from_string2 (const char *enc,
                                  size_t enclen,
-                                struct GNUNET_HashCode *result)
+                                 struct GNUNET_HashCode *result)
 {
   char upper_enc[enclen];
-  char* up_ptr = upper_enc;
+  char *up_ptr = upper_enc;
 
-  GNUNET_STRINGS_utf8_toupper(enc, &up_ptr);
+  GNUNET_STRINGS_utf8_toupper (enc, up_ptr);
 
   return GNUNET_STRINGS_string_to_data (upper_enc, enclen,
 					(unsigned char*) result,
