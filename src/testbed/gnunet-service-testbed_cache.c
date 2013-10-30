@@ -92,8 +92,8 @@ static unsigned int cache_size;
 /**
  * Looks up in the cache and returns the entry
  *
- * @param key the peer identity of the peer whose corresponding entry has to be
- *          looked up
+ * @param peer_id the peer identity of the peer whose corresponding entry has to
+ *          be looked up
  * @return the HELLO message; NULL if not found
  */
 static struct CacheEntry *
