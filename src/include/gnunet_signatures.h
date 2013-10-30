@@ -146,6 +146,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING 20
 
+/**
+ * Key exchange in MESH
+ */
+#define GNUNET_SIGNATURE_PURPOSE_MESH_KX                21
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

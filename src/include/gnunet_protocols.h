@@ -807,7 +807,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
 
 /**
- * Payload data.
+ * Payload data (usually inside a encrypted tunnel).
  */
 #define GNUNET_MESSAGE_TYPE_MESH_DATA                   260
 
@@ -815,6 +815,13 @@ extern "C"
  * Confirm payload data end-to-end.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               261
+
+/**
+ * Key exchange messages.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_KX                     262
+#define GNUNET_MESSAGE_TYPE_MESH_KX_PING                263
+#define GNUNET_MESSAGE_TYPE_MESH_KX_PONG                263
 
 /**
  * Payload data origin->end DEPRECATED.
