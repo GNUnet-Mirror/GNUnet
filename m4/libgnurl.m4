@@ -150,13 +150,13 @@ AC_DEFUN([LIBGNURL_CHECK_CONFIG],
 /* Try and use a few common options to force a failure if we are
    missing symbols or can't link. */
 int x;
-gnurl_easy_setopt(NULL,GNURLOPT_URL,NULL);
-x=GNURL_ERROR_SIZE;
-x=GNURLOPT_WRITEFUNCTION;
-x=GNURLOPT_FILE;
-x=GNURLOPT_ERRORBUFFER;
-x=GNURLOPT_STDERR;
-x=GNURLOPT_VERBOSE;
+gnurl_easy_setopt(NULL,CURLOPT_URL,NULL);
+x=CURL_ERROR_SIZE;
+x=CURLOPT_WRITEFUNCTION;
+x=CURLOPT_FILE;
+x=CURLOPT_ERRORBUFFER;
+x=CURLOPT_STDERR;
+x=CURLOPT_VERBOSE;
 ])],libgnurl_cv_lib_gnurl_usable=yes,libgnurl_cv_lib_gnurl_usable=no)
 
            CPPFLAGS=$_libgnurl_save_cppflags
@@ -175,9 +175,9 @@ x=GNURLOPT_VERBOSE;
            _libgnurl_save_libs=$LIBS
            LIBS="$LIBS $LIBGNURL"
 
-           AC_CHECK_FUNC(gnurl_free,,
-              AC_DEFINE(gnurl_free,free,
-                [Define gnurl_free() as free() if our version of gnurl lacks gnurl_free.]))
+           AC_CHECK_FUNC(curl_free,,
+              AC_DEFINE(curl_free,free,
+                [Define curl_free() as free() if our version of gnurl lacks curl_free.]))
 
            CPPFLAGS=$_libgnurl_save_cppflags
            LIBS=$_libgnurl_save_libs
