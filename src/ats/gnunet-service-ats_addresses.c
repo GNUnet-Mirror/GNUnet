@@ -34,13 +34,6 @@
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
 
-#if 0
-#if HAVE_LIBGLPK
-#include "gnunet-service-ats-solver_mlp.h"
-#endif
-#include "gnunet-service-ats-solver_proportional.h"
-#include "gnunet-service-ats-solver_ril.h"
-#endif
 
 /**
  * NOTE: Do not change this documentation. This documentation is based on
