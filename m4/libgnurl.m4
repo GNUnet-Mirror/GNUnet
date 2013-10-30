@@ -150,7 +150,7 @@ AC_DEFUN([LIBGNURL_CHECK_CONFIG],
 /* Try and use a few common options to force a failure if we are
    missing symbols or can't link. */
 int x;
-gnurl_easy_setopt(NULL,CURLOPT_URL,NULL);
+curl_easy_setopt(NULL,CURLOPT_URL,NULL);
 x=CURL_ERROR_SIZE;
 x=CURLOPT_WRITEFUNCTION;
 x=CURLOPT_FILE;
