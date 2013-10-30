@@ -186,7 +186,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Outbound quota configure for network `%s' is %llu\n"),
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Outbound quota configure for network `%s' is %llu\n"),
               network_str[c], out_dest[c]);
       }
       GNUNET_free (quota_out_str);
@@ -220,7 +220,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Inbound quota configured for network `%s' is %llu\n"),
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Inbound quota configured for network `%s' is %llu\n"),
               network_str[c], in_dest[c]);
       }
       GNUNET_free (quota_in_str);

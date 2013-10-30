@@ -32,9 +32,9 @@
 #include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"
 
-#define DEFAULT_PEERS_START     100
-#define DEFAULT_PEERS_END       100
-#define DEFAULT_ADDRESSES       10
+#define DEFAULT_PEERS_START     1
+#define DEFAULT_PEERS_END       1
+#define DEFAULT_ADDRESSES       1
 #define DEFAULT_ATS_COUNT       2
 
 /**
@@ -308,6 +308,8 @@ check ()
 
   for (cp = 0; cp < count_p; cp++)
     perf_create_peer (cp);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Added %u peers\n", cp);
 
   /* Set initial bulk start to not solve */
   ph.env.sf.s_bulk_start (ph.solver);
@@ -321,7 +323,7 @@ check ()
       /* add address */
       ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LAN);
       address_initial_update (ph.solver, ph.addresses, cur_addr);
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Adding address for peer %u address %u\n", cp, ca);
     }
     ph.env.sf.s_get (ph.solver, &ph.peers[cp].id);
@@ -380,7 +382,7 @@ static void
 run (void *cls, char * const *args, const char *cfgfile,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_log_setup ("perf-ats", "WARNING", NULL);
+  GNUNET_log_setup ("perf-ats-solver", "WARNING", NULL);
   char *sep;
   char *src_filename = GNUNET_strdup (__FILE__);
   char *test_filename = cls;
@@ -490,9 +492,8 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
   GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL );
 
-
   GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s' `%s'\n"), ph.ats_string, plugin);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s'\n"), ph.ats_string);
   if  (NULL == (ph.solver = GNUNET_PLUGIN_load (plugin, &ph.env)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver `%s'!\n"), plugin);
@@ -504,6 +505,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   check ();
 
   /* Unload solver*/
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
   GNUNET_PLUGIN_unload (plugin, ph.solver);
   GNUNET_free (plugin);
   ph.solver = NULL;
