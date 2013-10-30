@@ -2,12 +2,10 @@ SUBDIRS = .
 
 plugindir = $(libdir)/gnunet
 
-INCLUDES = \
+AM_CPPFLAGS = \
+  $(GNUNET_CPPFLAGS) \
   -I$(top_srcdir)/src/include \
   -I$(top_srcdir)
-
-AM_CPPFLAGS = \
-  $(GNUNET_CPPFLAGS)
 
 lib_LTLIBRARIES = \
  libgnunetmicrophone.la \
