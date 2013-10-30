@@ -1083,8 +1083,7 @@ GAS_proportional_get_preferred_address (void *solver,
    * - update quota for previous address network
    * - update quota for this address network
    */
-  prev = get_active_address (s,
-			     s->addresses, peer);
+  prev = get_active_address (s, s->addresses, peer);
   if (NULL != prev)
   {
     net_prev = (struct Network *) prev->solver_information;

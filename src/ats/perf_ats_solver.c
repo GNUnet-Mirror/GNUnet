@@ -32,9 +32,9 @@
 #include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"
 
-#define DEFAULT_PEERS_START     1
-#define DEFAULT_PEERS_END       1
-#define DEFAULT_ADDRESSES       1
+#define DEFAULT_PEERS_START     10
+#define DEFAULT_PEERS_END       10
+#define DEFAULT_ADDRESSES       10
 #define DEFAULT_ATS_COUNT       2
 
 /**
@@ -63,6 +63,8 @@ struct PerfHandle
   int opt_dump;
   int opt_update_percent;
   int opt_update_quantity;
+
+  int bulk_running;
 
   char *ats_string;
 
@@ -163,7 +165,7 @@ perf_create_peer (int cp)
 
 
 static void
-update_single_addresses (struct ATS_Address *cur)
+perf_update_address (struct ATS_Address *cur)
 {
   int r_type;
   int r_val;
@@ -201,6 +203,18 @@ update_single_addresses (struct ATS_Address *cur)
 static void
 bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
+  if (0 == ntohl(address->assigned_bw_out.value__) &&
+      0 == ntohl(address->assigned_bw_in.value__))
+    return;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Bandwidth changed addresses %s %p to %llu Bps out / %llu Bps in\n",
+      GNUNET_i2s (&address->peer),
+      address,
+      ntohl(address->assigned_bw_out.value__),
+      ntohl(address->assigned_bw_in.value__));
+  if (GNUNET_YES == ph.bulk_running)
+    GNUNET_break (0);
   return;
 }
 
@@ -225,7 +239,7 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *peer,
 }
 
 static void
-address_initial_update (void *solver,
+perf_address_initial_update (void *solver,
     struct GNUNET_CONTAINER_MultiPeerMap * addresses,
     struct ATS_Address *address)
 {
@@ -241,7 +255,7 @@ address_initial_update (void *solver,
 }
 
 static void
-update_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
+perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
 {
   struct ATS_Address *cur;
   int c_peer;
@@ -274,7 +288,7 @@ update_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
     for (cur = ph.peers[c_peer].head; NULL != cur; cur = cur->next)
     {
       if (1 == m[c_addr])
-        update_single_addresses (cur);
+        perf_update_address (cur);
       c_addr++;
     }
   }
@@ -302,8 +316,11 @@ perf_run ()
   int ca;
   int count_p = ph.N_peers_end;
   int count_a = ph.N_address;
-  int bulk_running;
   struct ATS_Address * cur_addr;
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Absolute end;
+  struct GNUNET_TIME_Relative delta;
+
   ph.peers = GNUNET_malloc ((count_p) * sizeof (struct PerfPeer));
 
   for (cp = 0; cp < count_p; cp++)
@@ -313,39 +330,50 @@ perf_run ()
 
   /* Set initial bulk start to not solve */
   ph.env.sf.s_bulk_start (ph.solver);
-  bulk_running = GNUNET_YES;
+  ph.bulk_running = GNUNET_YES;
 
   for (cp = 0; cp < count_p; cp++)
   {
     for (ca = 0; ca < count_a; ca++)
     {
       cur_addr = perf_create_address (cp, ca);
-      /* add address */
+      /* Add address */
       ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LAN);
-      address_initial_update (ph.solver, ph.addresses, cur_addr);
+      perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Adding address for peer %u address %u\n", cp, ca);
     }
+    /* Notify solver about request */
     ph.env.sf.s_get (ph.solver, &ph.peers[cp].id);
 
     if (cp + 1 >= ph.N_peers_start)
     {
       /* Disable bulk to solve the problem */
-      if (GNUNET_YES == bulk_running)
+      if (GNUNET_YES == ph.bulk_running)
       {
+        start = GNUNET_TIME_absolute_get();
+        ph.bulk_running = GNUNET_NO;
         ph.env.sf.s_bulk_stop (ph.solver);
-        bulk_running = GNUNET_NO;
+      }
+      else
+      {
+        GNUNET_break (0);
       }
 
-      /* Problem should be solved here */
+      /* Problem is solved by the solver here due to unlocking */
 
       /* Disable bulk to solve the problem */
-      if (GNUNET_NO == bulk_running)
+      if (GNUNET_NO == ph.bulk_running)
       {
-        ph.env.sf.s_bulk_start (ph.solver);
-        bulk_running = GNUNET_YES;
-      }
 
+        end = GNUNET_TIME_absolute_get();
+        delta = GNUNET_TIME_absolute_get_difference(start, end);
+        fprintf (stderr, "Solver took %llu us to solve problem with %u peers and %u addresses per peer\n",
+            (unsigned long long) delta.rel_value_us,
+            cp + 1, ca);
+        ph.env.sf.s_bulk_start (ph.solver);
+        ph.bulk_running = GNUNET_YES;
+      }
 #if 0
       if ((0 < ph.opt_update_quantity) || (0 < ph.opt_update_percent))
       {
@@ -361,10 +389,10 @@ perf_run ()
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Done, cleaning up addresses\n");
-  if (GNUNET_NO == bulk_running)
+  if (GNUNET_NO == ph.bulk_running)
   {
     ph.env.sf.s_bulk_start (ph.solver);
-    bulk_running = GNUNET_YES;
+    ph.bulk_running = GNUNET_YES;
   }
 
   for (cp = 0; cp < count_p; cp++)
