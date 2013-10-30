@@ -285,16 +285,16 @@ static struct ATS_Address *
 perf_create_address (int cp, int ca)
 {
   struct ATS_Address *a;
-  a = create_address (&ph.peers[cp].id, "Test 1", "test 1", strlen ("test 1") + 1,
-      0);
-  GNUNET_CONTAINER_DLL_insert(ph.peers[cp].head, ph.peers[cp].tail, a);
+  a = create_address (&ph.peers[cp].id,
+      "Test 1", "test 1", strlen ("test 1") + 1, 0);
+  GNUNET_CONTAINER_DLL_insert (ph.peers[cp].head, ph.peers[cp].tail, a);
   GNUNET_CONTAINER_multipeermap_put (ph.addresses, &ph.peers[cp].id, a,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return a;
 }
 
 static void
-check ()
+perf_run ()
 {
   struct ATS_Address *cur;
   struct ATS_Address *next;
@@ -361,12 +361,19 @@ check ()
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Done, cleaning up addresses\n");
+  if (GNUNET_NO == bulk_running)
+  {
+    ph.env.sf.s_bulk_start (ph.solver);
+    bulk_running = GNUNET_YES;
+  }
+
   for (cp = 0; cp < count_p; cp++)
   {
     for (cur = ph.peers[cp].head; cur != NULL ; cur = next)
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Deleting addresses for peer %u\n", cp);
+      GNUNET_CONTAINER_multipeermap_remove (ph.addresses, &ph.peers[cp].id, cur);
       ph.env.sf.s_del (ph.solver, cur, GNUNET_NO);
       next = cur->next;
       GNUNET_CONTAINER_DLL_remove(ph.peers[cp].head, ph.peers[cp].tail, cur);
@@ -502,7 +509,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* Do work */
-  check ();
+  perf_run ();
 
   /* Unload solver*/
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
