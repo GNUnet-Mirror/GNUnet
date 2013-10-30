@@ -258,7 +258,12 @@ struct GAS_RIL_Handle
   struct GNUNET_STATISTICS_Handle *stats;
 
   /**
-   * Number of performed time-steps
+   * Number of performed epochs
+   */
+  unsigned long long epoch_count;
+
+  /**
+   * Number of performed steps
    */
   unsigned long long step_count;
 
@@ -271,6 +276,16 @@ struct GAS_RIL_Handle
    * Task identifier of the next time-step to be executed
    */
   GNUNET_SCHEDULER_TaskIdentifier next_step;
+
+  /**
+   * Lock for bulk operations
+   */
+  int bulk_lock;
+
+  /**
+   * Number of changes during a lock
+   */
+  int bulk_changes;
 
   /**
    * Learning parameters
@@ -500,6 +515,13 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
   }
 }
 
+static void ril_inform (struct GAS_RIL_Handle *solver,
+    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat)
+{
+  if (NULL != solver->plugin_envi->info_cb)
+    solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat);
+}
+
 /**
  * Changes the active assignment suggestion of the handler and invokes the bw_changed callback to
  * notify ATS of its new decision
@@ -713,6 +735,8 @@ envi_reward_global (struct GAS_RIL_Handle *solver)
 static double
 envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
+  //TODO! add utilization
+
   const double *preferences;
   const double *properties;
   int prop_index;
@@ -1044,6 +1068,35 @@ agent_step (struct RIL_Peer_Agent *agent)
 }
 
 /**
+ * Triggers one epoch of agent decisions
+ * @param solver
+ */
+static int
+ril_epoch (struct GAS_RIL_Handle *solver)
+{
+  //TODO! add multiple steps per epoch
+  struct RIL_Peer_Agent *cur;
+
+  if (GNUNET_YES == solver->bulk_lock)
+  {
+    solver->bulk_changes ++;
+    return GNUNET_NO;
+  }
+
+  ril_inform(solver, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
+  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+  {
+    if (cur->is_active && cur->address_inuse)
+    {
+      agent_step (cur);
+    }
+  }
+  ril_inform(solver, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
+
+  return GNUNET_YES;
+}
+
+/**
  * Cycles through all agents and lets the active ones do a step. Schedules the next step.
  *
  * @param cls the solver handle
@@ -1053,19 +1106,12 @@ static void
 ril_periodic_step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GAS_RIL_Handle *solver = cls;
-  struct RIL_Peer_Agent *cur;
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", solver->step_count);
 
-  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
-  {
-    if (cur->is_active && cur->address_inuse)
-    {
-      agent_step (cur);
-    }
-  }
+  ril_epoch(solver);
 
-  solver->step_count += 1;
+  solver->epoch_count += 1;
   solver->next_step = GNUNET_SCHEDULER_add_delayed (solver->step_time, &ril_periodic_step, solver);
 }
 
@@ -1268,9 +1314,8 @@ GAS_ril_address_change_preference (void *solver,
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_change_preference() Preference '%s' for peer '%s' changed to %.2f \n",
       GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer), pref_rel);
-  /*
-   * Nothing to do here. Preferences are considered during reward calculation.
-   */
+
+  ril_epoch(solver);
 }
 
 /**
@@ -1480,6 +1525,8 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
     envi_set_active_suggestion (s, agent, address, min_bw, min_bw, GNUNET_NO);
   }
 
+  ril_epoch(s);
+
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_add() Added %s %s address %p for peer '%s'\n",
       address->active ? "active" : "inactive", address->plugin, address->addr,
       GNUNET_i2s (&address->peer));
@@ -1596,6 +1643,8 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
     }
   }
 
+  ril_epoch(solver);
+
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Address deleted\n");
 }
 
@@ -1619,9 +1668,8 @@ GAS_ril_address_property_changed (void *solver,
       "API_address_property_changed() Property '%s' for peer '%s' address %p changed "
           "to %.2f \n", GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       address->addr, rel_value);
-  /*
-   * Nothing to do here, properties are considered in every reward calculation
-   */
+
+  ril_epoch(solver);
 }
 
 /**
@@ -1745,29 +1793,45 @@ GAS_ril_address_preference_feedback (void *solver,
 /**
  * Start a bulk operation
  *
- * Since new calculations of the assignment are not triggered by a change of preferences, as it
- * happens in the proportional and the mlp solver, there is no need to block this solver.
- *
  * @param solver the solver
  */
 void
 GAS_ril_bulk_start (void *solver)
 {
-  /* nop */
+  struct GAS_RIL_Handle *s = solver;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start() Locking solver for bulk operation ...\n");
+
+  s->bulk_lock++;
 }
 
 /**
  * Bulk operation done
- *
- * Since new calculations of the assignment are not triggered by a change of preferences, as it
- * happens in the proportional and the mlp solver, there is no need to block this solver.
  *
  * @param solver the solver handle
  */
 void
 GAS_ril_bulk_stop (void *solver)
 {
-  /* nop */
+  /* TODO! trigger "recalculation" after bulk / trigger "recalculation" after changes (address or preference)
+   * that has to be properly thought through, not when your mind is blocked completely
+   */
+  struct GAS_RIL_Handle *s = solver;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop() Releasing solver from bulk operation ...\n");
+
+  if (s->bulk_lock < 1)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  s->bulk_lock--;
+
+  if (0 < s->bulk_changes)
+  {
+    ril_epoch (solver);
+    s->bulk_changes = 0;
+  }
 }
 
 /**
@@ -1816,6 +1880,8 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
         GNUNET_i2s (peer));
   }
 
+  ril_epoch(s);
+
   return agent->address_inuse;
 }
 
@@ -1857,6 +1923,8 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
   }
   envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
       GNUNET_YES);
+
+  ril_epoch(s);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_stop_get_preferred_address() Paused agent for peer '%s' with %s address\n",
