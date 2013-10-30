@@ -64,6 +64,9 @@ struct PerfHandle
   int opt_update_percent;
   int opt_update_quantity;
 
+  /**
+   * Is a bulk operation running?
+   */
   int bulk_running;
 
   char *ats_string;
@@ -308,6 +311,56 @@ perf_create_address (int cp, int ca)
 }
 
 static void
+solver_info_cb (void *cls,
+    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat)
+{
+  switch (op) {
+  case GAS_OP_SOLVE_START:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_START",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_SETUP_START:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_SETUP_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_LP_START:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_LP_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_MLP_START:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  case GAS_OP_SOLVE_MLP_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
+        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+    break;
+  default:
+    break;
+  }
+}
+
+static void
 perf_run ()
 {
   struct ATS_Address *cur;
@@ -514,6 +567,9 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.env.get_preferences = &get_preferences_cb;
   ph.env.get_property = &get_property_cb;
   ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
+  ph.env.info_cb = &solver_info_cb;
+  ph.env.info_cb_cls = NULL;
+
   int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {

@@ -296,6 +296,47 @@ struct GNUNET_ATS_SolverFunctions
 
 
 /**
+ * Operation codes for solver information callback
+ */
+enum GAS_Solver_Operation
+{
+  GAS_OP_SOLVE_START,
+  GAS_OP_SOLVE_STOP,
+  GAS_OP_SOLVE_SETUP_START,
+  GAS_OP_SOLVE_SETUP_STOP,
+  GAS_OP_SOLVE_LP_START,
+  GAS_OP_SOLVE_LP_STOP,
+  GAS_OP_SOLVE_MLP_START,
+  GAS_OP_SOLVE_MLP_STOP
+};
+
+
+/**
+ * Status of the operation
+ */
+enum GAS_Solver_Status
+{
+  GAS_STAT_SUCCESS,
+  GAS_STAT_FAIL
+};
+
+/**
+ * Callback to call with additional information
+ * Used for measurement
+ *
+ * @param cls the closure
+ * @param op the operation
+ * @param peer the peer id
+ * @param kind the preference kind to change
+ * @param score the new preference score
+ * @param pref_rel the normalized preference value for this kind over all clients
+ */
+typedef void
+(*GAS_solver_information_callback) (void *cls,
+    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat);
+
+
+/**
  * Callback to call from solver when bandwidth for address has changed
  *
  * @param address the with changed bandwidth assigned
@@ -388,6 +429,18 @@ struct GNUNET_ATS_PluginEnvironment
    */
   void *get_property_cls;
 
+
+  /**
+   * Callback for solver to call with status information,
+   * can be NULL
+   */
+  GAS_solver_information_callback info_cb;
+
+  /**
+   * Closure for information callback,
+   * can be NULL
+   */
+  void *info_cb_cls;
 
   /**
    * The ATS solver plugin functions to call
