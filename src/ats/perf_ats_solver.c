@@ -40,22 +40,22 @@
 #define GNUPLOT_PROP_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Execution time Proportional solver  \" \n" \
-"set xlabel \"Time in us\" \n" \
-"set ylabel \"Bytes/s\" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
 "set grid \n"
 
 #define GNUPLOT_MLP_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Execution time MLP solver \" \n" \
-"set xlabel \"Time in us\" \n" \
-"set ylabel \"Bytes/s\" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
 "set grid \n"
 
 #define GNUPLOT_RIL_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Execution time RIL solver \" \n" \
-"set xlabel \"Time in us\" \n" \
-"set ylabel \"Bytes/s\" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
 "set grid \n"
 
 /**
@@ -375,8 +375,10 @@ perf_create_address (int cp, int ca)
 }
 
 static void
-solver_info_cb (void *cls, enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat)
+solver_info_cb (void *cls,
+    enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat,
+    enum GAS_Solver_Additional_Information add)
 {
 
   struct Result *tmp;
@@ -509,22 +511,14 @@ solver_info_cb (void *cls, enum GAS_Solver_Operation op,
 }
 
 static void
-write_gnuplot_script ()
+write_gnuplot_script (char * data_fn)
 {
-  struct Result *cur;
-  struct Result *next;
   struct GNUNET_DISK_FileHandle *f;
   char * gfn;
   char *data;
   char *template;
-  int c_s;
-  int index;
-  int plot_d_total;
-  int plot_d_setup;
-  int plot_d_lp;
-  int plot_d_mlp;
 
-  GNUNET_asprintf (&gfn, "perf_%s_%u_%u_%u", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+  GNUNET_asprintf (&gfn, "perf_%s_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
@@ -536,7 +530,6 @@ write_gnuplot_script ()
   }
 
   /* Write header */
-
   switch (ph.ats_mode) {
     case MODE_PROPORTIONAL:
       template = GNUPLOT_PROP_TEMPLATE;
@@ -550,55 +543,37 @@ write_gnuplot_script ()
     default:
       break;
   }
-
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, template, strlen(template)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
-#if 0
-  cur = ph.head->d_total;
-  if (cur->d_total != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    plot_d_total = GNUNET_YES;
 
-  if (cur->d_total != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    plot_d_total = GNUNET_YES;
-  if (cur->d_setup != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    plot_d_setup = GNUNET_YES;
-  if (cur->d_lp != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    plot_d_lp = GNUNET_YES;
-  if (cur->d_mlp != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-    plot_d_mlp = GNUNET_YES;
-
-
-    GNUNET_asprintf (&data, "plot "\
-        "'%s' using 2:%u with lines title 'BW out master %u - Slave %u ', \\\n" \
-        "'%s' using 2:%u with lines title 'BW in master %u - Slave %u '"\
-        "%s\n",
-        "\n pause -1",
-        fn, index + LOG_ITEM_ATS_BW_OUT, lp->peer->no, lp->peer->partners[c_s].dest->no,
-        fn, index + LOG_ITEM_ATS_BW_IN, lp->peer->no, lp->peer->partners[c_s].dest->no);
-
-    GNUNET_free (data);
-#endif
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
-
-
-#if 0
-  index = LOG_ITEMS_TIME + LOG_ITEMS_PER_PEER;
-  for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
+  if (MODE_PROPORTIONAL == ph.ats_mode)
   {
-    GNUNET_asprintf (&data, "%s"\
-        "'%s' using 2:%u with lines title 'BW out master %u - Slave %u ', \\\n" \
-        "'%s' using 2:%u with lines title 'BW in master %u - Slave %u '"\
-        "%s\n",
-        (0 == c_s) ? "plot " :"",
-        fn, index + LOG_ITEM_ATS_BW_OUT, lp->peer->no, lp->peer->partners[c_s].dest->no,
-        fn, index + LOG_ITEM_ATS_BW_IN, lp->peer->no, lp->peer->partners[c_s].dest->no,
-        (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
-
-    GNUNET_free (data);
-    index += LOG_ITEMS_PER_PEER;
+    GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
+                           "pause -1",
+                           data_fn, 3);
   }
-#endif
+  if (MODE_MLP == ph.ats_mode)
+  {
+    GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve',\\\n" \
+                            "'%s' using 1:%u with lines title 'Time to setup',\\\n"
+                            "'%s' using 1:%u with lines title 'Time to solve LP',\\\n"
+                            "'%s' using 1:%u with lines title 'Total time to solve MLP'\n" \
+                            "pause -1",
+                           data_fn, 3,
+                           data_fn, 4,
+                           data_fn, 5,
+                           data_fn, 6);
+  }
+  if (MODE_RIL == ph.ats_mode)
+  {
+    GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
+                           "pause -1",
+                           data_fn, 3);
+  }
+
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
+  GNUNET_free (data);
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close gnuplot file `%s'\n", gfn);
@@ -624,21 +599,19 @@ evaluate ()
 
   if (ph.create_plot)
   {
-    GNUNET_asprintf (&data_fn, "perf_%s_%u_%u_%u_data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+    GNUNET_asprintf (&data_fn, "perf_%s_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
     f = GNUNET_DISK_file_open (data_fn,
         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
         GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == f)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn);
-      GNUNET_free (data_fn);
       return;
     }
     data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn);
-
-    write_gnuplot_script ();
+    write_gnuplot_script (data_fn);
   }
 
   next = ph.head;
@@ -697,9 +670,7 @@ evaluate ()
       GNUNET_free (str_d_lp);
       GNUNET_free (str_d_mlp);
       GNUNET_free (data);
-
     }
-
     GNUNET_CONTAINER_DLL_remove (ph.head, ph.tail, cur);
     GNUNET_free (cur);
   }
@@ -707,11 +678,8 @@ evaluate ()
   if (GNUNET_YES == ph.create_plot)
   {
     if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
-    {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn);
-      GNUNET_free (data_fn);
-    }
-
+    GNUNET_free (data_fn);
   }
 }
 

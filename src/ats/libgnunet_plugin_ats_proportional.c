@@ -549,12 +549,6 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   unsigned long long assigned_quota_out = 0;
   struct AddressWrapper *cur;
 
-  if (GNUNET_YES == s->bulk_lock)
-  {
-    s->bulk_requests++;
-    return;
-  }
-
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
       net->desc, net->active_addresses, net->total_quota_in,
@@ -812,16 +806,31 @@ static void distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
     struct Network *n,
     struct ATS_Address *address_except)
 {
+  if (GNUNET_YES == s->bulk_lock)
+  {
+    s->bulk_requests++;
+    return;
+  }
+
   if (NULL != n)
   {
+    if (NULL != s->env->info_cb)
+      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
     distribute_bandwidth (s, n, address_except);
+    if (NULL != s->env->info_cb)
+      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
   }
   else
   {
     int i;
+    if (NULL != s->env->info_cb)
+      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
       distribute_bandwidth (s, &s->network_entries[i], NULL );
+    if (NULL != s->env->info_cb)
+      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
   }
+
 }
 
 /**
@@ -1112,7 +1121,7 @@ GAS_proportional_get_preferred_address (void *solver,
 
   fba_ctx.best->active = GNUNET_YES;
   addresse_increment (s, net_cur, GNUNET_NO, GNUNET_YES);
-  distribute_bandwidth_in_network (s, net_cur, fba_ctx.best );
+  distribute_bandwidth_in_network (s, net_cur, fba_ctx.best);
   return fba_ctx.best;
 }
 

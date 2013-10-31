@@ -519,7 +519,7 @@ static void ril_inform (struct GAS_RIL_Handle *solver,
     enum GAS_Solver_Operation op, enum GAS_Solver_Status stat)
 {
   if (NULL != solver->plugin_envi->info_cb)
-    solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat);
+    solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
 }
 
 /**

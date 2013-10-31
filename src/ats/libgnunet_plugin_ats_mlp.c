@@ -1078,10 +1078,12 @@ mlp_propagate_results (void *cls,
 }
 
 static void notify (struct GAS_MLP_Handle *mlp,
-    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat)
+    enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat,
+    enum GAS_Solver_Additional_Information add)
 {
   if (NULL != mlp->env->info_cb)
-    mlp->env->info_cb (mlp->env->info_cb_cls, op, stat);
+    mlp->env->info_cb (mlp->env->info_cb_cls, op, stat, add);
 }
 /**
  * Solves the MLP problem
@@ -1103,36 +1105,36 @@ GAS_mlp_solve_problem (void *solver)
     mlp->bulk_request ++;
     return GNUNET_NO;
   }
-  notify (mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
+  notify (mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_NONE);
 
   if (0 == GNUNET_CONTAINER_multipeermap_size (mlp->requested_peers))
   {
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
+    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
     return GNUNET_OK; /* No pending requests */
   }
   if (0 == GNUNET_CONTAINER_multipeermap_size (mlp->addresses))
   {
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
+    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
     return GNUNET_OK; /* No addresses available */
   }
 
   if ((GNUNET_NO == mlp->mlp_prob_changed) && (GNUNET_NO == mlp->mlp_prob_updated))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
+    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
     return GNUNET_OK;
   }
   if (GNUNET_YES == mlp->mlp_prob_changed)
   {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
-      notify (mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS);
+      notify (mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_MLP_FULL);
       mlp_delete_problem (mlp);
       if (GNUNET_SYSERR == mlp_create_problem (mlp))
       {
-        notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL);
+        notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_MLP_FULL);
         return GNUNET_SYSERR;
       }
-      notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS);
+      notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_MLP_FULL);
       mlp->control_param_lp.presolve = GLP_YES;
       mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
   }
@@ -1142,20 +1144,28 @@ GAS_mlp_solve_problem (void *solver)
   }
 
   /* Run LP solver */
+
+  notify (mlp, GAS_OP_SOLVE_LP_START, GAS_STAT_SUCCESS,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver %s\n",
       (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
-  notify (mlp, GAS_OP_SOLVE_LP_START, GAS_STAT_SUCCESS);
   res_lp = mlp_solve_lp_problem (mlp);
-  notify (mlp, GAS_OP_SOLVE_LP_STOP, (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL);
+  notify (mlp, GAS_OP_SOLVE_LP_STOP,
+      (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
 
 
   /* Run MLP solver */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
-  notify (mlp, GAS_OP_SOLVE_MLP_START, GAS_STAT_SUCCESS);
+  notify (mlp, GAS_OP_SOLVE_MLP_START, GAS_STAT_SUCCESS,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
   res_mip = mlp_solve_mlp_problem (mlp);
-  notify (mlp, GAS_OP_SOLVE_MLP_STOP, (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL);
-
-  notify (mlp, GAS_OP_SOLVE_STOP, (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL);
+  notify (mlp, GAS_OP_SOLVE_MLP_STOP,
+      (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
+  notify (mlp, GAS_OP_SOLVE_STOP,
+      (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
 
   /* Save stats */
   mlp->ps.lp_res = res_lp;

@@ -321,6 +321,19 @@ enum GAS_Solver_Status
 };
 
 /**
+ * Status of the operation
+ */
+enum GAS_Solver_Additional_Information
+{
+  GAS_INFO_NONE,
+  GAS_INFO_MLP_FULL,
+  GAS_INFO_MLP_UPDATED,
+  GAS_INFO_PROP_ALL,
+  GAS_INFO_PROP_SINGLE
+};
+
+
+/**
  * Callback to call with additional information
  * Used for measurement
  *
@@ -333,7 +346,9 @@ enum GAS_Solver_Status
  */
 typedef void
 (*GAS_solver_information_callback) (void *cls,
-    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat);
+    enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat,
+    enum GAS_Solver_Additional_Information);
 
 
 /**
