@@ -156,6 +156,8 @@ struct Result
   int peers;
   int addresses;
 
+  enum GAS_Solver_Additional_Information info;
+
   struct GNUNET_TIME_Relative d_setup;
   struct GNUNET_TIME_Relative d_lp;
   struct GNUNET_TIME_Relative d_mlp;
@@ -380,20 +382,41 @@ solver_info_cb (void *cls,
     enum GAS_Solver_Status stat,
     enum GAS_Solver_Additional_Information add)
 {
+  char *add_info;
+  switch (add) {
+    case GAS_INFO_NONE:
+      add_info = "GAS_INFO_NONE";
+      break;
+    case GAS_INFO_MLP_FULL:
+      add_info = "GAS_INFO_MLP_FULL";
+      break;
+    case GAS_INFO_MLP_UPDATED:
+      add_info = "GAS_INFO_MLP_UPDATED";
+      break;
+    case GAS_INFO_PROP_ALL:
+      add_info = "GAS_INFO_PROP_ALL";
+      break;
+    case GAS_INFO_PROP_SINGLE:
+      add_info = "GAS_INFO_PROP_SINGLE";
+      break;
+    default:
+      break;
+  }
 
   struct Result *tmp;
   switch (op)
   {
     case GAS_OP_SOLVE_START:
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_START",
-          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+          "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if (GNUNET_NO == ph.expecting_solution)
       {
         /* We do not expect a solution at the moment */
         GNUNET_break (0);
         return;
       }
+
       if ((GAS_STAT_SUCCESS == stat) && (NULL == ph.current_result))
       {
         /* Create new result */
@@ -402,17 +425,18 @@ solver_info_cb (void *cls,
         GNUNET_CONTAINER_DLL_insert_tail(ph.head, ph.tail, tmp);
         ph.current_result->addresses = ph.current_a;
         ph.current_result->peers = ph.current_p;
-        ph.current_result->s_total = GNUNET_TIME_absolute_get ();
-        ph.current_result->d_total = GNUNET_TIME_relative_get_forever_ ();
-        ph.current_result->d_setup = GNUNET_TIME_relative_get_forever_ ();
-        ph.current_result->d_lp = GNUNET_TIME_relative_get_forever_ ();
-        ph.current_result->d_mlp = GNUNET_TIME_relative_get_forever_ ();
+        ph.current_result->s_total = GNUNET_TIME_absolute_get();
+        ph.current_result->d_total = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->info = add;
       }
       return;
     case GAS_OP_SOLVE_STOP:
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
-          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
       {
         /* We do not expect a solution at the moment */

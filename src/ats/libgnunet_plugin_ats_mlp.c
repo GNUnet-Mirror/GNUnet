@@ -1105,7 +1105,8 @@ GAS_mlp_solve_problem (void *solver)
     mlp->bulk_request ++;
     return GNUNET_NO;
   }
-  notify (mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_NONE);
+  notify (mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_MLP_FULL : GAS_INFO_MLP_UPDATED);
 
   if (0 == GNUNET_CONTAINER_multipeermap_size (mlp->requested_peers))
   {
