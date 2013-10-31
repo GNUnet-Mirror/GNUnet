@@ -530,7 +530,7 @@ is_bandwidth_available_in_network (struct Network *net)
  * this address
  */
 static void
-distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
+distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     struct Network *net, struct ATS_Address *address_except)
 {
   unsigned long long remaining_quota_in = 0;
@@ -803,16 +803,25 @@ find_best_address_it (void *cls,
  */
 
 /**
- * Update bandwidth assignment for all networks
+ * Distribibute bandwidth
  *
- * @param s the solver handle
+ * @param n the network, can be NULL for all networksa
  */
-static void
-distribute_bandwidth_in_all_networks (struct GAS_PROPORTIONAL_Handle *s)
+
+static void distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
+    struct Network *n,
+    struct ATS_Address *address_except)
 {
-  int i;
-  for (i = 0; i < s->network_count; i++)
-    distribute_bandwidth_in_network (s, &s->network_entries[i], NULL );
+  if (NULL != n)
+  {
+    distribute_bandwidth (s, n, address_except);
+  }
+  else
+  {
+    int i;
+    for (i = 0; i < s->network_count; i++)
+      distribute_bandwidth (s, &s->network_entries[i], NULL );
+  }
 }
 
 /**
@@ -990,7 +999,7 @@ GAS_proportional_address_change_preference (void *solver,
   GNUNET_assert(NULL != solver);
   GNUNET_assert(NULL != peer);
 
-  distribute_bandwidth_in_all_networks (s);
+  distribute_bandwidth_in_network (s, NULL, NULL);
 }
 
 
@@ -1092,7 +1101,7 @@ GAS_proportional_get_preferred_address (void *solver,
     prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
     if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
-    distribute_bandwidth_in_network (s, net_prev, NULL );
+    distribute_bandwidth_in_network (s, net_prev, NULL);
   }
 
   if (GNUNET_NO == (is_bandwidth_available_in_network (fba_ctx.best->solver_information)))
@@ -1212,7 +1221,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
 
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
-    distribute_bandwidth_in_network (s, net, NULL );
+    distribute_bandwidth_in_network (s, net, NULL);
     if (NULL == (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
     {
       /* No alternative address found, disconnect peer */
@@ -1265,7 +1274,7 @@ GAS_proportional_bulk_stop (void *solver)
   if ((0 == s->bulk_lock) && (0 < s->bulk_requests))
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "No lock pending, recalculating\n");
-    distribute_bandwidth_in_all_networks (s);
+    distribute_bandwidth_in_network (s, NULL, NULL);
     s->bulk_requests = 0;
   }
 }
@@ -1326,7 +1335,7 @@ GAS_proportional_address_property_changed (void *solver,
   case GNUNET_ATS_COST_WAN:
   case GNUNET_ATS_COST_LAN:
   case GNUNET_ATS_COST_WLAN:
-    distribute_bandwidth_in_network (s, n, GNUNET_NO);
+    distribute_bandwidth_in_network (s, n, NULL);
     break;
   }
 }
@@ -1438,7 +1447,7 @@ GAS_proportional_address_change_network (void *solver,
       /* Assign bandwidth to updated address */
       address->active = GNUNET_YES;
       addresse_increment (s, new_net, GNUNET_NO, GNUNET_YES);
-      distribute_bandwidth_in_network (solver, new_net, NULL );
+      distribute_bandwidth_in_network (solver, new_net, NULL);
     }
     else
     {
