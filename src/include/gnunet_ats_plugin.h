@@ -326,8 +326,8 @@ enum GAS_Solver_Status
 enum GAS_Solver_Additional_Information
 {
   GAS_INFO_NONE,
-  GAS_INFO_MLP_FULL,
-  GAS_INFO_MLP_UPDATED,
+  GAS_INFO_FULL,
+  GAS_INFO_UPDATED,
   GAS_INFO_PROP_ALL,
   GAS_INFO_PROP_SINGLE
 };

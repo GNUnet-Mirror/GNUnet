@@ -32,6 +32,7 @@
 #include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"
 
+#define DEFAULT_UPDATE_PERCENTAGE       20
 #define DEFAULT_PEERS_START     10
 #define DEFAULT_PEERS_END       10
 #define DEFAULT_ADDRESSES       10
@@ -44,6 +45,13 @@
 "set ylabel \"Execution time in us\" \n" \
 "set grid \n"
 
+#define GNUPLOT_PROP_UPDATE_TEMPLATE "#!/usr/bin/gnuplot \n" \
+"set datafile separator ';' \n" \
+"set title \"Execution time Proportional solver with updated problem\" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
+"set grid \n"
+
 #define GNUPLOT_MLP_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Execution time MLP solver \" \n" \
@@ -51,9 +59,23 @@
 "set ylabel \"Execution time in us\" \n" \
 "set grid \n"
 
+#define GNUPLOT_MLP_UPDATE_TEMPLATE "#!/usr/bin/gnuplot \n" \
+"set datafile separator ';' \n" \
+"set title \"Execution time MLP solver with updated problem\" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
+"set grid \n"
+
 #define GNUPLOT_RIL_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
 "set title \"Execution time RIL solver \" \n" \
+"set xlabel \"Number of peers\" \n" \
+"set ylabel \"Execution time in us\" \n" \
+"set grid \n"
+
+#define GNUPLOT_RIL_UPDATE_TEMPLATE "#!/usr/bin/gnuplot \n" \
+"set datafile separator ';' \n" \
+"set title \"Execution time RIL solver with updated problem\" \n" \
 "set xlabel \"Number of peers\" \n" \
 "set ylabel \"Execution time in us\" \n" \
 "set grid \n"
@@ -128,14 +150,14 @@ struct PerfHandle
   int opt_update_percent;
 
   /**
-   * Number of peers to update
-   */
-  int opt_update_quantity;
-
-  /**
    * Create gnuplot file
    */
   int create_plot;
+
+  /**
+   * Measure updates
+   */
+  int measure_updates;
 
   /**
    * Is a bulk operation running?
@@ -155,6 +177,7 @@ struct Result
 
   int peers;
   int addresses;
+  int update;
 
   enum GAS_Solver_Additional_Information info;
 
@@ -244,7 +267,7 @@ perf_update_address (struct ATS_Address *cur)
   {
   case 0:
     r_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Updating peer `%s' address %p type %s val %u\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DELAY", r_val);
     ph.env.sf.s_address_update_property (ph.solver, cur,
@@ -254,7 +277,7 @@ perf_update_address (struct ATS_Address *cur)
   case 1:
     r_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 10);
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Updating peer `%s' address %p type %s val %u\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DISTANCE", r_val);
     ph.env.sf.s_address_update_property (ph.solver, cur,
@@ -324,41 +347,53 @@ perf_address_initial_update (void *solver,
 }
 
 static void
-perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int up_q)
+perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int percentage_peers)
 {
-  struct ATS_Address *cur;
+  struct ATS_Address *cur_address;
   int c_peer;
   int c_select;
-  int c_addr;
+  int c_cur_p;
+  int c_cur_a;
   int r;
+  int count;
+  unsigned int m[cp];
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Updating addresses %u addresses per peer \n", up_q);
-  unsigned int m[ca];
+  count = cp * ((double) percentage_peers / 100);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Updating %u of %u peers \n", count, cp);
 
   for (c_peer = 0; c_peer < cp; c_peer++)
+    m[c_peer] = 0;
+
+  c_select = 0;
+
+  while (c_select < count)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Updating peer `%s'\n",
-        GNUNET_i2s (&ph.peers[c_peer].id));
-    for (c_select = 0; c_select < ca; c_select++)
-      m[c_select] = 0;
-    c_select = 0;
-    while (c_select < ph.opt_update_quantity)
+    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, cp);
+    if (0 == m[r])
+    {
+      m[r] = 1;
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Updating peer [%u] \n", r);
+      c_select++;
+    }
+  }
+  for (c_cur_p = 0; c_cur_p < cp; c_cur_p++)
+  {
+    if (1 == m[c_cur_p])
     {
       r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, ca);
-      if (0 == m[r])
-      {
-        m[r] = 1;
-        c_select++;
-      }
-    }
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Updating peer [%u] address [%u]\n", c_cur_p, r);
 
-    c_addr = 0;
-    for (cur = ph.peers[c_peer].head; NULL != cur; cur = cur->next)
-    {
-      if (1 == m[c_addr])
-        perf_update_address (cur);
-      c_addr++;
+      c_cur_a = 0;
+      for (cur_address = ph.peers[c_cur_p].head; NULL != cur_address; cur_address = cur_address->next)
+      {
+        if (c_cur_a == r)
+          perf_update_address (cur_address);
+
+        c_cur_a ++;
+      }
     }
   }
 }
@@ -387,10 +422,10 @@ solver_info_cb (void *cls,
     case GAS_INFO_NONE:
       add_info = "GAS_INFO_NONE";
       break;
-    case GAS_INFO_MLP_FULL:
+    case GAS_INFO_FULL:
       add_info = "GAS_INFO_MLP_FULL";
       break;
-    case GAS_INFO_MLP_UPDATED:
+    case GAS_INFO_UPDATED:
       add_info = "GAS_INFO_MLP_UPDATED";
       break;
     case GAS_INFO_PROP_ALL:
@@ -431,6 +466,10 @@ solver_info_cb (void *cls,
         ph.current_result->d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
         ph.current_result->d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
         ph.current_result->info = add;
+        if (add == GAS_INFO_UPDATED)
+          ph.current_result->update = GNUNET_YES;
+        else
+          ph.current_result->update = GNUNET_NO;
       }
       return;
     case GAS_OP_SOLVE_STOP:
@@ -526,7 +565,7 @@ solver_info_cb (void *cls,
       }
       ph.current_result->e_mlp = GNUNET_TIME_absolute_get ();
       ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
-          ph.current_result->s_mlp, ph.current_result->e_mlp);
+      ph.current_result->s_mlp, ph.current_result->e_mlp);
       return;
 
     default:
@@ -535,14 +574,17 @@ solver_info_cb (void *cls,
 }
 
 static void
-write_gnuplot_script (char * data_fn)
+write_gnuplot_script (char * data_fn, int full)
 {
   struct GNUNET_DISK_FileHandle *f;
   char * gfn;
   char *data;
   char *template;
+  if (GNUNET_YES == full)
+    GNUNET_asprintf (&gfn, "perf_%s_full_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+  else
+    GNUNET_asprintf (&gfn, "perf_%s_update_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
 
-  GNUNET_asprintf (&gfn, "perf_%s_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
@@ -556,13 +598,22 @@ write_gnuplot_script (char * data_fn)
   /* Write header */
   switch (ph.ats_mode) {
     case MODE_PROPORTIONAL:
-      template = GNUPLOT_PROP_TEMPLATE;
+      if (GNUNET_YES == full)
+        template = GNUPLOT_PROP_TEMPLATE;
+      else
+        template = GNUPLOT_PROP_UPDATE_TEMPLATE;
       break;
     case MODE_MLP:
-      template = GNUPLOT_MLP_TEMPLATE;
+      if (GNUNET_YES == full)
+        template = GNUPLOT_MLP_TEMPLATE;
+      else
+        template = GNUPLOT_MLP_UPDATE_TEMPLATE;
       break;
     case MODE_RIL:
-      template = GNUPLOT_RIL_TEMPLATE;
+      if (GNUNET_YES == full)
+        template = GNUPLOT_RIL_TEMPLATE;
+      else
+        template = GNUPLOT_RIL_UPDATE_TEMPLATE;
       break;
     default:
       break;
@@ -611,8 +662,10 @@ write_gnuplot_script (char * data_fn)
 static void
 evaluate ()
 {
-  struct GNUNET_DISK_FileHandle *f;
-  char * data_fn;
+  struct GNUNET_DISK_FileHandle *f_full;
+  struct GNUNET_DISK_FileHandle *f_update;
+  char * data_fn_full;
+  char * data_fn_update;
   char * data;
   struct Result *cur;
   struct Result *next;
@@ -623,30 +676,52 @@ evaluate ()
 
   if (ph.create_plot)
   {
-    GNUNET_asprintf (&data_fn, "perf_%s_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
-    f = GNUNET_DISK_file_open (data_fn,
+    GNUNET_asprintf (&data_fn_full, "perf_%s_full_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+    f_full = GNUNET_DISK_file_open (data_fn_full,
         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
         GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == f)
+    if (NULL == f_full)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn_full);
       return;
     }
     data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
-            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn);
-    write_gnuplot_script (data_fn);
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_full);
+    write_gnuplot_script (data_fn_full, GNUNET_YES);
+
+  }
+  if ((ph.create_plot) && (GNUNET_YES == ph.measure_updates))
+  {
+    GNUNET_asprintf (&data_fn_update, "perf_%s_update_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+    f_update = GNUNET_DISK_file_open (data_fn_update,
+        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == f_update)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn_update);
+      return;
+    }
+    data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_update, data, strlen(data)))
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_update);
+    write_gnuplot_script (data_fn_update, GNUNET_NO);
   }
 
   next = ph.head;
   while (NULL != (cur = next))
   {
     next = cur->next;
+    str_d_total = NULL;
+    str_d_setup = NULL;
+    str_d_lp = NULL;
+    str_d_mlp = NULL;
 
     /* Print log */
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
-      fprintf (stderr, "Total time to solve for %u peers %u addresses: %llu us\n",
+      fprintf (stderr, "Total time to solve %s for %u peers %u addresses: %llu us\n",
+          (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_total.rel_value_us);
       GNUNET_asprintf(&str_d_total, "%llu", (unsigned long long )cur->d_total.rel_value_us);
     }
@@ -654,7 +729,8 @@ evaluate ()
       GNUNET_asprintf(&str_d_total, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
     {
-      fprintf (stderr, "Total time to setup %u peers %u addresses: %llu us\n",
+      fprintf (stderr, "Total time to setup %s %u peers %u addresses: %llu us\n",
+          (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_setup.rel_value_us);
       GNUNET_asprintf(&str_d_setup, "%llu", (unsigned long long )cur->d_setup.rel_value_us);
     }
@@ -662,7 +738,8 @@ evaluate ()
       GNUNET_asprintf(&str_d_setup, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
     {
-      fprintf (stderr, "Total time to solve LP for %u peers %u addresses: %llu us\n",
+      fprintf (stderr, "Total time to solve %s LP for %u peers %u addresses: %llu us\n",
+          (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_lp.rel_value_us);
       GNUNET_asprintf(&str_d_lp, "%llu", (unsigned long long )cur->d_lp.rel_value_us);
     }
@@ -670,7 +747,8 @@ evaluate ()
       GNUNET_asprintf(&str_d_lp, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
     {
-      fprintf (stderr, "Total time to solve MLP for %u peers %u addresses: %llu us\n",
+      fprintf (stderr, "Total time to solve %s MLP for %u peers %u addresses: %llu us\n",
+          (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_mlp.rel_value_us);
       GNUNET_asprintf(&str_d_mlp, "%llu", (unsigned long long )cur->d_mlp.rel_value_us);
     }
@@ -686,24 +764,38 @@ evaluate ()
           str_d_setup,
           str_d_lp,
           str_d_mlp);
-
-      if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn);
-      GNUNET_free (str_d_total);
-      GNUNET_free (str_d_setup);
-      GNUNET_free (str_d_lp);
-      GNUNET_free (str_d_mlp);
+      if (cur->update == GNUNET_NO)
+      {
+        if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_full);
+      }
+      if (cur->update == GNUNET_YES)
+      {
+        if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_update, data, strlen(data)))
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_update);
+      }
       GNUNET_free (data);
     }
+    GNUNET_free_non_null (str_d_total);
+    GNUNET_free_non_null (str_d_setup);
+    GNUNET_free_non_null (str_d_lp);
+    GNUNET_free_non_null (str_d_mlp);
+
     GNUNET_CONTAINER_DLL_remove (ph.head, ph.tail, cur);
     GNUNET_free (cur);
   }
 
   if (GNUNET_YES == ph.create_plot)
   {
-    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn);
-    GNUNET_free (data_fn);
+    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f_full))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_full);
+    GNUNET_free (data_fn_full);
+  }
+  if ((ph.create_plot) && (GNUNET_YES == ph.measure_updates))
+  {
+    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f_update))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_update);
+    GNUNET_free (data_fn_update);
   }
 }
 
@@ -726,12 +818,13 @@ perf_run ()
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Added %u peers\n", cp);
 
-  /* Set initial bulk start to not solve */
-  ph.env.sf.s_bulk_start (ph.solver);
-  ph.bulk_running = GNUNET_YES;
-
   for (cp = 0; cp < count_p; cp++)
   {
+    if (GNUNET_NO == ph.bulk_running)
+    {
+      ph.bulk_running = GNUNET_YES;
+      ph.env.sf.s_bulk_start (ph.solver);
+    }
     ph.current_p = cp + 1;
     for (ca = 0; ca < count_a; ca++)
     {
@@ -751,8 +844,8 @@ perf_run ()
       /* Disable bulk to solve the problem */
       if (GNUNET_YES == ph.bulk_running)
       {
-        ph.bulk_running = GNUNET_NO;
         ph.expecting_solution = GNUNET_YES;
+        ph.bulk_running = GNUNET_NO;
         ph.env.sf.s_bulk_stop (ph.solver);
       }
       else
@@ -761,27 +854,31 @@ perf_run ()
       }
 
       /* Problem is solved by the solver here due to unlocking */
-
       ph.expecting_solution = GNUNET_NO;
-      /* Disable bulk to solve the problem */
-      if (GNUNET_NO == ph.bulk_running)
-      {
-        ph.env.sf.s_bulk_start (ph.solver);
-        ph.bulk_running = GNUNET_YES;
-      }
-#if 0
-      if ((0 < ph.opt_update_quantity) || (0 < ph.opt_update_percent))
+
+      /* Update the problem */
+      if ((0 < ph.opt_update_percent) && (GNUNET_YES == ph.measure_updates))
       {
         /* Update */
-        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
             "Updating problem with %u peers and %u addresses\n", cp + 1, ca);
-        //ph.env.sf.s_bulk_start (ph.solver);
-        //update_addresses (cp + 1, ca, ph.opt_update_quantity);
-        //ph.env.sf.s_bulk_stop (ph.solver);
+
+        ph.expecting_solution = GNUNET_YES;
+        if (GNUNET_NO == ph.bulk_running)
+        {
+          ph.bulk_running = GNUNET_YES;
+          ph.env.sf.s_bulk_start (ph.solver);
+        }
+        perf_update_all_addresses (cp + 1, ca, ph.opt_update_percent);
+        ph.bulk_running = GNUNET_NO;
+        ph.env.sf.s_bulk_stop (ph.solver);
+        /* Problem is solved by the solver here due to unlocking */
+        ph.expecting_solution = GNUNET_NO;
       }
-#endif
+      GNUNET_assert (GNUNET_NO == ph.bulk_running);
     }
   }
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Done, cleaning up addresses\n");
   if (GNUNET_NO == ph.bulk_running)
@@ -877,20 +974,15 @@ run (void *cls, char * const *args, const char *cfgfile,
   if (0 == ph.N_address)
     ph.N_address = DEFAULT_ADDRESSES;
 
-  if (ph.opt_update_quantity > ph.N_address)
-  {
-    fprintf (stderr,
-        _("Trying to update more addresses than we have per peer! (%u vs %u)"),
-        ph.opt_update_quantity, ph.N_address);
-    exit (1);
-  }
-
   if (ph.N_peers_start != ph.N_peers_end)
     fprintf (stderr, "Benchmarking solver `%s' with %u to %u peers and %u addresses\n",
         ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
   else
     fprintf (stderr, "Benchmarking solver `%s' with %u peers and %u addresses\n",
         ph.ats_string, ph.N_peers_end, ph.N_address);
+
+  if (0 == ph.opt_update_percent)
+    ph.opt_update_percent = DEFAULT_UPDATE_PERCENTAGE;
 
   /* Load quotas */
   if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg,
@@ -950,13 +1042,13 @@ int
 main (int argc, char *argv[])
 {
   /* extract command line arguments */
-  ph.opt_update_quantity = 0;
   ph.opt_update_percent = 0;
   ph.N_peers_start = 0;
   ph.N_peers_end = 0;
   ph.N_address = 0;
   ph.ats_string = NULL;
   ph.create_plot = GNUNET_NO;
+  ph.measure_updates = GNUNET_NO;
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
       { 'a', "addresses", NULL,
@@ -971,12 +1063,12 @@ main (int argc, char *argv[])
       { 'p', "percentage", NULL,
           gettext_noop ("update a fix percentage of addresses"),
           1, &GNUNET_GETOPT_set_uint, &ph.opt_update_percent },
-      { 'q', "quantity", NULL,
-          gettext_noop ("update a fix quantity of addresses"),
-          1, &GNUNET_GETOPT_set_uint, &ph.opt_update_quantity },
       { 'g', "gnuplot", NULL,
           gettext_noop ("create GNUplot file"),
           0, &GNUNET_GETOPT_set_one, &ph.create_plot},
+      { 'u', "update", NULL,
+          gettext_noop ("measure updates"),
+          0, &GNUNET_GETOPT_set_one, &ph.measure_updates},
       GNUNET_GETOPT_OPTION_END
   };
 
