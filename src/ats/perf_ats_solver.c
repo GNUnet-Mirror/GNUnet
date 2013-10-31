@@ -382,132 +382,130 @@ solver_info_cb (void *cls, enum GAS_Solver_Operation op,
   struct Result *tmp;
   switch (op)
   {
-
-  case GAS_OP_SOLVE_START:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_START",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-    if (GNUNET_NO == ph.expecting_solution)
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if (GNUNET_NO == ph.expecting_solution)
+      {
+        /* We do not expect a solution at the moment */
+        GNUNET_break (0);
+        return;
+      }
+      if ((GAS_STAT_SUCCESS == stat) && (NULL == ph.current_result))
+      {
+        /* Create new result */
+        tmp = GNUNET_malloc (sizeof (struct Result));
+        ph.current_result = tmp;
+        GNUNET_CONTAINER_DLL_insert_tail(ph.head, ph.tail, tmp);
+        ph.current_result->addresses = ph.current_a;
+        ph.current_result->peers = ph.current_p;
+        ph.current_result->s_total = GNUNET_TIME_absolute_get ();
+        ph.current_result->d_total = GNUNET_TIME_relative_get_forever_ ();
+        ph.current_result->d_setup = GNUNET_TIME_relative_get_forever_ ();
+        ph.current_result->d_lp = GNUNET_TIME_relative_get_forever_ ();
+        ph.current_result->d_mlp = GNUNET_TIME_relative_get_forever_ ();
+      }
       return;
-    }
-    if ((GAS_STAT_SUCCESS == stat) && (NULL == ph.current_result))
-    {
-      /* Create new result */
-      tmp = GNUNET_malloc (sizeof (struct Result));
-      ph.current_result = tmp;
-      GNUNET_CONTAINER_DLL_insert_tail(ph.head, ph.tail, tmp);
-      ph.current_result->addresses = ph.current_a;
-      ph.current_result->peers = ph.current_p;
-      ph.current_result->s_total = GNUNET_TIME_absolute_get ();
-      ph.current_result->d_total = GNUNET_TIME_relative_get_forever_ ();
-      ph.current_result->d_setup = GNUNET_TIME_relative_get_forever_ ();
-      ph.current_result->d_lp = GNUNET_TIME_relative_get_forever_ ();
-      ph.current_result->d_mlp = GNUNET_TIME_relative_get_forever_ ();
-    }
-
-    break;
-
-  case GAS_OP_SOLVE_STOP:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-
-    if (NULL != ph.current_result)
-    {
-      /* Finalize result */
-      ph.current_result->e_total = GNUNET_TIME_absolute_get ();
-      ph.current_result->d_total = GNUNET_TIME_absolute_get_difference (
-          ph.current_result->s_total, ph.current_result->e_total);
-    }
-    ph.current_result = NULL;
-    break;
-
-  case GAS_OP_SOLVE_SETUP_START:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        /* We do not expect a solution at the moment */
+        GNUNET_break (0);
+        return;
+      }
+      if (NULL != ph.current_result)
+      {
+        /* Finalize result */
+        ph.current_result->e_total = GNUNET_TIME_absolute_get ();
+        ph.current_result->d_total = GNUNET_TIME_absolute_get_difference (
+            ph.current_result->s_total, ph.current_result->e_total);
+      }
+      ph.current_result = NULL;
       return;
-    }
-    ph.current_result->s_setup = GNUNET_TIME_absolute_get ();
-    break;
 
-  case GAS_OP_SOLVE_SETUP_STOP:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_SETUP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->s_setup = GNUNET_TIME_absolute_get ();
       return;
-    }
-    ph.current_result->e_setup = GNUNET_TIME_absolute_get ();
-    ph.current_result->d_setup = GNUNET_TIME_absolute_get_difference (
-        ph.current_result->s_setup, ph.current_result->e_setup);
-    break;
 
-  case GAS_OP_SOLVE_LP_START:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_SETUP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->e_setup = GNUNET_TIME_absolute_get ();
+      ph.current_result->d_setup = GNUNET_TIME_absolute_get_difference (
+          ph.current_result->s_setup, ph.current_result->e_setup);
       return;
-    }
-    ph.current_result->s_lp = GNUNET_TIME_absolute_get ();
-    break;
 
-  case GAS_OP_SOLVE_LP_STOP:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_LP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->s_lp = GNUNET_TIME_absolute_get ();
       return;
-    }
-    ph.current_result->e_lp = GNUNET_TIME_absolute_get ();
-    ph.current_result->d_lp = GNUNET_TIME_absolute_get_difference (
-        ph.current_result->s_lp, ph.current_result->e_lp);
-    break;
-
-    break;
-
-  case GAS_OP_SOLVE_MLP_START:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_LP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->e_lp = GNUNET_TIME_absolute_get ();
+      ph.current_result->d_lp = GNUNET_TIME_absolute_get_difference (
+          ph.current_result->s_lp, ph.current_result->e_lp);
       return;
-    }
-    ph.current_result->s_mlp = GNUNET_TIME_absolute_get ();
-    break;
 
-  case GAS_OP_SOLVE_MLP_STOP:
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
-        (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
-    if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
-    {
-      GNUNET_break(0);
+    case GAS_OP_SOLVE_MLP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->s_mlp = GNUNET_TIME_absolute_get ();
       return;
+    case GAS_OP_SOLVE_MLP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
+      {
+        GNUNET_break(0);
+        return;
+      }
+      ph.current_result->e_mlp = GNUNET_TIME_absolute_get ();
+      ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
+          ph.current_result->s_mlp, ph.current_result->e_mlp);
+      return;
+
+    default:
+      break;
     }
-    ph.current_result->e_mlp = GNUNET_TIME_absolute_get ();
-    ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
-        ph.current_result->s_mlp, ph.current_result->e_mlp);
-    break;
-  default:
-    break;
-  }
 }
 
 static void
@@ -557,16 +555,16 @@ write_gnuplot_script ()
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 #if 0
   cur = ph.head->d_total;
-  if (cur->d_total != GNUNET_TIME_relative_get_forever_().rel_value_us)
+  if (cur->d_total != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     plot_d_total = GNUNET_YES;
 
-  if (cur->d_total != GNUNET_TIME_relative_get_forever_().rel_value_us)
+  if (cur->d_total != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     plot_d_total = GNUNET_YES;
-  if (cur->d_setup != GNUNET_TIME_relative_get_forever_().rel_value_us)
+  if (cur->d_setup != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     plot_d_setup = GNUNET_YES;
-  if (cur->d_lp != GNUNET_TIME_relative_get_forever_().rel_value_us)
+  if (cur->d_lp != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     plot_d_lp = GNUNET_YES;
-  if (cur->d_mlp != GNUNET_TIME_relative_get_forever_().rel_value_us)
+  if (cur->d_mlp != GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
     plot_d_mlp = GNUNET_YES;
 
 
@@ -614,11 +612,32 @@ write_gnuplot_script ()
 static void
 evaluate ()
 {
+  struct GNUNET_DISK_FileHandle *f;
+  char * data_fn;
+  char * data;
   struct Result *cur;
   struct Result *next;
+  char * str_d_total;
+  char * str_d_setup;
+  char * str_d_lp;
+  char * str_d_mlp;
 
   if (ph.create_plot)
   {
+    GNUNET_asprintf (&data_fn, "perf_%s_%u_%u_%u_data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+    f = GNUNET_DISK_file_open (data_fn,
+        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == f)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn);
+      GNUNET_free (data_fn);
+      return;
+    }
+    data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+            GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn);
+
     write_gnuplot_script ();
   }
 
@@ -627,29 +646,72 @@ evaluate ()
   {
     next = cur->next;
 
-    if (GNUNET_TIME_relative_get_forever_().rel_value_us != cur->d_total.rel_value_us)
+    /* Print log */
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
       fprintf (stderr, "Total time to solve for %u peers %u addresses: %llu us\n",
           cur->peers, cur->addresses, (unsigned long long )cur->d_total.rel_value_us);
+      GNUNET_asprintf(&str_d_total, "%llu", (unsigned long long )cur->d_total.rel_value_us);
     }
-    if (GNUNET_TIME_relative_get_forever_().rel_value_us != cur->d_setup.rel_value_us)
+    else
+      GNUNET_asprintf(&str_d_total, "-1");
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
     {
       fprintf (stderr, "Total time to setup %u peers %u addresses: %llu us\n",
           cur->peers, cur->addresses, (unsigned long long )cur->d_setup.rel_value_us);
+      GNUNET_asprintf(&str_d_setup, "%llu", (unsigned long long )cur->d_setup.rel_value_us);
     }
-    if (GNUNET_TIME_relative_get_forever_().rel_value_us != cur->d_lp.rel_value_us)
+    else
+      GNUNET_asprintf(&str_d_setup, "-1");
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
     {
       fprintf (stderr, "Total time to solve LP for %u peers %u addresses: %llu us\n",
-          cur->peers, cur->addresses, (unsigned long long )cur->d_mlp.rel_value_us);
+          cur->peers, cur->addresses, (unsigned long long )cur->d_lp.rel_value_us);
+      GNUNET_asprintf(&str_d_lp, "%llu", (unsigned long long )cur->d_lp.rel_value_us);
     }
-    if (GNUNET_TIME_relative_get_forever_().rel_value_us != cur->d_mlp.rel_value_us)
+    else
+      GNUNET_asprintf(&str_d_lp, "-1");
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
     {
       fprintf (stderr, "Total time to solve MLP for %u peers %u addresses: %llu us\n",
-          cur->peers, cur->addresses, (unsigned long long )cur->d_lp.rel_value_us);
+          cur->peers, cur->addresses, (unsigned long long )cur->d_mlp.rel_value_us);
+      GNUNET_asprintf(&str_d_mlp, "%llu", (unsigned long long )cur->d_mlp.rel_value_us);
+    }
+    else
+      GNUNET_asprintf(&str_d_mlp, "-1");
+
+    if (GNUNET_YES == ph.create_plot)
+    {
+
+      GNUNET_asprintf(&data,"%u;%u;%s;%s;%s;%s\n",
+          cur->peers, cur->addresses,
+          str_d_total,
+          str_d_setup,
+          str_d_lp,
+          str_d_mlp);
+
+      if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn);
+      GNUNET_free (str_d_total);
+      GNUNET_free (str_d_setup);
+      GNUNET_free (str_d_lp);
+      GNUNET_free (str_d_mlp);
+      GNUNET_free (data);
+
     }
 
     GNUNET_CONTAINER_DLL_remove (ph.head, ph.tail, cur);
     GNUNET_free (cur);
+  }
+
+  if (GNUNET_YES == ph.create_plot)
+  {
+    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn);
+      GNUNET_free (data_fn);
+    }
+
   }
 }
 
@@ -678,11 +740,13 @@ perf_run ()
 
   for (cp = 0; cp < count_p; cp++)
   {
+    ph.current_p = cp + 1;
     for (ca = 0; ca < count_a; ca++)
     {
       cur_addr = perf_create_address (cp, ca);
       /* Add address */
       ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LAN);
+      ph.current_a = ca + 1;
       perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Adding address for peer %u address %u\n", cp, ca);
@@ -697,8 +761,6 @@ perf_run ()
       {
         ph.bulk_running = GNUNET_NO;
         ph.expecting_solution = GNUNET_YES;
-        ph.current_p = cp + 1;
-        ph.current_a = ca;
         ph.env.sf.s_bulk_stop (ph.solver);
       }
       else
