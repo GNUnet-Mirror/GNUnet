@@ -97,7 +97,11 @@ struct GNUNET_SECRETSHARING_Ciphertext
 
 
 /**
- * Called once the secret has been established.
+ * Called once the secret has been established with all peers, or the deadline is due.
+ *
+ * Note that the number of peers can be smaller that 'k' (this threshold parameter), which
+ * makes the threshold crypto system useledd.  However, in this case one can still determine which peers
+ * were able to participate in the secret sharing successfully.
  *
  * @param cls closure
  * @param public_key public key of the session
@@ -186,6 +190,8 @@ GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *sessi
  *
  * The decrypt_cb is not called anymore, but the calling
  * peer may already have irrevocably contributed his share for the decryption of the value.
+ *
+ * @param decryption_handle decryption to cancel
  */
 void
 GNUNET_SECRETSHARING_cancel_decrypt (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
