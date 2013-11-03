@@ -24,8 +24,8 @@
  * @author Florian Dold
  */
 
-#ifndef GNUNET_CONSENSUS_SERVICE_H
-#define GNUNET_CONSENSUS_SERVICE_H
+#ifndef GNUNET_SECRETSHARING_SERVICE_H
+#define GNUNET_SECRETSHARING_SERVICE_H
 
 #ifdef __cplusplus
 extern "C"
