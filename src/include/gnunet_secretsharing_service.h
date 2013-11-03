@@ -116,6 +116,16 @@ typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
 
 
 /**
+ * Called when a decryption has succeeded.
+ *
+ * @param cls closure
+ * @param result decrypted value
+ */
+typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
+                                                      gcry_mpi_t result);
+
+
+/**
  * Create a session that will eventually establish a shared secret
  * with the other peers.
  *
