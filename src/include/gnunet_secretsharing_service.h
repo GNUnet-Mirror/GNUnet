@@ -189,11 +189,12 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_Session *session
  * @param cls closure for decrypt_cb
  * @return handle to cancel the operation
  */
-struct GNUNET_SECRETSHARING_DecryptionHandle
+struct GNUNET_SECRETSHARING_DecryptionHandle *
 GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *session,
                                       struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
                                       GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                                       void *cls);
+
 
 /**
  * Cancel a decryption.
@@ -205,9 +206,6 @@ GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *sessi
  */
 void
 GNUNET_SECRETSHARING_cancel_decrypt (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
-
-
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
