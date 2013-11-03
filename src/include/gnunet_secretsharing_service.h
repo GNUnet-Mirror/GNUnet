@@ -61,11 +61,6 @@ struct GNUNET_SECRETSHARING_DecryptionHandle;
 struct GNUNET_SECRETSHARING_Parameters
 {
   /**
-   * Threshold, that is, minimum number of peers that
-   * must cooperate to decrypt a value.
-   */
-  unsigned int k;
-  /**
    * Prime with p = 2q+1.
    */
   gcry_mpi_t p;
@@ -134,6 +129,8 @@ typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
  * @param session_id unique session id
  * @param deadline point in time where the session must be established; taken as hint
  *                 by underlying consensus sessions
+ * @param parameters parameters for the crypto system
+ * @param threshold minimum number of peers that must cooperate to decrypt a value
  * @param cb called when the secret has been established
  * @param cls closure for cb
  */
@@ -144,6 +141,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      const struct GNUNET_HashCode *session_id,
                                      struct GNUNET_TIME_Absolute deadline,
                                      struct GNUNET_SECRETSHARING_Parameters *parameters,
+                                     unsigned int threshold,
                                      GNUNET_SECRETSHARING_SecretReadyCallback *cb,
                                      void *cls);
 
