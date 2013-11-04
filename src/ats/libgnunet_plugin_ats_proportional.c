@@ -799,7 +799,9 @@ find_best_address_it (void *cls,
 /**
  * Distribibute bandwidth
  *
- * @param n the network, can be NULL for all networksa
+ * @param s the solver handle
+ * @param n the network, can be NULL for all network
+ * @param address_except do not notify for this address
  */
 
 static void distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
