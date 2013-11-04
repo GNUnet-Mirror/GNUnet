@@ -19,27 +19,32 @@
 */
 /**
  * @file namestore/test_namestore_api_lookup_shadow_filter.c
- * @brief testcase for namestore_api.c: store a shadow record and perform a lookup
+ * @brief testcase for namestore_api.c: store a record with short expiration
+ *      and a shadow record, perform lookup:
+ *      - when active record is valid, expect only active record
+ *      - when active record is expired, expect shadow record only
  */
 #include "platform.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_testing_lib.h"
 
+#define TEST_NAME "dummy.dummy.gnunet"
 #define TEST_RECORD_TYPE 1234
-
 #define TEST_RECORD_DATALEN 123
-
 #define TEST_RECORD_DATA 'a'
+#define TEST_SHADOW_RECORD_DATA 'b'
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
-
+#define EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_NAMECACHE_Handle *nch;
 
 static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier delayed_lookup_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -51,6 +56,15 @@ static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
 static struct GNUNET_NAMECACHE_QueueEntry *ncqe;
 
+static struct GNUNET_NAMECACHE_QueueEntry *ncqe_shadow;
+
+static struct GNUNET_GNSRECORD_Data records[2];
+
+static struct GNUNET_TIME_Absolute record_expiration;
+
+static struct GNUNET_HashCode derived_hash;
+
+static struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
 
 static void
 cleanup ()
@@ -83,6 +97,11 @@ cleanup ()
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != delayed_lookup_task)
+  {
+    GNUNET_SCHEDULER_cancel (delayed_lookup_task);
+    delayed_lookup_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != nsqe)
   {
     GNUNET_NAMESTORE_cancel (nsqe);
@@ -111,6 +130,7 @@ rd_decrypt_cb (void *cls,
                unsigned int rd_count,
                const struct GNUNET_GNSRECORD_Data *rd)
 {
+  struct GNUNET_GNSRECORD_Data *expected_rd = cls;
   char rd_cmp_data[TEST_RECORD_DATALEN];
 
   if (1 != rd_count)
@@ -125,29 +145,41 @@ rd_decrypt_cb (void *cls,
     GNUNET_break (0);
     return;
   }
-  memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
-
-  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-  GNUNET_assert (GNUNET_GNSRECORD_RF_SHADOW_RECORD == rd[0].flags);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Block was decrypted successfully \n");
-
-	GNUNET_SCHEDULER_add_now (&end, NULL);
+  if (expected_rd == &records[0])
+  {
+    /* Expecting active record */
+    memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
+    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+    GNUNET_assert (0 == (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Block was decrypted successfully with active record\n");
+  }
+  if (expected_rd == &records[1])
+  {
+    /* Expecting shadow record  but without shadow flag*/
+    memset (rd_cmp_data, TEST_SHADOW_RECORD_DATA, TEST_RECORD_DATALEN);
+    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
+    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
+    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
+    GNUNET_assert (0 == (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Block was decrypted successfully with former shadow record \n");
+    GNUNET_SCHEDULER_add_now (&end, NULL );
+  }
 }
 
 
 static void
-name_lookup_proc (void *cls,
+name_lookup_active_proc (void *cls,
                   const struct GNUNET_GNSRECORD_Block *block)
 {
-  const char *name = cls;
+  struct GNUNET_GNSRECORD_Data *expected_rd = cls;
+  GNUNET_assert (NULL != expected_rd);
 
   ncqe = NULL;
-  GNUNET_assert (NULL != cls);
-
+  ncqe_shadow = NULL;
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -167,30 +199,48 @@ name_lookup_proc (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Namestore returned block, decrypting \n");
   GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_block_decrypt(block,
-  		&pubkey, name, &rd_decrypt_cb, (void *) name));
+  		&pubkey, TEST_NAME, &rd_decrypt_cb, expected_rd));
+}
+
+static void
+name_lookup_shadow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Performing lookup for shadow record \n");
+  delayed_lookup_task = GNUNET_SCHEDULER_NO_TASK;
+  ncqe_shadow = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
+      &name_lookup_active_proc, &records[1]);
 }
 
 
 static void
 put_cont (void *cls, int32_t success, const char *emsg)
 {
-  const char *name = cls;
-  struct GNUNET_HashCode derived_hash;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
-
   nsqe = NULL;
-  GNUNET_assert (NULL != cls);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Name store added record for `%s': %s\n",
-	      name,
+	      TEST_NAME,
 	      (success == GNUNET_OK) ? "SUCCESS" : "FAIL");
 
   /* Create derived hash */
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
-  GNUNET_GNSRECORD_query_from_public_key (&pubkey, name, &derived_hash);
+  GNUNET_GNSRECORD_query_from_public_key (&pubkey, TEST_NAME, &derived_hash);
 
+  if (0 == GNUNET_TIME_absolute_get_remaining(record_expiration).rel_value_us )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Test to too long to store records, cannot run test!\n");
+    GNUNET_SCHEDULER_add_now (&end, NULL );
+    return;
+  }
+  /* Lookup active record now */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Performing lookup for active record \n");
   ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
-                                        &name_lookup_proc, (void *) name);
+                                        &name_lookup_active_proc, &records[0]);
+
+  delayed_lookup_task = GNUNET_SCHEDULER_add_delayed (EXPIRATION, &name_lookup_shadow, NULL);
 }
 
 
@@ -199,9 +249,7 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_GNSRECORD_Data rd;
   char *hostkey_file;
-  const char * name = "dummy.dummy.gnunet";
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
@@ -215,27 +263,35 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
+  record_expiration = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), EXPIRATION);
+  records[0].expiration_time = record_expiration.abs_value_us;
+  records[0].record_type = TEST_RECORD_TYPE;
+  records[0].data_size = TEST_RECORD_DATALEN;
+  records[0].data = GNUNET_malloc (TEST_RECORD_DATALEN);
+  records[0].flags = GNUNET_GNSRECORD_RF_NONE;
+  memset ((char *) records[0].data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
 
-  rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
-  rd.record_type = TEST_RECORD_TYPE;
-  rd.data_size = TEST_RECORD_DATALEN;
-  rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
-  rd.flags = GNUNET_GNSRECORD_RF_SHADOW_RECORD;
-  memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
+  records[1].expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
+  records[1].record_type = TEST_RECORD_TYPE;
+  records[1].data_size = TEST_RECORD_DATALEN;
+  records[1].data = GNUNET_malloc (TEST_RECORD_DATALEN);
+  records[1].flags = GNUNET_GNSRECORD_RF_SHADOW_RECORD;
+  memset ((char *) records[1].data, TEST_SHADOW_RECORD_DATA, TEST_RECORD_DATALEN);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);
   nch = GNUNET_NAMECACHE_connect (cfg);
   GNUNET_break (NULL != nsh);
   GNUNET_break (NULL != nch);
-  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, name,
-				      1, &rd, &put_cont, (void *) name);
+  nsqe = GNUNET_NAMESTORE_records_store (nsh, privkey, TEST_NAME,
+				      2, records, &put_cont, NULL);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namestore cannot store no block\n"));
   }
 
-  GNUNET_free ((void *)rd.data);
+  GNUNET_free ((void *) records[0].data);
+  GNUNET_free ((void *) records[1].data);
 }
 
 

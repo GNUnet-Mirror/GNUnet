@@ -42,6 +42,7 @@ TESTING_TESTS = \
  test_namestore_api_lookup_public \
  test_namestore_api_lookup_private \
  test_namestore_api_lookup_shadow \
+ test_namestore_api_lookup_shadow_filter \
  test_namestore_api_remove \
  test_namestore_api_remove_not_existing_record \
  test_namestore_api_zone_iteration \
@@ -210,6 +211,15 @@ test_namestore_api_lookup_private_LDADD = \
 test_namestore_api_lookup_shadow_SOURCES = \
  test_namestore_api_lookup_shadow.c
 test_namestore_api_lookup_shadow_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/namecache/libgnunetnamecache.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
+
+test_namestore_api_lookup_shadow_filter_SOURCES = \
+ test_namestore_api_lookup_shadow_filter.c
+test_namestore_api_lookup_shadow_filter_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
