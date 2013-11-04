@@ -300,10 +300,20 @@ del_continuation (void *cls,
 		  const char *emsg)
 {
   del_qe = NULL;
-  if (success != GNUNET_YES)
+  if (GNUNET_NO == success)
+  {
     fprintf (stderr,
-	     _("Deleting record failed: %s\n"),
-	     emsg);
+	     _("Deleting record failed, record does not exist%s%s\n"),
+	     (NULL != emsg) ? ": " : "",
+	     (NULL != emsg) ? emsg : "");
+  }
+  if (GNUNET_SYSERR == success)
+  {
+    fprintf (stderr,
+             _("Deleting record failed%s%s\n"),
+             (NULL != emsg) ? ": " : "",
+             (NULL != emsg) ? emsg : "");
+  }
   test_finished ();
 }
 
@@ -369,10 +379,13 @@ display_record (void *cls,
       ets = GNUNET_STRINGS_absolute_time_to_string (at);
     }
     FPRINTF (stdout,
-	     "\t%s: %s (%s)\n",
+	     "\t%s: %s (%s)\t%s\t%s\t%s\n",
 	     typestring,
 	     s,
-             ets);
+             ets,
+             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE)) ? "PRIVATE" : "PUBLIC",
+             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) ? "SHADOW" : "",
+             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PENDING)) ? "PENDING" : "");
     GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
@@ -432,7 +445,7 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  if (1 != shadow)
+  if (1 == shadow)
     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   if (1 != public)
     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
@@ -786,6 +799,7 @@ int
 main (int argc, char *const *argv)
 {
   public = -1;
+  shadow = -1;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "add", NULL,
