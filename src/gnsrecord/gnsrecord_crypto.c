@@ -223,6 +223,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
       struct GNUNET_GNSRECORD_Data rd[rd_count];
       unsigned int i;
       unsigned int j;
+      unsigned int k;
       struct GNUNET_TIME_Absolute now;
 
       if (GNUNET_OK !=
@@ -245,8 +246,32 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
           GNUNET_break_op (0);
           continue;
         }
-        if (rd[i].expiration_time >= now.abs_value_us)
+
+        if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD))
         {
+          int include_record = GNUNET_YES;
+          /* Shadow record, figure out if we have a not expired active record */
+          for (k=0;k<rd_count;k++)
+          {
+            if (k == i)
+              continue;
+            if ((rd[k].record_type == rd[i].record_type) &&
+                (rd[k].expiration_time >= now.abs_value_us) &&
+                (rd[i].expiration_time >= now.abs_value_us) &&
+                (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
+                include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
+          }
+          if (GNUNET_YES == include_record)
+          {
+            rd[i].flags ^= GNUNET_GNSRECORD_RF_SHADOW_RECORD; /* Remove Flag */
+            if (j != i)
+              rd[j] = rd[i];
+            j++;
+          }
+        }
+        else if (rd[i].expiration_time >= now.abs_value_us)
+        {
+          /* Include this record */
           if (j != i)
             rd[j] = rd[i];
           j++;
