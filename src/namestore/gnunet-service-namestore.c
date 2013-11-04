@@ -656,6 +656,12 @@ handle_record_lookup (void *cls,
               "Received `%s' message for name `%s'\n",
               "NAMESTORE_RECORD_LOOKUP", name_tmp);
 
+  if (NULL == (client_lookup (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   rlc.label = name_tmp;
   rlc.found = GNUNET_NO;

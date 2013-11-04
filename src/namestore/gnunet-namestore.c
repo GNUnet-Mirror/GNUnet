@@ -419,6 +419,10 @@ get_existing_record (void *cls,
     GNUNET_break (0);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %u records for name `%s'\n",
+      rd_count, rec_name);
+
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
   memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
   /* FIXME: should add some logic to overwrite records if there
