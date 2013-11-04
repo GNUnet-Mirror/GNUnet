@@ -17,7 +17,8 @@ endif
 
 check_PROGRAMS = \
  test_gnsrecord_crypto \
- test_gnsrecord_serialization
+ test_gnsrecord_serialization \
+ test_gnsrecord_block_expiration
 
 if ENABLE_TEST_RUN
 TESTS = \
@@ -59,12 +60,21 @@ libgnunet_plugin_gnsrecord_dns_la_LDFLAGS = \
 EXTRA_DIST = \
   $(check_SCRIPTS)
 
+
 test_gnsrecord_serialization_SOURCES = \
  test_gnsrecord_serialization.c
 test_gnsrecord_serialization_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la
+
+test_gnsrecord_block_expiration_SOURCES = \
+ test_gnsrecord_block_expiration.c
+test_gnsrecord_block_expiration_LDADD = \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
 
 test_gnsrecord_crypto_SOURCES = \
  test_gnsrecord_crypto.c

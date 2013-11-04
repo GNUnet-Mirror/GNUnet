@@ -255,11 +255,12 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
           {
             if (k == i)
               continue;
-            if ((rd[k].record_type == rd[i].record_type) &&
-                (rd[k].expiration_time >= now.abs_value_us) &&
-                (rd[i].expiration_time >= now.abs_value_us) &&
-                (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
-                include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
+            if (rd[i].expiration_time < now.abs_value_us)
+              include_record = GNUNET_NO; /* Shadow record is expired */
+            if ((rd[k].record_type == rd[i].record_type)
+                && (rd[k].expiration_time >= now.abs_value_us)
+                && (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
+              include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
           }
           if (GNUNET_YES == include_record)
           {

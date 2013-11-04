@@ -153,9 +153,12 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
 					     const struct GNUNET_GNSRECORD_Data *rd)
 {
   unsigned int c;
+  unsigned int c2;
   struct GNUNET_TIME_Absolute expire;
   struct GNUNET_TIME_Absolute at;
   struct GNUNET_TIME_Relative rt;
+  struct GNUNET_TIME_Absolute at_shadow;
+  struct GNUNET_TIME_Relative rt_shadow;
 
   if (NULL == rd)
     return GNUNET_TIME_UNIT_ZERO_ABS;
@@ -170,6 +173,26 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
     else
     {
       at.abs_value_us = rd[c].expiration_time;
+    }
+
+    for (c2 = 0; c2 < rd_count; c2++)
+    {
+      /* Check for shadow record */
+      if ((c == c2) ||
+          (rd[c].record_type != rd[c2].record_type) ||
+          (0 == (rd[c2].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
+          continue;
+      /* We have a shadow record */
+      if (0 != (rd[c2].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
+      {
+        rt_shadow.rel_value_us = rd[2].expiration_time;
+        at_shadow = GNUNET_TIME_relative_to_absolute (rt_shadow);
+      }
+      else
+      {
+        at_shadow.abs_value_us = rd[c2].expiration_time;
+      }
+      at = GNUNET_TIME_absolute_max (at, at_shadow);
     }
     expire = GNUNET_TIME_absolute_min (at, expire);
   }
