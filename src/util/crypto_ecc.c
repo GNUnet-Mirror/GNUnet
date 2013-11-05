@@ -213,7 +213,7 @@ decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
 
   rc = gcry_sexp_build (&result, NULL,
 			"(private-key(ecc(curve \"" CURVE "\")"
-                        "(flags ecdsa)(d %b)))",
+                        "(d %b)))",
 			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
@@ -246,7 +246,7 @@ decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 
   rc = gcry_sexp_build (&result, NULL,
 			"(private-key(ecc(curve \"" CURVE "\")"
-                        "(d %b)))",
+                        "(flags eddsa)(d %b)))",
 			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
@@ -279,7 +279,7 @@ decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
 
   rc = gcry_sexp_build (&result, NULL,
 			"(private-key(ecc(curve \"" CURVE "\")"
-                        "(flags ecdsa)(d %b)))",
+                        "(d %b)))",
 			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
@@ -550,7 +550,7 @@ GNUNET_CRYPTO_ecdhe_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam ecdsa)))")))
+                                  "(flags noparam)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -600,7 +600,7 @@ GNUNET_CRYPTO_ecdsa_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam ecdsa)))")))
+                                  "(flags noparam)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -649,7 +649,7 @@ GNUNET_CRYPTO_eddsa_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam)))")))
+                                  "(flags noparam eddsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -1152,7 +1152,7 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
   GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
-				  "(data(flags ecdsa rfc6979)(hash %s %b))",
+				  "(data(flags rfc6979)(hash %s %b))",
 				  "sha512",
 				  (int)sizeof (hc), &hc)))
   {

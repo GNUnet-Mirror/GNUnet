@@ -30,7 +30,7 @@
 
 #define ITER 25
 
-#define PERF GNUNET_NO
+#define PERF GNUNET_YES
 
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *key;
