@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_secretsharing_service.h
- * @brief verified additive secret sharing and cooperative decryption
+ * @brief verifiable additive secret sharing and cooperative decryption
  * @author Florian Dold
  */
 
@@ -75,7 +75,7 @@ struct GNUNET_SECRETSHARING_PublicKey
 /**
  * Encrypted field element.
  */
-struct GNUNET_SECRETSHARING_Ciphertext 
+struct GNUNET_SECRETSHARING_Ciphertext
 {
   /**
    * First component.
@@ -111,7 +111,7 @@ struct GNUNET_SECRETSHARING_Message
  * @param cls closure
  * @param my_share the share of this peer
  * @param public_key public key of the session
- * @param num_ready_peers number of peers in ready_peers
+ * @param num_ready_peers number of peers in @a ready_peers
  * @param ready_peers peers that successfuly participated in establishing
  *                    the shared secret
  */
@@ -126,10 +126,12 @@ typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
  * Called when a decryption has succeeded.
  *
  * @param cls closure
- * @param result decrypted value, must be free'd by the callback eventually
+ * @param data decrypted value
+ * @param data_size number of bytes in @a data
  */
 typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
-                                                      struct GNUNET_SECRETSHARING_Message *result);
+                                                      const void *data,
+                                                      size_t data_size);
 
 
 /**
@@ -164,7 +166,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
  * @param share share to load the session from
  */
 struct GNUNET_SECRETSHARING_Session *
-GNUNET_SECRETSHARING_load_session (const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SECRETSHARING_load_session_DEPRECATED (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                    const struct GNUNET_SECRETSHARING_Share *share);
 
 /**
@@ -174,7 +176,7 @@ GNUNET_SECRETSHARING_load_session (const struct GNUNET_CONFIGURATION_Handle *cfg
  * @return the serialized secret share, to be freed by the caller
  */
 char *
-GNUNET_SECRETSHARING_share_to_string (const struct GNUNET_SECRETSHARING_Share *share);
+GNUNET_SECRETSHARING_share_to_BIN (const struct GNUNET_SECRETSHARING_Share *share);
 
 
 /**
@@ -184,7 +186,7 @@ GNUNET_SECRETSHARING_share_to_string (const struct GNUNET_SECRETSHARING_Share *s
  * @return the serialized secret share, to be freed by the caller
  */
 const struct GNUNET_SECRETSHARING_Share *
-GNUNET_SECRETSHARING_share_from_string (const char *str);
+GNUNET_SECRETSHARING_share_from_BIN (const char *str);
 
 
 /**
@@ -215,12 +217,14 @@ GNUNET_SECRETSHARING_destroy_session (struct GNUNET_SECRETSHARING_Session *sessi
  * @param session session to take the key for encryption from,
  *                the session's ready callback must have been already called
  * @param message message to encrypt
+ * @param message_size number of bytes in @a message
  * @param result_ciphertext pointer to store the resulting ciphertext
- * @return GNUNET_YES on succes, GNUNET_SYSERR if the message is invalid (invalid range)
+ * @return #GNUNET_YES on succes, #GNUNET_SYSERR if the message is invalid (invalid range)
  */
-int 
-GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_Session *session,
-                              const struct GNUNET_SECRETSHARING_Message *message,
+int
+GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *session,
+                              const void *message,
+                              size_t message_size,
                               struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext);
 
 
@@ -234,14 +238,14 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_Session *session
  * @param session session to use for the decryption
  * @param ciphertext ciphertext to publish in order to decrypt it (if enough peers agree)
  * @param decrypt_cb callback called once the decryption succeeded
- * @param cls closure for decrypt_cb
+ * @param decrypt_cb_cls closure for @a decrypt_cb
  * @return handle to cancel the operation
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle *
-GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *session,
-                                      struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
-                                      GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
-                                      void *cls);
+GNUNET_SECRETSHARING_decrypt (struct GNUNET_SECRETSHARING_Session *session,
+                              struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
+                              void *decrypt_cb_cls);
 
 
 /**
@@ -253,7 +257,7 @@ GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *sessi
  * @param decryption_handle decryption to cancel
  */
 void
-GNUNET_SECRETSHARING_cancel_decrypt (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
+GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
 
 
 
