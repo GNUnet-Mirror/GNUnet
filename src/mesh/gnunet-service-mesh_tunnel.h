@@ -51,7 +51,7 @@ enum MeshTunnel3State
   MESH_TUNNEL3_NEW,
 
     /**
-     * Path to the peer not known yet
+     * Path to the peer not known yet.
      */
   MESH_TUNNEL3_SEARCHING,
 
@@ -71,12 +71,12 @@ enum MeshTunnel3State
   MESH_TUNNEL3_PING_SENT,
 
     /**
-     * Peer connected and ready to accept data
+     * Peer connected and ready to accept data.
      */
   MESH_TUNNEL3_READY,
 
     /**
-     * Peer connected previosly but not responding
+     * Peer connected previosly but not responding.
      */
   MESH_TUNNEL3_RECONNECTING,
 
