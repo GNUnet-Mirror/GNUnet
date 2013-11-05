@@ -1308,16 +1308,16 @@ AS_IF([test "X$svn_version" = "X" -o "X$svn_version" = "Xexported" -o "X$svn_ver
   AS_IF([test "X$gitsvn_version" = "X"],
   [
     vcs_name="no"
-    vcs_version="release"
+    vcs_version="\"release\""
   ],
   [
     vcs_name="yes, git-svn"
-    vcs_version="svn-$gitsvn_version"
+    vcs_version="\"svn-r$gitsvn_version\""
   ])
 ],
 [
   vcs_name="yes, svn"
-  vcs_version="svn-$svn_version"
+  vcs_version="\"svn-r$svn_version\""
 ])
 AC_MSG_RESULT($vcs_name)
 
