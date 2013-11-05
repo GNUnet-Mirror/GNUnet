@@ -313,7 +313,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
 {
   struct GNUNET_FS_QueueEntry *qe;
 
-  qe = GNUNET_malloc (sizeof (struct GNUNET_FS_QueueEntry));
+  qe = GNUNET_new (struct GNUNET_FS_QueueEntry);
   qe->h = h;
   qe->start = start;
   qe->stop = stop;
@@ -2298,7 +2298,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
  *
  * @param cls the 'struct GNUNET_FS_SearchContext*'
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 deserialize_search_result (void *cls, const char *filename)
@@ -2332,7 +2332,7 @@ deserialize_search_result (void *cls, const char *filename)
   uris = NULL;
   download = NULL;
   update_srch = NULL;
-  sr = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchResult));
+  sr = GNUNET_new (struct GNUNET_FS_SearchResult);
   sr->h = sc->h;
   sr->sc = sc;
   sr->serialization = ser;
@@ -2398,7 +2398,8 @@ deserialize_search_result (void *cls, const char *filename)
     GNUNET_free (update_srch);
   }
   GNUNET_break (GNUNET_YES ==
-		GNUNET_CONTAINER_multihashmap_put (sc->master_result_map, &sr->key, sr,
+		GNUNET_CONTAINER_multihashmap_put (sc->master_result_map,
+                                                   &sr->key, sr,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
   {
@@ -2588,7 +2589,7 @@ free_search_context (struct GNUNET_FS_SearchContext *sc)
  *
  * @param cls the 'struct GNUNET_FS_DownloadContext*' (parent)
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 deserialize_subdownload (void *cls, const char *filename)
@@ -2678,7 +2679,7 @@ deserialize_download (struct GNUNET_FS_Handle *h,
 
   uris = NULL;
   emsg = NULL;
-  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
+  dc = GNUNET_new (struct GNUNET_FS_DownloadContext);
   dc->parent = parent;
   dc->h = h;
   dc->serialization = GNUNET_strdup (serialization);
@@ -2807,7 +2808,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   }
   uris = NULL;
   emsg = NULL;
-  sc = GNUNET_malloc (sizeof (struct GNUNET_FS_SearchContext));
+  sc = GNUNET_new (struct GNUNET_FS_SearchContext);
   if (NULL != psearch_result)
   {
     sc->psearch_result = psearch_result;
@@ -2868,7 +2869,7 @@ cleanup:
  *
  * @param cls the 'struct GNUNET_FS_Handle*'
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 deserialize_search_file (void *cls, const char *filename)
@@ -2919,7 +2920,7 @@ deserialize_search_file (void *cls, const char *filename)
  *
  * @param cls the 'struct GNUNET_FS_Handle*'
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 deserialize_download_file (void *cls, const char *filename)

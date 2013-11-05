@@ -1326,7 +1326,8 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
  * @return #GNUNET_OK
  */
 static int
-search_result_freeze_probes (void *cls, const struct GNUNET_HashCode * key,
+search_result_freeze_probes (void *cls,
+                             const struct GNUNET_HashCode *key,
                              void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1396,21 +1397,12 @@ search_result_suspend (void *cls,
     GNUNET_FS_download_signal_suspend_ (sr->download);
     sr->download = NULL;
   }
-  if (NULL != sr->probe_ctx)
-  {
-    GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
-    sr->probe_ctx = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   if (NULL != sr->update_search)
   {
     GNUNET_FS_search_signal_suspend_ (sr->update_search);
     sr->update_search = NULL;
   }
+  GNUNET_FS_search_stop_probe_ (sr);
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
   pi.value.search.specifics.result_suspend.cctx = sr->client_info;
   pi.value.search.specifics.result_suspend.meta = sr->meta;
@@ -1420,11 +1412,6 @@ search_result_suspend (void *cls,
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
   GNUNET_CONTAINER_meta_data_destroy (sr->meta);
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
-  }
   GNUNET_free_non_null (sr->keyword_bitmap);
   GNUNET_free (sr);
   return GNUNET_OK;
@@ -1435,7 +1422,7 @@ search_result_suspend (void *cls,
  * Create SUSPEND event for the given search operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_SearchContext' to signal for
+ * @param cls the `struct GNUNET_FS_SearchContext` to signal for
  */
 void
 GNUNET_FS_search_signal_suspend_ (void *cls)
@@ -1451,9 +1438,15 @@ GNUNET_FS_search_signal_suspend_ (void *cls)
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   GNUNET_break (NULL == sc->client_info);
   if (sc->task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (sc->task);
+    sc->task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != sc->client)
+  {
     GNUNET_CLIENT_disconnect (sc->client);
+    sc->client = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_destroy (sc->master_result_map);
   if (NULL != sc->requests)
   {
@@ -1509,8 +1502,10 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
   struct GNUNET_FS_ProgressInfo pi;
 
   if (GNUNET_SCHEDULER_NO_TASK != sc->task)
+  {
     GNUNET_SCHEDULER_cancel (sc->task);
-  sc->task = GNUNET_SCHEDULER_NO_TASK;
+    sc->task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client);
   sc->client = NULL;
@@ -1549,17 +1544,18 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
  * @param cls the global FS handle
  * @param key the key for the search result (unused)
  * @param value the search result to free
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
-search_result_stop (void *cls, const struct GNUNET_HashCode * key, void *value)
+search_result_stop (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
   struct GNUNET_FS_ProgressInfo pi;
 
   GNUNET_FS_search_stop_probe_ (sr);
-
   if (NULL != sr->download)
   {
     sr->download->search = NULL;
@@ -1593,10 +1589,12 @@ search_result_stop (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @param cls the global FS handle
  * @param key the key for the search result (unused)
  * @param value the search result to free
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
-search_result_free (void *cls, const struct GNUNET_HashCode * key, void *value)
+search_result_free (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
 
