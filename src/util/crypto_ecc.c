@@ -1396,6 +1396,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_sexp_t pub_sexpr;
   gcry_mpi_t result_x;
   unsigned char xbuf[256 / 8];
+  size_t rsize;
 
   /* first, extract the q = dP value from the public key */
   if (0 != gcry_sexp_build (&pub_sexpr, NULL,
@@ -1427,8 +1428,16 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
 
-  /* FIXME: mpi_print creates an unsigned integer - is that intended
-     or should we convert it to a signed integer (2-compl)?  */
+  rsize = sizeof (xbuf);
+  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
+  /* result_x can be negative here, so we do not use 'mpi_print'
+     as that does not include the sign bit; x should be a 255-bit
+     value, so with the sign it should fit snugly into the 256-bit
+     xbuf */
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
+                                 result_x));
+  GNUNET_assert (rsize == sizeof (xbuf));
   mpi_print (xbuf, sizeof (xbuf), result_x);
   GNUNET_CRYPTO_hash (xbuf, sizeof (xbuf), key_material);
   gcry_mpi_release (result_x);
