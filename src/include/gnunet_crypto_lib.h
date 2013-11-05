@@ -210,9 +210,7 @@ struct GNUNET_CRYPTO_EcdsaPublicKey
 {
   /**
    * Q consists of an x- and a y-value, each mod p (256 bits), given
-   * here in affine coordinates.  For the Ed25519 curve we need to
-   * convey the y-value along with the sign.  The compact format used
-   * is the same as with EdDSA (little endian).
+   * here in affine coordinates and Ed25519 standard compact format.
    */
   unsigned char q_y[256 / 8];
 
