@@ -149,10 +149,30 @@ rd_decrypt_cb (void *cls,
   {
     /* Expecting active record */
     memset (rd_cmp_data, TEST_RECORD_DATA, TEST_RECORD_DATALEN);
-    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-    GNUNET_assert (0 == (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags));
+    if (TEST_RECORD_TYPE != rd[0].record_type)
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (TEST_RECORD_DATALEN != rd[0].data_size)
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN))
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags))
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Block was decrypted successfully with active record\n");
   }
@@ -160,10 +180,30 @@ rd_decrypt_cb (void *cls,
   {
     /* Expecting shadow record  but without shadow flag*/
     memset (rd_cmp_data, TEST_SHADOW_RECORD_DATA, TEST_RECORD_DATALEN);
-    GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-    GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-    GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-    GNUNET_assert (0 == (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags));
+    if (TEST_RECORD_TYPE != rd[0].record_type)
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (TEST_RECORD_DATALEN != rd[0].data_size)
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN))
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
+    if (0 != (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags))
+    {
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      GNUNET_break (0);
+      return;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Block was decrypted successfully with former shadow record \n");
     GNUNET_SCHEDULER_add_now (&end, NULL );

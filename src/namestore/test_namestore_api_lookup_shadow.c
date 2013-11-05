@@ -20,6 +20,8 @@
 /**
  * @file namestore/test_namestore_api_lookup_shadow_filter.c
  * @brief testcase for namestore_api.c: store a shadow record and perform a lookup
+ * test passes if test returns the record but without the shadow flag since no
+ * other valid record is available
  */
 #include "platform.h"
 #include "gnunet_namecache_service.h"
@@ -127,10 +129,30 @@ rd_decrypt_cb (void *cls,
   }
   memset (rd_cmp_data, 'a', TEST_RECORD_DATALEN);
 
-  GNUNET_assert (TEST_RECORD_TYPE == rd[0].record_type);
-  GNUNET_assert (TEST_RECORD_DATALEN == rd[0].data_size);
-  GNUNET_assert (0 == memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN));
-  GNUNET_assert (GNUNET_GNSRECORD_RF_SHADOW_RECORD == rd[0].flags);
+  if (TEST_RECORD_TYPE != rd[0].record_type)
+  {
+    GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    GNUNET_break (0);
+    return;
+  }
+  if (TEST_RECORD_DATALEN != rd[0].data_size)
+  {
+    GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    GNUNET_break (0);
+    return;
+  }
+  if (0 != memcmp (&rd_cmp_data, rd[0].data, TEST_RECORD_DATALEN))
+  {
+    GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    GNUNET_break (0);
+    return;
+  }
+  if (0 != (GNUNET_GNSRECORD_RF_SHADOW_RECORD & rd[0].flags))
+  {
+    GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Block was decrypted successfully \n");
@@ -215,7 +237,6 @@ run (void *cls,
   GNUNET_assert (privkey != NULL);
   GNUNET_CRYPTO_ecdsa_key_get_public (privkey, &pubkey);
 
-
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us + 1000000000;
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
@@ -234,7 +255,6 @@ run (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namestore cannot store no block\n"));
   }
-
   GNUNET_free ((void *)rd.data);
 }
 
