@@ -770,13 +770,6 @@ handle_decrypted (struct MeshTunnel3 *t,
 /********************************    API    ***********************************/
 /******************************************************************************/
 
-
-void
-GMT_send_kx (struct MeshTunnel3 *t)
-{
-  
-}
-
 /**
  * Decrypt and demultiplex by message type. Call appropriate handler
  * for every message.
