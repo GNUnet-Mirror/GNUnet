@@ -109,50 +109,53 @@ setup_cipher_twofish (gcry_cipher_hd_t *handle,
 
 
 /**
- * Encrypt a block with the public key of another
- * host that uses the same cyper.
+ * Encrypt a block with a symmetric session key.
  *
  * @param block the block to encrypt
- * @param len the size of the @a block
+ * @param size the size of the @a block
  * @param sessionkey the key used to encrypt
- * @param iv the initialization vector to use, use INITVALUE
- *        for streams.
+ * @param iv the initialization vector to use, use INITVALUE for streams
  * @param result the output parameter in which to store the encrypted result
- * @returns the size of the encrypted block, -1 for errors
+ *               can be the same or overlap with @c block
+ * @returns the size of the encrypted block, -1 for errors.
+ *          Due to the use of CFB and therefore an effective stream cipher,
+ *          this size should be the same as @c len.
  */
 ssize_t
 GNUNET_CRYPTO_symmetric_encrypt (const void *block,
-                                 size_t len,
+                                 size_t size,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
                                  const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result)
 {
   gcry_cipher_hd_t handle;
-  char tmp[len];
+  char tmp[size];
 
   if (GNUNET_OK != setup_cipher_aes (&handle, sessionkey, iv))
     return -1;
-  GNUNET_assert (0 == gcry_cipher_encrypt (handle, tmp, len, block, len));
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, tmp, size, block, size));
   gcry_cipher_close (handle);
   if (GNUNET_OK != setup_cipher_twofish (&handle, sessionkey, iv))
     return -1;
-  GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, len, tmp, len));
+  GNUNET_assert (0 == gcry_cipher_encrypt (handle, result, size, tmp, size));
   gcry_cipher_close (handle);
   memset (tmp, 0, sizeof (tmp));
-  return len;
+  return size;
 }
 
 
 /**
- * Decrypt a given block with the sessionkey.
+ * Decrypt a given block with the session key.
  *
  * @param block the data to decrypt, encoded as returned by encrypt
  * @param size the size of the @a block to decrypt
  * @param sessionkey the key used to decrypt
- * @param iv the initialization vector to use, use INITVALUE
- *        for streams.
+ * @param iv the initialization vector to use, use INITVALUE for streams
  * @param result address to store the result at
- * @return -1 on failure, size of decrypted block on success
+ *               can be the same or overlap with @c block
+ * @return -1 on failure, size of decrypted block on success.
+ *         Due to the use of CFB and therefore an effective stream cipher,
+ *         this size should be the same as @c size.
  */
 ssize_t
 GNUNET_CRYPTO_symmetric_decrypt (const void *block, size_t size,
