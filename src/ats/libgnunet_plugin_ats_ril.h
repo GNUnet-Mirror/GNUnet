@@ -25,7 +25,8 @@
  * @author Matthias Wachs
  */
 #include "platform.h"
-#include "float.h"
+#include <float.h>
+#include <math.h>
 #include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 
