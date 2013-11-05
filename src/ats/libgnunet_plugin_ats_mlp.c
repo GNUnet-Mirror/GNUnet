@@ -1098,108 +1098,138 @@ GAS_mlp_solve_problem (void *solver)
   char *filename;
   int res_lp = 0;
   int res_mip = 0;
-  GNUNET_assert (NULL != solver);
+
+  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Relative dur_total;
+  struct GNUNET_TIME_Relative dur_setup;
+  struct GNUNET_TIME_Relative dur_lp;
+  struct GNUNET_TIME_Relative dur_mlp;
+
+  GNUNET_assert(NULL != solver);
 
   if (GNUNET_YES == mlp->bulk_lock)
-  {
-    mlp->bulk_request ++;
-    return GNUNET_NO;
-  }
-  notify (mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS,
+    {
+      mlp->bulk_request++;
+      return GNUNET_NO;
+    }
+  notify(mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+  start = GNUNET_TIME_absolute_get();
 
-  if (0 == GNUNET_CONTAINER_multipeermap_size (mlp->requested_peers))
-  {
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
-    return GNUNET_OK; /* No pending requests */
-  }
-  if (0 == GNUNET_CONTAINER_multipeermap_size (mlp->addresses))
-  {
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
-    return GNUNET_OK; /* No addresses available */
-  }
+  if (0 == GNUNET_CONTAINER_multipeermap_size(mlp->requested_peers))
+    {
+      notify(mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
+      return GNUNET_OK; /* No pending requests */
+    }
+  if (0 == GNUNET_CONTAINER_multipeermap_size(mlp->addresses))
+    {
+      notify(mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
+      return GNUNET_OK; /* No addresses available */
+    }
 
-  if ((GNUNET_NO == mlp->mlp_prob_changed) && (GNUNET_NO == mlp->mlp_prob_updated))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
-    notify (mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
-    return GNUNET_OK;
-  }
+  if ((GNUNET_NO == mlp->mlp_prob_changed)
+      && (GNUNET_NO == mlp->mlp_prob_updated))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "No changes to problem\n");
+      notify(mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
+      return GNUNET_OK;
+    }
   if (GNUNET_YES == mlp->mlp_prob_changed)
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
-      notify (mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_FULL);
-      mlp_delete_problem (mlp);
-      if (GNUNET_SYSERR == mlp_create_problem (mlp))
-      {
-        notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_FULL);
-        return GNUNET_SYSERR;
-      }
-      notify (mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_FULL);
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
+      notify(mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_FULL);
+      mlp_delete_problem(mlp);
+      if (GNUNET_SYSERR == mlp_create_problem(mlp))
+        {
+          notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_FULL);
+          return GNUNET_SYSERR;
+        }
+      notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_FULL);
       mlp->control_param_lp.presolve = GLP_YES;
       mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
-  }
+    }
   else
-  {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
-  }
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
+    }
+
+  dur_setup = GNUNET_TIME_absolute_get_duration (start);
 
   /* Run LP solver */
 
-  notify (mlp, GAS_OP_SOLVE_LP_START, GAS_STAT_SUCCESS,
+  notify(mlp, GAS_OP_SOLVE_LP_START, GAS_STAT_SUCCESS,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Running LP solver %s\n",
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Running LP solver %s\n",
       (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
-  res_lp = mlp_solve_lp_problem (mlp);
-  notify (mlp, GAS_OP_SOLVE_LP_STOP,
+  res_lp = mlp_solve_lp_problem(mlp);
+  notify(mlp, GAS_OP_SOLVE_LP_STOP,
       (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
 
+  dur_lp = GNUNET_TIME_absolute_get_duration (start);
+  dur_lp = GNUNET_TIME_relative_subtract(dur_lp, dur_setup);
 
   /* Run MLP solver */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
-  notify (mlp, GAS_OP_SOLVE_MLP_START, GAS_STAT_SUCCESS,
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
+  notify(mlp, GAS_OP_SOLVE_MLP_START, GAS_STAT_SUCCESS,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  res_mip = mlp_solve_mlp_problem (mlp);
-  notify (mlp, GAS_OP_SOLVE_MLP_STOP,
+  res_mip = mlp_solve_mlp_problem(mlp);
+  notify(mlp, GAS_OP_SOLVE_MLP_STOP,
       (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  notify (mlp, GAS_OP_SOLVE_STOP,
+  notify(mlp, GAS_OP_SOLVE_STOP,
       (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+
+  dur_mlp = GNUNET_TIME_absolute_get_duration (start);
+  dur_mlp = GNUNET_TIME_relative_subtract(dur_mlp, dur_setup);
+  dur_mlp = GNUNET_TIME_relative_subtract(dur_mlp, dur_lp);
+  dur_total = GNUNET_TIME_absolute_get_duration (start);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Execution time for %s solve: (total/setup/lp/mlp) : %llu %llu %llu %llu\n",
+      (GNUNET_YES == mlp->mlp_prob_changed) ? "full" : "updated",
+      (unsigned long long) dur_total.rel_value_us,
+      (unsigned long long) dur_setup.rel_value_us,
+      (unsigned long long) dur_lp.rel_value_us,
+      (unsigned long long) dur_mlp.rel_value_us);
 
   /* Save stats */
   mlp->ps.lp_res = res_lp;
   mlp->ps.mip_res = res_mip;
   mlp->ps.lp_presolv = mlp->control_param_lp.presolve;
   mlp->ps.mip_presolv = mlp->control_param_mlp.presolve;
-  mlp->ps.p_cols = glp_get_num_cols (mlp->p.prob);
-  mlp->ps.p_rows = glp_get_num_rows (mlp->p.prob);
+  mlp->ps.p_cols = glp_get_num_cols(mlp->p.prob);
+  mlp->ps.p_rows = glp_get_num_rows(mlp->p.prob);
   mlp->ps.p_elements = mlp->p.num_elements;
 
   /* Propagate result*/
   if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
-  {
-    GNUNET_CONTAINER_multipeermap_iterate (mlp->addresses, &mlp_propagate_results, mlp);
-  }
+    {
+      GNUNET_CONTAINER_multipeermap_iterate(mlp->addresses,
+          &mlp_propagate_results, mlp);
+    }
 
   struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == mlp->write_mip_mps)
-  {
-    /* Write problem to disk */
-    GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value_us);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
-    glp_write_lp(mlp->p.prob, NULL, filename);
-    GNUNET_free (filename);
-  }
+    {
+      /* Write problem to disk */
+      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers,
+          mlp->p.num_addresses, time.abs_value_us);
+      LOG(GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
+      glp_write_lp(mlp->p.prob, NULL, filename);
+      GNUNET_free(filename);
+    }
   if (GNUNET_YES == mlp->write_mip_sol)
-  {
-    /* Write solution to disk */
-    GNUNET_asprintf (&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers, mlp->p.num_addresses, time.abs_value_us);
-    glp_print_mip (mlp->p.prob, filename );
-    LOG (GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
-    GNUNET_free (filename);
-  }
+    {
+      /* Write solution to disk */
+      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers,
+          mlp->p.num_addresses, time.abs_value_us);
+      glp_print_mip(mlp->p.prob, filename);
+      LOG(GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
+      GNUNET_free(filename);
+    }
 
   /* Reset change and update marker */
   mlp->control_param_lp.presolve = GLP_NO;
