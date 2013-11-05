@@ -327,6 +327,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
     sizeof (struct GNUNET_MESH_Poll)},
   {&GMC_handle_encrypted, GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED, 0},
+  {&GMC_handle_kx, GNUNET_MESSAGE_TYPE_MESH_KX, 0},
   {NULL, 0, 0}
 };
 

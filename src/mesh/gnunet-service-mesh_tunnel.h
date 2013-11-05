@@ -213,6 +213,16 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
                       int fwd);
 
 /**
+ * Demultiplex an encapsulated KX message by message type.
+ *
+ * @param t Tunnel on which the message came.
+ * @param message KX message itself.
+ */
+void
+GMT_handle_kx (struct MeshTunnel3 *t,
+               const struct GNUNET_MessageHeader *message);
+
+/**
  * Cache a message to be sent once tunnel is online.
  *
  * @param t Tunnel to hold the message.

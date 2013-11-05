@@ -1463,6 +1463,93 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   return GNUNET_OK;
 }
 
+/**
+ * Generic handler for mesh network encrypted traffic.
+ *
+ * @param peer Peer identity this notification is about.
+ * @param msg Encrypted message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MESH_KX *msg)
+{
+  struct MeshConnection *c;
+  struct MeshPeer *neighbor;
+  GNUNET_PEER_Id peer_id;
+  size_t size;
+  uint16_t type;
+  int fwd;
+
+  /* Check size */
+  size = ntohs (msg->header.size);
+  if (size <
+      sizeof (struct GNUNET_MESH_Encrypted) +
+      sizeof (struct GNUNET_MessageHeader))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  type = ntohs (msg->header.type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
+              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
+
+  /* Check connection */
+  c = connection_get (&msg->cid);
+  if (NULL == c)
+  {
+    GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
+    return GNUNET_OK;
+  }
+
+  /* Check if origin is as expected */
+  neighbor = get_prev_hop (c);
+  peer_id = GNUNET_PEER_search (peer);
+  if (peer_id == GMP_get_short_id (neighbor))
+  {
+    fwd = GNUNET_YES;
+  }
+  else
+  {
+    neighbor = get_next_hop (c);
+    if (peer_id == GMP_get_short_id (neighbor))
+    {
+      fwd = GNUNET_NO;
+    }
+    else
+    {
+      /* Unexpected peer sending traffic on a connection. */
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
+  }
+
+  if (GMC_is_terminal (c, fwd))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
+    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
+    if (NULL == c->t)
+    {
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
+    GMT_handle_kx (c->t, &msg[1].header);
+    return GNUNET_OK;
+  }
+
+  /* Message not for us: forward to next hop */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
+  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
+
+  GMC_send_prebuilt_message (&msg->header, c, fwd);
+
+  return GNUNET_OK;
+}
+
 
 /**
  * Core handler for encrypted mesh network traffic (channel mgmt, data).
@@ -1480,6 +1567,25 @@ GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   return handle_mesh_encrypted (peer,
                                 (struct GNUNET_MESH_Encrypted *)message);
+}
+
+
+/**
+ * Core handler for key exchange traffic (ephemeral key, ping, pong).
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message)
+{
+  return handle_mesh_kx (peer,
+                         (struct GNUNET_MESH_KX *) message);
 }
 
 

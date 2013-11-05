@@ -98,16 +98,40 @@ struct GNUNET_MESH_ConnectionACK
 
 
 /**
+ * Message for encapsulation of a Key eXchange message in a connection.
+ */
+struct GNUNET_MESH_KX
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_KX.
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * Always 0.
+     */
+  uint32_t reserved GNUNET_PACKED;
+
+    /**
+     * ID of the connection.
+     */
+  struct GNUNET_HashCode cid;
+
+  /* Specific KX message follows. */
+};
+
+
+/**
  * Message transmitted with the signed ephemeral key of a peer.  The
  * session key is then derived from the two ephemeral keys (ECDHE).
  *
  * As far as possible, same as CORE's EphemeralKeyMessage.
  */
-struct GNUNET_MESH_KX
+struct GNUNET_MESH_KX_Ephemeral
 {
 
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX.
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL.
    */
   struct GNUNET_MessageHeader header;
 
@@ -214,7 +238,7 @@ struct GNUNET_MESH_KX_Pong
 struct GNUNET_MESH_Encrypted
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_{FWD,BCK}
+   * Type: GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED
    */
   struct GNUNET_MessageHeader header;
 

@@ -55,6 +55,23 @@ struct MeshTConnection
 };
 
 /**
+ * Structure used during a Key eXchange.
+ */
+struct MeshTunnelKXCtx
+{
+  /**
+   * Decryption ("their") old key, for decrypting traffic sent by the
+   * other end before the key exchange started.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
+
+  /**
+   * Challenge to send in a ping and expect in the pong.
+   */
+  uint32_t challenge;
+};
+
+/**
  * Struct containing all information regarding a tunnel to a peer.
  */
 struct MeshTunnel3
@@ -70,6 +87,11 @@ struct MeshTunnel3
   enum MeshTunnel3State state;
 
   /**
+   * Key eXchange context.
+   */
+  struct MeshTunnelKXCtx *kx_ctx;
+
+  /**
    * Encryption ("our") key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey e_key;
@@ -78,16 +100,6 @@ struct MeshTunnel3
    * Decryption ("their") key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey d_key;
-
-  /**
-   * Encryption ("our") key.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old;
-
-  /**
-   * Decryption ("their") key.
-   */
-  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
 
   /**
    * Task to start the rekey process.
@@ -196,7 +208,7 @@ static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
 /**
  * Cached message used to perform a key exchange.
  */
-static struct GNUNET_MESH_KX kx_msg;
+static struct GNUNET_MESH_KX_Ephemeral kx_msg;
 
 /**
  * Task to generate a new ephemeral key.
@@ -241,6 +253,49 @@ GMT_state2s (enum MeshTunnel3State s)
       sprintf (buf, "%u (UNKNOWN STATE)", s);
       return buf;
   }
+}
+
+
+
+/**
+ * Encrypt data with the tunnel key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the encrypted data.
+ * @param src Source of the plaintext.
+ * @param size Size of the plaintext.
+ * @param iv Initialization Vector to use.
+ */
+static int
+t_encrypt (struct MeshTunnel3 *t,
+           void *dst, const void *src,
+           size_t size, uint64_t iv)
+{
+  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  return GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
+}
+
+
+/**
+ * Decrypt data with the tunnel key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the encrypted data.
+ * @param size Size of the encrypted data.
+ * @param iv Initialization Vector to use.
+ */
+static int
+t_decrypt (struct MeshTunnel3 *t,
+           void *dst, const void *src,
+           size_t size, uint64_t iv)
+{
+  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
 }
 
 /**
@@ -295,6 +350,50 @@ send_ephemeral (struct MeshTunnel3 *t)
   GMT_send_prebuilt_message (&kx_msg.header, t, NULL, GNUNET_YES);
 }
 
+/**
+ * Send a ping message on a tunnel.
+ *
+ * @param t Tunnel on which to send the ping.
+ */
+static void
+send_ping (struct MeshTunnel3 *t)
+{
+  struct GNUNET_MESH_KX_Ping msg;
+  size_t size;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PING);
+  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT_MAX);
+  msg.target = *GMP_get_id (t->peer);
+  msg.nonce = t->kx_ctx->challenge;
+  size = sizeof (msg.target) + sizeof (msg.nonce);
+  t_encrypt (t, &msg.target, &msg.target, size, msg.iv);
+
+  /* When channel is NULL, fwd is irrelevant. */
+  GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
+}
+
+
+/**
+ * Send a pong message on a tunnel.
+ *
+ * @param t Tunnel on which to send the pong.
+ * @param challenge Value sent in the ping that we have to send back.
+ */
+static void
+send_pong (struct MeshTunnel3 *t, uint32_t challenge)
+{
+  struct GNUNET_MESH_KX_Pong msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
+  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT_MAX);
+  msg.nonce = htonl (challenge);
+
+  /* When channel is NULL, fwd is irrelevant. */
+  GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
+}
+
 
 /**
  * Initiate a rekey with the remote peer.
@@ -312,7 +411,12 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
+  t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
+  t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                   UINT32_MAX);
+  t->kx_ctx->d_key_old = t->d_key;
   send_ephemeral (t);
+  send_ping (t);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
 }
 
@@ -384,49 +488,12 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Encrypt data with the tunnel key.
+ * Demultiplex data per channel and call appropriate channel handler.
  *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the encrypted data.
- * @param src Source of the plaintext.
- * @param size Size of the plaintext.
- * @param iv Initialization Vector to use.
- * @param fwd Is this a fwd message?
+ * @param t Tunnel on which the data came.
+ * @param msg Data message.
+ * @param fwd Is this FWD data? (root -> dest)
  */
-static int
-t_encrypt (struct MeshTunnel3 *t,
-           void *dst, const void *src,
-           size_t size, uint64_t iv, int fwd)
-{
-  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
-
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
-  return GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
-}
-
-
-/**
- * Decrypt data with the tunnel key.
- *
- * @param t Tunnel whose key to use.
- * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data.
- * @param size Size of the encrypted data.
- * @param iv Initialization Vector to use.
- * @param fwd Is this a fwd message?
- */
-static int
-t_decrypt (struct MeshTunnel3 *t,
-             void *dst, const void *src,
-             size_t size, uint64_t iv, int fwd)
-{
-  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
-
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
-  return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
-}
-
-
 void
 handle_data (struct MeshTunnel3 *t,
              const struct GNUNET_MESH_Data *msg,
@@ -585,6 +652,64 @@ handle_ch_destroy (struct MeshTunnel3 *t,
 
 
 /**
+ * The peer's ephemeral key has changed: update the symmetrical keys.
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Key eXchange message.
+ */
+static void
+handle_kx (struct MeshTunnel3 *t,
+               const struct GNUNET_MESH_KX *msg)
+{
+
+}
+
+
+/**
+ * Peer wants to check our symmetrical keys by sending an encrypted challenge.
+ * Answer with by retransmitting the challenge with the "opposite" key.
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Key eXchange Ping message.
+ */
+static void
+handle_ping (struct MeshTunnel3 *t,
+                 const struct GNUNET_MESH_KX_Ping *msg)
+{
+  uint32_t challenge;
+
+  challenge = ntohl (msg->nonce);
+  send_pong (t, challenge);
+}
+
+
+/**
+ * Peer has answer to our challenge.
+ * If answer is successful, consider the key exchange finished and clean
+ * up all related state.
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Key eXchange Pong message.
+ */
+static void
+handle_pong (struct MeshTunnel3 *t,
+                 const struct GNUNET_MESH_KX_Pong *msg)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->rekey_task);
+    t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+//     t->e_key_old = 0;
+//     t->d_key_old = 0;
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+}
+
+
+/**
  * Demultiplex by message type and call appropriate handler for a message
  * towards a channel of a local tunnel.
  *
@@ -650,9 +775,7 @@ void
 GMT_send_kx (struct MeshTunnel3 *t)
 {
   
-
 }
-
 
 /**
  * Decrypt and demultiplex by message type. Call appropriate handler
@@ -674,7 +797,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
-  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv, fwd);
+  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
   off = 0;
   while (off < decrypted_size)
   {
@@ -683,6 +806,41 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
     off += ntohs (msgh->size);
   }
 }
+
+
+/**
+ * Demultiplex an encapsulated KX message by message type.
+ *
+ * @param t Tunnel on which the message came.
+ * @param message KX message itself.
+ */
+void
+GMT_handle_kx (struct MeshTunnel3 *t,
+               const struct GNUNET_MessageHeader *message)
+{
+  uint16_t type;
+
+  type = ntohs (message->type);
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_KX:
+      handle_kx (t, (struct GNUNET_MESH_KX *) message);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
+      handle_ping (t, (struct GNUNET_MESH_KX_Ping *) message);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
+      handle_pong (t, (struct GNUNET_MESH_KX_Pong *) message);
+      break;
+
+    default:
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message not known (%u)\n", type);
+  }
+}
+
 
 
 /**
@@ -1418,7 +1576,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
   msg->iv = GNUNET_htonll (iv);
-  encrypted_size = t_encrypt (t, &msg[1], message, size, iv, fwd);
+  encrypted_size = t_encrypt (t, &msg[1], message, size, iv);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + encrypted_size);
   c = tunnel_get_connection (t, fwd);
   if (NULL == c)

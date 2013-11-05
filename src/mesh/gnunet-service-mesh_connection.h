@@ -150,6 +150,20 @@ GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message);
 
 /**
+ * Core handler for key exchange traffic (ephemeral key, ping, pong).
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message);
+
+/**
  * Core handler for mesh network traffic point-to-point acks.
  *
  * @param cls closure
