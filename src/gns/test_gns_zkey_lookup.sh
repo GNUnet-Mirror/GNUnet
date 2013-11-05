@@ -10,7 +10,7 @@ DELEGATED_PKEY=$(gnunet-identity -d -c test_gns_lookup.conf | grep delegatedego 
 gnunet-identity -C testego -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n b -t PKEY -V $DELEGATED_PKEY -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
-RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.$DELEGATED_PKEY'.zkey' -t A -c test_gns_lookup.conf`
+RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.${DELEGATED_PKEY}.zkey -t A -c test_gns_lookup.conf`
 gnunet-namestore -z testego -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 gnunet-namestore -z delegatedego -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
@@ -19,6 +19,6 @@ if [ "$RES_IP" == "$TEST_IP" ]
 then
   exit 0
 else
-  echo "Failed to resolve to proper IP, got $RES_IP."
+  echo "Failed to resolve to proper IP, got $RES_IP, wanted $TEST_IP."
   exit 1
 fi

@@ -1999,9 +1999,7 @@ static void
 start_resolver_lookup (struct GNS_ResolverHandle *rh)
 {
   struct AuthorityChain *ac;
-  char *x;
   char *y;
-  char *pkey;
 
   if ( ( (GNUNET_YES == is_canonical (rh->name)) &&
 	 (0 != strcmp (GNUNET_GNS_TLD, rh->name)) ) ||
@@ -2038,26 +2036,19 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
     /* Name ends with ".zkey", try to replace authority zone with zkey
        authority */
     GNUNET_free (resolver_lookup_get_next_label (rh)); /* will return "zkey" */
-    x = resolver_lookup_get_next_label (rh); /* will return 'x' coordinate */
     y = resolver_lookup_get_next_label (rh); /* will return 'y' coordinate */
-    GNUNET_asprintf (&pkey,
-		     "%s%s",
-		     x, y);
-    if ( (NULL == x) ||
-	 (NULL == y) ||
+    if ( (NULL == y) ||
 	 (GNUNET_OK !=
-	  GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey,
-						    strlen (pkey),
-						    &rh->authority_zone)) )
+	  GNUNET_CRYPTO_ecdsa_public_key_from_string (y,
+                                                      strlen (y),
+                                                      &rh->authority_zone)) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Hostname `%s' is not well-formed, resolution fails\n"),
 		  rh->name);
       rh->task_id = GNUNET_SCHEDULER_add_now (&fail_resolution, rh);
     }
-    GNUNET_free_non_null (x);
     GNUNET_free_non_null (y);
-    GNUNET_free (pkey);
   }
   else
   {
