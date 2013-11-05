@@ -307,8 +307,7 @@ process_pseu_lookup_ns (void *cls,
   new_pkey.data = &gph->target_zone;
   new_pkey.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   new_pkey.flags = GNUNET_GNSRECORD_RF_NONE
-                 | GNUNET_GNSRECORD_RF_PRIVATE
-                 | GNUNET_GNSRECORD_RF_PENDING;
+                 | GNUNET_GNSRECORD_RF_PRIVATE;
   gph->namestore_task
     = GNUNET_NAMESTORE_records_store (namestore_handle,
 				      &gph->shorten_zone_key,
