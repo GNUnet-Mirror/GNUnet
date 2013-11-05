@@ -64,7 +64,7 @@ try:
   pinfo.expect ("stdout", re.compile (r'I am peer `.*\'.\r?\n'))
 
   pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-  pinfo.expect ("stdout", re.compile (r'.......................................................................................................\r?\n'))
+  pinfo.expect ("stdout", re.compile (r'....................................................\r?\n'))
 
   pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', 'invalid'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   pinfo.expect ("stdout", re.compile (r'Invalid command line argument `invalid\'\r?\n'))
@@ -88,7 +88,7 @@ try:
   pinfo.spawn (None, [peerinfo, '-c', 'test_gnunet_peerinfo_data.conf', '-qs'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   pid = pinfo.read ("stdout")
   pid.strip ()
-  
+
 finally:
   arm = subprocess.Popen ([gnunetarm, '-eq', '-c', 'test_gnunet_peerinfo_data.conf'])
   arm.communicate ()
