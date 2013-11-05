@@ -778,6 +778,8 @@ getValue__ (unsigned char a)
     return a - '0';
   if ((a >= 'A') && (a <= 'V'))
     return (a - 'A' + 10);
+  if ((a >= 'a') && (a <= 'v'))
+    return (a - 'a' + 10);
   return -1;
 }
 
@@ -855,10 +857,10 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
  * out_size must match exactly the size of the data before it was encoded.
  *
  * @param enc the encoding
- * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
+ * @param enclen number of characters in @a enc (without 0-terminator, which can be missing)
  * @param out location where to store the decoded data
- * @param out_size size of the output buffer
- * @return GNUNET_OK on success, GNUNET_SYSERR if result has the wrong encoding
+ * @param out_size size of the output buffer @a out
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding
  */
 int
 GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
