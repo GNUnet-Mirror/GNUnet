@@ -256,6 +256,59 @@ GMT_state2s (enum MeshTunnel3State s)
 }
 
 
+/**
+ * Fill ephemeral key message purpose size.
+ *
+ * @return Size of the part of the ephemeral key message that must be signed.
+ */
+size_t
+ephemeral_purpose_size (void)
+{
+  return sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+         sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+         sizeof (struct GNUNET_TIME_AbsoluteNBO) +
+         sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+         sizeof (struct GNUNET_PeerIdentity);
+}
+
+
+/**
+ * Check that a ephemeral key message s well formed and correctly signed.
+ *
+ * @param t Tunnel on which the message came.
+ * @param msg The ephemeral key message.
+ *
+ * @return \GNUNET_OK if message is fine, \GNUNET_SYSERR otherwise.
+ */
+int
+check_ephemeral (struct MeshTunnel3 *t, 
+                 const struct GNUNET_MESH_KX_Ephemeral *msg)
+{
+  /* Check message size */
+  if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_KX_Ephemeral))
+    return GNUNET_SYSERR;
+
+  /* Check signature size */
+  if (ntohl (msg->purpose.size) != ephemeral_purpose_size ())
+    return GNUNET_SYSERR;
+
+  /* Check origin */
+  if (0 != memcmp (&msg->origin_identity,
+                   GMP_get_id (t->peer),
+                   sizeof (struct GNUNET_PeerIdentity)))
+    return GNUNET_SYSERR;
+
+  /* Check signature */
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_MESH_KX,
+                                  &msg->purpose,
+                                  &msg->signature,
+                                  &msg->origin_identity.public_key))
+    return GNUNET_SYSERR;
+
+  return GNUNET_OK;
+}
+
 
 /**
  * Encrypt data with the tunnel key.
@@ -296,6 +349,51 @@ t_decrypt (struct MeshTunnel3 *t,
 
   GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
   return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
+}
+
+
+/**
+ * Create key material by doing ECDH on the local and remote ephemeral keys.
+ *
+ * @param key_material Where to store the key material.
+ * @param ephemeral_key Peer's public ephemeral key.
+ */
+void
+derive_key_material (struct GNUNET_HashCode *key_material,
+                     const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key)
+{
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
+                              ephemeral_key,
+                              key_material))
+  {
+    GNUNET_break (0);
+  }
+}
+
+/**
+ * Create a symmetic key from the identities of both ends and the key material
+ * from ECDH.
+ *
+ * @param key Destination for the generated key.
+ * @param sender ID of the peer that will encrypt with @c key.
+ * @param receiver ID of the peer that will decrypt with @c key.
+ * @param key_material Hash created with ECDH with the ephemeral keys.
+ */
+void
+derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+                  const struct GNUNET_PeerIdentity *sender,
+                  const struct GNUNET_PeerIdentity *receiver,
+                  const struct GNUNET_HashCode *key_material)
+{
+  const char salt[] = "MESH kx salt";
+
+  GNUNET_CRYPTO_kdf (key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
+                     salt, sizeof (salt),
+                     key_material, sizeof (struct GNUNET_HashCode),
+                     sender, sizeof (struct GNUNET_PeerIdentity),
+                     receiver, sizeof (struct GNUNET_PeerIdentity),
+                     NULL);
 }
 
 /**
@@ -658,10 +756,20 @@ handle_ch_destroy (struct MeshTunnel3 *t,
  * @param msg Key eXchange message.
  */
 static void
-handle_kx (struct MeshTunnel3 *t,
-               const struct GNUNET_MESH_KX *msg)
+handle_ephemeral (struct MeshTunnel3 *t,
+                  const struct GNUNET_MESH_KX_Ephemeral *msg)
 {
+  struct GNUNET_HashCode key_material;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ephemeral key message\n");
 
+  if (GNUNET_OK != check_ephemeral (t, msg))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  derive_key_material (&key_material, &msg->ephemeral_key);
+  derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &key_material);
+  derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &key_material);
 }
 
 
@@ -805,7 +913,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
  * Demultiplex an encapsulated KX message by message type.
  *
  * @param t Tunnel on which the message came.
- * @param message KX message itself.
+ * @param message Payload of KX message.
  */
 void
 GMT_handle_kx (struct MeshTunnel3 *t,
@@ -814,10 +922,11 @@ GMT_handle_kx (struct MeshTunnel3 *t,
   uint16_t type;
 
   type = ntohs (message->type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received\n", type);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_KX:
-      handle_kx (t, (struct GNUNET_MESH_KX *) message);
+      handle_ephemeral (t, (struct GNUNET_MESH_KX_Ephemeral *) message);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
@@ -929,11 +1038,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   kx_msg.header.size = htons (sizeof (kx_msg));
   kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
   kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MESH_KX);
-  kx_msg.purpose.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-                               sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
-                               sizeof (struct GNUNET_PeerIdentity));
+  kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
   kx_msg.origin_identity = my_full_id;
   rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
 
@@ -969,31 +1074,15 @@ GMT_new (struct MeshPeer *destination)
   t = GNUNET_new (struct MeshTunnel3);
   t->next_chid = 0;
   t->peer = destination;
-//   if (GNUNET_OK !=
-//       GNUNET_CONTAINER_multihashmap_put (tunnels, tid, t,
-//                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-//   {
-//     GNUNET_break (0);
-//     tunnel_destroy (t);
-//     return NULL;
-//   }
 
-//   char salt[] = "salt";
-//   GNUNET_CRYPTO_kdf (&t->e_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-//                      salt, sizeof (salt),
-//                      &t->e_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-//                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
-//                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
-//                      NULL);
-//   GNUNET_CRYPTO_kdf (&t->d_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-//                      salt, sizeof (salt),
-//                      &t->d_key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
-//                      GNUNET_PEER_resolve2 (t->peer->id), sizeof (struct GNUNET_PeerIdentity),
-//                      &my_full_id, sizeof (struct GNUNET_PeerIdentity),
-//                      NULL);
-
-  GNUNET_CONTAINER_multipeermap_put (tunnels, GMP_get_id (destination), t,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multipeermap_put (tunnels, GMP_get_id (destination), t,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    GNUNET_break (0);
+    GNUNET_free (t);
+    return NULL;
+  }
   return t;
 }
 
