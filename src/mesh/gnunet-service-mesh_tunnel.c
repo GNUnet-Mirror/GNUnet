@@ -257,7 +257,7 @@ GMT_state2s (enum MeshTunnel3State s)
 
 
 /**
- * Fill ephemeral key message purpose size.
+ * Ephemeral key message purpose size.
  *
  * @return Size of the part of the ephemeral key message that must be signed.
  */
@@ -269,6 +269,18 @@ ephemeral_purpose_size (void)
          sizeof (struct GNUNET_TIME_AbsoluteNBO) +
          sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
          sizeof (struct GNUNET_PeerIdentity);
+}
+
+
+/**
+ * Size of the encrypted part of a ping message.
+ *
+ * @return Size of the encrypted part of a ping message.
+ */
+size_t
+ping_encryption_size (void)
+{
+  return sizeof (struct GNUNET_PeerIdentity) + sizeof (uint32_t);
 }
 
 
@@ -315,18 +327,18 @@ check_ephemeral (struct MeshTunnel3 *t,
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the encrypted data.
- * @param src Source of the plaintext.
+ * @param src Source of the plaintext. Can overlap with @c dst.
  * @param size Size of the plaintext.
  * @param iv Initialization Vector to use.
  */
 static int
 t_encrypt (struct MeshTunnel3 *t,
            void *dst, const void *src,
-           size_t size, uint64_t iv)
+           size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint32_t), NULL);
   return GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
 }
 
@@ -336,18 +348,18 @@ t_encrypt (struct MeshTunnel3 *t,
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
- * @param src Source of the encrypted data.
+ * @param src Source of the encrypted data. Can overlap with @c dst.
  * @param size Size of the encrypted data.
  * @param iv Initialization Vector to use.
  */
 static int
 t_decrypt (struct MeshTunnel3 *t,
            void *dst, const void *src,
-           size_t size, uint64_t iv)
+           size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint64_t), NULL);
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint32_t), NULL);
   return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
 }
 
@@ -457,15 +469,13 @@ static void
 send_ping (struct MeshTunnel3 *t)
 {
   struct GNUNET_MESH_KX_Ping msg;
-  size_t size;
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PING);
-  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT_MAX);
+  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.target = *GMP_get_id (t->peer);
   msg.nonce = t->kx_ctx->challenge;
-  size = sizeof (msg.target) + sizeof (msg.nonce);
-  t_encrypt (t, &msg.target, &msg.target, size, msg.iv);
+  t_encrypt (t, &msg.target, &msg.target, ping_encryption_size(), msg.iv);
 
   /* When channel is NULL, fwd is irrelevant. */
   GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
@@ -485,8 +495,9 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
-  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT_MAX);
-  msg.nonce = htonl (challenge);
+  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  msg.nonce = challenge;
+  t_encrypt (t, &msg.nonce, &msg.nonce, sizeof (msg.nonce), msg.iv);
 
   /* When channel is NULL, fwd is irrelevant. */
   GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
@@ -759,7 +770,7 @@ static void
 handle_ephemeral (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_KX_Ephemeral *msg)
 {
-  struct GNUNET_HashCode key_material;
+  struct GNUNET_HashCode km;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  ephemeral key message\n");
 
   if (GNUNET_OK != check_ephemeral (t, msg))
@@ -767,9 +778,9 @@ handle_ephemeral (struct MeshTunnel3 *t,
     GNUNET_break_op (0);
     return;
   }
-  derive_key_material (&key_material, &msg->ephemeral_key);
-  derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &key_material);
-  derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &key_material);
+  derive_key_material (&km, &msg->ephemeral_key);
+  derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
+  derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
 }
 
 
@@ -782,12 +793,21 @@ handle_ephemeral (struct MeshTunnel3 *t,
  */
 static void
 handle_ping (struct MeshTunnel3 *t,
-                 const struct GNUNET_MESH_KX_Ping *msg)
+             const struct GNUNET_MESH_KX_Ping *msg)
 {
-  uint32_t challenge;
+  struct GNUNET_MESH_KX_Ping res;
 
-  challenge = ntohl (msg->nonce);
-  send_pong (t, challenge);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ping message\n");
+  t_decrypt (t, &res.target, &msg->target, ping_encryption_size(), msg->iv);
+  if (0 != memcmp (&my_full_id, &msg->target, sizeof (my_full_id)))
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %s\n", GNUNET_i2s (&my_full_id));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&msg->target));
+    return;
+  }
+
+  send_pong (t, res.iv);
 }
 
 
@@ -801,14 +821,14 @@ handle_ping (struct MeshTunnel3 *t,
  */
 static void
 handle_pong (struct MeshTunnel3 *t,
-                 const struct GNUNET_MESH_KX_Pong *msg)
+             const struct GNUNET_MESH_KX_Pong *msg)
 {
   if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
   {
     GNUNET_SCHEDULER_cancel (t->rekey_task);
     t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
-//     t->e_key_old = 0;
-//     t->d_key_old = 0;
+    GNUNET_free (t->kx_ctx);
+    t->kx_ctx = NULL;
   }
   else
   {
