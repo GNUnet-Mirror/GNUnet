@@ -1384,6 +1384,8 @@ src/regex/Makefile
 src/regex/regex.conf
 src/revocation/Makefile
 src/revocation/revocation.conf
+src/secretsharing/Makefile
+src/secretsharing/secretsharing.conf
 src/scalarproduct/Makefile
 src/scalarproduct/scalarproduct.conf
 src/set/Makefile

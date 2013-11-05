@@ -29,6 +29,7 @@ src/conversation/gnunet-helper-audio-playback.c
 src/conversation/gnunet-helper-audio-record.c
 src/conversation/gnunet-service-conversation.c
 src/conversation/microphone.c
+src/conversation/plugin_gnsrecord_conversation.c
 src/conversation/speaker.c
 src/core/core_api.c
 src/core/core_api_iterate_peers.c
@@ -140,6 +141,12 @@ src/gns/gnunet-service-gns_shorten.c
 src/gns/nss/nss_gns.c
 src/gns/nss/nss_gns_query.c
 src/gns/plugin_block_gns.c
+src/gns/plugin_gnsrecord_gns.c
+src/gnsrecord/gnsrecord.c
+src/gnsrecord/gnsrecord_crypto.c
+src/gnsrecord/gnsrecord_misc.c
+src/gnsrecord/gnsrecord_serialization.c
+src/gnsrecord/plugin_gnsrecord_dns.c
 src/gns/w32nsp.c
 src/gns/w32nsp-install.c
 src/gns/w32nsp-resolve.c
@@ -175,11 +182,15 @@ src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
 src/mysql/mysql.c
+src/namecache/gnunet-namecache.c
+src/namecache/gnunet-service-namecache.c
+src/namecache/namecache_api.c
+src/namecache/plugin_namecache_postgres.c
+src/namecache/plugin_namecache_sqlite.c
 src/namestore/gnunet-namestore.c
 src/namestore/gnunet-namestore-fcfsd.c
 src/namestore/gnunet-service-namestore.c
 src/namestore/namestore_api.c
-src/namestore/namestore_api_common.c
 src/namestore/namestore_api_monitor.c
 src/namestore/plugin_namestore_postgres.c
 src/namestore/plugin_namestore_sqlite.c
@@ -226,6 +237,8 @@ src/revocation/revocation_api.c
 src/scalarproduct/gnunet-scalarproduct.c
 src/scalarproduct/gnunet-service-scalarproduct.c
 src/scalarproduct/scalarproduct_api.c
+src/secretsharing/gnunet-service-secretsharing.c
+src/secretsharing/secretsharing_api.c
 src/set/gnunet-service-set.c
 src/set/gnunet-service-set_intersection.c
 src/set/gnunet-service-set_union.c

@@ -6,6 +6,7 @@ if HAVE_TESTING
  TESTING = testing
  TESTBED = testbed
  CONSENSUS = consensus
+ SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
 endif
 
@@ -15,6 +16,7 @@ if HAVE_EXPERIMENTAL
   env \
   psyc \
   $(CONSENSUS) \
+  $(SECRETSHARING) \
   $(EXPERIMENTATION)
 endif
 
