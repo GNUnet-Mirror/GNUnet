@@ -55,8 +55,8 @@ struct OperationState;
 
 /* forward declarations */
 struct Set;
-struct TunnelContext;
 struct ElementEntry;
+struct Operation;
 
 
 /**
@@ -135,7 +135,7 @@ typedef void (*AddRemoveImpl) (struct SetState *state, struct ElementEntry *ee);
  *
  * @param op the set operation, contains implementation-specific data
  */
-typedef void (*PeerDisconnectImpl) (struct OperationState *op);
+typedef void (*PeerDisconnectImpl) (struct Operation *op);
 
 
 /**
@@ -151,13 +151,9 @@ typedef void (*DestroySetImpl) (struct SetState *state);
  * Signature of functions that implement the creation of set operations
  * (currently evaluate and accept).
  *
- * @param spec specification of the set operation to be created
- * @param tunnel the tunnel with the other peer
- * @param tc tunnel context
+ * @param op operation that is created, should be initialized by the implementation
  */
-typedef void (*OpCreateImpl) (struct OperationSpecification *spec,
-                              struct GNUNET_MESH_Tunnel *tunnel,
-                              struct TunnelContext *tc);
+typedef void (*OpCreateImpl) (struct Operation *op);
 
 
 /**
@@ -169,11 +165,10 @@ typedef void (*OpCreateImpl) (struct OperationSpecification *spec,
  * @return GNUNET_OK on success, GNUNET_SYSERR to
  *         destroy the operation and the tunnel
  */
-typedef int (*MsgHandlerImpl) (struct OperationState *op,
+typedef int (*MsgHandlerImpl) (struct Operation *op,
                                const struct GNUNET_MessageHeader *msg);
 
-typedef void (*CancelImpl) (struct SetState *set,
-                            uint32_t request_id);
+typedef void (*CancelImpl) (struct Operation *op);
 
 
 /**
@@ -263,6 +258,7 @@ struct ElementEntry
 
   /**
    * Hash of the element.
+   * For set union:
    * Will be used to derive the different IBF keys
    * for different salts.
    */
@@ -291,6 +287,63 @@ struct ElementEntry
    * to the operation's set.
    */
   int remote;
+};
+
+
+struct Operation
+{
+  /**
+   * V-Table for the operation belonging
+   * to the tunnel contest.
+   */
+  const struct SetVT *vt;
+
+  /**
+   * Tunnel to the peer.
+   */
+  struct GNUNET_MESH_Tunnel *tunnel;
+
+  /**
+   * Message queue for the tunnel.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * GNUNET_YES if this is not a "real" set operation yet, and we still
+   * need to wait for the other peer to give us more details.
+   */
+  int is_incoming;
+
+  /**
+   * Generation in which the operation handle
+   * was created.
+   */
+  unsigned int generation_created;
+
+  /**
+   * Detail information about the set operation,
+   * including the set to use.
+   * When 'spec' is NULL, the operation is not yet entirely
+   * initialized.
+   */
+  struct OperationSpecification *spec;
+
+  /**
+   * Operation-specific operation state.
+   */
+  struct OperationState *state;
+
+  /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct Operation *next;
+
+   /**
+    * Evaluate operations are held in
+    * a linked list.
+    */
+  struct Operation *prev;
 };
 
 
@@ -353,26 +406,23 @@ struct Set
    * previously executed operations on this set
    */
   unsigned int current_generation;
+
+  /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct Operation *ops_head;
+
+  /**
+   * Evaluate operations are held in
+   * a linked list.
+   */
+  struct Operation *ops_tail;
 };
 
 
-/**
- * Information about a tunnel we are connected to.
- * Used as tunnel context with mesh.
- */
-struct TunnelContext
-{
-  /**
-   * V-Table for the operation belonging
-   * to the tunnel contest.
-   */
-  const struct SetVT *vt;
-
-  /**
-   * Implementation-specific operation state.
-   */
-  struct OperationState *op;
-};
+void
+_GSS_operation_destroy (struct Operation *op);
 
 
 /**
@@ -381,6 +431,7 @@ struct TunnelContext
  */
 const struct SetVT *
 _GSS_union_vt (void);
+
 
 /**
  * Get the table with implementing functions for

@@ -1082,6 +1082,14 @@ struct GNUNET_CONTAINER_MultiHashMap32;
 
 /**
  * @ingroup hashmap
+ * Opaque handle to an iterator over
+ * a 32-bit key multihashmap.
+ */
+struct GNUNET_CONTAINER_MultiHashMap32Iterator;
+
+
+/**
+ * @ingroup hashmap
  * Iterator over hash map entries.
  *
  * @param cls closure
@@ -1267,6 +1275,49 @@ GNUNET_CONTAINER_multihashmap32_get_multiple (const struct GNUNET_CONTAINER_Mult
                                               void *it_cls);
 
 
+/**
+ * Create an iterator for a 32-bit multihashmap.
+ * The iterator can be used to retrieve all the elements in the multihashmap
+ * one by one, without having to handle all elements at once (in contrast to
+ * #GNUNET_CONTAINER_multihashmap32_iterate).  Note that the iterator can not be
+ * used anymore if elements have been removed from 'map' after the creation of
+ * the iterator, or 'map' has been destroyed.  Adding elements to 'map' may
+ * result in skipped or repeated elements.
+ *
+ * @param map the map to create an iterator for
+ * @return an iterator over the given multihashmap map
+ */
+struct GNUNET_CONTAINER_MultiHashMap32Iterator *
+GNUNET_CONTAINER_multihashmap32_iterator_create (const struct GNUNET_CONTAINER_MultiHashMap32 *map);
+
+
+/**
+ * Retrieve the next element from the hash map at the iterator's position.
+ * If there are no elements left, GNUNET_NO is returned, and 'key' and 'value'
+ * are not modified.
+ * This operation is only allowed if no elements have been removed from the
+ * multihashmap since the creation of 'iter', and the map has not been destroyed.
+ * Adding elements may result in repeating or skipping elements.
+ *
+ * @param iter the iterator to get the next element from
+ * @param key pointer to store the key in, can be NULL
+ * @param value pointer to store the value in, can be NULL
+ * @return #GNUNET_YES we returned an element,
+ *         #GNUNET_NO if we are out of elements
+ */
+int
+GNUNET_CONTAINER_multihashmap32_iterator_next (struct GNUNET_CONTAINER_MultiHashMap32Iterator *iter,
+                                               uint32_t *key,
+                                               const void **value);
+
+
+/**
+ * Destroy a 32-bit multihashmap iterator.
+ *
+ * @param iter the iterator to destroy
+ */
+void
+GNUNET_CONTAINER_multihashmap32_iterator_destroy (struct GNUNET_CONTAINER_MultiHashMapIterator *iter);
 
 
 /* ******************** doubly-linked list *************** */

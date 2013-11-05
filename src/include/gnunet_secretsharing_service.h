@@ -48,6 +48,11 @@ extern "C"
  */
 struct GNUNET_SECRETSHARING_Session;
 
+/**
+ * Share of a secret shared with a group of peers.
+ */
+struct GNUNET_SECRETSHARING_Share;
+
 
 /**
  * Handle to cancel a cooperative decryption operation.
@@ -56,22 +61,14 @@ struct GNUNET_SECRETSHARING_DecryptionHandle;
 
 
 /**
- * Parameters of the crypto system.
+ * Public key of a group sharing a secret.
  */
-struct GNUNET_SECRETSHARING_Parameters
+struct GNUNET_SECRETSHARING_PublicKey
 {
   /**
-   * Prime with p = 2q+1.
+   * Value of the private key.
    */
-  gcry_mpi_t p;
-  /**
-   * Prime.
-   */
-  gcry_mpi_t q;
-  /**
-   * Generator of G_q.
-   */
-  gcry_mpi_t g;
+  gcry_mpi_t value;
 };
 
 
@@ -92,20 +89,35 @@ struct GNUNET_SECRETSHARING_Ciphertext
 
 
 /**
+ * Plain, unencrypted message that can be encrypted with
+ * a group public key.
+ */
+struct GNUNET_SECRETSHARING_Message
+{
+  /**
+   * Value of the message.
+   */
+  gcry_mpi_t value;
+};
+
+
+/**
  * Called once the secret has been established with all peers, or the deadline is due.
  *
  * Note that the number of peers can be smaller that 'k' (this threshold parameter), which
- * makes the threshold crypto system useledd.  However, in this case one can still determine which peers
+ * makes the threshold crypto system useless.  However, in this case one can still determine which peers
  * were able to participate in the secret sharing successfully.
  *
  * @param cls closure
+ * @param my_share the share of this peer
  * @param public_key public key of the session
- * @param num_ready_peers number of peers in @ready_peers
- * @parem ready_peers peers that successfuly participated in establishing
+ * @param num_ready_peers number of peers in ready_peers
+ * @param ready_peers peers that successfuly participated in establishing
  *                    the shared secret
  */
 typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
-                                                          gcry_mpi_t public_key,
+                                                          const struct GNUNET_SECRETSHARING_Share *my_share,
+                                                          const struct GNUNET_SECRETSHARING_PublicKey public_key,
                                                           unsigned int num_ready_peers,
                                                           const struct GNUNET_PeerIdentity *ready_peers);
 
@@ -114,10 +126,10 @@ typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
  * Called when a decryption has succeeded.
  *
  * @param cls closure
- * @param result decrypted value
+ * @param result decrypted value, must be free'd by the callback eventually
  */
 typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
-                                                      gcry_mpi_t result);
+                                                      struct GNUNET_SECRETSHARING_Message *result);
 
 
 /**
@@ -125,11 +137,11 @@ typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
  * with the other peers.
  *
  * @param cfg configuration to use
- * @param num_peers number of peers in @peers
+ * @param num_peers number of peers in 'peers'
+ * @param peers array of peers that we will share secrets with, can optionally contain the local peer
  * @param session_id unique session id
  * @param deadline point in time where the session must be established; taken as hint
  *                 by underlying consensus sessions
- * @param parameters parameters for the crypto system
  * @param threshold minimum number of peers that must cooperate to decrypt a value
  * @param cb called when the secret has been established
  * @param cls closure for cb
@@ -140,10 +152,48 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      const struct GNUNET_PeerIdentity *peers,
                                      const struct GNUNET_HashCode *session_id,
                                      struct GNUNET_TIME_Absolute deadline,
-                                     struct GNUNET_SECRETSHARING_Parameters *parameters,
                                      unsigned int threshold,
                                      GNUNET_SECRETSHARING_SecretReadyCallback *cb,
                                      void *cls);
+
+
+/**
+ * Load a session from an existing share.
+ *
+ * @param cfg configuration to use for connecting to the secretsharing service
+ * @param share share to load the session from
+ */
+struct GNUNET_SECRETSHARING_Session *
+GNUNET_SECRETSHARING_load_session (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                   const struct GNUNET_SECRETSHARING_Share *share);
+
+/**
+ * Convert a secret share to a string.
+ *
+ * @param share share to serialize
+ * @return the serialized secret share, to be freed by the caller
+ */
+char *
+GNUNET_SECRETSHARING_share_to_string (const struct GNUNET_SECRETSHARING_Share *share);
+
+
+/**
+ * Convert a secret share to a string.
+ *
+ * @param str string to deserialize
+ * @return the serialized secret share, to be freed by the caller
+ */
+const struct GNUNET_SECRETSHARING_Share *
+GNUNET_SECRETSHARING_share_from_string (const char *str);
+
+
+/**
+ * Destroy a secret share.
+ *
+ * @param share secret share to destroy
+ */
+void
+GNUNET_SECRETSHARING_share_destroy (const struct GNUNET_SECRETSHARING_Share *share);
 
 
 /**
@@ -165,12 +215,12 @@ GNUNET_SECRETSHARING_destroy_session (struct GNUNET_SECRETSHARING_Session *sessi
  * @param session session to take the key for encryption from,
  *                the session's ready callback must have been already called
  * @param message message to encrypt
- * @param result_cyphertext pointer to store the resulting ciphertext
+ * @param result_ciphertext pointer to store the resulting ciphertext
  * @return GNUNET_YES on succes, GNUNET_SYSERR if the message is invalid (invalid range)
  */
 int 
 GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_Session *session,
-                              gcry_mpi_t message,
+                              const struct GNUNET_SECRETSHARING_Message *message,
                               struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext);
 
 
@@ -204,6 +254,8 @@ GNUNET_SECRETSHARING_publish_decrypt (struct GNUNET_SECRETSHARING_Session *sessi
  */
 void
 GNUNET_SECRETSHARING_cancel_decrypt (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
+
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

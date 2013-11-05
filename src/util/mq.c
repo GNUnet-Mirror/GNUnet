@@ -603,6 +603,7 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
       GNUNET_CLIENT_notify_transmit_ready (state->connection, ntohs (msg->size),
                                            GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
                                            &connection_client_transmit_queued, mq);
+  GNUNET_assert (NULL != state->th);
 }
 
 

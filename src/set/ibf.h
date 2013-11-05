@@ -39,26 +39,39 @@ extern "C"
 #endif
 
 
+/**
+ * Keys that can be inserted into and removed from an IBF.
+ */
 struct IBF_Key
 {
   uint64_t key_val;
 };
 
+
+/**
+ * Hash of an IBF key.
+ */
 struct IBF_KeyHash
 {
   uint32_t key_hash_val;
 };
 
+
+/**
+ * Type of the count field of IBF buckets.
+ */
 struct IBF_Count
 {
   int8_t count_val;
 };
+
 
 /**
  * Size of one ibf bucket in bytes
  */
 #define IBF_BUCKET_SIZE (sizeof (struct IBF_Count) + sizeof (struct IBF_Key) + \
     sizeof (struct IBF_KeyHash))
+
 
 /**
  * Invertible bloom filter (IBF).
@@ -211,6 +224,7 @@ ibf_decode (struct InvertibleBloomFilter *ibf, int *ret_side, struct IBF_Key *re
  */
 struct InvertibleBloomFilter *
 ibf_dup (const struct InvertibleBloomFilter *ibf);
+
 
 /**
  * Destroy all resources associated with the invertible bloom filter.

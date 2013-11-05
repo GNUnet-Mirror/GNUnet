@@ -40,6 +40,9 @@ extern "C"
 #endif
 
 
+/**
+ * A handle to a strata estimator.
+ */
 struct StrataEstimator
 {
   struct InvertibleBloomFilter **strata;
@@ -48,31 +51,77 @@ struct StrataEstimator
 };
 
 
+/**
+ * Write the given strata estimator to the buffer.
+ *
+ * @param se strata estimator to serialize
+ * @param buf buffer to write to, must be of appropriate size
+ */
 void
 strata_estimator_write (const struct StrataEstimator *se, void *buf);
 
 
+/**
+ * Read strata from the buffer into the given strata
+ * estimator.  The strata estimator must already be allocated.
+ *
+ * @param buf buffer to read from
+ * @param se strata estimator to write to
+ */
 void
 strata_estimator_read (const void *buf, struct StrataEstimator *se);
 
 
+/**
+ * Create a new strata estimator with the given parameters.
+ *
+ * @param strata_count number of stratas, that is, number of ibfs in the estimator
+ * @param ibf_size size of each ibf stratum
+ * @param ibf_hashnum hashnum parameter of each ibf
+ * @return a freshly allocated, empty strata estimator
+ */
 struct StrataEstimator *
 strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum);
 
 
+/**
+ * Get an estimation of the symmetric difference of the elements
+ * contained in both strata estimators.
+ *
+ * @param se1 first strata estimator
+ * @param se2 second strata estimator
+ * @return abs(|se1| - |se2|)
+ */
 unsigned int
 strata_estimator_difference (const struct StrataEstimator *se1,
                              const struct StrataEstimator *se2);
 
 
+/**
+ * Add a key to the strata estimator.
+ *
+ * @param se strata estimator to add the key to
+ * @param key key to add
+ */
 void
 strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key);
 
 
+/**
+ * Remove a key from the strata estimator.
+ *
+ * @param se strata estimator to remove the key from
+ * @param key key to remove
+ */
 void
 strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key);
 
 
+/**
+ * Destroy a strata estimator, free all of its resources.
+ *
+ * @param se strata estimator to destroy.
+ */
 void
 strata_estimator_destroy (struct StrataEstimator *se);
 
