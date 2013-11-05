@@ -38,14 +38,16 @@ main (int argc, char *argv[])
   struct GNUNET_HashCode ecdh1;
   struct GNUNET_HashCode ecdh2;
 
-  if (! gcry_check_version ("1.5.0"))
+  if (! gcry_check_version ("1.6.0"))
   {
     FPRINTF (stderr,
              _
              ("libgcrypt has not the expected version (version %s is required).\n"),
-             "1.5.0");
+             "1.6.0");
     return 0;
   }
+  if (getenv ("GNUNET_GCRYPT_DEBUG"))
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   GNUNET_log_setup ("test-crypto-ecdhe", "WARNING", NULL);
 
   priv1 = GNUNET_CRYPTO_ecdhe_key_create ();

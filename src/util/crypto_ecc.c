@@ -34,10 +34,8 @@
  * structs that use 256 bits, so using a bigger curve will require
  * changes that break stuff badly.  The name of the curve given here
  * must be agreed by all peers and be supported by libgcrypt.
- *
- * NOTE: this will change to Curve25519 before GNUnet 0.10.0.
  */
-#define CURVE "NIST P-256"
+#define CURVE "Ed25519"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -148,11 +146,31 @@ mpi_print (unsigned char *buf,
 {
   size_t rsize;
 
-  rsize = size;
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_USG, buf, rsize, &rsize,
-                                 val));
-  adjust (buf, rsize, size);
+  if (gcry_mpi_get_flag (val, GCRYMPI_FLAG_OPAQUE))
+    {
+      /* Store opaque MPIs left aligned into the buffer.  */
+      unsigned int nbits;
+      const void *p;
+
+      p = gcry_mpi_get_opaque (val, &nbits);
+      GNUNET_assert (p);
+      rsize = (nbits+7)/8;
+      if (rsize > size)
+        rsize = size;
+      memcpy (buf, p, rsize);
+      if (rsize < size)
+        memset (buf+rsize, 0, size - rsize);
+    }
+  else
+    {
+      /* Store regular MPIs as unsigned integers right aligned into
+         the buffer.  */
+      rsize = size;
+      GNUNET_assert (0 ==
+                     gcry_mpi_print (GCRYMPI_FMT_USG, buf, rsize, &rsize,
+                                     val));
+      adjust (buf, rsize, size);
+    }
 }
 
 
@@ -191,16 +209,12 @@ static gcry_sexp_t
 decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
 {
   gcry_sexp_t result;
-  gcry_mpi_t d;
   int rc;
 
-  mpi_scan (&d,
-	    priv->d,
-	    sizeof (priv->d));
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecdsa(curve \"" CURVE "\")(d %m)))",
-			d);
-  gcry_mpi_release (d);
+			"(private-key(ecc(curve \"" CURVE "\")"
+                        "(flags ecdsa)(d %b)))",
+			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -228,16 +242,12 @@ static gcry_sexp_t
 decode_private_eddsa_key (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv)
 {
   gcry_sexp_t result;
-  gcry_mpi_t d;
   int rc;
 
-  mpi_scan (&d,
-	    priv->d,
-	    sizeof (priv->d));
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecdsa(curve \"" CURVE "\")(d %m)))", // FIXME: eddsa soon!
-			d);
-  gcry_mpi_release (d);
+			"(private-key(ecc(curve \"" CURVE "\")"
+                        "(d %b)))",
+			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -265,16 +275,12 @@ static gcry_sexp_t
 decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
 {
   gcry_sexp_t result;
-  gcry_mpi_t d;
   int rc;
 
-  mpi_scan (&d,
-	    priv->d,
-	    sizeof (priv->d));
   rc = gcry_sexp_build (&result, NULL,
-			"(private-key(ecdsa(curve \"" CURVE "\")(d %m)))", // FIXME: ecdh here?
-			d);
-  gcry_mpi_release (d);
+			"(private-key(ecc(curve \"" CURVE "\")"
+                        "(flags ecdsa)(d %b)))",
+			(int)sizeof (priv->d), priv->d);
   if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -292,99 +298,6 @@ decode_private_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv)
 
 
 /**
- * Initialize public key struct from the respective point
- * on the curve.
- *
- * @param q point on curve
- * @param pub public key struct to initialize
- * @param ctx context to use for ECC operations
- */
-static void
-point_to_public_ecdsa_key (gcry_mpi_point_t q,
-                           gcry_ctx_t ctx,
-                           struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
-{
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-
-  q_x = gcry_mpi_new (256);
-  q_y = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    return;
-  }
-
-  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
-  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-}
-
-
-/**
- * Initialize public key struct from the respective point
- * on the curve.
- *
- * @param q point on curve
- * @param pub public key struct to initialize
- * @param ctx context to use for ECC operations
- */
-static void
-point_to_public_eddsa_key (gcry_mpi_point_t q,
-                           gcry_ctx_t ctx,
-                           struct GNUNET_CRYPTO_EddsaPublicKey *pub)
-{
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-
-  q_x = gcry_mpi_new (256);
-  q_y = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    return;
-  }
-
-  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
-  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-}
-
-
-/**
- * Initialize public key struct from the respective point
- * on the curve.
- *
- * @param q point on curve
- * @param pub public key struct to initialize
- * @param ctx context to use for ECC operations
- */
-static void
-point_to_public_ecdhe_key (gcry_mpi_point_t q,
-                           gcry_ctx_t ctx,
-                           struct GNUNET_CRYPTO_EcdhePublicKey *pub)
-{
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-
-  q_x = gcry_mpi_new (256);
-  q_y = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (q_x, q_y, q, ctx))
-  {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
-    return;
-  }
-
-  mpi_print (pub->q_x, sizeof (pub->q_x), q_x);
-  mpi_print (pub->q_y, sizeof (pub->q_y), q_y);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-}
-
-
-/**
  * Extract the public key for the given private key.
  *
  * @param priv the private key
@@ -396,16 +309,17 @@ GNUNET_CRYPTO_ecdsa_key_get_public (const struct GNUNET_CRYPTO_EcdsaPrivateKey *
 {
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
-  gcry_mpi_point_t q;
+  gcry_mpi_t q;
 
   sexp = decode_private_ecdsa_key (priv);
   GNUNET_assert (NULL != sexp);
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  point_to_public_ecdsa_key (q, ctx, pub);
+  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
+  GNUNET_assert (q);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q);
+  gcry_mpi_release (q);
   gcry_ctx_release (ctx);
-  gcry_mpi_point_release (q);
 }
 
 
@@ -421,16 +335,17 @@ GNUNET_CRYPTO_eddsa_key_get_public (const struct GNUNET_CRYPTO_EddsaPrivateKey *
 {
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
-  gcry_mpi_point_t q;
+  gcry_mpi_t q;
 
   sexp = decode_private_eddsa_key (priv);
   GNUNET_assert (NULL != sexp);
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  point_to_public_eddsa_key (q, ctx, pub);
+  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
+  GNUNET_assert (q);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q);
+  gcry_mpi_release (q);
   gcry_ctx_release (ctx);
-  gcry_mpi_point_release (q);
 }
 
 
@@ -446,16 +361,17 @@ GNUNET_CRYPTO_ecdhe_key_get_public (const struct GNUNET_CRYPTO_EcdhePrivateKey *
 {
   gcry_sexp_t sexp;
   gcry_ctx_t ctx;
-  gcry_mpi_point_t q;
+  gcry_mpi_t q;
 
   sexp = decode_private_ecdhe_key (priv);
   GNUNET_assert (NULL != sexp);
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
-  q = gcry_mpi_ec_get_point ("q", ctx, 0);
-  point_to_public_ecdhe_key (q, ctx, pub);
+  q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
+  GNUNET_assert (q);
+  mpi_print (pub->q_y, sizeof (pub->q_y), q);
+  gcry_mpi_release (q);
   gcry_ctx_release (ctx);
-  gcry_mpi_point_release (q);
 }
 
 
@@ -580,76 +496,6 @@ GNUNET_CRYPTO_eddsa_public_key_from_string (const char *enc,
 
 
 /**
- * Convert the given public key from the network format to the
- * S-expression that can be used by libgcrypt.
- *
- * @param pub public key to decode
- * @return NULL on error
- */
-static gcry_sexp_t
-decode_public_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub)
-{
-  gcry_sexp_t pub_sexp;
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-  gcry_mpi_point_t q;
-  gcry_ctx_t ctx;
-
-  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
-  mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-  q = gcry_mpi_point_new (256);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-
-  /* initialize 'ctx' with 'q' */
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE)); // FIXME: need to say ECDSA?
-  gcry_mpi_ec_set_point ("q", q, ctx);
-  gcry_mpi_point_release (q);
-
-  /* convert 'ctx' to 'sexp' */
-  GNUNET_assert (0 == gcry_pubkey_get_sexp (&pub_sexp, GCRY_PK_GET_PUBKEY, ctx));
-  gcry_ctx_release (ctx);
-  return pub_sexp;
-}
-
-
-/**
- * Convert the given public key from the network format to the
- * S-expression that can be used by libgcrypt.
- *
- * @param pub public key to decode
- * @return NULL on error
- */
-static gcry_sexp_t
-decode_public_eddsa_key (const struct GNUNET_CRYPTO_EddsaPublicKey *pub)
-{
-  gcry_sexp_t pub_sexp;
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-  gcry_mpi_point_t q;
-  gcry_ctx_t ctx;
-
-  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
-  mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-  q = gcry_mpi_point_new (256);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-
-  /* initialize 'ctx' with 'q' */
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE)); // FIXME: need to say EdDSA?
-  gcry_mpi_ec_set_point ("q", q, ctx);
-  gcry_mpi_point_release (q);
-
-  /* convert 'ctx' to 'sexp' */
-  GNUNET_assert (0 == gcry_pubkey_get_sexp (&pub_sexp, GCRY_PK_GET_PUBKEY, ctx));
-  gcry_ctx_release (ctx);
-  return pub_sexp;
-}
-
-
-/**
  * @ingroup crypto
  * Clear memory that was used to store a private key.
  *
@@ -703,7 +549,8 @@ GNUNET_CRYPTO_ecdhe_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecdsa(curve \"" CURVE "\")))"))) // FIXME: ECDHE?
+                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(flags noparam ecdsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -752,7 +599,8 @@ GNUNET_CRYPTO_ecdsa_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecdsa(curve \"" CURVE "\")))")))
+                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(flags noparam ecdsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -800,7 +648,8 @@ GNUNET_CRYPTO_eddsa_key_create ()
   int rc;
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
-                                  "(genkey(ecdsa(curve \"" CURVE "\")))"))) // FIXME: EdDSA?
+                                  "(genkey(ecc(curve \"" CURVE "\")"
+                                  "(flags noparam)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -1276,10 +1125,9 @@ data_to_eddsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
   GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
-				  "(data(flags rfc6979)(hash %s %b))", // FIXME: use EdDSA encoding!
+				  "(data(flags eddsa)(hash-algo %s)(value %b))",
 				  "sha512",
-				  sizeof (hc),
-				  &hc)))
+				  (int)sizeof (hc), &hc)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -1304,10 +1152,9 @@ data_to_ecdsa_value (const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose)
 
   GNUNET_CRYPTO_hash (purpose, ntohl (purpose->size), &hc);
   if (0 != (rc = gcry_sexp_build (&data, NULL,
-				  "(data(flags rfc6979)(hash %s %b))",
+				  "(data(flags ecdsa rfc6979)(hash %s %b))",
 				  "sha512",
-				  sizeof (hc),
-				  &hc)))
+				  (int)sizeof (hc), &hc)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -1435,28 +1282,23 @@ GNUNET_CRYPTO_ecdsa_verify (uint32_t purpose,
   gcry_sexp_t sig_sexpr;
   gcry_sexp_t pub_sexpr;
   int rc;
-  gcry_mpi_t r;
-  gcry_mpi_t s;
 
   if (purpose != ntohl (validate->purpose))
     return GNUNET_SYSERR;       /* purpose mismatch */
 
   /* build s-expression for signature */
-  mpi_scan (&r, sig->r, sizeof (sig->r));
-  mpi_scan (&s, sig->s, sizeof (sig->s));
   if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL,
-				  "(sig-val(ecdsa(r %m)(s %m)))",
-                                  r, s)))
+				  "(sig-val(ecdsa(r %b)(s %b)))",
+                                  (int)sizeof (sig->r), sig->r,
+                                  (int)sizeof (sig->s), sig->s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    gcry_mpi_release (r);
-    gcry_mpi_release (s);
     return GNUNET_SYSERR;
   }
-  gcry_mpi_release (r);
-  gcry_mpi_release (s);
   data = data_to_ecdsa_value (validate);
-  if (! (pub_sexpr = decode_public_ecdsa_key (pub)))
+  if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
+                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                  (int)sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
     gcry_sexp_release (sig_sexpr);
@@ -1497,28 +1339,23 @@ GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
   gcry_sexp_t sig_sexpr;
   gcry_sexp_t pub_sexpr;
   int rc;
-  gcry_mpi_t r;
-  gcry_mpi_t s;
 
   if (purpose != ntohl (validate->purpose))
     return GNUNET_SYSERR;       /* purpose mismatch */
 
   /* build s-expression for signature */
-  mpi_scan (&r, sig->r, sizeof (sig->r));
-  mpi_scan (&s, sig->s, sizeof (sig->s));
   if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL,
-				  "(sig-val(ecdsa(r %m)(s %m)))", // FIXME: eddsa soon...
-                                  r, s)))
+				  "(sig-val(eddsa(r %b)(s %b)))",
+                                  (int)sizeof (sig->r), sig->r,
+                                  (int)sizeof (sig->s), sig->s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
-    gcry_mpi_release (r);
-    gcry_mpi_release (s);
     return GNUNET_SYSERR;
   }
-  gcry_mpi_release (r);
-  gcry_mpi_release (s);
   data = data_to_eddsa_value (validate);
-  if (! (pub_sexpr = decode_public_eddsa_key (pub)))
+  if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
+                                  "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                  (int)sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
     gcry_sexp_release (sig_sexpr);
@@ -1536,41 +1373,6 @@ GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
-}
-
-
-/**
- * Convert the given public key from the network format to the
- * S-expression that can be used by libgcrypt.
- *
- * @param pub public key to decode
- * @return NULL on error
- */
-static gcry_sexp_t
-decode_public_ecdhe_key (const struct GNUNET_CRYPTO_EcdhePublicKey *pub)
-{
-  gcry_sexp_t pub_sexp;
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
-  gcry_mpi_point_t q;
-  gcry_ctx_t ctx;
-
-  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
-  mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-  q = gcry_mpi_point_new (256);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
-  gcry_mpi_release (q_x);
-  gcry_mpi_release (q_y);
-
-  /* initialize 'ctx' with 'q' */
-  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
-  gcry_mpi_ec_set_point ("q", q, ctx);
-  gcry_mpi_point_release (q);
-
-  /* convert 'ctx' to 'sexp' */
-  GNUNET_assert (0 == gcry_pubkey_get_sexp (&pub_sexp, GCRY_PK_GET_PUBKEY, ctx));
-  gcry_ctx_release (ctx);
-  return pub_sexp;
 }
 
 
@@ -1593,11 +1395,12 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_ctx_t ctx;
   gcry_sexp_t pub_sexpr;
   gcry_mpi_t result_x;
-  gcry_mpi_t result_y;
   unsigned char xbuf[256 / 8];
 
   /* first, extract the q = dP value from the public key */
-  if (! (pub_sexpr = decode_public_ecdhe_key (pub)))
+  if (0 != gcry_sexp_build (&pub_sexpr, NULL,
+                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            (int)sizeof (pub->q_y), pub->q_y))
     return GNUNET_SYSERR;
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
   gcry_sexp_release (pub_sexpr);
@@ -1614,8 +1417,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
 
   /* finally, convert point to string for hashing */
   result_x = gcry_mpi_new (256);
-  result_y = gcry_mpi_new (256);
-  if (gcry_mpi_ec_get_affine (result_x, result_y, result, ctx))
+  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
     gcry_mpi_point_release (result);
@@ -1625,10 +1427,11 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   gcry_mpi_point_release (result);
   gcry_ctx_release (ctx);
 
+  /* FIXME: mpi_print creates an unsigned integer - is that intended
+     or should we convert it to a signed integer (2-compl)?  */
   mpi_print (xbuf, sizeof (xbuf), result_x);
   GNUNET_CRYPTO_hash (xbuf, sizeof (xbuf), key_material);
   gcry_mpi_release (result_x);
-  gcry_mpi_release (result_y);
   return GNUNET_OK;
 }
 
@@ -1688,8 +1491,10 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
   gcry_ctx_t ctx;
 
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
+
   n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
   GNUNET_CRYPTO_ecdsa_key_get_public (priv, &pub);
+
   h = derive_h (&pub, label, context);
   mpi_scan (&x, priv->d, sizeof (priv->d));
   d = gcry_mpi_new (256);
@@ -1722,24 +1527,24 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
                                        struct GNUNET_CRYPTO_EcdsaPublicKey *result)
 {
   gcry_ctx_t ctx;
+  gcry_mpi_t q_y;
   gcry_mpi_t h;
   gcry_mpi_t n;
   gcry_mpi_t h_mod_n;
-  gcry_mpi_t q_x;
-  gcry_mpi_t q_y;
   gcry_mpi_point_t q;
   gcry_mpi_point_t v;
 
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, NULL, CURVE));
 
-  /* obtain point 'q' from original public key */
-  mpi_scan (&q_x, pub->q_x, sizeof (pub->q_x));
-  mpi_scan (&q_y, pub->q_y, sizeof (pub->q_y));
-
-  q = gcry_mpi_point_new (0);
-  gcry_mpi_point_set (q, q_x, q_y, GCRYMPI_CONST_ONE);
-  gcry_mpi_release (q_x);
+  /* obtain point 'q' from original public key.  The provided 'q' is
+     compressed thus we first store it in the context and then get it
+     back as a (decompresssed) point.  */
+  q_y = gcry_mpi_set_opaque_copy (NULL, pub->q_y, 8*sizeof (pub->q_y));
+  GNUNET_assert (q_y);
+  GNUNET_assert (0 == gcry_mpi_ec_set_mpi ("q", q_y, ctx));
   gcry_mpi_release (q_y);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+  GNUNET_assert (q);
 
   /* calulcate h_mod_n = h % n */
   h = derive_h (pub, label, context);
@@ -1753,9 +1558,14 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
   gcry_mpi_release (h);
   gcry_mpi_release (n);
   gcry_mpi_point_release (q);
+
   /* convert point 'v' to public key that we return */
-  point_to_public_ecdsa_key (v, ctx, result);
+  GNUNET_assert (0 == gcry_mpi_ec_set_point ("q", v, ctx));
   gcry_mpi_point_release (v);
+  q_y = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
+  GNUNET_assert (q_y);
+  mpi_print (result->q_y, sizeof result->q_y, q_y);
+  gcry_mpi_release (q_y);
   gcry_ctx_release (ctx);
 }
 

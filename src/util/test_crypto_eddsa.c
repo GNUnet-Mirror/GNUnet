@@ -56,7 +56,7 @@ testSignVerify ()
 
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  ".");
+    FPRINTF (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
@@ -80,7 +80,7 @@ testSignVerify ()
       continue;
     }
   }
-  printf ("%d ECC sign/verify operations %s\n", ITER,
+  printf ("%d EdDSA sign/verify operations %s\n", ITER,
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
   return ok;
 }
@@ -104,7 +104,7 @@ testSignPerformance ()
   start = GNUNET_TIME_absolute_get ();
   for (i = 0; i < ITER; i++)
   {
-    FPRINTF (stderr, "%s",  ".");
+    FPRINTF (stderr, "%s",  "."); fflush (stderr);
     if (GNUNET_SYSERR == GNUNET_CRYPTO_eddsa_sign (key, &purp, &sig))
     {
       FPRINTF (stderr, "%s",  "GNUNET_CRYPTO_eddsa_sign returned SYSERR\n");
@@ -152,15 +152,18 @@ perf_keygen ()
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   int i;
 
+  FPRINTF (stderr, "%s",  "W");
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
-    fprintf (stderr, ".");
+    fprintf (stderr, "."); fflush (stderr);
     pk = GNUNET_CRYPTO_eddsa_key_create ();
     GNUNET_free (pk);
   }
-  fprintf (stderr, "\n");
-  printf ("Creating 10 EdDSA keys took %s\n",
+  for (;i<25;i++)
+    fprintf (stderr, ".");
+  fflush (stderr);
+  printf ("10 EdDSA keys created in %s\n",
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start), GNUNET_YES));
 }
 
@@ -170,13 +173,15 @@ main (int argc, char *argv[])
 {
   int failure_count = 0;
 
-  if (! gcry_check_version ("1.5.0"))
+  if (! gcry_check_version ("1.6.0"))
   {
     FPRINTF (stderr,
              _("libgcrypt has not the expected version (version %s is required).\n"),
-             "1.5.0");
+             "1.6.0");
     return 0;
   }
+  if (getenv ("GNUNET_GCRYPT_DEBUG"))
+    gcry_control (GCRYCTL_SET_DEBUG_FLAGS, 1u , 0);
   GNUNET_log_setup ("test-crypto-eddsa", "WARNING", NULL);
   key = GNUNET_CRYPTO_eddsa_key_create ();
 #if PERF

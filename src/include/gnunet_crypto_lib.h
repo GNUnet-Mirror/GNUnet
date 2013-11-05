@@ -194,16 +194,8 @@ struct GNUNET_CRYPTO_EcdsaSignature
 struct GNUNET_CRYPTO_EddsaPublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   *
-   * FIXME: this coordinate will be removed in the future (compressed point!).
-   */
-  unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
+   * Q consists of an x- and a y-value, each mod p (256 bits), given
+   * here in affine coordinates and Ed25519 standard compact format.
    */
   unsigned char q_y[256 / 8];
 
@@ -217,16 +209,10 @@ struct GNUNET_CRYPTO_EddsaPublicKey
 struct GNUNET_CRYPTO_EcdsaPublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   *
-   * FIXME: this coordinate will be removed in the future (compressed point!).
-   */
-  unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
+   * Q consists of an x- and a y-value, each mod p (256 bits), given
+   * here in affine coordinates.  For the Ed25519 curve we need to
+   * convey the y-value along with the sign.  The compact format used
+   * is the same as with EdDSA (little endian).
    */
   unsigned char q_y[256 / 8];
 
@@ -250,19 +236,10 @@ struct GNUNET_PeerIdentity
 struct GNUNET_CRYPTO_EcdhePublicKey
 {
   /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   */
-  unsigned char q_x[256 / 8];
-
-  /**
-   * Q consists of an x- and a y-value, each mod p (256 bits),
-   * given here in affine coordinates.
-   *
-   * FIXME: this coordinate will be removed in the future (compressed point!).
+   * Q consists of an x- and a y-value, each mod p (256 bits), given
+   * here in affine coordinates and Ed25519 standard compact format.
    */
   unsigned char q_y[256 / 8];
-
 };
 
 
