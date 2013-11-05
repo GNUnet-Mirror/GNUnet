@@ -61,6 +61,16 @@ enum MeshTunnel3State
   MESH_TUNNEL3_WAITING,
 
     /**
+     * Ephemeral key sent, waiting for peer's key.
+     */
+  MESH_TUNNEL3_KEY_SENT,
+
+    /**
+     * Have peer's key, sent ping, waiting for pong.
+     */
+  MESH_TUNNEL3_PING_SENT,
+
+    /**
      * Peer connected and ready to accept data
      */
   MESH_TUNNEL3_READY,
@@ -68,7 +78,12 @@ enum MeshTunnel3State
     /**
      * Peer connected previosly but not responding
      */
-  MESH_TUNNEL3_RECONNECTING
+  MESH_TUNNEL3_RECONNECTING,
+
+    /**
+     * New ephemeral key and ping sent, waiting for pong.
+     */
+  MESH_TUNNEL3_REKEY,
 };
 
 /**
