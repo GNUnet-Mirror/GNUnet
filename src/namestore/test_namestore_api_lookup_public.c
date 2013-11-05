@@ -210,6 +210,7 @@ run (void *cls,
   rd.record_type = TEST_RECORD_TYPE;
   rd.data_size = TEST_RECORD_DATALEN;
   rd.data = GNUNET_malloc (TEST_RECORD_DATALEN);
+  rd.flags = 0;
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
 
   nsh = GNUNET_NAMESTORE_connect (cfg);

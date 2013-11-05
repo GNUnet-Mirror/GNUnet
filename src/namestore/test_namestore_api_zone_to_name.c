@@ -153,7 +153,8 @@ put_cont (void *cls, int32_t success, const char *emsg)
   else
   {
     res = 1;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to put records for name `%s'\n", name);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to put records for name `%s'\n", name);
     GNUNET_SCHEDULER_add_now(&end, NULL);
   }
 }
@@ -167,12 +168,14 @@ run (void *cls,
   struct GNUNET_TIME_Absolute et;
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
-  GNUNET_asprintf(&s_name, "dummy");
+  GNUNET_asprintf (&s_name, "dummy");
   /* load privat key */
   char *hostkey_file;
   GNUNET_asprintf(&hostkey_file,"zonefiles%s%s",DIR_SEPARATOR_STR,
       "N0UJMP015AFUNR2BTNM3FKPBLG38913BL8IDMCO2H0A1LIB81960.zkey");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using zonekey file `%s' \n", hostkey_file);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using zonekey file `%s'\n",
+              hostkey_file);
   privkey = GNUNET_CRYPTO_ecdsa_key_create_from_file(hostkey_file);
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey != NULL);
@@ -182,13 +185,16 @@ run (void *cls,
   /* zone hash */
   GNUNET_CRYPTO_short_hash (&pubkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey), &s_zone);
   GNUNET_CRYPTO_short_hash (s_name, strlen (s_name) + 1, &s_zone_value);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using PKEY `%s' \n", GNUNET_NAMESTORE_short_h2s (&s_zone_value));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Using PKEY `%s' \n",
+              GNUNET_NAMESTORE_short_h2s (&s_zone_value));
 
   struct GNUNET_GNSRECORD_Data rd;
   rd.expiration_time = GNUNET_TIME_absolute_get().abs_value_us;
   rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   rd.data_size = sizeof (struct GNUNET_CRYPTO_ShortHashCode);
   rd.data = GNUNET_malloc(sizeof (struct GNUNET_CRYPTO_ShortHashCode));
+  rd.flags = 0;
   memcpy ((char *) rd.data, &s_zone_value, sizeof (struct GNUNET_CRYPTO_ShortHashCode));
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);

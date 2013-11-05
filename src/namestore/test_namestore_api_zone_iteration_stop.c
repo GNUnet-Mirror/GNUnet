@@ -110,11 +110,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	if (NULL != zi)
-	{
-		GNUNET_NAMESTORE_zone_iteration_stop (zi);
-		zi = NULL;
-	}
+  if (NULL != zi)
+    {
+      GNUNET_NAMESTORE_zone_iteration_stop (zi);
+      zi = NULL;
+    }
 
   if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -156,10 +156,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 zone_proc (void *cls,
-					 const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-					 const char *label,
-					 unsigned int rd_count,
-					 const struct GNUNET_GNSRECORD_Data *rd)
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+           const char *label,
+           unsigned int rd_count,
+           const struct GNUNET_GNSRECORD_Data *rd)
 {
   int failed = GNUNET_NO;
   if ((zone == NULL) && (label == NULL))
@@ -344,6 +344,7 @@ create_record (unsigned int count)
     rd[c].record_type = 1111;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
+    rd[c].flags = 0;
     memset ((char *) rd[c].data, 'a', 50);
   }
   return rd;

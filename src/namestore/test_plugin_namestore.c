@@ -100,7 +100,7 @@ test_record (void *cls,
     GNUNET_assert (rd[i].data_size == id % 10);
     GNUNET_assert (0 == memcmp ("Hello World", rd[i].data, id % 10));
     GNUNET_assert (rd[i].record_type == 1 + (id % 13));
-    GNUNET_assert (rd[i].flags == (id  % 7));
+    GNUNET_assert (rd[i].flags == 0);
   }
   memset (&tzone_private_key, (id % 241), sizeof (tzone_private_key));
   GNUNET_assert (0 == strcmp (label, tname));
@@ -134,7 +134,7 @@ put_record (struct GNUNET_NAMESTORE_PluginFunctions *nsp, int id)
     rd[i].data_size = id % 10;
     rd[i].expiration_time = GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES).abs_value_us;
     rd[i].record_type = 1 + (id % 13);
-    rd[i].flags = (id  % 7);
+    rd[i].flags = 0;
   }
   memset (&zone_private_key, (id % 241), sizeof (zone_private_key));
   memset (&signature, (id % 243), sizeof (signature));

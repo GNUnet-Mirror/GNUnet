@@ -330,6 +330,7 @@ create_record (unsigned int count)
     rd[c].record_type = 1111;
     rd[c].data_size = 50;
     rd[c].data = GNUNET_malloc(50);
+    rd[c].flags = 0;
     memset ((char *) rd[c].data, 'a', 50);
   }
   return rd;
