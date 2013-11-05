@@ -1292,23 +1292,38 @@ AM_CONDITIONAL([USE_COVERAGE], [test "x$use_gcov" = "xyes"])
 # version info
 AC_PATH_PROG(svnversioncommand, svnversion)
 AC_PATH_PROG(gitcommand, git)
-if test "X$svnversioncommand" = "X" || test `$svnversioncommand -n '.'` = "exported"
-then
-  if test "X$gitcommand" = "X"
-  then
-    AC_DEFINE_UNQUOTED(VCS_VERSION, ["release"], [repository svn version])
-  else
-    gitver=$(git log -1 | grep "git-svn-id" | sed -e 's/.*@\([[0-9]]\+\) .*/\1/')
-    if test "X$gitver" = "X"
-    then
-      AC_DEFINE_UNQUOTED(VCS_VERSION, ["release"], [repository svn version])
-    else
-      AC_DEFINE_UNQUOTED(VCS_VERSION, ["svn-$gitver"], [repository svn version])
-    fi
-  fi
-else
-  AC_DEFINE_UNQUOTED(VCS_VERSION, ["svn-`svnversion -n`"], [repository svn version])
-fi
+AC_MSG_CHECKING(for source being under a VCS)
+svn_version=
+gitsvn_version=
+AS_IF([test ! "X$svnversioncommand" = "X"],
+[
+  svn_version=$(cd $srcdir ; $svnversioncommand -n 2>/dev/null)
+])
+AS_IF([test ! "X$gitcommand" = "X"],
+[
+  gitsvn_version=$(cd $srcdir ; git log -1 2>/dev/null | grep "git-svn-id" | sed -e 's/.*@\([[0-9]]\+\) .*/\1/')
+])
+AS_IF([test "X$svn_version" = "X" -o "X$svn_version" = "Xexported" -o "X$svn_version" = "XUnversioned directory"],
+[
+  AS_IF([test "X$gitsvn_version" = "X"],
+  [
+    vcs_name="no"
+    vcs_version="release"
+  ],
+  [
+    vcs_name="yes, git-svn"
+    vcs_version="svn-$gitsvn_version"
+  ])
+],
+[
+  vcs_name="yes, svn"
+  vcs_version="svn-$svn_version"
+])
+AC_MSG_RESULT($vcs_name)
+
+AC_MSG_CHECKING(VCS version)
+AC_MSG_RESULT($vcs_version)
+AC_DEFINE_UNQUOTED(VCS_VERSION, [$vcs_version], [VCS revision/hash or tarball version])
 
 AC_CONFIG_FILES([
 Makefile
