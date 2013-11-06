@@ -414,33 +414,40 @@ http_common_socket_from_address (const void *addr, size_t addrlen, int *res)
   struct sockaddr_storage *s;
   (*res) = GNUNET_SYSERR;
   char * to_conv;
+  size_t urlen;
 
   ha = (const struct HttpAddress *) addr;
   if (NULL == addr)
-	{
-		GNUNET_break (0);
-		return NULL;
-	}
+  {
+    GNUNET_break(0);
+    return NULL ;
+  }
   if (0 >= addrlen)
-	{
-		GNUNET_break (0);
-		return NULL;
-	}
-  if (addrlen < sizeof (struct HttpAddress))
-	{
-		GNUNET_break (0);
-		return NULL;
-	}
-  if (addrlen < sizeof (struct HttpAddress) + ntohl (ha->urlen))
-	{
-		/* This is a legacy addresses */
-		return NULL;
-	}
-  if (((char *) addr)[addrlen-1] != '\0')
-	{
-		GNUNET_break (0);
-		return NULL;
-	}
+  {
+    GNUNET_break(0);
+    return NULL ;
+  }
+  if (addrlen < sizeof(struct HttpAddress))
+  {
+    GNUNET_break(0);
+    return NULL ;
+  }
+  urlen = ntohl (ha->urlen);
+  if (sizeof(struct HttpAddress) + urlen != addrlen)
+  {
+    /* This is a legacy addresses */
+    return NULL ;
+  }
+  if (addrlen < sizeof(struct HttpAddress) + urlen)
+  {
+    /* This is a legacy addresses */
+    return NULL ;
+  }
+  if (((char *) addr)[addrlen - 1] != '\0')
+  {
+    GNUNET_break(0);
+    return NULL ;
+  }
   spa = http_split_address ((const char *) &ha[1]);
   if (NULL == spa)
   {
