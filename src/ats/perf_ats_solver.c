@@ -267,7 +267,7 @@ perf_update_address (struct ATS_Address *cur)
   {
   case 0:
     r_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Updating peer `%s' address %p type %s val %u\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DELAY", r_val);
     ph.env.sf.s_address_update_property (ph.solver, cur,
@@ -277,7 +277,7 @@ perf_update_address (struct ATS_Address *cur)
   case 1:
     r_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 10);
 
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Updating peer `%s' address %p type %s val %u\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DISTANCE", r_val);
     ph.env.sf.s_address_update_property (ph.solver, cur,
@@ -442,7 +442,7 @@ solver_info_cb (void *cls,
   switch (op)
   {
     case GAS_OP_SOLVE_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if (GNUNET_NO == ph.expecting_solution)
@@ -473,7 +473,7 @@ solver_info_cb (void *cls,
       }
       return;
     case GAS_OP_SOLVE_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -493,7 +493,7 @@ solver_info_cb (void *cls,
       return;
 
     case GAS_OP_SOLVE_SETUP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -505,7 +505,7 @@ solver_info_cb (void *cls,
       return;
 
     case GAS_OP_SOLVE_SETUP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -519,7 +519,7 @@ solver_info_cb (void *cls,
       return;
 
     case GAS_OP_SOLVE_LP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -530,7 +530,7 @@ solver_info_cb (void *cls,
       ph.current_result->s_lp = GNUNET_TIME_absolute_get ();
       return;
     case GAS_OP_SOLVE_LP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -544,7 +544,7 @@ solver_info_cb (void *cls,
       return;
 
     case GAS_OP_SOLVE_MLP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -555,7 +555,7 @@ solver_info_cb (void *cls,
       ph.current_result->s_mlp = GNUNET_TIME_absolute_get ();
       return;
     case GAS_OP_SOLVE_MLP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -830,7 +830,7 @@ perf_run ()
     {
       cur_addr = perf_create_address (cp, ca);
       /* Add address */
-      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LOOPBACK);
+      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount + 1));
       ph.current_a = ca + 1;
       perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

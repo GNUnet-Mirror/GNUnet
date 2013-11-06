@@ -1154,7 +1154,7 @@ GAS_mlp_solve_problem (void *solver)
     }
 
   dur_setup = GNUNET_TIME_absolute_get_duration (start);
-
+  mlp->control_param_lp.presolve = GLP_YES;
   /* Run LP solver */
 
   notify(mlp, GAS_OP_SOLVE_LP_START, GAS_STAT_SUCCESS,
