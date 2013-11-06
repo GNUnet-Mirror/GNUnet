@@ -830,7 +830,7 @@ perf_run ()
     {
       cur_addr = perf_create_address (cp, ca);
       /* Add address */
-      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LAN);
+      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_ATS_NET_LOOPBACK);
       ph.current_a = ca + 1;
       perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -917,6 +917,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   char *test_filename = cls;
   char *solver;
   char *plugin;
+  struct GNUNET_CONFIGURATION_Handle *solver_cfg;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
   int c;
@@ -985,7 +986,15 @@ run (void *cls, char * const *args, const char *cfgfile,
     ph.opt_update_percent = DEFAULT_UPDATE_PERCENTAGE;
 
   /* Load quotas */
-  if (GNUNET_ATS_NetworkTypeCount != load_quotas (cfg,
+  solver_cfg = GNUNET_CONFIGURATION_create();
+  GNUNET_CONFIGURATION_load ( solver_cfg, "perf_ats_solver.conf");
+  if (NULL == solver_cfg)
+  {
+    GNUNET_break(0);
+    end_now (1);
+    return;
+  }
+  if (GNUNET_ATS_NetworkTypeCount != load_quotas (solver_cfg,
       quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount))
   {
     GNUNET_break(0);
@@ -994,7 +1003,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* Load solver */
-  ph.env.cfg = cfg;
+  ph.env.cfg = solver_cfg;
   ph.stat = GNUNET_STATISTICS_create ("ats", cfg);
   ph.env.stats = ph.stat;
   ph.addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
@@ -1035,6 +1044,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
   GNUNET_PLUGIN_unload (plugin, ph.solver);
   GNUNET_free (plugin);
+  GNUNET_CONFIGURATION_destroy (solver_cfg);
   ph.solver = NULL;
 }
 
