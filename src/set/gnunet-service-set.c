@@ -1155,7 +1155,7 @@ incoming_timeout_cb (void *cls,
 static void
 handle_incoming_disconnect (struct Operation *op)
 {
-  GNUNET_assert (GNUNET_YES == incoming->is_incoming);
+  GNUNET_assert (GNUNET_YES == op->is_incoming);
   
   if (NULL == op->tunnel)
     return;
