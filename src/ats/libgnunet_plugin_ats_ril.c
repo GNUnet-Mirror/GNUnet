@@ -31,14 +31,15 @@
 #define RIL_ACTION_INVALID -1
 #define RIL_FEATURES_ADDRESS_COUNT (3 + GNUNET_ATS_QualityPropertiesCount)
 #define RIL_FEATURES_NETWORK_COUNT 4
+#define RIL_INTERVAL_EXPONENT 10
 
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
-#define RIL_DEFAULT_ALGORITHM RIL_ALGO_Q
+#define RIL_DEFAULT_ALGORITHM RIL_ALGO_SARSA
 #define RIL_DEFAULT_DISCOUNT_BETA 0.7
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.4
 #define RIL_DEFAULT_TRACE_DECAY 0.6
-#define RIL_EXPLORE_RATIO 0.1
+#define RIL_DEFAULT_EXPLORE_RATIO 0.1
 
 /**
  * ATS reinforcement learning solver
@@ -93,17 +94,22 @@ struct RIL_Learning_Parameters
   /**
    * Learning discount factor in the TD-update
    */
-  float beta;
+  double beta;
 
   /**
    * Gradient-descent step-size
    */
-  float alpha;
+  double alpha;
 
   /**
    * Trace-decay factor for eligibility traces
    */
-  float lambda;
+  double lambda;
+
+  /**
+   *
+   */
+  double explore_ratio;
 
   /**
    * Minimal interval time between steps in milliseconds
@@ -368,13 +374,10 @@ static int
 agent_decide_exploration (struct RIL_Peer_Agent *agent)
 {
   //TODO? Future Work: Improve exploration/exploitation trade-off by different mechanisms than e-greedy
-  /*
-   * An e-greedy replacement could be based on the accuracy of the prediction of the Q-value
-   */
   double r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
       UINT32_MAX) / (double) UINT32_MAX;
 
-if  (r < RIL_EXPLORE_RATIO)
+  if (r < agent->envi->parameters.explore_ratio)
   {
     return GNUNET_YES;
   }
@@ -535,8 +538,10 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
   }
 }
 
-static void ril_inform (struct GAS_RIL_Handle *solver,
-    enum GAS_Solver_Operation op, enum GAS_Solver_Status stat)
+static void
+ril_inform (struct GAS_RIL_Handle *solver,
+    enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat)
 {
   if (NULL != solver->plugin_envi->info_cb)
     solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
@@ -772,10 +777,10 @@ envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
   pref_match += 1 - (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * (3 - properties[prop_index])); //invert property as we want to maximize for lower latencies
   bw_norm = GNUNET_MAX(2, (((
-                    ((double) agent->bw_in / (double) ril_get_max_bw(agent, GNUNET_YES)) +
-                    ((double) agent->bw_out / (double) ril_get_max_bw(agent, GNUNET_NO))
-                ) / 2
-            ) + 1));
+                  ((double) agent->bw_in / (double) ril_get_max_bw(agent, GNUNET_YES)) +
+                  ((double) agent->bw_out / (double) ril_get_max_bw(agent, GNUNET_NO))
+              ) / 2
+          ) + 1));
 
   pref_match += 1 - (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm);
 
@@ -799,7 +804,8 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   //punish overutilization
   net = agent->address_inuse->solver_information;
-  if ((net->bw_in_assigned > net->bw_in_available) || (net->bw_out_assigned > net->bw_out_available))
+  if ((net->bw_in_assigned > net->bw_in_available)
+      || (net->bw_out_assigned > net->bw_out_available))
   {
     return -1;
   }
@@ -1087,7 +1093,8 @@ agent_step (struct RIL_Peer_Agent *agent)
   agent->step_count += 1;
 }
 
-static int ril_step (struct GAS_RIL_Handle *solver);
+static int
+ril_step (struct GAS_RIL_Handle *solver);
 
 /**
  * Task for the scheduler, which performs one step and lets the solver know that
@@ -1102,7 +1109,7 @@ ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   struct GAS_RIL_Handle *solver = cls;
 
   solver->task_pending = GNUNET_NO;
-  ril_step(solver);
+  ril_step (solver);
 }
 
 static double
@@ -1125,7 +1132,8 @@ ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
       sum_available += net.bw_out_available;
     }
   }
-  if (sum_available > 0) {
+  if (sum_available > 0)
+  {
     ratio = ((double) sum_assigned) / ((double) sum_available);
   }
   else
@@ -1133,7 +1141,7 @@ ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
     ratio = 0;
   }
 
-  return ratio > 1? 1 : ratio; //overutilization possible, cap at 1
+  return ratio > 1 ? 1 : ratio; //overutilization possible, cap at 1
 }
 
 /**
@@ -1154,26 +1162,30 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
 
   if (solver->task_pending)
   {
-    GNUNET_SCHEDULER_cancel(solver->step_next_task_id);
+    GNUNET_SCHEDULER_cancel (solver->step_next_task_id);
   }
 
-  used_ratio = ril_get_used_resource_ratio(solver);
+  used_ratio = ril_get_used_resource_ratio (solver);
 
-  GNUNET_assert(solver->parameters.step_time_min.rel_value_us < solver->parameters.step_time_max.rel_value_us);
+  GNUNET_assert(
+      solver->parameters.step_time_min.rel_value_us
+          < solver->parameters.step_time_max.rel_value_us);
 
-  factor = (double) GNUNET_TIME_relative_subtract(solver->parameters.step_time_max, solver->parameters.step_time_min).rel_value_us;
+  factor = (double) GNUNET_TIME_relative_subtract (solver->parameters.step_time_max,
+      solver->parameters.step_time_min).rel_value_us;
   offset = (double) solver->parameters.step_time_min.rel_value_us;
-  y = factor * pow(used_ratio, 10) + offset;
+  y = factor * pow (used_ratio, RIL_INTERVAL_EXPONENT) + offset;
 
   //LOG (GNUNET_ERROR_TYPE_INFO, "used = %f, min = %f, max = %f\n", used_ratio, (double)solver->parameters.step_time_min.rel_value_us, (double)solver->parameters.step_time_max.rel_value_us);
   //LOG (GNUNET_ERROR_TYPE_INFO, "factor = %f, offset = %f, y = %f\n", factor, offset, y);
 
-  GNUNET_assert(y <= (double) solver->parameters.step_time_max.rel_value_us);
-  GNUNET_assert(y >= (double) solver->parameters.step_time_min.rel_value_us);
+  GNUNET_assert(y <= (double ) solver->parameters.step_time_max.rel_value_us);
+  GNUNET_assert(y >= (double ) solver->parameters.step_time_min.rel_value_us);
 
   time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned int) y);
 
-  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed(time_next, &ril_step_scheduler_task, solver);
+  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (time_next, &ril_step_scheduler_task,
+      solver);
   solver->task_pending = GNUNET_YES;
 }
 
@@ -1191,27 +1203,30 @@ ril_step (struct GAS_RIL_Handle *solver)
 
   if (GNUNET_YES == solver->bulk_lock)
   {
-    solver->bulk_changes ++;
+    solver->bulk_changes++;
     return GNUNET_NO;
   }
 
-  ril_inform(solver, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
+  ril_inform (solver, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", solver->step_count);
 
-  if (0 == solver->step_count) {
+  if (0 == solver->step_count)
+  {
     solver->step_time_last = GNUNET_TIME_absolute_get ();
   }
 
   //calculate tau, i.e. how many real valued time units have passed, one time unit is one minimum time step
   time_now = GNUNET_TIME_absolute_get ();
-  time_delta = GNUNET_TIME_absolute_get_difference(solver->step_time_last, time_now);
-  tau = ((double) time_delta.rel_value_us) / ((double) solver->parameters.step_time_min.rel_value_us);
+  time_delta = GNUNET_TIME_absolute_get_difference (solver->step_time_last, time_now);
+  tau = ((double) time_delta.rel_value_us)
+      / ((double) solver->parameters.step_time_min.rel_value_us);
   solver->step_time_last = time_now;
 
   //calculate reward discounts (once per step for all agents)
-  solver->discount_variable = pow(M_E, ((-1.) * ((double) solver->parameters.beta) * tau));
-  solver->discount_integrated = (1 - solver->discount_variable) / ((double) solver->parameters.beta);
+  solver->discount_variable = pow (M_E, ((-1.) * ((double) solver->parameters.beta) * tau));
+  solver->discount_integrated = (1 - solver->discount_variable)
+      / ((double) solver->parameters.beta);
 
   //trigger one step per active agent
   for (cur = solver->agents_head; NULL != cur; cur = cur->next)
@@ -1223,9 +1238,9 @@ ril_step (struct GAS_RIL_Handle *solver)
   }
 
   solver->step_count += 1;
-  ril_step_schedule_next(solver);
+  ril_step_schedule_next (solver);
 
-  ril_inform(solver, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
+  ril_inform (solver, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
 
   return GNUNET_YES;
 }
@@ -1430,7 +1445,7 @@ GAS_ril_address_change_preference (void *solver,
       "API_address_change_preference() Preference '%s' for peer '%s' changed to %.2f \n",
       GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer), pref_rel);
 
-  ril_step(solver);
+  ril_step (solver);
 }
 
 /**
@@ -1445,7 +1460,6 @@ libgnunet_plugin_ats_ril_init (void *cls)
   struct GAS_RIL_Handle *solver = GNUNET_new (struct GAS_RIL_Handle);
   struct RIL_Network * cur;
   int c;
-  unsigned long long tmp;
   char *string;
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_init() Initializing RIL solver\n");
@@ -1458,49 +1472,57 @@ libgnunet_plugin_ats_ril_init (void *cls)
   GNUNET_assert(NULL != env->get_property);
 
   if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME_MIN", &solver->parameters.step_time_min))
+      != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME_MIN",
+          &solver->parameters.step_time_min))
   {
     solver->parameters.step_time_min = RIL_DEFAULT_STEP_TIME_MIN;
   }
   if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME_MAX", &solver->parameters.step_time_max))
+      != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME_MAX",
+          &solver->parameters.step_time_max))
   {
     solver->parameters.step_time_max = RIL_DEFAULT_STEP_TIME_MAX;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_ALGORITHM", &string)
-      && NULL != string && 0 == strcmp (string, "SARSA"))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_ALGORITHM", &string))
   {
-    solver->parameters.algorithm = RIL_ALGO_SARSA;
+    solver->parameters.algorithm = !strcmp (string, "SARSA") ? RIL_ALGO_SARSA : RIL_ALGO_Q;
   }
   else
   {
     solver->parameters.algorithm = RIL_DEFAULT_ALGORITHM;
   }
-  if (GNUNET_OK
-      == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_DISCOUNT_BETA", &tmp))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_DISCOUNT_BETA", &string))
   {
-    solver->parameters.beta = (double) tmp / 100;
+    solver->parameters.beta = strtod (string, NULL);
   }
   else
   {
     solver->parameters.beta = RIL_DEFAULT_DISCOUNT_BETA;
   }
   if (GNUNET_OK
-      == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &tmp))
+      == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &string))
   {
-    solver->parameters.alpha = (double) tmp / 100;
+    solver->parameters.alpha = strtod (string, NULL);
   }
   else
   {
     solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
   }
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats", "RIL_TRACE_DECAY", &tmp))
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TRACE_DECAY", &string))
   {
-    solver->parameters.lambda = (double) tmp / 100;
+    solver->parameters.lambda = strtod (string, NULL);
   }
   else
   {
     solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
+  }
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_RATIO", &string))
+  {
+    solver->parameters.explore_ratio = strtod (string, NULL);
+  }
+  else
+  {
+    solver->parameters.explore_ratio = RIL_DEFAULT_EXPLORE_RATIO;
   }
 
   env->sf.s_add = &GAS_ril_address_add;
@@ -1649,7 +1671,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
     envi_set_active_suggestion (s, agent, address, min_bw, min_bw, GNUNET_NO);
   }
 
-  ril_step(s);
+  ril_step (s);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_add() Added %s %s address %p for peer '%s'\n",
       address->active ? "active" : "inactive", address->plugin, address->addr,
@@ -1767,7 +1789,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
     }
   }
 
-  ril_step(solver);
+  ril_step (solver);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Address deleted\n");
 }
@@ -1793,7 +1815,7 @@ GAS_ril_address_property_changed (void *solver,
           "to %.2f \n", GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       address->addr, rel_value);
 
-  ril_step(solver);
+  ril_step (solver);
 }
 
 /**
@@ -1924,7 +1946,7 @@ GAS_ril_bulk_start (void *solver)
 {
   struct GAS_RIL_Handle *s = solver;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start() Locking solver for bulk operation ...\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start() Locking solver for bulk operation ...\n");
 
   s->bulk_lock++;
 }
@@ -1939,11 +1961,11 @@ GAS_ril_bulk_stop (void *solver)
 {
   struct GAS_RIL_Handle *s = solver;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop() Releasing solver from bulk operation ...\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop() Releasing solver from bulk operation ...\n");
 
   if (s->bulk_lock < 1)
   {
-    GNUNET_break (0);
+    GNUNET_break(0);
     return;
   }
   s->bulk_lock--;
@@ -2001,7 +2023,7 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
         GNUNET_i2s (peer));
   }
 
-  ril_step(s);
+  ril_step (s);
 
   return agent->address_inuse;
 }
@@ -2045,7 +2067,7 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
   envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
       GNUNET_YES);
 
-  ril_step(s);
+  ril_step (s);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_stop_get_preferred_address() Paused agent for peer '%s' with %s address\n",
