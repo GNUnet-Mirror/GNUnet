@@ -223,7 +223,7 @@ NEED_LIBGCRYPT_VERSION=1.6.0
 
 
 AM_PATH_LIBGCRYPT("$NEED_LIBGCRYPT_API:$NEED_LIBGCRYPT_VERSION", gcrypt=1)
-AC_CHECK_DECLS([gcry_mpi_lshift], [], [], [[#include <gcrypt.h>]])
+AC_CHECK_DECLS([gcry_mpi_set_opaque_copy], [], [], [[#include <gcrypt.h>]])
 
 if test $gcrypt = 0
 then
