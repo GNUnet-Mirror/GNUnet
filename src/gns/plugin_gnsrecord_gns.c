@@ -64,20 +64,33 @@ gns_value_to_string (void *cls,
   case GNUNET_GNSRECORD_TYPE_GNS2DNS:
     {
       char *ns;
+      char *ip;
       size_t off;
+      char *nstr;
 
       off = 0;
       ns = GNUNET_DNSPARSER_parse_name (data,
 					data_size,
 					&off);
+      ip = GNUNET_DNSPARSER_parse_name (data,
+					data_size,
+					&off);
       if ( (NULL == ns) ||
+           (NULL == ip) ||
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
 	GNUNET_free_non_null (ns);
+	GNUNET_free_non_null (ip);
 	return NULL;
       }
-      return ns;
+      GNUNET_asprintf (&nstr,
+                       "%s@%s",
+                       ns,
+                       ip);
+      GNUNET_free_non_null (ns);
+      GNUNET_free_non_null (ip);
+      return nstr;
     }
   case GNUNET_GNSRECORD_TYPE_VPN:
     {
@@ -89,14 +102,10 @@ gns_value_to_string (void *cls,
 	   ('\0' != cdata[data_size - 1]) )
 	return NULL; /* malformed */
       vpn = data;
-      if (0 == GNUNET_asprintf (&vpn_str, "%u %s %s",
-				(unsigned int) ntohs (vpn->proto),
-				(const char*) GNUNET_i2s_full (&vpn->peer),
-				(const char*) &vpn[1]))
-      {
-	GNUNET_free (vpn_str);
-	return NULL;
-      }
+      GNUNET_asprintf (&vpn_str, "%u %s %s",
+                       (unsigned int) ntohs (vpn->proto),
+                       (const char*) GNUNET_i2s_full (&vpn->peer),
+                       (const char*) &vpn[1]);
       return vpn_str;
     }
   default:
@@ -158,21 +167,43 @@ gns_string_to_value (void *cls,
     return GNUNET_OK;
   case GNUNET_GNSRECORD_TYPE_GNS2DNS:
     {
-      char nsbuf[256];
+      char nsbuf[514];
+      char *cpy;
+      char *at;
       size_t off;
 
+      cpy = GNUNET_strdup (s);
+      at = strchr (cpy, '@');
+      if (NULL == at)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Unable to parse GNS2DNS record `%s'\n"),
+                    s);
+        GNUNET_free (cpy);
+        return GNUNET_SYSERR;
+      }
+      *at = '\0';
+      at++;
+
       off = 0;
-      if (GNUNET_OK !=
-	  GNUNET_DNSPARSER_builder_add_name (nsbuf,
-					     sizeof (nsbuf),
-					     &off,
-					     s))
+      if ( (GNUNET_OK !=
+            GNUNET_DNSPARSER_builder_add_name (nsbuf,
+                                               sizeof (nsbuf),
+                                               &off,
+                                               cpy)) ||
+           (GNUNET_OK !=
+            GNUNET_DNSPARSER_builder_add_name (nsbuf,
+                                               sizeof (nsbuf),
+                                               &off,
+                                               at)) )
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize GNS2DNS record with value `%s'\n"),
-             s);
+                    _("Failed to serialize GNS2DNS record with value `%s'\n"),
+                    s);
+        GNUNET_free (cpy);
 	return GNUNET_SYSERR;
       }
+      GNUNET_free (cpy);
       *data_size = off;
       *data = GNUNET_malloc (off);
       memcpy (*data, nsbuf, off);
