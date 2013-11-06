@@ -299,7 +299,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
                      "Peer %u configured with identity `%s'\n",
                      p->no,
-                     GNUNET_i2s (&p->id));
+                     GNUNET_i2s_full (&p->id));
   }
 
   p->tth = tth;
