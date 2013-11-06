@@ -159,7 +159,7 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
  *
  * @param peer Peer to check.
  *
- * @return GNUNET_YES if there is a direct connection.
+ * @return #GNUNET_YES if there is a direct connection.
  */
 int
 GMP_is_neighbor (const struct MeshPeer *peer);

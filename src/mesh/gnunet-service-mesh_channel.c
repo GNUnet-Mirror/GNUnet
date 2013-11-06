@@ -1014,7 +1014,7 @@ GMCH_get_buffer (struct MeshChannel *ch, int fwd)
  * @param ch Channel.
  * @param fwd Is query about FWD traffic? (Request root status).
  *
- * @return GNUNET_YES if client is allowed to send us data.
+ * @return #GNUNET_YES if client is allowed to send us data.
  */
 int
 GMCH_get_allowed (struct MeshChannel *ch, int fwd)
@@ -1033,7 +1033,7 @@ GMCH_get_allowed (struct MeshChannel *ch, int fwd)
  * @param ch Channel.
  * @param fwd Is this for fwd traffic?
  *
- * @return GNUNET_YES in case it is.
+ * @return #GNUNET_YES in case it is.
  */
 int
 GMCH_is_origin (struct MeshChannel *ch, int fwd)
@@ -1051,7 +1051,7 @@ GMCH_is_origin (struct MeshChannel *ch, int fwd)
  * @param ch Channel.
  * @param fwd Is this for fwd traffic?
  *
- * @return GNUNET_YES in case it is.
+ * @return #GNUNET_YES in case it is.
  */
 int
 GMCH_is_terminal (struct MeshChannel *ch, int fwd)
@@ -1449,7 +1449,7 @@ GMCH_handle_local_create (struct MeshClient *c,
  *
  * @param ch Channel for the message.
  * @param msg Unencryted data message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
  */
 void
 GMCH_handle_data (struct MeshChannel *ch,
@@ -1604,7 +1604,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
  *
  * @param t Tunnel this channel will be in.
  * @param msg Message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
  */
 struct MeshChannel *
 GMCH_handle_create (struct MeshTunnel3 *t,
@@ -1661,7 +1661,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
  *
  * @param ch Channel.
  * @param msg Message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
  */
 void
 GMCH_handle_ack (struct MeshChannel *ch,
@@ -1677,7 +1677,7 @@ GMCH_handle_ack (struct MeshChannel *ch,
  *
  * @param ch Channel to be destroyed of.
  * @param msg Message.
- * @param fwd Is this FWD traffic? GNUNET_YES : GNUNET_NO;
+ * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
  */
 void
 GMCH_handle_destroy (struct MeshChannel *ch,

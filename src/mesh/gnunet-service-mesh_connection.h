@@ -379,7 +379,7 @@ GMC_notify_broken (struct MeshConnection *c,
  * @param c Connection.
  * @param fwd Is this about fwd traffic?
  *
- * @return GNUNET_YES if origin, GNUNET_NO if relay/terminal.
+ * @return #GNUNET_YES if origin, #GNUNET_NO if relay/terminal.
  */
 int
 GMC_is_origin (struct MeshConnection *c, int fwd);
@@ -391,7 +391,7 @@ GMC_is_origin (struct MeshConnection *c, int fwd);
  * @param fwd Is this about fwd traffic?
  *            Note that the ROOT is the terminal for BCK traffic!
  *
- * @return GNUNET_YES if terminal, GNUNET_NO if relay/origin.
+ * @return #GNUNET_YES if terminal, #GNUNET_NO if relay/origin.
  */
 int
 GMC_is_terminal (struct MeshConnection *c, int fwd);
@@ -402,7 +402,7 @@ GMC_is_terminal (struct MeshConnection *c, int fwd);
  * @param c Connection.
  * @param fwd Is this about fwd traffic?
  *
- * @return GNUNET_YES in case it's OK.
+ * @return #GNUNET_YES in case it's OK to send.
  */
 int
 GMC_is_sendable (struct MeshConnection *c, int fwd);

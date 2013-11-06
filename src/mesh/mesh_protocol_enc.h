@@ -220,12 +220,6 @@ struct GNUNET_MESH_KX_Pong
   uint32_t iv GNUNET_PACKED;
 
   /**
-   * Intended target of the PING, used primarily to check
-   * that decryption actually worked.
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
    * Same nonce as in the reve.
    */
   uint32_t nonce GNUNET_PACKED;

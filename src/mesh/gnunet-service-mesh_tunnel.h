@@ -353,7 +353,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  *
  * @param t Tunnel.
  *
- * @return GNUNET_YES if it is loopback.
+ * @return #GNUNET_YES if it is loopback.
  */
 int
 GMT_is_loopback (const struct MeshTunnel3 *t);
@@ -364,7 +364,7 @@ GMT_is_loopback (const struct MeshTunnel3 *t);
  * @param t Tunnel.
  * @param p Path.
  *
- * @return GNUNET_YES a connection uses this path.
+ * @return #GNUNET_YES a connection uses this path.
  */
 int
 GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p);

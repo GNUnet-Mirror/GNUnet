@@ -573,7 +573,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
  * @param key Key (hashed tunnel ID, unused).
  * @param value Tunnel info.
  *
- * @return GNUNET_YES, to keep iterating.
+ * @return #GNUNET_YES, to keep iterating.
  */
 // static int
 // monitor_all_tunnels_iterator (void *cls,

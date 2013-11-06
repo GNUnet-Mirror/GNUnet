@@ -592,7 +592,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+  if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
   t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
@@ -600,7 +600,20 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                    UINT32_MAX);
   t->kx_ctx->d_key_old = t->d_key;
   send_ephemeral (t);
-  send_ping (t);
+  if (MESH_TUNNEL3_READY == t->state)
+  {
+    send_ping (t);
+    t->state = MESH_TUNNEL3_REKEY;
+  }
+  else if (MESH_TUNNEL3_WAITING == t->state)
+  {
+    t->state = MESH_TUNNEL3_KEY_SENT;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->state);
+  }
+
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
 }
 
@@ -623,6 +636,9 @@ rekey_iterator (void *cls,
   struct GNUNET_TIME_Relative delay;
   long n = (long) cls;
   uint32_t r;
+
+  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+    return GNUNET_YES;
 
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
@@ -856,6 +872,11 @@ handle_ephemeral (struct MeshTunnel3 *t,
   derive_key_material (&km, &msg->ephemeral_key);
   derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
+  if (MESH_TUNNEL3_KEY_SENT == t->state)
+  {
+    send_ping (t);
+    t->state = MESH_TUNNEL3_PING_SENT;
+  }
 }
 
 
@@ -898,17 +919,30 @@ static void
 handle_pong (struct MeshTunnel3 *t,
              const struct GNUNET_MESH_KX_Pong *msg)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+  uint32_t challenge;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG received\n");
+  if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
   {
-    GNUNET_SCHEDULER_cancel (t->rekey_task);
-    t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_free (t->kx_ctx);
-    t->kx_ctx = NULL;
+    GNUNET_break_op (0);
+    return;
   }
-  else
+  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
+
+  if (challenge != t->kx_ctx->challenge)
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Wrong PONG challenge: %u. Expected: %u.\n",
+         challenge, t->kx_ctx->challenge);
+    GNUNET_break_op (0);
+    return;
   }
+  GNUNET_SCHEDULER_cancel (t->rekey_task);
+  t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_free (t->kx_ctx);
+  t->kx_ctx = NULL;
+  send_queued_data (t, GNUNET_YES);
+  send_queued_data (t, GNUNET_NO);
 }
 
 
@@ -1137,10 +1171,9 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
               "Tunnel %s state is now %s\n",
               GMP_2s (t->peer),
               GMT_state2s (state));
-  if (MESH_TUNNEL3_WAITING == t->state)
+  if (MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
   {
-    send_queued_data (t, GNUNET_YES);
-    send_queued_data (t, GNUNET_NO);
+    rekey_tunnel (t, NULL);
   }
   t->state = state;
   if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
@@ -1731,7 +1764,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  *
  * @param t Tunnel.
  *
- * @return GNUNET_YES if it is loopback.
+ * @return #GNUNET_YES if it is loopback.
  */
 int
 GMT_is_loopback (const struct MeshTunnel3 *t)
@@ -1746,7 +1779,7 @@ GMT_is_loopback (const struct MeshTunnel3 *t)
  * @param t Tunnel.
  * @param p Path.
  *
- * @return GNUNET_YES a connection uses this path.
+ * @return #GNUNET_YES a connection uses this path.
  */
 int
 GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)

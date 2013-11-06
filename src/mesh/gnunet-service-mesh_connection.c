@@ -561,8 +561,10 @@ get_hop (struct MeshConnection *c, int fwd)
  * @param c Connection to check.
  * @param sender Peer identity of neighbor.
  *
- * @return GNUNET_YES in case the sender is the 'prev' hop and therefore
- *         the traffic is 'FWD'. GNUNET_NO for BCK. GNUNET_SYSERR for errors.
+ * @return #GNUNET_YES in case the sender is the 'prev' hop and therefore
+ *         the traffic is 'FWD'.
+ *         #GNUNET_NO for BCK.
+ *         #GNUNET_SYSERR for errors.
  */
 static int 
 is_fwd (const struct MeshConnection *c,
@@ -669,7 +671,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
  * Send CONNECTION_{CREATE/ACK} packets for a connection.
  *
  * @param c Connection for which to send the message.
- * @param fwd If GNUNET_YES, send CREATE, otherwise send ACK.
+ * @param fwd If #GNUNET_YES, send CREATE, otherwise send ACK.
  */
 static void
 connection_recreate (struct MeshConnection *c, int fwd)
@@ -2143,7 +2145,7 @@ GMC_notify_broken (struct MeshConnection *c,
  * @param c Connection.
  * @param fwd Is this about fwd traffic?
  *
- * @return GNUNET_YES if origin, GNUNET_NO if relay/terminal.
+ * @return #GNUNET_YES if origin, #GNUNET_NO if relay/terminal.
  */
 int
 GMC_is_origin (struct MeshConnection *c, int fwd)
@@ -2163,7 +2165,7 @@ GMC_is_origin (struct MeshConnection *c, int fwd)
  * @param fwd Is this about fwd traffic?
  *            Note that the ROOT is the terminal for BCK traffic!
  *
- * @return GNUNET_YES if terminal, GNUNET_NO if relay/origin.
+ * @return #GNUNET_YES if terminal, #GNUNET_NO if relay/origin.
  */
 int
 GMC_is_terminal (struct MeshConnection *c, int fwd)
@@ -2178,7 +2180,7 @@ GMC_is_terminal (struct MeshConnection *c, int fwd)
  * @param c Connection.
  * @param fwd Is this about fwd traffic?
  *
- * @return GNUNET_YES in case it's OK.
+ * @return #GNUNET_YES in case it's OK to send.
  */
 int
 GMC_is_sendable (struct MeshConnection *c, int fwd)

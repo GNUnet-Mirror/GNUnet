@@ -215,8 +215,7 @@ static struct GNUNET_CORE_Handle *core_handle;
  * @param key Current key code (peer id).
  * @param value Value in the hash map (connection).
  *
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @return #GNUNET_YES to continue to iterate.
  */
 static int
 notify_broken (void *cls,
@@ -546,11 +545,11 @@ peer_destroy (struct MeshPeer *peer)
 
 
 /**
- * Returns if peer is used (has a tunnel, is neighbor).
+ * Returns if peer is used (has a tunnel or is neighbor).
  *
  * @param peer Peer to check.
  *
- * @return GNUNET_YES if peer is in use.
+ * @return #GNUNET_YES if peer is in use.
  */
 static int
 peer_is_used (struct MeshPeer *peer)
@@ -1371,7 +1370,7 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
  *
  * @param peer Peer to check.
  *
- * @return GNUNET_YES if there is a direct connection.
+ * @return #GNUNET_YES if there is a direct connection.
  */
 int
 GMP_is_neighbor (const struct MeshPeer *peer)
