@@ -226,7 +226,7 @@ check_SCRIPTS = \
   test_gns_ipv6_lookup.sh\
   test_gns_txt_lookup.sh\
   test_gns_mx_lookup.sh \
-  test_gns_ns_lookup.sh \
+  test_gns_gns2dns_lookup.sh \
   test_gns_dht_lookup.sh\
   test_gns_pseu_shorten.sh\
   test_gns_plus_lookup.sh\
