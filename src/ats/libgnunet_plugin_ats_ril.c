@@ -33,7 +33,7 @@
 #define RIL_FEATURES_NETWORK_COUNT 4
 
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
-#define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 10000)
+#define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
 #define RIL_DEFAULT_ALGORITHM RIL_ALGO_Q
 #define RIL_DEFAULT_DISCOUNT_BETA 0.7
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.4
@@ -281,7 +281,12 @@ struct GAS_RIL_Handle
   /**
    * Task identifier of the next time-step to be executed
    */
-  GNUNET_SCHEDULER_TaskIdentifier step_next_task;
+  GNUNET_SCHEDULER_TaskIdentifier step_next_task_id;
+
+  /**
+   * Whether a step is already scheduled
+   */
+  int task_pending;
 
   /**
    * Variable discount factor, dependent on time between steps
@@ -1082,6 +1087,96 @@ agent_step (struct RIL_Peer_Agent *agent)
   agent->step_count += 1;
 }
 
+static int ril_step (struct GAS_RIL_Handle *solver);
+
+/**
+ * Task for the scheduler, which performs one step and lets the solver know that
+ * no further step is scheduled.
+ *
+ * @param cls the solver handle
+ * @param tc the task context for the scheduler
+ */
+static void
+ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GAS_RIL_Handle *solver = cls;
+
+  solver->task_pending = GNUNET_NO;
+  ril_step(solver);
+}
+
+static double
+ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
+{
+  int i;
+  struct RIL_Network net;
+  unsigned long long sum_assigned = 0;
+  unsigned long long sum_available = 0;
+  double ratio;
+
+  for (i = 0; i < solver->networks_count; i++)
+  {
+    net = solver->network_entries[i];
+    if (net.bw_in_assigned > 0) //only consider scopes with an active address
+    {
+      sum_assigned += net.bw_in_assigned;
+      sum_assigned += net.bw_out_assigned;
+      sum_available += net.bw_in_available;
+      sum_available += net.bw_out_available;
+    }
+  }
+  if (sum_available > 0) {
+    ratio = ((double) sum_assigned) / ((double) sum_available);
+  }
+  else
+  {
+    ratio = 0;
+  }
+
+  return ratio > 1? 1 : ratio; //overutilization possible, cap at 1
+}
+
+/**
+ * Schedules the next global step in an adaptive way. The more resources are
+ * left, the earlier the next step is scheduled. This serves the reactivity of
+ * the solver to changed inputs.
+ *
+ * @param solver the solver handle
+ */
+static void
+ril_step_schedule_next (struct GAS_RIL_Handle *solver)
+{
+  double used_ratio;
+  double factor;
+  double y;
+  double offset;
+  struct GNUNET_TIME_Relative time_next;
+
+  if (solver->task_pending)
+  {
+    GNUNET_SCHEDULER_cancel(solver->step_next_task_id);
+  }
+
+  used_ratio = ril_get_used_resource_ratio(solver);
+
+  GNUNET_assert(solver->parameters.step_time_min.rel_value_us < solver->parameters.step_time_max.rel_value_us);
+
+  factor = (double) GNUNET_TIME_relative_subtract(solver->parameters.step_time_max, solver->parameters.step_time_min).rel_value_us;
+  offset = (double) solver->parameters.step_time_min.rel_value_us;
+  y = factor * pow(used_ratio, 10) + offset;
+
+  //LOG (GNUNET_ERROR_TYPE_INFO, "used = %f, min = %f, max = %f\n", used_ratio, (double)solver->parameters.step_time_min.rel_value_us, (double)solver->parameters.step_time_max.rel_value_us);
+  //LOG (GNUNET_ERROR_TYPE_INFO, "factor = %f, offset = %f, y = %f\n", factor, offset, y);
+
+  GNUNET_assert(y <= (double) solver->parameters.step_time_max.rel_value_us);
+  GNUNET_assert(y >= (double) solver->parameters.step_time_min.rel_value_us);
+
+  time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned int) y);
+
+  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed(time_next, &ril_step_scheduler_task, solver);
+  solver->task_pending = GNUNET_YES;
+}
+
 /**
  * Triggers one step per agent
  * @param solver
@@ -1102,6 +1197,8 @@ ril_step (struct GAS_RIL_Handle *solver)
 
   ril_inform(solver, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", solver->step_count);
+
   if (0 == solver->step_count) {
     solver->step_time_last = GNUNET_TIME_absolute_get ();
   }
@@ -1110,7 +1207,7 @@ ril_step (struct GAS_RIL_Handle *solver)
   time_now = GNUNET_TIME_absolute_get ();
   time_delta = GNUNET_TIME_absolute_get_difference(solver->step_time_last, time_now);
   tau = ((double) time_delta.rel_value_us) / ((double) solver->parameters.step_time_min.rel_value_us);
-  memcpy(&solver->step_time_last, &time_now, sizeof(struct GNUNET_TIME_Absolute));
+  solver->step_time_last = time_now;
 
   //calculate reward discounts (once per step for all agents)
   solver->discount_variable = pow(M_E, ((-1.) * ((double) solver->parameters.beta) * tau));
@@ -1124,29 +1221,13 @@ ril_step (struct GAS_RIL_Handle *solver)
       agent_step (cur);
     }
   }
+
+  solver->step_count += 1;
+  ril_step_schedule_next(solver);
+
   ril_inform(solver, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
 
   return GNUNET_YES;
-}
-
-/**
- * Triggers one multi-agent step and schedules the next one.
- *
- * @param cls the solver handle
- * @param tc the task context for the scheduler
- */
-static void
-ril_periodic_step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GAS_RIL_Handle *solver = cls;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "RIL step number %d\n", solver->step_count);
-
-  ril_step(solver);
-  solver->step_count += 1;
-
-  //TODO! next step scheduling depending on how many resources are left
-  solver->step_next_task = GNUNET_SCHEDULER_add_delayed (solver->parameters.step_time_max, &ril_periodic_step, solver);
 }
 
 /**
@@ -1450,9 +1531,10 @@ libgnunet_plugin_ats_ril_init (void *cls)
     cur->bw_out_assigned = 0;
   }
 
-  solver->step_next_task = GNUNET_SCHEDULER_add_delayed (
+  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_millisecond_ (), 1000),
-      &ril_periodic_step, solver);
+      &ril_step_scheduler_task, solver);
+  solver->task_pending = GNUNET_YES;
 
   return solver;
 }
@@ -1480,7 +1562,10 @@ libgnunet_plugin_ats_ril_done (void *cls)
     cur_agent = next_agent;
   }
 
-  GNUNET_SCHEDULER_cancel (s->step_next_task);
+  if (s->task_pending)
+  {
+    GNUNET_SCHEDULER_cancel (s->step_next_task_id);
+  }
   GNUNET_free(s->network_entries);
   GNUNET_free(s);
 
@@ -1852,9 +1937,6 @@ GAS_ril_bulk_start (void *solver)
 void
 GAS_ril_bulk_stop (void *solver)
 {
-  /* TODO! trigger "recalculation" after bulk / trigger "recalculation" after changes (address or preference)
-   * that has to be properly thought through, not when your mind is blocked completely
-   */
   struct GAS_RIL_Handle *s = solver;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop() Releasing solver from bulk operation ...\n");
