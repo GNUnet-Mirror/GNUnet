@@ -238,29 +238,6 @@ GMT_handle_kx (struct MeshTunnel3 *t,
                const struct GNUNET_MessageHeader *message);
 
 /**
- * Cache a message to be sent once tunnel is online.
- *
- * @param t Tunnel to hold the message.
- * @param ch Channel the message is about.
- * @param msg Message itself (copy will be made).
- * @param fwd Is this fwd?
- */
-void
-GMT_queue_data (struct MeshTunnel3 *t,
-                struct MeshChannel *ch,
-                struct GNUNET_MessageHeader *msg,
-                int fwd);
-
-/**
- * Send all cached messages that we can, tunnel is online.
- *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
- */
-void
-GMT_send_queued_data (struct MeshTunnel3 *t, int fwd);
-
-/**
  * @brief Use the given path for the tunnel.
  * Update the next and prev hops (and RCs).
  * (Re)start the path refresh in case the tunnel is locally owned.

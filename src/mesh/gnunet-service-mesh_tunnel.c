@@ -447,6 +447,81 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
 
 
 /**
+ * Send all cached messages that we can, tunnel is online.
+ *
+ * @param t Tunnel that holds the messages.
+ * @param fwd Is this fwd?
+ */
+static void
+send_queued_data (struct MeshTunnel3 *t, int fwd)
+{
+  struct MeshTunnelQueue *tq;
+  struct MeshTunnelQueue *next;
+  unsigned int room;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "GMT_send_queued_data on tunnel %s\n",
+              GMT_2s (t));
+
+  if (NULL == t->channel_head ||
+      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, fwd))
+    return;
+
+  room = GMT_get_buffer (t, fwd);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
+  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " data on channel %s\n", GMCH_2s (tq->ch));
+    next = tq->next;
+    room--;
+    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
+    GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
+                                tq->ch, fwd);
+
+    GNUNET_free (tq);
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GMT_send_queued_data end\n",
+       GMP_2s (t->peer));
+}
+
+
+
+
+/**
+ * Cache a message to be sent once tunnel is online.
+ *
+ * @param t Tunnel to hold the message.
+ * @param ch Channel the message is about.
+ * @param msg Message itself (copy will be made).
+ * @param fwd Is this fwd?
+ */
+static void
+queue_data (struct MeshTunnel3 *t,
+            struct MeshChannel *ch,
+            const struct GNUNET_MessageHeader *msg,
+            int fwd)
+{
+  struct MeshTunnelQueue *tq;
+  uint16_t size = ntohs (msg->size);
+
+  if (MESH_TUNNEL3_READY == t->state)
+  {
+    GNUNET_break (0);
+    GMT_send_prebuilt_message (msg, t, ch, fwd);
+    return;
+  }
+
+  tq = GNUNET_malloc (sizeof (struct MeshTunnelQueue) + size);
+
+  tq->ch = ch;
+  memcpy (&tq[1], msg, size);
+  GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
+}
+
+
+
+/**
  * Send the ephemeral key on a tunnel.
  *
  * @param t Tunnel on which to send the key.
@@ -964,70 +1039,6 @@ GMT_handle_kx (struct MeshTunnel3 *t,
 }
 
 
-
-/**
- * Cache a message to be sent once tunnel is online.
- *
- * @param t Tunnel to hold the message.
- * @param ch Channel the message is about.
- * @param msg Message itself (copy will be made).
- * @param fwd Is this fwd?
- */
-void
-GMT_queue_data (struct MeshTunnel3 *t,
-                struct MeshChannel *ch,
-                struct GNUNET_MessageHeader *msg,
-                int fwd)
-{
-  struct MeshTunnelQueue *tq;
-  uint16_t size = ntohs (msg->size);
-
-  tq = GNUNET_malloc (sizeof (struct MeshTunnelQueue) + size);
-
-  tq->ch = ch;
-  memcpy (&tq[1], msg, size);
-  GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
-
-  if (MESH_TUNNEL3_READY == t->state)
-    GMT_send_queued_data (t, fwd);
-}
-
-
-/**
- * Send all cached messages that we can, tunnel is online.
- *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
- */
-void
-GMT_send_queued_data (struct MeshTunnel3 *t, int fwd)
-{
-  struct MeshTunnelQueue *tq;
-  struct MeshTunnelQueue *next;
-  unsigned int room;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "GMT_send_queued_data on tunnel %s\n",
-              GMT_2s (t));
-  room = GMT_get_buffer (t, fwd);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
-  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " data on channel %s\n", GMCH_2s (tq->ch));
-    next = tq->next;
-    room--;
-    GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
-    GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
-                                tq->ch, fwd);
-
-    GNUNET_free (tq);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GMT_send_queued_data end\n",
-       GMP_2s (t->peer));
-}
-
-
 /**
  * Initialize the tunnel subsystem.
  *
@@ -1126,6 +1137,11 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
               "Tunnel %s state is now %s\n",
               GMP_2s (t->peer),
               GMT_state2s (state));
+  if (MESH_TUNNEL3_WAITING == t->state)
+  {
+    send_queued_data (t, GNUNET_YES);
+    send_queued_data (t, GNUNET_NO);
+  }
   t->state = state;
   if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
   {
@@ -1672,6 +1688,11 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint64_t iv;
   uint16_t type;
 
+  if (MESH_TUNNEL3_READY != t->state)
+  {
+    queue_data (t, ch, message, fwd);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);

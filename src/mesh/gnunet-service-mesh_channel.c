@@ -1439,7 +1439,7 @@ GMCH_handle_local_create (struct MeshClient *c,
     msgcc.port = msg->port;
     msgcc.opt = msg->opt;
 
-    GMT_queue_data (t, ch, &msgcc.header, GNUNET_YES);
+    GMT_send_prebuilt_message (&msgcc.header, t, ch, GNUNET_YES);
   }
   return GNUNET_OK;
 }

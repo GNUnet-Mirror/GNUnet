@@ -1214,7 +1214,6 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     connection_change_state (c, MESH_CONNECTION_READY);
     GMT_change_state (c->t, MESH_TUNNEL3_READY);
     send_connection_ack (c, GNUNET_YES);
-    GMT_send_queued_data (c->t, GNUNET_YES);
     return GNUNET_OK;
   }
 
@@ -1224,7 +1223,6 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
     connection_change_state (c, MESH_CONNECTION_READY);
     GMT_change_state (c->t, MESH_TUNNEL3_READY);
-    GMT_send_queued_data (c->t, GNUNET_NO);
     return GNUNET_OK;
   }
 
