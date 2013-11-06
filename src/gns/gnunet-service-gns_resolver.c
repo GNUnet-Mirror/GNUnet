@@ -1201,6 +1201,13 @@ handle_gns2dns_result (void *cls,
   size_t sa_len;
 
   /* find suitable A/AAAA record */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u results for IP address of DNS server for GNS2DNS transition\n",
+              rd_count);
+  /* enable cleanup of 'rh' handle that comes next... */
+  GNUNET_CONTAINER_DLL_insert (rlh_head,
+			       rlh_tail,
+			       rh->g2dc->rh);
   rh->g2dc->rh = NULL;
   sa = NULL;
   sa_len = 0;
@@ -1285,6 +1292,10 @@ handle_gns2dns_result (void *cls,
   GNUNET_free (rh->g2dc->ns);
   GNUNET_free (rh->g2dc);
   rh->g2dc = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Will continue resolution using DNS server `%s' to resolve `%s'\n",
+              GNUNET_a2s (sa, sa_len),
+              ac->label);
   GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
                                     rh->ac_tail,
                                     ac);
@@ -1689,55 +1700,36 @@ handle_gns_resolution_result (void *cls,
 	/* resolution continues within DNS */
         struct Gns2DnsContext *g2dc;
         char *ip;
-        char *at;
-        char *cp;
         char *ns;
 
-        cp = GNUNET_strndup (rd[i].data,
-                             rd[i].data_size);
-        at = strchr (cp, '@');
-	if (NULL == at)
-	{
-	  GNUNET_break_op (0);
-	  rh->proc (rh->proc_cls, 0, NULL);
-	  GNS_resolver_lookup_cancel (rh);
-	  return;
-	}
-        *at = '\0';
         off = 0;
-        ns = GNUNET_DNSPARSER_parse_name (cp,
-                                          strlen (cp),
+        ns = GNUNET_DNSPARSER_parse_name (rd[i].data,
+                                          rd[i].data_size,
+                                          &off);
+        ip = GNUNET_DNSPARSER_parse_name (rd[i].data,
+                                          rd[i].data_size,
                                           &off);
         if ( (NULL == ns) ||
-             (off != strlen (cp)) )
-        {
-          GNUNET_break_op (0); /* record not well-formed */
-          rh->proc (rh->proc_cls, 0, NULL);
-          GNS_resolver_lookup_cancel (rh);
-          GNUNET_free (cp);
-          return;
-        }
-        off++; /* skip '@' */
-        ip = GNUNET_DNSPARSER_parse_name (cp,
-                                          strlen (at + 1),
-                                          &off);
-        if ( (NULL == ip) ||
+             (NULL == ip) ||
              (off != rd[i].data_size) )
         {
-          GNUNET_break_op (0); /* record not well-formed */
-          rh->proc (rh->proc_cls, 0, NULL);
-          GNS_resolver_lookup_cancel (rh);
-          GNUNET_free (ns);
-          GNUNET_free (cp);
+          GNUNET_break_op (0);
+          GNUNET_free_non_null (ns);
+          GNUNET_free_non_null (ip);
+	  rh->proc (rh->proc_cls, 0, NULL);
+	  GNS_resolver_lookup_cancel (rh);
           return;
         }
-        GNUNET_free (cp);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Resolving `%s' to determine IP address of DNS server for GNS2DNS transition\n",
+                    ip);
         /* resolve 'ip' to determine the IP(s) of the DNS
            resolver to use */
         g2dc = GNUNET_new (struct Gns2DnsContext);
         g2dc->ns = ns;
         g2dc->rh = GNUNET_new (struct GNS_ResolverHandle);
         g2dc->rh->authority_zone = rh->ac_tail->authority_info.gns_authority;
+        ip = translate_dot_plus (rh, ip);
         g2dc->rh->name = ip;
         g2dc->rh->name_resolution_pos = strlen (ip);
         g2dc->rh->proc = &handle_gns2dns_result;
