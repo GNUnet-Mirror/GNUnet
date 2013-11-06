@@ -290,7 +290,7 @@ ping_encryption_size (void)
  * @param t Tunnel on which the message came.
  * @param msg The ephemeral key message.
  *
- * @return \GNUNET_OK if message is fine, \GNUNET_SYSERR otherwise.
+ * @return GNUNET_OK if message is fine, GNUNET_SYSERR otherwise.
  */
 int
 check_ephemeral (struct MeshTunnel3 *t, 
