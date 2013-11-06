@@ -2,9 +2,17 @@
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 TEST_DOMAIN="homepage.gnu"
+# some public DNS resolver we can use
 TEST_IP_GNS2DNS="184.172.157.218"
 TEST_RECORD_NAME="homepage"
 TEST_RECORD_GNS2DNS="gnunet.org"
+
+if ! nslookup $TEST_RECORD_GNS2DNS $TEST_IP_GNS2DNS &> /dev/null
+then
+  echo "Cannot reach DNS, skipping test"
+  exit 0
+fi
+
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C testego -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME -t GNS2DNS -V ${TEST_RECORD_GNS2DNS}@${TEST_IP_GNS2DNS} -e never -c test_gns_lookup.conf

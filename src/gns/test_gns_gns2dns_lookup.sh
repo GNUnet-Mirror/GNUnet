@@ -17,6 +17,12 @@ TEST_DOMAIN="www.${TEST_RECORD_NAME}.gnu"
 TEST_DOMAIN_ALT="${TEST_RECORD_NAME}.gnu"
 TEST_DOMAIN_ALT2="uk.${TEST_RECORD_NAME}.gnu"
 
+if ! nslookup gnunet.org $TEST_IP_GNS2DNS &> /dev/null
+then
+  echo "Cannot reach DNS, skipping test"
+  exit 0
+fi
+
 # helper record for pointing to the DNS resolver
 TEST_RESOLVER_LABEL="resolver"
 # GNS2DNS record value: delegate to DNS domain 'gnunet.org'
