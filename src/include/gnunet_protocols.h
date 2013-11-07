@@ -817,11 +817,23 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               261
 
 /**
- * Key exchange messages.
+ * Key exchange encapsulation.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_KX                     262
+
+/**
+ * New ephemeral key.
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL           263
+
+/**
+ * Challenge to test peer's session key.
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_KX_PING                264
+
+/**
+ * Answer to session key challenge.
+ */
 #define GNUNET_MESSAGE_TYPE_MESH_KX_PONG                265
 
 /**
