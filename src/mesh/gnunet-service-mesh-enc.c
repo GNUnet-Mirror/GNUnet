@@ -155,8 +155,6 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
 
   stats = GNUNET_STATISTICS_create ("mesh", c);
@@ -165,9 +163,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "reading key\n");
-  pk = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
-  GNUNET_assert (NULL != pk);
-  my_private_key = pk;
+  my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (c);
+  GNUNET_assert (NULL != my_private_key);
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -200,6 +197,7 @@ main (int argc, char *const *argv)
   fprintf (stderr, "main()\n");
   r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
+  GNUNET_free (my_private_key);
   ret = (GNUNET_OK == r) ? 0 : 1;
   fprintf (stderr, "main() END\n");
 
